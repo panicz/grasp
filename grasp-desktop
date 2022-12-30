@@ -1,0 +1,3 @@
+#!/bin/sh
+java -cp "./libs/kawa.jar:." kawa.repl --no-warn-unreachable \
+     -f src/grasp-desktop.scm
