@@ -1,0 +1,106 @@
+* GRASP: The GRAphical Scheme Programming Environment
+
+This is the repository of the GRASP project, which
+is intended to be an extensible editor of s-expressions
+optimized for interacting via touch screen.
+
+GRASP is still work in progress, and isn't yet mature
+enough to perform even the most basic editing tasks
+(but each day this moment is getting closer).
+
+It comes in three flavours: an Android client,
+a desktop client and a terminal client.
+
+** Building the Android client
+
+I only have experience building the Android client
+in a Termux app on Android devices. It requires
+the tools that are installed for the
+[[https://github.com/BuildAPKs/buildAPKs][buildAPKs]] project (you can review the ~build-android.sh~
+script for the details).
+
+If the termux storage is set up properly,the script tries 
+to copy the APK to the ~Download/GRASP~ directory of the Android
+
+If those dependencies are satisfied, it should be sufficient
+to type in the terminal:
+
+#+BEGIN_SRC bash
+./build-android.sh
+#+END_SRC
+
+On the first run, it generates and stores a key for signing
+the package - if you want to be serious about it, you'd
+probably need to update the credentials.
+
+** Running and/or building the desktop/terminal client
+
+Both terminal and desktop clients can either be run
+directly from source, or precompiled to ~.jar~ files.
+
+In both cases, they require the Java Runtime Environment
+to be present on the system.
+
+In order to run the clients directly from the source,
+it should be sufficient to run
+
+#+BEGIN_SRC bash
+./grasp-terminal
+#+END_SRC
+
+to run the terminal client, or
+
+#+BEGIN_SRC bash
+./grasp-desktop
+#+END_SRC
+
+to run the desktop client. 
+
+This operation recompiles all the sources every time
+it is run, so it can take considerable amount of time,
+especially on slower machines. Therefore it can make sense
+to pre-compile all the sources before running.
+
+This can be achieved by running
+
+#+BEGIN_SRC bash
+./build-terminal.sh
+#+END_SRC
+
+for the terminal client, and
+
+#+BEGIN_SRC bash
+./build-desktop.sh
+#+END_SRC
+
+for the desktop client.
+
+After the operation is done, the terminal client can be invoked
+by running
+
+#+BEGIN_SRC bash
+java -jar build/grasp-terminal.jar
+#+END_SRC
+
+and the desktop client - by running
+
+#+BEGIN_SRC bash
+java -jar build/grasp-desktop.jar
+#+END_SRC
+
+The ~.jar~ files generated this way contain all the required
+dependencies, which - in the case of the desktop client - means
+just the [[https://www.gnu.org/software/kawa/][Kawa]] compiler, and in the case of the terminal client
+- also the [[https://github.com/mabe02/lanterna][Lanterna]] library for terminal rendering.
+
+(Both dependencies are included in the ~libs~ directory.)
+
+** Older prototypes
+
+The older prototypes of GRASP (for Android only) can be found
+in the [[https://github.com/panicz/grasp-android]] repository
+(which is now archived).
+
+There is an even older prototype which runs in Racket, and
+which can be found in the [[https://github.com/panicz/sracket]]
+repository (the ~5.rkt~ file).
