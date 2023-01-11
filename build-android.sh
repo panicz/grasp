@@ -29,7 +29,7 @@ java -cp "../libs/kawa.jar:../libs/android.jar:../build/android/obj" \
 cd ..
 
 d8 --min-api 23 --lib libs/android.jar \
-   `find build/android/obj -name '*.class'` libs/kawa.jar || exit
+   `find build/android/obj -name '*.class'` libs/kawa.dex || exit
 
 mv classes.dex build/android/bin/
 
