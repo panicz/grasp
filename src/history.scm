@@ -238,14 +238,3 @@
 				  with-shift: shift)))
     (history:record! action)
     action))
-
-(define/kw (insert! element
-		    into: document := (the-document)
-		    at: cursor::Cursor)
-  ::Insert
-  (let ((action ::Insert (Insert element: element
-				 at: cursor))
-	(history ::History (history document)))
-    (action:apply! document)
-    (history:record! action)
-    action))

@@ -183,9 +183,11 @@
 	     (and-let* ((`(,heir . ,origin) root)
 			(predecesor ::pair (cursor-ref document
 						       origin))
-			(parent (drop (quotient heir 2) predecesor))
-			(following-space ::Space (split-space! target
-							       tip)))
+			(parent (drop (quotient heir 2)
+				      predecesor))
+			(following-space ::Space (split-space!
+						  target
+						  tip)))
 	       (set! (car following-space:fragments)
 		 (max (if (null? (car parent)) 0 1)
 		      (- (car following-space:fragments)
@@ -216,8 +218,10 @@
 					     (split-space! target
 							   tip)))
 			(set! (car following-space:fragments)
-			      (max 1 (- (car following-space:fragments)
-					1)))
+			      (max
+			       (- (car following-space:fragments)
+				  1)
+			       1))
 			(set! (pre-tail-space before)
 			  following-space))
 		      (set! (cdr before) (car (cdr before)))
