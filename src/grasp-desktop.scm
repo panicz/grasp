@@ -18,7 +18,7 @@
 (import (functions))
 (import (for))
 (import (while))
-(import (panel))
+(import (pane))
 (import (indexable))
 (import (painter))
 (import (print))
@@ -600,6 +600,11 @@ automatically by the AWT framework."))
   (addMouseListener (this))
   (addMouseMotionListener (this))
   )
+
+(define-parameter (ctrl-pressed?) ::boolean #f)
+(define-parameter (shift-pressed?) ::boolean #f)
+(define-parameter (alt-pressed?) ::boolean #f)
+(define-parameter (meta-pressed?) ::boolean #f)
 
 (define-object (window-screen)::InputListener
 
