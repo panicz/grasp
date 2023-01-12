@@ -145,73 +145,74 @@
 (define previous-mouse ::Position (Position))
 
 (define (edit io :: LanternaScreen)::void
-  (let* ((key ::KeyStroke (io:readInput))
-	 (type ::KeyType (key:getKeyType))
-	 (caret ::TerminalPosition (io:getCursorPosition)))
+  (let loop ()
+    (let* ((key ::KeyStroke (io:readInput))
+	   (type ::KeyType (key:getKeyType))
+	   (caret ::TerminalPosition (io:getCursorPosition)))
 
-    ;; powinnismy sobie wymyslic jakas warstwe abstrakcji,
-    ;; ktora obslugiwalaby klawisze:
-    ;; - z lanterny
-    ;; - z jakichs natywnych interfejsow javowych
-    ;; - z API androida
+      ;; powinnismy sobie wymyslic jakas warstwe abstrakcji,
+      ;; ktora obslugiwalaby klawisze:
+      ;; - z lanterny
+      ;; - z jakichs natywnych interfejsow javowych
+      ;; - z API androida
 
-    (parameterize ((ctrl-pressed? (key:ctrl-down?))
-		   (alt-pressed? (key:alt-down?))
-		   (shift-pressed? (key:shift-down?)))
-      
-      (match type
-	(,KeyType:Character
-	 (invoke (the-top-panel) 'key-typed!
-		 (invoke (key:getCharacter) 'charValue)))
-	(,KeyType:EOF
-	 (io:stopScreen)
-	 (exit))
+      (parameterize ((ctrl-pressed? (key:ctrl-down?))
+		     (alt-pressed? (key:alt-down?))
+		     (shift-pressed? (key:shift-down?)))
+	
+	(match type
+	  (,KeyType:Character
+	   (invoke (the-top-panel) 'key-typed!
+		   (invoke (key:getCharacter) 'charValue)))
+	  (,KeyType:EOF
+	   (io:stopScreen)
+	   (exit))
 
-	(,KeyType:MouseEvent
-	 (let* ((action ::MouseAction
-			(as MouseAction key))
-		(position ::TerminalPosition
-			  (action:getPosition))
-		(left (position:getColumn))
-		(top (position:getRow)))
-	   (cond ((action:isMouseMove)
-		  (values))
-		 ((action:isMouseDown)
-		  
-		  (match (action:getButton)
-		    (,MouseButton:Left
-		     (invoke (the-top-panel) 'press! 0 #;at left top)
-		     (set! previous-mouse:left left)
-		     (set! previous-mouse:top top))
-		    (,MouseButton:Right
-		     (values))
-		    (_
-		     (values))))
-		 ((action:isMouseDrag)
-		  (invoke (the-top-panel)
-			  'move! 0 left top
-			  (- left previous-mouse:left)
-			  (- top previous-mouse:top))
+	  (,KeyType:MouseEvent
+	   (let* ((action ::MouseAction
+			  (as MouseAction key))
+		  (position ::TerminalPosition
+			    (action:getPosition))
+		  (left (position:getColumn))
+		  (top (position:getRow)))
+	     (cond
+	      ((action:isMouseMove)
+	       (values))
+	      ((action:isMouseDown)
+	       
+	       (match (action:getButton)
+		 (,MouseButton:Left
+		  (invoke (the-top-panel) 'press! 0 #;at left top)
 		  (set! previous-mouse:left left)
 		  (set! previous-mouse:top top))
+		 (,MouseButton:Right
+		  (values))
+		 (_
+		  (values))))
+	      ((action:isMouseDrag)
+	       (invoke (the-top-panel)
+		       'move! 0 left top
+		       (- left previous-mouse:left)
+		       (- top previous-mouse:top))
+	       (set! previous-mouse:left left)
+	       (set! previous-mouse:top top))
 
-		 ((action:isMouseUp)
-		  (invoke (the-top-panel)
-			  'release! 0 left top
-			  (- left previous-mouse:left)
-			  (- top previous-mouse:top))
-		  (set! previous-mouse:left left)
-		  (set! previous-mouse:top top)))))
-	
-	(_
-	 (invoke (the-top-panel) 'key-pressed! type))))
-    
-    (synchronized screen-up-to-date?
-      (set! (screen-up-to-date?) #f)
-      (invoke screen-up-to-date? 'notify))
-
-    (edit io)
-    ))
+	      ((action:isMouseUp)
+	       (invoke (the-top-panel)
+		       'release! 0 left top
+		       (- left previous-mouse:left)
+		       (- top previous-mouse:top))
+	       (set! previous-mouse:left left)
+	       (set! previous-mouse:top top)))))
+	  
+	  (_
+	   (invoke (the-top-panel) 'key-pressed! type))))
+      
+      (synchronized screen-up-to-date?
+	(set! (screen-up-to-date?) #f)
+	(invoke screen-up-to-date? 'notify))
+      (loop)
+      )))
 
 (define-object (TerminalPainter screen::LanternaScreen)::Painter
   
@@ -283,8 +284,7 @@
 (define (run-in-terminal
 	 #!optional
 	 (io :: LanternaScreen (make-terminal-screen)))
-  :: void
-
+  :: void  
   (set! (on-key-press KeyType:ArrowLeft)
 	(lambda ()
 	  (move-cursor-left!
@@ -323,6 +323,10 @@ mutations of an n-element set.\"
 (Button action: (lambda () (WARN \"button pressed!\"))
         label: \"Press me!\")
 " parse-document))))
+
+    (safely
+     (load "assets/init.scm"))
+    
     (io:startScreen)
     (let* ((editing (future (edit io)))
 	   (rendering (future (render io))))

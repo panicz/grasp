@@ -1,0 +1,435 @@
+* 12.01.2023
+
+No dobra, to teraz - zeby byla jasnosc - zaczynamy
+od uwspolnionego systemu obslugi zdarzen, w ktorym
+bedzie tylko zdarzenie 'key-typed', a funkcje beda
+definiowane w pliku init.scm.
+
+Na razie nie robmy hierarchicznej obslugi, bo to
+moze byc overengineering.
+
+Dopiero jak to bedzie gotowe, zajmiemy sie 'wstawianiem
+znakow', ze szczegolnym uwzglednieniem aspektu historii
+/cofania.
+
+
+* 11.01.2023
+
+trzeba obmyslic strategie implementacji
+nowego podsystemu wprowadzania
+
+W androidzie mamy:
+getKeyCode(), getScanCode(), getMetaState()
+
+
+w androidzie chcemy zmienic podsystem zdarzen
+tak zeby na razie po prostu wypluwal zdarzenie
+do logow
+
+
+(active-pointers) ::(list-of int)
+
+(pointer-position index::int) ::Position
+
+(unicode-input)::char
+
+w KeyboardEvent z awt mamy metode getKeyChar,
+ktora zwraca kod albo CHAR_UNDEFINED.
+
+(define-mapping (key-handler key-code)::(maps () to: void)
+  (lambda ()::void
+    (and-let* ((c (unicode-input)))
+      (insert-character! c))))
+
+Jeszcze trzeba rozwazyc opcje dodawania trybow,
+tak zeby mozna bylo przeslaniac sobie tablice znakow
+w roznych kontekstach.
+
+
+(define-type (KeyMap bindings: (maps (key::int) to: () to: void)
+                     parent: KeyMap))
+      
+* 10.01.2023
+
+Wczorajszybi dzisiejszy dzien to glownie
+walka z ewaluacja w kliencie androidowym
+(i to trzeba odnotowac)
+
+
+Jutro j pojutrze beda comity:
+- ocpowiedziec na issue
+- commitnw grasp-android
+
+- zarchiwizowac grasp-android
+- scomitowac zmiany tutaj
+
+Na razie plan jest taki, ze chcemy
+ujednolicic konfiguracje po stronie
+androida, terminala i awt, szukajac
+najwiekzzsgo wxpolnego mianownika
+
+nastepnie bysmy te konfiguracje
+przeniesli do init.scm
+
+nastepnie bysmy juz zaczeli walke
+z podpinaniem funkcji do edycji
+dokumentu
+
+fajnie by bylo to zrobic do konca
+stycznia - i jeszcze obsluge
+komentarzy w rendererze, oraz
+otwieranie i zapisywanie plikow
+oraz podzial ekranu
+
+na pewno tez troche pracy bedzie
+trzeba poswiecic zeby dopiescic
+klienta awt
+
+na dalszy ogien idzie mechanizm
+rozszerzen oraz ewaluacja wyrazen
+roraz juz partykularne rozszerzenia
+(Img src: ...), wizualny ewaluator,
+edytor grafow, chmura punktow
+
+natomiast priorytetem powinno
+byc doproeadzenie do sytuacji
+w ktorej GRASP rozwijamy w GRASP,
+a nie w Emacsie
+
+----------------------------------
+
+ok, to co teraz robimy?
+
+trzeba bedzie rozehrac zdarzemia
+z awt na kawalki
+
+moze warto zrobic tabelke
+
+|---------+------------+-------------+-----------|
+| system  | press      | release     | type      |
+|---------+------------+-------------+-----------|
+| AWT     | keyPressed | keyReleasee | keyTyped  |
+|---------+------------+-------------+-----------|
+| Lantrna |            |             | readInput |
+|---------+------------+-------------+-----------|
+| Android | onKeyDown  | onKeyUp     |           |
+|---------+------------+-------------+-----------|
+
+Ok, i teraz co?
+
+Teraz musimy odwzorowac klawisze i sekwencje
+w ich nazwy. Na przyklad
+
+(on-key '(ctrl alt shit x) cut-selection!)
+
+czy cos
+
+i teraz bysmy sobie zrobili takie cos,
+ze tlumaczylibysmy sekwencje na wartosc
+typu long, i systemy zdarzen w poszczegolnych
+klientach robilyby to samo - i mielibysmy
+tablice haszujaca, ktora mapuje nam
+klawisze na odpowiednie procedury
+
+Poniewaz jednak nie chcemy tracic
+dotychczasowej funkcjonalnosci,
+moze wypiszmy sobie jakie do tej porg
+mielismy wiazania w poszczegolnych
+klienach:
+
+** klient terminalowy:
+
+  (set! (on-key-press KeyType:ArrowLeft)
+	(lambda ()
+	  (move-cursor-left!
+	   selection: (if (shift-pressed?)
+			  SelectionAction:resize
+			  SelectionAction:discard))))
+
+  (set! (on-key-press KeyType:ArrowRight)
+	(lambda ()
+	  (move-cursor-right!
+	   selection: (if (shift-pressed?)
+			  SelectionAction:resize
+			  SelectionAction:discard))))
+
+  (set! (on-key-press KeyType:ArrowUp)
+	move-cursor-up!)
+
+  (set! (on-key-press KeyType:ArrowDown)
+	move-cursor-down!)
+
+  (set! (on-key-type #\x) exit)
+
+** klient desktopowy
+
+  (set! (on-key-press KeyEvent:VK_LEFT)
+	(lambda _
+	  (move-cursor-left!
+	   selection: (if (shift-pressed?)
+			  SelectionAction:resize
+			  SelectionAction:discard))))
+
+  (set! (on-key-press KeyEvent:VK_RIGHT)
+	(lambda _
+	  (move-cursor-right!
+	   selection: (if (shift-pressed?)
+			  SelectionAction:resize
+			  SelectionAction:discard))))
+
+  (set! (on-key-press KeyEvent:VK_UP)
+	move-cursor-up!)
+
+  (set! (on-key-press KeyEvent:VK_DOWN)
+	move-cursor-down!)
+
+  (set! (on-key-press KeyEvent:VK_Z)
+	(lambda ()
+	  (if (ctrl-pressed?)
+	      (let ((history ::History (history (the-document))))
+		(history:undo!)))))
+
+  (set! (on-key-press KeyEvent:VK_Y)
+	(lambda ()
+	  (if (ctrl-pressed?)
+	      (let ((history ::History (history (the-document))))
+		(history:redo!)))))
+
+** klient androidowy:
+
+    (set! (on-key-press KeyEvent:KEYCODE_DPAD_LEFT)
+      (lambda _
+	(move-cursor-left!
+	 selection: (if (shift-pressed?)
+			SelectionAction:resize
+			SelectionAction:discard))))
+
+    (set! (on-key-press KeyEvent:KEYCODE_DPAD_RIGHT)
+      (lambda _
+	(move-cursor-right!
+	 selection: (if (shift-pressed?)
+			SelectionAction:resize
+			SelectionAction:discard))))
+
+    (set! (on-key-press KeyEvent:KEYCODE_DPAD_UP)
+      move-cursor-up!)
+
+    (set! (on-key-press KeyEvent:KEYCODE_DPAD_DOWN)
+      move-cursor-down!)
+
+
+* 09.01.2023
+
+wyglada na to, ze mamy takie problemy
+implementacyjne:
+- w wersji skompilowanej, init.scm musi
+  ladowac moduly, z ktorych korzysta
+- ale trzy klienty beda musialy definiowac
+  on-key na swoj sposob
+- ale czy rzeczywiscie?
+
+Definicja on-key bedzie taka sama, tylko
+sposob wywolania bedzie rozny.
+
+Teraz trzeba:
+
+- usunac key-pressed! i key-released! z (panel),
+  moze tez zmienic nazwe na (pane)
+
+- zrobic jakos tak, zeby wywolywac odpowiednia
+  funkcje dla kazdego klienta
+
+* 08.01.2023
+
+plan jak na razie wyglada zacnie.
+
+jego realizacje zaczelibysmy od tego, ze kazdy
+klient wykonywalby plik init.scm - na poczatku
+to moze byc po prostu wypisanie loga albo cos.
+
+co wiecej, zmiany w kliencie desktopowym
+i terminalowym mozemy robic na laptopie
+
+* 07.01.2023
+
+Usunelismy funkcje "insert!", ale jest pewien
+problem z testowaniem - na telefonie mozemy
+jedynie przetestowac dzialanie aplikacji
+na telefon.
+
+Poza tym jest jeszcze kwestia taka, ze chcielibysmy
+zbudowac przenosny interfejs wwjscia/wyjscia
+pomiedzy klientami - cos w rodzaju
+
+(on-key '(ctrl z) undo!)
+
+(on-key '(ctrl y) redo!)
+
+i wowczas bysmy sobie zdefiniowali:
+
+(on-key 'space insert-space!)
+
+(on-key 'backspace delete-backward!)
+
+(on-key 'delete delete-forward!)
+
+(on-key 'enter insert-newline!)
+
+(on-key 'left move-cursor-left!)
+
+(on-key '(shift left) expand-selection-left!)
+
+(on-key 'right move-cursor-right!)
+
+(on-key '(shift right) expand-selection-right!)
+
+Mielibysmy tez takie funkcje:
+
+(active-pointers) ::int
+
+(pointer-position index::int) ::Position
+
+(unicode-input)::char
+
+Bedziemy chcieli miec plik init.scm, zawierajacy
+powyzsze definicje.
+
+Od strony implementacyjniej bysmy chcieli miec:
+- bezposrednia tablice
+- tablice shift dla klawiszy sterujaych
+- tablice ctrl
+- tablice alt
+- tablice ctrl+alt
+- tablice ctrl+shift
+- tablice alt+shift
+- tablice ctrl+alt+shift
+
+Albo nawet nie. Moze byc jedna tablica.
+
+* 06.01.2023
+
+Idealnie byloby, gdybysmy nie dodawali
+zadnych nowych operacji, tylko poprzestali
+na Move, Remove oraz Insert.
+
+Dzielenie atomu odbywaloby sie na zasadzie
+wstawienia spacji w atom, laczenie - na zasadzie
+usuniecia spacji itd.
+
+Trzeba to bedzie sobie rozpisac.
+Move -> take-cell!, splice!
+Remove -> take-cell!
+Insert -> splice!
+
+Trzeba bedzie pozmieniac nazwy:
+1. insert! z modulu (history) na cos (to trywialna
+   funkcja uzyta w jednym miejscu w (panel))
+2. ze splice! na insert!
+3. z take-cell! na extract!
+
+I teraz: funkcje (nowe) insert! i extract!
+bedziemy musieli zmienic tak, zeby dzialaly
+w roznych konfiguracjach
+
+(docelowo do extract! bedziemy chcieli
+jeszcze dodac argument numeryczny, tak
+zeby moc uzywac tej funkcji do obslugi
+selekcji, zas splice! rowniez bedzie
+trzeba do tego celu przysposobic)
+
+No dobra, ale teraz chyba bedzie trzeba
+rozwazyc
+
+1. extract! [atom/pudelko z wnetrza pudelka]
+   - juz obsluzone: wydobywamy element
+     z wnetrza pudelka
+2. extract! [spacje spomiedzy atomow]
+   - laczymy dwa atomy w jeden3. extract! [spacje spomiedzy dwoch pudelek]
+   - doklejamy drugie pudelko na koncu
+     pierwszego
+4. extract! [spacje spomiedzy dwoch tekstow]
+   - laczymy teksty ze soba
+5. extract! [z wnetrza atomu albo tekstu]
+   - powinnismy usunac znak znajdujacy sie przed
+     kursorem (jeden lub wiecej w przypadku selekcji)
+6. extract! [spacje spomiedzy dwoch roznych typow]
+   - nic nie robimy (zwracamy #!null)
+
+i teraz insert! analogicznie:
+
+1. splice! [lista do spacji]
+   - juz obsluzone (wklejamy liste pomiedzy element
+     poprzedzajacy spacjena kolejny element)
+2. splice! [spacja do atomu]
+   - rozbijamy atom na dwa
+3. splice! [spacje do spacji]
+   - to sie moze wydawac nieco nieintuicyjne,
+     ale powinnismy rozbic jedno pudelko na dwa
+     na elementach rozdzielanych przez spacje
+4. splice! [spacje do tekstu]
+   - tak jak w przypadkh atomow, powinnismy
+     rozbic jeden tekst na dwa
+5. splice! [lista znakow do atomu albo tekstu]
+   - dodajemy znaki do atomu za kursorem
+
+1. extract-tile! at: Cursor from: document
+   splice-list! list at: Cursor into: document
+2. merge-atoms! at: Cursor in: document
+   split-atom! at: Cursor in: document
+3. merge-boxes! at: Cursor in: document
+   split-box! at: Cursor in: document
+4. merge-texts! at: Cursor in document
+   split-text! at: Cursor in: document
+5. remove-characters! at: Cursor from: document
+   insert-charactets! at: Cursor into: document
+   
+* 02.01.2023
+
+Dwie pierwsze zmiany w nowym roku:
+- archiwizacja grasp-android
+- odpowiedziec na "issue" w nowym repo
+
+Natomiast to, czym teraz bysmy sie chcieli
+zajac, to edycja dokumentow z klawiatury,
+czyli:
+
+- jak piszemy [, to tworzymy nowe puste pudelko
+- jak piszemy ]. to wychodzimy z pudelka
+
+W kazdym razie to sie dzieje w kontekscie
+pudelek - bo w przypadku Textu dla niesterujacych
+znakow zawsze owe znaki dopisujemy (pewnym wyjatkiem
+moze byc \, ale to jeszcze trzeba przemyslec)
+
+- jak piszemy ", to tworzymy nowy Text
+
+jak wciskamy znak drukowalny, to:
+- jezeli jestesmy na spacji, to tworzymy
+  nowy atom
+- jezeli jestesmy na atomie, to dopisujemy
+  znak
+
+Wyjatki:
+- wcisniecie spacji, gdy jestesmy na spacji,
+  dodaje spacje pozioma
+- wcisniecie entera dodaje spacje pionowa
+- wcisniecie spacji albo entera na atomie
+  powoduje rozbicie atomu (chyha ze jestesmy
+  na ostatniej pozycji - wtedy edytujemy
+  nastepujaca spacje)
+
+Trzeba bedzie zaczac od napisanis testow
+dla takiego czegos, oraz dodac odpowiednie
+operacjendo historii edycji
+
+Rowniez chcielibysmy obsluzyc dzialanie
+klawisza backspace.
+
+Jezeli idzie o historie, to mozemy zamodelowac:
+- rozszczepienie atomu jako wstawienie spacji
+- scalenie atomu jako usuniecie spacji
+
+Dzieki temu nie musimy dodawac nowych operacji
+do historii.
+
+Mamy zatem do dodania nastepujace operacje:

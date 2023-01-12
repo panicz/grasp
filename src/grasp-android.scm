@@ -95,6 +95,16 @@
   (define NotoSerif-Regular ::Typeface
     (load-font "NotoSerif-Regular.ttf" activity))
 
+  (define assets ((activity:getAssets):list ""))
+  
+  (define init-script
+    (let* ((assets ::android.content.res.AssetManager
+		   (activity:getAssets))
+	   (input (gnu.kawa.io.InPort
+		   (java.io.InputStreamReader
+		    (assets:open "init.scm")))))
+      (safely (read-all input))))
+  
   (define the-atom-font ::parameter[Font]
     (make-parameter
      (Font face: LobsterTwo-Regular #;Basic-Regular
@@ -256,7 +266,7 @@
   (define shiftLeft ::real 0)
   (define shiftTop ::real 0)
 
-  (define (translate! x::real y::real)::void
+  (define (translate! x ::real y ::real)::void
     (canvas:translate x y)
     (set! shiftLeft (+ shiftLeft x))
     (set! shiftTop (+ shiftTop y)))
@@ -716,6 +726,11 @@ ue
   
   (define (onCreate savedState::Bundle)::void
     (invoke-special AndroidActivity (this) 'onCreate savedState)
+    (set! (current-message-handler) (ScreenLogger 100))
+    (let ((scheme ::gnu.expr.Language (or kawa.standard.Scheme:instance
+					  (kawa.standard.Scheme))))
+      (kawa.standard.Scheme:registerEnvironment)
+      (gnu.mapping.Environment:setCurrent (scheme:getEnvironment)))
     (initialize-activity (this))
     (set! gesture-detector (GestureDetector (this) (this)))
     (set! view (View (this)))
@@ -727,7 +742,7 @@ ue
       (set! screen-extent:width metrics:widthPixels)
       (set! screen-extent:height metrics:heightPixels))
 
-    (set! (current-message-handler) (ScreenLogger 100))
+
     (setContentView view)
     (set! (the-painter) view)
     
@@ -751,6 +766,12 @@ ue
     (set! (on-key-press KeyEvent:KEYCODE_DPAD_DOWN)
       move-cursor-down!)
 
+    ;;(safely (load "assets/init.scm" (interaction-environment)))
+
+    (for expression in init-script
+	 (safely
+	  (eval expression)))
+    
     (when (is (the-top-panel) instance? Editor)
       (let ((editor ::Editor (as Editor (the-top-panel))))
 	(set! editor:document
