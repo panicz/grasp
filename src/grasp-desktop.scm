@@ -747,6 +747,9 @@ mutations of an n-element set.\"
         label: \"Press me!\")
 " parse-document))))
 
+  (safely 
+   (load "assets/init.scm"))
+
   (window-screen))
 
 (run-in-AWT-window)

@@ -103,4 +103,5 @@
    (begin actions ...)
    (ex java.lang.Throwable
        (for line in (take 4 (string-split (stack-trace ex) "\n"))
-	 (WARN line)))))
+	    (WARN line))
+       #!null)))
