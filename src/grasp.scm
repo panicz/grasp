@@ -20,7 +20,7 @@
 ;(import (for))
 ;(import (while))
 #|
-(import (panel))
+(import (pane))
 (import (indexable))
 
 (import (print))

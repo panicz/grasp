@@ -14,7 +14,7 @@
 (import (for))
 (import (while))
 (import (traversal))
-(import (panel))
+(import (pane))
 (import (indexable))
 (import (painter))
 (import (print))
@@ -24,7 +24,7 @@
 (import (conversions))
 (import (cursor))
 (import (editor-operations))
-;;(import (input))
+(import (input))
 ;;(import (primitive))
 
 (define-alias Bundle android.os.Bundle)
@@ -703,6 +703,7 @@ ue
 	    #f)))))
 
   (define (onKeyUp keyCode::int event::KeyEvent)::boolean
+    (WARN "onKeyUp "event)
     (parameterize ((ctrl-pressed? (event:ctrl-pressed?))
 		   (alt-pressed? (event:alt-pressed?))
 		   (shift-pressed? (event:shift-pressed?))
@@ -712,6 +713,7 @@ ue
 	       keyCode))))
 
   (define (onKeyDown keyCode::int event::KeyEvent)::boolean
+    (WARN "onKeyDown "event)
     (parameterize ((ctrl-pressed? (event:ctrl-pressed?))
 		   (alt-pressed? (event:alt-pressed?))
 		   (shift-pressed? (event:shift-pressed?))
