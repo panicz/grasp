@@ -44,7 +44,7 @@
 ;; so that we can only see their (value).
 ;; But if we're not (evaluating?), then we can
 ;; see (and operate on) Shadowed elements  themselves.
-(define-parameter (evaluating?) ::boolean #f)
+(define-parameter (evaluating?) ::Object #f)
 
 (define (editing?) ::boolean
   (not (evaluating?)))

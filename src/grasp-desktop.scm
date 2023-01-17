@@ -30,6 +30,7 @@
 (import (parse))
 (import (editor-operations))
 (import (history))
+(import (desktop-keymap))
 
 (define-alias Font java.awt.Font)
 (define-alias FontMetrics java.awt.FontMetrics)
@@ -39,7 +40,7 @@
   (java.lang.ClassLoader:getSystemClassLoader))
 
 (define-alias FocusEvent java.awt.event.FocusEvent)
-(define-alias KeyEvent java.awt.event.KeyEvent)
+;;(define-alias KeyEvent java.awt.event.KeyEvent)
 (define-alias ComponentEvent java.awt.event.ComponentEvent)
 
 (define-alias MouseEvent java.awt.event.MouseEvent)
@@ -650,43 +651,17 @@ automatically by the AWT framework."))
 	(repaint))))
 
   (define (keyTyped event::KeyEvent)::void
-   ;;(display (event:toString))
-   ;;(newline)
-   ;;(flush-output-port)
-   (parameterize ((ctrl-pressed? (event:control-down?))
-		  (alt-pressed? (event:alt-down?))
-		  (shift-pressed? (event:shift-down?))
-		  (meta-pressed? (event:meta-down?)))
-     (invoke (the-top-panel) 'key-typed!
-	     (event:getKeyChar))
-     (invoke (as screen-renderer (the-painter)) 'repaint)
-     (repaint)))
-
-  (define (keyReleased event::KeyEvent)::void
-   ;;(display (event:toString))
-   ;;(newline)
-   ;;(flush-output-port)
-   (parameterize ((ctrl-pressed? (event:control-down?))
-		  (alt-pressed? (event:alt-down?))
-		  (shift-pressed? (event:shift-down?))
-		  (meta-pressed? (event:meta-down?)))
-     (invoke (the-top-panel) 'key-released!
-	     (event:getKeyCode))
-     (invoke (as screen-renderer (the-painter)) 'repaint)
-     (repaint)))
-
-  (define (keyPressed event::KeyEvent)::void
-   ;;(display (event:toString))
-   ;;(newline)
-   ;;(flush-output-port)
-   (parameterize ((ctrl-pressed? (event:control-down?))
-		  (alt-pressed? (event:alt-down?))
-		  (shift-pressed? (event:shift-down?))
-		  (meta-pressed? (event:meta-down?)))
-     (invoke (the-top-panel) 'key-pressed!
-	     (event:getKeyCode))
-     (invoke (as screen-renderer (the-painter)) 'repaint)
-     (repaint)))
+    (let ((typed ::int (event:getKeyChar)))
+      (parameterize ((unicode-input (if (eqv? typed KeyEvent:CHAR_UNDEFINED)
+					#\null
+					typed)))
+	(invoke (the-top-panel) 'key-typed!
+		(as long (bitwise-ior
+			  (as long (event:getKeyCode))
+			  (if (event:control-down?) CTRL_MASK 0)
+			  (if (event:alt-down?) ALT_MASK 0)
+			  (if (event:shift-down?) SHIFT_MASK 0))))
+	(repaint))))
 
   (define (componentResized event::ComponentEvent)::void
     (slot-set! (the-screen-extent) 'width
@@ -704,38 +679,7 @@ automatically by the AWT framework."))
 
 
 (define (run-in-AWT-window)::void
-  (set! (on-key-press KeyEvent:VK_LEFT)
-	(lambda _
-	  (move-cursor-left!
-	   selection: (if (shift-pressed?)
-			  SelectionAction:resize
-			  SelectionAction:discard))))
-
-  (set! (on-key-press KeyEvent:VK_RIGHT)
-	(lambda _
-	  (move-cursor-right!
-	   selection: (if (shift-pressed?)
-			  SelectionAction:resize
-			  SelectionAction:discard))))
-
-  (set! (on-key-press KeyEvent:VK_UP)
-	move-cursor-up!)
-
-  (set! (on-key-press KeyEvent:VK_DOWN)
-	move-cursor-down!)
-
-  (set! (on-key-press KeyEvent:VK_Z)
-	(lambda ()
-	  (if (ctrl-pressed?)
-	      (let ((history ::History (history (the-document))))
-		(history:undo!)))))
-
-  (set! (on-key-press KeyEvent:VK_Y)
-	(lambda ()
-	  (if (ctrl-pressed?)
-	      (let ((history ::History (history (the-document))))
-		(history:redo!)))))
-  
+  (initialize-keymap)
   (when (is (the-top-panel) instance? Editor)
     (let ((editor ::Editor (as Editor (the-top-panel))))
       (set! editor:document

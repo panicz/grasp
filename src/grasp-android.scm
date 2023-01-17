@@ -25,10 +25,11 @@
 (import (cursor))
 (import (editor-operations))
 (import (input))
+(import (android-keymap))
 ;;(import (primitive))
 
 (define-alias Bundle android.os.Bundle)
-(define-alias KeyEvent android.view.KeyEvent)
+;;(define-alias KeyEvent android.view.KeyEvent)
 (define-alias MotionEvent android.view.MotionEvent)
 (define-alias Canvas android.graphics.Canvas)
 (define-alias AndroidActivity android.app.Activity)
@@ -174,18 +175,6 @@
 
   (define bottom-right-extent ::Extent
     (path-extent bottom-right-paren))
-
-  (define ctrl-pressed? ::parameter[boolean]
-    (make-parameter #f))
-  
-  (define shift-pressed? ::parameter[boolean]
-    (make-parameter #f))
-  
-  (define alt-pressed? ::parameter[boolean]
-    (make-parameter #f))
-  
-  (define meta-pressed? ::parameter[boolean]
-    (make-parameter #f))
   )
 
 (define (INFO . messages)
@@ -703,28 +692,18 @@ ue
 	    #f)))))
 
   (define (onKeyUp keyCode::int event::KeyEvent)::boolean
-    (WARN "onKeyUp "event)
-    (parameterize ((ctrl-pressed? (event:ctrl-pressed?))
-		   (alt-pressed? (event:alt-pressed?))
-		   (shift-pressed? (event:shift-pressed?))
-		   (meta-pressed? (event:meta-pressed?)))
-      (invalidating
-       (invoke (the-top-panel) 'key-pressed!
-	       keyCode))))
+    #f)
 
   (define (onKeyDown keyCode::int event::KeyEvent)::boolean
-    (WARN "onKeyDown "event)
-    (parameterize ((ctrl-pressed? (event:ctrl-pressed?))
-		   (alt-pressed? (event:alt-pressed?))
-		   (shift-pressed? (event:shift-pressed?))
-		   (meta-pressed? (event:meta-pressed?)))
-      (let* ((result ::boolean (invoke (the-top-panel) 'key-released!
-				       keyCode))
-	     (unicode (event:getUnicodeChar (event:getMetaState))))
-	(invalidating
-	 (or (and (isnt unicode = 0)
-		  (invoke (the-top-panel) 'key-typed! unicode))
-	     result)))))
+    (parameterize ((unicode-input (event:getUnicodeChar keyCode)))
+      (invalidating
+       (invoke (the-top-panel)
+	       'key-typed!
+	       (as long (bitwise-ior
+			 (as long keyCode)
+			 (if (event:ctrl-pressed?) CTRL_MASK 0)
+			 (if (event:alt-pressed?) ALT_MASK 0)
+			 (if (event:shift-pressed?) SHIFT_MASK 0)))))))
   
   (define (onCreate savedState::Bundle)::void
     (invoke-special AndroidActivity (this) 'onCreate savedState)
@@ -734,6 +713,7 @@ ue
       (kawa.standard.Scheme:registerEnvironment)
       (gnu.mapping.Environment:setCurrent (scheme:getEnvironment)))
     (initialize-activity (this))
+    (safely (initialize-keymap))
     (set! gesture-detector (GestureDetector (this) (this)))
     (set! view (View (this)))
 
@@ -744,31 +724,8 @@ ue
       (set! screen-extent:width metrics:widthPixels)
       (set! screen-extent:height metrics:heightPixels))
 
-
     (setContentView view)
     (set! (the-painter) view)
-    
-    (set! (on-key-press KeyEvent:KEYCODE_DPAD_LEFT)
-      (lambda _
-	(move-cursor-left!
-	 selection: (if (shift-pressed?)
-			SelectionAction:resize
-			SelectionAction:discard))))
-
-    (set! (on-key-press KeyEvent:KEYCODE_DPAD_RIGHT)
-      (lambda _
-	(move-cursor-right!
-	 selection: (if (shift-pressed?)
-			SelectionAction:resize
-			SelectionAction:discard))))
-
-    (set! (on-key-press KeyEvent:KEYCODE_DPAD_UP)
-      move-cursor-up!)
-
-    (set! (on-key-press KeyEvent:KEYCODE_DPAD_DOWN)
-      move-cursor-down!)
-
-    ;;(safely (load "assets/init.scm" (interaction-environment)))
 
     (for expression in init-script
 	 (safely
