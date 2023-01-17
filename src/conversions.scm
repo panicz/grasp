@@ -21,3 +21,10 @@
 
 (define (digit->char digit)
   (integer->char (+ digit (char->integer #\0))))
+
+(define (inverse function)
+  (procedure-property function 'inverse))
+
+(set! (setter inverse)
+      (lambda (function value)
+	(set! (procedure-property function 'inverse) value)))

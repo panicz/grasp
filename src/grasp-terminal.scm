@@ -39,6 +39,7 @@
 (import (mapping))
 (import (pane))
 
+(import (terminal-keymap))
 
 (define-alias Thread java.lang.Thread)
 
@@ -134,7 +135,7 @@
     (set! extent:width (size:getColumns))
     (set! extent:height (size:getRows))
     (painter:clear!)
-    (invoke (the-top-panel) 'draw! ())
+    (invoke (the-top-panel) 'draw! '())
     (overlay:draw!)
     ;; swap front- and back-buffer
     (io:refresh (if resize
@@ -144,80 +145,64 @@
 
 (define previous-mouse ::Position (Position))
 
-(define-parameter (ctrl-pressed?) ::boolean #f)
-(define-parameter (shift-pressed?) ::boolean #f)
-(define-parameter (alt-pressed?) ::boolean #f)
-(define-parameter (meta-pressed?) ::boolean #f)
-
 (define (edit io :: LanternaScreen)::void
   (let loop ()
     (let* ((key ::KeyStroke (io:readInput))
 	   (type ::KeyType (key:getKeyType))
 	   (caret ::TerminalPosition (io:getCursorPosition)))
-
-      ;; powinnismy sobie wymyslic jakas warstwe abstrakcji,
-      ;; ktora obslugiwalaby klawisze:
-      ;; - z lanterny
-      ;; - z jakichs natywnych interfejsow javowych
-      ;; - z API androida
-
-      (parameterize ((ctrl-pressed? (key:ctrl-down?))
-		     (alt-pressed? (key:alt-down?))
-		     (shift-pressed? (key:shift-down?)))
+      (match type
+	(,KeyType:Character 
+	 (parameterize ((unicode-input (input-character key)))
+	   (invoke (the-top-panel) 'key-typed! (scancode key))))
 	
-	(match type
-	  (,KeyType:Character
-	   (invoke (the-top-panel) 'key-typed!
-		   (invoke (key:getCharacter) 'charValue)))
-	  (,KeyType:EOF
-	   (io:stopScreen)
-	   (exit))
+	(,KeyType:EOF
+	 (io:stopScreen)
+	 (exit))
 
-	  (,KeyType:MouseEvent
-	   (let* ((action ::MouseAction
-			  (as MouseAction key))
-		  (position ::TerminalPosition
-			    (action:getPosition))
-		  (left (position:getColumn))
-		  (top (position:getRow)))
-	     (cond
-	      ((action:isMouseMove)
-	       (values))
-	      ((action:isMouseDown)
-	       
-	       (match (action:getButton)
-		 (,MouseButton:Left
-		  (invoke (the-top-panel) 'press! 0 #;at left top)
-		  (set! previous-mouse:left left)
-		  (set! previous-mouse:top top))
-		 (,MouseButton:Right
-		  (values))
-		 (_
-		  (values))))
-	      ((action:isMouseDrag)
-	       (invoke (the-top-panel)
-		       'move! 0 left top
-		       (- left previous-mouse:left)
-		       (- top previous-mouse:top))
-	       (set! previous-mouse:left left)
-	       (set! previous-mouse:top top))
+	(,KeyType:MouseEvent
+	 (let* ((action ::MouseAction
+			(as MouseAction key))
+		(position ::TerminalPosition
+			  (action:getPosition))
+		(left (position:getColumn))
+		(top (position:getRow)))
+	   (cond
+	    ((action:isMouseMove)
+	     (values))
+	    ((action:isMouseDown)
+	     
+	     (match (action:getButton)
+	       (,MouseButton:Left
+		(invoke (the-top-panel) 'press! 0 #;at left top)
+		(set! previous-mouse:left left)
+		(set! previous-mouse:top top))
+	       (,MouseButton:Right
+		(values))
+	       (_
+		(values))))
+	    ((action:isMouseDrag)
+	     (invoke (the-top-panel)
+		     'move! 0 left top
+		     (- left previous-mouse:left)
+		     (- top previous-mouse:top))
+	     (set! previous-mouse:left left)
+	     (set! previous-mouse:top top))
 
-	      ((action:isMouseUp)
-	       (invoke (the-top-panel)
-		       'release! 0 left top
-		       (- left previous-mouse:left)
-		       (- top previous-mouse:top))
-	       (set! previous-mouse:left left)
-	       (set! previous-mouse:top top)))))
-	  
-	  (_
-	   (invoke (the-top-panel) 'key-pressed! type))))
-      
-      (synchronized screen-up-to-date?
-	(set! (screen-up-to-date?) #f)
-	(invoke screen-up-to-date? 'notify))
-      (loop)
-      )))
+	    ((action:isMouseUp)
+	     (invoke (the-top-panel)
+		     'release! 0 left top
+		     (- left previous-mouse:left)
+		     (- top previous-mouse:top))
+	     (set! previous-mouse:left left)
+	     (set! previous-mouse:top top)))))
+	
+	(_
+	 (invoke (the-top-panel) 'key-typed! (scancode key)))))
+    
+    (synchronized screen-up-to-date?
+      (set! (screen-up-to-date?) #f)
+      (invoke screen-up-to-date? 'notify))
+    (loop)))
 
 (define-object (TerminalPainter screen::LanternaScreen)::Painter
   
@@ -289,29 +274,8 @@
 (define (run-in-terminal
 	 #!optional
 	 (io :: LanternaScreen (make-terminal-screen)))
-  :: void  
-  (set! (on-key-press KeyType:ArrowLeft)
-	(lambda ()
-	  (move-cursor-left!
-	   selection: (if (shift-pressed?)
-			  SelectionAction:resize
-			  SelectionAction:discard))))
-
-  (set! (on-key-press KeyType:ArrowRight)
-	(lambda ()
-	  (move-cursor-right!
-	   selection: (if (shift-pressed?)
-			  SelectionAction:resize
-			  SelectionAction:discard))))
-
-  (set! (on-key-press KeyType:ArrowUp)
-	move-cursor-up!)
-
-  (set! (on-key-press KeyType:ArrowDown)
-	move-cursor-down!)
-
-  (set! (on-key-type #\x) exit)
-  
+  :: void
+  (initialize-keymap)  
   (parameterize ((the-painter (TerminalPainter io)))
     (when (is (the-top-panel) instance? Editor)
       (let ((editor ::Editor (as Editor (the-top-panel))))

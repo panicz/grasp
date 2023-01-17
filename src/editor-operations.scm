@@ -12,6 +12,7 @@
 (import (print))
 (import (extent))
 (import (painter))
+(import (history))
 
 (define-enum SelectionAction (resize discard))
 
@@ -84,6 +85,13 @@
 (define (expand-selection-right!)
   (set! (the-cursor) (cursor-advance)))
 
+(define (undo!)
+  (let ((document-history ::History (history (the-document))))
+    (document-history:undo!)))
+
+(define (redo!)
+  (let ((document-history ::History (history (the-document))))
+    (document-history:redo!)))
 
 (define (delete! position::Index)::void
   (let* ((target (the-expression)))

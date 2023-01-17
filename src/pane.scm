@@ -29,6 +29,7 @@
 (import (document-operations))
 (import (space))
 (import (history))
+(import (input))
 
 (define-alias List java.util.List)
 (define-alias ArrayList java.util.ArrayList)
@@ -157,9 +158,7 @@
 	 #;by vx::real vy::real)
   ::boolean
   
-  (key-pressed! key-code)::boolean
-  (key-released! key-code)::boolean
-  (key-typed! unicode)::boolean
+  (key-typed! key-code::long)::boolean
   )
 
 
@@ -285,36 +284,13 @@
 			 #;to (- x left-width line-width) y
 			      #;by dx dy)))))
   
-  ((key-pressed! key-code)::boolean
-   (match focus
-     (,HorizontalSplitFocus:Left
-      (left:key-pressed! key-code))
-     (,HorizontalSplitFocus:Right
-      (right:key-pressed! key-code))))
-
-  ((key-released! key-code)::boolean
-   (match focus
-     (,HorizontalSplitFocus:Left
-      (left:key-released! key-code))
-     (,HorizontalSplitFocus:Right
-      (right:key-released! key-code))))
-
-  ((key-typed! key-code)::boolean
+  ((key-typed! key-code::long)::boolean
    (match focus
      (,HorizontalSplitFocus:Left
       (left:key-typed! key-code))
      (,HorizontalSplitFocus:Right
       (right:key-typed! key-code))))
   )
-
-(define-mapping (on-key-press code)::(maps () to: boolean)
-  never)
-
-(define-mapping (on-key-release code)::(maps () to: boolean)
-  never)
-
-(define-mapping (on-key-type code)::(maps (Any) to: boolean)
-  never)
 
 (define-object (Editor)::Panel
   (define document (cons '() '()))
@@ -411,26 +387,12 @@
 	(drag:move! x y dx dy)
 	#t)))
 
-  (define (key-pressed! key-code)::boolean
+  (define (key-typed! key-code::long)::boolean
     (parameterize/update-sources ((the-document document)
 				  (the-cursor cursor)
 				  (the-selection-anchor
 				   selection-anchor))
-      ((on-key-press key-code))))
-  
-  (define (key-released! key-code)::boolean
-    (parameterize/update-sources ((the-document document)
-				  (the-cursor cursor)
-				  (the-selection-anchor
-				   selection-anchor))
-      ((on-key-release key-code))))
-  
-  (define (key-typed! unicode)::boolean
-    (parameterize/update-sources ((the-document document)
-				  (the-cursor cursor)
-				  (the-selection-anchor
-				   selection-anchor))
-      ((on-key-type unicode) unicode)))
+      ((keymap key-code))))
 
   )
   
