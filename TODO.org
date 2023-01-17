@@ -1,3 +1,72 @@
+ * 14.01.2023
+
+zbudowalismy juz zalazki map klawiatur dla
+trzech klientow
+
+teraz bysmy chcieli usunac stare zdarzenia
+z modulu pane, i zastapic je nowymi
+
+- bedzie to wymagalo translacji kodu
+  zdarzenia do odpowiedniej postaci
+  (w tym ustawienia parametru (unicode-input)
+  tam gdzie to stosowne)
+
+  w przypadku kazdego klienta bedzie to trzeba
+  robic inaczej, i dlatego nalezy ustalic jakas
+  kolejnosc:
+  - najpierw klient terminalowy
+  - po nim klient androidowy
+  - a na koncu klient desktopowy
+    (ktotego i tak nie mamy na razie jak
+    przetestowac)
+
+natomiast plany dlugofalowe:
++ skonczyc ta refaktoryzacje
++ zaimplementowac edycje
++ obsluga komentarzy (renderowanie i nawigacja)
++ obsluga uzytych rozszerzen Kawy/rezygnacja z nieuzytych rozszerzen
++ ladowanie i zapisywanie plikow; podzial ekranu
++ zgloszenie na ELS
++ mechanizm rozszerzen
++ poszczegolne rozszerzenia + sukcesywny rozwoj API do rysowania
++ evisulator
++ edytor grafow
++ obsluga selekcji (kopiowanie, wklejanie, usuwanie, historia)
++ naprawianie bledow (w tym zwiazanych z drag&dropem)
++ prezentacja na ELS
++ pierwsze wydanie, 2 aplikacje w sklepie
++ zgloszenie na StrangeLoop
++ siec spolecznosciowa
+
++ SICP - GRASP edition
++ The Little Schemer - GRASP edition
+  (i podobnie: The Seasoned Schemer, The Reasoned Schemer)
++ The Dream Machine - GRASP edition
++ The Way Things Work - GRASP edition
+
++ The Art of Metaprogramming in Scheme
+
+ok, tosmy sobie odplyneli
+
+teraz do roboty: zmieniamy sposob obslugi
+klawiszy w kliencie terminalowym - ale trzeba
+jeszcze pomyslec co z obsluga myszy/wskaznikow
+
+ok, klient terminalowy juz obskoczony.
+teraz jeszcze tylko zostaje androidowy i desktopowy.
+
+na razie sie zajmiemy androidowym
+
+ok, wyglada na to ze to tez sie udalo.
+
+
+* 13.01.2023
+
+Mamy sobie 3 klienty. I teraz dla tych
+3 klientow bedziemy chcieli zbudowac
+moduly (android-key-map) (desktop-key-map)
+oraz (teminal-key-map).
+
 * 12.01.2023
 
 No dobra, to teraz - zeby byla jasnosc - zaczynamy
@@ -11,7 +80,6 @@ moze byc overengineering.
 Dopiero jak to bedzie gotowe, zajmiemy sie 'wstawianiem
 znakow', ze szczegolnym uwzglednieniem aspektu historii
 /cofania.
-
 
 * 11.01.2023
 
