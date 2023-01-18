@@ -650,11 +650,12 @@ automatically by the AWT framework."))
 	(invoke (as screen-renderer (the-painter)) 'repaint)
 	(repaint))))
 
-  (define (keyTyped event::KeyEvent)::void
-    (let ((typed ::int (event:getKeyChar)))
-      (parameterize ((unicode-input (if (eqv? typed KeyEvent:CHAR_UNDEFINED)
+  (define (keyPressed event::KeyEvent)::void
+    (let ((typed (event:getKeyChar)))
+      (parameterize ((unicode-input (if (eqv? KeyEvent:CHAR_UNDEFINED
+					      typed)
 					#\null
-					typed)))
+					(integer->char typed))))
 	(invoke (the-top-panel) 'key-typed!
 		(as long (bitwise-ior
 			  (as long (event:getKeyCode))

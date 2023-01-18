@@ -2,6 +2,8 @@
 (define-alias KeyEvent java.awt.event.KeyEvent)
 
 (define (initialize-keymap)
+  (set! (key-code-name 0) 'unknown-key)
+  
   (set! (key-code-name KeyEvent:VK_F1) 'F1)
   (set! (key-code-name KeyEvent:VK_F2) 'F2)
   (set! (key-code-name KeyEvent:VK_F3) 'F3)
