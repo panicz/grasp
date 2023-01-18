@@ -1,4 +1,12 @@
- * 14.01.2023
+* 17.01.2023up
+
+zadania na dzis/jutro:
+- przetestowac desktop-client na asusie
+  (i ew. ponaprawiac)
+- uzupelnic mapy klawiatury
+- dodac (shift left) oraz (shift right) jako ekspansje selekcji
+  
+* 14.01.2023
 
 zbudowalismy juz zalazki map klawiatur dla
 trzech klientow
