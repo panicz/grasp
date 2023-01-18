@@ -20,7 +20,7 @@
 (define-early-constant key-code-name
   (bimapping (key-code::long)
     ;; this table should be populated by particular clients
-    (error "unnnamed key code: "key-code)))
+    'unknown-key))
 
 (define (char-code c::char)::long
   (as long (char->integer c)))
