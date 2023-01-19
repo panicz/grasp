@@ -14,33 +14,33 @@
 (import (painter))
 (import (history))
 
-(define-enum SelectionAction (resize discard))
-
 (define-parameter (cursor-column)::real 0)
 
-(define (move-cursor-right!
-	 #!key (selection::SelectionAction SelectionAction:discard))
+(define (move-cursor-right!)
   (set! (the-cursor) (cursor-advance))
   (let* ((painter (the-painter))
 	 (cursor-position ::Position (painter:cursor-position)))
     (set! (cursor-column) cursor-position:left))
-  (match selection
-    (,SelectionAction:discard
-     (set! (the-selection-anchor) (the-cursor)))
-    (,SelectionAction:resize
-     (values))))
+  (set! (the-selection-anchor) (the-cursor)))
 
-(define (move-cursor-left!
-	 #!key (selection::SelectionAction SelectionAction:discard))
+(define (move-cursor-left!)
   (set! (the-cursor) (cursor-retreat))
   (let* ((painter (the-painter))
 	 (cursor-position ::Position (painter:cursor-position)))
     (set! (cursor-column) cursor-position:left))
-  (match selection
-    (,SelectionAction:discard
-     (set! (the-selection-anchor) (the-cursor)))
-    (,SelectionAction:resize
-     (values))))
+  (set! (the-selection-anchor) (the-cursor)))
+
+(define (expand-selection-right!)
+  (set! (the-cursor) (cursor-advance))
+  (let* ((painter (the-painter))
+	 (cursor-position ::Position (painter:cursor-position)))
+    (set! (cursor-column) cursor-position:left)))
+
+(define (expand-selection-left!)
+  (set! (the-cursor) (cursor-retreat))
+  (let* ((painter (the-painter))
+	 (cursor-position ::Position (painter:cursor-position)))
+    (set! (cursor-column) cursor-position:left)))
 
 (define (move-cursor-up!)
   (let* ((painter (the-painter))
@@ -78,12 +78,6 @@
 		   < document-extent:height)
 	       (probe (+ attempt 1)))
 	      )))))
-
-(define (expand-selection-left!)
-  (set! (the-cursor) (cursor-retreat)))
-
-(define (expand-selection-right!)
-  (set! (the-cursor) (cursor-advance)))
 
 (define (undo!)
   (let ((document-history ::History (history (the-document))))
