@@ -504,7 +504,7 @@ automatically by the AWT framework."))
     (set! (the-painter) (this))
     ;; cf. https://docs.oracle.com/javase/tutorial/2d/advanced/quality.html
     (graphics:setRenderingHints rendering-hints)
-    (invoke (the-top-panel) 'draw! '())
+    (invoke (the-screen) 'draw! '())
     (overlay:draw!))
 
   (javax.swing.JComponent)
@@ -616,7 +616,7 @@ automatically by the AWT framework."))
     (- (event:getY) 26))
   
   (define (mouseClicked event::MouseEvent)::void
-    (when (invoke (the-top-panel) 'tap! 0 #;at (x event) (y event))
+    (when (invoke (the-screen) 'tap! 0 #;at (x event) (y event))
       (invoke (as screen-renderer (the-painter)) 'repaint)
       (repaint)))
   
@@ -626,7 +626,7 @@ automatically by the AWT framework."))
   (define (mousePressed event::MouseEvent)::void
     (let ((x (x event))
 	  (y (y event)))
-      (when (invoke (the-top-panel) 'press! 0 #;at x y)
+      (when (invoke (the-screen) 'press! 0 #;at x y)
 	(invoke (as screen-renderer (the-painter)) 'repaint)
 	(repaint))
       (set! previous-x x)
@@ -635,7 +635,7 @@ automatically by the AWT framework."))
   (define (mouseDragged event::MouseEvent)::void
     (let ((x (x event))
 	  (y (y event)))
-      (when (invoke (the-top-panel) 'move!
+      (when (invoke (the-screen) 'move!
 		    0 x y (- x previous-x) (- y previous-y))
 	(invoke (as screen-renderer (the-painter)) 'repaint)
 	(repaint))
@@ -645,7 +645,7 @@ automatically by the AWT framework."))
   (define (mouseReleased event::MouseEvent)::void
     (let ((x (x event))
 	  (y (y event)))
-      (when (invoke (the-top-panel) 'release!
+      (when (invoke (the-screen) 'release!
 		    0 x y (- x previous-x) (- y previous-y))
 	(invoke (as screen-renderer (the-painter)) 'repaint)
 	(repaint))))
@@ -656,7 +656,7 @@ automatically by the AWT framework."))
 					      typed)
 					#\null
 					(integer->char typed))))
-	(invoke (the-top-panel) 'key-typed!
+	(invoke (the-screen) 'key-typed!
 		(as long (bitwise-ior
 			  (as long (event:getKeyCode))
 			  (if (event:control-down?) CTRL_MASK 0)
@@ -681,8 +681,8 @@ automatically by the AWT framework."))
 
 (define (run-in-AWT-window)::void
   (initialize-keymap)
-  (when (is (the-top-panel) instance? Editor)
-    (let ((editor ::Editor (as Editor (the-top-panel))))
+  (when (is (the-screen) instance? Editor)
+    (let ((editor ::Editor (as Editor (the-screen))))
       (set! editor:document
 	    (with-input-from-string "\
 (define (! n)

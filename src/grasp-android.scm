@@ -575,7 +575,7 @@
   (define (onDraw c::Canvas)::void
     (set! canvas c)
     (clear!)
-    (invoke (the-top-panel) 'draw! '())
+    (invoke (the-screen) 'draw! '())
     (overlay:draw!)
     (invoke (current-message-handler)
 	    'display-messages canvas))
@@ -637,7 +637,7 @@ ue
   (define (onSingleTapConfirmed event::MotionEvent)::boolean
     (view:showKeyboard)
     (invalidating
-     (invoke (the-top-panel) 'tap! 0
+     (invoke (the-screen) 'tap! 0
 	     #;at (event:getX) (- (event:getY) 60))))
 
   (define (onDoubleTap event::MotionEvent)::boolean
@@ -656,7 +656,7 @@ ue
 	   (,MotionEvent:ACTION_DOWN
 	    (let* ((x* (event:getX))
 		   (y* (- (event:getY) 60))
-		   (result (invoke (the-top-panel) 'press!
+		   (result (invoke (the-screen) 'press!
 				   0 x* y*)))
 	      (set! (x 0) x*)
 	      (set! (y 0) y*)
@@ -666,7 +666,7 @@ ue
 	   (,MotionEvent:ACTION_UP
 	    (let* ((x* (event:getX))
 		   (y* (- (event:getY) 60))
-		   (result (invoke (the-top-panel) 'release!
+		   (result (invoke (the-screen) 'release!
 				   0 x* y* 0 0)))
 	      (set! (x 0) x*)
 	      (set! (y 0) y*)
@@ -679,7 +679,7 @@ ue
 	    ;;(WARN "force: "(event:getPressure)", size: "(event:getSize))
 	    (let* ((x* (event:getX))
 		   (y* (- (event:getY) 60))
-		   (result (invoke (the-top-panel) 'move!
+		   (result (invoke (the-screen) 'move!
 				   0 x* y* (- x* (x 0)) (- y* (y 0)))))
 	      (set! (x 0) x*)
 	      (set! (y 0) y*)
@@ -697,7 +697,7 @@ ue
   (define (onKeyDown keyCode::int event::KeyEvent)::boolean
     (parameterize ((unicode-input (event:getUnicodeChar keyCode)))
       (invalidating
-       (invoke (the-top-panel)
+       (invoke (the-screen)
 	       'key-typed!
 	       (as long (bitwise-ior
 			 (as long keyCode)
@@ -731,8 +731,8 @@ ue
 	 (safely
 	  (eval expression)))
     
-    (when (is (the-top-panel) instance? Editor)
-      (let ((editor ::Editor (as Editor (the-top-panel))))
+    (when (is (the-screen) instance? Editor)
+      (let ((editor ::Editor (as Editor (the-screen))))
 	(set! editor:document
 	  (with-input-from-string "\
 (define (! n)
