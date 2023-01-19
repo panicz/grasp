@@ -115,7 +115,7 @@
     (while (screen-up-to-date?)
 	   (invoke screen-up-to-date? 'wait))
     ;; if - during rendering - the state of
-    ;; the panel changes (by the editing thread),
+    ;; the screen changes (by the editing thread),
     ;; then this value will be set to #f, and
     ;; another iteration of the rendering loop
     ;; will be forced.
@@ -124,10 +124,6 @@
     ;; Customizable Display Editor", section 13
     ;; "The Display Processor")
     (set! (screen-up-to-date?) #t))
-  ;; tutaj chcemy sobie wywolac funkcje rysujaca
-  ;; aczkolwiek na poczatek wystarczy po prostu rysowac
-  ;; pojedynczy znaczek, przesuwany za pomoca klawiszy strzalek,
-  ;; albo cos takiego
   (let* ((resize ::TerminalSize (io:doResizeIfNecessary))
 	 (size (or resize (io:getTerminalSize)))
 	 (extent ::Extent (the-screen-extent))
@@ -135,7 +131,7 @@
     (set! extent:width (size:getColumns))
     (set! extent:height (size:getRows))
     (painter:clear!)
-    (invoke (the-top-panel) 'draw! '())
+    (invoke (the-screen) 'draw! '())
     (overlay:draw!)
     ;; swap front- and back-buffer
     (io:refresh (if resize
@@ -153,7 +149,7 @@
       (match type
 	(,KeyType:Character 
 	 (parameterize ((unicode-input (input-character key)))
-	   (invoke (the-top-panel) 'key-typed! (scancode key))))
+	   (invoke (the-screen) 'key-typed! (scancode key))))
 	
 	(,KeyType:EOF
 	 (io:stopScreen)
@@ -173,7 +169,7 @@
 	     
 	     (match (action:getButton)
 	       (,MouseButton:Left
-		(invoke (the-top-panel) 'press! 0 #;at left top)
+		(invoke (the-screen) 'press! 0 #;at left top)
 		(set! previous-mouse:left left)
 		(set! previous-mouse:top top))
 	       (,MouseButton:Right
@@ -181,7 +177,7 @@
 	       (_
 		(values))))
 	    ((action:isMouseDrag)
-	     (invoke (the-top-panel)
+	     (invoke (the-screen)
 		     'move! 0 left top
 		     (- left previous-mouse:left)
 		     (- top previous-mouse:top))
@@ -189,7 +185,7 @@
 	     (set! previous-mouse:top top))
 
 	    ((action:isMouseUp)
-	     (invoke (the-top-panel)
+	     (invoke (the-screen)
 		     'release! 0 left top
 		     (- left previous-mouse:left)
 		     (- top previous-mouse:top))
@@ -197,7 +193,7 @@
 	     (set! previous-mouse:top top)))))
 	
 	(_
-	 (invoke (the-top-panel) 'key-typed! (scancode key)))))
+	 (invoke (the-screen) 'key-typed! (scancode key)))))
     
     (synchronized screen-up-to-date?
       (set! (screen-up-to-date?) #f)
@@ -277,8 +273,8 @@
   :: void
   (initialize-keymap)  
   (parameterize ((the-painter (TerminalPainter io)))
-    (when (is (the-top-panel) instance? Editor)
-      (let ((editor ::Editor (as Editor (the-top-panel))))
+    (when (is (the-screen) instance? Editor)
+      (let ((editor ::Editor (as Editor (the-screen))))
 	(set! editor:document
 	      (with-input-from-string "\
 (define (! n)

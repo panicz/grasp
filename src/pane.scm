@@ -145,7 +145,7 @@
 
 (define-mapping (dragging finger::byte)::Drag #!null)
 
-(define-interface Panel ()
+(define-interface Pane ()
   (draw! context::Cursor)::void
   (tap! finger::byte #;at x::real y::real)::boolean
   (press! finger::byte #;at x::real y::real)::boolean
@@ -171,11 +171,11 @@
   (Extent width: 0
 	  height: 0))
 
-;; At the top level, (the-panel-extent)
+;; At the top level, (the-pane-extent)
 ;; must be bound to the same object
 ;; as (the-screen-extent).
 ;;
-(define-parameter (the-panel-extent)::Extent
+(define-parameter (the-pane-extent)::Extent
   (the-screen-extent))
 
 (define-parameter (the-focus)::Cursor '())
@@ -183,22 +183,22 @@
 (define-enum HorizontalSplitFocus (Left Right))
 
 (define-type (HorizontalSplit at: rational
-			      left: Panel
-			      right: Panel
+			      left: Pane
+			      right: Pane
 			      focus: HorizontalSplitFocus
 			      := HorizontalSplitFocus:Left)
-  implementing Panel
+  implementing Pane
   with
   ((draw! context::Cursor)::void
    (let* ((painter (the-painter))
-	  (extent (the-panel-extent))
+	  (extent (the-pane-extent))
 	  (line-width (invoke painter 'vertical-line-width))
           (inner-width (- extent:width
 			  line-width))
           (left-width (* at inner-width))
           (right-width (- inner-width left-width)))
      (with-clip (left-width extent:height)
-       (parameterize ((the-panel-extent
+       (parameterize ((the-pane-extent
 		       (Extent
 			width: left-width
 			height: extent:height)))
@@ -208,7 +208,7 @@
        (invoke painter 'draw-vertical-line! 0)
        (with-translation (line-width 0)
 	 (with-clip (right-width extent:height)
-	   (parameterize ((the-panel-extent
+	   (parameterize ((the-pane-extent
 			   (Extent
 			    width: right-width
 			    height: extent:height)))
@@ -216,7 +216,7 @@
 		     (recons 'right context))))))))
   ((tap! finger::byte #;at x::real y::real)::boolean
    (let* ((painter (the-painter))
-	  (extent (the-panel-extent))
+	  (extent (the-pane-extent))
 	  (line-width (invoke painter 'vertical-line-width))
           (inner-width (- extent:width
 			  line-width))
@@ -232,7 +232,7 @@
 
   ((press! finger::byte #;at x::real y::real)::boolean
    (let* ((painter (the-painter))
-	  (extent (the-panel-extent))
+	  (extent (the-pane-extent))
 	  (line-width (invoke painter 'vertical-line-width))
           (inner-width (- extent:width
 			  line-width))
@@ -250,7 +250,7 @@
 	     #;with vx::real vy::real)
    ::boolean
    (let* ((painter (the-painter))
-	  (extent (the-panel-extent))
+	  (extent (the-pane-extent))
 	  (line-width (invoke painter 'vertical-line-width))
           (inner-width (- extent:width
 			  line-width))
@@ -269,7 +269,7 @@
 	  #;by dx::real dy::real)
    ::boolean
    (let* ((painter (the-painter))
-	  (extent (the-panel-extent))
+	  (extent (the-pane-extent))
 	  (line-width (invoke painter 'vertical-line-width))
           (inner-width (- extent:width
 			  line-width))
@@ -292,7 +292,7 @@
       (right:key-typed! key-code))))
   )
 
-(define-object (Editor)::Panel
+(define-object (Editor)::Pane
   (define document (cons '() '()))
   (define cursor :: Cursor '())
 
@@ -396,5 +396,5 @@
 
   )
   
-(define-parameter (the-top-panel) ::Panel
+(define-parameter (the-screen) ::Pane
   (Editor))
