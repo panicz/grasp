@@ -29,6 +29,9 @@
 (set-key! 'up move-cursor-up!)
 (set-key! 'down move-cursor-down!)
 
+(set-key! '(shift left) expand-selection-left!)
+(set-key! '(shift right) expand-selection-right!)
+
 (set-key! '(ctrl z) undo!)
 (set-key! '(ctrl y) redo!)
 
