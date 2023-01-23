@@ -35,8 +35,8 @@
   implementing Edit
   with
   ((apply! document::pair)::void
-   (let ((item (take-cell! at: from from: document)))
-     (splice! item into: document at: to)
+   (let ((item (extract! at: from from: document)))
+     (insert! item into: document at: to)
      #!null))
 
   ((inverse)::Edit
@@ -56,7 +56,7 @@
   implementing Edit
   with
   ((apply! document::pair)::void
-   (let ((item (take-cell! at: from from: document)))
+   (let ((item (extract! at: from from: document)))
      (assert (eq? item element))
      (values)))
   ((inverse)::Edit
@@ -70,7 +70,7 @@
   implementing Edit
   with
   ((apply! document::pair)::void
-   (splice! element into: document at: at))
+   (insert! element into: document at: at))
   ((inverse)::Edit
    (match at
      (`(,tip ,top . ,root)
@@ -231,7 +231,7 @@
 			    from: document := (the-document))
   ::Remove
   (let* ((shift (last-index (space-preceding cursor in: document)))
-	 (element (take-cell! at: cursor from: document))
+	 (element (extract! at: cursor from: document))
 	 (history ::History (history document))
 	 (action ::Remove (Remove element: element
 				  from: cursor

@@ -102,11 +102,11 @@
        ((is parent cons?)
 	(cond
 	 ((eqv? tip (parent:first-index))
-	  (splice! selected:items
+	  (insert! selected:items
 		   at: (recons (parent:next-index tip)
 			       cursor)))
 	 ((eqv? tip (parent:last-index))
-	  (splice! selected:items
+	  (insert! selected:items
 		   at: (recons
 			(parent:previous-index tip)
 			cursor)))
