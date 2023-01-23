@@ -30,7 +30,7 @@
 	 (painter ::Painter (the-painter)))
     (quotient extent:width (painter:space-width))))
 
-(define/kw (take-cell! at: cursor::Cursor := (the-cursor)
+(define/kw (extract! at: cursor::Cursor := (the-cursor)
 		       from: document::pair := (the-document))
   (define (increase-space! space::Space width::real)
     (let ((last-fragment (last-pair space:fragments)))
@@ -39,7 +39,7 @@
   
   (match cursor
     (`(,,@(isnt _ integer?) . ,root)
-     (take-cell! at: root from: document))
+     (extract! at: root from: document))
     
     (`(,,@(is _ <= 1) ,parent-index . ,root)
      (let* ((grandparent ::pair (cursor-ref document root))
@@ -110,7 +110,7 @@
 
 (e.g.
  (let* ((document (string->document "1 3 5"))
-	(taken (take-cell! at: '(3 1) from: document)))
+	(taken (extract! at: '(3 1) from: document)))
    (values (document->string document)
 	   (pair->string taken)))
    ===>
@@ -120,7 +120,7 @@
 (e.g.
  (let* ((document (call-with-input-string "1 3 5"
 		    parse-document))
-	(taken (take-cell! at: '(5 1) from: document)))
+	(taken (extract! at: '(5 1) from: document)))
 
    (values (document->string document)
 	   (pair->string taken)))
@@ -131,7 +131,7 @@
 (e.g.
  (let* ((document (call-with-input-string "(1 3 5)"
 		    parse-document))
-	(taken (take-cell! at: '(1 1 1) from: document)))
+	(taken (extract! at: '(1 1 1) from: document)))
    (values (document->string document)
 	   (pair->string taken)))
    ===>
@@ -141,7 +141,7 @@
 (e.g.
  (let* ((document (call-with-input-string "(1 . 5)"
 		    parse-document))
-	(taken (take-cell! at: '(3 1 1) from: document)))
+	(taken (extract! at: '(3 1 1) from: document)))
    (assert (head/tail-separator? taken))
    (document->string document))
  ===> "(1   5)")
@@ -149,7 +149,7 @@
 (e.g.
  (let* ((document (call-with-input-string "(1 . 5)"
 		    parse-document))
-	(taken (take-cell! at: '(1 1 1) from: document)))
+	(taken (extract! at: '(1 1 1) from: document)))
    (values (document->string document)
 	   (pair->string taken)))
  ===>
@@ -159,14 +159,14 @@
 (e.g.
  (let* ((document (call-with-input-string "(1 . 5)"
 		    parse-document))
-	(taken (take-cell! at: '(5 1 1) from: document)))
+	(taken (extract! at: '(5 1 1) from: document)))
    (values (document->string document)
 	   (pair->string taken)))
  ===>
  "(1    )"
  "5")
 
-(define/kw (splice! element
+(define/kw (insert! element
 		    into: document::pair := (the-document)
 		    at: cursor::Cursor := (the-cursor))
   ::boolean
@@ -234,32 +234,32 @@
 	       )))
 	(else
 	 (WARN "unhandled case: "
-	       `(splice! ,element into: ,document at: ,cursor)) #f)
+	       `(insert! ,element into: ,document at: ,cursor)) #f)
 	)))))
 
 (e.g.
  (let ((document (string->document "1   5")))
-   (splice! (parse-string "3") into: document at: '(1 2 1))
+   (insert! (parse-string "3") into: document at: '(1 2 1))
    (document->string document)) ===> "1 3 5")
 
 (e.g.
  (let ((document (string->document "1     7")))
-   (splice! (parse-string "3 5") into: document at: '(1 2 1))
+   (insert! (parse-string "3 5") into: document at: '(1 2 1))
    (document->string document)) ===> "1 3 5 7")
 
 (e.g.
  (let ((document (string->document "3 5")))
-   (splice! (parse-string "1") into: document at: '(0 0 1))
+   (insert! (parse-string "1") into: document at: '(0 0 1))
    (document->string document)) ===> "1 3 5")
 
 (e.g.
  (let ((document (string->document "5 7")))
-   (splice! (parse-string "1 3") into: document at: '(0 0 1))
+   (insert! (parse-string "1 3") into: document at: '(0 0 1))
    (document->string document)) ===> "1 3 5 7")
 
 (e.g.
  (let ((document (string->document "1   5")))
-   (splice! head/tail-separator
+   (insert! head/tail-separator
 	    into: document at: '(1 2 1))
    (document->string document)) ===> "1 . 5")
 
