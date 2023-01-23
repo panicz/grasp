@@ -9,6 +9,8 @@
  (space)
  (cursor)
  (primitive)
+ (fundamental)
+ (indexable)
  (extent)
  (text-painter)
  (combinators)
@@ -28,6 +30,142 @@
  (extension)
  (button)
  )
+
+(define (/old/delete! position::Index)::void
+  (let* ((target (the-expression)))
+    (cond
+     ((is target instance? Atom)
+      (cond ((is 0 <= position < (atom-length target))
+	     (delete-char! target position)
+	     (when (= (atom-length target) 0)
+	       (extract! at: (cdr (the-cursor)))
+	       (set! (the-cursor)
+		     (cursor-climb-back
+		      (recons (- (car (cdr (the-cursor)))
+				 1)
+			      (cdr (cdr (the-cursor))))))))))
+     ((is target instance? Space)
+      (if (or (is position > (first-index target))
+	      (and (is position = (first-index target))
+		   (or (and-let* ((`(#\] . ,_) (cursor-advance))))
+		       (and-let* ((`(#\[ . ,_) (cursor-retreat)))))))
+	  (delete-space! target position))))))
+
+(define (/old/delete-forward!)::void
+  (let ((target (the-expression)))
+    (cond ((and (pair? target)
+		(pair? (the-cursor))
+		(eqv? (car (the-cursor)) (first-index target)))
+	   (let ((new-cursor (cursor-retreat)))
+	     (extract!)
+	     (set! (the-cursor) new-cursor)))
+	  (else
+	   (/old/delete! (car (the-cursor)))))))
+
+(define (/old/delete-backward!)::void
+  (let ((target (the-expression)))
+    (cond ((and (pair? target)
+		(eqv? (car (the-cursor)) (last-index target)))
+	   (let ((new-cursor (cursor-climb-back
+			      (cursor-back (cdr (the-cursor))))))
+	     (extract!)
+	     (set! (the-cursor) new-cursor)))
+	  (else
+	   (set! (the-cursor)
+		 (cursor-climb-back (cursor-back)))
+	   (/old/delete! (car (the-cursor)))))))
+
+(define (/old/insert-character! c::char)::void
+  (and-let* ((`(,tip . ,stem) (the-cursor))
+	     (`(,top . ,root) stem)
+	     (parent (the-expression at: root))
+	     (target (part-at top parent)))
+    (cond
+     ((is c memq '(#\[ #\( #\{))
+      (cond
+       ((is target instance? Space)
+	(insert! (cons '() '()) at: root #;(cdr (the-cursor)))
+	(set! (the-cursor)
+	      (recons* 0 0 (+ (car (cdr (the-cursor))) 1)
+		       (cdr (cdr (the-cursor))))))
+       ((eqv? (car (the-cursor)) #\])
+	(set! (the-cursor)
+	      (recons #\[ (cdr (the-cursor)))))
+
+       (else
+	(let ((target (extract! at: (cdr (the-cursor)))))
+	  (insert! (cons target '()) at: (cdr (the-cursor)))
+	  (set! (the-cursor)
+		(recons #\[ (cdr (the-cursor))))))))
+
+     ((is c memq '(#\] #\) #\}))
+      (set! (the-cursor)
+	    (recons #\] root)))
+     
+     ((is target instance? Atom)
+      (cond
+       ((or (eq? c #\space) (eq? c #\newline))
+	(cond ((eqv? (car (the-cursor)) (first-index target))
+	       (let ((preceding-space (part-at
+				       (previous-index
+					top parent)
+				       parent)))
+		 (insert-whitespace! c preceding-space
+				     (last-index
+				      preceding-space))))
+	      ((eqv? (car (the-cursor)) (last-index target))
+	       (let ((following-space (part-at
+				       (next-index
+					top parent)
+				       parent)))
+		 (insert-whitespace! c following-space
+				     (first-index
+				      following-space))
+		 (move-cursor-right!)))
+	      (else
+	       (let* ((suffix (atom-subpart target tip))
+		      (owner (drop (quotient top 2) parent))
+		      (cell (cons suffix (cdr owner))))
+		 (truncate-atom! target tip)
+		 (set! (cdr owner) cell)
+		 (set! (post-head-space cell)
+		   (post-head-space owner))
+		 (set! (post-head-space owner)
+		   (Space fragments: (if (eq? c #\newline)
+					 (cons* 0 0 '())
+					 (cons 1 '()))))
+		 (move-cursor-right!)))))
+       
+	 (else
+	  (insert-char! c target (car (the-cursor)))
+	  (set! (the-cursor)
+	    (recons (+ (car (the-cursor)) 1)
+		    (cdr (the-cursor)))))))
+     ((is target instance? Space)
+
+      (cond
+       ((is c memq '(#\space #\newline))
+	(insert-whitespace! c target (car (the-cursor)))
+	(set! (the-cursor)
+	      (recons (+ (car (the-cursor)) 1)
+		      (cdr (the-cursor))))
+	)
+
+       ((is c memq '(#\. #\|))
+	(insert! head/tail-separator at: (cdr (the-cursor)))
+	(times 2 move-cursor-right!))
+       
+       (else
+	(let* ((space-after (split-space!
+			     target
+			     (car (the-cursor)))))
+	  (insert! (cons (Atom (list->string (list c))) '())
+		   at: (cdr (the-cursor)))
+	  (set! (the-cursor)
+	    (recons* 1 (+ (car (cdr (the-cursor))) 1)
+		     (cdr (cdr (the-cursor)))))))))
+     )))
+
 
 ;;(import (button))
 
@@ -134,7 +272,7 @@ mutations of an n-element set.\"
 			(eq? c #\space))
 		   (invoke (current-message-handler)
 			   'clear-messages!)
-		   (insert-character! c)
+		   (/old/insert-character! c)
 		   )
 	       (continue)))
 
@@ -143,16 +281,16 @@ mutations of an n-element set.\"
 	     (continue))
 	    
 	    (,KeyType:Delete
-	     (safely (delete-forward!))
+	     (safely (/old/delete-forward!))
 	     (continue))
 
 	    (,KeyType:Enter
-	     (insert-character! #\newline)
+	     (/old/insert-character! #\newline)
 	     (move-cursor-right!)
 	     (continue))
 	    
 	    (,KeyType:Backspace
-	     (safely (delete-backward!))
+	     (safely (/old/delete-backward!))
 
 	     (continue))
 	    
