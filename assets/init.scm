@@ -22,11 +22,13 @@
 (import (print))
 (import (input))
 (import (conversions))
+(import (examples))
 (import (editor-operations))
 (import (pane))
 (import (parse))
 
 (set-key! 'left move-cursor-left!)
+
 (set-key! 'right move-cursor-right!)
 (set-key! 'up move-cursor-up!)
 (set-key! 'down move-cursor-down!)
@@ -52,8 +54,8 @@
 
 (when (is (the-screen) instance? Editor)
     (let ((editor ::Editor (as Editor (the-screen))))
-      (set! editor:document
-	    (with-input-from-string "\
+      (slot-set! editor 'document
+		 (with-input-from-string "\
 (define (! n)
 \"Computes the product 1*...*n.
 It represents the number of per-
