@@ -1,4 +1,144 @@
-* 17.01.2023up
+* 24.01.2023
+
+Ponizej jest sobie costam jakos tam napisane.
+
+Natomiast tym, na czym zalezy nam przede wszystkim,
+sa testy jednostkowe w test-editor-operations.scm.g
+
+1. extract! [atom/pudelko z wnetrza pudelka]
+   - juz obsluzone - zmienic nazwe na "extract-from-box!"?
+
+2. extract! [spacje spomiedzy atomow]
+   - laczymy dwa atomy w jeden. extract! [spacje spomiedzy dwoch pudelek]
+   - doklejamy drugie pudelko na koncu pierwszego
+     czyli:
+     - merge-boxes!
+     - merge-atoms!
+
+4. extract! [spacje spomiedzy dwoch tekstow]
+   - laczymy teksty ze soba
+     - merge-texts!
+5. extract! [z wnetrza atomu albo tekstu]
+   - powinnismy usunac znak znajdujacy sie przed
+     kursorem (jeden lub wiecej w przypadku selekcji)
+6. extract! [spacje spomiedzy dwoch roznych typow]
+   - nic nie robimy (zwracamy #!null)
+
+1. insert! [lista do spacji]
+   - wyodrebnic "insert-into-box!"
+2. insert! [spacja do atomu]
+   - rozbijamy atom na dwa - 
+3. insert! [spacje do spacji]
+   - to sie moze wydawac nieco nieintuicyjne,
+     ale powinnismy rozbic jedno pudelko na dwa
+     na elementach rozdzielanych przez spacje
+4. insert! [spacje do tekstu]
+   - tak jak w przypadkh atomow, powinnismy
+     rozbic jeden tekst na dwa
+5. insert! [lista znakow do atomu albo tekstu]
+   - dodajemy znaki do atomu za kursorem
+
+
+
+* 23.01.2023
+
+Musimy dodac obsluge wstawiania spacji w spacje
+do procedury insert!, jak rowniez obsluge pozostalych
+sytuacji, takich jak:
+
+- wstawienie znaku w Atom
+- wstawienie znaku w Text
+- wstawienie spacji/nowej linii w Atom
+- wstawienie spacji/nowej linii w Text
+
+Z pewnoscia chcemy tez napisac testy jednostkowe
+
+
+* 22.01.2023
+
+Mini-plan jest taki, zeby przeniesc funkcje
+delete-forward!, delete-backward!, insert-character!
+oraz delete! do primitive-terminal-client!
+i dodac im przedrostek np. old!, tak zebysmy
+mieli do nich dostep, ale zebysmy mogli zaczac
+pisac nasze funkcje od poczatku.
+
+Rzecz w tym, ze chcielibysmy, zeby te nowe funkcje
+byly juz zaposredniczone w historii.
+
+No ale. Plan na jutro rano jest taki, zeby:
+- scommitowac zminy nazw z take-cell! na extract!
+oraz ze splice! na insert!
+- scommitowac przeniesienie funkcji z editor-operations
+do primitive-terminal-client oraz nadanie przedrostka /old/
+- zaczac pisac implementacje dla insert-character!
+(i zmodyfikowac domyslna funkcje keymap tak, zeby
+wywolywala insert-character!)
+
+
+* 21.01.2023
+
+No, to teraz mozemy radosnie
+dodawac nowy ficzer edycji do GRASPa.
+
+Najogolniej rzecz biorac, chcemy, zeby
+wcisniecie klawisza powodowalo domyslnie
+wywolanie 
+
+(insert-character! (unicode-input) 
+             into: (the-document) 
+               at: (the-cursor))
+
+gdzie:
+- jezeli input to lewy nawias i jestesmy na spacji,
+tworzymy nowe pudelko
+- jezeli input to prawy nawias i jestesmy na lewym nawiasie,
+atomie albo spacji, to idziemy do nastepnego zamykajacego nawiasu
+
+dosc obszerna analize do przetrawienia mamy napisana
+6 stycznia.
+
+najblizsze commit w poniedzialek; programowanie
+na telefonie jest duzo dostepniejsze, ale
+na laptopie komfort pisania jest nieporownywalnie
+lepszy.
+
+OK, to z takich bardziej podstawowych rzeczy:
+- chcemy zmienic nazwy z take-cell! na extract!
+i ze splice! na insert!
+(nie do konca juz pamietamy, dlaczego chcemy,
+ale mimo wszystko nadal chcemy?)
+
+W kazdym razie nazwy zostaly juz zmienione.
+
+No i co dalej?
+
+Moze bysmy usuneli:
+- primitive-terminal-client
+- funkcje "delete-forward!", "delete-backward!"
+  oraz "insert-character!" z (editor-operations),
+  zeby je moc zaimplementowac od nowa?
+
+Nooo, tyle ze tam juz jakas funkcjonalnosc jest.
+
+Mozemy zatem albo przeprowadzic analize tego,
+co juz mamy, albo - w oparciu o wczesniejsza analize
+- zaprojektowac to, co powinnismy miec.
+
+Co dziwne, wydaje sie, ze niektore rzeczy
+dzialaja.
+
+* 19.01.2023
+
+pozostale dwa punkty ze wtorkowej listy odhaczone
+
+* 18.01.2023
+
+pierwsy punkt z wczorajszej listy odhaczony.
+teraz nam pozostaje dodac extend-selection
+(usuwajac tego przykrego enuma)
+
+* 17.01.2023
 
 zadania na dzis/jutro:
 - przetestowac desktop-client na asusie
