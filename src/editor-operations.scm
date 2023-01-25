@@ -13,6 +13,7 @@
 (import (extent))
 (import (painter))
 (import (history))
+(import (text))
 
 (define-parameter (cursor-column)::real 0)
 
@@ -87,3 +88,71 @@
   (let ((document-history ::History (history (the-document))))
     (document-history:redo!)))
 
+
+(define/kw (insert-character! c::char)
+  ::boolean
+  ;; musimy pamietac ze dzialana dokonywane poprzez
+  ;;te funkcje powinno sie dac cofac za pomoca "undo!"
+  (and-let* (((isnt c eqv? #\null))
+	     (`(,tip ,top . ,subcursor) (the-cursor))
+	     (parent ::Indexable (the-expression at: subcursor))
+	     (item ::Indexable (parent:part-at top))
+	     (final ::Indexable (item:part-at tip)))
+    (cond
+     ((isnt final eq? item)
+      (WARN "attempted to insert character "c" to non-final position")
+      #f)
+     ((Space? item)
+      (cond
+       ((eqv? c #\") 
+	;; wstawiamy nowy obiekt typu Text
+	(let ((operation ::Insert (Insert element: (cons (Text) '())
+					  at: (the-cursor)))
+	      (history ::History (history (the-document))))
+	  (operation:apply! (the-document))
+	  (history:record! operation)
+	  (move-cursor-right!)
+	  #t))
+       
+       ((is c in '(#\[ #\( #\{))
+	(let ((operation ::Insert (Insert element: (cons
+						    (EmptyListProxy
+						     (Space
+						      fragments:
+						      (cons 0 '())))
+						    '())
+					at: (the-cursor)))
+	      (history ::History (history (the-document))))
+	  (operation:apply! (the-document))
+	  (history:record! operation)
+	  (times 2 move-cursor-right!)
+	  #t))
+       
+       ((is c in '(#\] #\) #\}))
+	(set! (the-cursor) (recons (parent:last-index)
+				   subcursor))
+	#t)
+       (else
+	(let ((operation ::Insert (Insert element: (cons
+						    (Atom
+						     (list->string
+						      (list c)))
+						    '())
+					  at: (the-cursor)))
+	      (history ::History (history (the-document))))
+	  (operation:apply! (the-document))
+	  (history:record! operation)
+	  (set! (the-cursor) (recons* 1 (+ top 1) subcursor))
+	  (set! (the-selection-anchor) (the-cursor))
+	  #t))))
+     (else
+      (let ((operation ::Insert (Insert element: (cons c '())
+					at: (the-cursor)))
+	    (history ::History (history (the-document))))
+	(operation:apply! (the-document))
+	(history:record! operation)
+	(set! (the-cursor) (recons (+ (head (the-cursor))
+				      (length operation:element))
+				   (tail (the-cursor))))
+	(set! (the-selection-anchor) (the-cursor))
+	#t)))))
