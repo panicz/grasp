@@ -18,6 +18,7 @@
 (import (keyword-arguments))
 (import (print))
 (import (parse))
+(import (for))
 
 ;; take-cell! returns either a cons-cell whose
 ;; car is the desired object, or a head/tail-separator
@@ -166,6 +167,67 @@
  "(1    )"
  "5")
 
+(define/kw (insert-into-box! element
+			     in: document ::pair := (the-document)
+			     at: cursor ::Cursor := (the-cursor))
+  ::boolean
+  (and-let* ((`(,tip ,top . ,root) cursor)
+	     (grandpa (cursor-ref document root))
+	     (parent (part-at top grandpa))
+	     (target (part-at tip parent)))
+    (if (is top <= 1)
+	(and-let* ((`(,heir . ,origin) root)
+		   (predecesor ::pair (cursor-ref document
+						  origin))
+		   (parent (drop (quotient heir 2)
+				 predecesor))
+		   (following-space ::Space (split-space!
+					     target
+					     tip)))
+	  (set! (car following-space:fragments)
+		(max (if (null? (car parent)) 0 1)
+		     (- (car following-space:fragments)
+			(cell-width element))))
+	  (set! (post-head-space element)
+		following-space)
+	  (set! (last-tail element) (car parent))
+	  (set! (car parent) element) #t)
+
+	(let* ((irrelevant (- (quotient top 2) 1))
+	       (before (drop irrelevant grandpa)))
+	  (cond ((pair? element)
+		 (let ((following-space ::Space
+					(split-space! target
+						      tip)))
+		   (set! (car following-space:fragments)
+			 (max (if (null? (cdr before)) 0 1)
+			      (- (car following-space:fragments)
+				 (cell-width element))))
+		   (set! (post-head-space element)
+			 following-space))
+		 (set! (last-tail element) (cdr before))
+		 (set! (cdr before) element) #t)
+		
+		((null? (cdr (cdr before)))
+		 (assert (head/tail-separator? element))
+		 (let ((following-space ::Space
+					(split-space! target
+						      tip)))
+		   (set! (car following-space:fragments)
+			 (max
+			  (- (car following-space:fragments)
+			     1)
+			  1))
+		   (set! (pre-tail-space before)
+			 following-space))
+		 (set! (cdr before) (car (cdr before)))
+		 (update! (dotted? before) #t) #t)
+
+		(else
+		 (WARN "Attempt to splice "element
+		       " in non-tail position") #f))
+	  ))))
+
 (define/kw (insert! element
 		    into: document::pair := (the-document)
 		    at: cursor::Cursor := (the-cursor))
@@ -177,64 +239,29 @@
 	    (target (part-at tip parent)))
        (cond
 	((and (Space? target)
-	      (pair? grandpa)
+	      (gnu.lists.LList? grandpa)
 	      (eq? parent target))
-	 (if (is top <= 1)
-	     (and-let* ((`(,heir . ,origin) root)
-			(predecesor ::pair (cursor-ref document
-						       origin))
-			(parent (drop (quotient heir 2)
-				      predecesor))
-			(following-space ::Space (split-space!
-						  target
-						  tip)))
-	       (set! (car following-space:fragments)
-		 (max (if (null? (car parent)) 0 1)
-		      (- (car following-space:fragments)
-			 (cell-width element))))
-	       (set! (post-head-space element)
-		 following-space)
-	       (set! (last-tail element) (car parent))
-	       (set! (car parent) element) #t)
+	 (insert-into-box! element in: document at: cursor))
 
-	     (let* ((irrelevant (- (quotient top 2) 1))
-		    (before (drop irrelevant grandpa)))
-	       (cond ((pair? element)
-		      (let ((following-space ::Space
-					     (split-space! target
-							   tip)))
-			(set! (car following-space:fragments)
-			  (max (if (null? (cdr before)) 0 1)
-			       (- (car following-space:fragments)
-				  (cell-width element))))
-			(set! (post-head-space element)
-			  following-space))
-		      (set! (last-tail element) (cdr before))
-		      (set! (cdr before) element) #t)
-		     
-		     ((null? (cdr (cdr before)))
-		      (assert (head/tail-separator? element))
-		      (let ((following-space ::Space
-					     (split-space! target
-							   tip)))
-			(set! (car following-space:fragments)
-			      (max
-			       (- (car following-space:fragments)
-				  1)
-			       1))
-			(set! (pre-tail-space before)
-			  following-space))
-		      (set! (cdr before) (car (cdr before)))
-		      (update! (dotted? before) #t) #t)
-
-		     (else
-		      (WARN "Attempt to splice "element
-			    " in non-tail position") #f))
-
-	       )))
+	((and (Atom? target)
+	      (eq? parent target)
+	      (every char? element)
+	      (is tip <= (atom-length target)))
+	 (let ((n tip))
+	   (for c in element
+	     (insert-char! c target n)
+	     (set! n (+ n 1))))
+	   #t)
+	
 	(else
 	 (WARN "unhandled case: "
-	       `(insert! ,element into: ,document at: ,cursor)) #f)
+	       `(insert! ,element into: ,document at: ,cursor)
+
+	       " grandpa: "(grandpa:getClass)
+	       " parent: "(parent:getClass)
+	       " target: "(target:getClass))
+
+	 #f)
 	)))))
 
 (e.g.

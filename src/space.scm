@@ -493,6 +493,7 @@
 
 (define-property (dotted? cell::pair)::boolean
   (not (or (null? (cdr cell))
+	   (EmptyListProxy? (cdr cell))
 	   (pair? (cdr cell)))))
 
 ;; `pre-head-space` appears before the first element

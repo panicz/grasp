@@ -36,38 +36,49 @@
       result)))
 
 (set! (the-document)
-  (call-with-input-string "\
-(define (! n)
-  (if (<= n 1)
-    1
-   (* n (! (- n 1)))))
-" parse-document))
+      (call-with-input-string
+       "" parse-document))
+
+(set! (the-cursor) (cursor 0 0 1))
+(set! (the-selection-anchor) (the-cursor))
+
+(insert-character! #\[)
+
+
 
 (e.g.
- (snapshot)
-  ===> "
-╭        ╭     ╮                   ╮
-│ define │ ! n │                   │
-│        ╰     ╯                   │
-│   ╭    ╭        ╮              ╮ │
-│   │ if │ <= n 1 │              │ │
-│   │    ╰        ╯              │ │
-│   │                            │ │
-│   │     1                      │ │
-│   │                            │ │
-│   │    ╭     ╭   ╭       ╮ ╮ ╮ │ │
-│   │    │ * n │ ! │ - n 1 │ │ │ │ │
-╰   ╰    ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
+ (snapshot) ===> "
+╭  ╮
+│  │
+╰ |╯
 ")
 
-(e.g.
- (let* ((initial (snapshot))
-	(removed ::Remove (remove-element! at: (cursor 3 3 1 1)
-					   from: (the-document)))
-	(modified (snapshot))
-	(bring-back ::Edit (removed:inverse))
-	(final (begin
-		 (bring-back:apply! (the-document))
-		 (snapshot))))
-   (and (equal? initial final)
-	(isnt initial equal? modified))))
+
+(insert-character! #\d)
+
+(snapshot)
+
+(insert-character! #\e)
+
+(snapshot)
+
+(insert-character! #\f)
+
+(snapshot)
+
+(insert-character! #\i)
+
+(snapshot)
+
+(insert-character! #\n)
+
+(snapshot)
+
+(insert-character! #\e)
+
+(snapshot)
+
+(insert-character! #\space)
+
+(snapshot)
+

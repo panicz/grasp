@@ -8,8 +8,9 @@
 (import (infix))
 (import (functions))
 (import (conversions))
+(import (editor-operations))
 
-;(define-constant META_MASK ::long #x8000000000000000)
+;(define-early-constant META_MASK      ::long #x8000000000000000)
 (define-early-constant CTRL_MASK      ::long #x4000000000000000)
 (define-early-constant ALT_MASK       ::long #x2000000000000000)
 (define-early-constant SHIFT_MASK     ::long #x1000000000000000)
@@ -38,9 +39,14 @@
     (,@(isnt _ pair?)
      ((inverse key-code-name) combination))))
 
+(define (insert-character-input!)::boolean
+  (let ((c (unicode-input)))
+    (and (isnt c eqv? #\null)
+	 (insert-character! c))))
+
 (define-early-constant keymap
   (mapping (key-code::long)::(maps () to: boolean)
-    never))
+	   insert-character-input!))
   
 (define (set-key! combination action::(maps () to: boolean))
   (set! (keymap (key-code combination)) action))
