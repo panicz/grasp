@@ -1,9 +1,41 @@
+* 25.01.2023
+
+Wczoraj sie udalo zrobic dopisywanie znakow do atomow.
+Dzisiaj natomiast zajelibysmy sie spacjami i nowymi liniami.
+
+Chodzi zasadniczo o to, ze:
+- znak spacji lub nowej linii na poczatku albo na koncu atomu
+  powinien zostac dodany do przylegajacej spacji
+- znak spacji lub nowej linii wewnatrz atomu powinien spowodowac
+  przelamanie tego atomu
+- znak spacji albo nowej linii wewnatrz spacji powinien
+  pozostac w tej spacji
+- znak spacji albo nowej linii wewnatrz Textu powinien
+  po prostu zostac do niej odpowiednio dodany
+
+Takie rzeczy chcielibysmy zaimplementowac, ale tez przy okazji
+pojawia sie perspektywa refaktoryzacji - chodzi o to, czy
+nie daloby sie zrobic tak, zeby to box, albo spacja, albo tekst
+decydowaly o tym, w jaki sposob sie zachowac - bo ostatecznie
+rozszerzenia powinny rowniez byc w stanie obslugiwac inputy
+na swoj sposob.
+
+---
+
+po dzisiejszym dniu nasuwa sie kilka uwag:
+1. dziwne zachowanie kursora
+2. (the-selection-anchor) to upierdliwy mechanizm,
+bo trzeba sie nim zajmowac przy kazdej aktualizacji kursora
+3. chcielibysmy miec symetrie pomiedzy dodawaniem i usuwaniem
+4. mamy kilka dziwnych bledow
+
+
 * 24.01.2023
 
 Ponizej jest sobie costam jakos tam napisane.
 
 Natomiast tym, na czym zalezy nam przede wszystkim,
-sa testy jednostkowe w test-editor-operations.scm.g
+sa testy jednostkowe w test-editor-operations.scm.
 
 1. extract! [atom/pudelko z wnetrza pudelka]
    - juz obsluzone - zmienic nazwe na "extract-from-box!"?
