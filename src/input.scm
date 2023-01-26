@@ -16,7 +16,7 @@
 (define-early-constant SHIFT_MASK     ::long #x1000000000000000)
 (define-early-constant MODIFIERS_MASK ::long #x7000000000000000)
 
-(define-parameter (unicode-input)::gnu.text.Char #!null)
+(define-parameter (unicode-input)::gnu.text.Char #\null)
 
 (define-early-constant key-code-name
   (bimapping (key-code::long)
@@ -42,6 +42,10 @@
 (define (insert-character-input!)::boolean
   (let ((c (unicode-input)))
     (and (isnt c eqv? #\null)
+	 #;(begin
+	   (write c)
+	   (newline)
+	   #t)
 	 (insert-character! c))))
 
 (define-early-constant keymap

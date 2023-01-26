@@ -29,12 +29,9 @@
      (with-modifiers (special-key-code type)))))
 
 (define (input-character input::KeyStroke)::char
-  (match (input:getKeyType)
-    (,KeyType:Character
-     (let* ((c ::java.lang.Character (input:getCharacter)))
-      (integer->char (c:charValue))))
-    (_
-     #\null)))
+  (let* ((c ::java.lang.Character (input:getCharacter)))
+    (or (and c (integer->char (c:charValue)))
+	#\null)))
 
 (define (initialize-keymap)  
   (set! (key-code-name (special-key-code KeyType:Escape)) 'esc)
@@ -59,7 +56,9 @@
   (set! (key-code-name (special-key-code KeyType:Tab)) 'tab)
   (set! (key-code-name (special-key-code KeyType:ReverseTab))
 	'reverse-tab)
+  (set! (key-code-name (special-key-code KeyType:Enter)) #\newline)
   (set! (key-code-name (special-key-code KeyType:Enter)) 'enter)
+
   (set! (key-code-name (special-key-code KeyType:F1)) 'F1)
   (set! (key-code-name (special-key-code KeyType:F2)) 'F2)
   (set! (key-code-name (special-key-code KeyType:F3)) 'F3)
@@ -82,9 +81,10 @@
 
   (set! (key-code-name (regular-key-code #\space)) #\space)
   (set! (key-code-name (regular-key-code #\space)) 'space)
-  (set! (key-code-name (regular-key-code #\return)) #\return)
-  (set! (key-code-name (regular-key-code #\return)) 'enter)
-  
+#|
+  (set! (key-code-name (regular-key-code #\newline)) #\newline)
+  (set! (key-code-name (regular-key-code #\newline)) 'enter)
+  |#
   (set! (key-code-name (regular-key-code #\0)) #\0)
   (set! (key-code-name (regular-key-code #\1)) #\1)
   (set! (key-code-name (regular-key-code #\2)) #\2)

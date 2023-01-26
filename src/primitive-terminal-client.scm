@@ -31,50 +31,6 @@
  (button)
  )
 
-(define (/old/delete! position::Index)::void
-  (let* ((target (the-expression)))
-    (cond
-     ((is target instance? Atom)
-      (cond ((is 0 <= position < (atom-length target))
-	     (delete-char! target position)
-	     (when (= (atom-length target) 0)
-	       (extract! at: (cdr (the-cursor)))
-	       (set! (the-cursor)
-		     (cursor-climb-back
-		      (recons (- (car (cdr (the-cursor)))
-				 1)
-			      (cdr (cdr (the-cursor))))))))))
-     ((is target instance? Space)
-      (if (or (is position > (first-index target))
-	      (and (is position = (first-index target))
-		   (or (and-let* ((`(#\] . ,_) (cursor-advance))))
-		       (and-let* ((`(#\[ . ,_) (cursor-retreat)))))))
-	  (delete-space! target position))))))
-
-(define (/old/delete-forward!)::void
-  (let ((target (the-expression)))
-    (cond ((and (pair? target)
-		(pair? (the-cursor))
-		(eqv? (car (the-cursor)) (first-index target)))
-	   (let ((new-cursor (cursor-retreat)))
-	     (extract!)
-	     (set! (the-cursor) new-cursor)))
-	  (else
-	   (/old/delete! (car (the-cursor)))))))
-
-(define (/old/delete-backward!)::void
-  (let ((target (the-expression)))
-    (cond ((and (pair? target)
-		(eqv? (car (the-cursor)) (last-index target)))
-	   (let ((new-cursor (cursor-climb-back
-			      (cursor-back (cdr (the-cursor))))))
-	     (extract!)
-	     (set! (the-cursor) new-cursor)))
-	  (else
-	   (set! (the-cursor)
-		 (cursor-climb-back (cursor-back)))
-	   (/old/delete! (car (the-cursor)))))))
-
 (define (/old/insert-character! c::char)::void
   (and-let* ((`(,tip . ,stem) (the-cursor))
 	     (`(,top . ,root) stem)
@@ -281,16 +237,16 @@ mutations of an n-element set.\"
 	     (continue))
 	    
 	    (,KeyType:Delete
-	     (safely (/old/delete-forward!))
+	     (safely (delete-forward!))
 	     (continue))
 
 	    (,KeyType:Enter
-	     (/old/insert-character! #\newline)
+	     (insert-character! #\newline)
 	     (move-cursor-right!)
 	     (continue))
 	    
 	    (,KeyType:Backspace
-	     (safely (/old/delete-backward!))
+	     (safely (delete-backward!))
 
 	     (continue))
 	    

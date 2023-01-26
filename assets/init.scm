@@ -39,9 +39,20 @@
 (set-key! '(ctrl z) undo!)
 (set-key! '(ctrl y) redo!)
 
-#|
+(set-key! '(ctrl q) exit)
+
+(set-key! 'esc (lambda ()
+		 (set! (the-cursor) '())
+		 (set! (the-selection-anchor) '())))
+
 (set-key! 'backspace delete-backward!)
 (set-key! 'delete delete-forward!)
+
+(set-key! '(ctrl /) (lambda ()
+		      (WARN "cursor: "(the-cursor)", selection: "
+			    (the-selection-anchor))))
+
+#|
 
 (set-key! '(ctrl enter) evaluate!)
 
