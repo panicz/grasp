@@ -185,7 +185,7 @@
 					     target
 					     tip)))
 	  (set! (car following-space:fragments)
-		(max (if (null? (car parent)) 0 1)
+		(max (if (empty? (car parent)) 0 1)
 		     (- (car following-space:fragments)
 			(cell-width element))))
 	  (set! (post-head-space element)
@@ -200,7 +200,7 @@
 					(split-space! target
 						      tip)))
 		   (set! (car following-space:fragments)
-			 (max (if (null? (cdr before)) 0 1)
+			 (max (if (empty? (cdr before)) 0 1)
 			      (- (car following-space:fragments)
 				 (cell-width element))))
 		   (set! (post-head-space element)
@@ -234,18 +234,69 @@
   ::boolean
   (match cursor
     (`(,tip ,top . ,root)
-     (let* ((grandpa (cursor-ref document root))
+     (let* ((grandpa ::Indexable (cursor-ref document root))
 	    (parent (part-at top grandpa))
 	    (target (part-at tip parent)))
        (cond
 	((and (Space? target)
+	      (pair? grandpa)
+	      (every char? element)
+	      (every char-whitespace? element))
+	 (let ((n tip))
+	   (for c in element
+	     (insert-whitespace! c target n)
+	     (set! n (+ n 1)))))
+	
+	((and (Space? target)
 	      (gnu.lists.LList? grandpa)
+	      (or (head/tail-separator? element)
+		  (every (isnt _ char?) element))
 	      (eq? parent target))
 	 (insert-into-box! element in: document at: cursor))
 
 	((and (Atom? target)
 	      (eq? parent target)
 	      (every char? element)
+	      (every char-whitespace? element)
+	      (is tip <= (atom-length target)))
+	 (match tip
+	   (0
+	    (let* ((preceding-space ::Space (grandpa:part-at
+					     (grandpa:previous-index
+					      top)))
+		   (n (preceding-space:last-index)))
+	      (for c in element
+		(insert-whitespace! c preceding-space n))))
+	   
+	   (,(atom-length target)
+	    (let* ((following-space ::Space (grandpa:part-at
+					     (grandpa:next-index
+					      top)))
+		   (n (following-space:first-index)))
+	      (for c in element
+		(insert-whitespace! c following-space n)
+		(set! n (+ n 1)))))
+
+	   (_
+	    (let* ((suffix (atom-subpart target tip))
+		   (owner (drop (quotient top 2) grandpa))
+		   (cell (cons suffix (cdr owner)))
+		   (space ::Space (Space fragments: (cons 0 '()))))
+	      (truncate-atom! target tip)
+	      (set! (cdr owner) cell)
+	      (set! (post-head-space cell)
+		    (post-head-space owner))
+	      (set! (post-head-space owner) space)
+	      (let ((n 0))
+		(for c in element
+		  (insert-whitespace! c space n)
+		  (set! n (+ n 1))))
+	      #t))))
+	
+	((and (Atom? target)
+	      (eq? parent target)
+	      (every char? element)
+	      (every (isnt _ char-whitespace?) element)
 	      (is tip <= (atom-length target)))
 	 (let ((n tip))
 	   (for c in element
