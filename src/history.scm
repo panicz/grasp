@@ -31,7 +31,7 @@
 
 (define-type (Move from: Cursor
 		   to: Cursor
-		   with-shift: int)
+		   with-shift: int := 0)
   implementing Edit
   with
   ((apply! document::pair)::void
@@ -52,7 +52,7 @@
 				      HeadTailSeparator
 				      EmptyListProxy)
 		     from: Cursor
-		     with-shift: int)
+		     with-shift: int := 0)
   implementing Edit
   with
   ((apply! document::pair)::void

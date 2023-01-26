@@ -88,6 +88,54 @@
   (let ((document-history ::History (history (the-document))))
     (document-history:redo!)))
 
+(define (delete! position::Index)::void
+  (let* ((target (the-expression)))
+    (cond
+     ((is target instance? Atom)
+      (cond ((is 0 <= position < (atom-length target))
+	     (delete-char! target position)
+	     (when (= (atom-length target) 0)
+	       (extract! at: (cdr (the-cursor)))
+	       (set! (the-cursor)
+		     (cursor-climb-back
+		      (recons (- (car (cdr (the-cursor)))
+				 1)
+			      (cdr (cdr (the-cursor))))))
+	       (set! (the-selection-anchor) (the-cursor))))))
+     ((is target instance? Space)
+      (if (or (is position > (first-index target))
+	      (and (is position = (first-index target))
+		   (or (and-let* ((`(#\] . ,_) (cursor-advance))))
+		       (and-let* ((`(#\[ . ,_) (cursor-retreat)))))))
+	  (delete-space! target position))))))
+
+(define (delete-forward!)::void
+  (let ((target (the-expression)))
+    (cond ((and (pair? target)
+		(pair? (the-cursor))
+		(eqv? (car (the-cursor)) (first-index target)))
+	   (let ((new-cursor (cursor-retreat)))
+	     (extract!)
+	     (set! (the-cursor) new-cursor)
+	     (set! (the-selection-anchor) (the-cursor))))
+	  (else
+	   (delete! (car (the-cursor)))))))
+
+(define (delete-backward!)::void
+  (let ((target (the-expression)))
+    (cond ((and (pair? target)
+		(eqv? (car (the-cursor)) (last-index target)))
+	   (let ((new-cursor (cursor-climb-back
+			      (cursor-back (cdr (the-cursor))))))
+	     (extract!)
+	     (set! (the-cursor) new-cursor)
+	     (set! (the-selection-anchor) (the-cursor))))
+	  (else
+	   (set! (the-cursor)
+		 (cursor-climb-back (cursor-back)))
+	   (set! (the-selection-anchor) (the-cursor))
+	   (delete! (car (the-cursor)))))))
+
 
 (define/kw (insert-character! c::char)
   ::boolean
@@ -131,7 +179,17 @@
        ((is c in '(#\] #\) #\}))
 	(set! (the-cursor) (recons (parent:last-index)
 				   subcursor))
+	(set! (the-selection-anchor) (the-cursor))
 	#t)
+       ((is c char-whitespace?)
+	(let ((operation ::Insert (Insert element: (cons c '())
+					  at: (the-cursor)))
+	      (history ::History (history (the-document))))
+	  (operation:apply! (the-document))
+	  (history:record! operation)
+	  (move-cursor-right!)
+	  #t))
+	
        (else
 	(let ((operation ::Insert (Insert element: (cons
 						    (Atom
@@ -151,8 +209,11 @@
 	    (history ::History (history (the-document))))
 	(operation:apply! (the-document))
 	(history:record! operation)
-	(set! (the-cursor) (recons (+ (head (the-cursor))
-				      (length operation:element))
-				   (tail (the-cursor))))
+	(set! (the-cursor)
+	      (if (char-whitespace? c)
+		  (recons* 1 (+ top 1) subcursor)
+		  (recons (+ (head (the-cursor))
+			     (length operation:element))
+			  (tail (the-cursor)))))
 	(set! (the-selection-anchor) (the-cursor))
 	#t)))))

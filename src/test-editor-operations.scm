@@ -53,32 +53,29 @@
 ╰ |╯
 ")
 
+(for-each insert-character! '(#\d #\e #\f #\i #\n #\e))
 
-(insert-character! #\d)
-
-(snapshot)
-
-(insert-character! #\e)
-
-(snapshot)
-
-(insert-character! #\f)
-
-(snapshot)
-
-(insert-character! #\i)
-
-(snapshot)
-
-(insert-character! #\n)
-
-(snapshot)
-
-(insert-character! #\e)
-
-(snapshot)
+(e.g.
+ (snapshot) ===> "
+╭        ╮
+│ define │
+╰       ^╯
+")
 
 (insert-character! #\space)
 
-(snapshot)
+(e.g.
+ (snapshot) ===> "
+╭         ╮
+│ define  │
+╰        |╯
+")
 
+(insert-character! #\[)
+
+(e.g.
+ (snapshot) ===> "
+╭        ╭  ╮ ╮
+│ define │  │ │
+╰        ╰ |╯ ╯
+")

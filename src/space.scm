@@ -492,8 +492,7 @@
 ;; Instead, (unset! (dotted? pair)) should be used.
 
 (define-property (dotted? cell::pair)::boolean
-  (not (or (null? (cdr cell))
-	   (EmptyListProxy? (cdr cell))
+  (not (or (empty? (cdr cell))
 	   (pair? (cdr cell)))))
 
 ;; `pre-head-space` appears before the first element
@@ -598,6 +597,10 @@
 
 (define-property (head-tail-separator cell)
   head/tail-separator)
+
+(define (empty? x)::boolean
+  (or (null? x)
+      (EmptyListProxy? x)))
 
 (define-object (EmptyListProxy space::Space)::ShadowedTile
   (define (value) '())
