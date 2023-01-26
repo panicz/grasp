@@ -143,58 +143,56 @@
 
 (define (edit io :: LanternaScreen)::void
   (let loop ()
-    (let* ((key ::KeyStroke (io:readInput))
-	   (type ::KeyType (key:getKeyType))
-	   (caret ::TerminalPosition (io:getCursorPosition)))
-      (match type
-	(,KeyType:Character 
+    (safely
+     (let* ((key ::KeyStroke (io:readInput))
+	    (type ::KeyType (key:getKeyType))
+	    (caret ::TerminalPosition (io:getCursorPosition)))
+       (match type
+	 #;(,KeyType:Character 
 	 (parameterize ((unicode-input (input-character key)))
-	   (invoke (the-screen) 'key-typed! (scancode key))))
-	
-	(,KeyType:EOF
-	 (io:stopScreen)
-	 (exit))
+	 (invoke (the-screen) 'key-typed! (scancode key))))
 
-	(,KeyType:MouseEvent
-	 (let* ((action ::MouseAction
-			(as MouseAction key))
-		(position ::TerminalPosition
-			  (action:getPosition))
-		(left (position:getColumn))
-		(top (position:getRow)))
-	   (cond
-	    ((action:isMouseMove)
-	     (values))
-	    ((action:isMouseDown)
-	     
-	     (match (action:getButton)
-	       (,MouseButton:Left
-		(invoke (the-screen) 'press! 0 #;at left top)
-		(set! previous-mouse:left left)
-		(set! previous-mouse:top top))
-	       (,MouseButton:Right
-		(values))
-	       (_
-		(values))))
-	    ((action:isMouseDrag)
-	     (invoke (the-screen)
-		     'move! 0 left top
-		     (- left previous-mouse:left)
-		     (- top previous-mouse:top))
-	     (set! previous-mouse:left left)
-	     (set! previous-mouse:top top))
+	 (,KeyType:MouseEvent
+	  (let* ((action ::MouseAction
+			 (as MouseAction key))
+		 (position ::TerminalPosition
+			   (action:getPosition))
+		 (left (position:getColumn))
+		 (top (position:getRow)))
+	    (cond
+	     ((action:isMouseMove)
+	      (values))
+	     ((action:isMouseDown)
+	      
+	      (match (action:getButton)
+		(,MouseButton:Left
+		 (invoke (the-screen) 'press! 0 #;at left top)
+		 (set! previous-mouse:left left)
+		 (set! previous-mouse:top top))
+		(,MouseButton:Right
+		 (values))
+		(_
+		 (values))))
+	     ((action:isMouseDrag)
+	      (invoke (the-screen)
+		      'move! 0 left top
+		      (- left previous-mouse:left)
+		      (- top previous-mouse:top))
+	      (set! previous-mouse:left left)
+	      (set! previous-mouse:top top))
 
-	    ((action:isMouseUp)
-	     (invoke (the-screen)
-		     'release! 0 left top
-		     (- left previous-mouse:left)
-		     (- top previous-mouse:top))
-	     (set! previous-mouse:left left)
-	     (set! previous-mouse:top top)))))
-	
-	(_
-	 (invoke (the-screen) 'key-typed! (scancode key)))))
-    
+	     ((action:isMouseUp)
+	      (invoke (the-screen)
+		      'release! 0 left top
+		      (- left previous-mouse:left)
+		      (- top previous-mouse:top))
+	      (set! previous-mouse:left left)
+	      (set! previous-mouse:top top)))))
+	 
+	 (_
+	  (parameterize ((unicode-input (input-character key)))
+	    (invoke (the-screen) 'key-typed! (scancode key)))))))
+     
     (synchronized screen-up-to-date?
       (set! (screen-up-to-date?) #f)
       (invoke screen-up-to-date? 'notify))
