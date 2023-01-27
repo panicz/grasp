@@ -74,10 +74,14 @@
 	 (blue ::int (bitwise-and #xff aRGB)))
     (Color red green blue alpha)))
 
-(define-parameter (parenthesis-color) :: procedure
-  (lambda ()
-    ::Color
-    (color #xcccccc)))
+(define-parameter (parenthesis-color) ::Color
+  (color #xcccccc))
+
+(define-parameter (focused-parenthesis-color) ::Color
+  Color:DARK_GRAY)
+
+(define-parameter (matching-parenthesis-color) ::Color
+  (color #x888888))
 
 (define-early-constant graphics-environment
   ::java.awt.GraphicsEnvironment
@@ -221,11 +225,11 @@
     (RenderingHints RenderingHints:KEY_TEXT_ANTIALIASING
 		    RenderingHints:VALUE_TEXT_ANTIALIAS_ON))
     
-  (define (open-paren! height::real)::void
+  (define (open-paren! height::real color::Color)::void
     (let ((line-height (max 0 (- height
 				 top-left-bounds:height
 				 bottom-left-bounds:height))))
-      (graphics:setColor ((parenthesis-color)))
+      (graphics:setColor color)
       (graphics:fill top-left-paren)
       (graphics:fillRect 0 top-left-bounds:height
 			 5 line-height)
@@ -233,11 +237,11 @@
 			      line-height))
 	  (graphics:fill bottom-left-paren))))
 
-  (define (close-paren! height::real)::void
+  (define (close-paren! height::real color::Color)::void
     (let ((line-height (max 0 (- height
 				 top-right-bounds:height
 				 bottom-right-bounds:height))))
-      (graphics:setColor ((parenthesis-color)))
+      (graphics:setColor color)
       (graphics:fill top-right-paren)
       (graphics:fillRect (- top-right-bounds:width 5)
 			 top-right-bounds:height 5 line-height)
@@ -249,9 +253,24 @@
   (define (draw-box! width::real height::real
 		     context::Cursor)
     ::void
-    (open-paren! height)
-    (with-translation ((- width (paren-width)) 0)
-	(close-paren! height)))
+    (let ((cursor (the-cursor)))
+      (open-paren! height
+		   (match cursor
+		     (`(#\[ . ,,context)
+		      (focused-parenthesis-color))
+		     (`(#\] . ,,context)
+		      (matching-parenthesis-color))
+		     (_
+		      (parenthesis-color))))
+      (with-translation ((- width (paren-width)) 0)
+	  (close-paren! height
+			(match cursor
+			  (`(#\] . ,,context)
+			   (focused-parenthesis-color))
+			  (`(#\[ . ,,context)
+			   (matching-parenthesis-color))
+			  (_
+			   (parenthesis-color)))))))
   
   (define (space-width)::real 8)
   
