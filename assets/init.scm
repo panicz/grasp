@@ -41,9 +41,7 @@
 
 (set-key! '(ctrl q) exit)
 
-(set-key! 'esc (lambda ()
-		 (set! (the-cursor) '())
-		 (set! (the-selection-anchor) '())))
+(set-key! 'F12 exit)
 
 (set-key! 'backspace delete-backward!)
 (set-key! 'delete delete-forward!)
