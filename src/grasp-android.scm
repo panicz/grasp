@@ -132,6 +132,15 @@
   (define the-cursor-extent ::parameter[Extent]
     (make-parameter (Extent width: 2 height: 32)))
 
+  (define parenthesis-color ::parameter[long]
+    (make-parameter #xffcccccc))
+
+  (define focused-parenthesis-color ::parameter[long]
+    (make-parameter #xff555555))
+
+  (define matching-parenthesis-color ::parameter[long]
+    (make-parameter #xff888888))
+  
   (define top-left-paren ::Path2D
     (Path
      (moveTo 20 0)
@@ -364,11 +373,11 @@
 	   (+ top-left-extent:height bottom-left-extent:height)
 	   (+ top-right-extent:height bottom-right-extent:height))))
 
-  (define (open-paren! height::real)::void
+  (define (open-paren! height::real color::long)::void
     (let ((line-height (max 0 (- height
 				 top-left-extent:height
 				 bottom-left-extent:height))))
-      (paint:setColor text-color)
+      (paint:setColor color)
       (canvas:drawPath top-left-paren paint)
       (canvas:drawRect 0 top-left-extent:height
 		       10 (+ top-left-extent:height line-height)
@@ -377,11 +386,11 @@
 			      line-height))
 	  (canvas:drawPath bottom-left-paren paint))))
 
-  (define (close-paren! height::real)::void
+  (define (close-paren! height::real color::long)::void
     (let ((line-height (max 0 (- height
 				 top-right-extent:height
 				 bottom-right-extent:height))))
-      (paint:setColor text-color)
+      (paint:setColor color)
       (canvas:drawPath top-right-paren paint)
       (canvas:drawRect (- top-right-extent:width 10)
 		       top-right-extent:height
@@ -396,9 +405,24 @@
   (define (draw-box! width::real height::real
 		     context::Cursor)
     ::void
-    (open-paren! height)
-    (with-translation ((- width (paren-width)) 0)
-	(close-paren! height)))
+    (let ((cursor (the-cursor)))
+      (open-paren! height
+		   (match cursor
+		     (`(#\[ . ,,context)
+		      (focused-parenthesis-color))
+		     (`(#\] . ,,context)
+		      (matching-parenthesis-color))
+		     (_
+		      (parenthesis-color))))
+      (with-translation ((- width (paren-width)) 0)
+	  (close-paren! height
+			(match cursor
+			  (`(#\] . ,,context)
+			   (focused-parenthesis-color))
+			  (`(#\[ . ,,context)
+			   (matching-parenthesis-color))
+			  (_
+			   (parenthesis-color)))))))
 
   (define (draw-text! text::CharSequence
 		      font::Font
