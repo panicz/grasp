@@ -320,6 +320,18 @@
   (set! (key-code-name KeyEvent:KEYCODE_SLASH) #\/)
   (set! (key-code-name KeyEvent:KEYCODE_SLASH) '/)
 
+  (set! (key-code-name KeyEvent:KEYCODE_F1) 'f1)
+  (set! (key-code-name KeyEvent:KEYCODE_F2) 'f2)
+  (set! (key-code-name KeyEvent:KEYCODE_F3) 'f3)
+  (set! (key-code-name KeyEvent:KEYCODE_F4) 'f4)
+  (set! (key-code-name KeyEvent:KEYCODE_F5) 'f5)
+  (set! (key-code-name KeyEvent:KEYCODE_F6) 'f6)
+  (set! (key-code-name KeyEvent:KEYCODE_F7) 'f7)
+  (set! (key-code-name KeyEvent:KEYCODE_F8) 'f8)
+  (set! (key-code-name KeyEvent:KEYCODE_F9) 'f9)
+  (set! (key-code-name KeyEvent:KEYCODE_F10) 'f10)
+  (set! (key-code-name KeyEvent:KEYCODE_F11) 'f11)
+  (set! (key-code-name KeyEvent:KEYCODE_F12) 'f12)
   
   (set! (key-code-name KeyEvent:KEYCODE_F1) 'F1)
   (set! (key-code-name KeyEvent:KEYCODE_F2) 'F2)
