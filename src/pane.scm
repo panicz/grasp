@@ -1,5 +1,6 @@
 (import (srfi :17))
 (import (hash-table))
+(import (define-property))
 (import (define-syntax-rule))
 (import (assert))
 (import (define-interface))
@@ -28,8 +29,8 @@
 (import (parameterize-up))
 (import (document-operations))
 (import (space))
-(import (history))
 (import (input))
+(import (history))
 
 (define-alias List java.util.List)
 (define-alias ArrayList java.util.ArrayList)
