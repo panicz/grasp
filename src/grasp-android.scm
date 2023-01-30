@@ -26,6 +26,7 @@
 (import (editor-operations))
 (import (input))
 (import (android-keymap))
+(import (history))
 ;;(import (primitive))
 
 (define-alias Bundle android.os.Bundle)
@@ -659,10 +660,11 @@ ue
     #f)
 
   (define (onSingleTapConfirmed event::MotionEvent)::boolean
-    (view:showKeyboard)
-    (invalidating
-     (invoke (the-screen) 'tap! 0
-	     #;at (event:getX) (- (event:getY) 60))))
+    (safely 
+     (view:showKeyboard)
+     (invalidating
+      (invoke (the-screen) 'tap! 0
+	      #;at (event:getX) (- (event:getY) 60)))))
 
   (define (onDoubleTap event::MotionEvent)::boolean
     #f)
@@ -674,60 +676,64 @@ ue
     #f)
   
   (define (onTouchEvent event::MotionEvent)::boolean
-    (invalidating
-     (or (gesture-detector:onTouchEvent event)
-	 (match (event:getActionMasked)
-	   (,MotionEvent:ACTION_DOWN
-	    (let* ((x* (event:getX))
-		   (y* (- (event:getY) 60))
-		   (result (invoke (the-screen) 'press!
-				   0 x* y*)))
-	      (set! (x 0) x*)
-	      (set! (y 0) y*)
-	      result))
-	   (,MotionEvent:ACTION_POINTER_DOWN
-	    #f)
-	   (,MotionEvent:ACTION_UP
-	    (let* ((x* (event:getX))
-		   (y* (- (event:getY) 60))
-		   (result (invoke (the-screen) 'release!
-				   0 x* y* 0 0)))
-	      (set! (x 0) x*)
-	      (set! (y 0) y*)
-	      result))
-	   (,MotionEvent:ACTION_POINTER_UP
-	    #f)
-	   (,MotionEvent:ACTION_OUTSIDE
-	    #f)
-	   (,MotionEvent:ACTION_MOVE
-	    ;;(WARN "force: "(event:getPressure)", size: "(event:getSize))
-	    (let* ((x* (event:getX))
-		   (y* (- (event:getY) 60))
-		   (result (invoke (the-screen) 'move!
-				   0 x* y* (- x* (x 0)) (- y* (y 0)))))
-	      (set! (x 0) x*)
-	      (set! (y 0) y*)
-	      result))
-	   (,MotionEvent:ACTION_POINTER_UP
-	    #f)
-	   (,MotionEvent:ACTION_CANCEL
-	    #f)
-	   (_
-	    #f)))))
+    (safely
+     (invalidating
+      (or (gesture-detector:onTouchEvent event)
+	  (match (event:getActionMasked)
+	    (,MotionEvent:ACTION_DOWN
+	     (let* ((x* (event:getX))
+		    (y* (- (event:getY) 60))
+		    (result (invoke (the-screen) 'press!
+				    0 x* y*)))
+	       (set! (x 0) x*)
+	       (set! (y 0) y*)
+	       result))
+	    (,MotionEvent:ACTION_POINTER_DOWN
+	     #f)
+	    (,MotionEvent:ACTION_UP
+	     (let* ((x* (event:getX))
+		    (y* (- (event:getY) 60))
+		    (result (invoke (the-screen) 'release!
+				    0 x* y* 0 0)))
+	       (set! (x 0) x*)
+	       (set! (y 0) y*)
+	       result))
+	    (,MotionEvent:ACTION_POINTER_UP
+	     #f)
+	    (,MotionEvent:ACTION_OUTSIDE
+	     #f)
+	    (,MotionEvent:ACTION_MOVE
+	     ;;(WARN"force: "(event:getPressure)", size: "(event:getSize))
+	     (let* ((x* (event:getX))
+		    (y* (- (event:getY) 60))
+		    (result (invoke (the-screen) 'move!
+				    0 x* y* (- x* (x 0)) (- y* (y 0)))))
+	       (set! (x 0) x*)
+	       (set! (y 0) y*)
+	       result))
+	    (,MotionEvent:ACTION_POINTER_UP
+	     #f)
+	    (,MotionEvent:ACTION_CANCEL
+	     #f)
+	    (_
+	     #f))))))
 
   (define (onKeyUp keyCode::int event::KeyEvent)::boolean
     #f)
 
   (define (onKeyDown keyCode::int event::KeyEvent)::boolean
-    (parameterize ((unicode-input (event:getUnicodeChar keyCode)))
-      (invalidating
-       (invoke (the-screen)
-	       'key-typed!
-	       (as long (bitwise-ior
-			 (as long keyCode)
-			 (if (event:ctrl-pressed?) CTRL_MASK 0)
-			 (if (event:alt-pressed?) ALT_MASK 0)
-			 (if (event:shift-pressed?) SHIFT_MASK 0)))))))
+    (safely
+     (parameterize ((unicode-input (integer->char
+				    (event:getUnicodeChar))))
+       (invalidating
+	(invoke (the-screen)
+		'key-typed!
+		(as long
+		    (bitwise-ior
+		     (as long keyCode)
+		     (if (event:ctrl-pressed?) CTRL_MASK 0)
+		     (if (event:alt-pressed?) ALT_MASK 0)
+		     (if (event:shift-pressed?) SHIFT_MASK 0))))))))
   
   (define (onCreate savedState::Bundle)::void
     (invoke-special AndroidActivity (this) 'onCreate savedState)
@@ -753,6 +759,7 @@ ue
 
     (for expression in init-script
 	 (safely
-	  (eval expression))))
+	  (eval expression)))
+    )
   
   (AndroidActivity))
