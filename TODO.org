@@ -1,3 +1,134 @@
+* 28.01.2023
+
+Plan na teraz jest taki:
+1. wypisujemy sobie wszystkie operacje dopuszczalne
+  z klawiatury (na razie bez rozszerzen, ktore wszelako
+  dodamy pozniej)
+2. dla kazdej takiej operacji piszemy "test jednostkowy",
+uwzgledniajacy rowniez operacje "undo!" i "redo!"
+3. poczatkowo napiszemy po prostu duzo testow jednostkowych,
+ale wiekszosc z nich pozostanie zakomentowana
+4. bedziemy powoli dodawac funkcjonalnosci, odkomentowujac
+poszczegolne testy - ale przy tym bedziemy uwazac, zeby
+kod pozostal w miare ladny i elegancki, wiec nie bedziemy
+sie spieszyc
+
+A kiedy to sie uda zrealizowac, to wowczas zajmiemy sie
+trawersowaniem i nawigowaniem po komentarzach oraz obsluga
+pelnej skladni Kawy uzytej w implementacji GRASP, zeby dalej
+moc edytowac GRASPa z poziomu niego samego.
+
+Poniewaz zas zbliza sie luty, bedzie trzeba sie zajac
+napisaniem zgloszenia na ELS.
+
+No dobra, to teraz lista (albo tabela?)
+
+Zacznijmy od tego:
+
+A. insert-char!
+
+  1. jezeli element pod kursorem to tekst, to po prostu
+     wstawiamy znak do tego tekstu i zwiekszamy wierzcholek
+     kursora o 1
+
+ (2. analogicznie, jezeli element pod kursorem to rozszerzenie,
+     to przekazujemy znak do rozszerzenia (i to juz ewentualnie
+     rozszerzenie zajmuje sie kursorem))
+
+  3. jezeli wstawiany znak to #\[, to:
+    a. jezeli kursor jest na spacji albo krawedzi atomu, to 
+     tworzymy nowe pudelko
+    b. jezeli kursor jest wewnatrz atomu, to przedzielamy atom
+     nowym pudelkiem
+   (c. docelowo: jezeli mamy wybrana selekcje, to owijamy selekcje
+     w pudelko)
+
+  4. jezeli wstawiamy spacje albo nowa linie, to:
+    a. jezeli jestesmy na spacji, to odpowiednio powiekszamy spacje
+    b. jezeli jestesmy na atomie, to dzielimy atom i dodajemy spacje
+
+  5. jezeli wstawiamy atomowa litere w spacje, to tworzymy nowy atom
+
+  6. jezeli wstawiamy atomowa litere w atom, to po prostu dopisujemy
+     te litere do atomu (scalajac odpowiednio operacje Insert)
+
+
+B. delete-backward!
+
+  1. jezeli jestesmy na lewej krawedzi spacji za nawiasem
+     zamykajacym, to kasujemy cale wyrazenie zamykane przez
+     ten nawias
+  2. jezeli jestesmy na lewej krawedzi spacji wewnatrz pustych
+     nawiasow, to kasujemy te nawwiasy
+  3. jezeli jestesmy na nawiasie zamykajacym pusta pare nawiasow,
+     to
+     a. jezeli spacja wewnatrz tych nawiasow jest pusta, kasujemy
+        wyrazenie
+     b. w przeciwnym razie kasujemy zawarta w wyrazeniu spacje
+     (od prawej strony)
+  4. jezeli jestesmy na nawiasie otwierajacym pusta pare nawiasow,
+     i spacja wewnatrz jest pusta, tzn. (Space fragments: 0),
+     to kasujemy te pare nawiasow
+  5. jezeli jestesmy na lewej krawedzi spacji za atomem, to
+     usuwamy ostatni znak z tego atomu, a jezeli to ostatni znak,
+     to usuwamy atom i scalamy biezaca spacje ze spacja poprzedzajaca
+     ten atom
+  6. jezeli jestesmy wewnatrz spacji, to kasujemy poprzedzajaca
+     spacje (czyli albo odpowiednio zmniejszamy wartosc fragmentu,
+     albo w ogole usuwamy fragment)
+  7. jezeli jestesmy wewnatrz atomu, to usuwamy znak przed
+     kursorem. Jezeli przed kursorem nie ma zadnego znaku,
+     to usuwamy spacje przed atomem, chyba ze ta spacja jest
+     zerowa - wowczas scalamy biezacy atom ze wczesniejszym
+     atomem
+  8. jezeli jestesmy na lewej krawedzi atomu i przed atomem
+     jest nawias zamykajacy (oraz pusta spacja), to kasujemy cale
+     wyrazenie
+  9. jezeli jestesmy na lewej krawedzi atomu albo niepustej spacji
+     za nawiasem otwierajacym, to nic robimy
+
+C. delete-forward!
+
+  1. jezeli jestesmy na prawiej krawedzi spacji przed nawiasem
+     otwierajacym, to kasujemy cale wyrazenie otwierane przez
+     ten nawias
+
+  
+
+* 26.01.2023
+
+Odkrylismy, ze klawisze w kliencie terminalowym nie sa
+obslugiwane poprawnie, i mozemy sie sprobowac zajac
+ich naprawa.
+
+OK, to juz zrobione.
+
+I co daley?
+
+Trzeba w jakis sposob usystematyzowac edycje. Ogolnie
+mamy dwie kwestie:
+- modyfikacja dokumentu
+- modyfikacja polozenia kursora
+
+Do tego dochodzi nam jeszcze kwestia "odwracalnosci operacji",
+w tym - w szczegolnosci - odwracalnosc operacji kasowania
+(oraz scalanie operacji edycji na poziomie znaku w historii)
+
+Dobrze by bylo rowniez rozprawic sie z kwestia reprezentacji
+selekcji, bo aktualnie wydaje sie, ze (the-selection-anchor)
+nie dziala zbyt dobrze.
+
+Wreszcie byloby doskonale, gdybysmy mieli pelna obsluge selekcji.
+Ale wydaje sie, ze to nie na teraz.
+
+Ogolnie musimy tez pamietac, ze oprocz edycji z klawiatury
+oraz wsparcia dla komentarzy, chcielibysmy tez w jakis sposob
+reprezenotwac quote'y i unquote'y.
+
+Natomiast w kwestii najpredszych zmian, warto byloby dodac
+kolorowanie wybranego nawiasu, i warto by bylo tez obsluzyc
+podswietlanie nawiasu na ktorym znajduje sie kursor.
+
 * 25.01.2023
 
 Wczoraj sie udalo zrobic dopisywanie znakow do atomow.
