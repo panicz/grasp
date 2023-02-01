@@ -1,3 +1,59 @@
+* 31.01.2023
+
+Musimy dokonac analizy intelektualnej problemu kursora
+i historii.
+
+Wydaje sie bowiem, ze mamy dwa rodzaje operacji:
+drag&drop, ktory nie powinien wplywac na polozenie
+kursora (a moze moze?) oraz edycje z klawiatury,
+ktora ewidentnie wplywa na polozenie kursora
+
+Byc moze latwiej bedzie zalozyc, ze drag&drop
+rowniez wplywa na polozenia kursora (bo zasadniczo
+to sie wydaje nie miec znaczenia), i ze zawsze
+umieszczamy kursor za dodanym elementem
+albo przed usunietym elementem. 
+
+-----
+
+
+[Insert element: (f) at: (1 2 1 1)]
+[Insert element: ('i') at: (1 3 1 1)]
+
+===>
+[Insert element: (fi) at: (1 2 1 1)]
+[Insert element: ('n') at: (2 3 1 1)]
+
+===>
+[Insert element: (fin) at: (1 2 1 1)]
+[Insert element: ('e') at: (3 3 1 1)]
+
+===>
+[Insert element: (fine) at: (1 2 1 1)]
+
+Warunek jest taki:
+- jezeli ostatnia operacja to wstawienie atomu A
+dlugosci L na pozycji (_ n . x), a kolejna operacja
+to wstawienie znaku C na pozycji
+(L (+ n 1) . x), to zmieniamy operacje w historii
+tak, ze jest to dopisanie symbolu AC na pozycji (_ n . x).
+
+
+* 30.01.2023
+
+OK, to teraz:
+- albo piszemy testy jednostkowe
+- albo probujemy implementowac poszczegolne
+  funkcjonalnosci (pamietajac o zaimplementowaniu
+  undo! i redo! oraz o polozeniach kursora)
+
+Wydaje sie tez, ze trzeba przemyslec sprawe
+zachowania kursora w kontekscie operacji
+historycznych oraz drag&dropa.
+
+Co do drag&dropa to mamy pewna koncepcje.
+
+
 * 28.01.2023
 
 Plan na teraz jest taki:
@@ -43,13 +99,19 @@ A. insert-char!
    (c. docelowo: jezeli mamy wybrana selekcje, to owijamy selekcje
      w pudelko)
 
-  4. jezeli wstawiamy spacje albo nowa linie, to:
+  4. jezeli wstawiamy znak #\", to:
+    a. jezeli kursor jest na spacji albo krawedzi atomu, to 
+     tworzymy nowy Text
+    b. jezeli kursor jest wewnatrz atomu, to przedzielamy atom
+     nowym Textem
+
+  5. jezeli wstawiamy spacje albo nowa linie, to:
     a. jezeli jestesmy na spacji, to odpowiednio powiekszamy spacje
     b. jezeli jestesmy na atomie, to dzielimy atom i dodajemy spacje
 
-  5. jezeli wstawiamy atomowa litere w spacje, to tworzymy nowy atom
+  6. jezeli wstawiamy atomowa litere w spacje, to tworzymy nowy atom
 
-  6. jezeli wstawiamy atomowa litere w atom, to po prostu dopisujemy
+  7. jezeli wstawiamy atomowa litere w atom, to po prostu dopisujemy
      te litere do atomu (scalajac odpowiednio operacje Insert)
 
 
@@ -67,10 +129,10 @@ B. delete-backward!
      b. w przeciwnym razie kasujemy zawarta w wyrazeniu spacje
      (od prawej strony)
   4. jezeli jestesmy na nawiasie otwierajacym pusta pare nawiasow,
-     i spacja wewnatrz jest pusta, tzn. (Space fragments: 0),
+     i spacja wewnatrz jest pusta, tzn. (Space fragments: (0)),
      to kasujemy te pare nawiasow
   5. jezeli jestesmy na lewej krawedzi spacji za atomem, to
-     usuwamy ostatni znak z tego atomu, a jezeli to ostatni znak,
+     usuwamy ostatni znak z tego atomu, a jezeli to jedyny znak,
      to usuwamy atom i scalamy biezaca spacje ze spacja poprzedzajaca
      ten atom
   6. jezeli jestesmy wewnatrz spacji, to kasujemy poprzedzajaca
@@ -92,8 +154,35 @@ C. delete-forward!
   1. jezeli jestesmy na prawiej krawedzi spacji przed nawiasem
      otwierajacym, to kasujemy cale wyrazenie otwierane przez
      ten nawias
+  2. jezeli jestesmy na prawej krawedzi spacji wewnatrz pustych
+     nawiasow, to kasujemy te nawiasy
+  3. jezeli jestesmy na nawiasie otwierajacym pusta pare nawiasow,
+     to
+     a. jezeli spacja wewnatrz tych nawiasow jest pusta,
+        kasujemy to wyrazenie
+     b. w przeciwnym razie kasujemy zawarta w wyrazeniu spacje
+       (od lewej strony)
+  4. jezeli jestesmy na nawiasie zamykajacym pusta pare nawiasow
+     i spacja wewnatrz jest pusta, tzn. (Space fragments: (0)),
+     to kasujemy te pare nawiasow
+  5. jezeli jestesmy na prawej krawedzi spacji przed atomem,
+     to usuwamy pierwszy znak tego atomu, a jezeli to jedyny znak,
+     to usuwamy atom i scalamy biezaca spacje ze spacja znajdujaca
+     sie za tym atomem
+  6. jezeli jestesmy wewnatrz spacji, to kasujemy nastepujaca
+     spacje (czyli albo odpowiednio zmniejszamy wartosc fragmentu,
+     albo w ogole usuwamy fragment)
+  7. jezeli jestesmy wewnatrz atomu, to usuwamy znak za kursorem.
+     Jezeli za kursorem nie ma zadnego znaku, to usuwamy spacje
+     za atomem, chyba ze ta spacja jest zerowa - wowczas scalamy
+     biezacy atom z nastepujacym atomem
 
-  
+  8. jezeli jestesmy na prawej krawedzi atomu i za atomem
+     jest nawias otwierajacy (oraz pusta spacja), to kasujemy
+     cale wyrazenie
+  9. jezeli jestesmy na prawej krawedzi atomu albo niepustej
+     spacji przed nawiasem zamykajacym, to nic nie robimy
+
 
 * 26.01.2023
 
