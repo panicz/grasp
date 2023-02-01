@@ -44,7 +44,20 @@
 
 (insert-character! #\[)
 
+(e.g.
+ (snapshot) ===> "
+╭  ╮
+│  │
+╰ |╯
+")
 
+(undo!)
+
+(e.g.
+ (snapshot) ===> "
+")
+
+(redo!)
 
 (e.g.
  (snapshot) ===> "
@@ -55,6 +68,8 @@
 
 (for-each insert-character! '(#\d #\e #\f #\i #\n #\e))
 
+;;(WARN (car (slot-ref (history (the-document)) 'fronts)))
+
 (e.g.
  (snapshot) ===> "
 ╭        ╮
@@ -62,6 +77,25 @@
 ╰       ^╯
 ")
 
+(undo!)
+
+(e.g.
+ (snapshot) ===> "
+╭  ╮
+│  │
+╰ |╯
+")
+
+(redo!)
+
+(e.g.
+ (snapshot) ===> "
+╭        ╮
+│ define │
+╰       ^╯
+")
+
+#|
 (insert-character! #\space)
 
 (e.g.
@@ -79,3 +113,4 @@
 │ define │  │ │
 ╰        ╰ |╯ ╯
 ")
+|#

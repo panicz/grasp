@@ -44,10 +44,17 @@
 ;; so that we can only see their (value).
 ;; But if we're not (evaluating?), then we can
 ;; see (and operate on) Shadowed elements  themselves.
-(define-parameter (evaluating?) ::Object #f)
+
+(define-enum CellAccessMode (Editing Evaluating))
+
+(define-parameter (the-cell-access-mode) ::CellAccessMode
+  CellAccessMode:Editing)
+
+(define (evaluating?) ::boolean
+  (eq? (the-cell-access-mode) CellAccessMode:Evaluating))
 
 (define (editing?) ::boolean
-  (not (evaluating?)))
+  (eq? (the-cell-access-mode) CellAccessMode:Editing))
 
 (define-property+ (screen-position element #|::Element|#)::Position
   (Position))

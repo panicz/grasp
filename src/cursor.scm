@@ -16,6 +16,9 @@
 (import (functions))
 (import (print))
 
+;; See the `fundamental.scm` file for a detailed explanation
+;; how cursors are represented
+
 (define (cell-index cell::pair index::int)::Indexable*
   (assert (is index >= 0))
   (cond ((= index 0)
