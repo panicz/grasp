@@ -23,6 +23,8 @@
 (import (cursor))
 (import (document-operations))
 (import (editor-operations))
+(import (print))
+(import (parse))
 
 (define-interface Edit ()
   (apply! document::pair)::void
@@ -177,6 +179,17 @@
 	       (operation ::Edit last-action)
 	       (inverse ::Edit (operation:inverse)))
       (inverse:apply! document)
+      (parameterize ((the-cell-access-mode CellAccessMode:Evaluating)
+		     (the-document document))
+	(match operation
+	  ((Insert at: cursor)
+	   (set! (the-cursor) cursor)
+	   (set! (the-selection-anchor) cursor))
+	  ((Remove from: cursor)
+	   (set! (the-cursor) cursor)
+	   (set! (the-selection-anchor) cursor))
+	  (_
+	   (values))))
       (set! undo-step (+ undo-step 1))))
 
   (define (redo!)::void
@@ -186,6 +199,22 @@
 					     timeline))
 	       (operation ::Edit undone-action))
       (operation:apply! document)
+      (match (operation:inverse)
+	((Insert at: cursor)
+	 (set! (the-cursor) cursor)
+	 (set! (the-selection-anchor) cursor))
+	((Remove element: `(,,@gnu.lists.LList? . ,,@empty?)
+		 from: cursor)
+	 (set! (the-cursor)
+	       (cursor-retreat
+		(cursor-climb-back cursor document)))
+	 (set! (the-selection-anchor) (the-cursor)))
+
+	((Remove from: cursor)
+	 (set! (the-cursor) cursor)
+	 (set! (the-selection-anchor) cursor))
+	(_
+	 (values)))
       (set! undo-step (- undo-step 1))))
 
   (define (record! operation ::Edit)::void
@@ -210,12 +239,29 @@
 		     (if (equal? operation:from operation:to)
 			 (set! (car fronts) (cdr (car fronts)))
 			 (set! (car (car fronts))
-			   operation))))
+			       operation))))
+	  ((and-let* ((`((,last-operation . ,_) . ,_) fronts)
+		      ((Insert element: `(,atom . ,,@empty?)
+			       at: `(,t ,n . ,root)) last-operation)
+		      (atom ::Atom atom)
+		      (l (atom-length atom))
+		      ((Insert element: `(,c . ,,@empty?)
+			       at: `(,,l ,,(+ n 1)
+					 . ,,root)) operation)
+		      (c ::gnu.text.Char c)
+		      ((isnt c separator?)))
+	     ;; we're not recording anything, because
+	     ;; atom is shared between history and the document,
+	     ;; so that the change made to the document
+	     ;; will affect history
+	     ))
+	  
 	  #;((and-let* ((`((,last-operation . ,_) . ,_) fronts)
-		      ((Insert element: e1
+		      ((Insert element: atom
 			       at: `(,a0 . ,a*)) last-operation)
 		      ((Insert element: e2
 			       at: `(,b0 . ,,a*)) operation)
+		      
 		      ...)
 	     (append! e1 e2)
 	     (append! e2 e1)))

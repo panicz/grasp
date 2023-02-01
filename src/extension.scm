@@ -76,7 +76,7 @@
 (define (enchant-expression! #!optional
 			     #;at (cursor::Cursor (the-cursor))
 				  #;in (document (the-document)))
-  (parameterize ((evaluating? #t))
+  (parameterize ((the-cell-access-mode CellAccessMode:Evaluating))
     (let ((target (the-expression)))
       (if (Interactive? target)
 	  (let ((original (origin target)))

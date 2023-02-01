@@ -67,6 +67,12 @@ it refers to its closing parenthesis.
 Every kind of tile manages its own cursor values,
 so the source of every cursor value is a tile, which
 controls the indices.
+
+Note that since an empty document is represented as
+(()), each cursor that points inside the document
+will end with (1), with (#\[ 1) being the (invisible)
+left paren of the document, and (#\] 1) is the
+(also invisible) right paren.
 |#
 
 (define-alias Cursor java.lang.Object #;gnu.lists.LList)
