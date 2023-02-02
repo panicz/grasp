@@ -68,7 +68,7 @@
 ;; edited objects, even though the "value" of
 ;; those atoms can be a different kind of object
 ;; on every query.
-(define-object (Atom source-string::String)::ShadowedTile
+(define-object (Atom source-string::String)::TextualShadowedTile
   (define builder :: java.lang.StringBuilder)
   (define source :: String "")
   
@@ -109,14 +109,19 @@
 
   (define (insert-char! c::char index::int)::void
     (builder:insert index c)
-      (set! cache #!null)
-    (set! source ((builder:toString):intern)))
-
-  (define (delete-char! index::int)::void
-    (builder:deleteCharAt index)
     (set! cache #!null)
     (set! source ((builder:toString):intern)))
 
+  (define (delete-char! index::int)::char
+    (let ((result (builder:charAt index)))
+      (builder:deleteCharAt index)
+      (set! cache #!null)
+      (set! source ((builder:toString):intern))
+      result))
+
+  (define (char-ref index::int)::char
+    (builder:charAt index))
+  
   (define (truncate! length::int)::void
     (builder:setLength length)
     (set! cache #!null)
@@ -125,6 +130,9 @@
   (define (subpart start::int)::Atom
     (Atom (source:substring start)))
 
+  (define (text-length)::int
+    (builder:length))
+  
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
     (let ((inner (extent))
 	  (painter (the-painter)))

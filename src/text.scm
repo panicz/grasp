@@ -18,7 +18,7 @@
 (import (functions))
 (import (print))
 
-(define-object (Text)::Tile
+(define-object (Text)::TextualTile
   (define (draw! context::Cursor)
     (invoke (the-painter) 'draw-quoted-text!
 	    (this)
@@ -65,9 +65,33 @@
 	  (painter (the-painter)))
       (and (is 0 <= x < inner:width)
 	   (is 0 <= y < inner:height)
-	   (hash-cons (painter:quoted-text-character-index-under x y
-								 (this))
-		   path)
+	   (hash-cons (painter:quoted-text-character-index-under
+		       x y (this))
+		      path)
 	   )))
+
+  (define (insert-char! c::char index::int)::void
+    (insert index c #t))
+  
+  (define (delete-char! index::int)::char
+    (delete index (+ index 1)))
+  
+  (define (char-ref index::int)::char
+    (invoke-special gnu.lists.AbstractCharVector (this)
+		    'charAt index))
+
+  (define (text-length)::int
+    (invoke-special gnu.lists.FString (this) 'size))
+  
+  (define (truncate! length::int)::void
+    (let ((n ::int (text-length)))
+      (delete (max 0 (- n length)) n)))
+  
+  (define (subpart start::int)::Text
+    (let ((copy ::Text (Text))
+	  (n (text-length)))
+      (for i from start below n
+	   (copy:appendCharacter (char-ref i)))
+      copy))
   
   (gnu.lists.FString))

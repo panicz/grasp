@@ -47,6 +47,15 @@
 |#
   )
 
+(define-interface Textual ()
+  (insert-char! c::char index::int)::void
+  (delete-char! index::int)::char
+  (char-ref index::int)::char
+  (truncate! length::int)::void
+  (subpart start::int)::Textual
+  (text-length)::int
+  )
+
 (define-object (Simple)::Element
   (define (typename)::String "Simple")
   (define (part-at index::Index)::Indexable* (this))
@@ -68,6 +77,10 @@
   (extent)::Extent)
 
 (define-interface ShadowedTile (Shadowed Tile))
+
+(define-interface TextualTile (Textual Tile))
+
+(define-interface TextualShadowedTile (Textual Shadowed Tile))
 
 #|
 `the-cursor` and `the-document` are parameters
