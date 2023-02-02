@@ -1,3 +1,56 @@
+* 01.02.2023
+
+Dzis bysmy sie zajeli tym, zeby "undo!" i "redo!" przy dodawaniu
+spacji i pojedynczego znaku dzialalo poprawnie
+
+Zaczniemy od pojedynczego znaku.
+
+Nie ma problemu z dodawaniem znaku, poniewaz ten przypadek
+obsluzylismy w funkcji "insert!".
+
+Jednak funkcja "extract!" zostala przemianowana z funkcji
+"take-cell!", ktora zawierala w sobie zalozenie, ze dotyczy
+wyodrebniania elementow z komorek.
+
+Teraz bedziemy chcieli odejsc od tego zalozenia.
+
+Tzn. moze w okreslonych warunkach biezaca funkcja bedzie
+sie nazywac "extract-from-cell!"
+
+Powinnismy natomiast okreslic warunki wyodrebniania.
+
+(extract! at: cursor from: document)
+
+zasadniczo dziala w taki sposob, ze wyrazenie
+znajdujace sie pod kursorem zostaje wyodrebnione.
+
+I teraz tak: jezeli kursor jest "pelny", to
+
+(eq? (the-expression at: cursor)
+     (the-expression at: (cdr cursor)))
+
+Czyli zasadniczo sprawdzamy, kto jest rodzicem naszego elementu:
+- jezeli jest to para (a nasz element to nie spacja)
+  to wywolamy "extract-tile-from-cell!"
+- jezeli jest to atom, to usuwamy znak i zwracamy go
+- jezeli jest to spacja, to zwrocimy albo nowa linie, albo
+  znak spacji - chyba ze spacja jest pusta, wtedy 
+  albo scalamy elementy (jesli mozemy), albo nic
+  nie robimy
+
+No dobra, czyli przychodzi nam do glowy kolejna para operacji:
+
+(SplitElement at: Cursor with: Space)
+(MergeElements at: Cursor removing: Space)
+
+ktore jednak mozna uznac za
+
+(Remove element: Space from: Cursor)
+(Insert element: Space at: Cursor)
+
+
+
+
 * 31.01.2023
 
 Musimy dokonac analizy intelektualnej problemu kursora
