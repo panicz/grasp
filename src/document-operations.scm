@@ -32,7 +32,7 @@
     (quotient extent:width (painter:space-width))))
 
 (define/kw (extract! at: cursor::Cursor := (the-cursor)
-		       from: document::pair := (the-document))
+		     from: document::pair := (the-document))
   (define (increase-space! space::Space width::real)
     (let ((last-fragment (last-pair space:fragments)))
       (set! (car last-fragment)

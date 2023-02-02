@@ -5,6 +5,16 @@
   (let ((evaluated expression))
     (match/evaluated evaluated (pattern actions* ... value) ...)))
 
+(define (match/equal? a b)
+  (or (equal? a b)
+      ;; this extension is used so that the EmptyListProxy
+      ;; objects (defined in the (space) module) are
+      ;; indistinguishable from '() in the pattern context
+      (and (gnu.lists.LList? a)
+	   (gnu.lists.LList? b)
+	   (not (gnu.lists.Pair? a))
+	   (not (gnu.lists.Pair? b)))))
+
 (define-syntax match/evaluated
   (syntax-rules ()
     ((match/evaluated value)
@@ -42,7 +52,7 @@
                      bindings
                      actions ... alternative)
        #'(match-clause rest
-                       (conditions ... (equal? value root))
+                       (conditions ... (match/equal? value root))
                        bindings
                        actions ... alternative))
 
@@ -79,7 +89,7 @@
                      bindings
                      actions ... alternative)
        #'(match-clause rest
-                       (and conditions ... (equal? root 'datum))
+                       (and conditions ... (match/equal? root 'datum))
                        bindings
                        actions ... alternative))
       
@@ -149,7 +159,7 @@
                      bindings
                      actions ...)
        #'(match-clause rest
-                       (and conditions ... (equal? literal root))
+                       (and conditions ... (match/equal? literal root))
                        bindings
                        actions ...))
       )))
@@ -183,7 +193,7 @@
                      bindings/final
                      actions ... alternative)
        (bound-identifier=? #'variable #'variable+)
-       #'(check/unique (and conditions ... (equal? path path+))
+       #'(check/unique (and conditions ... (match/equal? path path+))
                        bindings
                        (variable+ path+)
                        bindings/checked
