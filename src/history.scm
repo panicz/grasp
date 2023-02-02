@@ -29,6 +29,7 @@
 (define-interface Edit ()
   (apply! document::pair)::void
   (inverse)::Edit
+  (cursor document::pair)::Cursor
   )
 
 (define-type (Move from: Cursor
@@ -48,7 +49,9 @@
 	    with-shift: s)
       (Move from: (recons (+ d1 1) destination)
             to: (recons* s (- s0 1) source)
-	    with-shift: d0)))))
+	    with-shift: d0))))
+  ((cursor document::pair)::Cursor
+   (cursor-climb-back to document)))
 
 (define-type (Remove element: (either pair
 				      HeadTailSeparator
@@ -65,7 +68,9 @@
    (match from
      (`(,tip . ,root)
       (Insert element: element
-	      at: (recons* with-shift (- tip 1) root))))))
+	      at: (recons* with-shift (- tip 1) root)))))
+  ((cursor document::pair)::Cursor
+   (recons* with-shift (- (car from) 1) (cdr from))))
 
 (define-type (Insert element: (either pair HeadTailSeparator)
 		     at: Cursor)
@@ -78,7 +83,16 @@
      (`(,tip ,top . ,root)
       (Remove element: element
 	      from: (recons (+ top 1) root)
-	      with-shift: tip)))))
+	      with-shift: tip))))
+  ((cursor document::pair)::Cursor
+   (and-let* ((`(,tip ,top . ,root) at)
+	      (cursor (recons (+ top 1) root)))
+     (match element
+       (`(,,@gnu.lists.LList?)
+	(cursor-retreat
+	 (cursor-climb-back cursor document)))
+       (_
+	(cursor-climb-back cursor document))))))
 
 (define-type (ResizeBox at: Cursor
 			from: Extent
@@ -95,7 +109,9 @@
    (ResizeBox at: at
 	      from: to
 	      to: from
-	      with-anchor: with-anchor)))
+	      with-anchor: with-anchor))
+  ((cursor document::pair)::Cursor
+   (the-cursor)))
 
 (define (resize! box::pair
 		 width::real
@@ -179,17 +195,8 @@
 	       (operation ::Edit last-action)
 	       (inverse ::Edit (operation:inverse)))
       (inverse:apply! document)
-      (parameterize ((the-cell-access-mode CellAccessMode:Evaluating)
-		     (the-document document))
-	(match operation
-	  ((Insert at: cursor)
-	   (set! (the-cursor) cursor)
-	   (set! (the-selection-anchor) cursor))
-	  ((Remove from: cursor)
-	   (set! (the-cursor) cursor)
-	   (set! (the-selection-anchor) cursor))
-	  (_
-	   (values))))
+      (set! (the-cursor) (inverse:cursor document))
+      (set! (the-selection-anchor) (the-cursor))
       (set! undo-step (+ undo-step 1))))
 
   (define (redo!)::void
@@ -199,22 +206,8 @@
 					     timeline))
 	       (operation ::Edit undone-action))
       (operation:apply! document)
-      (match (operation:inverse)
-	((Insert at: cursor)
-	 (set! (the-cursor) cursor)
-	 (set! (the-selection-anchor) cursor))
-	((Remove element: `(,,@gnu.lists.LList? . ,,@empty?)
-		 from: cursor)
-	 (set! (the-cursor)
-	       (cursor-retreat
-		(cursor-climb-back cursor document)))
-	 (set! (the-selection-anchor) (the-cursor)))
-
-	((Remove from: cursor)
-	 (set! (the-cursor) cursor)
-	 (set! (the-selection-anchor) cursor))
-	(_
-	 (values)))
+      (set! (the-cursor) (operation:cursor document))
+      (set! (the-selection-anchor) (the-cursor))
       (set! undo-step (- undo-step 1))))
 
   (define (record! operation ::Edit)::void
@@ -241,11 +234,11 @@
 			 (set! (car (car fronts))
 			       operation))))
 	  ((and-let* ((`((,last-operation . ,_) . ,_) fronts)
-		      ((Insert element: `(,atom . ,,@empty?)
+		      ((Insert element: `(,atom)
 			       at: `(,t ,n . ,root)) last-operation)
 		      (atom ::Atom atom)
 		      (l (atom-length atom))
-		      ((Insert element: `(,c . ,,@empty?)
+		      ((Insert element: `(,c)
 			       at: `(,,l ,,(+ n 1)
 					 . ,,root)) operation)
 		      (c ::gnu.text.Char c)
