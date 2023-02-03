@@ -237,7 +237,7 @@
 		      ((Insert element: `(,atom)
 			       at: `(,t ,n . ,root)) last-operation)
 		      (atom ::Atom atom)
-		      (l (atom-length atom))
+		      (l (atom:text-length))
 		      ((Insert element: `(,c)
 			       at: `(,,l ,,(+ n 1)
 					 . ,,root)) operation)
