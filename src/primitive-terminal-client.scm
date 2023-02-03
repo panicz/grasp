@@ -79,10 +79,11 @@
 				      following-space))
 		 (move-cursor-right!)))
 	      (else
-	       (let* ((suffix (atom-subpart target tip))
+	       (let* ((suffix (invoke (as Atom target) 'atom-subpart
+				      tip))
 		      (owner (drop (quotient top 2) parent))
 		      (cell (cons suffix (cdr owner))))
-		 (truncate-atom! target tip)
+		 (invoke (as Atom target) 'truncate-atom! tip)
 		 (set! (cdr owner) cell)
 		 (set! (post-head-space cell)
 		   (post-head-space owner))
@@ -93,7 +94,7 @@
 		 (move-cursor-right!)))))
        
 	 (else
-	  (insert-char! c target (car (the-cursor)))
+	  (invoke (as Atom target) 'insert-char! c (car (the-cursor)))
 	  (set! (the-cursor)
 	    (recons (+ (car (the-cursor)) 1)
 		    (cdr (the-cursor)))))))

@@ -149,21 +149,6 @@
   (set! builder (java.lang.StringBuilder source-string))
   (set! source (builder:toString)))
 
-(define (atom-length a::Atom)::int
-  (a:builder:length))
-
-(define (insert-char! c::char a::Atom index::int)::void
-  (a:insert-char! c index))
-
-(define (delete-char! a::Atom index::int)::void
-  (a:delete-char! index))
-
-(define (truncate-atom! a::Atom length::int)::void
-  (a:truncate! length))
-
-(define (atom-subpart a::Atom start::int)::Atom
-  (a:subpart start))
-
 (define-object (cons a d)::Tile
   (define (equals object)::boolean
    (eq? object (this)))
