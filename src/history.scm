@@ -184,6 +184,49 @@
     (set-width!)
     (set-height!)))
 
+
+(define-type (InsertCharacter list: (list-of char)
+			      after: Cursor)
+  implementing Edit
+  with
+  ((apply! document::pair)::void
+   (let ((target ::Textual (cursor-ref document after))
+	 (n ::int (car after)))
+     (for c in list
+       (target:insert-char! c n)
+       (set! n (+ n 1)))))
+  ((inverse)::Edit
+   (RemoveCharacter list: list
+		    before: (recons (+ (car after)
+				       (length list))
+				    (cdr after))))
+  ((cursor document::pair)::Cursor
+   (recons (+ (car after) (length list))
+	   (cdr after))))
+
+(define-type (RemoveCharacter list: (list-of char)
+			      before: Cursor)
+  implementing Edit
+  with
+  ((apply! document::pair)::void
+   (let* ((n ::int (length list))
+	  (target ::Textual (cursor-ref document before))
+	  (i (- (car before) n)))
+     (assert (is i >= 0))
+     (for c in list
+       (assert (eq? c (target:char-ref i)))
+       (target:delete-char! i))))
+  
+  ((inverse)::Edit
+   (InsertCharacter list: list
+		    after: (recons (- (car before)
+				      (length list))
+				   (cdr before))))
+  ((cursor document::pair)::Cursor
+   (recons (- (car before)
+	      (length list))
+	   (cdr before))))
+  
 (define-object (History document::pair)
   (define fronts ::(list-of (list-of Edit)) '())
 
@@ -238,11 +281,10 @@
 			       at: `(,t ,n . ,root)) last-operation)
 		      (atom ::Atom atom)
 		      (l (atom:text-length))
-		      ((Insert element: `(,c)
-			       at: `(,,l ,,(+ n 1)
-					 . ,,root)) operation)
-		      (c ::gnu.text.Char c)
-		      ((isnt c separator?)))
+		      ((InsertCharacter list: `(,c)
+					after: `(,,l ,,(+ n 1)
+						     . ,,root))
+		       operation))
 	     ;; we're not recording anything, because
 	     ;; atom is shared between history and the document,
 	     ;; so that the change made to the document
