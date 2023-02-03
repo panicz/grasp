@@ -205,8 +205,9 @@
 	  (set! (the-selection-anchor) (the-cursor))
 	  #t))))
      (else
-      (let ((operation ::Insert (Insert element: (cons c '())
-					at: (the-cursor)))
+      (let ((operation ::InsertCharacter
+		       (InsertCharacter list: (list c)
+					after: (the-cursor)))
 	    (history ::History (history (the-document))))
 	(history:record! operation)
 	(operation:apply! (the-document))
@@ -214,7 +215,7 @@
 	      (if (char-whitespace? c)
 		  (recons* 1 (+ top 1) subcursor)
 		  (recons (+ (head (the-cursor))
-			     (length operation:element))
+			     (length operation:list))
 			  (tail (the-cursor)))))
 	(set! (the-selection-anchor) (the-cursor))
 	#t)))))

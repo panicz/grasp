@@ -66,15 +66,15 @@
 ╰ |╯
 ")
 
-(for-each insert-character! '(#\d #\e #\f #\i #\n #\e))
+(for-each insert-character! '(#\d #\e #\f #\n #\e))
 
 ;;(WARN (car (slot-ref (history (the-document)) 'fronts)))
 
 (e.g.
  (snapshot) ===> "
-╭        ╮
-│ define │
-╰       ^╯
+╭       ╮
+│ defne │
+╰      ^╯
 ")
 
 (undo!)
@@ -90,12 +90,57 @@
 
 (e.g.
  (snapshot) ===> "
+╭       ╮
+│ defne │
+╰      ^╯
+")
+
+(times 2 move-cursor-left!)
+
+(e.g.
+ (snapshot) ===> "
+╭       ╮
+│ defne │
+╰    ^  ╯
+")
+
+(insert-character! #\i)
+
+(e.g.
+ (snapshot) ===> "
 ╭        ╮
 │ define │
-╰       ^╯
+╰     ^  ╯
+")
+
+(undo!)
+
+(e.g.
+ (snapshot) ===> "
+╭       ╮
+│ defne │
+╰    ^  ╯
+")
+
+(redo!)
+
+(e.g.
+ (snapshot) ===> "
+╭        ╮
+│ define │
+╰     ^  ╯
 ")
 
 #|
+(and-let* ((history (history (the-document)))
+	   (`((,last-operation . ,_) . ,_) history:fronts))
+  (DUMP last-operation)
+  (DUMP (last-operation:inverse)))
+|#
+
+
+#|
+
 (insert-character! #\space)
 
 (e.g.
@@ -104,6 +149,12 @@
 │ define  │
 ╰        |╯
 ")
+
+(undo!)
+
+(snapshot)
+
+
 
 (insert-character! #\[)
 
