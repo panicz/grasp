@@ -27,9 +27,8 @@
 (import (parse))
 
 (define-interface Edit ()
-  (apply! document::pair)::void
+  (apply! document::pair)::Cursor
   (inverse)::Edit
-  (cursor document::pair)::Cursor
   )
 
 (define-type (Move from: Cursor
@@ -37,10 +36,10 @@
 		   with-shift: int := 0)
   implementing Edit
   with
-  ((apply! document::pair)::void
+  ((apply! document::pair)::Cursor
    (let ((item (extract! at: from from: document)))
      (insert! item into: document at: to)
-     #!null))
+     (cursor-climb-back to document)))
 
   ((inverse)::Edit
    (match (this)
@@ -50,8 +49,7 @@
       (Move from: (recons (+ d1 1) destination)
             to: (recons* s (- s0 1) source)
 	    with-shift: d0))))
-  ((cursor document::pair)::Cursor
-   (cursor-climb-back to document)))
+  )
 
 (define-type (Remove element: (either pair
 				      HeadTailSeparator
@@ -60,31 +58,23 @@
 		     with-shift: int := 0)
   implementing Edit
   with
-  ((apply! document::pair)::void
+  ((apply! document::pair)::Cursor
    (let ((item (extract! at: from from: document)))
      (assert (eq? item element))
-     (values)))
+     (recons* with-shift (- (car from) 1) (cdr from))))
   ((inverse)::Edit
    (match from
      (`(,tip . ,root)
       (Insert element: element
 	      at: (recons* with-shift (- tip 1) root)))))
-  ((cursor document::pair)::Cursor
-   (recons* with-shift (- (car from) 1) (cdr from))))
+  )
 
 (define-type (Insert element: (either pair HeadTailSeparator)
 		     at: Cursor)
   implementing Edit
   with
-  ((apply! document::pair)::void
-   (insert! element into: document at: at))
-  ((inverse)::Edit
-   (match at
-     (`(,tip ,top . ,root)
-      (Remove element: element
-	      from: (recons (+ top 1) root)
-	      with-shift: tip))))
-  ((cursor document::pair)::Cursor
+  ((apply! document::pair)::Cursor
+   (insert! element into: document at: at)
    (and-let* ((`(,tip ,top . ,root) at)
 	      (cursor (recons (+ top 1) root)))
      (match element
@@ -92,7 +82,13 @@
 	(cursor-retreat
 	 (cursor-climb-back cursor document)))
        (_
-	(cursor-climb-back cursor document))))))
+	(cursor-climb-back cursor document)))))
+  ((inverse)::Edit
+   (match at
+     (`(,tip ,top . ,root)
+      (Remove element: element
+	      from: (recons (+ top 1) root)
+	      with-shift: tip)))))
 
 (define-type (ResizeBox at: Cursor
 			from: Extent
@@ -100,18 +96,17 @@
 			with-anchor: real)
   implementing Edit
   with
-  ((apply! document::pair)::void
+  ((apply! document::pair)::Cursor
    (let* ((box (the-expression at: at in: document))
 	  (ending (line-ending-embracing with-anchor box)))
-     (resize! box to:width to:height ending)))
+     (resize! box to:width to:height ending)
+     (the-cursor)))
       
   ((inverse)::Edit
    (ResizeBox at: at
 	      from: to
 	      to: from
-	      with-anchor: with-anchor))
-  ((cursor document::pair)::Cursor
-   (the-cursor)))
+	      with-anchor: with-anchor)))
 
 (define (resize! box::pair
 		 width::real
@@ -189,43 +184,41 @@
 			      after: Cursor)
   implementing Edit
   with
-  ((apply! document::pair)::void
+  ((apply! document::pair)::Cursor
    (let ((target ::Textual (cursor-ref document after))
 	 (n ::int (car after)))
      (for c in list
        (target:insert-char! c n)
-       (set! n (+ n 1)))))
+       (set! n (+ n 1))))
+   (recons (+ (car after) (length list))
+	   (cdr after)))
   ((inverse)::Edit
    (RemoveCharacter list: list
 		    before: (recons (+ (car after)
 				       (length list))
-				    (cdr after))))
-  ((cursor document::pair)::Cursor
-   (recons (+ (car after) (length list))
-	   (cdr after))))
+				    (cdr after)))))
 
 (define-type (RemoveCharacter list: (list-of char)
 			      before: Cursor)
   implementing Edit
   with
-  ((apply! document::pair)::void
+  ((apply! document::pair)::Cursor
    (let* ((n ::int (length list))
 	  (target ::Textual (cursor-ref document before))
 	  (i (- (car before) n)))
      (assert (is i >= 0))
      (for c in list
        (assert (eq? c (target:char-ref i)))
-       (target:delete-char! i))))
+       (target:delete-char! i)))
+   (recons (- (car before)
+	      (length list))
+	   (cdr before)))
   
   ((inverse)::Edit
    (InsertCharacter list: list
 		    after: (recons (- (car before)
 				      (length list))
-				   (cdr before))))
-  ((cursor document::pair)::Cursor
-   (recons (- (car before)
-	      (length list))
-	   (cdr before))))
+				   (cdr before)))))
   
 (define-object (History document::pair)
   (define fronts ::(list-of (list-of Edit)) '())
@@ -237,8 +230,7 @@
 	       (`(,last-action . ,_) (drop undo-step timeline))
 	       (operation ::Edit last-action)
 	       (inverse ::Edit (operation:inverse)))
-      (inverse:apply! document)
-      (set! (the-cursor) (inverse:cursor document))
+      (set! (the-cursor) (inverse:apply! document))
       (set! (the-selection-anchor) (the-cursor))
       (set! undo-step (+ undo-step 1))))
 
@@ -248,8 +240,7 @@
 	       (`(,undone-action . ,_) (drop (- undo-step 1)
 					     timeline))
 	       (operation ::Edit undone-action))
-      (operation:apply! document)
-      (set! (the-cursor) (operation:cursor document))
+      (set! (the-cursor) (operation:apply! document))
       (set! (the-selection-anchor) (the-cursor))
       (set! undo-step (- undo-step 1))))
 
