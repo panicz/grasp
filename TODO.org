@@ -1,3 +1,87 @@
+* 04.02.2023
+
+Wczoraj udalo sie wprowadzic InsertCharacter i RemoveCharacter
+- tzn dodawanie znakow do obiektow Textual - ale koszt tego
+przedsiewziecia byl taki, ze teraz mamy zepsuta obsluge spacji.
+
+Wydaje sie tez, ze chcielibysmy:
+- uzywac nowej metody (cursor) do wyliczania polozenia
+kursora
+- usunac reczne manipulacje kursorem z kodu
+- moze bysmy zrobili tak, ze po prostu funkcja apply!
+bedzie zwracala kursor, i usunelibysmy metode
+(cursor)?
+
+
+* 03.02.2023
+
+wczorajszy plan o refaktoryzacji "Extract" pozostaje w mocy.
+Ale do tego dochodzi jeszcze kilka pomyslow:
+
+- na razie wydaje sie, ze probujemy zrobic takie cos:
+  edycja: wcisniecie klawisza -> dispatching -> dodanie operacji
+  -> wykonanie operacji -> dispatching -> wlasciwa edycja
+  cofanie: wybor operacji -> dispatching -> wlasciwa edycja
+
+  gdzie "wykonanie operacji" to albo "insert!" albo "extract!",
+  natomiast historyczne operacje to Insert albo Remove.
+
+  Mozna rozwazyc, czy nie lepiej po prostu miec operacje
+  InsertExpression i RemoveExpression, albo moze zostawmy
+  juz to i zamiast tego dodajmy InsertCharacters oraz
+  RemoveCharacters, a takze SplitElements i MergeElements
+
+Ale moze na razie to olejmy? Niech sobie bedzie ten
+podwojny dispatching.
+
+Byc moze tez bysmy chcieli sprawic, zeby Space bylo Textual
+(ale akceptowalo tylko #\space i #\newline)?
+
+Na razie olewamy.
+
+No OK, wyglada na to, ze problemem jest to, ze odwrotnosc
+"Insert" w przypadku znakow nie dziala najlepiej.
+
+Dlatego moze dodamy operacje InsertCharacter i RemoveCharacter
+
+OK, one zostaly dodane.
+
+Teraz jednak wydaje sie, ze bylby sens, zeby Space
+byl Textual.
+
+* 02.02.2023
+  
+kilka planow na dzis:
+- zrefaktoryzowac extract! w taki sposob, zeby biezacy
+  "extract!" stal sie "extract-from-cell!" albo cos takiego,
+  natomiast "glowny" extract! zeby dispatchowal:
+  1. jezeli rodzicem wyrazenia jest pair?, to wywolujemy
+     extract-expression-from-cell!
+  2. jezeli docelowym wyrazeniem jest atom, to wywolujemy
+     extract-character-from-atom!
+  3. jezeli docelowym wyrazeniem jest text, to wywolujemy
+     extract-character-from-text!
+ (4. jezeli idzie o rozszerzenia, to na razie nie wiemy
+     co robic, ale kiedys na pewno wymyslimy)
+
+Trzeba tez bedzie cos pomyslec o refaktoryzacji, bo wydaje sie,
+ze niektore rzeczy sa niepotrzebnie rozbite na (document-operations).
+(editor-operations) oraz (history) - a wiekszosc operacji w tych
+modulach dotyczy edycji dokumentu!
+
+No, ale w praktyce wyszlo tak, ze dodalismy interfejs Textual,
+i implementacje w Atom oraz Text.
+
+Jeszcze bysmy chcieli wywalic te funkcje:
+
+(atom-length a::Atom)
+(insert-char! c::char a::Atom index::int)
+(delete-char! a::Atom index::int)
+(truncate-atom! a::Atom length::int)
+(atom-subpart a::Atom start::int)
+
+i zastapic je uzyciem metod interfejsu.
+
 * 01.02.2023
 
 Dzis bysmy sie zajeli tym, zeby "undo!" i "redo!" przy dodawaniu
@@ -47,9 +131,6 @@ ktore jednak mozna uznac za
 
 (Remove element: Space from: Cursor)
 (Insert element: Space at: Cursor)
-
-
-
 
 * 31.01.2023
 
