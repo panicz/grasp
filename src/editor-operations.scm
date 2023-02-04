@@ -173,8 +173,8 @@
 					at: (the-cursor)))
 	      (history ::History (history (the-document))))
 	  (history:record! operation)
-	  (operation:apply! (the-document))
-	  (times 2 move-cursor-right!)
+	  (set! (the-cursor) (operation:apply! (the-document)))
+	  (set! (the-selection-anchor) (the-cursor))
 	  #t))
        
        ((is c in '(#\] #\) #\}))
@@ -187,8 +187,8 @@
 					  at: (the-cursor)))
 	      (history ::History (history (the-document))))
 	  (history:record! operation)
-	  (operation:apply! (the-document))
-	  (move-cursor-right!)
+	  (set! (the-cursor) (operation:apply! (the-document)))
+	  (set! (the-selection-anchor) (the-cursor))
 	  #t))
 	
        (else
@@ -200,8 +200,8 @@
 					  at: (the-cursor)))
 	      (history ::History (history (the-document))))
 	  (history:record! operation)
-	  (operation:apply! (the-document))
-	  (set! (the-cursor) (recons* 1 (+ top 1) subcursor))
+	  
+	  (set! (the-cursor) (operation:apply! (the-document)))
 	  (set! (the-selection-anchor) (the-cursor))
 	  #t))))
      (else
@@ -210,12 +210,6 @@
 					after: (the-cursor)))
 	    (history ::History (history (the-document))))
 	(history:record! operation)
-	(operation:apply! (the-document))
-	(set! (the-cursor)
-	      (if (char-whitespace? c)
-		  (recons* 1 (+ top 1) subcursor)
-		  (recons (+ (head (the-cursor))
-			     (length operation:list))
-			  (tail (the-cursor)))))
+	(set! (the-cursor) (operation:apply! (the-document)))
 	(set! (the-selection-anchor) (the-cursor))
 	#t)))))
