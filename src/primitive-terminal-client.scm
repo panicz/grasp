@@ -79,11 +79,10 @@
 				      following-space))
 		 (move-cursor-right!)))
 	      (else
-	       (let* ((suffix (invoke (as Atom target) 'atom-subpart
+	       (let* ((suffix (invoke (as Atom target) 'split!
 				      tip))
 		      (owner (drop (quotient top 2) parent))
 		      (cell (cons suffix (cdr owner))))
-		 (invoke (as Atom target) 'truncate-atom! tip)
 		 (set! (cdr owner) cell)
 		 (set! (post-head-space cell)
 		   (post-head-space owner))
@@ -216,8 +215,8 @@ mutations of an n-element set.\"
 		  (move-cursor-right!)))
 	     (continue))
 	    	    
-	    (,KeyType:EOF
-	     (values))
+	    (,KeyType:F12
+	     (exit))
 
 	    (,KeyType:Character
 	     

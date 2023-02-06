@@ -182,6 +182,7 @@
 				   subcursor))
 	(set! (the-selection-anchor) (the-cursor))
 	#t)
+
        ((is c char-whitespace?)
 	(let ((operation ::Insert (Insert element: (cons c '())
 					  at: (the-cursor)))
@@ -206,8 +207,19 @@
 	  #t))))
      (else
       (let ((operation ::InsertCharacter
-		       (InsertCharacter list: (list c)
-					after: (the-cursor)))
+		       (InsertCharacter
+			list: (list c)
+			after: (cond
+				((and (Atom? final)
+				      (eqv? (final:first-index)
+					    tip))
+				 (cursor-retreat (the-cursor)))
+				((and (Atom? final)
+				      (eqv? (final:last-index)
+					    tip))
+				 (cursor-advance (the-cursor)))
+				(else
+				 (the-cursor)))))
 	    (history ::History (history (the-document))))
 	(history:record! operation)
 	(set! (the-cursor) (operation:apply! (the-document)))

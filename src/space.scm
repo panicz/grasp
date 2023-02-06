@@ -14,7 +14,6 @@
 (import (functions))
 (import (assert))
 (import (conversions))
-(import (srfi :11))
 (import (painter))
 (import (traversal))
 (import (extent))
@@ -379,6 +378,36 @@
 	  (t:advance-by! (* space-width (car input))))))
      (set! t:index (+ t:index 1))
      t))
+  implementing Textual
+  with
+  ((insert-char! c::char index::int)::void
+   (match (integer->char c)
+     (#\space
+      (insert-space! index))
+     (#\newline
+      (insert-break! index))))
+  
+  ((delete-char! index::int)::char
+   (let ((result (char-ref index)))
+     (delete-space-fragment! fragments index)
+     result))
+  
+  ((char-ref index::int)::char
+   (let-values (((fragment index) (space-fragment-index
+				   fragments index)))
+     (match fragments
+       (`(,,index . ,_)
+	#\newline)
+       (_
+	#\space))))
+
+  ((split! position::int)::Space
+   (split-fragments! fragments position))
+  
+  ((text-length)::int
+   (fold-left (lambda (x0::int f)::int
+		      (+ x0 (fragment-size f)))
+	      0 fragments))
   )
 
 
@@ -406,22 +435,24 @@
     (set! b:fragments (cons 0 '()))
     a))
 
+(define (split-fragments! fragments::pair
+			  index::int)
+  ::Space
+  (cond
+   ((is index <= (car fragments))
+    (let ((reminent (cons (- (car fragments) index)
+			  (cdr fragments))))
+      (set! (car fragments) index)
+      (set! (cdr fragments) '())
+      (Space fragments: reminent)))
+   (else
+    (split-fragments!
+     (cdr fragments)
+     (- index (car fragments) 1)))))
+
+
 (define (split-space! space::Space index::int)::Space
   "Truncates space and returns the rest in the result"
-  (define (split-fragments! fragments::pair
-			    index::int)
-    ::Space
-    (cond
-     ((is index <= (car fragments))
-      (let ((reminent (cons (- (car fragments) index)
-			    (cdr fragments))))
-	(set! (car fragments) index)
-	(set! (cdr fragments) '())
-	(Space fragments: reminent)))
-     (else
-      (split-fragments!
-       (cdr fragments)
-       (- index (car fragments) 1)))))
   (split-fragments! space:fragments index))
 
 (e.g.
