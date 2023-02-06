@@ -51,9 +51,8 @@
   (insert-char! c::char index::int)::void
   (delete-char! index::int)::char
   (char-ref index::int)::char
-  (truncate! length::int)::void
-  (subpart start::int)::Textual
   (text-length)::int
+  (split! position::int)::Textual
   )
 
 (define-object (Simple)::Element

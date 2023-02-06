@@ -122,14 +122,13 @@
   (define (char-ref index::int)::char
     (builder:charAt index))
   
-  (define (truncate! length::int)::void
-    (builder:setLength length)
-    (set! cache #!null)
-    (set! source ((builder:toString):intern)))
-
-  (define (subpart start::int)::Atom
-    (Atom (source:substring start)))
-
+  (define (split! position::int)::Atom
+    (let ((reminent ::Atom (Atom (source:substring position))))
+      (builder:setLength position)
+      (set! cache #!null)
+      (set! source ((builder:toString):intern))
+      reminent))
+      
   (define (text-length)::int
     (builder:length))
   

@@ -280,11 +280,10 @@
 		  (set! n (+ n 1)))))
 	     
 	     (_
-	      (let* ((suffix (atom:subpart tip))
+	      (let* ((suffix (atom:split! tip))
 		     (owner (drop (quotient top 2) grandpa))
 		     (cell (cons suffix (cdr owner)))
 		     (space ::Space (Space fragments: (cons 0 '()))))
-		(atom:truncate! tip)
 		(set! (cdr owner) cell)
 		(set! (post-head-space cell)
 		      (post-head-space owner))

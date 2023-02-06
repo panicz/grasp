@@ -131,6 +131,19 @@
 ╰     ^  ╯
 ")
 
+(times 2 move-cursor-right!)
+
+(e.g.
+ (snapshot) ===> "
+╭        ╮
+│ define │
+╰       ^╯
+")
+
+(insert-character! #\space)
+
+(snapshot)
+
 #|
 (and-let* ((history (history (the-document)))
 	   (`((,last-operation . ,_) . ,_) history:fronts))

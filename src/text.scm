@@ -83,15 +83,12 @@
   (define (text-length)::int
     (invoke-special gnu.lists.FString (this) 'size))
   
-  (define (truncate! length::int)::void
-    (let ((n ::int (text-length)))
-      (delete (max 0 (- n length)) n)))
-  
-  (define (subpart start::int)::Text
+  (define (split! start::int)::Text
     (let ((copy ::Text (Text))
 	  (n (text-length)))
       (for i from start below n
 	   (copy:appendCharacter (char-ref i)))
+      (delete (max 0 (- n length)) n)
       copy))
   
   (gnu.lists.FString))
