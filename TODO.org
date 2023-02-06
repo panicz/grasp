@@ -1,3 +1,62 @@
+* 06.02.2023
+
+Mamy mala zagwozdke dotyczaca tego, w jaki sposob reprezentowac
+usuwanie znaku w sytuacji, gdy robimy delete-forward! - ale
+to na szczescie jeszcze nie jest palaca kwestia.
+
+No dobra, dzis zajelibysmy sie tym:
+- jezeli jestesmy na granicy atomu (lewej albo prawej)
+  i wstawiamy bialy znak, to InsertCharacter powinien
+  dotyczyc nie tego atomu, tylko graniczacej spacji
+- Space powinno implementowac Textual
+- jezeli wstawiamy bialy znak do srodka atomu, to powinnismy
+  wygenerowac operacje Split, natomiast jezeli kasujemy
+  spacje z wnetrza atomu, to powinnismy wygenerowac operacje
+  Join
+
+I taki oto jest plan na dzis.
+
+No i OK. I teraz mamy takie cus:
+
+(define-interface Textual ()
+  (insert-char! c::char index::int)::void
+  (delete-char! index::int)::char
+  (char-ref index::int)::char
+  (truncate! length::int)::void
+  (subpart start::int)::Textual
+  (text-length)::int
+  )
+
+Natomiast po stronie spacji to mamy metody:
+- insert-space!
+- insert-break!
+- delete-space!
+
+oraz funkcje
+- insert-space!
+- insert-break!
+- insert-whitespace!
+- delete-space!
+- join-spaces!
+- split-space!
+
+Dobrze by bylo, gdybysmy przynajmniej pojeciowo
+sprobowali sobie zmapowac, czy tez wypowiedziec
+relacje, pomiedzy join-spaces! oraz split-space!,
+a metodami subpart oraz truncate! interfejsu
+Textual.
+
+Otoz: subpart i truncate! sa uzywane w funkcji
+insert! w przypadku dzielenia atomu.
+
+Czyli teoretycznie funkcje "split-space!" moglibysmy
+zaimplementowac analogicznie.
+
+Ale jednak pomysl mamy duzo lepszy - usunmy
+funkcje subpart i truncate, i zamiast nich
+stworzmy metode split!
+
+
 * 04.02.2023
 
 Wczoraj udalo sie wprowadzic InsertCharacter i RemoveCharacter
