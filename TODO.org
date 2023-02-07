@@ -56,6 +56,10 @@ Ale jednak pomysl mamy duzo lepszy - usunmy
 funkcje subpart i truncate, i zamiast nich
 stworzmy metode split!
 
+OK, to mamy:
+- metode split! zamiast truncate! i subpart w Textual
+- Space jako instancje Textual
+
 
 * 04.02.2023
 
