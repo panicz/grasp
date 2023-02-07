@@ -403,6 +403,15 @@
 
   ((split! position::int)::Space
    (split-fragments! fragments position))
+
+  ((merge! next::Textual)::boolean
+   (and-let* ((next ::Space next)
+	      (suffix (last-tail fragments))
+	      (`(,n) suffix)
+	      (`(,m . ,appendix) next:fragments))
+     (set! (car suffix) (+ m n))
+     (set! (cdr suffix) appendix)
+     #t))
   
   ((text-length)::int
    (fold-left (lambda (x0::int f)::int
@@ -410,6 +419,29 @@
 	      0 fragments))
   )
 
+
+(define (SingleSpace)::Space
+  (Space fragments: (list 1)))
+
+(define (SingleSpace? space ::Space)::boolean
+  (and-let* (((Space fragments: '(1)) space))))
+
+(define (NewLine)::Space
+  (Space fragments: (list 0 0)))
+
+(define (NewLine? space ::Space)::boolean
+  (and-let* (((Space fragments: '(0 0)) space))))
+
+(define (EmptySpace)::Space
+  (Space fragments: (list 0)))
+
+(define (EmptySpace? space ::Space)::boolean
+  (and-let* (((Space fragments: '(0)) space))))
+
+(define (SpaceFrom whitespace ::gnu.text.Char)::Space
+  (match whitespace
+    (#\space   (SingleSpace))
+    (#\newline (NewLine))))
 
 (define (insert-space! space::Space position::int)
   (space:insert-space! position))

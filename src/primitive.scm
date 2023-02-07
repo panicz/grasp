@@ -50,6 +50,10 @@
 (define-parameter (the-cell-access-mode) ::CellAccessMode
   CellAccessMode:Editing)
 
+(define-syntax-rule (with-eval-access actions ...)
+  (parameterize ((the-cell-access-mode CellAccessMode:Evaluating))
+    actions ...))
+
 (define (evaluating?) ::boolean
   (eq? (the-cell-access-mode) CellAccessMode:Evaluating))
 
@@ -128,7 +132,14 @@
       (set! cache #!null)
       (set! source ((builder:toString):intern))
       reminent))
-      
+
+  (define (merge! next::Textual)::boolean
+    (and-let* ((next ::Atom next))
+      (builder:append next:builder)
+      (set! cache #!null)
+      (set! source (invoke (builder:toString) 'intern))
+      #t))
+  
   (define (text-length)::int
     (builder:length))
   

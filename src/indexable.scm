@@ -52,7 +52,9 @@
   (delete-char! index::int)::char
   (char-ref index::int)::char
   (text-length)::int
+  
   (split! position::int)::Textual
+  (merge! following::Textual)::boolean
   )
 
 (define-object (Simple)::Element
