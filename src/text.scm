@@ -90,5 +90,12 @@
 	   (copy:appendCharacter (char-ref i)))
       (delete (max 0 (- n length)) n)
       copy))
+
+  (define (merge! next::Textual)::boolean
+    (and-let* ((next ::Text next))
+      (for c in next
+	(invoke-special gnu.lists.FString (this)
+			'appendCharacter c))
+      #t))
   
   (gnu.lists.FString))

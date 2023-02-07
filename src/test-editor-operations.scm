@@ -68,7 +68,6 @@
 
 (for-each insert-character! '(#\d #\e #\f #\n #\e))
 
-;;(WARN (car (slot-ref (history (the-document)) 'fronts)))
 
 (e.g.
  (snapshot) ===> "
@@ -142,20 +141,6 @@
 
 (insert-character! #\space)
 
-(snapshot)
-
-#|
-(and-let* ((history (history (the-document)))
-	   (`((,last-operation . ,_) . ,_) history:fronts))
-  (DUMP last-operation)
-  (DUMP (last-operation:inverse)))
-|#
-
-
-#|
-
-(insert-character! #\space)
-
 (e.g.
  (snapshot) ===> "
 ╭         ╮
@@ -165,9 +150,31 @@
 
 (undo!)
 
+;; Note: it is OK if the cursor isn't reverted faithfully,
+;; as long as this does not affect re-playing history.
+
+(e.g.
+ (snapshot) ===> "
+╭        ╮
+│ define │
+╰       |╯
+")
+
+(for-each insert-character! '(#\- #\c #\a #\c #\h #\e))
+
+(e.g.
+ (snapshot) ===> "
+╭              ╮
+│ define-cache │
+╰             ^╯
+")
+ 
+(undo!)
+
 (snapshot)
 
 
+#|
 
 (insert-character! #\[)
 
