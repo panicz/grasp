@@ -81,7 +81,7 @@
 
 (define-interface TextualTile (Textual Tile))
 
-(define-interface TextualShadowedTile (Textual Shadowed Tile))
+(define-interface ShadowedTextualTile (Shadowed TextualTile))
 
 #|
 `the-cursor` and `the-document` are parameters

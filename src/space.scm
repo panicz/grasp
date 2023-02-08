@@ -401,7 +401,7 @@
        (_
 	#\space))))
 
-  ((split! position::int)::Space
+  ((split! position::int)::Textual
    (split-fragments! fragments position))
 
   ((merge! next::Textual)::boolean
