@@ -1,3 +1,19 @@
+* 07.02.2023
+
+Teraz rzeczy do zrobienia:
+- optymalizacja historii: chcemy scalac ze soba operacje
+InsertCharacter o ile naleza do tej samej klasy
+(czyli dodawanie spacji albo dodawanie nie-spacji)
+no i oczywiscie spelnione sa warunki ciaglosci kursora.
+
+To jedna rzecz.
+
+Druga rzecz, to chcemy przetestowac czy operacje
+dzielenia i scalania atomu dobrze dzialaja.
+
+Trzecia rzecz wreszcie, to chcemy zaimplementowac
+operacje kasowania.
+
 * 06.02.2023
 
 Mamy mala zagwozdke dotyczaca tego, w jaki sposob reprezentowac
