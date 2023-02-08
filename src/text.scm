@@ -83,7 +83,7 @@
   (define (text-length)::int
     (invoke-special gnu.lists.FString (this) 'size))
   
-  (define (split! start::int)::Text
+  (define (split! start::int)::Textual
     (let ((copy ::Text (Text))
 	  (n (text-length)))
       (for i from start below n
@@ -95,7 +95,7 @@
     (and-let* ((next ::Text next))
       (for c in next
 	(invoke-special gnu.lists.FString (this)
-			'appendCharacter c))
+			'appendCharacter (char->integer c)))
       #t))
   
   (gnu.lists.FString))

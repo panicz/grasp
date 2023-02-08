@@ -72,7 +72,7 @@
 ;; edited objects, even though the "value" of
 ;; those atoms can be a different kind of object
 ;; on every query.
-(define-object (Atom source-string::String)::TextualShadowedTile
+(define-object (Atom source-string::String)::ShadowedTextualTile
   (define builder :: java.lang.StringBuilder)
   (define source :: String "")
   
@@ -126,7 +126,7 @@
   (define (char-ref index::int)::char
     (builder:charAt index))
   
-  (define (split! position::int)::Atom
+  (define (split! position::int)::Textual
     (let ((reminent ::Atom (Atom (source:substring position))))
       (builder:setLength position)
       (set! cache #!null)

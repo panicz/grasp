@@ -288,11 +288,13 @@
 	      (`(,left ,right . ,_) parent)
 	      (left ::Textual left)
 	      (right ::Textual right)
+	      (cursor (preceding-cursor))
 	      ((left:merge! right)))
      ;;(assert (eq? removing space target))
      (set! (post-head-space parent)
 	   (post-head-space (cdr parent)))
-     (set! (cdr parent) (cdr (cdr parent)))))
+     (set! (cdr parent) (cdr (cdr parent)))
+     cursor))
   
   ((inverse)::Edit
    (SplitElement at: (preceding-cursor)
@@ -331,12 +333,13 @@
 				    (car fronts))
 			      fronts))
 	   (set! undo-step 0))
-	  ((and-let* ((`((,last-operation . ,_) . ,_) fronts)
-		      ((Remove element: e 
-			       from: source
-			       with-shift: n) last-operation)
+	  ((and-let* ((`((,(Remove element: e 
+				   at: source
+				   from: document
+				   with-shift: n) . ,_) . ,_) fronts)
 		      ((Insert element: e*
-			       at: target) operation)
+			       at: target
+			       into: ,document) operation)
 		      ((eq? e e*)))
 	     (Move from: source
 		   to: target
@@ -346,20 +349,38 @@
 			 (set! (car fronts) (cdr (car fronts)))
 			 (set! (car (car fronts))
 			       operation))))
-	  ((and-let* ((`((,last-operation . ,_) . ,_) fronts)
-		      ((Insert element: `(,atom)
-			       at: `(,t ,n . ,root)) last-operation)
+	  ((and-let* ((`((,(Insert element: `(,atom)
+				   at: `(,t ,n . ,root)
+				   into: document) . ,_)
+			 . ,_) fronts)
 		      (atom ::Atom atom)
 		      (l (atom:text-length))
 		      ((InsertCharacter list: `(,c)
 					after: `(,,l ,,(+ n 1)
-						     . ,,root))
+						     . ,,root)
+					into: ,document)
 		       operation))
 	     ;; we're not recording anything, because
 	     ;; atom is shared between history and the document,
 	     ;; so that the change made to the document
 	     ;; will affect history
 	     ))
+
+	  ((and-let* ((`((,(InsertCharacter list: chars
+					    after: `(,n . ,root)
+					    into: document) . ,_)
+			 . ,_) fronts)
+		      (l (length chars))
+		      ((InsertCharacter list: new
+					after: `(,,(+ n l)
+						 . ,,root)
+					into: ,document) operation)
+		      ((or (and (every char-whitespace? chars)
+				(every char-whitespace? new))
+			   (and (every (isnt _ char-whitespace?) chars)
+				(every (isnt _ char-whitespace?)
+				       new)))))
+	     (append! chars new)))
 	  
 	  #;((and-let* ((`((,last-operation . ,_) . ,_) fronts)
 		      ((Insert element: atom
@@ -380,7 +401,8 @@
 
 (define/kw (last-operation document::pair := (the-document))::Edit
   (or (and-let* ((history ::History (history document))
-		 (`((,op . ,_) . ,_) history:fronts))
+		 (`(,front . ,_) history:fronts)
+		 (`(,op . ,_) (drop history:undo-step front)))
 	op)
       (NoEdit)))
 

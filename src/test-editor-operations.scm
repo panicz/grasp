@@ -68,7 +68,6 @@
 
 (for-each insert-character! '(#\d #\e #\f #\n #\e))
 
-
 (e.g.
  (snapshot) ===> "
 ╭       ╮
@@ -171,8 +170,80 @@
  
 (undo!)
 
+(e.g.
+ (snapshot) ===> "
+╭        ╮
+│ define │
+╰       ^╯
+")
+
+(redo!)
+
+(e.g.
+ (snapshot) ===> "
+╭              ╮
+│ define-cache │
+╰             ^╯
+")
+
+
+(times 6 move-cursor-left!)
+
+(e.g.
+ (snapshot) ===> "
+╭              ╮
+│ define-cache │
+╰       ^      ╯
+")
+
+(insert-character! #\space)
+
 (snapshot)
 
+(e.g.
+ (snapshot) ===> "
+╭               ╮
+│ define -cache │
+╰       |       ╯
+")
+
+(undo!)
+
+(e.g.
+ (snapshot) ===> "
+╭              ╮
+│ define-cache │
+╰       ^      ╯
+")
+
+(insert-character! #\newline)
+
+(e.g.
+ (snapshot) ===> "
+╭        ╮
+│ define │
+│       |│
+│        │
+│ -cache │
+╰        ╯
+")
+
+(undo!)
+
+(e.g.
+ (snapshot) ===> "
+╭              ╮
+│ define-cache │
+╰       ^      ╯
+")
+
+;(DUMP (last-operation))
+
+;(undo!)
+
+;(DUMP (the-cursor))
+
+;;(snapshot)
 
 #|
 
