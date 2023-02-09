@@ -25,6 +25,8 @@
 (import (editor-operations))
 (import (print))
 (import (parse))
+(import (string-building))
+(import (text))
 
 (define-interface Edit ()
   (apply!)::Cursor
@@ -93,6 +95,9 @@
 	      (cursor (recons (+ top 1) root)))
      (match element
        (`(,,@gnu.lists.LList?)
+	(cursor-retreat
+	 (cursor-climb-back cursor into)))
+       (`(,,@Text?)
 	(cursor-retreat
 	 (cursor-climb-back cursor into)))
        (_
@@ -258,7 +263,8 @@
      (set! (post-head-space cell)
 	   (post-head-space owner))
      (set! (post-head-space owner) with)
-     (cursor-advance at in)))
+     (and-let* ((`(,_ . ,cursor) (cursor-advance at in)))
+       (recons (with:last-index) cursor))))
      
   ((inverse)::Edit
    (MergeElements removing: with
@@ -301,18 +307,40 @@
 		 in: in
 		 with: removing)))
 
-(define-object (History document::pair)
+(define-object (History document::pair)::StringBuilding
   (define fronts ::(list-of (list-of Edit)) '())
 
   (define undo-step ::int 0)
+  
+  (define (buildString out::StringBuilder)::StringBuilder
+    (with-eval-access
+     (and-let* ((`(,front . ,_) fronts))
+       (let ((n ::int 0))
+	 (for operation in front
+	   (when (is n = undo-step)
+	     (out:append "* "))
+	   (out:append (operation:toString))
+	   (out:append "\n")
+	   (set! n (+ n 1)))))
+     out))
+
+  (define (toString)::String
+    (let ((builder ::StringBuilder (StringBuilder)))
+      (buildString builder)
+      (builder:toString)))
+
+  (define (clear!)
+    (set! fronts '())
+    (set! undo-step 0))
   
   (define (undo!)::void
     (and-let* ((`(,timeline . ,_) fronts)
 	       (`(,last-action . ,_) (drop undo-step timeline))
 	       (operation ::Edit last-action)
-	       (inverse ::Edit (operation:inverse)))
-      (set! (the-cursor) (inverse:apply!))
-      (set! (the-selection-anchor) (the-cursor))
+	       (inverse ::Edit (operation:inverse))
+	       (cursor (inverse:apply!)))
+      (set! (the-cursor) cursor)
+      (set! (the-selection-anchor) cursor)
       (set! undo-step (+ undo-step 1))))
 
   (define (redo!)::void
@@ -320,9 +348,10 @@
 	       (`(,timeline . ,_) fronts)
 	       (`(,undone-action . ,_) (drop (- undo-step 1)
 					     timeline))
-	       (operation ::Edit undone-action))
-      (set! (the-cursor) (operation:apply!))
-      (set! (the-selection-anchor) (the-cursor))
+	       (operation ::Edit undone-action)
+	       (cursor (operation:apply!)))
+      (set! (the-cursor) cursor)
+      (set! (the-selection-anchor) cursor)
       (set! undo-step (- undo-step 1))))
 
   (define (record! operation ::Edit)::void
@@ -330,7 +359,7 @@
 	   (set! fronts (cons (cons operation '()) fronts)))
 	  ((is undo-step > 0)
 	   (set! fronts (cons (cons operation
-				    (car fronts))
+				    (drop undo-step (car fronts)))
 			      fronts))
 	   (set! undo-step 0))
 	  ((and-let* ((`((,(Remove element: e 

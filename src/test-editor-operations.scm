@@ -33,6 +33,7 @@
     (draw-document! (the-document))
     (let ((result ::String (invoke (the-painter) 'toString)))
       (display result)
+      ;;(display (history (the-document)))
       result)))
 
 (set! (the-document)
@@ -186,7 +187,6 @@
 ╰             ^╯
 ")
 
-
 (times 6 move-cursor-left!)
 
 (e.g.
@@ -196,15 +196,14 @@
 ╰       ^      ╯
 ")
 
-(insert-character! #\space)
 
-(snapshot)
+(insert-character! #\space)
 
 (e.g.
  (snapshot) ===> "
 ╭               ╮
 │ define -cache │
-╰       |       ╯
+╰        |      ╯
 ")
 
 (undo!)
@@ -222,10 +221,10 @@
  (snapshot) ===> "
 ╭        ╮
 │ define │
-│       |│
+│        │
 │        │
 │ -cache │
-╰        ╯
+╰ |      ╯
 ")
 
 (undo!)
@@ -236,6 +235,101 @@
 │ define-cache │
 ╰       ^      ╯
 ")
+
+(undo!)
+
+(e.g.
+ (snapshot) ===> "
+╭        ╮
+│ define │
+╰       ^╯
+")
+
+(undo!)
+
+(e.g.
+ (snapshot) ===> "
+╭       ╮
+│ defne │
+╰    ^  ╯
+")
+
+(undo!)
+
+(e.g.
+ (snapshot) ===> "
+╭  ╮
+│  │
+╰ |╯
+")
+
+(times 2 redo!)
+(times 2 move-cursor-right!)
+
+(e.g.
+ (snapshot) ===> "
+╭        ╮
+│ define │
+╰       ^╯
+")
+
+
+(insert-character! #\[)
+
+(e.g.
+ (snapshot) ===> "
+╭       ╭  ╮ ╮
+│ define│  │ │
+╰       ╰ |╯ ╯
+")
+
+(times 2 move-cursor-left!)
+(insert-character! #\space)
+(times 2 move-cursor-right!)
+
+(e.g.
+ (snapshot) ===> "
+╭        ╭  ╮ ╮
+│ define │  │ │
+╰        ╰ |╯ ╯
+")
+
+(for-each insert-character! '(#\! #\space #\n))
+
+(e.g.
+ (snapshot) ===> "
+╭        ╭     ╮ ╮
+│ define │ ! n │ │
+╰        ╰    ^╯ ╯
+")
+
+(times 3 move-cursor-right!)
+
+(e.g.
+ (snapshot) ===> "
+╭        ╭     ╮ ╮
+│ define │ ! n │ │
+╰        ╰     ╯|╯
+")
+
+(for-each insert-character! '(#\newline #\"))
+(DUMP (the-cursor))
+(for-each
+ insert-character!
+ "Computes the product
+1 * ... * n")
+
+#;(e.g.
+ (snapshot) ===> "
+╭        ╭     ╮ ╮
+│ define │ ! n │ │
+│        ╰     ╯ │
+│                │
+│                │
+╰   |            ╯
+")
+
+(snapshot)
 
 ;(DUMP (last-operation))
 

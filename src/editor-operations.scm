@@ -164,10 +164,8 @@
 	(perform! (Insert element: (cons (Text) '()))))
        
        ((is c in '(#\[ #\( #\{))
-	(perform! (Insert element:
-			  (cons (EmptyListProxy (Space fragments:
-						       (cons 0 '())))
-				'()))))
+	(perform! (Insert element: (cons (EmptyListProxy (EmptySpace))
+					 '()))))
        ((is c in '(#\] #\) #\}))
 	(set! (the-cursor) (recons (parent:last-index) subcursor))
 	(set! (the-selection-anchor) (the-cursor)) #t)
@@ -203,9 +201,23 @@
 				     after: (cursor-advance))))
 	 (else
 	  (perform! (SplitElement with: (SpaceFrom c))))))
+       
+       ((is c in '(#\[ #\( #\{))
+	(cond
+	 ((eqv? (final:first-index) tip)
+	  (perform! (Insert element: (cons (EmptyListProxy
+					    (EmptySpace)) '())
+			    at: (cursor-retreat))))
+	 ((eqv? (final:last-index) tip)
+	  (perform! (Insert element: (cons (EmptyListProxy
+					    (EmptySpace)) '())
+			    at: (cursor-advance))))
+	 (else
+	  (perform! (SplitElement with: (EmptySpace)))
+	  (perform! (Insert element: (cons (EmptyListProxy
+					    (EmptySpace)) '()))))))
        (else
-	(perform! (InsertCharacter
-		   list: (list c))))))
+	(perform! (InsertCharacter list: (list c))))))
      ((Text? item)
       (InsertCharacter list: (list c)))
 	 
