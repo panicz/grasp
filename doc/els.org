@@ -1,0 +1,393 @@
+* Submission topics include, but are not limited to:
+
+  - Context-, aspect-, domain-oriented and generative programming
+  - Macro-, reflective-, meta- and/or rule-based development approaches
+  - Language design and implementation
+  - Language integration, inter-operation and deployment
+  - Development methodologies, support and environments
+  - Educational approaches and perspectives
+  - Experience reports and case studies
+
+* We invite submissions in the following forms:
+  
+  - Papers: Technical papers of up to 8 pages 
+    that describe original results or explain 
+    known ideas in new and elegant ways.
+  - Tutorials: Abstracts of up to 4 pages
+    for in-depth presentations about topics
+    of special interest.
+  - Demonstrations: Abstracts of up to 4 pages
+    for demonstrations of tools, libraries, and applications.
+  - Experience reports: papers of up to 6 pages
+    describing a Lisp success story and/or analyzing
+    obstacles that have kept it from working in practice.
+
+
+* GRASP: An Extensible Tactile Interface for Editing S-expressions
+
+  GRASP is a Scheme-based extensible computational environment
+  designed to work with S-expressions on touch screens. It features
+  a powerful extension mechanism as well as a subsystem for
+  handling gesture-based input. It is implemented in Kawa Scheme,
+  and can be compiled as an Android application as well as run
+  on a desktop windowing environment and inside of terminal
+  emulators.
+  
+  GRASP is still a work-in-progress application, so the purpose
+  of the demo is:
+  1. to show the current state of the application;
+  2. to convey the ultimate vision behind GRASP;
+  3. to present the development plan and methodology, and optionally:
+  4. to describe the hitherto history of the development.
+
+  The presentation of GRASP in this paper is written as if
+  all of its features were already implemented. The omissions
+  are presented in a seperate section.
+
+* The concept of GRASP
+  
+  GRASP is a tactile-first structural editor for S-expressions.
+  Its design is based on representing S-expressions as
+  nestable boxes. The boxes are rendered so that their left 
+  and right edge resemble - respectively - opening and closing 
+  parentheses.
+
+  When displayed in a terminal, a Lisp program edited in GRASP
+  might look like this:
+
+#+BEGIN_SRC
+╭        ╭     ╮                       ╮                       
+│ define │ ! n │                       │                       
+│        ╰     ╯                       │                       
+│ ❝┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈• │                       
+│ ┊ Computes the product 1*...*n.    ┊ │                       
+│ ┊ It represents the number of per- ┊ │                       
+│ ┊ mutations of an n-element set.   ┊ │                       
+│ •┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈❞ │                       
+│   ╭    ╭        ╮                 ╮  │                       
+│   │ if │ <= n 0 │                 │  │                       
+│   │    ╰        ╯                 │  │                       
+│   │                               │  │                       
+│   │       1                       │  │                       
+│   │                               │  │                       
+│   │       ╭     ╭   ╭       ╮ ╮ ╮ │  │                       
+│   │       │ * n │ ! │ - n 1 │ │ │ │  │                       
+╰   ╰       ╰     ╰   ╰       ╯ ╯ ╯ ╯  ╯                       
+╭      ╭             ╮          ╮                              
+│ e.g. │ factorial 5 │ ===> 120 │                              
+╰      ╰             ╯          ╯                              
+#+END_SRC
+
+  which corresponds to the following program text:
+
+#+BEGIN_SRC
+(define (! n)
+"Computes the product 1*...*n.
+It represents the number of per-
+mutations of an n-element set."
+  (if (<= n 0)
+      1
+      (* n (! (- n 1))))) 
+(e.g. (factorial 5) ===> 120)
+#+END_SRC
+
+  The left and right parentheses play different roles in 
+  tactile editing: the left parenthesis is used for moving
+  (if pressed once) or copying (if pressed twice) an expression,
+  whereas the right parenthesis is used for resizing an expression.
+
+  An expression which is currently being moved can be deleted
+  by throwing it off the surface quickly. Likewise, moving
+  a finger quickly while the expression is being resized
+  causes the box to be spliced into its parent (this feature
+  is sometimes referred to as "pulling-the-rug splicing").
+
+  In addition to boxes, GRASP offers four other types
+  of objects: atoms, texts, extensions and comments.
+
+  Atoms are things like symbols, numbers, characters
+  or boolean values in Lisp. They support touch
+  gestures in a similar way as the left parenthesis
+  of a box: single touch causes them to be dragged,
+  whereas double touch causes their copy to be dragged.
+
+  The text type corresponds to strings. They are 
+  displayed inside boxes with quotation marks
+  on their corners. The roles of the quotation
+  marks are analogous to the left and the right
+  parenthesis: the left one can be used to
+  move the text within the expression tree,
+  remove it or copy, while the right one can be used
+  to change the shape of a text.
+
+  Comments in the Scheme programming language come in
+  three flavours, all of which are supported by GRASP:
+  - line comments, which span until the end of a given line;
+  - block comments, which are similar to text;
+  - expression comments, which comment out a single expression.
+
+  Comments are invisible to the operations
+  on the document, such as car or cdr. Other than that,
+  line and block comments are similar to text.
+
+  The last type of objects supported by the editor
+  are extensions. The list of extensions is open-ended.
+  Expressions are sometimes refered to as "magic boxes",
+  because they are boxes which define their own rules
+  of interaction.
+
+  A simple example of an extension is a button.
+  If it is loaded, the expression
+
+#+BEGIN_SRC
+(Button label: "Press me" 
+        action: (lambda () (WARN "button pressed")))
+#+END_SRC
+
+  can be rendered as a button, and respond
+  to touch events with the invocation of its
+  action callback.
+
+  The terminal client of GRASP would display
+  it in the following manner:
+
+#+BEGIN_SRC
+╭───────────╮
+│ Press me! │
+╰───────────╯
+#+END_SRC
+
+  Extensions are meant to be user-definable, but
+  the exact API for defining them is subject to
+  an ongoing research.
+
+  Some desired extensions for GRASP include:
+  - a drawing editor
+  - a graph visualiser/editor
+  - a visual evaluator
+  - a function plotter
+
+  and many others.
+
+** Gesture-based input
+   
+   Since devices with touch screens often lack
+   a proper keyboard, and usually display regrettable
+   keyboard substitutes on their screens as needed,
+   GRASP attempts to find a more ergonomic alternative.
+
+   One idea is gesture-based input: the user draws
+   a shape on the screen, and if the shape is recognized,
+   an appropriate action is performed.
+
+   By default, the following shapes are recognized:
+   - horizontal line, which splits the pane it's
+     drawn over vertically into two smaller panes
+     (similar to C-x 2 in Emacs)
+
+   - vertical line, which splits the pane below
+     horizontally into two smaller panes
+     (similar to C-x 3 in Emacs)
+
+   - a box gesture, which creates a new box in the
+     document it's drawn over
+     
+   - an underscore gesture, which creates a new atom
+     in the document it's drawn over
+
+   - a wedge symbol, which causes the expression
+     below its blade to be evaluated (similar to
+     C-x C-e in Emacs' Lisp interaction modes)
+
+   Since many touchscreen-equipped devices also
+   feature accelerometers, GRASP also lets define
+   motion-based edit operations - for example, shaking
+   a device might result in re-indenting the source
+   code.
+
+*** Keyboard input 
+
+    Even though GRASP focuses on tactile editing
+    and on mobile devices, a lot of effort has been
+    put into making it a pleasant keyboard editing
+    experience.
+
+    GRASP features a flexible key binding mechanism,
+    which unites the input systems from its target
+    environments (Android, terminal and windowing
+    systems).
+
+    By default, it provides the "Common User Access"
+    keyboard bindings (ctrl-z fo undo, ctrl-c for copy
+    etc.) and it allows to use keyboard arrows to
+    navigate cursor over the active document.
+    
+    Keyboard editing is context-sensitive, so
+    for example pressing the #\[ key creates a new box,
+    unless the cursor is located on a text element,
+    in which case the #\[ character is inserted verbatim
+    into text.
+    
+    Also, extensions are free to interpret
+    most of the pressed characters as they please.
+
+* Implementation
+
+   GRASP is still a very immature editor, and many 
+   of its implementation details are likely to change. 
+   However, there are certain design decisions that
+   will probably stay fixed throughout the lifetime
+   of GRASP.
+
+** Kawa and JVM interoperation
+
+   GRASP is implemented in - and intimately coupled
+   to - Kawa, the implementation of Scheme which runs
+   on the Java Virtual Machine and produces JVM byte code.
+
+   The main reason for this decision is that JVM
+   byte code can be translated to run on Android,
+   which was both the initial developmen platform
+   of GRASP, as well as its main target.
+   
+   Kawa Scheme offers a few interesting extensions
+   to facilitate interoperation with JVM: first,
+   it exposes Java's object model to Scheme
+   (using the define-simple-class special form);
+   second, it extends Scheme with an optional syntax
+   for declaring types, and provides a Java-like type
+   system.
+
+   GRASP uses Scheme's syntax extension mechanisms
+   to provide two alternative ways of defining new
+   types.
+
+*** The record system
+
+   The first mechanism for defining new types 
+   probably also happens to be the first almost decent
+   record system in the history of Lisp.
+
+   It lets programmers define record types in the following
+   way:
+
+#+BEGIN_SRC
+(define-type (Extent width: real := 0
+                     height: real := 0))
+#+END_SRC
+
+  A new instance of a record defined this way can be
+  created by typing, say
+
+#+BEGIN_SRC
+(define carpet ::Extent (Extent width: 5 height: 10))
+#+END_SRC
+
+  and the fields can be accessed using Kawa's reader
+  extension:
+
+#+BEGIN_SRC
+  > carpet:width ; => 5
+  > carpet:height ; => 10
+#+END_SRC
+
+  GRASP source code also contains a pattern matcher
+  which allows to destructure records defined that way:
+
+#+BEGIN_SRC
+(define (square-or-rectangle e)
+  (match e
+    ((Extent width: x height: x)
+     `(a square with side length ,x))
+    ((Extent width: x height: y)
+     `(an ,x by ,y rectangle))
+    (_
+     'what-are-you-giving-me?)))
+#+END_SRC
+
+  Records can also implement interfaces and provide methods
+  that can be invoked on them, although the syntax is not 
+  entirely satisfactory:
+
+#+BEGIN_SRC
+(define-type (Move from: Cursor
+		   to: Cursor
+		   in: pair := (the-document)
+		   with-shift: int := 0)
+  implementing Edit
+  with
+  ((apply!)::Cursor
+   (let ((item (extract! at: from from: in)))
+     (insert! item into: in at: to)
+     (cursor-climb-back to in)))
+
+  ((inverse)::Edit
+   (match (this)
+     ((Move from: `(,s0 . ,source)
+            to: `(,d0 ,d1 . ,destination)
+	    in: document
+	    with-shift: s)
+      (Move from: (recons (+ d1 1) destination)
+            to: (recons* s (- s0 1) source)
+	    in: document
+	    with-shift: d0)))))
+#+END_SRC
+
+*** Environment-like class definitions
+
+  The second syntax provided by GRASP for defining
+  Java classes is the define-object form, which allows
+  for environment-like class definitions:
+
+#+BEGIN_SRC
+(define-object (ClassName constructor-params ...)::Interface
+  (define field ::type initial-value)
+  ...
+  (define (method args ...)::result-type body ...)
+  ...
+  (SuperClass constructor-args ...)
+  initialization-code ...)
+#+END_SRC
+
+  This syntax has some quirks, but since the slot and method
+  definitions are syntactically identical to top-level procedure
+  and variable definitions, the refactoring is facilitated,
+  because moving forms between the top level and class definitions
+  requires no additional actions.
+
+  It is also noteworthy that both type definition mechanisms
+  deliberately limit the expressiveness of the raw Java-style
+  class definition (for example, by letting only one constructor
+  to be present in the definition).
+
+** The document representation
+   
+   Documents in GRASP are essentially represented
+   using cons-cells. There are some caveats to this, though.
+
+   First, GRASP does not use the implementation of cons-cells
+   provided by Kawa: instead, it sub-classes Kawa's gnu.lists.Pair
+   class, and adds two significant modifications:
+   - it overrides the equals method to use the efault Java's
+     object identity (rather than Scheme's equal?-like identity
+     provided by Kawa)
+   - it overrides the getCar and getCdr methods (which are
+     internally invoked upon calling car and cdr in Scheme)
+     so that their behavior depends on value of (the-cell-access-mode)
+     parameter:
+     - if the value of (the-cell-access-mode) is
+
+** The cursor representation
+
+** The "undo" mechanism
+
+   Since GRASP is a structural editor
+
+** Related work
+   - Boxer
+   - Emacs
+   - Interactive Visual Syntax; visr.pl
+   - Polytope, Eliott
+   - Vlojure, Splootcode
+   - OrenoLisp
+   - Fructure
