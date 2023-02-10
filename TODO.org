@@ -1,3 +1,9 @@
+* 09.02.2023
+
+Wczoraj udalo sie poprawic blad w historii. Natomias
+wczorajsze cele zasadniczo pozostaja w mocy, ale
+do tego dochodzi jeszcze poprawienie edycji stringow.
+
 * 08.02.2023
 
 Dzisiaj na pewno chcemy przebadac i naprawic system
