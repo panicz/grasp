@@ -312,24 +312,51 @@
 ╰        ╰     ╯|╯
 ")
 
-(for-each insert-character! '(#\newline #\"))
-(DUMP (the-cursor))
-(for-each
- insert-character!
- "Computes the product
+
+(for-each insert-character! "
+\"Computes the product
 1 * ... * n")
 
-#;(e.g.
+(e.g.
  (snapshot) ===> "
-╭        ╭     ╮ ╮
-│ define │ ! n │ │
-│        ╰     ╯ │
-│                │
-│                │
-╰   |            ╯
+╭        ╭     ╮           ╮
+│ define │ ! n │           │
+│        ╰     ╯           │
+│ ❝┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈• │
+│ ┊ Computes the product ┊ │
+│ ┊ 1 * ... * n          ┊ │
+╰ •┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈❞ ╯
 ")
 
-(snapshot)
+
+(times 2 move-cursor-right!)
+
+(for-each insert-character! "
+[if [is n <= 1]
+  1
+ [* n [! [- n 1")
+
+(e.g.
+ (snapshot) ===> "
+╭        ╭     ╮               ╮
+│ define │ ! n │               │
+│        ╰     ╯               │
+│ ❝┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈•     │
+│ ┊ Computes the product ┊     │
+│ ┊ 1 * ... * n          ┊     │
+│ •┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈❞     │
+│ ╭    ╭           ╮         ╮ │
+│ │ if │ is n <= 1 │         │ │
+│ │    ╰           ╯         │ │
+│ │                          │ │
+│ │   1                      │ │
+│ │                          │ │
+│ │  ╭     ╭   ╭       ╮ ╮ ╮ │ │
+│ │  │ * n │ ! │ - n 1 │ │ │ │ │
+╰ ╰  ╰     ╰   ╰      ^╯ ╯ ╯ ╯ ╯
+")
+
+
 
 ;(DUMP (last-operation))
 
