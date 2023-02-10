@@ -97,8 +97,9 @@
 					at: cursor))
 	       (document (the-document))
 	       (history ::History (history document)))
-	  (action:apply! document)
-	  (history:record! action)))
+	  (history:record! action)
+	  (set! (the-cursor) (action:apply!))
+	  (set! (the-selection-anchor) (the-cursor))))
 
        ((is parent cons?)
 	(cond

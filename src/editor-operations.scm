@@ -31,6 +31,22 @@
     (set! (cursor-column) cursor-position:left))
   (set! (the-selection-anchor) (the-cursor)))
 
+(define (unnest-cursor-right!)
+  (and-let* ((`(,tip ,top . ,root) (the-cursor))
+	     (parent ::Indexable (the-expression at: root))
+	     (target ::Indexable (parent:part-at top))
+	     (item ::Indexable (target:part-at tip)))
+    ;;(assert (eq? target item))
+    (set! (the-cursor)
+	  (cond
+	   ((Textual? item)
+	    (recons (parent:last-index) root))
+	   ((eqv? tip (parent:last-index))
+	    (recons (parent:last-index) root))
+	   (else
+	    (recons* (parent:last-index) top root))))
+    (set! (the-selection-anchor) (the-cursor))))
+
 (define (expand-selection-right!)
   (set! (the-cursor) (cursor-advance))
   (let* ((painter (the-painter))
@@ -158,6 +174,17 @@
      ((isnt final eq? item)
       (WARN "attempted to insert character "c" to non-final position")
       #f)
+     ((Text? item)
+      (perform! (InsertCharacter list: (list c))))
+
+     ((is c in '(#\] #\) #\}))
+      (unnest-cursor-right!))
+      
+     ((gnu.lists.LList? item)
+      (set! (the-cursor) (cursor-advance))
+      (set! (the-selection-anchor) (the-cursor))
+      (insert-character! c))
+     
      ((Space? item)
       (cond
        ((eqv? c #\")
@@ -166,10 +193,6 @@
        ((is c in '(#\[ #\( #\{))
 	(perform! (Insert element: (cons (EmptyListProxy (EmptySpace))
 					 '()))))
-       ((is c in '(#\] #\) #\}))
-	(set! (the-cursor) (recons (parent:last-index) subcursor))
-	(set! (the-selection-anchor) (the-cursor)) #t)
-
        ((is c char-whitespace?)
 	(perform! (InsertCharacter list: (list c))))
        
