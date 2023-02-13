@@ -90,18 +90,15 @@
   implementing Edit
   with
   ((apply!)::Cursor
-   (insert! element into: into at: at)
    (and-let* ((`(,tip ,top . ,root) at)
-	      (cursor (recons (+ top 1) root)))
-     (match element
-       (`(,,@gnu.lists.LList?)
-	(cursor-retreat
-	 (cursor-climb-back cursor into)))
-       (`(,,@Text?)
-	(cursor-retreat
-	 (cursor-climb-back cursor into)))
-       (_
-	(cursor-climb-back cursor into)))))
+	      (last-element (last element)))
+     (insert! element into: into at: at)
+     (let* ((base-cursor (cursor-climb-back (recons (+ top 1) root)
+					    into)))
+       (if (or (gnu.lists.LList? last-element)
+	       (Text? last-element))
+	   (cursor-retreat base-cursor into)
+	   base-cursor))))
   ((inverse)::Edit
    (match at
      (`(,tip ,top . ,root)
