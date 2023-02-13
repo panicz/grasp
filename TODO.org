@@ -1,3 +1,17 @@
+* 12.02.2023
+
+Na razie napisalismy wiekszosc pejpera - zostaly
+nam jeszcze tylko referencje i kategoryzacje.
+
+Natomiast teraz chcemy:
+1. wyjasnic dlaczego jak dodajemy [] do "toplevelu",
+to kursor jest zle pozycjonowany
+
+2. zaimplementowac delete-backward! z obsluga historii
+
+3. zaimplementowac delete-forward!?
+
+
 * 09.02.2023
 
 Wczoraj udalo sie poprawic blad w historii. Natomias
