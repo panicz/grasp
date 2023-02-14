@@ -1,3 +1,17 @@
+* 13.02.2023
+
+Wczoraj udalo sie zrealizowac (1). Dzisiaj
+bysmy sie sprobowali zajac (2).
+
+Ale trzeba ustalic nieco szczegolow, bo
+zasadniczo chcemy, zeby kursor zachowywal
+sie poprawnie, tzn. zeby operacja "redo!"
+po wykonaniu "undo!" dzialala tak jak wczesniej.
+
+Ale czy rzeczywiscie musimy sie tym martwic?
+Operacje zapamietuja sobie przeciez polozenie
+kursora, na ktorym operuja.
+
 * 12.02.2023
 
 Na razie napisalismy wiekszosc pejpera - zostaly
