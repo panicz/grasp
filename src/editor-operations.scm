@@ -104,6 +104,15 @@
   (let ((document-history ::History (history (the-document))))
     (document-history:redo!)))
 
+(define-private (perform! operation ::Edit)::boolean
+  (let* ((document (the-document))
+	 (history ::History (history document)))
+    (history:record! operation)
+    (and-let* ((new-cursor (operation:apply!)))
+      (set! (the-cursor) new-cursor)
+      (set! (the-selection-anchor) new-cursor)
+      #t)))
+
 (define (delete! position::Index)::void
   (let* ((target (the-expression)))
     (cond
@@ -138,7 +147,106 @@
 	  (else
 	   (delete! (car (the-cursor)))))))
 
-(define (delete-backward!)::void
+(define (delete-backward!)::boolean
+  (and-let* ((`(,tip ,top . ,root) (the-cursor))
+	     (tip ::int (as int tip))
+	     (_ (truly (DUMP tip)))
+	     (parent ::Indexable (the-expression at: root))
+	     (_ (truly (DUMP parent)))
+	     (target ::Indexable (parent:part-at top))
+	     (_ (truly (DUMP target)))
+	     ((eq? target (target:part-at tip)))
+	     (first-index ::Index (target:first-index))
+	     (_ (truly (DUMP first-index)))
+	     (last-index ::Index (target:last-index))
+	     (_ (truly (DUMP last-index)))
+	     (preceding-cursor (cursor-retreat))
+	     (_ (truly (DUMP preceding-cursor)))	     
+	     (preceding-element (the-expression at: preceding-cursor))
+	     (_ (truly (DUMP preceding-element))))
+    (cond
+     ((Atom? target)
+      (WARN "deleting atom "target)
+      (let ((target ::Atom target))
+	(cond
+	 ((eqv? tip first-index)
+	  (set! (the-cursor) (cursor-retreat))
+	  (set! (the-selection-anchor) (the-cursor))
+	  (delete-backward!))
+	 ((is (text-length target) <= 1)
+	  (let ((cell (drop (quotient top 2) parent)))
+	    ;; the cell will be cut off from the rest
+	    ;; of the document after performing Remove
+	    (perform! (Remove element: cell
+			      at: (recons top root)
+			      with-shift: (car preceding-cursor)))))
+	 (else
+	  (perform!
+	   (RemoveCharacter
+	    list: (cons (target:char-ref (target:previous-index tip))
+			'())))))))
+     ((Space? target)
+      (let ((target ::Space target))
+	(cond
+	 ((eqv? tip first-index)
+	  (cond
+	   ((eq? preceding-element parent)
+	    (set! (the-cursor) (cursor-retreat))
+	    (set! (the-selection-anchor) (the-cursor))
+	    (delete-backward!))
+	   ((is (text-length (as Space target)) <= 1)
+	    (cond
+	     ((Textual? preceding-element)
+	      (and-let* ((following-cursor (cursor-advance
+					    (recons* last-index
+						     top root)))
+			 (following-element (the-expression
+					     at: following-cursor))
+			 ((Textual? following-element))
+			 ((eq? (preceding-element:getClass)
+			       (following-element:getClass))))
+		(perform! (MergeElements removing: target))))
+	     ((and (eq? preceding-element parent)
+		   (is (text-length (as Space target)) = 1))
+	      (perform! (RemoveCharacter
+			 list: (cons (target:char-ref tip) '()))))
+	     (else #f)))
+	   (else
+	    (perform! (RemoveCharacter
+		       list: (cons (target:char-ref tip)
+				   '())))))))))
+     ((Text? target)
+      (let ((target ::Text target))
+	(cond
+	 ((eqv? tip first-index)
+	  (set! (the-cursor) (cursor-retreat))
+	  (set! (the-selection-anchor) (the-cursor))
+	  (delete-backward!))
+	 ((is (text-length (as Text target)) <= 0)
+	  (let ((cell (drop (quotient top 2) parent)))
+	    ;; the cell will be cut off from the rest
+	    ;; of the document after performing Remove
+	    (perform! (Remove element: cell
+			      with-shift: (text-length
+					   preceding-element)))))
+	 (else
+	  (perform! (RemoveCharacter list: (cons (target:char-ref tip)
+						 '())))))))
+     ((gnu.lists.LList? target)
+      (let ((cell (drop (quotient top 2) parent)))
+	(if (or (eqv? tip last-index)
+		(null? target)
+		(and-let* ((empty ::EmptyListProxy target)
+			   ((is empty:space EmptySpace?)))))
+	    (perform! (Remove element: cell
+			      with-shift: (text-length
+					   preceding-element)))
+	    #f
+	    )))
+     (else
+      #f))))
+      
+#;(define (delete-backward!)::void
   (let ((target (the-expression)))
     (cond ((and (pair? target)
 		(eqv? (car (the-cursor)) (last-index target)))
@@ -157,14 +265,6 @@
   ::boolean
   ;; musimy pamietac ze dzialana dokonywane poprzez
   ;;te funkcje powinno sie dac cofac za pomoca "undo!"
-  (define (perform! operation ::Edit)::boolean
-    (let* ((document (the-document))
-	   (history ::History (history document)))
-      (history:record! operation)
-      (and-let* ((new-cursor (operation:apply!)))
-	(set! (the-cursor) new-cursor)
-	(set! (the-selection-anchor) new-cursor)
-	#t)))
   (and-let* (((isnt c eqv? #\null))
 	     (`(,tip ,top . ,subcursor) (the-cursor))
 	     (parent ::Indexable (the-expression at: subcursor))
