@@ -6,6 +6,7 @@
 (import (define-property))
 (import (default-value))
 (import (define-parameter))
+(import (keyword-arguments))
 (import (match))
 (import (infix))
 (import (assert))
@@ -56,6 +57,9 @@
   (split! position::int)::Textual
   (merge! following::Textual)::boolean
   )
+
+(define (text-length item::Textual)::int
+  (item:text-length))
 
 (define-object (Simple)::Element
   (define (typename)::String "Simple")
