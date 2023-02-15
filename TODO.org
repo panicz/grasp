@@ -1,3 +1,21 @@
+* 15.02.2023
+
+Mamy zrobione wstawianie znakow w atomy
+i to jako tako dziala.
+
+Ale duzo rzeczy jeszcze nie dziala, wiec
+plan jest taki, ze:
+
+- chcemy popisac troche testow dla funkcjonalnosci,
+ktora mamy, i dla tej, ktorej jeszcze nie mamy
+
+- zrobic scalanie historii kasowania znaku
+  (analogicznie do scalania historii dodawania
+  znaku)
+
+- oraz naturalnie zaimplementowac
+  delete-forward!
+
 * 13.02.2023
 
 Wczoraj udalo sie zrealizowac (1). Dzisiaj
@@ -11,6 +29,8 @@ po wykonaniu "undo!" dzialala tak jak wczesniej.
 Ale czy rzeczywiscie musimy sie tym martwic?
 Operacje zapamietuja sobie przeciez polozenie
 kursora, na ktorym operuja.
+
+No dobra, spojrzmy zatem na [[analiza-edycji]] (28.01.2023)
 
 * 12.02.2023
 
@@ -310,7 +330,9 @@ historycznych oraz drag&dropa.
 Co do drag&dropa to mamy pewna koncepcje.
 
 
-* 28.01.2023
+* 28.01.2023 
+
+<<analiza-edycji>>
 
 Plan na teraz jest taki:
 1. wypisujemy sobie wszystkie operacje dopuszczalne
