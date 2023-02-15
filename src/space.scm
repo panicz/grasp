@@ -415,8 +415,9 @@
   
   ((text-length)::int
    (fold-left (lambda (x0::int f)::int
-		      (+ x0 (fragment-size f)))
-	      0 fragments))
+		      (+ x0 (fragment-size f)
+			 (if (number? f) 1 0)))
+	      (car fragments) (cdr fragments)))
   )
 
 
