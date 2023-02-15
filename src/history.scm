@@ -77,7 +77,7 @@
      (assert (eq? item element))
      (recons* with-shift (- (car at) 1) (cdr at))))
   ((inverse)::Edit
-   (match from
+   (match at
      (`(,tip . ,root)
       (Insert element: element
 	      at: (recons* with-shift (- tip 1) root)
@@ -229,7 +229,9 @@
 	  (i (- (car before) n)))
      (assert (is i >= 0))
      (for c in list
-       (assert (eq? c (target:char-ref i)))
+       (unless (eq? c (target:char-ref i))
+	 (WARN "the removed char "(target:char-ref i)
+	       " differs from expected "c))
        (target:delete-char! i)))
    (recons (- (car before)
 	      (length list))
@@ -407,6 +409,24 @@
 				(every (isnt _ char-whitespace?)
 				       new)))))
 	     (append! chars new)))
+
+	  ((and-let* ((`((,last-operation . ,_) . ,_) fronts)
+		      ((RemoveCharacter list: chars
+					before: `(,n . ,root)
+					from: document)
+		       last-operation)
+		      (last-operation ::RemoveCharacter last-operation)
+		      (l (length chars))
+		      ((RemoveCharacter list: new
+					before: `(,,(- n 1)
+						  . ,,root)
+					from: ,document) operation)
+		      ((or (and (every char-whitespace? chars)
+				(every char-whitespace? new))
+			   (and (every (isnt _ char-whitespace?) chars)
+				(every (isnt _ char-whitespace?)
+				       new)))))
+	     (set! last-operation:list (append! new chars))))
 	  
 	  #;((and-let* ((`((,last-operation . ,_) . ,_) fronts)
 		      ((Insert element: atom

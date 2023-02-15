@@ -67,6 +67,21 @@
 ╰ |╯
 ")
 
+(delete-backward!)
+
+(e.g.
+ (snapshot) ===> "
+")
+
+(undo!)
+
+(e.g.
+ (snapshot) ===> "
+╭  ╮
+│  │
+╰ |╯
+")
+
 (for-each insert-character! '(#\d #\e #\f #\n #\e))
 
 (e.g.
@@ -86,6 +101,24 @@
 ")
 
 (redo!)
+
+(e.g.
+ (snapshot) ===> "
+╭       ╮
+│ defne │
+╰      ^╯
+")
+
+(times 2 delete-backward!)
+
+(e.g.
+ (snapshot) ===> "
+╭     ╮
+│ def │
+╰    ^╯
+")
+
+(undo!)
 
 (e.g.
  (snapshot) ===> "
@@ -236,7 +269,32 @@
 ╰       ^      ╯
 ")
 
+(redo!)
+
+(e.g.
+ (snapshot) ===> "
+╭        ╮
+│ define │
+│        │
+│        │
+│ -cache │
+╰ |      ╯
+")
+
+(delete-backward!)
+
+(e.g.
+ (snapshot) ===> "
+╭              ╮
+│ define-cache │
+╰       ^      ╯
+")
+
 (undo!)
+
+(snapshot)
+
+(exit)
 
 (e.g.
  (snapshot) ===> "
