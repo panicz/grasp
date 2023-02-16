@@ -141,19 +141,21 @@
 (define (delete-backward!)::boolean
 
   (define (perform! operation ::Edit)::boolean
-    (and-let* ((document (the-document))
-	       (history ::History (history document))
-	       (new-cursor (operation:apply!)))
-      ;; A note: in case of removal operations,
-      ;; we record the operation after applying it,
-      ;; but in case of insertion operation, we record
-      ;; them before applying them.
-      ;; This allows for structural sharing to work
-      ;; in the presence of history merging.
-      (history:record! operation)
-      (set! (the-cursor) new-cursor)
-      (set! (the-selection-anchor) new-cursor)
-      #t))
+    (or
+     (and-let* ((document (the-document))
+		(history ::History (history document))
+		(new-cursor (operation:apply!)))
+       ;; A note: in case of removal operations,
+       ;; we record the operation after applying it,
+       ;; but in case of insertion operation, we record
+       ;; them before applying them.
+       ;; This allows for structural sharing to work
+       ;; in the presence of history merging.
+       (history:record! operation)
+       (set! (the-cursor) new-cursor)
+       (set! (the-selection-anchor) new-cursor)
+       #t)
+     (WARN "failed to perform: "operation)))
 
   (and-let* ((`(,tip ,top . ,root) (the-cursor))
 	     (parent ::Indexable (the-expression at: root))
@@ -198,16 +200,20 @@
 	    (and-let* ((following-cursor (cursor-advance
 					  (recons* last-index
 						   top root)))
-		       (following-element (the-expression
+		       (following-element ::Textual
+					  (the-expression
 					   at: following-cursor))
-		       ((Textual? following-element))
+		       (preceding-element ::Textual preceding-element)
 		       ((eq? (preceding-element:getClass)
 			     (following-element:getClass))))
-	      (perform! (MergeElements removing: target))))
+	      (perform! (MergeElements removing: target
+				       after: preceding-cursor))))
 	   ((and (eq? preceding-element parent)
 		 (is (text-length (as Space target)) > 0))
 	    (perform! (RemoveCharacter
 		       list: (cons (target:char-ref tip) '()))))
+	   ;; teoretycznie moglibysmy tutaj dodac scalanie
+	   ;; list
 	   (else #f)))
 	 (else
 	  (perform! (RemoveCharacter
