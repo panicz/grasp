@@ -144,7 +144,7 @@
     (or
      (and-let* ((document (the-document))
 		(history ::History (history document))
-		(new-cursor (operation:apply!)))
+		(new-cursor (operation:apply! document)))
        ;; A note: in case of removal operations,
        ;; we record the operation after applying it,
        ;; but in case of insertion operation, we record
@@ -271,7 +271,7 @@
     (let* ((document (the-document))
 	   (history ::History (history document)))
       (history:record! operation)
-      (and-let* ((new-cursor (operation:apply!)))
+      (and-let* ((new-cursor (operation:apply! document)))
 	(set! (the-cursor) new-cursor)
 	(set! (the-selection-anchor) new-cursor)
 	#t)))

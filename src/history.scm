@@ -29,38 +29,35 @@
 (import (text))
 
 (define-interface Edit ()
-  (apply!)::Cursor
+  (apply! document::pair)::Cursor
   (inverse)::Edit
   )
 
 (define-type (NoEdit)
   implementing Edit
   with
-  ((apply!)::Cursor
+  ((apply! document::pair)::Cursor
    (the-cursor))
   ((inverse)::Edit
    (NoEdit)))
 
 (define-type (Move from: Cursor
 		   to: Cursor
-		   in: pair := (the-document)
 		   with-shift: int := 0)
   implementing Edit
   with
-  ((apply!)::Cursor
-   (let ((item (extract! at: from from: in)))
-     (insert! item into: in at: to)
-     (cursor-climb-back to in)))
+  ((apply! document::pair)::Cursor
+   (let ((item (extract! at: from from: document)))
+     (insert! item into: document at: to)
+     (cursor-climb-back to document)))
 
   ((inverse)::Edit
    (match (this)
      ((Move from: `(,s0 . ,source)
             to: `(,d0 ,d1 . ,destination)
-	    in: document
 	    with-shift: s)
       (Move from: (recons (+ d1 1) destination)
             to: (recons* s (- s0 1) source)
-	    in: document
 	    with-shift: d0))))
   )
 
@@ -68,54 +65,49 @@
 				      HeadTailSeparator
 				      EmptyListProxy)
 		     at: Cursor := (the-cursor)
-		     from: pair := (the-document)
 		     with-shift: int := 0)
   implementing Edit
   with
-  ((apply!)::Cursor
-   (let ((item (extract! at: at from: from)))
+  ((apply! document::pair)::Cursor
+   (let ((item (extract! at: at from: document)))
      (assert (eq? item element))
      (recons* with-shift (- (car at) 1) (cdr at))))
   ((inverse)::Edit
    (match at
      (`(,tip . ,root)
       (Insert element: element
-	      at: (recons* with-shift (- tip 1) root)
-	      into: from))))
+	      at: (recons* with-shift (- tip 1) root)))))
   )
 
 (define-type (Insert element: (either pair HeadTailSeparator)
-		     at: Cursor := (the-cursor)
-		     into: pair := (the-document))
+		     at: Cursor := (the-cursor))
   implementing Edit
   with
-  ((apply!)::Cursor
+  ((apply! document::pair)::Cursor
    (and-let* ((`(,tip ,top . ,root) at)
 	      (last-element (last element)))
-     (insert! element into: into at: at)
+     (insert! element into: document at: at)
      (let* ((base-cursor (cursor-climb-back (recons (+ top 1) root)
-					    into)))
+					    document)))
        (if (or (gnu.lists.LList? last-element)
 	       (Text? last-element))
-	   (cursor-retreat base-cursor into)
+	   (cursor-retreat base-cursor document)
 	   base-cursor))))
   ((inverse)::Edit
    (match at
      (`(,tip ,top . ,root)
       (Remove element: element
 	      at: (recons (+ top 1) root)
-	      from: into
 	      with-shift: tip)))))
 
 (define-type (ResizeBox at: Cursor := (the-cursor)
 			from: Extent
 			to: Extent
-			in: pair := (the-document)
 			with-anchor: real)
   implementing Edit
   with
-  ((apply!)::Cursor
-   (let* ((box (the-expression at: at in: in))
+  ((apply! document::pair)::Cursor
+   (let* ((box (the-expression at: at in: document))
 	  (ending (line-ending-embracing with-anchor box)))
      (resize! box to:width to:height ending)
      (the-cursor)))
@@ -124,7 +116,6 @@
    (ResizeBox at: at
 	      from: to
 	      to: from
-	      in: in
 	      with-anchor: with-anchor)))
 
 (define (resize! box::pair
@@ -199,12 +190,11 @@
     (set-height!)))
 
 (define-type (InsertCharacter list: (list-of char)
-			      after: Cursor := (the-cursor)
-			      into: pair := (the-document))
+			      after: Cursor := (the-cursor))
   implementing Edit
   with
-  ((apply!)::Cursor
-   (let ((target ::Textual (cursor-ref into after))
+  ((apply! document::pair)::Cursor
+   (let ((target ::Textual (cursor-ref document after))
 	 (n ::int (car after)))
      (for c in list
        (target:insert-char! c n)
@@ -215,17 +205,15 @@
    (RemoveCharacter list: list
 		    before: (recons (+ (car after)
 				       (length list))
-				    (cdr after))
-		    from: into)))
+				    (cdr after)))))
 
 (define-type (RemoveCharacter list: (list-of char)
-			      before: Cursor := (the-cursor)
-			      from: pair := (the-document))
+			      before: Cursor := (the-cursor))
   implementing Edit
   with
-  ((apply!)::Cursor
+  ((apply! document::pair)::Cursor
    (let* ((n ::int (length list))
-	  (target ::Textual (cursor-ref from before))
+	  (target ::Textual (cursor-ref document before))
 	  (i (- (car before) n)))
      (assert (is i >= 0))
      (for c in list
@@ -241,17 +229,15 @@
    (InsertCharacter list: list
 		    after: (recons (- (car before)
 				      (length list))
-				   (cdr before))
-		    into: from)))
+				   (cdr before)))))
 
 (define-type (SplitElement at: Cursor := (the-cursor)
-			   with: Space
-			   in: pair := (the-document))
+			   with: Space)
   implementing Edit
   with
-  ((apply!)::Cursor
+  ((apply! document::pair)::Cursor
    (and-let* ((`(,tip ,top . ,root) at)
-	      (parent ::cons (cursor-ref in root))
+	      (parent ::cons (cursor-ref document root))
 	      (target ::TextualTile (parent:part-at top))
 	      (final ::TextualTile (target:part-at tip))
 	      ((eq? target final))
@@ -262,24 +248,22 @@
      (set! (post-head-space cell)
 	   (post-head-space owner))
      (set! (post-head-space owner) with)
-     (and-let* ((`(,_ . ,cursor) (cursor-advance at in)))
+     (and-let* ((`(,_ . ,cursor) (cursor-advance at document)))
        (recons (with:last-index) cursor))))
      
   ((inverse)::Edit
    (MergeElements removing: with
-		  after: at
-		  in: in)))
+		  after: at)))
 			       
 
 (define-type (MergeElements removing: Space
-			    after: Cursor := (the-cursor)
-			    in: pair := (the-document))
+			    after: Cursor := (the-cursor))
   implementing Edit
   with
-  ((apply!)::Cursor
+  ((apply! document::pair)::Cursor
    (and-let* ((`(,tip ,top . ,root) after)
 	      (parent ::cons (drop (quotient top 2)
-				   (cursor-ref in root)))
+				   (cursor-ref document root)))
 	      (`(,left ,right . ,_) parent)
 	      (left ::Textual left)
 	      (right ::Textual right))
@@ -293,7 +277,6 @@
   
   ((inverse)::Edit
    (SplitElement at: after
-		 in: in
 		 with: removing)))
 
 (define-object (History document::pair)::StringBuilding
@@ -327,7 +310,7 @@
 	       (`(,last-action . ,_) (drop undo-step timeline))
 	       (operation ::Edit last-action)
 	       (inverse ::Edit (operation:inverse))
-	       (cursor (inverse:apply!)))
+	       (cursor (inverse:apply! document)))
       (set! (the-cursor) cursor)
       (set! (the-selection-anchor) cursor)
       (set! undo-step (+ undo-step 1))))
@@ -338,7 +321,7 @@
 	       (`(,undone-action . ,_) (drop (- undo-step 1)
 					     timeline))
 	       (operation ::Edit undone-action)
-	       (cursor (operation:apply!)))
+	       (cursor (operation:apply! document)))
       (set! (the-cursor) cursor)
       (set! (the-selection-anchor) cursor)
       (set! undo-step (- undo-step 1))))
@@ -353,11 +336,9 @@
 	   (set! undo-step 0))
 	  ((and-let* ((`((,(Remove element: e 
 				   at: source
-				   from: document
 				   with-shift: n) . ,_) . ,_) fronts)
 		      ((Insert element: e*
-			       at: target
-			       into: ,document) operation)
+			       at: target) operation)
 		      ((eq? e e*)))
 	     (Move from: source
 		   to: target
@@ -368,15 +349,13 @@
 			 (set! (car (car fronts))
 			       operation))))
 	  ((and-let* ((`((,(Insert element: `(,atom)
-				   at: `(,t ,n . ,root)
-				   into: document) . ,_)
+				   at: `(,t ,n . ,root)) . ,_)
 			 . ,_) fronts)
 		      (atom ::Atom atom)
 		      (l (atom:text-length))
 		      ((InsertCharacter list: `(,c)
 					after: `(,,l ,,(+ n 1)
-						     . ,,root)
-					into: ,document)
+						     . ,,root))
 		       operation))
 	     ;; we're not recording anything, because
 	     ;; atom is shared between history and the document,
@@ -385,14 +364,12 @@
 	     ))
 
 	  ((and-let* ((`((,(InsertCharacter list: chars
-					    after: `(,n . ,root)
-					    into: document) . ,_)
+					    after: `(,n . ,root)) . ,_)
 			 . ,_) fronts)
 		      (l (length chars))
 		      ((InsertCharacter list: new
 					after: `(,,(+ n l)
-						 . ,,root)
-					into: ,document) operation)
+						 . ,,root)) operation)
 		      ((or (and (every char-whitespace? chars)
 				(every char-whitespace? new))
 			   (and (every (isnt _ char-whitespace?) chars)
@@ -402,15 +379,13 @@
 
 	  ((and-let* ((`((,last-operation . ,_) . ,_) fronts)
 		      ((RemoveCharacter list: chars
-					before: `(,n . ,root)
-					from: document)
+					before: `(,n . ,root))
 		       last-operation)
 		      (last-operation ::RemoveCharacter last-operation)
 		      (l (length chars))
 		      ((RemoveCharacter list: new
 					before: `(,,(- n l)
-						  . ,,root)
-					from: ,document) operation)
+						  . ,,root)) operation)
 		      ((or (and (every char-whitespace? chars)
 				(every char-whitespace? new))
 			   (and (every (isnt _ char-whitespace?) chars)
@@ -449,7 +424,7 @@
 	 (element (extract! at: cursor from: document))
 	 (history ::History (history document))
 	 (action ::Remove (Remove element: element
-				  from: cursor
+				  at: cursor
 				  with-shift: shift)))
     (history:record! action)
     action))
