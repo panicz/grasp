@@ -231,10 +231,12 @@
 	    ;; the cell will be cut off from the rest
 	    ;; of the document after performing Remove
 	    (perform! (Remove element: cell
+			      at: (recons top root)
 			      with-shift: (text-length
 					   preceding-element)))))
 	 (else
-	  (perform! (RemoveCharacter list: (cons (target:char-ref tip)
+	  (perform! (RemoveCharacter list: (cons (target:char-ref
+						  (- tip 1))
 						 '())))))))
      ((gnu.lists.LList? target)
       (let ((cell (drop (quotient top 2) parent)))
@@ -251,21 +253,6 @@
      (else
       #f))))
       
-#;(define (delete-backward!)::void
-  (let ((target (the-expression)))
-    (cond ((and (pair? target)
-		(eqv? (car (the-cursor)) (last-index target)))
-	   (let ((new-cursor (cursor-climb-back
-			      (cursor-back (cdr (the-cursor))))))
-	     (extract!)
-	     (set! (the-cursor) new-cursor)
-	     (set! (the-selection-anchor) (the-cursor))))
-	  (else
-	   (set! (the-cursor)
-		 (cursor-climb-back (cursor-back)))
-	   (set! (the-selection-anchor) (the-cursor))
-	   (delete! (car (the-cursor)))))))
-
 (define (insert-character! c::char)::boolean
   (define (perform! operation ::Edit)::boolean
     (let* ((document (the-document))
@@ -301,8 +288,7 @@
 	(perform! (Insert element: (cons (Text) '()))))
        
        ((is c in '(#\[ #\( #\{))
-	(perform! (Insert element: (cons (EmptyListProxy (EmptySpace))
-					 '()))))
+	(perform! (Insert element: (cons (empty) '()))))
        ((is c char-whitespace?)
 	(perform! (InsertCharacter list: (list c))))
        
@@ -338,17 +324,14 @@
        ((is c in '(#\[ #\( #\{))
 	(cond
 	 ((eqv? (final:first-index) tip)
-	  (perform! (Insert element: (cons (EmptyListProxy
-					    (EmptySpace)) '())
+	  (perform! (Insert element: (cons (empty) '())
 			    at: (cursor-retreat))))
 	 ((eqv? (final:last-index) tip)
-	  (perform! (Insert element: (cons (EmptyListProxy
-					    (EmptySpace)) '())
+	  (perform! (Insert element: (cons (empty) '())
 			    at: (cursor-advance))))
 	 (else
 	  (perform! (SplitElement with: (EmptySpace)))
-	  (perform! (Insert element: (cons (EmptyListProxy
-					    (EmptySpace)) '()))))))
+	  (perform! (Insert element: (cons (empty) '()))))))
        (else
 	(perform! (InsertCharacter list: (list c))))))
      ((Text? item)

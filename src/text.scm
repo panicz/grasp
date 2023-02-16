@@ -74,7 +74,9 @@
     (insert index c #t))
   
   (define (delete-char! index::int)::char
-    (delete index (+ index 1)))
+    (let ((result (char-ref index)))
+      (delete index (+ index 1))
+      result))
   
   (define (char-ref index::int)::char
     (invoke-special gnu.lists.AbstractCharVector (this)

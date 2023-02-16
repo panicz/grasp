@@ -663,8 +663,8 @@
   head/tail-separator)
 
 (define (empty? x)::boolean
-  (or (null? x)
-      (EmptyListProxy? x)))
+  (and (is x gnu.lists.LList?)
+       (isnt x gnu.lists.Pair?)))
 
 (define-object (EmptyListProxy space::Space)::ShadowedTile
   (define (value) '())
@@ -734,8 +734,8 @@
 
   (gnu.lists.LList))
 
-(define-cache (empty-list-proxy space::Space)
-  (EmptyListProxy space))
+(define (empty)::EmptyListProxy
+  (EmptyListProxy (EmptySpace)))
 
 (define cell-display-properties
   (list
