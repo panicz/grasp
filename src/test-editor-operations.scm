@@ -292,9 +292,35 @@
 
 (undo!)
 
-(snapshot)
+(e.g.
+ (snapshot) ===> "
+╭        ╮
+│ define │
+│        │
+│        │
+│ -cache │
+╰ |      ╯
+")
 
-(exit)
+(redo!)
+
+(e.g.
+ (snapshot) ===> "
+╭              ╮
+│ define-cache │
+╰       ^      ╯
+")
+
+(times 6 move-cursor-right!)
+
+(e.g.
+ (snapshot) ===> "
+╭              ╮
+│ define-cache │
+╰             ^╯
+")
+
+(times 6 delete-backward!)
 
 (e.g.
  (snapshot) ===> "
@@ -307,22 +333,12 @@
 
 (e.g.
  (snapshot) ===> "
-╭       ╮
-│ defne │
-╰    ^  ╯
+╭              ╮
+│ define-cache │
+╰             ^╯
 ")
 
-(undo!)
-
-(e.g.
- (snapshot) ===> "
-╭  ╮
-│  │
-╰ |╯
-")
-
-(times 2 redo!)
-(times 2 move-cursor-right!)
+(redo!)
 
 (e.g.
  (snapshot) ===> "
@@ -330,7 +346,6 @@
 │ define │
 ╰       ^╯
 ")
-
 
 (insert-character! #\[)
 

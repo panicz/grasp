@@ -244,8 +244,8 @@
 				   (cdr before))
 		    into: from)))
 
-(define-type (SplitElement with: Space
-			   at: Cursor := (the-cursor)
+(define-type (SplitElement at: Cursor := (the-cursor)
+			   with: Space
 			   in: pair := (the-document))
   implementing Edit
   with
@@ -267,42 +267,32 @@
      
   ((inverse)::Edit
    (MergeElements removing: with
-		  at: (and-let* ((`(,tip ,top . ,root) at))
-			(recons* (with:first-index)
-				 (+ top 1)
-				 root)))))
+		  after: at
+		  in: in)))
 			       
 
 (define-type (MergeElements removing: Space
-			    at: Cursor := (the-cursor)
+			    after: Cursor := (the-cursor)
 			    in: pair := (the-document))
   implementing Edit
   with
-  ((preceding-cursor)::Cursor
-   (and-let* ((`(,tip ,top . ,root) at)
-	      (parent ::Indexable (cursor-ref in root))
-	      (space ::Space (parent:part-at top))
-	      (target ::Space (space:part-at tip)))
-     (cursor-retreat (recons* (space:first-index) top root) in)))
-   
   ((apply!)::Cursor
-   (and-let* ((`(,tip ,top . ,root) at)
-	      (parent ::cons (cursor-ref in root))
-	      (space ::Space (parent:part-at top))
-	      (target ::Space (space:part-at tip))
+   (and-let* ((`(,tip ,top . ,root) after)
+	      (parent ::cons (drop (quotient top 2)
+				   (cursor-ref in root)))
 	      (`(,left ,right . ,_) parent)
 	      (left ::Textual left)
-	      (right ::Textual right)
-	      (cursor (preceding-cursor))
-	      ((left:merge! right)))
-     ;;(assert (eq? removing space target))
+	      (right ::Textual right))
+     (assert (eqv? tip (text-length left)))
+     (assert (eq? removing (post-head-space parent)))
+     (left:merge! right)
      (set! (post-head-space parent)
 	   (post-head-space (cdr parent)))
      (set! (cdr parent) (cdr (cdr parent)))
-     cursor))
+     after))
   
   ((inverse)::Edit
-   (SplitElement at: (preceding-cursor)
+   (SplitElement at: after
 		 in: in
 		 with: removing)))
 
@@ -418,7 +408,7 @@
 		      (last-operation ::RemoveCharacter last-operation)
 		      (l (length chars))
 		      ((RemoveCharacter list: new
-					before: `(,,(- n 1)
+					before: `(,,(- n l)
 						  . ,,root)
 					from: ,document) operation)
 		      ((or (and (every char-whitespace? chars)
