@@ -1,6 +1,6 @@
 % Created 2023-02-12 Sun 13:35
 % Intended LaTeX compiler: pdflatex
-\documentclass[11pt]{article}
+\documentclass[sigconf]{acmart}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{graphicx}
@@ -14,8 +14,23 @@
 \usepackage{amssymb}
 \usepackage{capt-of}
 \usepackage{hyperref}
+\usepackage{pmboxdraw}
+\usepackage{newunicodechar}
+\usepackage{anyfontsize}
+\usepackage{pifont}
+\usepackage{fancyvrb}
 \date{\today}
-\title{}
+
+\setcopyright{acmcopyright}
+\copyrightyear{2023}
+\acmYear{2023}
+\acmDOI{XXXXXXX.XXXXXXX}
+
+\acmConference[Conference acronym 'ELS]{European Lisp Symposium}{April 24--25,
+  2023}{Amsterdam, NL}
+
+
+\title{GRASP: An Extensible Tactile Interface for Editing S-expressions}
 \hypersetup{
  pdfauthor={},
  pdftitle={},
@@ -23,43 +38,28 @@
  pdfsubject={},
  pdfcreator={Emacs 27.1 (Org mode 9.3)}, 
  pdflang={English}}
+\newunicodechar{─}{\textSFx}
+\newunicodechar{│}{\textSFxi}
+\newunicodechar{╭}{\textSFi}
+\newunicodechar{╰}{\textSFii}
+\newunicodechar{╮}{\textSFiii}
+\newunicodechar{╯}{\textSFiv}
+
+\newunicodechar{┈}{\textSFx}
+\newunicodechar{┊}{\textSFxi}
+\newunicodechar{❝}{{\fontsize{7}{0}\ding{125}}}
+\newunicodechar{❞}{{\fontsize{7}{0}\ding{126}}}
+
+\newenvironment{Snippet}{\Verbatim[samepage=true]}{\endVerbatim}
+
 \begin{document}
 
-\tableofcontents
+\author{Panicz Maciej Godek}
+\email{godek.maciek@gmail.com}
 
-\section{Submission topics include, but are not limited to:}
-\label{sec:orgd28cc72}
+\maketitle
 
-\begin{itemize}
-\item Context-, aspect-, domain-oriented and generative programming
-\item Macro-, reflective-, meta- and/or rule-based development approaches
-\item Language design and implementation
-\item Language integration, inter-operation and deployment
-\item Development methodologies, support and environments
-\item Educational approaches and perspectives
-\item Experience reports and case studies
-\end{itemize}
-
-\section{We invite submissions in the following forms:}
-\label{sec:org74ce674}
-
-\begin{itemize}
-\item Papers: Technical papers of up to 8 pages 
-that describe original results or explain 
-known ideas in new and elegant ways.
-\item Tutorials: Abstracts of up to 4 pages
-for in-depth presentations about topics
-of special interest.
-\item Demonstrations: Abstracts of up to 4 pages
-for demonstrations of tools, libraries, and applications.
-\item Experience reports: papers of up to 6 pages
-describing a Lisp success story and/or analyzing
-obstacles that have kept it from working in practice.
-\end{itemize}
-
-
-\section{GRASP: An Extensible Tactile Interface for Editing S-expressions}
-\label{sec:org28b6af6}
+\begin{abstract}
 
 GRASP is a Scheme-based extensible computational environment
 designed to work with S-expressions on touch screens. It features
@@ -80,29 +80,31 @@ of the demo is:
 
 The presentation of GRASP in this paper is written as if
 all of its features were already implemented. The omissions
-are presented in a seperate section.
+are presented in a separate section.
+
+\end{abstract}
+
 
 \section{The concept of GRASP}
-\label{sec:orge818709}
 
 GRASP is a tactile-first structural editor for S-expressions.
 Its design is based on representing S-expressions as
 nestable boxes. The boxes are rendered so that their left 
-and right edge resemble - respectively - opening and closing 
+and right edge resemble -- respectively -- opening and closing 
 parentheses.
 
 When displayed in a terminal, a Lisp program edited in GRASP
 might look like this:
 
-\begin{verbatim}
+\begin{Snippet}
 ╭        ╭     ╮                       ╮
 │ define │ ! n │                       │
 │        ╰     ╯                       │
-│ ❝┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈• │
+│ ❝ ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈ • │
 │ ┊ Computes the product 1*...*n.    ┊ │
 │ ┊ It represents the number of per- ┊ │
 │ ┊ mutations of an n-element set.   ┊ │
-│ •┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈❞ │
+│ • ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈ ❞ │
 │   ╭    ╭        ╮                 ╮  │
 │   │ if │ <= n 0 │                 │  │
 │   │    ╰        ╯                 │  │
@@ -115,11 +117,11 @@ might look like this:
 ╭      ╭             ╮          ╮       
 │ e.g. │ factorial 5 │ ===> 120 │       
 ╰      ╰             ╯          ╯       
-\end{verbatim}
+\end{Snippet}
 
 which corresponds to the following program text:
 
-\begin{verbatim}
+\begin{Snippet}
 (define (! n)
 "Computes the product 1*...*n.
 It represents the number of per-
@@ -128,7 +130,7 @@ mutations of an n-element set."
       1
       (* n (! (- n 1))))) 
 (e.g. (factorial 5) ===> 120)
-\end{verbatim}
+\end{Snippet}
 
 The left and right parentheses play different roles in 
 tactile editing: the left parenthesis is used for moving
@@ -145,7 +147,7 @@ In addition to boxes, GRASP offers four other types
 of objects: atoms, texts, extensions and comments.
 
 Atoms are things like symbols, numbers, characters
-or boolean values in Lisp. They support touch
+or Boolean values in Lisp. They support touch
 gestures in a similar way as the left parenthesis
 of a box: single touch causes them to be dragged,
 whereas double touch causes their copy to be dragged.
@@ -160,7 +162,7 @@ remove it or copy, while the right one can be used
 to change the shape of a text.
 
 Comments in the Scheme programming language come in
-three flavours, all of which are supported by GRASP:
+three flavors, all of which are supported by GRASP:
 \begin{itemize}
 \item line comments, which span until the end of a given line;
 \item block comments, which are similar to text;
@@ -168,22 +170,22 @@ three flavours, all of which are supported by GRASP:
 \end{itemize}
 
 Comments are invisible to the operations
-on the document, such as or . 
+on the document, such as \texttt{car} or \texttt{cdr}. 
 Other than that, line and block comments are similar to text.
 
 The last type of objects supported by the editor
 are extensions. The list of extensions is open-ended.
-Expressions are sometimes refered to as "magic boxes",
+Expressions are sometimes referred to as "magic boxes",
 because they are boxes which define their own rules
 of interaction.
 
 A simple example of an extension is a button.
 If it is loaded, the expression
 
-\begin{verbatim}
+\begin{Snippet}
 (Button label: "Press me" 
 	action: (lambda () (WARN "button pressed")))
-\end{verbatim}
+\end{Snippet}
 
 can be rendered as a button, and respond
 to touch events with the invocation of its
@@ -192,11 +194,11 @@ action callback.
 The terminal client of GRASP would display
 it in the following manner:
 
-\begin{verbatim}
+\begin{Snippet}
 ╭───────────╮
 │ Press me! │
 ╰───────────╯
-\end{verbatim}
+\end{Snippet}
 
 Extensions are meant to be user-definable, but
 the exact API for defining them is subject to
@@ -205,7 +207,7 @@ an ongoing research.
 Some desired extensions for GRASP include:
 \begin{itemize}
 \item a drawing editor
-\item a graph visualiser/editor
+\item a graph visualizer/editor
 \item a visual evaluator
 \item a function plotter
 \end{itemize}
@@ -213,7 +215,6 @@ Some desired extensions for GRASP include:
 and many others.
 
 \subsection{Gesture-based input}
-\label{sec:org985195f}
 
 Since devices with touch screens often lack
 a proper keyboard, and usually display regrettable
@@ -228,11 +229,11 @@ By default, the following shapes are recognized:
 \begin{itemize}
 \item horizontal line, which splits the pane it's
 drawn over vertically into two smaller panes
-(similar to C-x 2 in Emacs)
+(similar to \texttt{C-x 2} in Emacs)
 
 \item vertical line, which splits the pane below
 horizontally into two smaller panes
-(similar to C-x 3 in Emacs)
+(similar to \texttt{C-x 3} in Emacs)
 
 \item a box gesture, which creates a new box in the
 document it's drawn over
@@ -242,17 +243,16 @@ in the document it's drawn over
 
 \item a wedge symbol, which causes the expression
 below its blade to be evaluated (similar to
-C-x C-e in Emacs' Lisp interaction modes)
+\texttt{C-x C-e} in Emacs' Lisp interaction modes)
 \end{itemize}
 
 Since many touchscreen-equipped devices also
 feature accelerometers, GRASP also lets define
-motion-based edit operations - for example, shaking
+motion-based edit operations -- for example, shaking
 a device might result in re-indenting the source
 code.
 
-\subsubsection{Keyboard input}
-\label{sec:orgdb957e9}
+\subsection{Keyboard input}
 
 Even though GRASP focuses on tactile editing
 and on mobile devices, a lot of effort has been
@@ -265,21 +265,20 @@ environments (Android, terminal and windowing
 systems).
 
 By default, it provides the "Common User Access"
-keyboard bindings (ctrl-z fo undo, ctrl-c for copy
+keyboard bindings (ctrl-z for undo, ctrl-c for copy
 etc.) and it allows to use keyboard arrows to
 navigate cursor over the active document.
 
 Keyboard editing is context-sensitive, so
-for example pressing the key creates a new box,
-unless the cursor is located on a text element,
-in which case the character is inserted verbatim
+for example pressing the \texttt{\#\textbackslash[}
+key creates a new box, unless the cursor is located on a text element,
+in which case the \texttt{\#\textbackslash[} character is inserted verbatim
 into text.
 
 Also, extensions are free to interpret
 most of the pressed characters as they please.
 
 \section{Implementation}
-\label{sec:org86f5b1f}
 
 GRASP is still a very immature editor, and many 
 of its implementation details are likely to change. 
@@ -287,22 +286,21 @@ However, there are certain design decisions that
 will probably stay fixed throughout the lifetime
 of GRASP.
 
-\subsection{Kawa and JVM interoperation}
-\label{sec:org9c8e582}
+\subsection{Kawa and JVM inter-operation}
 
-GRASP is implemented in - and intimately coupled
-to - Kawa, the implementation of Scheme which runs
+GRASP is implemented in -- and intimately coupled
+to -- Kawa, the implementation of Scheme which runs
 on the Java Virtual Machine and produces JVM byte code.
 
 The main reason for this decision is that JVM
 byte code can be translated to run on Android,
-which was both the initial developmen platform
+which was both the initial development platform
 of GRASP, as well as its main target.
 
 Kawa Scheme offers a few interesting extensions
-to facilitate interoperation with JVM: first,
+to facilitate inter-operation with JVM: first,
 it exposes Java's object model to Scheme
-(using the special form);
+(using the \texttt{define-simple-class} special form);
 second, it extends Scheme with an optional syntax
 for declaring types, and provides a Java-like type
 system.
@@ -312,7 +310,6 @@ to provide two alternative ways of defining new
 types.
 
 \subsubsection{The record system}
-\label{sec:org840e993}
 
 The first mechanism for defining new types 
 probably also happens to be the first almost decent
@@ -321,30 +318,30 @@ record system in the history of Lisp.
 It lets programmers define record types in the following
 way:
 
-\begin{verbatim}
+\begin{Snippet}
 (define-type (Extent width: real := 0
 		     height: real := 0))
-\end{verbatim}
+\end{Snippet}
 
 A new instance of a record defined this way can be
 created by typing, say
 
-\begin{verbatim}
+\begin{Snippet}
 (define carpet ::Extent (Extent width: 5 height: 10))
-\end{verbatim}
+\end{Snippet}
 
 and the fields can be accessed using Kawa's reader
 extension:
 
-\begin{verbatim}
+\begin{Snippet}
 > carpet:width ; => 5
 > carpet:height ; => 10
-\end{verbatim}
+\end{Snippet}
 
 GRASP source code also contains a pattern matcher
 which allows to destructure records defined that way:
 
-\begin{verbatim}
+\begin{Snippet}
 (define (square-or-rectangle e)
   (match e
     ((Extent width: x height: x)
@@ -353,13 +350,13 @@ which allows to destructure records defined that way:
      `(an ,x by ,y rectangle))
     (_
      'what-are-you-giving-me?)))
-\end{verbatim}
+\end{Snippet}
 
 Records can also implement interfaces and provide methods
 that can be invoked on them, although the syntax is not 
 entirely satisfactory:
 
-\begin{verbatim}
+\begin{Snippet}
 (define-type (Move from: Cursor
 		   to: Cursor
 		   in: pair := (the-document)
@@ -381,24 +378,23 @@ entirely satisfactory:
 	    to: (recons* s (- s0 1) source)
 	    in: document
 	    with-shift: d0)))))
-\end{verbatim}
+\end{Snippet}
 
 \subsubsection{Environment-like class definitions}
-\label{sec:org9fabdb9}
 
 The second syntax provided by GRASP for defining
 Java classes is the form, which allows
 for environment-like class definitions:
 
-\begin{verbatim}
-(define-object (ClassName constructor-params ...)::Interface
+\begin{Snippet}
+(define-object (ClassName constructor-params ...)::Iface
   (define field ::type initial-value)
   ...
   (define (method args ...)::result-type body ...)
   ...
   (SuperClass constructor-args ...)
   initialization-code ...)
-\end{verbatim}
+\end{Snippet}
 
 This syntax has some quirks, but since the slot and method
 definitions are syntactically identical to top-level procedure
@@ -412,42 +408,41 @@ class definition (for example, by letting only one constructor
 to be present in the definition).
 
 \subsection{The document representation}
-\label{sec:org9f59646}
 
 Documents in GRASP are essentially represented
-using cons-cells. There are some caveats to this, though.
+using \texttt{cons}-cells. There are some caveats to this, though.
 
-First, GRASP does not use the implementation of cons-cells
-provided by Kawa: instead, it sub-classes Kawa's gnu.lists.Pair
+First, GRASP does not use the implementation of \texttt{cons}-cells
+provided by Kawa: instead, it sub-classes Kawa's \texttt{gnu\-.lists\-.Pair}
 class, and adds two significant modifications:
 \begin{itemize}
-\item it overrides the getCar and getCdr methods (which are
-internally invoked upon calling car and cdr in Scheme)
-so that their behavior depends on value of 
+\item it overrides the \texttt{getCar} and \texttt{getCdr} methods (which are
+internally invoked upon calling \texttt{car} and \texttt{cdr} in Scheme)
+so that their behavior depends on value of \texttt{(the-cell-access-mode)}
 parameter:
 \begin{itemize}
-\item if the value of is 
-(the default), then
+\item if the value of \texttt{(the-cell-access-mode)} is
+\texttt{Cell\-Access\-Mode\-:Editing} (the default), then
 instead of returning atomic values such as symbols or numbers, 
-the and will return proxy 
-values of type
-\item otherwise, if the value of 
-is , then the actual
-Scheme atoms will be returned by the and 
+the \texttt{car} and \texttt{cdr} functions will return proxy 
+values of type \texttt{Atom};
+\item otherwise, if the value of \texttt{(the-cell-access-mode)}
+is \texttt{Cell\-Access\-Mode\-:Evaluating}, then the actual
+Scheme atoms will be returned by the \texttt{car} and \texttt{cdr}
 operations
 \end{itemize}
-\item it overrides the method to use the default Java's
-object identity (rather than Scheme's -like
+\item it overrides the \texttt{equals} method to use the default Java's
+object identity (rather than Scheme's \texttt{equal?}-like
 identity provided by Kawa)
 \end{itemize}
 
-The reason why the -like identity is unsatifactory
+The reason why the \texttt{equal?}-like identity is unsatisfactory
 is because GRASP uses Java implementation of weak-key
-hash tables in order to represent whitespace and comments
-between the elements of a -cell. (This
+hash tables in order to represent white-space and comments
+between the elements of a \texttt{cons}-cell. (This
 representation was initially chosen because most implementations
 of Scheme do not allow to modify the representation of 
--cells, so hash-tables seemed to be the only
+\texttt{cond}-cells, so hash-tables seemed to be the only
 viable choice.)
 
 In the parlance of GRASP, weak-key hash tables are called
@@ -455,46 +450,45 @@ In the parlance of GRASP, weak-key hash tables are called
 of expressing them, using the so called "getters with setters".
 
 More specifically, there are five properties to describe
-how -cells are formatted: 
+how \texttt{cons}-cells are formatted: 
 \begin{enumerate}
-\item , which designates a
+\item \texttt{post-head-space}, which designates a \texttt{Space}
 following cell's head,
-\item , which designates 
-a between an opening parenthesis 
+\item \texttt{pre-head-space}, which designates 
+a \texttt{Space} between an opening parenthesis 
 and the first element of a list (and as such it doesn't
 matter for most cells),
-\item , which - in the case of dotted pairs
-designates a following the "dot"
-\item , which - in the case of dotted pairs
-designates a following the pair's tail
-\item , which designates a boolean value that
+\item \texttt{pre-tail-space}, which -- in the case of dotted pairs
+designates a \texttt{Space} following the "dot"
+\item \texttt{post-tail-space}, which -- in the case of dotted pairs
+designates a \texttt{Space} following the pair's tail
+\item \texttt{dotted?}, which designates a Boolean value that
 specifies whether a given cell should be considered as dotted.
 
 This stems from the fact that from the perspective
-of a Lisp reader, the notation 
-is indistinguishable from .
+of a Lisp reader, the notation \texttt{(a b c d)}
+is indistinguishable from \texttt{(a . (b . (c . (d . ()))))}.
+\end{enumerate}
 
-objects designated by the first four properties
+\texttt{Space} objects designated by the first four properties
 are objects that contain a single list. The list needs
 to contain at least one integer number, which signifies
 the number of spaces that ought to be inserted at a given
 place. The presence of two consequent numbers signifies
-a line break - so while the list means a single
-horizontal space, the list means a line break.
+a line break -- so while the list \texttt{(1)} means a single
+horizontal space, the list \texttt{(0 0)} means a line break.
 
 In addition to integers, the list can also contain
 three types of compound objects, which represent
-three types of comments defined by Scheme - line comments,
+three types of comments defined by Scheme -- line comments,
 block comments and expression comments.
-\end{enumerate}
 
-A GRASP document is wrapped in an additional -cell
-(whose is meaningless), so that it is possible
-to represent comments and whitespace of an empty document,
+A GRASP document is wrapped in an additional \texttt{cons}-cell
+(whose \texttt{cdr} is meaningless), so that it is possible
+to represent comments and white-space of an empty document,
 as well as express editing operations in a uniform way.
 
 \subsection{The cursor representation}
-\label{sec:org64733a7}
 
 The representation of a cursor in a text editor is fairly
 straightforward: it is sufficient to provide a line number
@@ -502,30 +496,30 @@ and a column to characterize the location of a cursor
 in a file.
 
 In the case of a tree editor, a cursor needs to be expressed
-as a path on a document tree - a list of indices
+as a path on a document tree -- a list of indices
 of expression at the subsequent levels on the tree.
 
 The indices can be used to refer to the elements
 from a list, but they can also be used to refer to
-whitespace between the elements on the list. If we take,
-say, an improper list , then index 0
-refers to an empty space () between 
-the opening paren and the element , index 1 refers 
-to the element , index 2 - to the space 
-()
-following the element , index 3 - to the element 
-,
-index 4 to the space following the element ,
-index 5 to the element , index 6 to the space following
-the element , index 7 - to the head/tail 
+white-space between the elements on the list. If we take,
+say, an improper list \texttt{(a b c . d)}, then index 0
+refers to an empty space (pre-head-space) between 
+the opening parenthesis and the element \texttt{a}, index 1 refers 
+to the element \texttt{a}, index 2 -- to the space 
+(\texttt{post-head-space})
+following the element \texttt{a}, index 3 -- to the element 
+\texttt{b},
+index 4 to the space following the element \texttt{b},
+index 5 to the element \texttt{c}, index 6 to the space following
+the element \texttt{c}, index 7 -- to the head/tail 
 separator (dot) pseudo-element, 8 to the space following the dot
-(), index 9 - to the element 
-and index 10 - to the space following 
-().
+(\texttt{pre-tail-space}), index 9 -- to the element \texttt{d}
+and index 10 -- to the space following \texttt{d}
+(\texttt{post-tail-space}).
 
 In the above list, two non-numerical indices are legal:
-the index refers to the opening parenthesis,
-and the index - to the closing parenthesis. Those
+the index \texttt{\#\textbackslash[} refers to the opening parenthesis,
+and the index \texttt{\#\textbackslash]} -- to the closing parenthesis. Those
 elements cannot be individually picked up, but the keyboard
 cursor can be positioned on them.
 
@@ -533,23 +527,23 @@ Of course, in order to be able to refer to an element
 in a nested structure, a sequence of indices is needed.
 
 In GRASP, such a sequence needs to be decoded from right
-to left - the rightmost index selects the expression
+to left -- the rightmost index selects the expression
 from the top-level. (Actually, since the documents in
 GRASP are wrapped in an additional cons cell, the rightmost
 index is always 1.)
 
 This strategy allows to maximize structural sharing
-between cursors and to prevennt garbage generation
+between cursors and to prevent garbage generation
 by utilizing hash-consing. (This seems important, because
 e.g. the rendering function generates cursors to all
 rendered elements of the tree.)
 Hash-consing requires that cursors are treated as
 immutable.
 
-The function for refering to an element by cursor
+The function for referring to an element by cursor
 could be defined in the following way:
 
-\begin{verbatim}
+\begin{Snippet}
 (define (cursor-ref document cursor)
   (match cursor
     ('()
@@ -557,24 +551,24 @@ could be defined in the following way:
     (`(,head . ,tail)
      (let ((parent (cursor-ref document tail)))
        (part-at head parent)))))
-\end{verbatim}
+\end{Snippet}
 
-where is a polymorphic function that selects
+where \texttt{part-at} is a polymorphic function that selects
 a sub-element from a given element. For lists,
-is defined so that it conforms to the indexing
+\texttt{part-at} is defined so that it conforms to the indexing
 scheme mentioned above, where even indices refer
 to spaces, and odd indices refer to actual elements.
 
-For the and indices, the 
-function returns the list itself. 
-Likewise, for any atom, the function will
+For the \texttt{\#\textbackslash[} and \texttt{\#\textbackslash]} indices, the 
+function \texttt{part-at} returns the list itself. 
+Likewise, for any atom, the function \texttt{part-at} will
 always return the atom itself.
 
 A cursor such that 
-\begin{verbatim}
+\begin{Snippet}
 (eq? (cursor-ref document cursor)
      (cursor-ref document (cdr cursor)))
-\end{verbatim}
+\end{Snippet}
 is considered to be \textbf{fully expanded}.
 
 In practice, most operations in GRASP require
@@ -583,31 +577,30 @@ procedures should only generate fully expanded
 cursors.
 
 \subsection{The "undo" mechanism}
-\label{sec:org7183980}
 
 The documents in GRASP are considered mutable,
 and the editing of a document occurs by means
 of mutating the tree structure.
 
-However, all these mutations are intermediated
+However, all these mutations are inter-mediated
 by explicit Edit operations. Each such operation
 has its inverse, which on one hand is used to
 implement the "undo" mechanism, and on 
-the other- can be perceived as an interesting 
+the other -- can be perceived as an interesting 
 "document editing assembly language".
 
-At the moment of writing this text, the langauge
+At the moment of writing this text, the language
 consists of the following operations:
 
-\begin{verbatim}
-
+\begin{Snippet}
 (Move from: Cursor
       to: Cursor
       in: pair := (the-document)
       with-shift: int := 0)
 ;; the Move operation is its own inverse
 
-
+\end{Snippet}
+\begin{Snippet}
 (Insert element: (either pair HeadTailSeparator)
 	at: Cursor := (the-cursor)
 	into: pair := (the-document))
@@ -620,6 +613,8 @@ consists of the following operations:
 	with-shift: int := 0)
 ;; the Move and Remove operations are mutually inverse
 
+\end{Snippet}
+\begin{Snippet}
 (ResizeBox at: Cursor := (the-cursor)
 	   from: Extent
 	   to: Extent
@@ -627,7 +622,8 @@ consists of the following operations:
 	   with-anchor: real)
 ;; the ResizeBox operation is its own inverse
 
-
+\end{Snippet}
+\begin{Snippet}
 (InsertCharacter list: (list-of char)
 		 after: Cursor := (the-cursor)
 		 into: pair := (the-document))
@@ -637,7 +633,8 @@ consists of the following operations:
 		 from: pair := (the-document))
 ;; InsertCharacter and RemoveCharacter are mutually inverse
 
-
+\end{Snippet}
+\begin{Snippet}
 (SplitElement with: Space
 	      at: Cursor := (the-cursor)
 	      in: pair := (the-document))
@@ -647,11 +644,11 @@ consists of the following operations:
 	       in: pair := (the-document))
 ;; SplitElement and MergeElements are mutually inverse
 
-
+\end{Snippet}
+\begin{Snippet}
 (NoEdit)
 ;; the NoEdit operation is its own inverse
-
-\end{verbatim}
+\end{Snippet}
 
 More details can be found in the source code
 of GRASP.
@@ -664,7 +661,6 @@ previous actions (resembling Excel's auto-fill
 feature).
 
 \section{Evident programming}
-\label{sec:org2f74645}
 
 One of the deep philosophical underpinnings
 of GRASP is the idea that code is easier to study
@@ -672,29 +668,29 @@ when it's accompanied by concrete, tangible examples.
 
 For example, consider the famous definition:
 
-\begin{verbatim}
+\begin{Snippet}
 (define (f lol)
   (apply map list lol))
-+END_SRC
+\end{Snippet}
 
   Even though it consists of only three simple terms,
   comprehending the above code can be very puzzling.
   However, if we consider that
 
-#+BEGIN_SRC scheme
+\begin{Snippet}
 (e.g.
   (f '((a b c)
        (d e f))) ===> ((a d)
 		       (b e)
 		       (c f)))
-\end{verbatim}
+\end{Snippet}
 
 then its purpose becomes clear immediately, even though
-the name isn't particularly well chosen.
+the name \texttt{f} isn't particularly well chosen.
 
-This style of programming - where definitions are
-interleaved with usage examples - can be practiced
-in most implementations of Lisp - but only as long
+This style of programming -- where definitions are
+interleaved with usage examples -- can be practiced
+in most implementations of Lisp -- but only as long
 as it concerns things that can be expressed
 as textual objects. 
 
@@ -704,7 +700,7 @@ incomprehensible.
 
 Consider, for example, the following list of complex numbers:
 
-\begin{verbatim}
+\begin{Snippet}
 (0.5403023058681398+0.8414709848078965i 
 -0.4161468365471424+0.9092974268256817i
 -0.9899924966004454+0.1411200080598672i
@@ -713,10 +709,10 @@ Consider, for example, the following list of complex numbers:
  0.960170286650366-0.27941549819892586i
  0.7539022543433046+0.6569865987187891i
 -0.14550003380861354+0.9893582466233818i)
-\end{verbatim}
+\end{Snippet}
 
 It may not be immediately apparent that all these points
-lie on a unit circle - which would be obvious if only they
+lie on a unit circle -- which would be obvious if only they
 were plotted on the screen.
 
 And obviously, there exist specialized tools
@@ -734,11 +730,11 @@ As a matter of fact, GRASP itself attempts to exploit
 this approach to the extent that is possible
 in the medium of text. In addition to terminal
 client, desktop client and Android client,
-GRASP provides a backend for rendering documents
+GRASP provides a back-end for rendering documents
 as strings. This allows to write tests in the
 following form:
 
-\begin{verbatim}
+\begin{Snippet}
 (insert-character! #\[)
 
 (e.g.
@@ -747,13 +743,15 @@ following form:
 │  │
 ╰ |╯
 ")
-
+\end{Snippet}
+\begin{Snippet}
 (undo!)
 
 (e.g.
  (snapshot) ===> "
 ")
-
+\end{Snippet}
+\begin{Snippet}
 (redo!)
 
 (e.g.
@@ -762,7 +760,8 @@ following form:
 │  │
 ╰ |╯
 ")
-
+\end{Snippet}
+\begin{Snippet}
 (for-each insert-character! '(#\d #\e #\f #\n #\e))
 
 (e.g.
@@ -771,7 +770,8 @@ following form:
 │ defne │
 ╰      ^╯
 ")
-
+\end{Snippet}
+\begin{Snippet}
 (times 2 move-cursor-left!)
 
 (e.g.
@@ -780,7 +780,7 @@ following form:
 │ defne │
 ╰    ^  ╯
 ")
-\end{verbatim}
+\end{Snippet}
 
 The author believes that such tests should be
 approachable not only to people who are new
@@ -791,7 +791,6 @@ of particular operators defined in the GRASP
 code base.
 
 \section{Development history}
-\label{sec:orgdc3b0fc}
 
 The development of GRASP begun in the late
 2018 with the announcement of "The Draggable
@@ -843,23 +842,23 @@ cursor, and supporting it also seemed difficult.
 Third, it was based on direct manipulation of expressions,
 and there was no obvious way of adding the "undo" feature.
 Most importantly, the editor was written in Java,
-which meant that - being an s-expression editor - it could
+which meant that -- being an s-expression editor -- it could
 not be used to further develop itself (and the inclusion
 of the Kawa compiler significantly increased its build times).
 
 So in the beginning of 2022 the author decided
 to start the project over.
 
-This time it was evisioned as a cross-platform project
+This time it was envisioned as a cross-platform project
 from the beginning. However, the only "common platform"
 between Android and PC known to the author was VT-100
-terminal emulator, which determined that - in addition
+terminal emulator, which determined that -- in addition
 to its rich graphics-based clients, GRASP should also provide
-a terminal client, which - even if not as capable
-as its more advanced siblings - would still be useful.
+a terminal client, which -- even if not as capable
+as its more advanced siblings -- would still be useful.
 
 Besides, adding it was fairly simple, given that a lot of
-functionality is shared with a string-rendering backend
+functionality is shared with a string-rendering back-end
 which has been used for testing.
 
 So far, the development of the latest iteration of GRASP
@@ -868,11 +867,10 @@ the author has decided not to start the project over,
 which he believed was a good sign.
 
 \section{Current progress}
-\label{sec:org9c32af8}
 
 Although this paper could leave a different impression,
 at the moment of writing (February 2023) GRASP isn't yet 
-a usable application - in some ways it is inferior to the
+a usable application -- in some ways it is inferior to the
 Java-based Android client that was demoed in 2021
 in that:
 \begin{itemize}
@@ -920,7 +918,6 @@ by Kawa that are used in GRASP
 \end{itemize}
 
 \section{Related work}
-\label{sec:orgc53c98e}
 
 The strongest source of inspiration for GRASP
 has been Emacs, and the Scheme interaction
@@ -939,7 +936,7 @@ of computational geometry and graph algorithms.
 
 However, the same idea was independently
 conceived by Leif Andersen, who implemented
-it in dr Racket, and then created a browser-based
+it in Dr Racket, and then created a browser-based
 IDE called visr.pl (for Clojure). Leif also provided
 a very good explanation of the idea in a youtube video.
 
@@ -947,7 +944,7 @@ Interactive visual syntax is also a key feature
 of the Polytope editor developed by Elliot Evans.
 Polytope is a dedicated editor for JavaScript.
 
-There are many similatiries between GRASP and
+There are many similarities between GRASP and
 the Boxer environment developed at MIT in the 1980s
 by Andrea DiSessa and Harold Abelson. Recently
 there have been efforts to resurrect Boxer
@@ -977,10 +974,10 @@ Hoeppner for her Vlojure editor.
 Katie Bell created a browser-based structural
 editor for Python called SplootCode.
 
-A lot of work concerning data visualisation
+A lot of work concerning data visualization
 has been happening around the Smalltalk
 distribution called Pharo, and in particular
-its spinoff called Glamorous Toolkit, developed
+its spin-off called Glamorous Toolkit, developed
 by Tudor Girba and his associates.
 
 There's also a Visual Studio Code plug-in
