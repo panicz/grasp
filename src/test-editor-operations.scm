@@ -385,9 +385,152 @@
 ╰        ╰     ╯|╯
 ")
 
+(for-each insert-character! "
+\"Computes the product")
+
+(e.g.
+ (snapshot) ===> "
+╭        ╭     ╮           ╮
+│ define │ ! n │           │
+│        ╰     ╯           │
+│ ❝┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈• │
+│ ┊ Computes the product ┊ │
+╰ •┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈❞ ╯
+")
+
+(times 5 undo!)
+
+(e.g.
+ (snapshot) ===> "
+╭        ╭     ╮ ╮
+│ define │ ! n │ │
+│        ╰     ╯ │
+│ ❝┈┈•           │
+│ ┊  ┊           │
+╰ •┈┈❞           ╯
+")
+
+(undo!)
+
+(e.g.
+ (snapshot) ===> "
+╭        ╭     ╮ ╮
+│ define │ ! n │ │
+│        ╰     ╯ │
+│                │
+│                │
+╰ |              ╯
+")
+
+(times 3 redo!)
+
+(e.g.
+ (snapshot) ===> "
+╭        ╭     ╮ ╮
+│ define │ ! n │ │
+│        ╰     ╯ │
+│ ❝┈┈┈┈┈┈┈┈┈┈┈•  │
+│ ┊ Computes  ┊  │
+╰ •┈┈┈┈┈┈┈┈┈┈┈❞  ╯
+")
+
+(times 2 redo!)
+
+(e.g.
+ (snapshot) ===> "
+╭        ╭     ╮    ╮
+│ define │ ! n │    │
+│        ╰     ╯    │
+│ ❝┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈• │
+│ ┊ Computes the  ┊ │
+╰ •┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈❞ ╯
+")
+
+(redo!)
+
+(e.g.
+ (snapshot) ===> "
+╭        ╭     ╮           ╮
+│ define │ ! n │           │
+│        ╰     ╯           │
+│ ❝┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈• │
+│ ┊ Computes the product ┊ │
+╰ •┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈❞ ╯
+")
+
+(times 20 delete-backward!)
+
+(e.g.
+ (snapshot) ===> "
+╭        ╭     ╮ ╮
+│ define │ ! n │ │
+│        ╰     ╯ │
+│ ❝┈┈•           │
+│ ┊  ┊           │
+╰ •┈┈❞           ╯
+")
+
+(delete-backward!)
+
+(e.g.
+ (snapshot) ===> "
+╭        ╭     ╮ ╮
+│ define │ ! n │ │
+│        ╰     ╯ │
+│                │
+│                │
+╰ |              ╯
+")
+
+(undo!)
+
+(e.g.
+ (snapshot) ===> "
+╭        ╭     ╮ ╮
+│ define │ ! n │ │
+│        ╰     ╯ │
+│ ❝┈┈•           │
+│ ┊  ┊           │
+╰ •┈┈❞           ╯
+")
+
+(times 2 undo!)
+
+(e.g.
+ (snapshot) ===> "
+╭        ╭     ╮ ╮
+│ define │ ! n │ │
+│        ╰     ╯ │
+│ ❝┈┈┈┈┈┈┈┈┈┈┈•  │
+│ ┊ Computes  ┊  │
+╰ •┈┈┈┈┈┈┈┈┈┈┈❞  ╯
+")
+
+(times 2 undo!)
+
+(e.g.
+ (snapshot) ===> "
+╭        ╭     ╮    ╮
+│ define │ ! n │    │
+│        ╰     ╯    │
+│ ❝┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈• │
+│ ┊ Computes the  ┊ │
+╰ •┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈❞ ╯
+")
+
+(undo!)
+
+(e.g.
+ (snapshot) ===> "
+╭        ╭     ╮           ╮
+│ define │ ! n │           │
+│        ╰     ╯           │
+│ ❝┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈• │
+│ ┊ Computes the product ┊ │
+╰ •┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈❞ ╯
+")
 
 (for-each insert-character! "
-\"Computes the product
 1 * ... * n")
 
 (e.g.
