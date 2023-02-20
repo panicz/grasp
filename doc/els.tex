@@ -32,8 +32,8 @@
 
 \title{GRASP: An Extensible Tactile Interface for Editing S-expressions}
 \hypersetup{
- pdfauthor={},
- pdftitle={},
+ pdfauthor={Panicz Maciej Godek},
+ pdftitle={GRASP: An Extensible Tactile Interface for Editing S-expressions},
  pdfkeywords={},
  pdfsubject={},
  pdfcreator={Emacs 27.1 (Org mode 9.3)}, 
@@ -47,8 +47,8 @@
 
 \newunicodechar{┈}{\textSFx}
 \newunicodechar{┊}{\textSFxi}
-\newunicodechar{❝}{{\fontsize{7}{0}\ding{125}}}
-\newunicodechar{❞}{{\fontsize{7}{0}\ding{126}}}
+\newunicodechar{❝}{{\fontsize{6.8}{0}\ding{125}}}
+\newunicodechar{❞}{{\fontsize{6.8}{0}\ding{126}}}
 
 \newenvironment{Snippet}{\Verbatim[samepage=true]}{\endVerbatim}
 
@@ -56,8 +56,6 @@
 
 \author{Panicz Maciej Godek}
 \email{godek.maciek@gmail.com}
-
-\maketitle
 
 \begin{abstract}
 
@@ -84,6 +82,41 @@ are presented in a separate section.
 
 \end{abstract}
 
+
+\begin{CCSXML}
+  <ccs2012>
+  <concept>
+  <concept_id>10011007.10011006.10011066.10011069</concept_id>
+  <concept_desc>Software and its engineering~Integrated and visual development environments</concept_desc>
+  <concept_significance>500</concept_significance>
+  </concept>
+  <concept>
+  <concept_id>10003120.10003145.10003151.10011771</concept_id>
+  <concept_desc>Human-centered computing~Visualization toolkits</concept_desc>
+  <concept_significance>300</concept_significance>
+  </concept>
+  <concept>
+  <concept>
+  <concept_id>10003120.10003138.10003140</concept_id>
+  <concept_desc>Human-centered computing~Ubiquitous and mobile computing systems and tools</concept_desc>
+  <concept_significance>300</concept_significance>
+  </concept>
+  <concept_id>10010147.10010371.10010387.10010391</concept_id>
+  <concept_desc>Computing methodologies~Graphics input devices</concept_desc>
+  <concept_significance>100</concept_significance>
+  </concept>
+  </ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Software and its engineering~Integrated and visual development environments}
+\ccsdesc[300]{Human-centered computing~Visualization toolkits}
+\ccsdesc[300]{Human-centered computing~Ubiquitous and mobile computing systems and tools}
+\ccsdesc[100]{Computing methodologies~Graphics input devices}
+
+\keywords{visual programming, touchscreen-based editing, interactive programming,
+structual editing}
+
+\maketitle
 
 \section{The concept of GRASP}
 
@@ -141,7 +174,7 @@ An expression which is currently being moved can be deleted
 by throwing it off the surface quickly. Likewise, moving
 a finger quickly while the expression is being resized
 causes the box to be spliced into its parent (this feature
-is sometimes referred to as "pulling-the-rug splicing").
+is sometimes referred to as ``pulling-the-rug splicing'').
 
 In addition to boxes, GRASP offers four other types
 of objects: atoms, texts, extensions and comments.
@@ -175,7 +208,7 @@ Other than that, line and block comments are similar to text.
 
 The last type of objects supported by the editor
 are extensions. The list of extensions is open-ended.
-Expressions are sometimes referred to as "magic boxes",
+Expressions are sometimes referred to as ``magic boxes'',
 because they are boxes which define their own rules
 of interaction.
 
@@ -264,7 +297,7 @@ which unites the input systems from its target
 environments (Android, terminal and windowing
 systems).
 
-By default, it provides the "Common User Access"
+By default, it provides the ``Common User Access''
 keyboard bindings (ctrl-z for undo, ctrl-c for copy
 etc.) and it allows to use keyboard arrows to
 navigate cursor over the active document.
@@ -359,24 +392,21 @@ entirely satisfactory:
 \begin{Snippet}
 (define-type (Move from: Cursor
 		   to: Cursor
-		   in: pair := (the-document)
 		   with-shift: int := 0)
   implementing Edit
   with
-  ((apply!)::Cursor
-   (let ((item (extract! at: from from: in)))
-     (insert! item into: in at: to)
-     (cursor-climb-back to in)))
+  ((apply! document::pair)::Cursor
+   (let ((item (extract! at: from from: document)))
+     (insert! item into: document at: to)
+     (cursor-climb-back to document)))
 
   ((inverse)::Edit
    (match (this)
      ((Move from: `(,s0 . ,source)
 	    to: `(,d0 ,d1 . ,destination)
-	    in: document
 	    with-shift: s)
       (Move from: (recons (+ d1 1) destination)
 	    to: (recons* s (- s0 1) source)
-	    in: document
 	    with-shift: d0)))))
 \end{Snippet}
 
@@ -442,12 +472,12 @@ hash tables in order to represent white-space and comments
 between the elements of a \texttt{cons}-cell. (This
 representation was initially chosen because most implementations
 of Scheme do not allow to modify the representation of 
-\texttt{cond}-cells, so hash-tables seemed to be the only
+\texttt{cons}-cells, so hash-tables seemed to be the only
 viable choice.)
 
 In the parlance of GRASP, weak-key hash tables are called
-"properties", and GRASP provides a fairly elegant way
-of expressing them, using the so called "getters with setters".
+``properties'', and GRASP provides a fairly elegant way
+of expressing them, using the so called ``getters with setters''.
 
 More specifically, there are five properties to describe
 how \texttt{cons}-cells are formatted: 
@@ -459,7 +489,7 @@ a \texttt{Space} between an opening parenthesis
 and the first element of a list (and as such it doesn't
 matter for most cells),
 \item \texttt{pre-tail-space}, which -- in the case of dotted pairs
-designates a \texttt{Space} following the "dot"
+designates a \texttt{Space} following the ``dot''
 \item \texttt{post-tail-space}, which -- in the case of dotted pairs
 designates a \texttt{Space} following the pair's tail
 \item \texttt{dotted?}, which designates a Boolean value that
@@ -576,7 +606,7 @@ fully expanded cursors, and keyboard navigation
 procedures should only generate fully expanded
 cursors.
 
-\subsection{The "undo" mechanism}
+\subsection{The \textit{undo} mechanism}
 
 The documents in GRASP are considered mutable,
 and the editing of a document occurs by means
@@ -585,9 +615,9 @@ of mutating the tree structure.
 However, all these mutations are inter-mediated
 by explicit Edit operations. Each such operation
 has its inverse, which on one hand is used to
-implement the "undo" mechanism, and on 
+implement the \textit{undo} mechanism, and on 
 the other -- can be perceived as an interesting 
-"document editing assembly language".
+``document editing assembly language''.
 
 At the moment of writing this text, the language
 consists of the following operations:
@@ -595,33 +625,26 @@ consists of the following operations:
 \begin{Snippet}
 (Move from: Cursor
       to: Cursor
-      in: pair := (the-document)
       with-shift: int := 0)
 ;; the Move operation is its own inverse
-
 \end{Snippet}
 \begin{Snippet}
 (Insert element: (either pair HeadTailSeparator)
-	at: Cursor := (the-cursor)
-	into: pair := (the-document))
+	at: Cursor := (the-cursor))
 
 (Remove element: (either pair
 			 HeadTailSeparator
 			 EmptyListProxy)
 	at: Cursor := (the-cursor)
-	from: pair := (the-document)
 	with-shift: int := 0)
 ;; the Move and Remove operations are mutually inverse
-
 \end{Snippet}
 \begin{Snippet}
 (ResizeBox at: Cursor := (the-cursor)
 	   from: Extent
 	   to: Extent
-	   in: pair := (the-document)
 	   with-anchor: real)
 ;; the ResizeBox operation is its own inverse
-
 \end{Snippet}
 \begin{Snippet}
 (InsertCharacter list: (list-of char)
@@ -629,21 +652,16 @@ consists of the following operations:
 		 into: pair := (the-document))
 
 (RemoveCharacter list: (list-of char)
-		 before: Cursor := (the-cursor)
-		 from: pair := (the-document))
+		 before: Cursor := (the-cursor))
 ;; InsertCharacter and RemoveCharacter are mutually inverse
-
 \end{Snippet}
 \begin{Snippet}
 (SplitElement with: Space
-	      at: Cursor := (the-cursor)
-	      in: pair := (the-document))
+	      at: Cursor := (the-cursor))
 
 (MergeElements removing: Space
-	       at: Cursor := (the-cursor)
-	       in: pair := (the-document))
+	       at: Cursor := (the-cursor))
 ;; SplitElement and MergeElements are mutually inverse
-
 \end{Snippet}
 \begin{Snippet}
 (NoEdit)
@@ -722,7 +740,7 @@ the workflow of people who do not use those code
 editors.
 
 The author of GRASP calls the example-rich approach
-"evident programming", because it is an attempt
+``evident programming'', because it is an attempt
 of making all components of a program as simple
 and tangible as possible.
 
@@ -736,23 +754,6 @@ following form:
 
 \begin{Snippet}
 (insert-character! #\[)
-
-(e.g.
- (snapshot) ===> "
-╭  ╮
-│  │
-╰ |╯
-")
-\end{Snippet}
-\begin{Snippet}
-(undo!)
-
-(e.g.
- (snapshot) ===> "
-")
-\end{Snippet}
-\begin{Snippet}
-(redo!)
 
 (e.g.
  (snapshot) ===> "
@@ -781,6 +782,16 @@ following form:
 ╰    ^  ╯
 ")
 \end{Snippet}
+\begin{Snippet}
+(insert-character! #\i)
+
+(e.g.
+ (snapshot) ===> "
+╭        ╮
+│ define │
+╰     ^  ╯
+")
+\end{Snippet}
 
 The author believes that such tests should be
 approachable not only to people who are new
@@ -793,8 +804,8 @@ code base.
 \section{Development history}
 
 The development of GRASP begun in the late
-2018 with the announcement of "The Draggable
-Rectangle Challenge". The first prototype
+2018 with the announcement of ``The Draggable
+Rectangle Challenge''. The first prototype
 was created in Racket at the beginning of 2019,
 and was presented during that year's spring edition
 of RacketFest in Berlin, although it wasn't
@@ -840,7 +851,7 @@ proper lists and atoms, and adding support for improper lists,
 strings and comments seemed difficult. Second, it did not support
 cursor, and supporting it also seemed difficult.
 Third, it was based on direct manipulation of expressions,
-and there was no obvious way of adding the "undo" feature.
+and there was no obvious way of adding the\textit{undo} feature.
 Most importantly, the editor was written in Java,
 which meant that -- being an s-expression editor -- it could
 not be used to further develop itself (and the inclusion
@@ -850,7 +861,7 @@ So in the beginning of 2022 the author decided
 to start the project over.
 
 This time it was envisioned as a cross-platform project
-from the beginning. However, the only "common platform"
+from the beginning. However, the only ``common platform''
 between Android and PC known to the author was VT-100
 terminal emulator, which determined that -- in addition
 to its rich graphics-based clients, GRASP should also provide
@@ -920,40 +931,53 @@ by Kawa that are used in GRASP
 \section{Related work}
 
 The strongest source of inspiration for GRASP
-has been Emacs, and the Scheme interaction
+has been Emacs\cite{Stallman}, and the Scheme interaction
 mode provided by the Geiser package. One
 motivation for the development of GRASP was
 the desire to share experience of Lisp interaction
 mode outside the world of Emacs, with possible
 improvements. (Some fundamental shortcomings
 of Emacs were pointed out with the announcement
-of Project Mage in the January of 2023.)
+of Project Mage in the January of 2023\cite{Korobeinikov}.)
 
 The desire to add interactive visual extensions
 was born when the author attempted to extend
-the idea of "evident programming" to the domain
+the idea of ``evident programming'' to the domain
 of computational geometry and graph algorithms.
 
 However, the same idea was independently
 conceived by Leif Andersen, who implemented
 it in Dr Racket, and then created a browser-based
-IDE called visr.pl (for Clojure). Leif also provided
-a very good explanation of the idea in a youtube video.
+IDE called \url{visr.pl} (for Clojure). Leif also provided
+a very good explanation of the idea in a youtube video \cite{Andersen}.
 
 Interactive visual syntax is also a key feature
 of the Polytope editor developed by Elliot Evans.
-Polytope is a dedicated editor for JavaScript.
+Polytope is a dedicated editor for JavaScript \cite{Evans}.
 
 There are many similarities between GRASP and
 the Boxer environment developed at MIT in the 1980s
-by Andrea DiSessa and Harold Abelson. Recently
+by Andrea DiSessa and Harold Abelson \cite{Boxer}. Recently
 there have been efforts to resurrect Boxer
 within the Boxer Sunrise project run by Antranig
-Basman and Steven Ghitens. However, building
+Basman and Steven Ghitens \cite{BoxerSunrise}. However, building
 the project requires LispWorks, and pre-build
 snapshots are only released for MacOS X. Also,
 despite being written in Lisp, Boxer itself
 is not a Lisp interpreter.
+
+However, there used to be a Boxer-inspired ``integrated Scheme
+programming environment'' called \textit{Bochser},
+developed by Michael Eisneberg in the 1980s at MIT\cite{Bochser}.
+
+Despite superficial similarities, it is a very different
+system than GRASP, and with very different goals.
+
+Eisenberg's thesis contains a reference to another
+thesis, which presents Franklyn Turbak's ``visual
+and manipulable model for Scheme programs'' called
+GRASP\cite{Turbak}. It has even less in common
+with the system presented here than Bochser.
 
 There are other interesting experiments
 in the area of representing programs.
@@ -961,30 +985,105 @@ One example is the Fructure editor developed
 by Andrew Blinn for the Racket programming
 language (the editor itself is implemented
 in a purely functional way, using Racket's
-"big-bang" library).
+``big-bang'' library)\cite{Blinn}.
 
 Another is OrenoLisp designed by Yasuyuki
 Maeda with the purpose of artistic live
-music coding.
+music coding\cite{Maeda}.
 
 There's a fun representation of ClojureScript
 programs as nested circles invented by Ella
-Hoeppner for her Vlojure editor.
+Hoeppner for her Vlojure editor\cite{Hoeppner}.
 
 Katie Bell created a browser-based structural
-editor for Python called SplootCode.
+editor for Python called SplootCode\cite{Bell}.
 
 A lot of work concerning data visualization
 has been happening around the Smalltalk
 distribution called Pharo, and in particular
 its spin-off called Glamorous Toolkit, developed
-by Tudor Girba and his associates.
+by Tudor Girba and his associates\cite{Girba}.
 
 There's also a Visual Studio Code plug-in
-called "Debug Visualizer" developed by Henning
-Dieterichs. It lets visualize various data structures
-during the execution of programs, and is available
+called ``Debug Visualizer'' developed by Henning
+Dieterichs\cite{Dieterichs}. It lets visualize various
+data structures during the execution of programs, and is available
 for the majority of mainstream programming languages.
 
-\url{https://marketplace.visualstudio.com/items?itemName=hediet.debug-visualizer}
+While the scene of structural editing tools seems to
+be flourishing, the same cannot be said about development
+tools for mobile devices - most of existing tools seem to
+be shrinked versions of PC-based development environments
+and require external keyboard for comfortable work.
+
+The only tool which stands out from this crowd
+is MobileCode (formerly medc) developed by Mark Mendell\cite{Mendell},
+which is a touchscreen-based editor for C-like languages,
+capable of collapsing procedures and blocks of code.
+
+\begin{thebibliography}{14}
+  
+\bibitem{Andersen}
+  Leif Andersen, \emph{Adding Interactive Visual Syntax to Textual Code} \\
+  presentation: \url{https://www.youtube.com/watch?v=8htgAxJuK5c} \\ 
+  defense talk: \url{https://www.youtube.com/watch?v=l0GfMs82PvU} \\
+  online IDE: \url{https://visr.pl}
+
+\bibitem{Bell}
+  Katie Bell, \emph{SplootCode}, \url{https://splootcode.io}
+  
+\bibitem{Bochser}
+  Michael Eisenberg, \emph{Bochser: An Integrated Scheme Programming System},
+  MIT 1985, \url{https://boxer-project.github.io/boxer-literature/theses/Bochser, An Integrated Scheme Programming System (Eisenberg, MIT MSc, 1985).pdf}
+  
+\bibitem{Boxer}
+  Andrea DiSessa, Harold Abelson,
+  \emph{Boxer: A Reconstructible Computational Medium},
+  MIT 1986, \url{https://web.media.mit.edu/~mres/papers/boxer.pdf}
+
+\bibitem{BoxerSunrise}
+  Antranig Basman, Steven Ghitens, \emph{Boxer Sunrise Project} \\
+  \url{https://github.com/boxer-project/boxer-sunrise}
+  
+\bibitem{Blinn}
+  Andrew Blinn, \emph{Fructure: A Structure Editing Engine in Racket} \\
+  source code: \url{https://github.com/disconcision/fructure} \\
+  2019 RacketCon presentation: \url{https://www.youtube.com/watch?v=CnbVCNIh1NA}
+
+\bibitem{Dieterichs}
+  Henning Dieterichs, \emph{Debug Visualizer for Visual Studio Code} \\
+  \url{https://marketplace.visualstudio.com/items?itemName=hediet.debug-visualizer}
+  
+\bibitem{Evans}
+  Elliot Evans, \emph{Polytope}, \url{https://elliot.website/editor/}
+
+\bibitem{Girba}
+  Tudor Girba, \emph{Glamorous Toolkit}, \url{https://gtoolkit.com}
+  
+\bibitem{Hoeppner}
+  Ella Hoeppner, \emph{Vlojure: A New Way to Write Clojure}, \\
+  presentation: \url{https://www.youtube.com/watch?v=1OcAUhe3E1E} \\
+  online IDE: \url{https://vlojure.io/}
+  
+\bibitem{Korobeinikov}
+  Dmitrii Korobeinikov, \emph{Emacs is Not Enough}, Project Mage, 2023, 
+  \url{https://project-mage.org/emacs-is-not-enough}
+  
+\bibitem{Maeda}
+  Yasuyuki Maeda, \emph{OrenoLisp}, \url{https://www.youtube.com/watch?v=RuU0HI-paik}
+
+\bibitem{Mendell}
+  Mark Mendell, \emph{MEDC}
+  project website: \url{https://medc.mark.dev/}
+  presentation: \url{https://vimeo.com/641790697}
+  
+\bibitem{Stallman}
+  Richard Stallman, \emph{EMACS: The Extensible, Customizable Display Editor},
+  1981, \url{https://www.gnu.org/software/emacs/emacs-paper.html}
+
+\bibitem{Turbak}
+  Franklyn Turbak, \emph{GRASP: A Visible and Manipulable Model for Procedural Programs}, MIT 1986 \url{https://cs.wellesley.edu/~fturbak/pubs/turbak-masters-thesis.pdf}
+  
+\end{thebibliography}
+
 \end{document}
