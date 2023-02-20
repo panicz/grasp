@@ -5,6 +5,7 @@
 (import (hash-table))
 (import (define-property))
 (import (define-type))
+(import (keyword-arguments))
 (import (srfi :11) (srfi :17))
 (import (conversions))
 (import (functions))
@@ -164,7 +165,7 @@
   (read-spaces-into result:fragments))
 
 (define (read-list #!optional (max-items +inf.0))
-  (let* ((result '())
+  (let* ((result (empty))
 	 (growth-cone '())
 	 (initial-space (read-spaces))
 	 (total-items 0)
@@ -175,11 +176,12 @@
       last-space)
 
     (define (add-element! element following-space)
-      (cond ((null? result)
-	     (set! result (cons element '()))
+      (cond ((empty? result)
+	     (set! result (cons element result))
 	     (set! growth-cone result))
 	    (else
-	     (set-cdr! growth-cone (cons element '()))
+	     (set-cdr! growth-cone (cons element
+					 (cdr growth-cone)))
 	     (set! growth-cone (tail growth-cone))))
       (update! (post-head-space growth-cone)
 	       following-space)
@@ -204,8 +206,8 @@
 		  (let-values (((result* spaces*)
 				(read-list)))
                     (set-cdr! growth-cone
-			      (if (null? result*)
-				  (EmptyListProxy spaces*)
+			      (if (empty? result*)
+				  (empty spaces*)
 				  result*))))
 		 (else ;;an atom
 		  (let ((output (cons c '())))
@@ -221,7 +223,7 @@
 
              ((eq? c #\()
               (let-values (((result* spaces*) (read-list)))
-		(add-element! (if (null? result*)
+		(add-element! (if (empty? result*)
 				  (EmptyListProxy spaces*)
 				  result*)
 			      (read-space))
@@ -289,7 +291,7 @@
 			(port (current-input-port)))
   (parameterize ((current-input-port port))
     (let-values (((result spaces) (read-list)))
-      (cons (if (null? result)
+      (cons (if (empty? result)
 		(EmptyListProxy spaces)
 		result)
 	    '()))))

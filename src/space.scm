@@ -5,6 +5,7 @@
 (import (define-property))
 (import (define-object))
 (import (define-cache))
+(import (keyword-arguments))
 (import (fundamental))
 (import (indexable))
 (import (infix))
@@ -226,9 +227,6 @@
   ((index< a::Index b::Index)::boolean
    (is (as int a) < (as int b)))
 
-  ((delete-space! position::int)::void
-   (delete-space-fragment! fragments position))
-  
   ((insert-space! position::int)::void
    (let-values (((cell index) (space-fragment-index
 			       fragments
@@ -457,9 +455,6 @@
       (insert-break! space position)
       (insert-space! space position)))
 
-(define (delete-space! space::Space position::int)
-  (invoke space 'delete-space! position))
-
 (define (join-spaces! a::Space b::Space)::Space
   (let ((suffix (last-pair a:fragments)))
     (set! (car suffix)
@@ -573,7 +568,7 @@
 
 (define-property+ (post-head-space cell::pair)::Space
   (if (and (not (dotted? cell))
-	   (null? (cdr cell)))
+	   (empty? (cdr cell)))
       (Space fragments: (cons 0 '()))
       (Space fragments: (cons 1 '()))))
 
@@ -734,8 +729,8 @@
 
   (gnu.lists.LList))
 
-(define (empty)::EmptyListProxy
-  (EmptyListProxy (EmptySpace)))
+(define/kw (empty space ::Space := (EmptySpace))::EmptyListProxy
+  (EmptyListProxy space))
 
 (define cell-display-properties
   (list
