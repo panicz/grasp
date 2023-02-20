@@ -104,58 +104,22 @@
   (let ((document-history ::History (history (the-document))))
     (document-history:redo!)))
 
-(define (delete! position::Index)::void
-  (let* ((target (the-expression)))
-    (cond
-     ((is target Textual?)
-      (let ((text ::Textual (as Textual target)))
-	(cond ((is 0 <= position < (text:text-length))
-	       (text:delete-char! position)
-	       (when (= (text:text-length) 0)
-		 (extract! at: (cdr (the-cursor)))
-		 (set! (the-cursor)
-		       (cursor-climb-back
-			(recons (- (car (cdr (the-cursor)))
-				   1)
-				(cdr (cdr (the-cursor))))))
-		 (set! (the-selection-anchor) (the-cursor)))))))
-     ((is target instance? Space)
-      (if (or (is position > (first-index target))
-	      (and (is position = (first-index target))
-		   (or (and-let* ((`(#\] . ,_) (cursor-advance))))
-		       (and-let* ((`(#\[ . ,_) (cursor-retreat)))))))
-	  (delete-space! target position))))))
-
-(define (delete-forward!)::void
-  (let ((target (the-expression)))
-    (cond ((and (pair? target)
-		(pair? (the-cursor))
-		(eqv? (car (the-cursor)) (first-index target)))
-	   (let ((new-cursor (cursor-retreat)))
-	     (extract!)
-	     (set! (the-cursor) new-cursor)
-	     (set! (the-selection-anchor) (the-cursor))))
-	  (else
-	   (delete! (car (the-cursor)))))))
-
 (define (delete-backward!)::boolean
 
   (define (perform! operation ::Edit)::boolean
-    (or
-     (and-let* ((document (the-document))
-		(history ::History (history document))
-		(new-cursor (operation:apply! document)))
-       ;; A note: in case of removal operations,
-       ;; we record the operation after applying it,
-       ;; but in case of insertion operation, we record
-       ;; them before applying them.
-       ;; This allows for structural sharing to work
-       ;; in the presence of history merging.
-       (history:record! operation)
-       (set! (the-cursor) new-cursor)
-       (set! (the-selection-anchor) new-cursor)
-       #t)
-     (WARN "failed to perform: "operation)))
+    (and-let* ((document (the-document))
+	       (history ::History (history document))
+	       (new-cursor (operation:apply! document)))
+      ;; A note: in case of removal operations,
+      ;; we record the operation after applying it,
+      ;; but in case of insertion operation, we record
+      ;; them before applying them.
+      ;; This allows for structural sharing to work
+      ;; in the presence of history merging.
+      (history:record! operation)
+      (set! (the-cursor) new-cursor)
+      (set! (the-selection-anchor) new-cursor)
+      #t))
 
   (and-let* ((`(,tip ,top . ,root) (the-cursor))
 	     (parent ::Indexable (the-expression at: root))
@@ -226,7 +190,8 @@
 	  (set! (the-cursor) (cursor-retreat))
 	  (set! (the-selection-anchor) (the-cursor))
 	  (delete-backward!))
-	 ((is (text-length (as Text target)) <= 0)
+	 ((or (eqv? tip last-index)
+	      (is (text-length (as Text target)) <= 0))
 	  (let ((cell (drop (quotient top 2) parent)))
 	    ;; the cell will be cut off from the rest
 	    ;; of the document after performing Remove
@@ -252,7 +217,22 @@
 	    )))
      (else
       #f))))
-      
+
+(define (delete-forward!)::boolean
+  (let ((target ::Indexable (the-expression)))
+    (cond
+     ((gnu.lists.LList? target)
+      (match (the-cursor)
+	(`(,,(target:first-index) . ,_)
+	 (insert-character! #\])
+	 (delete-backward!))
+	(`(,,(target:last-index) . ,_)
+	 (move-cursor-right!)
+	 (delete-forward!))))
+     (else
+      (move-cursor-right!)
+      (delete-backward!)))))
+
 (define (insert-character! c::char)::boolean
   (define (perform! operation ::Edit)::boolean
     (let* ((document (the-document))
