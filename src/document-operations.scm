@@ -209,7 +209,7 @@
 		 (set! (last-tail element) (cdr before))
 		 (set! (cdr before) element) #t)
 		
-		((null? (cdr (cdr before)))
+		((empty? (cdr (cdr before)))
 		 (assert (head/tail-separator? element))
 		 (let ((following-space ::Space
 					(split-space! target
@@ -277,7 +277,7 @@
 							    index))
 			  (is previous-index < 0))
 		(let ((cell (drop previous-index parent)))
-		  (assert (null? (cdddr cell)))
+		  (assert (empty? (cdddr cell)))
 		  (set! (cdr cell) (caddr cell))
 		  (update! (dotted? cell) #t)
 		  document)))
