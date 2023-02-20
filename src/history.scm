@@ -376,15 +376,14 @@
 				(every (isnt _ char-whitespace?)
 				       new)))))
 	     (append! chars new)))
-
+	  
 	  ((and-let* ((`((,last-operation . ,_) . ,_) fronts)
 		      ((RemoveCharacter list: chars
 					before: `(,n . ,root))
 		       last-operation)
 		      (last-operation ::RemoveCharacter last-operation)
-		      (l (length chars))
 		      ((RemoveCharacter list: new
-					before: `(,,(- n l)
+					before: `(,,(- n (length chars))
 						  . ,,root)) operation)
 		      ((or (and (every char-whitespace? chars)
 				(every char-whitespace? new))
@@ -392,16 +391,26 @@
 				(every (isnt _ char-whitespace?)
 				       new)))))
 	     (set! last-operation:list (append! new chars))))
+
+	  ((and-let* ((`((,last-operation . ,_) . ,_) fronts)
+		      ((RemoveCharacter list: chars
+					before: `(,n . ,root))
+		       last-operation)
+		      (l (length chars))
+		      (last-operation ::RemoveCharacter last-operation)
+		      ((RemoveCharacter list: new
+					before: `(,,(- n (length chars)
+						       -1)
+						  . ,,root)) operation)
+		      ((or (and (every char-whitespace? chars)
+				(every char-whitespace? new))
+			   (and (every (isnt _ char-whitespace?) chars)
+				(every (isnt _ char-whitespace?)
+				       new)))))
+	     (set! last-operation:before (recons (+ n (length new))
+						 root))
+	     (append! chars new)))
 	  
-	  #;((and-let* ((`((,last-operation . ,_) . ,_) fronts)
-		      ((Insert element: atom
-			       at: `(,a0 . ,a*)) last-operation)
-		      ((Insert element: e2
-			       at: `(,b0 . ,,a*)) operation)
-		      
-		      ...)
-	     (append! e1 e2)
-	     (append! e2 e1)))
 	  (else
 	   (set-car! fronts (cons operation
 				  (car fronts)))))
