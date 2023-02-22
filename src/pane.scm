@@ -19,7 +19,6 @@
 (import (indexable))
 (import (cursor))
 (import (interactive))
-(import (traversal))
 (import (primitive))
 (import (extent))
 (import (parse))

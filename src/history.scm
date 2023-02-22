@@ -17,7 +17,6 @@
 (import (painter))
 (import (extent))
 (import (indexable))
-(import (traversal))
 (import (primitive))
 (import (space))
 (import (cursor))

@@ -12,8 +12,10 @@
 (define-type (Over back: Tile front: Tile)
   implementing Tile
   with
-  ((draw! context::Cursor)
-   ::void
+  ((advance! t::Traversal)::void
+    (t:advance/extent! (extent)))
+
+  ((draw! context::Cursor)::void
    (let* ((back-context (recons 'back context))
           (front-context (recons 'front context)))
      (back:draw! back-context)
@@ -62,8 +64,10 @@
 (define-type (Below top: Tile bottom: Tile)
   implementing Tile
   with  
-  ((draw! context::Cursor)
-   ::void
+  ((advance! t::Traversal)::void
+    (t:advance/extent! (extent)))
+
+  ((draw! context::Cursor)::void
    (let ((top-context (recons 'top context))
          (bottom-context (recons 'bottom context))
 	 (top-extent (top:extent)))
@@ -117,8 +121,10 @@
 (define-type (Beside left: Tile right: Tile)
   implementing Tile
   with
-  ((draw! context::Cursor)
-   ::void
+  ((advance! t::Traversal)::void
+    (t:advance/extent! (extent)))
+
+  ((draw! context::Cursor)::void
    (let ((left-context (recons 'left context))
          (right-context (recons 'right context))
 	 (left-extent (left:extent)))
@@ -155,12 +161,14 @@
    (let ((left-extent (left:extent)))
      (or (and (is 0 <= x < left-extent:width)
 	      (is 0 <= y < left-extent:height)
-	      (left:cursor-under* x y (recons (first-index) path)))
+	      (left:cursor-under* x y (recons (first-index)
+					      path)))
 	 (let ((x (- x left-extent:height))
 	       (right-extent (right:extent)))
 	   (and (is 0 <= x < right-extent:width)
 		(is 0 <= y < right-extent:height)
-		(right:cursor-under* x y (recons (last-index) path)))))))
+		(right:cursor-under* x y (recons (last-index)
+						 path)))))))
   
   ((index< a::Index b::Index)::boolean
    (and (is a eq? (first-index))

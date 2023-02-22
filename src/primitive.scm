@@ -8,6 +8,7 @@
 (import (define-cache))
 (import (default-value))
 (import (define-parameter))
+(import (keyword-arguments))
 (import (match))
 (import (examples))
 (import (infix))
@@ -21,7 +22,7 @@
 (import (functions))
 (import (print))
 (import (conversions))
-(import (traversal))
+(import (text))
 
 ;; we override Pair with Object's default equality and hash functions
 ;; (TODO: patch the Kawa implementation of Cons)
@@ -73,6 +74,9 @@
 ;; those atoms can be a different kind of object
 ;; on every query.
 (define-object (Atom source-string::String)::ShadowedTextualTile
+  (define (advance! t::Traversal)::void
+    (t:advance/extent! (extent)))
+  
   (define builder :: java.lang.StringBuilder)
   (define source :: String "")
   
@@ -160,6 +164,9 @@
   (set! source (builder:toString)))
 
 (define-object (cons a d)::Tile
+  (define (advance! t::Traversal)::void
+    (t:advance/extent! (extent)))
+  
   (define (equals object)::boolean
    (eq? object (this)))
 
@@ -293,20 +300,13 @@
 	  height: (* (invoke (the-painter) 'min-line-height)
 		     (length space:fragments))))
 
-(define (advance-traversal! traversal::Traversal
-			    element::Element)
-  ::void
-  (cond ((is element Space?)
-	 (let ((space ::Space (as Space element)))
-	   (space:advance! traversal)))
-	((is element Tile?)
-	 (let ((tile ::Tile (as Tile element)))
-           (traversal:advance/extent! (tile:extent))))))
-
-(define (traverse sequence::list
-		  #!key
-		  (doing nothing)
-		  (returning nothing))
+(define/kw (traverse sequence::list
+		     doing: action ::(maps (Element Traversal)
+					   to: void)
+		     := nothing
+		     returning: result ::(maps (Traversal) to: ,a)
+		     := nothing)
+  ;; ::,a
   (let* ((painter (the-painter))
          (traversal (Traversal
 		     max-line-height:
@@ -316,47 +316,49 @@
 
       (define (step-over-dotted-tail! pair::pair)::void
 	(let* ((horizontal? (should-the-bar-be-horizontal? pair))
-               (bar (if horizontal?
-			(horizontal-bar traversal:max-width)
-			(vertical-bar traversal:max-line-height)))
-               (pre-tail (if horizontal?
-                             (skip-first-line
-			      (pre-tail-space pair))
-                             (pre-tail-space pair)))
-               (item (tail pair))
-	       (post-tail (post-tail-space pair)))
-          (doing bar traversal)
-          (advance-traversal! traversal bar)
+               (bar ::Element (if horizontal?
+				  (horizontal-bar
+				   traversal:max-width)
+				  (vertical-bar
+				   traversal:max-line-height)))
+               (pre-tail ::Space (if horizontal?
+				     (skip-first-line
+				      (pre-tail-space pair))
+				     (pre-tail-space pair)))
+               (item ::Element (tail pair))
+	       (post-tail ::Space (post-tail-space pair)))
+          (action bar traversal)
+          (bar:advance! traversal)
 	  (when horizontal?
 	    (set! traversal:left 0))
-	  (doing pre-tail traversal)
-          (advance-traversal! traversal pre-tail)
-          (doing item traversal)
-          (advance-traversal! traversal item)
-          (doing post-tail traversal)
-          (advance-traversal! traversal post-tail)))
+	  (action pre-tail traversal)
+          (pre-tail:advance! traversal)
+          (action item traversal)
+          (item:advance! traversal)
+          (action post-tail traversal)
+          (post-tail:advance! traversal)))
 
       (define (step! pair::pair)
-	(let ((item (head pair))
-              (post-head (post-head-space pair)))
-          (doing item traversal)
-          (advance-traversal! traversal item)
-          (doing post-head traversal)
-          (advance-traversal! traversal post-head)
+	(let ((item ::Element (head pair))
+              (post-head ::Space (post-head-space pair)))
+          (action item traversal)
+          (item:advance! traversal)
+          (action post-head traversal)
+          (post-head:advance! traversal)
           (cond ((dotted? pair)
 		 (step-over-dotted-tail! pair)
-		 (returning traversal))
+		 (result traversal))
 		((pair? (tail pair))
 		 (step! (tail pair)))
 		(else
-		 (returning traversal)))))
+		 (result traversal)))))
 
       (if (pair? sequence)
-	  (let ((pre-head (pre-head-space sequence)))
-            (doing pre-head traversal)
-            (advance-traversal! traversal pre-head)
+	  (let ((pre-head ::Space (pre-head-space sequence)))
+            (action pre-head traversal)
+            (pre-head:advance! traversal)
             (step! sequence))
-	  (returning traversal))
+	  (result traversal))
       )))
 
 (define (draw-sequence! #!optional
