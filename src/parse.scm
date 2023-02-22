@@ -16,6 +16,7 @@
 (import (space))
 (import (text))
 (import (match))
+(import (comments))
 
 (define (separator? c)::boolean
   (or (eof-object? c)
@@ -147,9 +148,8 @@
 	    (#\;
 	     (let ((line-comment (read-line-comment)))
 	       (set-cdr! pair
-		     (cons (cons 'line-comment
-				 line-comment)
-			   (cons 0 (tail pair))))
+			 (cons (LineComment content: line-comment)
+			       (cons 0 (tail pair))))
 	       (read-spaces-into (tail (tail pair)))))
 	    (#\newline
 	     (set-cdr! pair
@@ -246,10 +246,10 @@
 				      (post-head-space
 				       unexpr)))
 		      (set-cdr! coda
-			(cons
-			 (cons* 'expression-comment
-				spaces
-				unexpr)
+				(cons
+				 (ExpressionComment
+				  spaces: spaces
+				  expression: (car unexpr))
 			 next-space:fragments))
 		      (read-next))))
 
@@ -260,7 +260,7 @@
 			 (next-space (read-spaces)))
 		    (set-cdr! coda
 		      (cons
-		       (cons 'block-comment comment)
+		       (BlockComment content: comment)
 		       next-space:fragments))
 		    (read-next)))
 		 (else

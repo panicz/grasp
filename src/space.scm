@@ -16,23 +16,17 @@
 (import (assert))
 (import (conversions))
 (import (painter))
-(import (traversal))
 (import (extent))
 (import (print))
 
 (define (fragment-size fragment)
   (match fragment
-    (`(line-comment . ,text)
-     0)
-    
-    (`(expression-comment ,space . ,expressions)
-     (length expressions))
-
-    (`(block-comment . ,text)
-     0)
-    
     (,@integer?
-     fragment)))
+     fragment)
+
+    (,@Comment?
+     1)    
+    ))
 
 (define (space-fragment-index fragments index)
   (if (or (isnt fragments pair?)
@@ -107,7 +101,6 @@
 (e.g.
  (space-fragment-index '(3 5) 10)
  ===> () 0)
-
 
 (define (delete-space-fragment! fragments::pair
 				position::int)
@@ -184,19 +177,7 @@
      (if (or (isnt fragments* pair?)
 	     (number? (car fragments*)))
 	 (this)
-	 (match (car fragments*)
-	   (`(line-comment . ,text)
-	    (assert (= index* 0))
-	    text)
-	   
-	   (`(expression-comment ,space . ,expressions)
-	    (if (= index* 0)
-		space
-		(list-ref expressions (- index* 1))))
-
-	   (`(block-comment . ,text)
-	    (assert (= index* 0))
-	    text)))))
+	 (car fragments*))))
 
   ((first-index)::Index 0)
   
@@ -204,18 +185,8 @@
    (fold-left (lambda (total next)
 		(if (number? next)
 		    (+ total next)
-		    (match next
-		      (`(line-comment . ,text)
-		       0)
-		      
-		      (`(expression-comment ,space
-					    . ,expressions)
-		       (length expressions))
-
-		      (`(block-comment . ,text)
-		       0))))
-
-		(length (cdr fragments))
+		    0))
+	      (length (cdr fragments))
 	      fragments))
   
   ((next-index index::Index)::Index
@@ -283,8 +254,16 @@
 	    (advance-with-cursor! (car input))
 	    (t:new-line!)
 	    (skip (cdr input) (+ total (car input) 1)))
-	   (`(,,@integer)
-	    (advance-with-cursor! (car input))))))))
+	   (`(,,@integer . ,rest)
+	    (advance-with-cursor! (car input))
+	    (skip rest (+ total (car input))))
+	   #;(`(,,@Comment? . ,rest)
+	    (parameterize ((the-traversal t))
+	      (let ((comment ::Comment (car input)))
+		(comment:draw! (recons total context))))
+	    (skip rest (+ total 1)))
+	   ('()
+	    (values)))))))
 
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
    (and-let* ((painter (the-painter))
@@ -297,7 +276,7 @@
      (let skip ((input fragments)
 		(total 0))
        (match input
-	 (`(,,@integer? ,,@integer? . ,rest)
+	 (`(,,@integer? ,,@integer? . ,_)
 	  (cond
 	   ((is 0 <= (- y t:top) < t:max-line-height)
 	    (hash-cons (+ total
@@ -310,14 +289,21 @@
 	    (t:new-line!)
 	    (skip (cdr input)
 		  (+ total (car input))))))
-	 (`(,,@integer?)
-	  (and (is 0 <= (- y t:top) < t:max-line-height)
-	       (is x < (+ t:left (* space-width
-				    (car input))))
-	       (hash-cons (+ total
-			     (quotient (- x t:left)
-				       space-width))
-			  path)))))))
+	 (`(,,@integer? . ,rest)
+	  (or
+	   (and (is 0 <= (- y t:top) < t:max-line-height)
+		(is x < (+ t:left (* space-width
+				     (car input))))
+		(hash-cons (+ total
+			      (quotient (- x t:left)
+					space-width))
+			   path))
+	   (skip rest (+ total (car input)))))
+	 #;(`(,,@Comment? . ,rest)
+	  (let ((comment ::Comment (car input)))
+	    (comment:cursor-under* ...)))
+	 ('()
+	  #!null)))))
   ((print out::gnu.lists.Consumer)::void
    (let process ((input fragments))
      (match input
@@ -332,33 +318,11 @@
 	     (out:append #\space))
 	(process rest))
 
-       (`((line-comment . ,line-comment) . ,rest)
-	(out:append #\;)
-	(for c in line-comment
-	  (out:append (as char c)))
-	(out:append #\newline)
+       (`(,,@Comment? . ,rest)
+	(let ((comment ::Comment (car input)))
+	  (comment:print out))
 	(process rest))
        
-       (`((expression-comment
-	   ,spaces . ,expressions) . ,rest)
-	;; `expressions' should always contain
-	;; exactly one element
-	(out:append #\#)
-	(out:append #\;)
-	(invoke (as Space spaces) 'print out)
-	(for expression in expressions
-	  (show expression))
-	(process rest))
-
-       (`((block-comment . ,comment) . ,rest)
-	(out:append #\#)
-	(out:append #\|)
-	(for c::gnu.text.Char in comment
-	     (out:append c))
-	(out:append #\|)
-	(out:append #\#)
-	(process rest))
-
        (_
 	(values)))))
 
@@ -372,10 +336,16 @@
 	  (t:advance-by! (* space-width (car input)))
 	  (t:new-line!)
 	  (skip (cdr input) (+ total (car input) 1)))
-	 (`(,,@integer?)
-	  (t:advance-by! (* space-width (car input))))))
-     (set! t:index (+ t:index 1))
-     t))
+	 (`(,,@integer? . ,rest)
+	  (t:advance-by! (* space-width (car input)))
+	  (skip rest (+ total (car input))))
+	 #;(`(,,@Comment? . ,rest)
+	  (let ((comment ::Comment (car input)))
+	    (comment:advance! t)
+	    (skip rest (+ total 1))))
+	 ('()
+	  (set! t:index (+ t:index 1))
+	  t)))))
   implementing Textual
   with
   ((insert-char! c::char index::int)::void
@@ -605,6 +575,9 @@
   (instance? x HeadTailSeparator))
 
 (define-object (HorizontalBar width0::real)::Tile
+  (define (advance! t::Traversal)::void
+    (t:advance/extent! (extent)))
+
   (define width :: real 0)
   (define (draw! context::Cursor)::void
    (invoke (the-painter) 'draw-horizontal-bar! width))
@@ -623,6 +596,9 @@
   (set! width width0))
 
 (define-object (VerticalBar height0::real)::Tile
+  (define (advance! t::Traversal)::void
+    (t:advance/extent! (extent)))
+
   (define height :: real 0)
   (define (draw! context::Cursor)::void
     (invoke (the-painter) 'draw-vertical-bar! height))
@@ -662,6 +638,9 @@
        (isnt x gnu.lists.Pair?)))
 
 (define-object (EmptyListProxy space::Space)::ShadowedTile
+  (define (advance! t::Traversal)::void
+    (t:advance/extent! (extent)))
+
   (define (value) '())
   
   (define (hashCode)::int
@@ -809,7 +788,7 @@
 
 (define (show-document d::pair)
   (cond
-   ((EmptyListProxy? (car d))
+   ((empty? (car d))
     (let ((proxy (as EmptyListProxy (car d))))
       (proxy:space:print (current-output-port))))
    ((pair? (car d))

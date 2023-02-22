@@ -13,7 +13,6 @@
 (import (functions))
 (import (for))
 (import (while))
-(import (traversal))
 (import (pane))
 (import (indexable))
 (import (painter))
