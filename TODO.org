@@ -1,3 +1,242 @@
+* 21.02.2023
+
+Dzis bysmy sie zajeli tym, zeby komentarze byly uwzgledniane
+przy renderowaniu, rozmiaru wyliczaniu i myszki klikaniu.
+
+I to wyglada tak, ze mamy sobie funkcje "traverse",
+ktora wywoluje naprzemiennie zadana akcje oraz
+metode advance! na obiekcie traversal.
+
+
+W przypadku rysowania mamy item:draw!,
+dla mapowania kursora mamy item:cursor-under*
+natomiast przy wyliczaniu 'extent' nie mamy
+zadnej akcji, ale mamy okreslona funkcje
+zwracajaca.
+
+I teraz: tutaj nic nie bedziemy zmieniac.
+
+Musimy tylko zaktualizowac metody wewnatrz
+Space:
+- draw!
+- cursor-under*
+- advance! 
+
+* 20.02.2023
+
+No dobra, wydaje sie, ze edycje z klawiatury mamy
+jakos tam zaimplementowana.
+
+Moze finalnie bedzie trzeba wprowadzic jakas
+dywersyfikacje dla delete-forward! i delete-backward!
+(zeby kursor lepiej sie zachowywal)
+
+No, ale teraz zajelibysmy sie juz innymi sprawami:
+- po pierwsze, renderowaniem komentarzy (i to az w trzech
+smakach) oraz nawigowaniem po komentarzach, edycja
+komentarzy, ... (czyli mowiac krotko - edycja komentarzy)
+
+- po drugie, obsluga kawowych rozszerzen skladniowych,
+tak zebysmy mogli parsowac zrodla GRASP,
+a przy okazji zajelibysmy sie obsluga rozszerzen
+jako takich, tak zeby moc wyswietlac quote'y, 
+unquote'y i quasiquote'y, a takze - skoro to juz jest
+w jakiejs formie - to moze nasz guzik?
+
+- po trzecie, bysmy wreszcie zrobili to otwieranie
+i zapisywanie plikow, scrollowanie widokow oraz
+podzial ekranu
+
+- a po czwarte - przywrocilibysmy podsystem gestow
+
+Pozostaje jeszcze kwestia naszego pejperu,
+do ktorego chcielibysmy dopisac informacje o tym,
+jak ma byc zaprojektowany system gestow,
+oraz screenow z rysowania gestow.
+
+No ale tak:
+do interfejsu Painter dolozymy metody
+-quasiquote!
+-unquote!
+-quote!
+albo cos w tym rodzaju
+
+Chodziloby o to, ze:
+- teksty i nawiasy ktore nie sa owiniete w quote'a
+  ani unquote-a rysujemy normalnie
+- teksty i nawiasy owiniete w jednego quote'a rysujemy
+  pogrubione
+- teksty i nawiasy owiniete w jednego unquote'a
+  rysujemy kursywa
+  
+Czy cos. Jakos to sprobujemy pomyslec.
+
+Na razie jednak te komentarze.
+
+Problem jest taki, ze:
+- LineComment i BlockComment wymagaja (text)
+- ExpressionComment wymaga (space)
+- (text) wymaga (space)
+
+Wydaje sie zatem ze moze rzeczywiscie
+bedzie trzeba utworzyc jakis interfejs
+ktory bedzie w (space), natomiast same
+implementacje umiescimy gdzie indziej
+(moze w (text) i (primitive))
+
+Natomiast metody, jakich bedziemy potrzebowac,
+to:
+- print
+
+
+OK, na razie udalo sie wyodrebnic modul z komentarzami.
+
+I co chcemy dalej?
+
+No, dalej to z pewnoscia chcemy wyswietlac
+te komentarze, uwzgledniac je przy wyliczaniu
+rozmiarow i przy klikaniu kursorem
+
+Co wiecej: w kliencie terminalowym chcielibysmy
+wyswietlac komentarze w ciemniejszym kolorze,
+zas w klientach graficznych uzyc do tego celu
+jakiejs smiesznej czcionki.
+
+I moze tym bysmy jutro sie zajeli, a pozniej
+dodali do operacji edycji mozliwosc odkomentowywania
+i zakomentowywania wyrazen oraz dodawania blokow
+komentarzy i zakomentowywania linii
+
+
+* 18.02.2023
+
+*bold*
+/italic/ 
+
+╭        ╭         ╮                                   ╮
+│ define │ map f l │                                   │
+│        ╰         ╯                                   │
+│   ╭                                                ╮ │
+│   │ march l                                        │ │
+│   │                                                │ │
+│   │    ╭ ◹╭    ╷    ╮ ◹╭  ╭     ╮  ╭         ╮ ╮ ╮ │ │
+│   │    │  │  h │  t │  │  │ f h │ ◿│ map f l │ │ │ │ │
+│   │    ╰  ╰ ◿  ╵ ◿  ╯  ╰ ◿╰     ╯ ○╰         ╯ ╯ ╯ │ │
+│   │    ╭ ◻╭  ╮        ◻╭  ╮ ╮                      │ │
+│   │    │  │  │         │  │ │                      │ │
+╰   ╰    ╰  ╰  ╯         ╰  ╯ ╯                      ╯ ╯
+
+
+╭        ╭         ╮                  ╮
+│ define │ map f l │                  │
+│        ╰         ╯                  │
+│ ╭                                 ╮ │
+│ │ match l                         │ │
+│ │                                 │ │
+│ │ ╭ ┏      ┓ ┏  ┓ ╮               │ │
+│ │ │ ┃      ┃ ┃  ┃ │               │ │
+│ │ ╰ ┗      ┛ ┗| ┛ ╯               │ │
+│ │ ╭ ╓      ╖ ╓ ╭        ╮     ╖ ╮ │ │
+│ │ │ ║ head ║ ║ │ f head │     ║ │ │ │
+│ │ │ ║ ____ ║ ║ ╰_______ ╯____ ║ │ │ │
+│ │ │ ║      ║ ║ ╭            ╮ ║ │ │ │
+│ │ │ ║ tail ║ ║ │ map f tail │ ║ │ │ │
+╰ ╰ ╰ ╙      ╜ ╙ ╰            ╯ ╜ ╯ ╯ ╯
+
+⋮
+
+◴
+▴◹○
+▾
+▲
+▼
+
+▮◀◀  ▮◀  ▶/▮▮  ▶▮  ▶▶▮
+
+Pomalu sobie pomysliwamy
+zeby quote i quasiquote implementowac
+jako rozszerzenia (tyle ze musialyby byc
+dostepne i wstawiane podczas parsowania)
+
+* 17.02.2023
+
+Wiele bledow udalo sie wczoraj naprawic, ale na pewno
+sa tez takie, ktorych nie udalo sie znalezc ani obsluzyc.
+
+Co nam teraz pozostaje:
+- zrobmy tego delete-forward!
+- poprawmy parser tak, zeby zamiast '() wstawial
+  (empty) - tam gdzie powinien
+
+To sa jednak rzeczy do scommitowania w kolejnym tygodniu
+(choc zrealizowac je mozemy juz dzis)
+
+Natomiast w weekend bysmy sie zajeli uzupelnieniem
+ELSowego pejpera o referencje i kody CCS (na pewno
+trzeba tez dodac medc.mark.dev i ewentualnie Bochser
+oraz ten drugi GRASP)
+
+OK, czyli moze na poczatku przyszlego tygodnia by sie
+udalo miec delete-character! i tematyke edycji z grubsza
+zamknieta (modulo ewentualne bugi)
+
+Natomiast w dalszej kolejnosci mamy:
+- obsluge komentarzy
+- obsluge specjalnej skladni
+- otwieranie i zamykanie plikow
+- scrollowanie ekranu
+- dzielenie ekranu
+
+Zakladamy, ze to minimum do ELS (choc oczywiscie
+mozemy sie pomylic), a jesli tak, to moze sie jeszcze
+uda:
+
+- mechanizm rozszerzen (we wszystkich klientach)
+- rozszerzenie Button
+- obsluga gestow (glownie a Androidzie, ale wszedzie
+  indziej czemu nie?)
+
+Natomiast celowalibysmy w to, zeby te funkcjonalnosci
+byly juz implementowane w samym GRASPie.
+
+* 16.02.2023
+
+Ostatni przypadek testowy wykazal problem z robieniem "undo!"
+merge'a, wiec to nim bysmy sie dzis zajeli.
+
+Poza tym sprobowalibysmy przetestowac operacje na tekscie,
+a jezeli czas pozwoli, to rowniez bysmy sprobowali
+zrobic delete-backward!
+
+OK, z tym merge'owaniem to sprawa wydaje sie nieco grubsza,
+bo wyglada na to, ze operacja inverse nie dziala prawidlowo
+
+Byc moze jednak bedzie to okazja do tego, zeby usunac
+pole "document" z wiekszosci operacji edycji.
+
+Ale bedzie trzeba albo dodac dodatkowe pole do
+
+(SplitElement with: Space
+              at: Cursor := (the-cursor)
+	      in: pair := (the-document))
+
+badz
+
+(MergeElements removing: Space
+               at: Cursor := (the-cursor)
+               in: pair := (the-document))
+
+albo moze tak:
+
+(SplitElement with: Space at: Cursor)
+(MergeElements removing: Space after: Cursor)
+
+tak zeby
+
+(inverse (MergeElements removing: Space after: Cursor))
+= (SplitElement at: Cursor with: space)
+
+
 * 15.02.2023
 
 Mamy zrobione wstawianie znakow w atomy
@@ -15,6 +254,10 @@ ktora mamy, i dla tej, ktorej jeszcze nie mamy
 
 - oraz naturalnie zaimplementowac
   delete-forward!
+
+Commity moga byc robione dopiero dzis i jutro,
+a nastepny w niedziele, dlatego byloby super
+zamknac do jutra kwestie zwiazane z edycja.
 
 * 13.02.2023
 
