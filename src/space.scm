@@ -318,9 +318,8 @@
 	     (out:append #\space))
 	(process rest))
 
-       (`(,,@Comment? . ,rest)
-	(let ((comment ::Comment (car input)))
-	  (comment:print out))
+       (`(,comment::Comment . ,rest)
+	(comment:print out)
 	(process rest))
        
        (_
