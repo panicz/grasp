@@ -253,7 +253,6 @@
   ((inverse)::Edit
    (MergeElements removing: with
 		  after: at)))
-			       
 
 (define-type (MergeElements removing: Space
 			    after: Cursor := (the-cursor))
@@ -263,9 +262,7 @@
    (and-let* ((`(,tip ,top . ,root) after)
 	      (parent ::cons (drop (quotient top 2)
 				   (cursor-ref document root)))
-	      (`(,left ,right . ,_) parent)
-	      (left ::Textual left)
-	      (right ::Textual right))
+	      (`(,left::Textual ,right::Textual . ,_) parent))
      (assert (eqv? tip (text-length left)))
      (assert (eq? removing (post-head-space parent)))
      (left:merge! right)
@@ -306,9 +303,8 @@
   
   (define (undo!)::void
     (and-let* ((`(,timeline . ,_) fronts)
-	       (`(,last-action . ,_) (drop undo-step timeline))
-	       (operation ::Edit last-action)
-	       (inverse ::Edit (operation:inverse))
+	       (`(,last-action::Edit . ,_) (drop undo-step timeline))
+	       (inverse ::Edit (last-action:inverse))
 	       (cursor (inverse:apply! document)))
       (set! (the-cursor) cursor)
       (set! (the-selection-anchor) cursor)
@@ -317,10 +313,9 @@
   (define (redo!)::void
     (and-let* (((is undo-step > 0))
 	       (`(,timeline . ,_) fronts)
-	       (`(,undone-action . ,_) (drop (- undo-step 1)
-					     timeline))
-	       (operation ::Edit undone-action)
-	       (cursor (operation:apply! document)))
+	       (`(,undone-action::Edit . ,_) (drop (- undo-step 1)
+						   timeline))
+	       (cursor (undone-action:apply! document)))
       (set! (the-cursor) cursor)
       (set! (the-selection-anchor) cursor)
       (set! undo-step (- undo-step 1))))
@@ -347,10 +342,9 @@
 			 (set! (car fronts) (cdr (car fronts)))
 			 (set! (car (car fronts))
 			       operation))))
-	  ((and-let* ((`((,(Insert element: `(,atom)
+	  ((and-let* ((`((,(Insert element: `(,atom::Atom)
 				   at: `(,t ,n . ,root)) . ,_)
 			 . ,_) fronts)
-		      (atom ::Atom atom)
 		      (l (atom:text-length))
 		      ((InsertCharacter list: `(,c)
 					after: `(,,l ,,(+ n 1)
@@ -380,7 +374,6 @@
 		      ((RemoveCharacter list: chars
 					before: `(,n . ,root))
 		       last-operation)
-		      (last-operation ::RemoveCharacter last-operation)
 		      ((RemoveCharacter list: new
 					before: `(,,(- n (length chars))
 						  . ,,root)) operation)
@@ -396,7 +389,6 @@
 					before: `(,n . ,root))
 		       last-operation)
 		      (l (length chars))
-		      (last-operation ::RemoveCharacter last-operation)
 		      ((RemoveCharacter list: new
 					before: `(,,(- n (length chars)
 						       -1)

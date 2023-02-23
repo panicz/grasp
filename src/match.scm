@@ -16,12 +16,19 @@
 	   (not (gnu.lists.Pair? b)))))
 
 (define-syntax match/evaluated
-  (syntax-rules ()
+  (syntax-rules (::)
     ((match/evaluated value)
      ;; This behavior is unspecified, and an "unspecified"
      ;; value would also be fine here.
      (error 'no-matching-pattern value))
 
+    ((match/evaluated value (pattern::type actions ...) . clauses)
+     (match-clause ((pattern::type value))
+                   (and)
+                   ()
+                   actions ...
+                   (match/evaluated value . clauses)))
+    
     ((match/evaluated value (pattern actions ...) . clauses)
      (match-clause ((pattern value))
                    (and)
@@ -33,11 +40,20 @@
   (lambda (stx)
     (syntax-case stx (quasiquote
 		      unquote quote unquote-splicing
-		      and _ %typename)
+		      and _ %typename ::)
       ((match-clause () condition bindings actions ... alternative)
        #'(check/unique condition bindings #f () ()
 		       actions ... alternative))
 
+      ((match-clause ((`,pattern::type root) . rest)
+                     condition
+                     bindings
+                     actions ... alternative)
+       #'(match-clause ((pattern::type root) . rest)
+                       condition
+                       bindings
+                       actions ... alternative))
+      
       ((match-clause ((`,pattern root) . rest)
                      condition
                      bindings
@@ -47,6 +63,18 @@
                        bindings
                        actions ... alternative))
 
+      ((match-clause ((,value::type root) . rest)
+                     (conditions ...)
+                     bindings
+                     actions ... alternative)
+       #'(match-clause rest
+                       (conditions
+			...
+			(instance? root type)
+			(match/equal? value root))
+                       bindings
+                       actions ... alternative))
+      
       ((match-clause ((,value root) . rest)
                      (conditions ...)
                      bindings
@@ -65,6 +93,15 @@
                        bindings
                        actions ... alternative))
       
+      ((match-clause ((_::type root) . rest)
+                     (conditions ...)
+                     bindings
+                     actions ... alternative)
+       #'(match-clause rest
+                       (conditions ... (instance? root type))
+                       bindings
+                       actions ... alternative))
+
       ((match-clause ((_ root) . rest)
                      condition
                      bindings
@@ -74,6 +111,16 @@
                        bindings
                        actions ... alternative))
 
+      ((match-clause ((variable ::type root) . rest)
+                     (conditions ...)
+                     bindings
+                     actions ... alternative)
+       (identifier? #'variable)
+       #'(match-clause rest
+                       (conditions ... (instance? root type))
+                       ((variable ::type root) . bindings)
+                       actions ... alternative))
+      
       ((match-clause ((variable root) . rest)
                      condition
                      bindings
@@ -90,6 +137,16 @@
                      actions ... alternative)
        #'(match-clause rest
                        (and conditions ... (match/equal? root 'datum))
+                       bindings
+                       actions ... alternative))
+
+      ((match-clause ((`(left::type . right) root) . rest)
+                     (and conditions ...)
+                     bindings
+                     actions ... alternative)
+       #'(match-clause ((`left::type (car root))
+			(`right (cdr root)) . rest)
+                       (and conditions ... (pair? root))
                        bindings
                        actions ... alternative))
       
@@ -143,6 +200,17 @@
 			 (and conditions ...)
 			 bindings
 			 actions ... alternative)))
+
+      ((match-clause (((typename . fields) root) . rest)
+                     (and conditions ...)
+                     (bindings ...)
+                     actions ... alternative)
+       (and (identifier? #'typename) (identifier? #'root))
+       #'(match-clause (((%typename typename . fields) root) . rest)
+                       (and conditions ... (instance? root typename))
+                       (bindings ... (root ::typename root))
+                       actions ... alternative))
+
       
       ((match-clause (((typename . fields) root) . rest)
                      (and conditions ...)
@@ -168,54 +236,62 @@
   (lambda (stx)
     "add equality checks for repeated identifiers in patterns and remove them from bindings"
     (syntax-case stx (and)
-      ((check/unique condition () #f () bindings actions ... alternative)
+      ((check/unique condition #;unchecked ()
+		     #;currently-checked #f
+		     #;checked ()
+		     #;final bindings actions ... alternative)
        #'(if condition
              (let bindings actions ...)
              alternative))
 
+      ;; check the next binding from the list
       ((check/unique condition
-                     ((variable path) . bindings)
+                     ((variable type ... path) . bindings)
                      #f
                      bindings/checked
                      bindings/final
                      actions ... alternative)
        #'(check/unique condition
                        bindings
-                       (variable path)
+                       (variable type ... path)
                        bindings/checked
                        bindings/final
                        actions ... alternative))
 
+      ;; the binding is present: add equality check
       ((check/unique (and conditions ...)
-                     ((variable path) . bindings)
-                     (variable+ path+)
+                     ((variable type ... path) . bindings)
+                     (variable+ type+ ... path+)
                      bindings/checked
                      bindings/final
                      actions ... alternative)
        (bound-identifier=? #'variable #'variable+)
        #'(check/unique (and conditions ... (match/equal? path path+))
                        bindings
-                       (variable+ path+)
+                       (variable+ type+ ... path+)
                        bindings/checked
                        bindings/final
                        actions ... alternative))
-
+      
+      ;; the binding is absent: go on
       ((check/unique conditions
-                     ((variable path) . bindings)
-                     (variable+ path+)
+                     ((variable type ... path) . bindings)
+                     (variable+ type+ ... path+)
                      bindings/checked
                      bindings/final
                      actions ... alternative)
        #'(check/unique conditions
                        bindings
-                       (variable+ path+)
-                       ((variable path) . bindings/checked)
+                       (variable+ type+ ... path+)
+                       ((variable type ... path) . bindings/checked)
                        bindings/final
                        actions ... alternative))
 
+      ;; add binding to the "checked" list
+      ;; (and possibly start over)
       ((check/unique conditions
                      ()
-                     (variable path)
+                     (variable type ... path)
                      bindings/checked
                      bindings/final
                      actions ... alternative)
@@ -223,7 +299,7 @@
                        bindings/checked
 		       #f
 		       ()
-                       ((variable path) . bindings/final)
+                       ((variable type ... path) . bindings/final)
                        actions ... alternative))
       )))
 
@@ -234,6 +310,13 @@
        (identifier? #'pattern)
        #'(let ((pattern value))
            (match-let* rest . body)))
+      
+      ((_ ((pattern::type value) . rest) . body)
+       #'(match value
+           (pattern
+            (match-let* rest . body))
+           (_
+            (error "Value failed to match pattern: "'value 'pattern))))
       
       ((_ ((pattern value) . rest) . body)
        #'(match value
