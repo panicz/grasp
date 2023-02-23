@@ -1,3 +1,150 @@
+* 23.02.2023
+
+bysmy moze zaczeli od zaimplementowania
+draw-line-comment! i draw-box-comment!
+w painterze (tzn. w TextPainterze,
+TerminalPainterze, screen-rendererze,
+a w pozniejszym czasie rowniez
+w androidowym View).
+
+Dla TextPainter bysmy tylko robili
+
+dla TerminalPainter bysmy tez dodali
+troche koloru.
+
+│ jeden srednik
+┃ dwa sredniki
+┣ trzy sredniki
+┣━ cztery sredniki
+┣━━ piec srednikow
+
+Wreszcie dla screen-renderera - i docelowo
+dla Androida tez - bysmy wybrali jakas
+zwariowana czczionke
+
+Jezeli idzie o komentarze pudelkowe,
+to bysmy je tak rysowali:
+
+┌───┐
+│   │
+└───┘
+
+Lispiarze maja ogolnie taka konwencje, ze
+;;; Heading
+;;;; subheading
+;;;;; subsubheading
+
+No dobra, ale pozostaje nam jeszcze kwestia
+tego, ze chcielibysmy, zeby komentarze liniowe
+byly jedna linia pod druga, tzn. zeby nie bylo
+miedzy nimi takiego duzego odstepu, jak w przypadku
+atomow
+
+* 22.02.2023
+
+Wydaje sie, ze przynajmniej pozornie:
+- dodanie rysowania do komentarzy bedzie
+raczej proste
+- dodanie "cursor-under*" wymaga nieco myslenia
+- dodanie 'advance!' tez powinno byc raczej latwe
+
+No to zastanowmy sie nad tym "cursor-under*"
+
+Mamy sobie kopie obiektu traverse.
+Funkcja "cursor-under" odejmuje t:left i t:top
+od otrzymanych wartosci left i top.
+
+Ale z jakichs wzgledow implementacja cursor-under*
+w Space przywraca rame odniesienia dla danego
+obiektu Traverse.
+
+Ogolnie rzecz biorac to ma sens o tyle, ze
+spacje nie sa "foremne" i moga rozciagac sie
+na wiele linii.
+
+No ale dobra. W przypadku spacji transformujemy
+wspolrzedne z powrotem do ukladu wspolrzednych
+obiektu (the-traverse).
+
+To teraz zamysl jest taki:
+1. implementujemy metody draw!, cursor-under* oraz advance!
+   dla wszystkich trzech odmian komentarzy
+2. integrujemy to sobie w obiekcie space
+3. wszystko hula i sie cieszymy
+
+No dobrze, ale mamy tak:
+
+|---------------+--------------------+------------------------+--------------------------|
+| metoda        | LineComment        | BlockComment           | ExpressionComment        |
+|---------------+--------------------+------------------------+--------------------------|
+| draw!         | rysujemy           | rysujemy               | najpierw rysujemy        |
+|               | jakis znacznik     | pudelko wewnatrz       | spacje (mozemy sobie     |
+|               | i renderujemy      | ktorego renderujemy    | zalozyc ze sa zerowe)    |
+|               | tekst (ale trzeba  | tekst (trzeba pomyslec | a po nich wyrazenie      |
+|               | pomyslec o kolorze | o kolorze i kroju      | - ale trzeba w jakis     |
+|               | i kroju czcionki)  | czcionki)              | sposob zmienic tryb      |
+|---------------+--------------------+------------------------+--------------------------|
+| cursor-under* |                    |                        |                          |
+|---------------+--------------------+------------------------+--------------------------|
+| advance!      | normalnie          | normalnie              | najpierw spaces:advance! |
+|               |                    |                        |                          |
+|---------------+--------------------+------------------------+--------------------------|
+
+
+Trzeba przemyslec jakie zmiany by nalezalo wprowadzic do paintera.
+
+Moglibysmy po prostu dodac:
+
+enter-comment-drawing-mode!
+exit-comment-drawing-mode!
+
+A co z cytowaniem?
+
+increase-quotation-level!
+decrease-quotation-level!
+
+increase-quasiquotation-level!
+decrease-quasiquotation-level!
+
+No i jeszcze co ze zwyklymi komentarzami?
+
+draw-line-comment!
+draw-block-comment!
+
+line-comment-extent
+block-comment-extent
+
+
+╭        ╭         ╮      ╮
+│ define │ map f l │      │
+│        ╰         ╯      │
+│ ╭                     ╮ │
+│ │ match l             │ │
+│ │                     │ │
+│ │ ╭ ┏  ┓ ┏  ┓ ╮       │ │
+│ │ │ ┃  ┃ ┃  ┃ │       │ │
+│ │ ╰ ┗  ┛ ┗  ┛ ╯       │ │
+│ │ ╭ ╓      ╥      ╖ ╮ │ │
+│ │ │ ║ head ║ tail ║ │ │ │
+╰ ╰ ╰ ╙      ^      ╜ ╯ ╯ ╯
+
+
+╭        ╭         ╮      ╮
+┆ define ┆ map f l ┆      ┊
+┆        ╰         ╯      ┊
+┆ ╭                     ╮ ┊
+┆ ┆ match l             ┆ ┊
+┆ ┆                     ┆ ┊
+┆ ┆ ╭ ┏  ┓ ┏  ┓ ╮       ┆ ┊
+┆ ┆ ┆ ┇  ┇ ┇  ┋ ┆       ┆ ┊
+┆ ┆ ╰ ┗  ┛ ┗  ┛ ╯       ┆ ┊
+┆ ┆ ╭ ╓      ╥      ╖ ╮ ┆ ┊
+┆ ┆ ┆ ┋ head ┋ tail ┋ ┆ ┆ ┊
+╰ ╰ ╰ ╙      ^      ╜ ╯ ╯ ╯
+
+
+
+
 * 21.02.2023
 
 Dzis bysmy sie zajeli tym, zeby komentarze byly uwzgledniane
