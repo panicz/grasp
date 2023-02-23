@@ -102,6 +102,12 @@
 (define-parameter (the-background-color)::Color
   Color:ANSI:DEFAULT)
 
+(define-parameter (the-selected-text-color)::Color
+  Color:ANSI:BLACK)
+
+(define-parameter (the-selected-background-color)::Color
+  Color:ANSI:YELLOW)
+
 (define-cache (letter character
 		      color: color::Color := (the-text-color)
 		      background: background::Color
@@ -202,8 +208,8 @@
   
   (define io::LanternaScreen screen)
 
-  (define text-color ::Color Color:ANSI:DEFAULT)
-  (define background-color ::Color Color:ANSI:DEFAULT)
+  (define text-color-stack ::java.util.Stack (java.util.Stack))
+  (define background-color-stack ::java.util.Stack (java.util.Stack))
   
   (define (put! c::char row::real col::real)::void
     (let ((x (+ col shiftLeft))
@@ -212,8 +218,7 @@
 	  (top (max 0 clipTop)))
       (when (and (is left <= x < (+ left clipWidth))
                  (is top <= y < (+ top clipHeight)))
-	(io:setCharacter x y (letter c color: text-color
-				     background: background-color)))))
+	(io:setCharacter x y (letter c)))))
 
   (define (mark-cursor! +left::real +top::real)::void
     (invoke-special CharPainter (this)
@@ -225,14 +230,16 @@
   (define (enter-selection-drawing-mode!)::void
     (invoke-special CharPainter (this)
 		    'enter-selection-drawing-mode!)
-    (set! text-color Color:ANSI:BLACK)
-    (set! background-color Color:ANSI:YELLOW))
+    (text-color-stack:push (the-text-color))
+    (background-color-stack:push (the-background-color))
+    (set! (the-text-color) (the-selected-text-color))
+    (set! (the-background-color) (the-selected-background-color)))
 
   (define (exit-selection-drawing-mode!)::void
+    (set! (the-text-color) (text-color-stack:pop))
+    (set! (the-background-color) (background-color-stack:pop))
     (invoke-special CharPainter (this)
-		    'exit-selection-drawing-mode!)
-    (set! text-color Color:ANSI:DEFAULT)
-    (set! background-color Color:ANSI:DEFAULT))
+		    'exit-selection-drawing-mode!))
   
   (define (get row::real col::real)::char
     (let ((letter (io:getBackCharacter col row)))
