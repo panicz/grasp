@@ -297,7 +297,7 @@
 (define (empty-space-extent space::Space)
   ::Extent
   (Extent width: (apply max space:fragments)
-	  height: (* (invoke (the-painter) 'min-line-height)
+	  height: (* (invoke (the-painter) 'min-box-height)
 		     (length space:fragments))))
 
 (define/kw (traverse sequence::list
@@ -310,7 +310,7 @@
   (let* ((painter (the-painter))
          (traversal (Traversal
 		     max-line-height:
-		     (painter:min-line-height))))
+		     (painter:min-box-height))))
 
     (parameterize ((the-traversal traversal))
 
@@ -524,7 +524,7 @@
 
 	((null? object)
 	 (Extent width: 0 height: (invoke (the-painter)
-					  'min-line-height)))
+					  'min-box-height)))
 
 	((pair? object)
 	 (sequence-extent object))

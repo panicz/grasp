@@ -277,10 +277,13 @@
   (define (paren-width)::real
     top-left-bounds:width)
 
-  (define (min-line-height)::real
+  (define (min-box-height)::real
     (max (invoke (the-atom-font) 'getSize2D)
 	 (+ top-left-bounds:height bottom-left-bounds:height)
 	 (+ top-right-bounds:height bottom-right-bounds:height)))
+  
+  (define (min-line-height)::real
+    (invoke (the-atom-font) 'getSize2D))
 
   (define (draw-rounded-rectangle! width::real height::real)::void
     (graphics:drawRoundRect 0 0 (as int width) (as int height) 5 5))
@@ -697,12 +700,10 @@ automatically by the AWT framework."))
   (setVisible #t)
   )
 
-
 (define (run-in-AWT-window)::void
   (initialize-keymap)
   (safely 
    (load "assets/init.scm"))
-
   (window-screen))
 
 (run-in-AWT-window)
