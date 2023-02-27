@@ -1,3 +1,23 @@
+* 24.02.2023
+
+Teraz pomysl jest taki, ze poniewaz zakladamy,
+ze linie skladajace sie tylko z komentarzy liniowych
+moglibysmy ze soba scalac, moglibysmy rozdzielic
+parametr "min-line-height" na "min-box-height"
+i "min-line-height"
+
+Gdzie jest uzywany min-line-height?
+
+- W (extent '())
+- w (empty-space-extent)
+- przy inicjalizacji "traversal" jako max-line-height
+  w traverse
+- przy inicjalizacji obiektu Traversal w Space:extent
+- w funkcji resize! do zmiany rozmiaru pudelka
+- w metodzie new-line! obiektu Traversal
+- w metodzie atom-extent w CharPainterze
+
+
 * 23.02.2023
 
 bysmy moze zaczeli od zaimplementowania
