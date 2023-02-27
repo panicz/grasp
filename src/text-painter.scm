@@ -71,7 +71,9 @@
   
   (define (paren-width)::real 2)
 
-  (define (min-line-height)::real 3)
+  (define (min-box-height)::real 3)
+  
+  (define (min-line-height)::real 1)
   
   (define (vertical-bar-width)::real 1)
 
@@ -238,7 +240,7 @@
   (define (atom-extent text::CharSequence)::Extent
     (let ((inner ::Extent (string-extent text)))
       (Extent width: inner:width
-	      height: (max (min-line-height) inner:height))))
+	      height: (max (min-box-height) inner:height))))
 
   (define (atom-character-index-under x::real y::real
 				      text::CharSequence)

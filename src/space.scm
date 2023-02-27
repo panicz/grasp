@@ -687,7 +687,7 @@
     (let* ((painter (the-painter))
 	   (traversal (Traversal
 		       max-line-height:
-		       (painter:min-line-height))))
+		       (painter:min-box-height))))
       (space:advance! traversal)
       (Extent width: (+ (* 2 (painter:paren-width))
 			traversal:max-width)

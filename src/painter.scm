@@ -49,6 +49,7 @@
   (space-width)::real
   
   (paren-width)::real
+  (min-box-height)::real
   (min-line-height)::real
   
   (clear!)::void
@@ -88,7 +89,9 @@
   (define (paren-width)::real 1)
 
   (define (cursor-height)::real 1)
-  
+
+  (define (min-box-height)::real 1)
+
   (define (min-line-height)::real 1)
   
   (define (vertical-bar-width)::real 1)
