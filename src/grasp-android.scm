@@ -369,6 +369,10 @@
 
   (define (min-line-height)::real
     (let ((font ::Font (the-atom-font)))
+      font:size))
+  
+  (define (min-box-height)::real
+    (let ((font ::Font (the-atom-font)))
       (max font:size
 	   (+ top-left-extent:height bottom-left-extent:height)
 	   (+ top-right-extent:height bottom-right-extent:height))))
