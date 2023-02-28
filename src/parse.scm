@@ -245,10 +245,10 @@
 			  (next-space ::Space
 				      (post-head-space
 				       unexpr)))
+		      ;;(assert (EmptySpace? spaces))
 		      (set-cdr! coda
 				(cons
 				 (ExpressionComment
-				  spaces: spaces
 				  expression: (car unexpr))
 			 next-space:fragments))
 		      (read-next))))

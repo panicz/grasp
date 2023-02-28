@@ -560,3 +560,34 @@
  (let ((l (list 1 2 3 4 5 6 7 8)))
    (remove! even? l)
    l) ===> (1 3 5 7))
+
+(define (count-while satisfying?::predicate s::sequence)::int
+  (let ((l ::int (length s)))
+    (let loop ((n ::int 0))
+      (if (or (is n >= l)
+	      (isnt (s n) satisfying?))
+	  n
+	  (loop (+ n 1))))))
+
+(e.g.
+ (count-while even? '(2 4 6 7 8)) ===> 3)
+
+(e.g.
+ (count-while char-upper-case? "ABcDEf") ===> 2)
+
+(define (byte-ref value::integer index::ubyte)::ubyte
+  (as ubyte
+      (bitwise-and #xFF (bitwise-arithmetic-shift
+			 value (- (* 8 index))))))
+
+(e.g.
+ (is (byte-ref #xAABBCCDD 0) = #xDD))
+
+(e.g.
+ (is (byte-ref #xAABBCCDD 1) = #xCC))
+
+(e.g.
+ (is (byte-ref #xAABBCCDD 2) = #xBB))
+
+(e.g.
+ (is (byte-ref #xAABBCCDD 3) = #xAA))

@@ -250,18 +250,23 @@
 	   (t:advance-by! (* width space-width)))
 	 
 	 (match input
-	   (`(,,@integer? ,,@integer? . ,_)
-	    (advance-with-cursor! (car input))
-	    (t:new-line!)
-	    (skip (cdr input) (+ total (car input) 1)))
-	   (`(,,@integer . ,rest)
-	    (advance-with-cursor! (car input))
-	    (skip rest (+ total (car input))))
-	   #;(`(,,@Comment? . ,rest)
+	   (`(,comment::Comment . ,rest)
 	    (parameterize ((the-traversal t))
-	      (let ((comment ::Comment (car input)))
-		(comment:draw! (recons total context))))
+	      (with-translation ((- t:left left) (- t:top top))
+		  (comment:draw! (hash-cons total context))))
+	    (comment:advance! t)
 	    (skip rest (+ total 1)))
+	   
+	   (`(,width::integer ,next::integer . ,_)
+	    (advance-with-cursor! width)
+	    (t:new-line!)
+	    (skip (cdr input) (+ total width 1)))
+	   
+	   (`(,width::integer . ,rest)
+	    (advance-with-cursor! width)
+	    (skip rest (+ total width)))
+	   
+	   
 	   ('()
 	    (values)))))))
 
@@ -299,9 +304,8 @@
 					space-width))
 			   path))
 	   (skip rest (+ total (car input)))))
-	 #;(`(,,@Comment? . ,rest)
-	  (let ((comment ::Comment (car input)))
-	    (comment:cursor-under* ...)))
+	 (`(,comment::Comment . ,rest)
+	  (comment:cursor-under* x y path))
 	 ('()
 	  #!null)))))
   ((print out::gnu.lists.Consumer)::void
@@ -325,26 +329,27 @@
        (_
 	(values)))))
 
-  ((advance! t::Traversal)::Traversal
+  ((advance! t::Traversal)::void
    (let* ((painter (the-painter))
 	  (space-width (painter:space-width)))
      (let skip ((input fragments)
 		(total 0))
        (match input
-	 (`(,,@integer? ,,@integer? . ,_)
-	  (t:advance-by! (* space-width (car input)))
+	 (`(,comment::Comment . ,rest)
+	  (comment:advance! t)
+	  (skip rest (+ total 1)))
+	 
+	 (`(,width::integer ,next::integer . ,_)
+	  (t:advance-by! (* space-width width))
 	  (t:new-line!)
-	  (skip (cdr input) (+ total (car input) 1)))
-	 (`(,,@integer? . ,rest)
-	  (t:advance-by! (* space-width (car input)))
-	  (skip rest (+ total (car input))))
-	 #;(`(,,@Comment? . ,rest)
-	  (let ((comment ::Comment (car input)))
-	    (comment:advance! t)
-	    (skip rest (+ total 1))))
+	  (skip (cdr input) (+ total width 1)))
+	 
+	 (`(,width::integer . ,rest)
+	  (t:advance-by! (* space-width width))
+	  (skip rest (+ total width)))
+	 
 	 ('()
-	  (set! t:index (+ t:index 1))
-	  t)))))
+	  (set! t:index (+ t:index 1)))))))
   implementing Textual
   with
   ((insert-char! c::char index::int)::void

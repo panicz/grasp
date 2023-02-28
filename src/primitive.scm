@@ -310,7 +310,7 @@
   (let* ((painter (the-painter))
          (traversal (Traversal
 		     max-line-height:
-		     (painter:min-box-height))))
+		     (painter:min-line-height))))
 
     (parameterize ((the-traversal traversal))
 

@@ -116,6 +116,8 @@
 
 (define-interface Tile (Element)
   (extent)::Extent
+  (advance! traversal::Traversal)::void
+  ;;:= (traversal:advance/extent! (extent))
   )
 
 (define-interface ShadowedTile (Shadowed Tile))
@@ -124,8 +126,8 @@
 
 (define-interface ShadowedTextualTile (Shadowed TextualTile))
 
-(define-interface Comment (Indexable)
-  ;; docelowo to bedzie musial byc Element
+(define-interface Comment (Tile)
+  ;; docelowo to bedzie musial byc Tile
   (print out::gnu.lists.Consumer)::void)
 
 #|
