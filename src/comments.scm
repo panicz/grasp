@@ -7,48 +7,48 @@
 (import (match))
 (import (for))
 (import (infix))
+(import (painter))
+(import (extent))
 
-(define-type (ExpressionComment spaces: Space
-				expression: Element)  
+(define-type (ExpressionComment expression: Tile)
   implementing Comment
   with
   ((draw! context::Cursor)::void
    ;; powinnismy po prostu zmienic jakies parametry
-   ;; ekranu i wywolac najpierw
-   ;; (spaces:draw! (recons (first-index) context))
-   ;; a nastepnie
-   ;; (expression:draw! (recons (last-index) context))
-   #!void)
+   ;; ekranu i wywolac
+   (expression:draw! context))
   
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
-   #!null)
+   (expression:cursor-under* x y path))
 
+  ((extent)::Extent
+   (expression:extent))
+
+  ((advance! traversal::Traversal)::void
+   (expression:advance! traversal))
+  
   ((print out::gnu.lists.Consumer)::void
    (out:append #\#)
    (out:append #\;)
-   (invoke (as Space spaces) 'print out)
    (show expression))
   
   ((first-index)::Index
-   'spaces)
+   (expression:first-index))
 
   ((last-index)::Index
-   'expression)
+   (expression:last-index))
   
   ((part-at index::Index)::Index
-   (match index
-     ('spaces spaces)
-     ('expression expression)))
+   (expression:part-at index))
 
   ((next-index index::Index)::Index
-   (last-index))
+   (expression:next-index index))
 
   ((previous-index index::Index)::Index
-   (first-index))
+   (expression:previous-index index))
 
   ((index< a::Index b::Index)::Index
-   (and (is a eq? (first-index))
-	(isnt b eq? (first-index)))))
+   (expression:index< a b)))
 
 (define-type (BlockComment content: Text)
   implementing Comment
@@ -58,6 +58,13 @@
   
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
    #!null)
+
+  ((extent)::Extent
+   (Extent width: 1
+	   height: 1))
+
+  ((advance! traversal::Traversal)::void
+   (traversal:advance/extent! (extent)))
   
   ((print out::gnu.lists.Consumer)::void
    (out:append #\#)
@@ -68,7 +75,7 @@
    (out:append #\#))
   
   ((part-at index::Index)::Indexable*
-   (content:part-at index))
+   (this))
   
   ((first-index)::Index
    (content:first-index))
@@ -90,7 +97,16 @@
   implementing Comment
   with
   ((draw! context::Cursor)::void
-   #!void)
+   (let ((painter ::Painter (the-painter)))
+     (painter:draw-line-comment! content context)))
+
+  ((extent)::Extent
+   (let ((painter ::Painter (the-painter)))
+     (painter:line-comment-extent content)))
+
+  ((advance! traversal::Traversal)::void
+   (traversal:advance/extent! (extent))
+   (traversal:new-line!))
   
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
    #!null)
@@ -102,7 +118,7 @@
    (out:append #\newline))
 
   ((part-at index::Index)::Indexable*
-   (content:part-at index))
+   (this))
   
   ((first-index)::Index
    (content:first-index))

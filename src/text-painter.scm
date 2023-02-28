@@ -268,11 +268,34 @@
   (define (in-selection-drawing-mode?)::boolean
     inSelectionDrawingMode)
 
+  (define (draw-line-comment! text::CharSequence context::Cursor)::void
+    (let*-values (((semicolons) (count-while (is _ eqv? #\;) text))
+		  ((shift skip) (match semicolons 
+				  (0 (put! #\│ 0 0)
+				     (values 1 0))
+				  (1 (put! #\┃ 0 0)
+				     (values 1 1))
+				  (n (put! #\┣ 0 0)
+				     (for i from 1 below n
+					  (put! #\━ 0 i))
+				     (values (- n 1) n))))
+		  ((end) (string-length text)))
+      (with-translation (shift 0)
+	  (draw-string! (substring text skip end)
+			 context))))
+  
+  (define (line-comment-extent text::CharSequence)::Extent
+    (let ((semicolons (count-while (is _ eqv? #\;) text)))
+      (Extent width: (match semicolons
+			   (0 (+ (string-length text) 1))
+			   (1 (string-length text))
+			   (n (- (string-length text) 1)))
+	      height: 1)))
+
   (define (draw-point! left::real top::real color-rgba::int)::void
     #!abstract)
 
   )
-  
   
 (define-object (TextPainter)::Painter
   (define width ::int 0)

@@ -79,6 +79,27 @@
   (exit-selection-drawing-mode!)::void
   (in-selection-drawing-mode?)::boolean
 
+  #|
+  (enter-comment-drawing-mode!)::void
+  (exit-comment-drawing-mode!)::void
+  (in-comment-drawing-mode?)::boolean
+
+  (increase-quotation-level!)::void
+  (decrease-quotation-level!)::void
+  (quotation-level)::int
+
+  (increase-quasiquotation-level!)::void
+  (decrease-quasiquotation-level!)::void
+  (quasiquotation-level)::int
+
+  (draw-block-comment! text::CharSequence context::Cursor)::void
+  (block-comment-extent text::CharSequence context::Cursor)::Extent
+
+  |#
+  
+  (draw-line-comment! text::CharSequence context::Cursor)::void
+  (line-comment-extent text::CharSequence)::Extent
+  
   (draw-point! left::real top::real color-rgba::int)::void
   
   )
@@ -197,6 +218,13 @@
   (define (in-selection-drawing-mode?)::boolean
     #f)
 
+  (define (draw-line-comment! text::CharSequence context::Cursor)::void
+    (values))
+  
+  (define (line-comment-extent text::CharSequence)
+    ::Extent
+    (Extent width: 0 height: 0))
+  
   (define (draw-point! left::real top::real color-rgba::int)::void
     (void))
   )

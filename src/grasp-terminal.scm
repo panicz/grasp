@@ -108,6 +108,18 @@
 (define-parameter (the-selected-background-color)::Color
   Color:ANSI:YELLOW)
 
+(define-parameter (the-comment-text-color)::Color
+  Color:ANSI:WHITE)
+
+(define-parameter (the-comment-background-color)::Color
+  Color:ANSI:DEFAULT)
+
+(define-parameter (the-selected-comment-text-color)::Color
+  Color:ANSI:BLACK)
+
+(define-parameter (the-selected-comment-background-color)::Color
+  Color:ANSI:WHITE)
+
 (define-cache (letter character
 		      color: color::Color := (the-text-color)
 		      background: background::Color
@@ -256,12 +268,21 @@
     (let ((size (io:getTerminalSize)))
       (size:getRows)))
 
+  (define (draw-line-comment! text::CharSequence context::Cursor)::void
+    (parameterize ((the-text-color (the-comment-text-color))
+		   (the-background-color
+		    (the-comment-background-color))
+		   (the-selected-text-color
+		    (the-selected-comment-text-color))
+		   (the-selected-background-color
+		    (the-selected-comment-background-color)))
+      (invoke-special CharPainter (this) 'draw-line-comment!
+		      text context)))
+  
   (define (draw-point! left::real top::real color-rgb::int)::void
-    (let* ((red ::int (bitwise-and #xff (bitwise-arithmetic-shift
-					color-rgb -16)))
-	   (green ::int (bitwise-and #xff (bitwise-arithmetic-shift
-					   color-rgb -8)))
-	   (blue ::int (bitwise-and #xff color-rgb))
+    (let* ((red ::int (byte-ref color-rgb 2))
+	   (green ::int (byte-ref color-rgb 1))
+	   (blue ::int (byte-ref color-rgb 0))
 	   (color ::Color (Color:Indexed:fromRGB red green blue))
 	   (foreground ::Color (if (is (+ red green blue) > 384)
 				   Color:ANSI:BLACK
