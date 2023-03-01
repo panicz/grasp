@@ -1,3 +1,70 @@
+* 01.03.2023
+
+Wczoraj nie udalo sie osiagnac zbyt wiele - ale mimo
+wszystko cos sie udalo!
+
+Dzis zajelibysmy sie pisaniem staromodnych testow
+dla "space-fragment-index", "delete-space-fragment!",
+"Space:last-index", oraz zaimplementowalibysmy
+w LineComment interfejs Textual
+(ogolnie chcielibysmy zeby BlockComment takze
+obslugiwal ten interfejs - ale ExpressionComment
+juz niekoniecznie)
+
+* 28.02.2023
+
+Wczoraj z grubsza sie udalo zaimplementowac renderowanie
+w kliencie tekstowym i terminalowym, ale nie mamy jeszcze
+obslugi klikania, i strzalki w lewo i prawo tez jeszcze
+nie calkiem dzialaja.
+
+Dlatego dzis moze sprobowalibysmy sie zajac tymi dwiema
+kwestiami.
+
+* 27.02.2023
+
+Do rozdzielenia juz doszlo, i wyglada na to,
+ze niczego to nie psuje.
+
+Teraz mamy dwa najistotniejsze watki:
+1. zaimplementowac min-box-height na Androidzie
+2. sprobowac dodac slowo kluczowe 'default
+do domyslnych interfejsow, i usunac metode
+"advance!" z implementacji Tile.
+
+A w dalszej kolejnosci sprobowalibysmy pojsc
+taka droga:
+1. zaimplementowac komentarze liniowe
+  - dla klienta terminalowego
+  - dla klienta desktopowego
+  - dla klienta androidowego
+2. zaimplementowac komentarze blokowe
+  - dla klienta terminalowego
+  - dla klienta desktopowego
+  - dla klienta androidowego
+3. zaimplementowac komentarze wyrazeniowe
+  - dla klienta terminalowego
+  - dla klienta desktopowego
+  - dla klienta androidowego
+4. rozwazyc uzycie mechanizmu rozszerzen
+  do wyswietlania quote, quasiquote, unquote, unquote-splicing
+5. wprowadzic obsluge quote, quasiquote, unquote,
+  unquote-splicing do parsera
+
+No dobra, czyli teraz: komentarze liniowe dla klienta
+terminalowego (i textowego)
+
+To zaczynamy od tekstowego.
+Bedzie trzeba dodac testy jednostkowe,
+natomiast w przypadku terminalowego - jeszcze
+ustawic kolory odpowiednio.
+
+No dobra. Implementacja komentarzy musi sie skladac
+z nastepujacych metod:
+1. draw!
+2. extent
+3. cursor-under
+
 * 24.02.2023
 
 Teraz pomysl jest taki, ze poniewaz zakladamy,
