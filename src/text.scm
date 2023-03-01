@@ -103,3 +103,8 @@
       #t))
   
   (gnu.lists.FString))
+
+(define (text string::CharSequence)::Text
+  (let ((result ::Text (Text)))
+    (result:append string)
+    result))
