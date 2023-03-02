@@ -292,6 +292,13 @@
 			   (n (- (string-length text) 1)))
 	      height: 1)))
 
+  (define (line-comment-character-index-under x::real y::real
+					      text::CharSequence)
+    ::int
+    (let* ((semicolons (count-while (is _ eqv? #\;) text)))
+      (string-character-index-under x y text)))
+
+  
   (define (draw-point! left::real top::real color-rgba::int)::void
     #!abstract)
 
