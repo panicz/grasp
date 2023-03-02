@@ -3,7 +3,6 @@
   (define-type)
   (define-object)
   (conversions)
-
   (indexable)
   (primitive)
   (space)
@@ -12,30 +11,34 @@
   (conversions)
   (srfi :11)
   (assert)
+  (print)
+  (cursor)
   )
 
-(define factorial-definition (with-input-from-string "\
+(define (check-parser-correctness input::string)
+  (let* ((parsed ::pair (with-input-from-string input parse-document))
+	 (output ::string (with-output-to-string
+			    (lambda ()
+			      (show-document parsed)))))
+    (unless (string=? input output)
+      (WARN "Invalid parsing, expected: \"\\\n"input
+	    "\, ngot: \"\\\n"output"\"\n"))))
+
+(check-parser-correctness "
 (define (factorial n)
   (if (<= n 0)
       1
       (* n (! (- n 1)))))
-" parse-document))
+")
 
-(show-document factorial-definition)
-(newline)
-
-(define string-append-example (with-input-from-string "\
+(check-parser-correctness "
 (e.g. 
   (string-append \"abc\" \"def\")
    ===> \"abcdef\")
-" parse-document))
+")
 
-(show-document string-append-example)
-(newline)
-
-(define something-with-line-comments
-  (with-input-from-string "\
-; this input contains line comments
+(check-parser-correctness "
+   ; this input contains line comments
 ( ; in various places 
  + ; like, after an operator
  2 ; and an operand
@@ -46,38 +49,23 @@
 )
 
 ;and at the end of input
-" parse-document))
+")
+  
 
-(show-document something-with-line-comments)
-(newline)
+(check-parser-correctness "
+  ; line comments with empty input
+")
 
-
-(define line-comments-with-empty-input
-  (with-input-from-string "\
-; line comments with empty input
-" parse-document))
-
-(show-document line-comments-with-empty-input)
-(newline)
-
-(define nested-expression-comments
-  (with-input-from-string "\
+(check-parser-correctness "
 (begin
-#; (move 10 #;bytes #;(from (beautiful)) source #;to target)
+  #;(move 10 #;bytes #;(from (beautiful)) source #;to target)
 )
-" parse-document))
+")
 
-(show-document nested-expression-comments)
-(newline)
-
-(define nested-block-comments (with-input-from-string "\
+(check-parser-correctness "
 hey!
-#| what follows is an empty list
-#| and this comment is nested |#|#
+  #| what follows is an empty list
+  #| and this comment is nested |#|#
 ( #|this is the aforementioned empty list|#
-#|and it seems to work|# )
-" parse-document))
-
-(show-document nested-block-comments)
-(newline)
-
+  #|and it seems to work|# )
+")
