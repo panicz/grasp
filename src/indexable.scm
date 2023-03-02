@@ -130,6 +130,8 @@
   ;; docelowo to bedzie musial byc Tile
   (print out::gnu.lists.Consumer)::void)
 
+(define-interface TextualComment (Textual Comment))
+
 #|
 `the-cursor` and `the-document` are parameters
 that provide the default values to some functions that

@@ -25,7 +25,7 @@
      fragment)
 
     (,@Comment?
-     1)    
+     0)
     ))
 
 (define (space-fragment-index fragments index)
@@ -185,7 +185,7 @@
    (fold-left (lambda (total next)
 		(if (number? next)
 		    (+ total next)
-		    0))
+		    total))
 	      (length (cdr fragments))
 	      fragments))
   
@@ -281,29 +281,28 @@
      (let skip ((input fragments)
 		(total 0))
        (match input
-	 (`(,,@integer? ,,@integer? . ,_)
+	 (`(,width::integer ,next-line-prefix::integer . ,_)
 	  (cond
 	   ((is 0 <= (- y t:top) < t:max-line-height)
 	    (hash-cons (+ total
-			   (min (car input)
+			   (min width
 				(quotient (- x t:left)
 					  space-width)))
 			path))
 	   (else
-	    (t:advance-by! (* space-width (car input)))
+	    (t:advance-by! (* space-width width))
 	    (t:new-line!)
 	    (skip (cdr input)
 		  (+ total (car input))))))
-	 (`(,,@integer? . ,rest)
+	 (`(,width::integer . ,rest)
 	  (or
 	   (and (is 0 <= (- y t:top) < t:max-line-height)
-		(is x < (+ t:left (* space-width
-				     (car input))))
+		(is x < (+ t:left (* space-width width)))
 		(hash-cons (+ total
 			      (quotient (- x t:left)
 					space-width))
 			   path))
-	   (skip rest (+ total (car input)))))
+	   (skip rest (+ total width))))
 	 (`(,comment::Comment . ,rest)
 	  (comment:cursor-under* x y path))
 	 ('()
@@ -311,14 +310,14 @@
   ((print out::gnu.lists.Consumer)::void
    (let process ((input fragments))
      (match input
-       (`(,,@integer? ,,@integer? . ,_)
-	(for n from 0 below (car input)
+       (`(,width::integer ,next-line-prefix::integer . ,_)
+	(for n from 0 below width
 	     (out:append #\space))
 	(out:append #\newline)
 	(process (cdr input)))
 
-       (`(,,@integer? . ,rest)
-	(for n from 0 below (car input)
+       (`(,width::integer . ,rest)
+	(for n from 0 below width
 	     (out:append #\space))
 	(process rest))
 
@@ -339,7 +338,7 @@
 	  (comment:advance! t)
 	  (skip rest (+ total 1)))
 	 
-	 (`(,width::integer ,next::integer . ,_)
+	 (`(,width::integer ,next-line-prefix::integer . ,_)
 	  (t:advance-by! (* space-width width))
 	  (t:new-line!)
 	  (skip (cdr input) (+ total width 1)))

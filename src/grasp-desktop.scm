@@ -507,6 +507,19 @@
     ::int
     (text-character-index-under x y text (the-string-font)))
 
+  (define (draw-line-comment! text::CharSequence context::Cursor)
+    ::void
+    (draw-text! text (the-comment-font) context))
+  
+  (define (line-comment-extent text::CharSequence)
+    ::Extent
+    (text-extent text (the-string-font)))
+  
+  (define (line-comment-character-index-under x::real y::real
+					      text::CharSequence)
+    ::int
+    (text-character-index-under x y text (the-comment-font)))
+  
   (define (draw-point! left::real top::real aRGB::int)::void
     (graphics:setColor (color aRGB))
     (graphics:fillOval (as int (- left 4))

@@ -1,3 +1,4 @@
+(import (define-cache))
 (import (define-type))
 (import (define-interface))
 (import (fundamental))
@@ -9,6 +10,7 @@
 (import (infix))
 (import (painter))
 (import (extent))
+(import (examples))
 
 (define-type (ExpressionComment expression: Tile)
   implementing Comment
@@ -109,7 +111,13 @@
    (traversal:new-line!))
   
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
-   #!null)
+   (let ((painter ::Painter (the-painter))
+	 (inner ::Extent (extent)))
+     (and (is 0 <= x < inner:width)
+	  (is 0 <= y < inner:height)
+	  (hash-cons (painter:line-comment-character-index-under
+		      x y content)
+		     path))))
 
   ((print out::gnu.lists.Consumer)::void
    (out:append #\;)
@@ -135,3 +143,4 @@
   ((index< a::Index b::Index)::boolean
    (content:index< a b))
   )
+

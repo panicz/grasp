@@ -65,14 +65,21 @@
     (let ((editor ::Editor (as Editor (the-screen))))
       (slot-set! editor 'document
 		 (with-input-from-string "\
-(define (! n)
+  ;                 FACTORIAL
+  ; 
+  ;  A factorial of an integer number n
+  ;  is a product 1 * 2 * 3 * 4 * ... * n.
+  ;  It represents the number of permutations
+  ;  of an n-element set.
+  ; 
+(define (! n) ; -> int
 \"Computes the product 1*...*n.
 It represents the number of per-
 mutations of an n-element set.\"
   (if (<= n 0)
       1
-      (* n (! (- n 1))))) 
-(e.g. (factorial 5) ===> 120)
+      (* n (! (- n 1))))) ; factorial
+(e.g. (! 5) ===> 120)
 (Button action: (lambda () (WARN \"button pressed!\"))
         label: \"Press me!\")
 " parse-document))))

@@ -99,6 +99,9 @@
   
   (draw-line-comment! text::CharSequence context::Cursor)::void
   (line-comment-extent text::CharSequence)::Extent
+  (line-comment-character-index-under x::real y::real
+				      text::CharSequence)
+  ::int
   
   (draw-point! left::real top::real color-rgba::int)::void
   
@@ -224,6 +227,11 @@
   (define (line-comment-extent text::CharSequence)
     ::Extent
     (Extent width: 0 height: 0))
+
+  (define (line-comment-character-index-under x::real y::real
+					      text::CharSequence)
+    ::int
+    0)
   
   (define (draw-point! left::real top::real color-rgba::int)::void
     (void))
