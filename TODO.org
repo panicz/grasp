@@ -11,6 +11,25 @@ w LineComment interfejs Textual
 obslugiwal ten interfejs - ale ExpressionComment
 juz niekoniecznie)
 
+No ale dobra: rzecz ma sie tak, ze:
+- wystapienie LineComment powodje pojawienie
+  sie nowej linii (czyli tak jak pojawienie sie
+  dwoch liczb po sobie)
+- ale wystapienie BlockComment czy ExpressionComment
+  juz niekoniecznie
+
+Ale teraz jak to ogarnac?
+
+Mamy takie operacje:
+- rysowanie
+- mierzenie
+- klikanie
+
+Poniewaz na razie rzecz wyglada nieco kiepskawo
+jezeli idzie o diagnostyke, to zaimplementujemy
+renderowanie komentarzy w kliencie desktopowym.
+
+
 * 28.02.2023
 
 Wczoraj z grubsza sie udalo zaimplementowac renderowanie
