@@ -523,7 +523,7 @@
 	      height: (* lines line-height))))
 
   (define (atom-extent text::CharSequence)::Extent
-    (let ((inner (text-extent text (the-atom-font))))
+    (let ((inner ::Extent (text-extent text (the-atom-font))))
       (Extent width: (+ inner:width 8)
 	      height: (+ inner:height 16))))
 
@@ -581,6 +581,19 @@
     ::int
     (text-character-index-under x y text (the-string-font)))
 
+  (define (draw-line-comment! text::CharSequence context::Cursor)
+    ::void
+    (draw-text! text (the-comment-font) context))
+  
+  (define (line-comment-extent text::CharSequence)
+    ::Extent
+    (text-extent text (the-comment-font)))
+  
+  (define (line-comment-character-index-under x::real y::real
+					      text::CharSequence)
+    ::int
+    (text-character-index-under x y text (the-comment-font)))
+  
   (define (draw-point! left::real top::real aRGB::int)::void
     (let* ((alpha ::int (- 255
 			   (bitwise-and
