@@ -57,7 +57,19 @@
 
   (define (display-messages output::Object)::void
     (values)))
+
+(define-object (ignoring-message-handler)::MessageHandler
+  (define (add-message message::list)::void
+    (values))
   
+  (define last-message::string "")
+
+  (define (clear-messages!)::void
+    (values))
+
+  (define (display-messages output::Object)::void
+    (values)))
+
 (define-object (recording-message-handler)::MessageHandler
   (define last-message::string)
 

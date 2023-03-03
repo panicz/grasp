@@ -271,7 +271,7 @@
   (define (draw-line-comment! text::CharSequence context::Cursor)::void
     (let*-values (((semicolons) (count-while (is _ eqv? #\;) text))
 		  ((shift skip) (match semicolons 
-				  (0 (put! #\│ 0 0)
+				  (0 (put! #\⸾ 0 0)
 				     (values 1 0))
 				  (1 (put! #\┃ 0 0)
 				     (values 1 1))

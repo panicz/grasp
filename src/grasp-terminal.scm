@@ -301,7 +301,8 @@
   (parameterize ((the-painter (TerminalPainter io)))
     (safely
      (load "assets/init.scm"))
-    
+    (set! (current-display-procedure) nothing)
+    (set! (current-message-handler) (ignoring-message-handler))
     (io:startScreen)
     (let* ((editing (future (edit io)))
 	   (rendering (future (render io))))
