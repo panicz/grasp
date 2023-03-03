@@ -174,7 +174,7 @@
   ((part-at index::Index)::Indexable*
    (let-values (((fragments* index*) (space-fragment-index
 				      fragments index)))
-     (if (or (isnt fragments* pair?)
+     (if (or (empty? fragments*)
 	     (number? (car fragments*)))
 	 (this)
 	 (car fragments*))))
@@ -212,21 +212,21 @@
 
   ((draw! context::Cursor)::void
    (let-values (((selection-start selection-end) (the-selection)))
-     (let* ((painter (the-painter))
-	    (enters-selection-drawing-mode?
+     (let* ((painter ::Painter (the-painter))
+	    (enters-selection-drawing-mode?::boolean
 	     (and (pair? selection-start)
 		  (equal? (cdr selection-start) context)
 		  (integer? (car selection-start))))
-	    (exits-selection-drawing-mode?
+	    (exits-selection-drawing-mode?::boolean
 	     (and (pair? selection-end)
 		  (equal? (cdr selection-end) context)
 		  (integer? (car selection-end))))
-	    (space-width (painter:space-width))
-	    (t (invoke (the-traversal) 'clone))
-	    (left t:left)
-	    (top t:top))
-       (let skip ((input fragments)
-		  (total 0))
+	    (space-width ::real (painter:space-width))
+	    (t ::Traversal (invoke (the-traversal) 'clone))
+	    (left ::real t:left)
+	    (top ::real t:top))
+       (let skip ((input ::list fragments)
+		  (total ::int 0))
 	 (define (advance-with-cursor! width::real)
 	   (and-let* ((`(,tip . ,sub) (the-cursor)))
 	     (when (and (integer? tip)
@@ -253,9 +253,9 @@
 	   (`(,comment::Comment . ,rest)
 	    (parameterize ((the-traversal t))
 	      (with-translation ((- t:left left) (- t:top top))
-		  (comment:draw! (hash-cons total context))))
+		  (comment:draw! (hash-cons (+ total 1) context))))
 	    (comment:advance! t)
-	    (skip rest (+ total 1)))
+	    (skip rest (+ total 2)))
 	   
 	   (`(,width::integer ,next::integer . ,_)
 	    (advance-with-cursor! width)

@@ -114,6 +114,7 @@
 	    (#\b (add! #\backspace))
 	    (#\f (add! #\page))
 	    (#\x (read-hex-sequence))
+	    (#\newline (values))
 	    (_
 	     ;;(WARN "Unrecognized escape character: "c)
 	     (add! c)))

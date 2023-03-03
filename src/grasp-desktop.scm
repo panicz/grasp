@@ -507,9 +507,13 @@
     ::int
     (text-character-index-under x y text (the-string-font)))
 
+  (define line-comment-cursor-offset::Position
+    (Position left: 0 top: 0))
+
   (define (draw-line-comment! text::CharSequence context::Cursor)
     ::void
-    (draw-text! text (the-comment-font) context))
+    (parameterize ((the-cursor-offset line-comment-cursor-offset))
+      (draw-text! text (the-comment-font) context)))
   
   (define (line-comment-extent text::CharSequence)
     ::Extent

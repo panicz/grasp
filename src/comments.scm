@@ -11,6 +11,7 @@
 (import (painter))
 (import (extent))
 (import (examples))
+(import (print))
 
 (define-type (ExpressionComment expression: Tile)
   implementing Comment
@@ -107,8 +108,9 @@
      (painter:line-comment-extent content)))
 
   ((advance! traversal::Traversal)::void
-   (traversal:advance/extent! (extent))
-   (traversal:new-line!))
+   (let ((size ::Extent (extent)))
+     (traversal:advance-by! size:width)
+     (traversal:new-line!)))
   
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
    (let ((painter ::Painter (the-painter))
