@@ -523,21 +523,23 @@
 	      height: (* lines line-height))))
 
   (define (atom-extent text::CharSequence)::Extent
-    (let ((inner ::Extent (text-extent text (the-atom-font))))
+    (let ((painter ::Painter (the-painter))
+	  (inner ::Extent (text-extent text (the-atom-font))))
       (Extent width: (+ inner:width 8)
-	      height: (+ inner:height 16))))
+	      height: (max (painter:min-box-height)
+			   (+ inner:height 16)))))
 
   (define atom-cursor-offset::Position (Position left: 0 top: 4))
 
   (define atom-frame-color ::long #xffdddddd)
 
   (define (draw-atom! text::CharSequence context::Cursor)::void
-    (let* ((extent (atom-extent text))
-	   (font (the-atom-font)))
+    (let* ((font (the-atom-font))
+	   (extent ::Extent (text-extent text font)))
       (paint:setColor atom-frame-color)
       (canvas:drawRoundRect (as int 0) (as int 28)
-			    (as int extent:width)
-			    (as int extent:height)
+			    (as int (+ extent:width 8))
+			    (as int (+ extent:height 16))
 			    12 12 paint)
       (with-translation (4 16)
 	  (parameterize ((the-cursor-offset atom-cursor-offset))
