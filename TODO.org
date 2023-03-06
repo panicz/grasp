@@ -1,3 +1,144 @@
+* 06.03.2023
+
+Dzisiaj musimy tak zmodyfikowac cursor-under* w Space,
+zeby dawal poprawne indeksy podczas iterowania
+(zeby klikanie na komentarze umieszczalo kursor
+w odpowiednim miejscu)
+
+Ponadto mozna by cos pokombinowac, zeby kursor
+znajdujacy sie normalnie na spacji byl na takiej
+samej wysokosci, co liniowy komentarz, jezeli
+za nim znajduje sie liniowy komentarz.
+
+No dobrze. To "Space::cursor-under*" powinien
+sie zachowywac analogicznie do "advance!".
+
+Wyglada na to, ze w pierwszym wierszu
+komentarza wszystko dziala jak nalezy
+- ale ze w drugim wierszu juz nie udaje
+sie zlapac.
+
+** Problem z generic-dispatch i subclassigniem
+
+Przy okazji - problem, ktory pojawia sie, gdy mamy
+"generic dispatch" oraz "subclassing" - i jest to
+problem zasadniczo nierozwiazywalny:
+
+(define-class <a> ())
+
+(define-class <b> (<a>))
+
+(define b (make <b>))
+
+(define-class <c> (<a>))
+
+(define c (make <c>))
+
+(define-method (m (x <a>) (y <a>)) 'aa)
+(define-method (m (x <b>) (y <a>)) 'ba)
+(define-method (m (x <a>) (y <c>)) 'ac)
+
+(m b c)
+
+* 05.03.2023
+
+W najblizszym czasie - w zwiazku z implementacja
+komentarzy liniowych - bedziemy mieli do zrobienia
+takie oto prace:
+1. zeby klikanie na ekranie powodowalo umieszczenie
+kursora w odpowiednim miejscu
+2. zeby pisanie powodowalo dodawanie tekstu do komentarza
+3. zeby komentarze mozna bylo przeciagac i upuszczac
+4. zeby upuszczenie pudelka nad komentarzem powodowalo
+   jego serializacje? (ale wtedy chyba to samo chcielibysmy
+   dla stringow, c'nie?)
+
+
+* 03.03.2023
+
+Chyba z rysowaniem komentarzy udalo sie juz jakos dojsc
+do ladu.
+
+Ale teraz z kolei mamy inny problem:
+
+kiedy kursor jest we wlasciwej czesci dokumentu, to nie dochodzi
+do rysowania go.
+
+* 02.03.2023
+
+Wyglada na to, ze mamy problem z przypisywaniem indeksow
+podczas rysowania spacji.
+
+No to w takim razie przeanalizujmy sobie
+
+Mamy 3 interesujace metody w Space:
+1. draw!
+2. advance!
+3. cursor-under*
+
+No i dobra, i teraz rozwazmy sobie te metode
+draw!.
+
+Ona robi tak, ze definiuje sobie wewnetrzna petle,
+ktora "zjada" fragmenty spacji i sledzi wartosc "total".
+
+I teraz tak: czym jest ow parametr "total"?
+
+Pierwotna interpretacja byla taka, ze jest to
+informacja o tym, ile spacji udalo sie juz przeskoczyc.
+
+Mamy jednak przed soba kilka trundych kwestii:
+- nie wiemy, czy poprzednia interpretacja w ogole byla dobra
+- nie wiemy, jaka powinna byc nowa interpretacja
+
+No, wezmy sobie
+
+(Space fragments: (list 2 LC 2 LC))
+
+Dziala to tak, ze najpierw total wynosi 0. Nastepnie:
+- wywolujemy (advance-with-cursor! width) i dodajemy
+width do total
+- nastepnie mamy LC. Ono powinno byc na indeksie 3
+kolejna 2 
+
+
+** a to takie tam bazgrolki:
+
+︴
+︴
+
+⌇
+⌇
+⌇
+
+╭  ╮
+︴ ︴ 
+︴ ︴
+︴ ︴
+╰
+
+⸾        ╭         ╮      ⌇
+⸾ define ┆ map f l ┆      ⌇
+⸾        ╰         ╯      ⌇
+⸾ ⸾                     ╮ ⌇
+⸾ ⸾ match l             ┆ ⌇
+⸾ ⸾                     ┆ ⌇
+⸾ ⸾ ⸾ ┏  ┓ ┏  ┓ ╮       ┆ ⌇
+⸾ ⸾ ⸾ ┇  ┇ ┇  ┋ ┆       ┆ ⌇
+⸾ ⸾ ⸾ ┗  ┛ ┗  ┛ ╯       ┆ ⌇
+⸾ ⸾ ⸾ ╓      ╥      ╖ ╮ ┆ ⌇
+⸾ ⸾ ⸾ ┋ head ┋ tail ┋ ┆ ┆ ⌇
+⸾ ⸾ ⸾ ╙      ^      ╜ ╯ ╯ ⌇
+
+
+⸾   ⌇  
+⸾   ⌇
+⸾   ⌇
+
+
+⏭ ⏮ ⏯
+⏴⏵⏶⏷⏸⏹⏺
+
 * 01.03.2023
 
 Wczoraj nie udalo sie osiagnac zbyt wiele - ale mimo
@@ -28,7 +169,6 @@ Mamy takie operacje:
 Poniewaz na razie rzecz wyglada nieco kiepskawo
 jezeli idzie o diagnostyke, to zaimplementujemy
 renderowanie komentarzy w kliencie desktopowym.
-
 
 * 28.02.2023
 
