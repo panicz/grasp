@@ -172,7 +172,7 @@
 		    into: document ::pair := (the-document)
 		    at: cursor ::Cursor := (the-cursor))
   ::boolean
-  (and-let* ((`(,tip ,top . ,root) cursor)
+  (and-let* ((`(,tip ,top::integer . ,root) cursor)
 	     (grandpa (cursor-ref document root))
 	     (parent (part-at top grandpa))
 	     (target (part-at tip parent)))
