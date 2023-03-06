@@ -345,6 +345,9 @@
 	    ;; powinnismy powiekszyc spacje poprzedzajaca
 	    ;; wydobywany element o szerokosc tego elementu
 	    ;; podzielona przez (painter:space-width)
+	    (set! (the-cursor) (cursor-climb-back
+				(cursor-retreat (tail path))))
+	    (set! (the-selection-anchor) (the-cursor))
 	    (let* ((removed ::Remove (remove-element! at: subpath))
 		   (position (screen-position (head removed:element)))
 		   (selection (Selected removed:element
@@ -358,10 +361,10 @@
 	    (let ((extent ::Extent (extent target)))
 	      (set! (dragging 0)
 		    (Resize target subpath (- y position:top)))))
-	    (else
-	     (WARN "really don't know what to do; parent: "parent
-		   ", target: "target", position: "position
-		   ", path: "path)
+	   (else
+	    (WARN "setting the cursor to "path)
+	    (set! (the-cursor) path)
+	    (set! (the-selection-anchor) path)
 	     )))
 	#t)))
 
@@ -372,10 +375,14 @@
 				  (the-cursor cursor)
 				  (the-selection-anchor
 				   selection-anchor))
-      (and-let* ((drag ::Drag (dragging 0)))
-	(drag:drop! x y vx vy)
-	(unset! (dragging 0))
-	#t)))
+      (or
+       (and-let* ((drag ::Drag (dragging 0)))
+	 (drag:drop! x y vx vy)
+	 (unset! (dragging 0))
+	 #t)
+       (and-let* ((cursor (cursor-under x y)))
+	 (set! (the-cursor) cursor)
+	 (set! (the-selection-anchor) cursor)))))
 
   (define (move! finger::byte #;to x::real y::real
 		 #;by dx::real dy::real)

@@ -271,16 +271,24 @@
 	    (values)))))))
 
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
-   (and-let* ((painter (the-painter))
-	      (space-width (painter:space-width))
-	      (t (invoke (the-traversal) 'clone))
+   (and-let* ((painter ::Painter (the-painter))
+	      (space-width ::real (painter:space-width))
+	      (traversal ::Traversal (the-traversal))
+	      (t ::Traversal (traversal:clone))
 	      ;; we need to restore the coordinates to
 	      ;; the-traverse's reference frame
-	      (x (+ x t:left))
-	      (y (+ y t:top)))
-     (let skip ((input fragments)
-		(total 0))
+	      (x ::real (+ x t:left))
+	      (y ::real (+ y t:top)))
+     (let skip ((input ::list fragments)
+		(total ::int 0))
        (match input
+	 (`(,comment::Comment . ,rest)
+	  (or
+	   (comment:cursor-under* (- x t:left)
+				  (- y t:top)
+				  (hash-cons* (+ total 1) path))
+	   (skip rest (+ total 2))))
+	 
 	 (`(,width::integer ,next-line-prefix::integer . ,_)
 	  (cond
 	   ((is 0 <= (- y t:top) < t:max-line-height)
@@ -293,7 +301,7 @@
 	    (t:advance-by! (* space-width width))
 	    (t:new-line!)
 	    (skip (cdr input)
-		  (+ total (car input))))))
+		  (+ total width 1)))))
 	 (`(,width::integer . ,rest)
 	  (or
 	   (and (is 0 <= (- y t:top) < t:max-line-height)
@@ -302,9 +310,10 @@
 			      (quotient (- x t:left)
 					space-width))
 			   path))
-	   (skip rest (+ total width))))
-	 (`(,comment::Comment . ,rest)
-	  (comment:cursor-under* x y path))
+	   (begin
+	     (t:advance-by! (* space-width width))
+	     (skip rest (+ total width)))))
+	 
 	 ('()
 	  #!null)))))
   ((print out::gnu.lists.Consumer)::void
@@ -329,14 +338,14 @@
 	(values)))))
 
   ((advance! t::Traversal)::void
-   (let* ((painter (the-painter))
-	  (space-width (painter:space-width)))
-     (let skip ((input fragments)
-		(total 0))
+   (let* ((painter ::Painter (the-painter))
+	  (space-width ::real (painter:space-width)))
+     (let skip ((input ::list fragments)
+		(total ::int 0))
        (match input
 	 (`(,comment::Comment . ,rest)
 	  (comment:advance! t)
-	  (skip rest (+ total 1)))
+	  (skip rest (+ total 2)))
 	 
 	 (`(,width::integer ,next-line-prefix::integer . ,_)
 	  (t:advance-by! (* space-width width))
