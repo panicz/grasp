@@ -1,3 +1,61 @@
+* 07.03.2023
+
+Dzis bysmy sie zajeli edycja liniowych komentarzy.
+
+W kolejce czeka jeszcze kilka pomniejszych rzeczy,
+takich jak:
+- naprawa polozen kursora na spacjach
+- renderowanie lewej belki przy liniowych komentarzach
+- renderowanie cudzyslowow przy stringach
+- obsluga drag&dropa przy rysowaniu stringow i komentarzy
+
+Ogolnie plan jest taki, ze najpierw skonczymy edycje
+liniowych komentarzy, pozniej zrobimy pudelkowe
+komentarze, a na koncu wyrazeniowe komentarze.
+
+Kiedy to bedzie zrobione, zajmiemy sie quote'ami itd.
+(oraz moze syntaxami itd.?),
+
+a dalej bysmy zrobili to ladowanie i zapisywanie
+i scrollowanie i dzielenie ekranu (ach jakie to bedzie
+piekne)
+
+i wowczas dalsze rzeczy bedziemy juz robic w samym
+GRASPie! (jupi!)
+
+No ale dobra. Teraz robimy edycje komentarzy.
+Powinno to dzialac tak mniej wiecej:
+1. jezeli jestesmy na spacji i wcisniemy ;,
+to dodajemy do tej spacji nowy liniowy komentarz
+(i odpowiednio przesuwamy kursor)
+2. jezeli od tego miejsca nacisniemy na (pustym)
+komentarzu backspace, to usuwamy komentarz
+3. jezeli nacisniemy "delete" na poczatku komentarza,
+to usuwamy caly komentarz
+4. jezeli wciskamy na zwykly klawisz, to po prostu
+   dopisujemy odpowiedni znak do komentarza
+5. jezeli mielibysmy dopisac znak nowej linii,
+   to dzielimy komentarz
+
+To ostatnie bedzie najpewniej wymagalo zaimplementowania
+interfejsu Textual w LineComment
+
+Trzeba bedzie dodac nowe operacje: 
+(InsertComment content: TextualComment at: Cursor)
+
+oraz 
+
+(RemoveComment content: TextualComment at: Cursor)
+
+a takze
+
+(Comment expression: Tile at: Cursor)
+
+oraz
+
+(Uncomment expression: ExpressionComment at: Cursor)
+
+
 * 06.03.2023
 
 Dzisiaj musimy tak zmodyfikowac cursor-under* w Space,
@@ -17,6 +75,8 @@ Wyglada na to, ze w pierwszym wierszu
 komentarza wszystko dziala jak nalezy
 - ale ze w drugim wierszu juz nie udaje
 sie zlapac.
+
+To sie chyba udalo jakos naprawic.
 
 ** Problem z generic-dispatch i subclassigniem
 
