@@ -287,7 +287,9 @@
 	   (comment:cursor-under* (- x t:left)
 				  (- y t:top)
 				  (hash-cons* (+ total 1) path))
-	   (skip rest (+ total 2))))
+	   (begin
+	     (comment:advance! t)
+	     (skip rest (+ total 2)))))
 	 
 	 (`(,width::integer ,next-line-prefix::integer . ,_)
 	  (cond
