@@ -356,8 +356,8 @@
 		(let ((name ::type value))
                   (and-let* rest
 		    . body)))))
-	   
-      ((_ (((values . structure) binding) . rest) . body)
+
+      ((_ (((values . structure) expression) . rest) . body)
        #'(call-with-values (lambda () expression)
            (lambda args
              (match args
