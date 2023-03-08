@@ -14,6 +14,7 @@
 (import (painter))
 (import (history))
 (import (text))
+(import (comments))
 
 (define-parameter (cursor-column)::real 0)
 
@@ -251,9 +252,9 @@
      ((isnt final eq? item)
       (WARN "attempted to insert character "c" to non-final position")
       #f)
-     ((Text? item)
+     ((or (Text? item) (TextualComment? item))
       (perform! (InsertCharacter list: (list c))))
-
+     
      ((is c in '(#\] #\) #\}))
       (unnest-cursor-right!))
       
@@ -269,8 +270,12 @@
        
        ((is c in '(#\[ #\( #\{))
 	(perform! (Insert element: (cons (empty) '()))))
+
        ((is c char-whitespace?)
 	(perform! (InsertCharacter list: (list c))))
+
+       ((eqv? c #\;)
+	(perform! (InsertComment content: (LineComment))))
        
        ((and-let* (((is tip eqv? (item:last-index)))
 		   (next-cursor (cursor-advance))

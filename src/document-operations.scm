@@ -19,6 +19,9 @@
 (import (print))
 (import (parse))
 (import (for))
+(import (text))
+(import (comments))
+
 
 ;; take-cell! returns either a cons-cell whose
 ;; car is the desired object, or a head/tail-separator
@@ -326,3 +329,4 @@
 			with: head/tail-separator
 			in: document)
    document) ===> ((1 . 3)))
+

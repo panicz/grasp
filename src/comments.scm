@@ -53,7 +53,7 @@
   ((index< a::Index b::Index)::Index
    (expression:index< a b)))
 
-(define-type (BlockComment content: Text)
+(define-type (BlockComment content: Text := (Text))
   implementing Comment
   with
   ((draw! context::Cursor)::void
@@ -81,23 +81,23 @@
    (this))
   
   ((first-index)::Index
-   (content:first-index))
+   0)
 
   ((last-index)::Index
-   (content:last-index))
+   (string-length content))
 
   ((next-index index::Index)::Index
-   (content:next-index index))
+   (min (+ index 1) (last-index)))
 
   ((previous-index index::Index)::Index
-   (content:previous-index index))
+   (max (- index 1) (first-index)))
 
   ((index< a::Index b::Index)::boolean
-   (content:index< a b))
+   (< a b))
   )
 
-(define-type (LineComment content: Text)
-  implementing Comment
+(define-type (LineComment content: Text := (Text))
+  implementing TextualComment
   with
   ((draw! context::Cursor)::void
    (let ((painter ::Painter (the-painter)))
@@ -129,20 +129,40 @@
 
   ((part-at index::Index)::Indexable*
    (this))
-  
+
   ((first-index)::Index
-   (content:first-index))
+   0)
 
   ((last-index)::Index
-   (content:last-index))
+   (string-length content))
 
   ((next-index index::Index)::Index
-   (content:next-index index))
+   (min (+ index 1) (last-index)))
 
   ((previous-index index::Index)::Index
-   (content:previous-index index))
+   (max (- index 1) (first-index)))
 
   ((index< a::Index b::Index)::boolean
-   (content:index< a b))
+   (< a b))
+
+  ((insert-char! c::char index::int)::void
+   (content:insert-char! c index))
+  
+  ((delete-char! index::int)::char
+   (content:delete-char! index))
+  
+  ((char-ref index::int)::char
+   (content:char-ref index))
+  
+  ((text-length)::int
+   (content:text-length))
+  
+  ((split! position::int)::Textual
+   (let ((splitted ::Text (content:split! position)))
+     (LineComment content: splitted)))
+   
+  ((merge! following::Textual)::boolean
+   (and-let* ((next ::LineComment following))
+     (content:merge! next:content)))
   )
 
