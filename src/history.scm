@@ -230,6 +230,51 @@
 				      (length list))
 				   (cdr before)))))
 
+(define-type (InsertComment content: TextualComment
+			    at: Cursor := (the-cursor))
+  implementing Edit
+  with
+  ((apply! document::pair)::Cursor
+   (and-let* ((`(,tip ,top . ,root) at)
+	      (grandpa ::Indexable (cursor-ref document root))
+	      (item ::Space (grandpa:part-at top)))
+     (let-values (((fragments
+		    reminant) (space-fragment-index item:fragments
+						    tip)))
+       (and-let* ((`(,fragment::integer . ,fragments*) fragments))
+	 (set! (car fragments) reminant)
+	 (set! (cdr fragments) (cons content fragments*))
+	 (recons* (content:first-index) (+ tip 1) top root)))))
+
+  ((inverse)::Edit
+   (RemoveComment content: content at: at)))
+
+(define-type (RemoveComment content: TextualComment
+			    at: Cursor)
+  implementing Edit
+  with
+  ((apply! document::pair)::Cursor
+   (and-let* ((`(,tip ,top . ,root) at)
+	      (grandpa ::Indexable (cursor-ref document root))
+	      (item ::Space (grandpa:part-at top)))
+     (let-values (((fragments
+		    reminant) (space-fragment-index
+			       item:fragments
+			       tip #;(if (is tip > 0)
+				   (- tip 1) 
+				   tip))))
+       (match fragments
+	 (`(,preceding ,,content . ,rest)
+	  (set! (cdr fragments) rest))
+	 (`(,,content ,next . ,rest)
+	  (set! (car fragments) next)
+	  (set! (cdr fragments) rest)))
+       (recons (- (car at) 1) (cdr at)))))
+   
+  ((inverse)::Edit
+   (InsertComment content: content
+		  at: (recons (- (car at) 1) (cdr at)))))
+
 (define-type (SplitElement at: Cursor := (the-cursor)
 			   with: Space)
   implementing Edit

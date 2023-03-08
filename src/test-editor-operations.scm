@@ -28,11 +28,15 @@
  (text-painter)
  )
 
+
+(define verbose ::boolean #false)
+
 (define (snapshot)::String
   (parameterize ((the-painter (TextPainter)))
     (draw-document! (the-document))
     (let ((result ::String (invoke (the-painter) 'toString)))
-      (display result)
+      (when verbose
+	(display result))
       ;;(display (history (the-document)))
       result)))
 
@@ -42,6 +46,18 @@
 
 (set! (the-cursor) (cursor 0 0 1))
 (set! (the-selection-anchor) (the-cursor))
+
+#|
+(for-each insert-character! "\
+[define [map f l]
+  [march l
+   [`[,h . ,t] `[,(f h) . ,[map f l]]]
+   ['[]        '[]]")
+
+(snapshot)
+
+(exit)
+|#
 
 (insert-character! #\[)
 
@@ -417,9 +433,9 @@
 ╭        ╭     ╮ ╮
 │ define │ ! n │ │
 │        ╰     ╯ │
-│                │
-│                │
-╰ |              ╯
+╰                ╯
+                  
+  |               
 ")
 
 (times 3 redo!)
@@ -477,9 +493,9 @@
 ╭        ╭     ╮ ╮
 │ define │ ! n │ │
 │        ╰     ╯ │
-│                │
-│                │
-╰ |              ╯
+╰                ╯
+                  
+  |               
 ")
 
 (undo!)
@@ -572,9 +588,123 @@
 ╰ ╰  ╰     ╰   ╰      ^╯ ╯ ╯ ╯ ╯
 ")
 
+(set! (the-cursor) (cursor 0 4 1 1))
+(set! (the-selection-anchor) (the-cursor))
+
+(e.g.
+ (snapshot) ===> "
+╭        ╭     ╮               ╮
+│ define │ ! n │               │
+│        ╰     ╯|              │
+│ ❝┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈•     │
+│ ┊ Computes the product ┊     │
+│ ┊ 1 * ... * n          ┊     │
+│ •┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈❞     │
+│ ╭    ╭           ╮         ╮ │
+│ │ if │ is n <= 1 │         │ │
+│ │    ╰           ╯         │ │
+│ │                          │ │
+│ │   1                      │ │
+│ │                          │ │
+│ │  ╭     ╭   ╭       ╮ ╮ ╮ │ │
+│ │  │ * n │ ! │ - n 1 │ │ │ │ │
+╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
+")
+
+(insert-character! #\space)
+(insert-character! #\;)
+(set! verbose #true)
+
+(e.g.
+ (snapshot) ===> "
+╭        ╭     ╮ ⸾             ╮
+│ define │ ! n │               │
+│        ╰     ╯               │
+│ ❝┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈•     │
+│ ┊ Computes the product ┊     │
+│ ┊ 1 * ... * n          ┊     │
+│ •┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈❞     │
+│ ╭    ╭           ╮         ╮ │
+│ │ if │ is n <= 1 │         │ │
+│ │    ╰           ╯         │ │
+│ │                          │ │
+│ │   1                      │ │
+│ │                          │ │
+│ │  ╭     ╭   ╭       ╮ ╮ ╮ │ │
+│ │  │ * n │ ! │ - n 1 │ │ │ │ │
+╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
+")
+
+(undo!)
+
+(e.g.
+ (snapshot) ===> "
+╭        ╭     ╮               ╮
+│ define │ ! n │               │
+│        ╰     ╯|              │
+│ ❝┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈•     │
+│ ┊ Computes the product ┊     │
+│ ┊ 1 * ... * n          ┊     │
+│ •┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈❞     │
+│ ╭    ╭           ╮         ╮ │
+│ │ if │ is n <= 1 │         │ │
+│ │    ╰           ╯         │ │
+│ │                          │ │
+│ │   1                      │ │
+│ │                          │ │
+│ │  ╭     ╭   ╭       ╮ ╮ ╮ │ │
+│ │  │ * n │ ! │ - n 1 │ │ │ │ │
+╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
+")
+
+(redo!)
+
+(e.g.
+ (snapshot) ===> "
+╭        ╭     ╮ ⸾             ╮
+│ define │ ! n │               │
+│        ╰     ╯               │
+│ ❝┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈•     │
+│ ┊ Computes the product ┊     │
+│ ┊ 1 * ... * n          ┊     │
+│ •┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈❞     │
+│ ╭    ╭           ╮         ╮ │
+│ │ if │ is n <= 1 │         │ │
+│ │    ╰           ╯         │ │
+│ │                          │ │
+│ │   1                      │ │
+│ │                          │ │
+│ │  ╭     ╭   ╭       ╮ ╮ ╮ │ │
+│ │  │ * n │ ! │ - n 1 │ │ │ │ │
+╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
+")
+
+(for-each insert-character! " -> int")
+
+(e.g.
+ (snapshot) ===> "
+╭        ╭     ╮ ⸾ -> int      ╮
+│ define │ ! n │               │
+│        ╰     ╯               │
+│ ❝┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈•     │
+│ ┊ Computes the product ┊     │
+│ ┊ 1 * ... * n          ┊     │
+│ •┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈❞     │
+│ ╭    ╭           ╮         ╮ │
+│ │ if │ is n <= 1 │         │ │
+│ │    ╰           ╯         │ │
+│ │                          │ │
+│ │   1                      │ │
+│ │                          │ │
+│ │  ╭     ╭   ╭       ╮ ╮ ╮ │ │
+│ │  │ * n │ ! │ - n 1 │ │ │ │ │
+╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
+")
+
+;;(display (the-expression at: (tail (tail (the-cursor)))))
 
 
-;(DUMP (last-operation))
+;;(DUMP (last-operation))
 
 ;(undo!)
 
