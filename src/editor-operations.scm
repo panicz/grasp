@@ -204,6 +204,16 @@
 	  (perform! (RemoveCharacter list: (cons (target:char-ref
 						  (- tip 1))
 						 '())))))))
+     ((TextualComment? target)
+      (let ((target ::TextualComment target))
+	(cond
+	 ((is (target:text-length) <= 1)
+	  (perform! (RemoveComment content: target
+				   at: (recons top root))))
+	 (else
+	  (perform! (RemoveCharacter list: (cons (target:char-ref
+						  (- tip 1))
+						 '())))))))
      ((gnu.lists.LList? target)
       (let ((cell (drop (quotient top 2) parent)))
 	(if (or (eqv? tip last-index)
