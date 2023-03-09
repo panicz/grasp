@@ -163,7 +163,7 @@
   (set! builder (java.lang.StringBuilder source-string))
   (set! source (builder:toString)))
 
-(define-object (cons a d)::Tile
+(define-object (cons car cdr)::Tile
   (define (advance! t::Traversal)::void
     (t:advance/extent! (extent)))
   
@@ -257,9 +257,9 @@
 	  (invoke (as Shadowed element) 'value)
 	  element)))
 
-  (pair a d))
+  (pair car cdr))
 
-(define-object (immutable-cons a d)::Tile
+(define-object (immutable-cons car cdr)::Tile
 
   (define (setCar value)
     (error "The cons cell is immutable: " (this)))
@@ -267,7 +267,7 @@
   (define (setCdr value)
     (error "The cons cell is immutable: "(this)))
   
-  (cons a d))
+  (cons car cdr))
 
 (define-cache (recons head tail)
   (immutable-cons head tail))
