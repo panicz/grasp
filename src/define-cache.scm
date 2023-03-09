@@ -95,7 +95,7 @@
 ;; for bootstrapping. Prefer the analogous definition of
 ;; `recons` that is defined in the `(primitive)` module.
 
-(define-object (immutable-pair a d)
+(define-object (immutable-pair car cdr)
 
   (define (setCar value)
     (error "The pair is immutable: " (this)))
@@ -103,7 +103,7 @@
   (define (setCdr value)
     (error "The pair is immutable: "(this)))
   
-  (pair a d))
+  (pair car cdr))
 
 (define-cache (hash-cons head tail)
   (immutable-pair head tail))
