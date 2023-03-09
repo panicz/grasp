@@ -1,8 +1,6 @@
 #!/bin/sh
 set -x
-java -jar libs/kawa.jar --no-warn-unreachable \
-     -f src/test-parser.scm
-java -jar libs/kawa.jar --no-warn-unreachable \
-     -f src/test-painter.scm
-java -jar libs/kawa.jar --no-warn-unreachable \
-     -f src/test-editor-operations.scm
+FLAGS="--no-warn-unreachable"
+java -jar libs/kawa.jar $FLAGS -f src/test-parser.scm
+java -jar libs/kawa.jar $FLAGS -f src/test-painter.scm
+java -jar libs/kawa.jar $FLAGS -f src/test-editor-operations.scm
