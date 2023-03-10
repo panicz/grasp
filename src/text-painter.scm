@@ -152,6 +152,23 @@
     (put! #\╯ (- height 1) (- width 1))
     
     (values))
+
+  (define (draw-rectangle! width::real height::real)::void
+    (put! #\┌ 0 0)
+    (for i from 1 to (- height 2)
+         (put! #\│ i 0))
+    (put! #\└ (- height 1) 0)
+
+    (for i from 1 to (- width 2)
+         (put! #\─ 0 i)
+	 (put! #\─ (- height 1) i))
+    
+    (put! #\┐ 0 (- width 1))
+    (for i from 1 to (- height 2)
+         (put! #\│ i (- width 1)))
+    (put! #\┘ (- height 1) (- width 1))
+    
+    (values))
   
   (define (draw-quoted-text! s::CharSequence context::Cursor)
     ::void
@@ -298,6 +315,21 @@
     (let* ((semicolons (count-while (is _ eqv? #\;) text)))
       (string-character-index-under x y text)))
 
+  (define (draw-block-comment! text::CharSequence context::Cursor)
+    ::void
+    (let ((outer ::Extent (block-comment-extent text)))
+      (draw-rectangle! outer:width outer:height)
+      (with-translation (1 1)
+	  (draw-string! text context))))
+  
+  (define (block-comment-extent text::CharSequence)::Extent
+    (let ((inner ::Extent (string-extent text)))
+      (Extent width: (+ inner:width 2) height: (+ inner:height 2))))
+  
+  (define (block-comment-character-index-under x::real y::real
+					       text::CharSequence)
+    ::int
+    (string-character-index-under (- x 1) (- y 1) text))
   
   (define (draw-point! left::real top::real color-rgba::int)::void
     #!abstract)

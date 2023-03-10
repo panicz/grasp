@@ -57,14 +57,21 @@
   implementing Comment
   with
   ((draw! context::Cursor)::void
-   #!void)
+   (let ((painter ::Painter (the-painter)))
+     (painter:draw-block-comment! content context)))
   
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
-   #!null)
+   (let ((painter ::Painter (the-painter))
+	 (inner ::Extent (extent)))
+     (and (is 0 <= x < inner:width)
+	  (is 0 <= y < inner:height)
+	  (hash-cons (painter:block-comment-character-index-under
+		      x y content)
+		     path))))
 
   ((extent)::Extent
-   (Extent width: 1
-	   height: 1))
+   (let ((painter ::Painter (the-painter)))
+     (painter:block-comment-extent content)))
 
   ((advance! traversal::Traversal)::void
    (traversal:advance/extent! (extent)))
@@ -81,16 +88,16 @@
    (this))
   
   ((first-index)::Index
-   0)
+   (content:first-index))
 
   ((last-index)::Index
-   (string-length content))
+   (content:last-index))
 
   ((next-index index::Index)::Index
-   (min (+ index 1) (last-index)))
+   (content:next-index index))
 
   ((previous-index index::Index)::Index
-   (max (- index 1) (first-index)))
+   (content:previous-index index))
 
   ((index< a::Index b::Index)::boolean
    (< a b))

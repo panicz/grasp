@@ -364,6 +364,10 @@
     (paint:setColor text-color)
     (canvas:drawRoundRect 0 0 (as int width) (as int height) 10 10 paint))
 
+  (define (draw-rectangle! width::real height::real)::void
+    (paint:setColor text-color)
+    (canvas:drawRect 0 0 (as int width) (as int height) paint))
+  
   (define (paren-width)::real
     top-left-extent:width)
 

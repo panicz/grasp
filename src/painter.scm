@@ -74,7 +74,8 @@
   (draw-box! width::real height::real context::Cursor)::void
   
   (draw-rounded-rectangle! width::real height::real)::void
-
+  (draw-rectangle! width::real height::real)::void
+  
   (enter-selection-drawing-mode!)::void
   (exit-selection-drawing-mode!)::void
   (in-selection-drawing-mode?)::boolean
@@ -92,15 +93,18 @@
   (decrease-quasiquotation-level!)::void
   (quasiquotation-level)::int
 
-  (draw-block-comment! text::CharSequence context::Cursor)::void
-  (block-comment-extent text::CharSequence context::Cursor)::Extent
-
   |#
   
   (draw-line-comment! text::CharSequence context::Cursor)::void
   (line-comment-extent text::CharSequence)::Extent
   (line-comment-character-index-under x::real y::real
 				      text::CharSequence)
+  ::int
+
+  (draw-block-comment! text::CharSequence context::Cursor)::void
+  (block-comment-extent text::CharSequence)::Extent
+  (block-comment-character-index-under x::real y::real
+				       text::CharSequence)
   ::int
   
   (draw-point! left::real top::real color-rgba::int)::void
@@ -205,6 +209,9 @@
     ::void
     (values))
 
+  (define (draw-rectangle! width::real height::real)::void
+    (values))
+  
   (define (mark-cursor! +left::real +top::real)::void
     (values))
   
@@ -230,6 +237,19 @@
 
   (define (line-comment-character-index-under x::real y::real
 					      text::CharSequence)
+    ::int
+    0)
+
+  (define (draw-block-comment! text::CharSequence context::Cursor)
+    ::void
+    (values))
+  
+  (define (block-comment-extent text::CharSequence)
+    ::Extent
+    (Extent width: 0 height: 0))
+  
+  (define (block-comment-character-index-under x::real y::real
+					       text::CharSequence)
     ::int
     0)
   

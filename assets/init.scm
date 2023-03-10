@@ -64,9 +64,8 @@
 (when (is (the-screen) instance? Editor)
     (let ((editor ::Editor (as Editor (the-screen))))
       (slot-set! editor 'document
-		 (with-input-from-string "\
-  ;                 FACTORIAL
-  ; 
+		 (with-input-from-string "
+          #|FACTORIAL|#
   ;  A factorial of an integer number n
   ;  is a product 1 * 2 * 3 * 4 * ... * n.
   ;  It represents the number of permutations

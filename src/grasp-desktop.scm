@@ -111,7 +111,7 @@
   (load-font "assets/GloriaHallelujah.ttf" size: 16))
 
 (define-constant NotoSerif-Regular
-  (load-font "assets/NotoSerif-Regular.ttf"))
+  (load-font "assets/NotoSerif-Regular.ttf" size: 16))
 
 (define-parameter+ (the-atom-font) ::Font
   #;Basic-Regular LobsterTwo-Regular)
@@ -121,6 +121,12 @@
 
 (define-parameter+ (the-comment-font) ::Font
   GloriaHallelujah)
+
+(define-parameter+ (the-block-comment-font) ::Font
+  NotoSerif-Regular)
+
+(define-parameter+ (the-block-comment-margin) ::real
+  10)
 
 (define-parameter (the-cursor-offset)::Position
   (Position left: 0 top: 16))
@@ -288,6 +294,9 @@
   (define (draw-rounded-rectangle! width::real height::real)::void
     (graphics:drawRoundRect 0 0 (as int width) (as int height) 5 5))
 
+  (define (draw-rectangle! width::real height::real)::void
+    (graphics:drawRect 0 0 (as int width) (as int height)))
+  
   (define marked-cursor-position ::Position
     (Position left: 0
 	      top: 0))
@@ -523,6 +532,33 @@
 					      text::CharSequence)
     ::int
     (text-character-index-under x y text (the-comment-font)))
+
+  (define (draw-block-comment! text::CharSequence context::Cursor)
+    ::void
+    (let* ((font ::Font (the-block-comment-font))
+	   (font-size ::real (font:getSize))
+	   (outer ::Extent (block-comment-extent text))
+	   (margin ::real (the-block-comment-margin)))
+      (draw-rectangle! outer:width (- outer:height 5))
+      (with-translation (margin (* 0.5 font-size))
+	  (draw-text! text font context))))
+  
+  (define (block-comment-extent text::CharSequence)::Extent
+    (let* ((font ::Font (the-block-comment-font))
+	   (font-size ::real (font:getSize))
+	   (inner ::Extent (text-extent text font))
+	   (margin ::real (the-block-comment-margin)))
+      (Extent width: (+ inner:width margin margin)
+	      height: (+ inner:height font-size))))
+  
+  (define (block-comment-character-index-under x::real y::real
+					       text::CharSequence)
+    ::int
+    (let* ((font ::Font (the-block-comment-font))
+	   (font-size ::real (font:getSize))
+	   (margin ::real (the-block-comment-margin)))
+      (text-character-index-under (- x margin) (- y (* 0.5 font-size))
+				  text font)))
   
   (define (draw-point! left::real top::real aRGB::int)::void
     (graphics:setColor (color aRGB))
