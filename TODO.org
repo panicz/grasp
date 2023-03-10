@@ -1,3 +1,33 @@
+* 09.03.2023
+
+Do zrobienia mamy:
+- usuwanie komentarzy
+- chyba poprawki w inwersji dodawania komentarzy?
+- renderowanie komentarzy blokowych
+- edycja komentarzy blokowych
+- dodawanie i usuwanie komentarzy blokowych
+
+No dobrze, uznajmy komentarze liniowe za skonczone
+(choc niewatpliwie trzeba sie jeszcze bedzie uporac
+z bugami i roznymi corner case'ami, ktore jedak
+na razie nie sa naszym priorytetem)
+
+To teraz robimy komentarze blokowe.
+Renderowanie musi tak przebiegac,
+ze rysujemy prostokat, a wewnatrz
+renderujemy tekst
+
+
+* 08.03.2023
+
+Wczoraj napisalismy funkcje do dodawania komentarzy
+do spacji, oraz test dla niej.
+
+Dzis bysmy sprobowali zintegrowac te funkcje z edytorem,
+tak zeby wcisniecie srednika powodowalo dodanie komentarza
+- aczkolwiek do tego bedzie jeszcze konieczne dodanie 
+operacji odwrotnej, tj. usuniecie komentarza
+
 * 07.03.2023
 
 Dzis bysmy sie zajeli edycja liniowych komentarzy.
@@ -43,17 +73,17 @@ interfejsu Textual w LineComment
 Trzeba bedzie dodac nowe operacje: 
 (InsertComment content: TextualComment at: Cursor)
 
-oraz 
+oraz
 
 (RemoveComment content: TextualComment at: Cursor)
 
 a takze
 
-(Comment expression: Tile at: Cursor)
+(CommentExpression at: Cursor)
 
 oraz
 
-(Uncomment expression: ExpressionComment at: Cursor)
+(UncommentExpression at: Cursor)
 
 
 * 06.03.2023
