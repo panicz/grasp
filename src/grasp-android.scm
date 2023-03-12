@@ -120,6 +120,14 @@
     (make-parameter
      (Font face: GloriaHallelujah
 	   size: 28)))
+
+  (define the-block-comment-font ::parameter[Font]
+    (make-parameter
+     (Font face: NotoSerif-Regular
+	   size: 26)))
+
+  (define the-block-comment-margin ::parameter[real]
+    (make-parameter 10))
   
   (define the-log-font ::parameter[Font]
     (make-parameter
@@ -365,8 +373,15 @@
     (canvas:drawRoundRect 0 0 (as int width) (as int height) 10 10 paint))
 
   (define (draw-rectangle! width::real height::real)::void
-    (paint:setColor text-color)
-    (canvas:drawRect 0 0 (as int width) (as int height) paint))
+    (let ((b ::int 2))
+      (paint:setColor text-color)
+      (canvas:drawRect 0 0 (as int width) (as int b) paint)
+      (canvas:drawRect 0 (as int (- height b))
+		       (as int width) (as int height) paint)
+      (canvas:drawRect 0 b b (as int (- height b)) paint)
+      (canvas:drawRect (as int (- width b)) b
+		       (as int width) (as int (- height b)) paint)
+      ))
   
   (define (paren-width)::real
     top-left-extent:width)
@@ -599,6 +614,30 @@
 					      text::CharSequence)
     ::int
     (text-character-index-under x y text (the-comment-font)))
+
+  (define (draw-block-comment! text::CharSequence context::Cursor)
+    ::void
+    (let* ((font ::Font (the-block-comment-font))
+	   (outer ::Extent (block-comment-extent text))
+	   (margin ::real (the-block-comment-margin)))
+      (draw-rectangle! outer:width outer:height)
+      (with-translation (margin (* 0.4 font:size))
+	  (draw-text! text font context))))
+  
+  (define (block-comment-extent text::CharSequence)::Extent
+    (let* ((font ::Font (the-block-comment-font))
+	   (inner ::Extent (text-extent text font))
+	   (margin ::real (the-block-comment-margin)))
+      (Extent width: (+ inner:width margin margin)
+	      height: (+ inner:height font:size))))
+  
+  (define (block-comment-character-index-under x::real y::real
+					       text::CharSequence)
+    ::int
+    (let* ((font ::Font (the-block-comment-font))
+	   (margin ::real (the-block-comment-margin)))
+      (text-character-index-under (- x margin) (- y (* 0.4 font:size))
+				  text font)))
   
   (define (draw-point! left::real top::real aRGB::int)::void
     (let* ((alpha ::int (- 255
