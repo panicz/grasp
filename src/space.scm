@@ -227,7 +227,7 @@
 	    (top ::real t:top))
        (let skip ((input ::list fragments)
 		  (total ::int 0))
-	 (define (advance-with-cursor! width::real)
+	 (define (expand-with-cursor! width::real)
 	   (and-let* ((`(,tip . ,sub) (the-cursor)))
 	     (when (and (integer? tip)
 			(equal? sub context)
@@ -247,23 +247,23 @@
 				      selection-end) <= (+ total
 							   width)))
 	       (painter:exit-selection-drawing-mode!)))
-	   (t:advance-by! (* width space-width)))
+	   (t:expand-by! (* width space-width)))
 	 
 	 (match input
 	   (`(,comment::Comment . ,rest)
 	    (parameterize ((the-traversal t))
 	      (with-translation ((- t:left left) (- t:top top))
 		  (comment:draw! (hash-cons (+ total 1) context))))
-	    (comment:advance! t)
+	    (comment:expand! t)
 	    (skip rest (+ total 2)))
 	   
 	   (`(,width::integer ,next::integer . ,_)
-	    (advance-with-cursor! width)
+	    (expand-with-cursor! width)
 	    (t:new-line!)
 	    (skip (cdr input) (+ total width 1)))
 	   
 	   (`(,width::integer . ,rest)
-	    (advance-with-cursor! width)
+	    (expand-with-cursor! width)
 	    (skip rest (+ total width)))
 	   
 	   
@@ -288,7 +288,7 @@
 				  (- y t:top)
 				  (hash-cons* (+ total 1) path))
 	   (begin
-	     (comment:advance! t)
+	     (comment:expand! t)
 	     (skip rest (+ total 2)))))
 	 
 	 (`(,width::integer ,next-line-prefix::integer . ,_)
@@ -300,7 +300,7 @@
 					  space-width)))
 			path))
 	   (else
-	    (t:advance-by! (* space-width width))
+	    (t:expand-by! (* space-width width))
 	    (t:new-line!)
 	    (skip (cdr input)
 		  (+ total width 1)))))
@@ -313,7 +313,7 @@
 					space-width))
 			   path))
 	   (begin
-	     (t:advance-by! (* space-width width))
+	     (t:expand-by! (* space-width width))
 	     (skip rest (+ total width)))))
 	 
 	 ('()
@@ -339,27 +339,30 @@
        (_
 	(values)))))
 
-  ((advance! t::Traversal)::void
+  implementing Expandable
+  with
+  ((expand! t::Traversal)::void
    (let* ((painter ::Painter (the-painter))
 	  (space-width ::real (painter:space-width)))
      (let skip ((input ::list fragments)
 		(total ::int 0))
        (match input
 	 (`(,comment::Comment . ,rest)
-	  (comment:advance! t)
+	  (comment:expand! t)
 	  (skip rest (+ total 2)))
 	 
 	 (`(,width::integer ,next-line-prefix::integer . ,_)
-	  (t:advance-by! (* space-width width))
+	  (t:expand-by! (* space-width width))
 	  (t:new-line!)
 	  (skip (cdr input) (+ total width 1)))
 	 
 	 (`(,width::integer . ,rest)
-	  (t:advance-by! (* space-width width))
+	  (t:expand-by! (* space-width width))
 	  (skip rest (+ total width)))
 	 
 	 ('()
-	  (set! t:index (+ t:index 1)))))))
+	  (values))))))
+
   implementing Textual
   with
   ((insert-char! c::char index::int)::void
@@ -589,8 +592,6 @@
   (instance? x HeadTailSeparator))
 
 (define-object (HorizontalBar width0::real)::Tile
-  (define (advance! t::Traversal)::void
-    (t:advance/extent! (extent)))
 
   (define width :: real 0)
   (define (draw! context::Cursor)::void
@@ -610,8 +611,6 @@
   (set! width width0))
 
 (define-object (VerticalBar height0::real)::Tile
-  (define (advance! t::Traversal)::void
-    (t:advance/extent! (extent)))
 
   (define height :: real 0)
   (define (draw! context::Cursor)::void
@@ -652,8 +651,6 @@
        (isnt x gnu.lists.Pair?)))
 
 (define-object (EmptyListProxy space::Space)::ShadowedTile
-  (define (advance! t::Traversal)::void
-    (t:advance/extent! (extent)))
 
   (define (value) '())
   
@@ -703,7 +700,7 @@
 	   (traversal (Traversal
 		       max-line-height:
 		       (painter:min-box-height))))
-      (space:advance! traversal)
+      (space:expand! traversal)
       (Extent width: (+ (* 2 (painter:paren-width))
 			traversal:max-width)
 	      height: (+ traversal:top traversal:max-line-height))))

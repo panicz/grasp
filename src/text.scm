@@ -18,9 +18,7 @@
 (import (print))
 
 (define-object (Text)::TextualTile
-  (define (advance! t::Traversal)::void
-    (t:advance/extent! (extent)))
-  
+
   (define (draw! context::Cursor)
     (invoke (the-painter) 'draw-quoted-text!
 	    (this)

@@ -74,8 +74,6 @@
 ;; those atoms can be a different kind of object
 ;; on every query.
 (define-object (Atom source-string::String)::ShadowedTextualTile
-  (define (advance! t::Traversal)::void
-    (t:advance/extent! (extent)))
   
   (define builder :: java.lang.StringBuilder)
   (define source :: String "")
@@ -164,8 +162,6 @@
   (set! source (builder:toString)))
 
 (define-object (cons car cdr)::Tile
-  (define (advance! t::Traversal)::void
-    (t:advance/extent! (extent)))
   
   (define (equals object)::boolean
    (eq? object (this)))
@@ -328,23 +324,23 @@
                (item ::Element (tail pair))
 	       (post-tail ::Space (post-tail-space pair)))
           (action bar traversal)
-          (bar:advance! traversal)
+          (traversal:advance! bar)
 	  (when horizontal?
 	    (set! traversal:left 0))
 	  (action pre-tail traversal)
-          (pre-tail:advance! traversal)
+          (traversal:advance! pre-tail)
           (action item traversal)
-          (item:advance! traversal)
+          (traversal:advance! item)
           (action post-tail traversal)
-          (post-tail:advance! traversal)))
+          (traversal:advance! post-tail)))
 
       (define (step! pair::pair)
 	(let ((item ::Element (head pair))
               (post-head ::Space (post-head-space pair)))
           (action item traversal)
-          (item:advance! traversal)
+          (traversal:advance! item)
           (action post-head traversal)
-          (post-head:advance! traversal)
+          (traversal:advance! post-head)
           (cond ((dotted? pair)
 		 (step-over-dotted-tail! pair)
 		 (result traversal))
@@ -356,7 +352,7 @@
       (if (pair? sequence)
 	  (let ((pre-head ::Space (pre-head-space sequence)))
             (action pre-head traversal)
-            (pre-head:advance! traversal)
+            (traversal:advance! pre-head)
             (step! sequence))
 	  (result traversal))
       )))
@@ -366,7 +362,7 @@
 			#!key (context::Cursor (recons 1 '())))
   ::void
   (let-values (((selection-start selection-end) (the-selection)))
-    (let ((painter (the-painter)))
+    (let ((painter ::Painter (the-painter)))
       (traverse
        elems
        doing:
@@ -468,14 +464,14 @@
 				     reach: current:left
 				     index: fragment-index)))
 				  (else
-				   (next:advance-by! (* (car cell)
-							space-width))
+				   (next:expand-by! (* (car cell)
+						       space-width))
 				   (next:new-line!)
 				   (set! fragment-index
 					 (+ fragment-index 1)))))
 			   (`(,,@integer?)
-			    (next:advance-by! (* space-width
-						 (car cell)))))
+			    (next:expand-by! (* space-width
+						(car cell)))))
 			 #f)
 		       space:fragments)
 	      (set! previous-left current:left))))

@@ -30,16 +30,24 @@
 			max-width: real := 0
 			max-line-height: real := 0)
   extending Base with
-  ((advance/extent! extent::Extent)::void
-   (set! left (+ left extent:width))
-   (set! max-line-height (max extent:height
-			      max-line-height))
-   (set! max-width (max left max-width))
+  ((advance! element::Element)::void
+   (cond
+    ((Expandable? element)
+     (invoke (as Expandable element) 'expand! (this)))
+    ((Tile? element)
+     (expand! (invoke (as Tile element) 'extent)))
+    (else
+     (error "Unable to advance over "element)))
    (set! index (+ index 1)))
 
-  ((advance-by! width::real)::void
+  ((expand-by! width::real)::void
    (set! left (+ left width))
    (set! max-width (max max-width left)))
+
+  ((expand! extent::Extent)::void
+   (expand-by! extent:width)
+   (set! max-line-height (max extent:height
+			      max-line-height)))
 
   ((new-line!)::void
    (set! top (+ top max-line-height))
@@ -49,6 +57,8 @@
   
   )
 
+(define-interface Expandable ()
+  (expand! t::Traversal)::void)
 
 (define-parameter (the-traversal) ::Traversal
   (Traversal left: 0
@@ -77,7 +87,7 @@
   (draw! context::Cursor)::void
   (cursor-under* x::real y::real path::Cursor)::Cursor*
 
-  (advance! traversal::Traversal)::void
+
   #|
   (cursor-above* path::Cursor)::Cursor*
   (cursor-below* path::Cursor)::Cursor*
@@ -116,8 +126,6 @@
 
 (define-interface Tile (Element)
   (extent)::Extent
-  (advance! traversal::Traversal)::void
-  ;;:= (traversal:advance/extent! (extent))
   )
 
 (define-interface ShadowedTile (Shadowed Tile))
@@ -126,8 +134,7 @@
 
 (define-interface ShadowedTextualTile (Shadowed TextualTile))
 
-(define-interface Comment (Tile)
-  ;; docelowo to bedzie musial byc Tile
+(define-interface Comment (Expandable Tile)
   (print out::gnu.lists.Consumer)::void)
 
 (define-interface TextualComment (Textual Comment))

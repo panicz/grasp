@@ -12,9 +12,6 @@
 (define-type (Over back: Tile front: Tile)
   implementing Tile
   with
-  ((advance! t::Traversal)::void
-    (t:advance/extent! (extent)))
-
   ((draw! context::Cursor)::void
    (let* ((back-context (recons 'back context))
           (front-context (recons 'front context)))
@@ -64,9 +61,6 @@
 (define-type (Below top: Tile bottom: Tile)
   implementing Tile
   with  
-  ((advance! t::Traversal)::void
-    (t:advance/extent! (extent)))
-
   ((draw! context::Cursor)::void
    (let ((top-context (recons 'top context))
          (bottom-context (recons 'bottom context))
@@ -121,9 +115,6 @@
 (define-type (Beside left: Tile right: Tile)
   implementing Tile
   with
-  ((advance! t::Traversal)::void
-    (t:advance/extent! (extent)))
-
   ((draw! context::Cursor)::void
    (let ((left-context (recons 'left context))
          (right-context (recons 'right context))

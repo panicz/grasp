@@ -27,8 +27,8 @@
   ((extent)::Extent
    (expression:extent))
 
-  ((advance! traversal::Traversal)::void
-   (expression:advance! traversal))
+  ((expand! traversal::Traversal)::void
+   (traversal:expand! (extent)))
   
   ((print out::gnu.lists.Consumer)::void
    (out:append #\#)
@@ -65,16 +65,16 @@
 	 (inner ::Extent (extent)))
      (and (is 0 <= x < inner:width)
 	  (is 0 <= y < inner:height)
-	  (hash-cons (painter:block-comment-character-index-under
-		      x y content)
-		     path))))
-
+	  (let ((index (painter:block-comment-character-index-under
+			x y content)))
+	    (hash-cons index path)))))
+  
   ((extent)::Extent
    (let ((painter ::Painter (the-painter)))
      (painter:block-comment-extent content)))
 
-  ((advance! traversal::Traversal)::void
-   (traversal:advance/extent! (extent)))
+  ((expand! traversal::Traversal)::void
+   (traversal:expand! (extent)))
   
   ((print out::gnu.lists.Consumer)::void
    (out:append #\#)
@@ -100,7 +100,7 @@
    (content:previous-index index))
 
   ((index< a::Index b::Index)::boolean
-   (< a b))
+   (content:index< a b))
   )
 
 (define-type (LineComment content: Text := (Text))
@@ -113,11 +113,6 @@
   ((extent)::Extent
    (let ((painter ::Painter (the-painter)))
      (painter:line-comment-extent content)))
-
-  ((advance! traversal::Traversal)::void
-   (let ((size ::Extent (extent)))
-     (traversal:advance-by! size:width)
-     (traversal:new-line!)))
   
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
    (let ((painter ::Painter (the-painter))
@@ -171,5 +166,9 @@
   ((merge! following::Textual)::boolean
    (and-let* ((next ::LineComment following))
      (content:merge! next:content)))
+
+  ((expand! traversal::Traversal)::void
+   (traversal:expand! (extent))
+   (traversal:new-line!))
   )
 

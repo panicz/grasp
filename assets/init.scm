@@ -65,22 +65,31 @@
     (let ((editor ::Editor (as Editor (the-screen))))
       (slot-set! editor 'document
 		 (with-input-from-string "
-          #|FACTORIAL|#
+          #|FAC|# #|  
+TOR
+  |# #|
+IAL|# #|FAC
+TOR
+IAL|#
   ;  A factorial of an integer number n
   ;  is a product 1 * 2 * 3 * 4 * ... * n.
   ;  It represents the number of permutations
   ;  of an n-element set.
-  ; 
 (define (! n) ; -> int
 \"Computes the product 1*...*n.
 It represents the number of per-
 mutations of an n-element set.\"
   (if (<= n 0)
-      1
-      (* n (! (- n 1))))) ; factorial
+      1 #| BASE CASE |#
+      (* n (! (- n 1))))) #|factorial
+is a serious
+business,
+son|#
 (e.g. (! 5) ===> 120)
 (Button action: (lambda () (WARN \"button pressed!\"))
         label: \"Press me!\")
 " parse-document))))
 
 (WARN "loaded init.scm")
+
+;; (#\] 3 2 1)
