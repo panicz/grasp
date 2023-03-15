@@ -1,3 +1,48 @@
+* 14.03.2023
+
+Popsute klikniecia udalo sie naprawic, i powinny wyjsc
+w jutrzejszej serii commitow.
+
+Natomiast teraz chcemy sie zajac nastepujacymi rzeczami:
+- dodawanie, usuwanie i edycja komentarzy blokowych
+(poprzez wpisanie #| albo |# w kontekscie atomu - wowczas
+powinnismy podzielic atom, np. ab#|cd powinno nam zrobic
+dwa atomy ab cd, a miedzy nimi pusty komentarz blokowy)
+
+tak naprawde to wcisniecie | powinno dzialac w taki sposob,
+ze jezeli jestesmy na przedostatnim elemencie listy, to
+sprawiamy, ze ta lista bedzie "dotted?". Jezeli natomiast
+jestesmy na symbolu i po lewej albo prawej stronie
+od kursora znajduje sie znak #, to go usuwamy
+i wstawiamy komentarz blokowy (i przy okazji byc moze
+rowniez rozbijamy atomy)
+
+Wydaje sie, ze dodatkowo bedziemy chcieli zrobic
+nowy rodzaj operacji edycji, ktory sobie nazwiemy
+"EditSequence", o taki mniej wiecej
+
+#+BEGIN_SRC scheme
+(define-type (EditSequence operations:  (list-of Edit))
+  ((apply! document)::Cursor
+   (let ((result ::Cursor #!null))
+     (for operation in operations
+       (set! result (operation:apply! document)))
+     result))
+  ((inverse)::Edit
+   (define (transform sequence inverted)
+     (match sequence
+       (`(,head::Edit . ,tail)
+        (transform tail (cons (head:inverse) inverted)))
+       ('()
+        inverted)))
+   (transform operations '())))
+#+END_SRC
+
+* 12.03.2023
+
+Wyglada na to, ze biezaca implementacja komentarzy
+blokowych popsula zupelnie detekcje klikniec.
+
 * 09.03.2023
 
 Do zrobienia mamy:
