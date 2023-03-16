@@ -141,12 +141,11 @@
 	  (set! (the-selection-anchor) (the-cursor))
 	  (delete-backward!))
 	 ((is (text-length target) <= 1)
-	  (let ((cell (drop (quotient top 2) parent)))
 	    ;; the cell will be cut off from the rest
 	    ;; of the document after performing Remove
-	    (perform! (Remove element: cell
+	    (perform! (Remove element: (drop (quotient top 2) parent)
 			      at: (recons top root)
-			      with-shift: (car preceding-cursor)))))
+			      with-shift: (car preceding-cursor))))
 	 (else
 	  (perform!
 	   (RemoveCharacter
@@ -193,13 +192,12 @@
 	  (delete-backward!))
 	 ((or (eqv? tip last-index)
 	      (is (text-length (as Text target)) <= 0))
-	  (let ((cell (drop (quotient top 2) parent)))
 	    ;; the cell will be cut off from the rest
 	    ;; of the document after performing Remove
-	    (perform! (Remove element: cell
+	  (perform! (Remove element: (drop (quotient top 2) parent)
 			      at: (recons top root)
 			      with-shift: (text-length
-					   preceding-element)))))
+					   preceding-element))))
 	 (else
 	  (perform! (RemoveCharacter list: (cons (target:char-ref
 						  (- tip 1))
@@ -207,7 +205,7 @@
      ((TextualComment? target)
       (let ((target ::TextualComment target))
 	(cond
-	 ((is (target:text-length) <= 1)
+	 ((target:removable?)
 	  (perform! (RemoveComment content: target
 				   at: (recons top root))))
 	 (else
@@ -215,17 +213,15 @@
 						  (- tip 1))
 						 '())))))))
      ((gnu.lists.LList? target)
-      (let ((cell (drop (quotient top 2) parent)))
-	(if (or (eqv? tip last-index)
-		(null? target)
-		(and-let* ((empty ::EmptyListProxy target)
-			   ((is empty:space EmptySpace?)))))
-	    (perform! (Remove element: cell
+      (if (or (eqv? tip last-index)
+	      (null? target)
+	      (and-let* ((empty ::EmptyListProxy target)
+			 ((is empty:space EmptySpace?)))))
+	    (perform! (Remove element: (drop (quotient top 2) parent)
 			      at: (recons top root)
 			      with-shift: (text-length
 					   preceding-element)))
-	    #f
-	    )))
+	    #f))
      (else
       #f))))
 
@@ -267,7 +263,109 @@
      
      ((is c in '(#\] #\) #\}))
       (unnest-cursor-right!))
-      
+
+     ((is c eqv? #\|)
+      (cond
+       ((and (Atom? item) (pair? parent))
+	(let* ((atom ::Atom item)
+	       (n ::int (atom:text-length))
+	       (preceding-cursor (cursor-retreat (recons* 0 top subcursor)))
+	       (following-cursor (cursor-advance (recons* n top subcursor))))
+	  (cond
+	   ((and (is tip >= 1) (eq? (atom:char-ref (- tip 1)) #\#))
+	    (cond
+	     ((= n 1)
+	      ;; remove the single # atom and insert an empty comment
+	      ;; into the space preceding that atom
+		(perform!
+		 (EditSequence
+		  operations: (list
+			       (Remove element: (drop (quotient top 2) parent)
+				       at: (recons top subcursor)
+				       with-shift: (car preceding-cursor))
+			       (InsertComment content: (BlockComment)
+					      at: preceding-cursor)))))
+	     ((= tip 1)
+	      ;; remove the # character from the beginning 
+	      ;; of the atom and insert an empty comment
+	      ;; into the space preceding that atom
+	      (perform!
+	       (EditSequence
+		operations: (list
+			     (RemoveCharacter list: (cons #\# '()))
+			     (InsertComment content: (BlockComment)
+					    at: preceding-cursor)))))
+
+	     ((= tip n)
+	      ;; remove the # character from the end
+	      ;; of the atom and insert an empty comment
+	      ;; into the space following that atom
+	      (perform!
+	       (EditSequence
+		operations: (list
+			     (RemoveCharacter list: (cons #\# '()))
+			     (InsertComment content: (BlockComment)
+					    at: following-cursor)))))
+	      
+	     (else
+	      ;; remove the # character from the middle of the atom.
+	      ;; then split the atom and insert a new block comment
+	      ;; between the splitted parts
+	      (perform!
+	       (EditSequence
+		operations: (list
+			     (RemoveCharacter list: (cons #\# '()))
+			     (SplitElement at: (recons* (- tip 1) top subcursor)
+					   with: (Space fragments:
+							(cons* 0 (BlockComment)
+							       0 '())))))))))
+	   ((and (is tip < n) (eq? (atom:char-ref tip) #\#))
+	     (cond
+	     ((= n 1)
+	      ;; remove the single # atom and insert an empty comment
+	      ;; into the space preceding that atom
+	      (perform!
+	       (EditSequence
+		operations: (list
+			     (Remove element: (drop (quotient top 2) parent)
+				     at: (recons top subcursor))
+			     (InsertComment content: (BlockComment)
+					    at: preceding-cursor)))))
+	     ((= tip 0)
+	      ;; remove the # character from the beginning 
+	      ;; of the atom and insert an empty comment
+	      ;; into the space preceding that atom
+	      (perform!
+	       (EditSequence
+		operations: (list
+			     (RemoveCharacter list: (cons #\# '())
+					      before: (recons* 1 top subcursor))
+			     (InsertComment content: (BlockComment)
+					    at: preceding-cursor)))))
+	     ((= tip (- n 1))
+	      ;; remove the # character from the end
+	      ;; of the atom and insert an empty comment
+	      ;; into the space following that atom
+	      (perform!
+	       (EditSequence
+		operations: (list
+			     (RemoveCharacter list: (cons #\# '())
+					      before: (recons* n top cursor))
+			     (InsertComment content: (BlockComment))))))
+	     (else
+	      ;; remove the # character from the middle of the atom.
+	      ;; then split the atom and insert a new block comment
+	      ;; between the splitted parts
+	      (perform!
+	       (EditSequence
+		operations: (list
+			     (RemoveCharacter list: (cons #\# '())
+					      before: (recons* (+ tip 1) top subcursor))
+			     (SplitElement with: (Space fragments:
+							(cons* 0 (BlockComment)
+							       0 '())))))))
+	     )))))))
+     
      ((gnu.lists.LList? item)
       (set! (the-cursor) (cursor-advance))
       (set! (the-selection-anchor) (the-cursor))

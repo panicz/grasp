@@ -40,6 +40,24 @@
   ((inverse)::Edit
    (NoEdit)))
 
+(define-type (EditSequence operations:  (list-of Edit))
+  implementing Edit
+  with
+  ((apply! document)::Cursor
+   (let ((result ::Cursor #!null))
+     (for operation::Edit in operations
+       (set! result (operation:apply! document)))
+     result))
+  ((inverse)::Edit
+   (define (transform sequence inverted)
+     (match sequence
+       (`(,head::Edit . ,tail)
+        (transform tail (cons (head:inverse) inverted)))
+       ('()
+        inverted)))
+   (transform operations '()))
+  )
+
 (define-type (Move from: Cursor
 		   to: Cursor
 		   with-shift: int := 0)
@@ -61,7 +79,6 @@
   )
 
 (define-type (Remove element: (either pair
-				      HeadTailSeparator
 				      EmptyListProxy)
 		     at: Cursor := (the-cursor)
 		     with-shift: int := 0)
@@ -78,7 +95,7 @@
 	      at: (recons* with-shift (- tip 1) root)))))
   )
 
-(define-type (Insert element: (either pair HeadTailSeparator)
+(define-type (Insert element: pair
 		     at: Cursor := (the-cursor))
   implementing Edit
   with
@@ -257,19 +274,8 @@
    (and-let* ((`(,tip ,top . ,root) at)
 	      (grandpa ::Indexable (cursor-ref document root))
 	      (item ::Space (grandpa:part-at top)))
-     (let-values (((fragments
-		    reminant) (space-fragment-index
-			       item:fragments
-			       tip #;(if (is tip > 0)
-				   (- tip 1) 
-				   tip))))
-       (match fragments
-	 (`(,preceding ,,content . ,rest)
-	  (set! (cdr fragments) rest))
-	 (`(,,content ,next . ,rest)
-	  (set! (car fragments) next)
-	  (set! (cdr fragments) rest)))
-       (recons (- (car at) 1) (cdr at)))))
+     (set! item:fragments (content:remove-from! item:fragments)))
+   (recons (- (car at) 1) (cdr at)))
    
   ((inverse)::Edit
    (InsertComment content: content
