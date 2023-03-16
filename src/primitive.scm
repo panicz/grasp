@@ -116,13 +116,13 @@
   (define (insert-char! c::char index::int)::void
     (builder:insert index c)
     (set! cache #!null)
-    (set! source ((builder:toString):intern)))
+    (set! source (invoke (builder:toString) 'intern)))
 
   (define (delete-char! index::int)::char
     (let ((result (builder:charAt index)))
       (builder:deleteCharAt index)
       (set! cache #!null)
-      (set! source ((builder:toString):intern))
+      (set! source (invoke (builder:toString) 'intern))
       result))
 
   (define (char-ref index::int)::char
@@ -132,7 +132,7 @@
     (let ((reminent ::Atom (Atom (source:substring position))))
       (builder:setLength position)
       (set! cache #!null)
-      (set! source ((builder:toString):intern))
+      (set! source (invoke (builder:toString) 'intern))
       reminent))
 
   (define (merge! next::Textual)::boolean
