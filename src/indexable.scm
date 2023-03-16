@@ -137,7 +137,10 @@
 (define-interface Comment (Expandable Tile)
   (print out::gnu.lists.Consumer)::void)
 
-(define-interface TextualComment (Textual Comment))
+(define-interface TextualComment (Textual Comment)
+  (removable?)::boolean
+  (remove-from! fragments::list)::list
+  )
 
 #|
 `the-cursor` and `the-document` are parameters

@@ -12,6 +12,7 @@
 (import (extent))
 (import (examples))
 (import (print))
+(import (functions))
 
 (define-type (ExpressionComment expression: Tile)
   implementing Comment
@@ -54,7 +55,7 @@
    (expression:index< a b)))
 
 (define-type (BlockComment content: Text := (Text))
-  implementing Comment
+  implementing TextualComment
   with
   ((draw! context::Cursor)::void
    (let ((painter ::Painter (the-painter)))
@@ -88,19 +89,56 @@
    (this))
   
   ((first-index)::Index
-   (content:first-index))
+   0)
 
   ((last-index)::Index
-   (content:last-index))
+   (string-length content))
 
   ((next-index index::Index)::Index
-   (content:next-index index))
+   (min (+ index 1) (last-index)))
 
   ((previous-index index::Index)::Index
-   (content:previous-index index))
+   (max (- index 1) (first-index)))
 
   ((index< a::Index b::Index)::boolean
-   (content:index< a b))
+   (is a < b))
+  
+  ((insert-char! c::char index::int)::void
+   (content:insert-char! c index))
+  
+  ((delete-char! index::int)::char
+   (content:delete-char! index))
+  
+  ((char-ref index::int)::char
+   (content:char-ref index))
+  
+  ((text-length)::int
+   (content:text-length))
+  
+  ((split! position::int)::Textual
+   (let ((splitted ::Text (content:split! position)))
+     (BlockComment content: splitted)))
+   
+  ((merge! following::Textual)::boolean
+   (and-let* ((next ::BlockComment following))
+     (content:merge! next:content)))
+
+  ((removable?)::boolean
+   (is (text-length) <= 0))
+
+  ((remove-from! fragments::list)::list
+   (let ((that (this)))
+     (cond
+      ((sublist (lambda (l)
+		  (and-let* ((`(,n::integer ,,@(is _ eq? that) ,m::integer . ,_) l))))
+		fragments)
+       => (lambda (l)
+	    (set! (car l) (+ (car l) (caddr l)))
+	    (set! (cdr l) (cdddr l))
+	    fragments))
+      (else
+       (WARN "unable to remove "that" from "fragments)
+       fragments))))
   )
 
 (define-type (LineComment content: Text := (Text))
@@ -113,7 +151,11 @@
   ((extent)::Extent
    (let ((painter ::Painter (the-painter)))
      (painter:line-comment-extent content)))
-  
+
+  ((expand! traversal::Traversal)::void
+   (traversal:expand! (extent))
+   (traversal:new-line!))
+
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
    (let ((painter ::Painter (the-painter))
 	 (inner ::Extent (extent)))
@@ -145,10 +187,11 @@
    (max (- index 1) (first-index)))
 
   ((index< a::Index b::Index)::boolean
-   (< a b))
+   (is a < b))
 
   ((insert-char! c::char index::int)::void
-   (content:insert-char! c index))
+   (unless (eqv? c #\newline)
+     (content:insert-char! c index)))
   
   ((delete-char! index::int)::char
    (content:delete-char! index))
@@ -167,8 +210,10 @@
    (and-let* ((next ::LineComment following))
      (content:merge! next:content)))
 
-  ((expand! traversal::Traversal)::void
-   (traversal:expand! (extent))
-   (traversal:new-line!))
-  )
+  ((removable?)::boolean
+   (is (text-length) <= 1))
 
+  ((remove-from! fragments::list)::list
+   (let ((that (this)))
+     (remove! (is _ eq? that) fragments)))
+   )
