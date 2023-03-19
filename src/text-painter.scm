@@ -169,6 +169,28 @@
     (put! #\┘ (- height 1) (- width 1))
     
     (values))
+
+  (define (draw-line! x0::real y0::real x1::real y1::real)::void
+    (let* ((x1-x0 ::real (- x1 x0))
+           (y1-y0 ::real (- y1 y0))
+	   (angle ::real (atan y1-y0 x1-x0)))
+      (cond
+       ((is -pi/4 <= angle <= pi/4)
+	(let ((slope ::real (tan angle))
+              (x0 ::int (round x0)))
+          (for i from 0 to (as int (ceiling x1-x0))
+	       (let* ((x (+ x0 i))
+	              (y (+ y0 (* slope i))))
+		 (put! #\█ (as int (round y)) x)))))
+       ((is pi/4 <= angle <= (* 3 pi/4))
+	(let ((slope ::real (/ (cos angle) (sin angle)))
+              (y0 ::int (round y0)))
+          (for j from 0 to (as int (ceiling y1-y0))
+	       (let ((x (+ x0 (* slope j)))
+	             (y (+ y0 j)))
+		 (put! #\█ y (as int (round x)))))))
+       (else
+	(draw-line! x1 y1 x0 y0)))))
   
   (define (draw-quoted-text! s::CharSequence context::Cursor)
     ::void

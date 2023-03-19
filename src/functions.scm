@@ -330,6 +330,21 @@
 
 (define-alias hypotenuse java.lang.Math:hypot)
 
+(define-constant pi/4 ::real (atan 1))
+
+(define-constant pi/2 ::real (* 2 pi/4))
+
+(define-constant pi ::real (* 2 pi/2))
+
+(define-constant -pi/4 ::real (- pi/4))
+
+(define-constant -pi/2 ::real (- pi/2))
+
+(define-constant -pi ::real (- pi))
+
+(define (fraction number::real)
+  (- number (floor number)))
+
 (define (min+max first . args)
   #;(assert (and (number? first)
 	       (every number? args)))
