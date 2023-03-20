@@ -12,6 +12,7 @@
 (import (match))
 (import (space))
 (import (functions))
+(import (mapping))
 
 (define-object (CharPainter)::Painter
 
@@ -170,7 +171,47 @@
     
     (values))
 
-  (define (draw-line! x0::real y0::real x1::real y1::real)::void
+  (define 4pix-code
+    (let ((4pix (mapping (4p::char)::int 0)))
+      (set! (4pix #\space) #b0000)
+      (set! (4pix #\▘) #b0001)
+      (set! (4pix #\▝) #b0010)
+      (set! (4pix #\▀) #b0011)
+      (set! (4pix #\▖) #b0100)
+      (set! (4pix #\▌) #b0101)
+      (set! (4pix #\▞) #b0110)
+      (set! (4pix #\▛) #b0111)
+      (set! (4pix #\▗) #b1000)
+      (set! (4pix #\▚) #b1001)
+      (set! (4pix #\▐) #b1010)
+      (set! (4pix #\▜) #b1011)
+      (set! (4pix #\▄) #b1100)
+      (set! (4pix #\▙) #b1101)
+      (set! (4pix #\▟) #b1110)
+      (set! (4pix #\█) #b1111)
+      4pix))
+
+  (define 4pix ::char[]
+    (char[] #\space
+	 #\▘ #\▝ #\▀ #\▖ #\▌
+	 #\▞ #\▛ #\▗ #\▚ #\▐
+	 #\▜ #\▄ #\▙ #\▟ #\█))
+
+  (define (4pix-set! x4::int y4::int)::void
+    (let* ((x ::int (quotient x4 2))
+           (h ::int (remainder x4 2))
+           (y ::int (quotient y4 2))
+	   (v ::int (remainder y4 2))
+	   (c ::char (get y x))
+	   (existing-code ::int (4pix-code c))
+	   (mask ::int (arithmetic-shift 1 (+ (* 2 v) h)))
+	   (new-code ::int (bitwise-ior existing-code mask))
+	   (c* ::char (4pix new-code)))
+      (put! c* y x)))
+
+  (define (draw-line-4pix! x0::real y0::real
+			   x1::real y1::real)
+    ::void
     (let* ((x1-x0 ::real (- x1 x0))
            (y1-y0 ::real (- y1 y0))
 	   (angle ::real (atan y1-y0 x1-x0)))
@@ -181,16 +222,19 @@
           (for i from 0 to (as int (ceiling x1-x0))
 	       (let* ((x (+ x0 i))
 	              (y (+ y0 (* slope i))))
-		 (put! #\█ (as int (round y)) x)))))
+		 (4pix-set! x (as int (round y)))))))
        ((is pi/4 <= angle <= (* 3 pi/4))
 	(let ((slope ::real (/ (cos angle) (sin angle)))
               (y0 ::int (round y0)))
           (for j from 0 to (as int (ceiling y1-y0))
 	       (let ((x (+ x0 (* slope j)))
 	             (y (+ y0 j)))
-		 (put! #\█ y (as int (round x)))))))
+		 (4pix-set! (as int (round x)) y)))))
        (else
-	(draw-line! x1 y1 x0 y0)))))
+	(draw-line-4pix! x1 y1 x0 y0)))))
+
+  (define (draw-line! x0::real y0::real x1::real y1::real)::void
+    (draw-line-4pix! (* x0 2) (* y0 2) (* x1 2) (* y1 2)))
   
   (define (draw-quoted-text! s::CharSequence context::Cursor)
     ::void
