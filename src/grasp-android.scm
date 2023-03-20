@@ -307,6 +307,10 @@
       (paint:setColor text-color)
       (canvas:drawRect (as float left) top right bottom paint)))
 
+  (define (draw-line! x0::real y0::real x1::real y1::real)
+    ::void
+    (canvas:drawLine x0 y0 x1 y1 paint))
+  
   (define marked-cursor-position ::Position
     (Position left: 0
 	      top: 0))

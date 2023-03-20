@@ -233,7 +233,8 @@
        (else
 	(draw-line-4pix! x1 y1 x0 y0)))))
 
-  (define (draw-line! x0::real y0::real x1::real y1::real)::void
+  (define (draw-line! x0::real y0::real x1::real y1::real)
+    ::void
     (draw-line-4pix! (* x0 2) (* y0 2) (* x1 2) (* y1 2)))
   
   (define (draw-quoted-text! s::CharSequence context::Cursor)

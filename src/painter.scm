@@ -75,6 +75,8 @@
   
   (draw-rounded-rectangle! width::real height::real)::void
   (draw-rectangle! width::real height::real)::void
+
+  (draw-line! x0::real y0::real x1::real y1::real)::void
   
   (enter-selection-drawing-mode!)::void
   (exit-selection-drawing-mode!)::void
@@ -159,6 +161,10 @@
     (values))
   
   (define (draw-vertical-line! left::real)::void
+    (values))
+
+  (define (draw-line! x0::real y0::real x1::real y1::real)
+    ::void
     (values))
 
   (define (horizontal-line-height)::real

@@ -365,7 +365,14 @@
   (define (draw-vertical-line! left::real)::void
     (graphics:fillRect left (max 0 (current-clip-top)) 
 		       (vertical-line-width) (current-clip-height)))
-    
+
+  (define (draw-line! x0::real y0::real x1::real y1::real)
+    ::void
+    (graphics:drawLine (as int (round x0))
+		       (as int (round y0))
+		       (as int (round x1))
+		       (as int (round y1))))
+  
   (define (draw-text! text::CharSequence
 		      font::Font
 		      context::Cursor)
