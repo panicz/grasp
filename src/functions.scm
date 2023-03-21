@@ -342,6 +342,9 @@
 
 (define-constant -pi ::real (- pi))
 
+(define (square x::number)::number
+  (* x x))
+
 (define (fraction number::real)
   (- number (floor number)))
 

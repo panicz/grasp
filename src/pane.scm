@@ -45,8 +45,46 @@
 
 (define-object (Point x y)::Drawable
   (define (draw!)
-    (let ((painter (the-painter)))
-      (painter:draw-point! x y #xff0000))))
+    (let ((painter ::Painter (the-painter)))
+      (painter:draw-point! x y #xff0000)))
+
+  (define (distance-to p::Point)::real
+    (hypotenuse (- x p:x) (- y p:y))))
+
+(define-object (Stroke)::Drawable
+  (define points ::List[Point] (ArrayList[Point]))
+  
+  (define (draw!)::void
+    (let ((painter ::Painter (the-painter)))
+      (for i from 1 below (points:size)
+        (let ((p0 ::Point (points (- i 1)))
+	      (p1 ::Point (points i)))
+          (painter:draw-line! p0:x p0:y p1:x p1:y)))))
+
+  (define left ::real +inf.0)
+  (define right ::real -inf.0)
+  (define top ::real +inf.0)
+  (define bottom ::real -inf.0)
+  
+  (define (add-point! p::Point)::void
+    (points:add p)
+    (set! left (min p:x left))
+    (set! right (max p:x right))
+    (set! top (min p:y top))
+    (set! bottom (max p:y bottom))))
+
+(define-object (Gesture)::Drawable
+  (define strokes ::List[Stroke] (ArrayList[Stroke]))
+
+  (define (draw!)::void
+    (for stroke::Stroke in strokes
+      (stroke:draw!)))
+
+  (define (clear!)::void
+    (strokes:clear))
+  
+  (define (add-stroke! s::Stroke)::void
+    (strokes:add s)))
 
 (define-object (Overlay)::Drawable
   (define elements :: List[Drawable] (ArrayList[Drawable]))
@@ -61,6 +99,10 @@
   (define (remove! element::Drawable)::void
     (elements:remove element))
   )
+
+(define the-stroke ::Stroke #!null)
+
+(define-early-constant the-gesture ::Gesture (Gesture))
 
 (define-early-constant overlay ::Overlay (Overlay))
 

@@ -23,9 +23,11 @@
 (import (input))
 (import (conversions))
 (import (examples))
+(import (indexable))
 (import (editor-operations))
 (import (pane))
 (import (parse))
+
 
 (set-key! 'left move-cursor-left!)
 
