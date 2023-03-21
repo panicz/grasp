@@ -1,3 +1,221 @@
+* 21.03.2023
+
+Przeanalizujmy obsluge gestow w grasp-android:
+
+mamy globalny obiekt
+
+(define the-stroke ::Stroke #!null)
+(define the-gesture ::Gesture (Gesture))
+
+oraz funkcje 'isShapeBeingDrawn'
+
+(define (gesture-is-being-drawn?)::boolean
+  (isnt the-stroke eq? #!null))
+
+a do tego funkcje
+
+(define (start-drawing-gesture!)::void
+  (set! the-stroke (Stroke)))
+
+(define (cancel-drawing-gesture!)::void
+  (gesture:clear!)
+  (set! the-stroke #!null))
+
+  
+
+* 20.03.2023
+
+Rysowanie gestow
+ma dwojaki sens:
+- czlowiek rysuje gesty
+- program rysuje linie
+
+No ale dobra
+trzeba pomyslec
+w jaki sposob chcemy
+reprezentowac.
+
+Teraz w (pane) mamy cos, co sie nazywa overlay,
+i do czego mozemy wlozyc obiekty Drawable.
+
+i teraz: chcielibysmy miec obiekt "Drawable",
+ktory bylby dodawany do Overlay w momencie,
+kiedy zaczynamy cos rysowac.
+
+ale jak sie on bedzie nazywal?
+
+    
+* 19.03.2023
+
+teraz to bysmy chcieli miec funkcje
+
+(define 4pix-code
+  (let ((4pix (mapping (4p::char)::int 0)))
+(set! (4pix #\space) #b0000)
+(set! (4pix #\▘) #b0001)
+(set! (4pix #\▝) #b0010)
+(set! (4pix #\▀) #b0011)
+(set! (4pix #\▖) #b0100)
+(set! (4pix #\▌) #b0101)
+(set! (4pix #\▞) #b0110)
+(set! (4pix #\▛) #b0111)
+(set! (4pix #\▗) #b1000)
+(set! (4pix #\▚) #b1001)
+(set! (4pix #\▐) #b1010)
+(set! (4pix #\▜) #b1011)
+(set! (4pix #\▄) #b1100)
+(set! (4pix #\▙) #b1101)
+(set! (4pix #\▟) #b1110)
+(set! (4pix #\█) #b1111)
+4pix))
+
+(define 4pix ::char[]
+  (char[]
+  #\space
+  #\▘
+  #\▝
+  #\▀
+  #\▖
+  #\▌
+  #\▞
+  #\▛
+  #\▗
+  #\▚
+  #\▐
+  #\▜
+  #\▄
+  #\▙
+  #\▟
+  #\█
+  ))
+
+(define (4pix-set! x4::int y4::int)::void
+  (let* ((x ::int (quotient x4 2))
+         (h ::int (remainder x4 2))
+         (y ::int (quotient y4 2))
+	 (v ::int (remainder y4 2))
+	 (c ::char (get y x))
+	 (existing-code ::int (4pix-code c))
+	 (mask ::int (arithmetic-shift 1 (+ (* 2 v) h)))
+	 (new-code ::int (bitwise-ior existing-code mask))
+	 (c* ::char (4pix new-code)))
+    (put! c* y x)))
+
+
+x^2 + y^2 = r^2
+
+y^2 = r^2 - x^2
+
+y = sqrt(r^2 - x^2)
+
+
+(x0 - radius + i)
+
+
+(define (draw-circle-4pix! x0::real y0::real radius::real)::void
+  (let ((diameter ::int (ceiling (* 2 radius)))
+        (r^2 (* radius radius)))
+    (for i from 0 to diameter
+      (let* ((dx ::real (- i radius))
+             (dy :: real (sqrt (- r^2 (* x x))))
+	     (x ::int (as int (round (+ x dx))))
+	     (+y ::int (as int (round (+ y dy))))
+	     (-y ::int (as int (round (- y dy)))))
+        (4pix-set! x +y)
+        (4pix-set! x -y)))))
+
+    
+* 18.03.2023
+
+
+x1-x0   y1-y0
+----- = -----
+  m       n
+
+y0 = ax0 + b
+y1 = ax1 + b
+
+
+(define (draw-line! x0::real y0::real x1::real y1::real)::void
+  (let* ((x1-x0 ::real (- x1 x0))
+         (y1-y0 ::real (- y1 y0))
+	 (angle ::real (atan y1-y0 x1-x0)))
+    (cond
+      ((is -pi/4 <= angle <= pi/4) ;>>
+       (let ((slope ::real (tan angle))
+             (x0 ::int (round x0)))
+         (for i from 0 to (as int (ceiling x1-x0))
+	   (let ((x (+ x0 i))
+	         (y (+ y0 (* slope i))))
+             (put! #\█ (as int (round y)) x)))))
+      ((is pi/4 <= angle <= (* 3 pi/4)) ;>>
+       (let ((slope ::real (/ (cos angle) (sin angle)))
+             (y0 ::int (round y0)))
+         (for j from 0 to (as int (ceiling y1-y0))
+	   (let ((x (+ x0 (* slope i)))
+	         (y (+ y0 i)))
+	   (put! #\█ y (as int (round x))))))
+      (else
+       (draw-line! x1 y1 x0 y0)))))
+
+
+▞▚
+▚▞
+
+  ▄
+ ▞ ▚
+▐   ▌
+ ▚ ▞
+  ▀
+
+▖▗ ▘▝
+  
+ ▗▀
+▐   ▌
+ 
+  ▀
+* 17.03.2023 (telefon)
+
+W ramach odpinki moze sprobujemy dodac do systemu
+funkcjonalnosc rysowania gestow.
+
+Ogolnie to musi wygladac tak, ze
+jak zaczynamy rysowac gest, to dodajemy
+'stroke' do overlaya, natomiast sam 'stroke'
+to nic innego jak lista punktow.
+
+Na pozor wydaje sie to latwe, ale pamietajmy
+takze o tym, ze chcemy tez rysowac linie
+w terminalu - i dlatego chcielibysmy dodac
+mozliwosc rysowania linii do interfejsu Painter.
+
+(mozna sie tez zastanowic nad uzyciem
+w GRASP renderowania w stylu Figlet)
+
+Oczywiscie rysowanie linii trzeba zaimplementowac
+dwojako: w kliencie tekstowym i terminalowym.
+
+W przypadku klienta terminalowego bedziemy
+uzywac koloru, natomiast w przypadku klienta
+tekstowego bysmy uzyli tego:
+
+▞▀▀▀▚
+▌    ▌
+▚    ▐
+ ▚   ▞
+  ▚▄▞
+
+▛▜
+▙▟ █
+  
+czyli dodajemy do paintera funkcje
+
+(draw-line! x1::real y1::real x2::real y2::real)::void
+
+i implementacje dla androida i awt (wolajace
+pod spodem odpowiednie funkcje) oraz dla klienta
+tekstowego
+
 * 14.03.2023
 
 Popsute klikniecia udalo sie naprawic, i powinny wyjsc
