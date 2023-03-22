@@ -275,7 +275,7 @@
 	      (grandpa ::Indexable (cursor-ref document root))
 	      (item ::Space (grandpa:part-at top)))
      (set! item:fragments (content:remove-from! item:fragments)))
-   (recons (- (car at) 1) (cdr at)))
+   (recons (as int (- (car at) 1)) (cdr at)))
    
   ((inverse)::Edit
    (InsertComment content: content

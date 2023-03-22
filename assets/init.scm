@@ -27,7 +27,7 @@
 (import (editor-operations))
 (import (pane))
 (import (parse))
-
+(import (cursor))
 
 (set-key! 'left move-cursor-left!)
 
@@ -49,8 +49,8 @@
 (set-key! 'delete delete-forward!)
 
 (set-key! '(ctrl /) (lambda ()
-		      (WARN "cursor: "(the-cursor)", selection: "
-			    (the-selection-anchor))))
+		      (WARN "cursor: "(the-cursor)
+			    ", expression: "(the-expression))))
 
 #|
 

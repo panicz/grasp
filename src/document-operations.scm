@@ -189,9 +189,10 @@
 					     target
 					     tip)))
 	  (set! (car following-space:fragments)
-		(max (if (empty? (car parent)) 0 1)
+		(as int
+		    (max (if (empty? (car parent)) 0 1)
 		     (- (car following-space:fragments)
-			(cell-width element))))
+			(cell-width element)))))
 	  (set! (post-head-space element)
 		following-space)
 	  (set! (last-tail element) (car parent))
@@ -204,9 +205,12 @@
 					(split-space! target
 						      tip)))
 		   (set! (car following-space:fragments)
-			 (max (if (empty? (cdr before)) 0 1)
+			 (as int
+			     (max (if (empty? (cdr before))
+				      0
+				      1)
 			      (- (car following-space:fragments)
-				 (cell-width element))))
+				 (cell-width element)))))
 		   (set! (post-head-space element)
 			 following-space))
 		 (set! (last-tail element) (cdr before))
@@ -218,10 +222,11 @@
 					(split-space! target
 						      tip)))
 		   (set! (car following-space:fragments)
-			 (max
-			  (- (car following-space:fragments)
-			     1)
-			  1))
+			 (as int
+			     (max
+			      (- (car following-space:fragments)
+				 1)
+			      1)))
 		   (set! (pre-tail-space before)
 			 following-space))
 		 (set! (cdr before) (car (cdr before)))

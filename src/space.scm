@@ -33,10 +33,11 @@
 	  (is (fragment-size (car fragments)) >= index))
       (values fragments index)
       (space-fragment-index (cdr fragments)
-			    (- index
-			       (fragment-size
-				(car fragments))
-			       1))))
+			    (as int
+				(- index
+				   (fragment-size
+				    (car fragments))
+				   1)))))
 
 (e.g.
  (space-fragment-index '(0 0) 0)
@@ -110,11 +111,11 @@
 			      position)))
     (match cell
       (`(,,index ,next . ,rest)
-       (set! (car cell) (+ index next))
+       (set! (car cell) (as int (+ index next)))
        (set! (cdr cell) rest)
        fragments)
       (`(,,@(is _ > 0) . ,_)
-       (set! (car cell) (- (car cell) 1))
+       (set! (car cell) (as int (- (car cell) 1)))
        fragments)
       (_
        fragments
@@ -202,7 +203,7 @@
    (let-values (((cell index) (space-fragment-index
 			       fragments
 			       position)))
-     (set! (car cell) (+ (car cell) 1))))
+     (set! (car cell) (as int (+ (car cell) 1)))))
 
   ((insert-break! position::int)::void
    (let-values (((cell index) (space-fragment-index
@@ -286,7 +287,8 @@
 	  (or
 	   (comment:cursor-under* (- x t:left)
 				  (- y t:top)
-				  (hash-cons* (+ total 1) path))
+				  (hash-cons*
+				   (+ total 1) path))
 	   (begin
 	     (comment:expand! t)
 	     (skip rest (+ total 2)))))
@@ -303,7 +305,7 @@
 	    (t:expand-by! (* space-width width))
 	    (t:new-line!)
 	    (skip (cdr input)
-		  (+ total width 1)))))
+		  (as int (+ total width 1))))))
 	 (`(,width::integer . ,rest)
 	  (or
 	   (and (is 0 <= (- y t:top) < t:max-line-height)
@@ -394,7 +396,7 @@
 	      (suffix (last-tail fragments))
 	      (`(,n) suffix)
 	      (`(,m . ,appendix) next:fragments))
-     (set! (car suffix) (+ m n))
+     (set! (car suffix) (as int (+ m n)))
      (set! (cdr suffix) appendix)
      #t))
   
@@ -445,7 +447,7 @@
 (define (join-spaces! a::Space b::Space)::Space
   (let ((suffix (last-pair a:fragments)))
     (set! (car suffix)
-      (+ (car suffix) (car b:fragments)))
+      (as int (+ (car suffix) (car b:fragments))))
     (set! (cdr suffix) (cdr b:fragments))
     (set! b:fragments (cons 0 '()))
     a))
@@ -463,7 +465,7 @@
    (else
     (split-fragments!
      (cdr fragments)
-     (- index (car fragments) 1)))))
+     (as int (- index (car fragments) 1))))))
 
 
 (define (split-space! space::Space index::int)::Space
