@@ -95,6 +95,30 @@ just the [[https://www.gnu.org/software/kawa/][Kawa]] compiler, and in the case 
 
 (Both dependencies are included in the ~libs~ directory.)
 
+** Debugging the Android client
+
+Some builds of Android are capable of printing
+complete stack traces on application crash.
+
+However, this usually isn't the case, so it is
+required to enable 'programmer options' on the
+Android device, and then enable USB debugging
+on the device in order to access that information.
+
+It also requires `adb` application to be installed
+on an external computer. If all these prerequisites
+are satisfied, the crash logs can be fetched using
+the following command:
+
+#+BEGIN_SRC bash
+adb logcat --buffer=crash
+#+END_SRC
+
+If you happen to know how to access the crash
+information from the Android device itself and
+wouldn't mind sharing that information with me,
+I'd be grateful.
+
 ** Older prototypes
 
 The older prototypes of GRASP (for Android only) can be found
