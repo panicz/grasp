@@ -587,7 +587,7 @@ automatically by the AWT framework."))
     ;; cf. https://docs.oracle.com/javase/tutorial/2d/advanced/quality.html
     (graphics:setRenderingHints rendering-hints)
     (invoke (the-screen) 'draw! '())
-    (overlay:draw!))
+    (the-overlay:draw!))
 
   (javax.swing.JComponent)
   (rendering-hints:put RenderingHints:KEY_ANTIALIASING

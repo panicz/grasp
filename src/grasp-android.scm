@@ -80,6 +80,8 @@
 	 (set! name initialization)
 	 ...)))))
 
+(define the-view ::AndroidView #!null)
+
 (define-initializer (initialize-activity activity::android.app.Activity)
   (define Basic-Regular ::Typeface
     (load-font "Basic-Regular.otf" activity))
@@ -213,6 +215,11 @@
   (ruler:measureText text))
 
 (define-object (ScreenLogger size)::MessageHandler
+
+  (define (add-message message::list)::void
+    (invoke-special logger (this) 'add-message message)
+    (when the-view
+      (the-view:invalidate)))
   
   (define (display-messages output::Object)::void
     (let* ((canvas ::Canvas (as Canvas output))
@@ -666,7 +673,7 @@
     (set! canvas c)
     (clear!)
     (invoke (the-screen) 'draw! '())
-    (overlay:draw!)
+    (the-overlay:draw!)
     (invoke (current-message-handler)
 	    'display-messages canvas))
 
@@ -772,7 +779,9 @@ ue
 	     (let* ((x* (event:getX))
 		    (y* (- (event:getY) 60))
 		    (result (invoke (the-screen) 'move!
-				    0 x* y* (- x* (x 0)) (- y* (y 0)))))
+				    0 x* y*
+				    (- x* (x 0))
+				    (- y* (y 0)))))
 	       (set! (x 0) x*)
 	       (set! (y 0) y*)
 	       result))
@@ -811,6 +820,7 @@ ue
     (safely (initialize-keymap))
     (set! gesture-detector (GestureDetector (this) (this)))
     (set! view (View (this)))
+    (set! the-view view)
 
     (let* ((screen-extent ::Extent (the-screen-extent))
 	   (resources ::AndroidResources (getResources))

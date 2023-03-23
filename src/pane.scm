@@ -46,10 +46,7 @@
 (define-object (Point x y)::Drawable
   (define (draw!)
     (let ((painter ::Painter (the-painter)))
-      (painter:draw-point! x y #xff0000)))
-
-  (define (distance-to p::Point)::real
-    (hypotenuse (- x p:x) (- y p:y))))
+      (painter:draw-point! x y #xff0000))))
 
 (define-object (Stroke)::Drawable
   (define points ::List[Point] (ArrayList[Point]))
@@ -60,18 +57,9 @@
         (let ((p0 ::Point (points (- i 1)))
 	      (p1 ::Point (points i)))
           (painter:draw-line! p0:x p0:y p1:x p1:y)))))
-
-  (define left ::real +inf.0)
-  (define right ::real -inf.0)
-  (define top ::real +inf.0)
-  (define bottom ::real -inf.0)
   
   (define (add-point! p::Point)::void
-    (points:add p)
-    (set! left (min p:x left))
-    (set! right (max p:x right))
-    (set! top (min p:y top))
-    (set! bottom (max p:y bottom))))
+    (points:add p)))
 
 (define-object (Gesture)::Drawable
   (define strokes ::List[Stroke] (ArrayList[Stroke]))
@@ -100,11 +88,7 @@
     (elements:remove element))
   )
 
-(define the-stroke ::Stroke #!null)
-
-(define-early-constant the-gesture ::Gesture (Gesture))
-
-(define-early-constant overlay ::Overlay (Overlay))
+(define-early-constant the-overlay ::Overlay (Overlay))
 
 (define-object (Selected items::cons position::Position)::Drawable
   
@@ -156,9 +140,9 @@
 	 (else
 	  (WARN "unhandled "tip" in "parent)))))
       
-      (overlay:remove! selected)))
+      (the-overlay:remove! selected)))
 
-  (overlay:add! selected))
+  (the-overlay:add! selected))
 
 (define-object (Resize box::cons path::Cursor anchor::real)::Drag
 
@@ -361,12 +345,15 @@
 				  (the-cursor cursor)
 				  (the-selection-anchor
 				   selection-anchor))
-      (let-values (((selection-start selection-end) (the-selection)))
+      (let-values (((selection-start selection-end)
+		    (the-selection)))
 	(and-let* ((path (cursor-under x y))
 		   (`(,tip . ,subpath) path)
-		   (parent ::Element (the-expression at: subpath))
+		   (parent ::Element (the-expression
+				      at: subpath))
 		   (target ::Element (parent:part-at tip))
-		   (position ::Position (screen-position target)))
+		   (position ::Position (screen-position
+					 target)))
 	  (cond
 	   #;((isnt parent eq? target)
 	    (WARN "reached non-final item on press"))
@@ -377,7 +364,8 @@
 	   ((is target Space?)
 	    (WARN "should start drawing a gesture"))
 	   
-	   ((is selection-start cursor< path cursor< selection-end)
+	   ((is selection-start cursor< path
+		cursor< selection-end)
 	    (WARN "should move selection"))
 	   
 	   ((or (is target Atom?)

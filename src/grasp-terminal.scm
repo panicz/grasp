@@ -150,7 +150,7 @@
     (set! extent:height (size:getRows))
     (painter:clear!)
     (invoke (the-screen) 'draw! '())
-    (overlay:draw!)
+    (the-overlay:draw!)
     ;; swap front- and back-buffer
     (io:refresh (if resize
 		    LanternaScreen:RefreshType:COMPLETE
