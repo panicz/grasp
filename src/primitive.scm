@@ -453,7 +453,7 @@
 	 (* number space-width))
 	(comment::Comment
 	 (let ((extent ::Extent (comment:extent)))
-	   (extent:width)))))
+	   extent:width))))
       
     (call/cc
      (lambda (return)
