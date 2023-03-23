@@ -30,6 +30,9 @@
 
   ((expand! traversal::Traversal)::void
    (traversal:expand! (extent)))
+
+  ((breaks-line?)::boolean
+   #f)
   
   ((print out::gnu.lists.Consumer)::void
    (out:append #\#)
@@ -76,6 +79,9 @@
 
   ((expand! traversal::Traversal)::void
    (traversal:expand! (extent)))
+
+  ((breaks-line?)::boolean
+   #f)
   
   ((print out::gnu.lists.Consumer)::void
    (out:append #\#)
@@ -165,6 +171,9 @@
 		      x y content)
 		     path))))
 
+  ((breaks-line?)::boolean
+   #t)
+  
   ((print out::gnu.lists.Consumer)::void
    (out:append #\;)
    (for c in content

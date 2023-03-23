@@ -442,6 +442,19 @@
 	 (next ::Traversal (Traversal))
 	 (painter ::Painter (the-painter))
 	 (space-width ::real (painter:space-width)))
+    (define (breaking? element)::boolean
+      (or (integer? element)
+	  (and-let* ((comment ::Comment element))
+	    (comment:breaks-line?))))
+
+    (define (width element)::real
+      (match element
+	(number::integer
+	 (* number space-width))
+	(comment::Comment
+	 (let ((extent ::Extent (comment:extent)))
+	   (extent:width)))))
+      
     (call/cc
      (lambda (return)
        (traverse
@@ -449,32 +462,36 @@
 	doing:
 	(lambda (item::Element current::Traversal)
 	  (and-let* ((space ::Space item))
-	    (let ((fragment-index ::int 0))
-	      (set! last-space space)
-	      (next:assign current)
-	      (sublist (lambda (cell)
-			 (match cell
-			   (`(,,@integer? ,,@integer? . ,_)
-			    (cond ((is next:top <= position
-				       < (+ next:top
-					    next:max-line-height))
-				   (return
-				    (LineEnding
-				     space: space
-				     reach: current:left
-				     index: fragment-index)))
-				  (else
-				   (next:expand-by! (* (car cell)
-						       space-width))
-				   (next:new-line!)
-				   (set! fragment-index
-					 (+ fragment-index 1)))))
-			   (`(,,@integer?)
-			    (next:expand-by! (* space-width
-						(car cell)))))
-			 #f)
-		       space:fragments)
-	      (set! previous-left current:left))))
+	    (set! last-space space)
+	    (next:assign current)
+	    (let skip ((input ::list space:fragments)
+		       (fragment-index ::int 0))
+	      (match input
+		(`(,,@breaking? ,,@integer? . ,_)
+		 (cond
+		  ((is next:top <= position
+		       < (+ next:top
+			    next:max-line-height))
+		   (return
+		    (LineEnding
+		     space: space
+		     reach: current:left
+		     index: fragment-index)))
+		  (else
+		   (next:expand-by! (width (car input)))
+		   (next:new-line!)
+		   (skip (cdr input) (+ fragment-index 1)))))
+		   
+		(`(,,@(lambda (x)
+			(or (integer? x)
+			    (and-let* ((c ::Comment x))
+			      (not (c:breaks-line?)))))
+		   . ,rest)
+		 (next:expand-by! (width (car input)))
+		 (skip rest (+ fragment-index 1)))
+		('()
+		 (values))))
+	      (set! previous-left current:left)))
 	returning:
 	(lambda (t::Traversal)
 	  (LineEnding reach: previous-left

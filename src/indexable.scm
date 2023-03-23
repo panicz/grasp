@@ -135,6 +135,7 @@
 (define-interface ShadowedTextualTile (Shadowed TextualTile))
 
 (define-interface Comment (Expandable Tile)
+  (breaks-line?)::boolean
   (print out::gnu.lists.Consumer)::void)
 
 (define-interface TextualComment (Textual Comment)
