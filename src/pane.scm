@@ -61,18 +61,15 @@
   (define (add-point! p::Point)::void
     (points:add p)))
 
-(define-object (Gesture)::Drawable
-  (define strokes ::List[Stroke] (ArrayList[Stroke]))
+(define-object (Drawing stroke::Stroke)::Drag
 
-  (define (draw!)::void
-    (for stroke::Stroke in strokes
-      (stroke:draw!)))
+  (define (move! x::real y::real dx::real dy::real)::void
+    (stroke:add-point! (Point x y)))
+    
+  (define (drop! x::real y::real vx::real vy::real)::void
+    (the-overlay:elements:removeIf (is _ Stroke?)))
 
-  (define (clear!)::void
-    (strokes:clear))
-  
-  (define (add-stroke! s::Stroke)::void
-    (strokes:add s)))
+  (the-overlay:add! stroke))
 
 (define-object (Overlay)::Drawable
   (define elements :: List[Drawable] (ArrayList[Drawable]))
@@ -362,7 +359,7 @@
 	    (WARN "should start scrolling or zooming"))
 	   
 	   ((is target Space?)
-	    (WARN "should start drawing a gesture"))
+	    (set! (dragging 0) (Drawing (Stroke))))
 	   
 	   ((is selection-start cursor< path
 		cursor< selection-end)
