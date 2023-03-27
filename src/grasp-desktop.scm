@@ -184,9 +184,75 @@
 (define-constant bottom-right-bounds ::Rectangle
   (bottom-right-paren:getBounds))
 
-(define-constant transparent :: Color (Color 0.0 0.0 0.0 0.0))
+(define-constant transparent ::Color (Color 0.0 0.0 0.0 0.0))
 
-(define-object (screen-renderer)::Painter
+(define-interface InputListener
+  (java.awt.event.KeyListener
+   java.awt.event.FocusListener
+   java.awt.event.ComponentListener
+   java.awt.event.MouseMotionListener
+   java.awt.event.MouseListener))
+
+(define-interface Application (Painter InputListener))
+
+(define-object (InputHandler)::InputListener
+  (define (mouseEntered event::MouseEvent)::void
+    (values))
+
+  (define (mouseExited event::MouseEvent)::void
+    (values))
+
+  (define (mouseClicked event::MouseEvent)::void
+    (values))
+
+  (define (mousePressed event::MouseEvent)::void
+    (values))
+
+  (define (mouseReleased event::MouseEvent)::void
+    (values))
+
+  (define (mouseDragged event::MouseEvent)::void
+    (values))
+
+  (define (mouseMoved event::MouseEvent)::void
+    (values))
+
+  (define (focusGained event::FocusEvent)::void
+    (values))
+
+  (define (keyTyped event::KeyEvent)::void
+    (values))
+
+  (define (keyReleased event::KeyEvent)::void
+    (values))
+
+  (define (keyPressed event::KeyEvent)::void
+    (values))
+
+  (define (focusLost event::FocusEvent)::void
+    (invoke (invoke event 'getComponent) 'requestFocus))
+
+  (define (componentHidden event::ComponentEvent)::void
+    (values))
+
+  (define (componentShown event::ComponentEvent)::void
+    (values))
+  
+  (define (componentMoved event::ComponentEvent)::void
+    (values))
+
+  (define (componentResized event::ComponentEvent)::void
+    (values))
+
+  (javax.swing.JComponent)
+  (addKeyListener (this))
+  (addFocusListener (this))
+  (addComponentListener (this))
+  (addMouseListener (this))
+  (addMouseMotionListener (this))
+  )
+
+(define-object (GRASP)::Application
   (define graphics ::Graphics2D)
   
   (define (clip! left::real  top::real
@@ -340,11 +406,9 @@
   (define (in-selection-drawing-mode?)::boolean
     selection-drawing-mode?)
   
-  (define (vertical-bar-width)::real
-    5)
+  (define (vertical-bar-width)::real 5)
   
-  (define (horizontal-bar-height)::real
-    5)
+  (define (horizontal-bar-height)::real 5)
   
   (define (draw-horizontal-bar! width::real)::void
     (graphics:fillRect 0 0 width (horizontal-bar-height)))
@@ -352,11 +416,9 @@
   (define (draw-vertical-bar! height::real)::void
     (graphics:fillRect 0 0 (vertical-bar-width) height))
 
-  (define (horizontal-line-height)::real
-    20)
+  (define (horizontal-line-height)::real 20)
   
-  (define (vertical-line-width)::real
-    20)
+  (define (vertical-line-width)::real 20)
   
   (define (draw-horizontal-line! top::real)::void
     (graphics:fillRect (max 0 (current-clip-left)) top
@@ -575,10 +637,10 @@
 		       (as int 9)))
 
   (define (clear!)::void
-    (error "\
-The `clear!' method is not implemented for the AWT
-screen-renderer, because the screen is cleared 
-automatically by the AWT framework."))
+    (error "
+The `clear!' method is not implemented for the AWT,
+because the screen is cleared automatically 
+by the AWT framework."))
   
   (define (paint g::Graphics)::void
     (invoke-special javax.swing.JComponent (this) 'paint g)
@@ -589,117 +651,14 @@ automatically by the AWT framework."))
     (invoke (the-screen) 'draw! '())
     (the-overlay:draw!))
 
-  (javax.swing.JComponent)
-  (rendering-hints:put RenderingHints:KEY_ANTIALIASING
-		       RenderingHints:VALUE_ANTIALIAS_ON)
-  (rendering-hints:put RenderingHints:KEY_RENDERING
-		       RenderingHints:VALUE_RENDER_QUALITY))
-
-(set! (the-painter) (screen-renderer))
-
-(define-interface InputListener
-  (java.awt.event.KeyListener
-   java.awt.event.FocusListener
-   java.awt.event.ComponentListener
-   java.awt.event.WindowListener
-   java.awt.event.MouseMotionListener
-   java.awt.event.MouseListener))
-
-(define-object (InputHandler)::InputListener
-  (define (mouseEntered event::MouseEvent)::void
-    (values))
-
-  (define (mouseExited event::MouseEvent)::void
-    (values))
-
-  (define (mouseClicked event::MouseEvent)::void
-    (values))
-
-  (define (mousePressed event::MouseEvent)::void
-    (values))
-
-  (define (mouseReleased event::MouseEvent)::void
-    (values))
-
-  (define (mouseDragged event::MouseEvent)::void
-    (values))
-
-  (define (mouseMoved event::MouseEvent)::void
-    (values))
-
-  (define (focusGained event::FocusEvent)::void
-    (values))
-
-  (define (keyTyped event::KeyEvent)::void
-    (values))
-
-  (define (keyReleased event::KeyEvent)::void
-    (values))
-
-  (define (keyPressed event::KeyEvent)::void
-    (values))
-
-  (define (focusLost event::FocusEvent)::void
-    (invoke (invoke event 'getComponent) 'requestFocus))
-
-  (define (componentHidden event::ComponentEvent)::void
-    (values))
-
-  (define (componentShown event::ComponentEvent)::void
-    (values))
-  
-  (define (componentMoved event::ComponentEvent)::void
-    (values))
-
-  (define (windowActivated event::WindowEvent)::void
-    (values))
-
-  (define (windowClosed event::WindowEvent)::void
-    (values))
-
-  (define (windowClosing event::WindowEvent)::void
-    (dispose))
-
-  (define (windowDeactivated event::WindowEvent)::void
-    (values))
-
-  (define (windowDeiconified event::WindowEvent)::void
-    (values))
-
-  (define (windowIconified event::WindowEvent)::void
-    (values))
-
-  (define (windowOpened event::WindowEvent)::void
-    (values))
-
-  (define (componentResized event::ComponentEvent)::void
-    (values))
-
-  (javax.swing.JFrame)
-  (addWindowListener (this))
-  (addKeyListener (this))
-  (addFocusListener (this))
-  (addComponentListener (this))
-  (addMouseListener (this))
-  (addMouseMotionListener (this))
-  )
-
-(define-parameter (ctrl-pressed?) ::boolean #f)
-(define-parameter (shift-pressed?) ::boolean #f)
-(define-parameter (alt-pressed?) ::boolean #f)
-(define-parameter (meta-pressed?) ::boolean #f)
-
-(define-object (window-screen)::InputListener
-
   (define (x event::MouseEvent)::real
     (event:getX))
 
   (define (y event::MouseEvent)::real
-    (- (event:getY) 26))
+    (event:getY))
   
   (define (mouseClicked event::MouseEvent)::void
     (when (invoke (the-screen) 'tap! 0 #;at (x event) (y event))
-      (invoke (as screen-renderer (the-painter)) 'repaint)
       (repaint)))
   
   (define previous-x ::real 0)
@@ -709,7 +668,6 @@ automatically by the AWT framework."))
     (let ((x (x event))
 	  (y (y event)))
       (when (invoke (the-screen) 'press! 0 #;at x y)
-	(invoke (as screen-renderer (the-painter)) 'repaint)
 	(repaint))
       (set! previous-x x)
       (set! previous-y y)))
@@ -719,7 +677,6 @@ automatically by the AWT framework."))
 	  (y (y event)))
       (when (invoke (the-screen) 'move!
 		    0 x y (- x previous-x) (- y previous-y))
-	(invoke (as screen-renderer (the-painter)) 'repaint)
 	(repaint))
       (set! previous-x x)
       (set! previous-y y)))
@@ -729,7 +686,6 @@ automatically by the AWT framework."))
 	  (y (y event)))
       (when (invoke (the-screen) 'release!
 		    0 x y (- x previous-x) (- y previous-y))
-	(invoke (as screen-renderer (the-painter)) 'repaint)
 	(repaint))))
 
   (define (keyPressed event::KeyEvent)::void
@@ -751,19 +707,30 @@ automatically by the AWT framework."))
 	       (invoke (this) 'getWidth))
     (slot-set! (the-screen-extent) 'height
 	       (invoke (this) 'getHeight)))
-
-  (InputHandler)
-  (add (as screen-renderer (the-painter)))
   
-  (setTitle "GRASP")
-  (setSize 640 400)
-  (setVisible #t)
-  )
+  (InputHandler)
+  (rendering-hints:put RenderingHints:KEY_ANTIALIASING
+		       RenderingHints:VALUE_ANTIALIAS_ON)
+  (rendering-hints:put RenderingHints:KEY_RENDERING
+		       RenderingHints:VALUE_RENDER_QUALITY))
+
+(define-parameter (ctrl-pressed?) ::boolean #f)
+(define-parameter (shift-pressed?) ::boolean #f)
+(define-parameter (alt-pressed?) ::boolean #f)
+(define-parameter (meta-pressed?) ::boolean #f)
 
 (define (run-in-AWT-window)::void
-  (initialize-keymap)
-  (safely 
-   (load "assets/init.scm"))
-  (window-screen))
+  (let ((application ::GRASP (GRASP)))
+    (set! (the-painter) application)
+    (initialize-keymap)
+    (safely (load "assets/init.scm"))
+    (let ((window ::javax.swing.JFrame
+		  (javax.swing.JFrame title: "GRASP"
+				      content-pane: application)))
+      (window:addKeyListener application)
+      (window:setSize 640 480)
+      (window:setDefaultCloseOperation
+       javax.swing.JFrame:EXIT_ON_CLOSE)
+      (window:setVisible #t))))
 
 (run-in-AWT-window)
