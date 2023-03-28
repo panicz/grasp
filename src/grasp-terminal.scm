@@ -129,33 +129,34 @@
   (Letter character color background style))
 
 (define (render io :: LanternaScreen)::void
-  (synchronized screen-up-to-date?
-    (while (screen-up-to-date?)
-	   (invoke screen-up-to-date? 'wait))
-    ;; if - during rendering - the state of
-    ;; the screen changes (by the editing thread),
-    ;; then this value will be set to #f, and
-    ;; another iteration of the rendering loop
-    ;; will be forced.
-    ;; (This idea was inspired by Richard Stallman's
-    ;; 1981 paper "EMACS: The Extensible,
-    ;; Customizable Display Editor", section 13
-    ;; "The Display Processor")
-    (set! (screen-up-to-date?) #t))
-  (let* ((resize ::TerminalSize (io:doResizeIfNecessary))
-	 (size (or resize (io:getTerminalSize)))
-	 (extent ::Extent (the-screen-extent))
-	 (painter (the-painter)))
-    (set! extent:width (size:getColumns))
-    (set! extent:height (size:getRows))
-    (painter:clear!)
-    (invoke (the-screen) 'draw! '())
-    (the-overlay:draw!)
-    ;; swap front- and back-buffer
-    (io:refresh (if resize
-		    LanternaScreen:RefreshType:COMPLETE
-		    LanternaScreen:RefreshType:DELTA))
-    (render io)))
+  (let loop ()
+    (synchronized screen-up-to-date?
+      (while (screen-up-to-date?)
+	     (invoke screen-up-to-date? 'wait))
+      ;; if - during rendering - the state of
+      ;; the screen changes (by the editing thread),
+      ;; then this value will be set to #f, and
+      ;; another iteration of the rendering loop
+      ;; will be forced.
+      ;; (This idea was inspired by Richard Stallman's
+      ;; 1981 paper "EMACS: The Extensible,
+      ;; Customizable Display Editor", section 13
+      ;; "The Display Processor")
+      (set! (screen-up-to-date?) #t))
+    (let* ((resize ::TerminalSize (io:doResizeIfNecessary))
+	   (size (or resize (io:getTerminalSize)))
+	   (extent ::Extent (the-screen-extent))
+	   (painter (the-painter)))
+      (set! extent:width (size:getColumns))
+      (set! extent:height (size:getRows))
+      (painter:clear!)
+      (invoke (the-screen) 'draw! '())
+      (the-overlay:draw!)
+      ;; swap front- and back-buffer
+      (io:refresh (if resize
+		      LanternaScreen:RefreshType:COMPLETE
+		      LanternaScreen:RefreshType:DELTA))
+      (loop))))
 
 (define previous-mouse ::Position (Position))
 
