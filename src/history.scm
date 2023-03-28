@@ -468,7 +468,7 @@
 	op)
       (NoEdit)))
 
-(define/kw (remove-element! at: cursor::Cursor
+(define/kw (remove-element! at: cursor::Cursor := (the-cursor)
 			    from: document := (the-document))
   ::Remove
   (let* ((shift (last-index (space-preceding cursor in: document)))

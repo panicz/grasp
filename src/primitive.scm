@@ -146,14 +146,15 @@
     (builder:length))
   
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
-    (let ((inner (extent))
-	  (painter (the-painter)))
-      (and (is 0 <= x < inner:width)
-	   (is 0 <= y < inner:height)
-	   (recons (painter:atom-character-index-under x y
-						       source)
-		   path)
-	   )))
+    (otherwise #!null
+      (let ((inner (extent))
+	    (painter (the-painter)))
+	(and (is 0 <= x < inner:width)
+	     (is 0 <= y < inner:height)
+	     (recons (painter:atom-character-index-under x y
+							 source)
+		     path)
+	     ))))
   
   (define (toString)::String
     source)
@@ -181,19 +182,20 @@
 	  (draw-sequence! (this) context: context))))
 
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
-    (let ((inner (sequence-extent (this)))
-	  (paren-width (invoke (the-painter) 'paren-width)))
+    (otherwise #!null
+      (let ((inner (sequence-extent (this)))
+	    (paren-width (invoke (the-painter) 'paren-width)))
 
-      (and (is 0 <= y < inner:height)
-	   (or (and (is 0 <= x < paren-width)
-		    (recons (first-index) path))
-	       
-	       (and (is 0 <= (- x paren-width) < inner:width)
-		    (cursor-under (- x paren-width) y
-				  (this) context: path))
-	       (and (is 0 <= (- x paren-width inner:width)
-			< paren-width)
-		    (recons (last-index) path))))))
+	(and (is 0 <= y < inner:height)
+	     (or (and (is 0 <= x < paren-width)
+		      (recons (first-index) path))
+		 
+		 (and (is 0 <= (- x paren-width) < inner:width)
+		      (cursor-under (- x paren-width) y
+				    (this) context: path))
+		 (and (is 0 <= (- x paren-width inner:width)
+			  < paren-width)
+		      (recons (last-index) path)))))))
   
   (define (extent)::Extent
     (let ((extent ::Extent (sequence-extent
@@ -407,9 +409,10 @@
 	       (painter:draw-string!
 		(with-output-to-string
 		  (lambda () (write object)))
-		(and (pair? (the-cursor))
-		     (equal? (cdr (the-cursor)) context)
-		     (car (the-cursor)))))))))
+		(otherwise #!null
+		  (and (pair? (the-cursor))
+		       (equal? (cdr (the-cursor)) context)
+		       (car (the-cursor))))))))))
 
 (define (cursor-under left::real top::real
 		      #!optional

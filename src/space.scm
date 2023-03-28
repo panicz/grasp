@@ -272,54 +272,55 @@
 	    (values)))))))
 
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
-   (and-let* ((painter ::Painter (the-painter))
-	      (space-width ::real (painter:space-width))
-	      (traversal ::Traversal (the-traversal))
-	      (t ::Traversal (traversal:clone))
-	      ;; we need to restore the coordinates to
-	      ;; the-traverse's reference frame
-	      (x ::real (+ x t:left))
-	      (y ::real (+ y t:top)))
-     (let skip ((input ::list fragments)
-		(total ::int 0))
-       (match input
-	 (`(,comment::Comment . ,rest)
-	  (or
-	   (comment:cursor-under* (- x t:left)
-				  (- y t:top)
-				  (hash-cons*
-				   (+ total 1) path))
-	   (begin
-	     (comment:expand! t)
-	     (skip rest (+ total 2)))))
-	 
-	 (`(,width::integer ,next-line-prefix::integer . ,_)
-	  (cond
-	   ((is 0 <= (- y t:top) < t:max-line-height)
-	    (hash-cons (+ total
-			   (min width
+   (otherwise #!null
+     (and-let* ((painter ::Painter (the-painter))
+		(space-width ::real (painter:space-width))
+		(traversal ::Traversal (the-traversal))
+		(t ::Traversal (traversal:clone))
+		;; we need to restore the coordinates to
+		;; the-traverse's reference frame
+		(x ::real (+ x t:left))
+		(y ::real (+ y t:top)))
+       (let skip ((input ::list fragments)
+		  (total ::int 0))
+	 (match input
+	   (`(,comment::Comment . ,rest)
+	    (or
+	     (comment:cursor-under* (- x t:left)
+				    (- y t:top)
+				    (hash-cons*
+				     (+ total 1) path))
+	     (begin
+	       (comment:expand! t)
+	       (skip rest (+ total 2)))))
+	   
+	   (`(,width::integer ,next-line-prefix::integer . ,_)
+	    (cond
+	     ((is 0 <= (- y t:top) < t:max-line-height)
+	      (hash-cons (+ total
+			    (min width
+				 (quotient (- x t:left)
+					   space-width)))
+			 path))
+	     (else
+	      (t:expand-by! (* space-width width))
+	      (t:new-line!)
+	      (skip (cdr input)
+		    (as int (+ total width 1))))))
+	   (`(,width::integer . ,rest)
+	    (or
+	     (and (is 0 <= (- y t:top) < t:max-line-height)
+		  (is x < (+ t:left (* space-width width)))
+		  (hash-cons (+ total
 				(quotient (- x t:left)
-					  space-width)))
-			path))
-	   (else
-	    (t:expand-by! (* space-width width))
-	    (t:new-line!)
-	    (skip (cdr input)
-		  (as int (+ total width 1))))))
-	 (`(,width::integer . ,rest)
-	  (or
-	   (and (is 0 <= (- y t:top) < t:max-line-height)
-		(is x < (+ t:left (* space-width width)))
-		(hash-cons (+ total
-			      (quotient (- x t:left)
-					space-width))
-			   path))
-	   (begin
-	     (t:expand-by! (* space-width width))
-	     (skip rest (+ total width)))))
-	 
-	 ('()
-	  #!null)))))
+					  space-width))
+			     path))
+	     (begin
+	       (t:expand-by! (* space-width width))
+	       (skip rest (+ total width)))))
+	   
+	   ('()
+	    #!null))))))
   ((print out::gnu.lists.Consumer)::void
    (let process ((input fragments))
      (match input
@@ -604,10 +605,11 @@
 			    'horizontal-bar-height)))
   
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
-    (let ((inner (extent)))
-      (and (is 0 <= x < inner:width)
-	   (is 0 <= y < inner:height)
-	   (hash-cons (invoke (this) 'first-index) path))))
+    (otherwise #!null
+      (let ((inner (extent)))
+	(and (is 0 <= x < inner:width)
+	     (is 0 <= y < inner:height)
+	     (hash-cons (invoke (this) 'first-index) path)))))
 
   (HeadTailSeparator)
   (set! width width0))
@@ -623,10 +625,11 @@
 	    height: height))
   
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
-    (let ((inner (extent)))
-      (and (is 0 <= x < inner:width)
-	   (is 0 <= y < inner:height)
-	   (hash-cons (invoke (this) 'first-index) path))))
+    (otherwise #!null
+      (let ((inner (extent)))
+	(and (is 0 <= x < inner:width)
+	     (is 0 <= y < inner:height)
+	     (hash-cons (invoke (this) 'first-index) path)))))
 
   (HeadTailSeparator)
   (set! height height0))
@@ -679,18 +682,21 @@
       (_ #\[)))
 
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
-    (let* ((outer (extent))
-	   (painter (the-painter))
-	   (paren-width (painter:paren-width)))
-      (and (is 0 <= x < outer:width)
-	   (is 0 <= y < outer:height)
-	   (cond ((is 0 <= x < paren-width)
-		  (hash-cons (first-index) path))
-		 ((is paren-width <= x < (- outer:width
-					    paren-width))
-		  (hash-cons 0 path))
-		 ((is (- outer:width paren-width) <= x)
-		  (hash-cons (last-index) path))))))
+    (otherwise #!null
+      (let* ((outer (extent))
+	     (painter (the-painter))
+	     (paren-width (painter:paren-width)))
+	(and (is 0 <= x < outer:width)
+	     (is 0 <= y < outer:height)
+	     (cond ((is 0 <= x < paren-width)
+		    (hash-cons (first-index) path))
+		   ((is paren-width <= x < (- outer:width
+					      paren-width))
+		    (hash-cons 0 path))
+		   ((is (- outer:width paren-width) <= x)
+		    (hash-cons (last-index) path))
+		   (else
+		    #!null))))))
   
   (define (index< a::Index b::Index)
     (or (and (eqv? a #\[) (or (eqv? b 0)

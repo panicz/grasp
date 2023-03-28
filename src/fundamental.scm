@@ -75,24 +75,20 @@ left paren of the document, and (#\] 1) is the
 (also invisible) right paren.
 |#
 
-(define-alias Cursor java.lang.Object #;gnu.lists.LList)
+(define-alias Cursor gnu.lists.LList)
 
 ;; we consider Cursor* to be a "nullable" variant
-;; of Cursor (where #f or #!null represents a lack
+;; of Cursor (where #!null represents a lack
 ;; of value)
-(define-alias Cursor* java.lang.Object)
+(define-alias Cursor* gnu.lists.LList)
 
 #|
 Each tile can choose whatever it pleases to be 
-its index except #!null, for the reason explained
-below)
+its index.
 
 For built-in types (boxes, combinators, atoms) 
 indices are typically either integers or characters
 or symbols.
-
-The special value #!null means the absence 
-of an index
 |#
 
 #|

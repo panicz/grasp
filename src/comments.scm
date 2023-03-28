@@ -65,13 +65,14 @@
      (painter:draw-block-comment! content context)))
   
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
-   (let ((painter ::Painter (the-painter))
-	 (inner ::Extent (extent)))
-     (and (is 0 <= x < inner:width)
-	  (is 0 <= y < inner:height)
-	  (let ((index (painter:block-comment-character-index-under
-			x y content)))
-	    (hash-cons index path)))))
+   (otherwise #!null
+     (let ((painter ::Painter (the-painter))
+	   (inner ::Extent (extent)))
+       (and (is 0 <= x < inner:width)
+	    (is 0 <= y < inner:height)
+	    (let ((index (painter:block-comment-character-index-under
+			  x y content)))
+	      (hash-cons index path))))))
   
   ((extent)::Extent
    (let ((painter ::Painter (the-painter)))
@@ -163,13 +164,14 @@
    (traversal:new-line!))
 
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
-   (let ((painter ::Painter (the-painter))
-	 (inner ::Extent (extent)))
-     (and (is 0 <= x < inner:width)
-	  (is 0 <= y < inner:height)
-	  (hash-cons (painter:line-comment-character-index-under
-		      x y content)
-		     path))))
+   (otherwise #!null
+     (let ((painter ::Painter (the-painter))
+	   (inner ::Extent (extent)))
+       (and (is 0 <= x < inner:width)
+	    (is 0 <= y < inner:height)
+	    (hash-cons (painter:line-comment-character-index-under
+			x y content)
+		       path)))))
 
   ((breaks-line?)::boolean
    #t)
