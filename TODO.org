@@ -1,3 +1,190 @@
+* 28.03.2023
+
+no to co tera?
+
+((1 3 5)) czyli "1 3 5"
+
+
+tera piszemy 'extract!' od nowa
+
+(define (extract! at: cursor from: document)
+  ::(either pair HeadTailSeparator Comment)
+  (let-values (((target parent cursor)
+                (target+parent+cursor document cursor)))
+    (otherwise #!null
+      (and-let* ((`(,tip . ,root) cursor))
+
+
+* 27.03.2023
+
+pomysl jest taki, zeby zrefaktoeyzowac
+funkcje "extract!" - tak zeby mogla zwracac
+albo pare, albo separator, albo komentarz.
+
+No, ale w tym celu musimy najpierw
+przeanalizowac dotychczasowe dzialanie
+tej funkcji, bo jest tak, ze rozne byly
+zachowania w zaleznosci od tego,
+ktory element zesmy ekstrahowali.
+
+Rownolegle - poniewaz rysowanie gestow
+zdaje sie pomagac w diagnozie - warto
+poprawic klienta desktopowego
+
+To moze przeanalizujmy architekture:
+
+mamy screen-renderer, implementujacy
+Paintera i bedacy JComponentem,
+unterfejs InputListener agregujacy
+rozne event handlery, oraz InputHandler,
+rozszerzajacy JFrame i dostarczajacy
+trywialnych implementacji.
+
+Wreszcie jest window-screen, ktory rozszerza
+InputHandler, dostarczajac nietrywialnych
+implementacji handlerow tam gdzie trzeba.
+
+I teraz plan jest taki, zeby window-screen
+nie dziedziczyl po JFrame, tylko zebysmy
+tworzyli JFrame, na ktorym bysmy
+wywolywali setContentPane
+
+No dobra. A co z tym naszym extractem?
+
+* 26.03.2023
+
+(define/kw (fully-expanded? cursor::Cursor
+             on: document := (the-document))::boolean
+  (and-let* ((`(,tip . ,root) cursor)
+             (target (cursor-ref document root)))
+    (eq? target (part-at tip target))))
+
+(define (cursor-trace document cursor)
+  (match cursor
+    ('() (cons document '()))
+    (`(,tip . ,root)
+     (and-let* ((trace (cursor-trace document tail))
+                (`(,parent . ,elders) trace))
+	(cons (part-at tip parent) trace)))))
+
+no dobra. i teraz co?
+
+
+* 25.03.2023
+
+1. Wykomentowywanie wyrazen
+dwie nowe operacje:
+
+(define-type (CommentExpression at: Cursor)
+  implementing Edit
+  with
+  ((apply! document::pair)::Cursor
+   (and-let* ((preceding-cursor (cursor-retreat at document))
+              (`(,item::Tile) (extract! at: at from: document)))
+     (insert! (ExpressionComment expression: item)
+              into: document at: preceding-cursor)
+     preceding-cursor))
+  ((inverse)::Edit
+   (UncommentExpression at: ???)))
+
+(define-type (UncommentExpression at: Cursor)
+  implementing Edit
+  with
+  ((apply! document::pair)::Cursor
+   (and-let* ((
+  ((inverse)::Edit
+   (CommentExpression at: ???)))
+
+Aczkolwiek problem jest taki, ze extract!
+nie obsluguje komentarzy.
+
+To pomysl jest teraz taki, zeby
+- albo dodac obsluge komentarzy
+  do 'extract!' (ktorej to funkcji
+  jednak nie lubimw)
+- albo po prostu po chamsku
+  samemu wyciagnac z komentarza
+
+
+A gdybysmy tak mieli napisac extract! drugi raz?
+
+* 24.03.2023
+
+zmiana rozmiaru dziala w miare OK.
+
+to teraz skupilibysmy sie na takich
+tematach:
+- rysowanie kresek
+- wykomentowywanie wyrazen
+- poprawne dzialanie drag&drop na komentarzach?
+
+Dobra, zacznijmy od tego rysowania kresek.
+
+(define-object (Drawing stroke::Stroke)::Drag
+
+  (define (move! x::real y::real dx::real dy::real)::void
+    (stroke:add (Point x y)))
+    
+  (define (drop! x::real y::real vx::real vy::real)::void
+    (the-overlay:removeIf (is _ Stroke?)))
+
+  (the-overlay:add! stroke))
+
+No, to rysowanie kresek juz jako tako dziala.
+Wprawdzie jest jeszcze sporo do przemyslenia,
+ale juz sie troche nie moge doczekac poniedzialkowego
+commita.
+
+No dobra, i co dalej?
+
+Kolejna rzecz jaka mozemy robic, to:
+
+- wykomentowywanie wyrazen
+- poprawki w edycji komentarzy
+- drag&drop na komentarzach
+
+
+* 23.03.2023
+
+Dzisiaj:
+- naprawilibysmy buga zwiazanego ze zmiana rozmiaru
+  pudelka w ktorym znajduje sie linia zakonczona
+  komentarzem
+- dodalibysmy mozliwosc rysowania kresek
+
+Ale warto sie zastanowic czy nie lepiej
+byloby ujednolicic reprezentacje spacji w taki
+sposob, zeby nowa linia pojawiala sie explicite.
+
+Do przemyslenia (choc tak po prawdzie to pewnie
+raczej nie, bo wydaje sie, ze jestesmy dosc blisko
+funkcjonujacego kodu)
+
+Wyglada na to, ze bedzie trzeba troche popracowac :/
+
+* 22.03.2023
+
+Dzis bysmy sprobowali przemyslec co jest
+do zrobienia w kontekscie poszczegolnych
+klientow (terminalowego, desktopowego
+i androidowego), a jaka kompetencje powinien
+miec (pane), jezeli idzie o rysowanie gestow.
+
+I takie pytanie: czy moglibysmy zaimplementowac
+rysowanie gestu jako 'Drag'?
+
+(define-object (DrawingGesture gesture::Gesture)::Drag
+
+  (define (move! x::real y::real dx::real dy::real)::void
+    ;; dodajemy Point do stroke'a
+    ...)
+    
+  (define (drop! x::real y::real vx::real vy::real)::void
+    ;; wywolujemy recognizer
+    ...)
+
+  (the-overlay:add! gesture))
+
 * 21.03.2023
 
 Przeanalizujmy obsluge gestow w grasp-android:
@@ -21,7 +208,33 @@ a do tego funkcje
   (gesture:clear!)
   (set! the-stroke #!null))
 
+
+no i dobrze. ale ciekawsze jest to, w jaki sposob
+te funkcje sa wywolywane:
+
+cancelDrawingShape jest wolany w:
+-onDoubleTap
+-onDown (gdy przycisnieto drugi palec
+albo gdy onPress zwrocilo obiekt Drag)
+-onMotion gdy wygenerowano DoublePress
+-onUp jezeli udalo sie rozpoznac gest
+-onSingleTap
+-onLongPress
+
+z kolei startDrawingShape jest uzywany
+w onDown (jezeli nic innego sie nie wydarza)
+
+wreszcie isShapeBeingDrawn jest:
+- w onDown przy sprawdzaniu czy przycisnieto
+  drugi palec i przy rozpoczynaniu rysowania
+  ksztaltu
+- w onMotion przy dodawaniu nowego odcinka
+  do aktualnego stroke'a
+- w onUp przed rozpoczeciem rysowania
   
+
+natomiast finalizeStroke jest wywolywany przy
+konczeniu rysowania
 
 * 20.03.2023
 
