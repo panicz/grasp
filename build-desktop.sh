@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -x
+
 mkdir -p build/desktop
 cd src
 

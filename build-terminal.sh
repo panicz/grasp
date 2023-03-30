@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -x
+
 mkdir -p build/terminal
 cd src
 java -cp "../libs/lanterna-3.1.1.jar:../libs/kawa.jar" kawa.repl \
