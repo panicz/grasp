@@ -150,9 +150,7 @@
     (put! #\╮ 0 (- width 1))
     (for i from 1 to (- height 2)
          (put! #\│ i (- width 1)))
-    (put! #\╯ (- height 1) (- width 1))
-    
-    (values))
+    (put! #\╯ (- height 1) (- width 1)))
 
   (define (draw-rectangle! width::real height::real)::void
     (put! #\┌ 0 0)
@@ -167,9 +165,7 @@
     (put! #\┐ 0 (- width 1))
     (for i from 1 to (- height 2)
          (put! #\│ i (- width 1)))
-    (put! #\┘ (- height 1) (- width 1))
-    
-    (values))
+    (put! #\┘ (- height 1) (- width 1)))
 
   (define 4pix-code
     (let ((4pix (mapping (4p::char)::int 0)))

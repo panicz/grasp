@@ -86,12 +86,31 @@
 
 (set! (the-painter) (TextPainter))
 
+(e.g.
 (let ((painter ::TextPainter (TextPainter)))
   (parameterize ((the-painter painter))
     (painter:draw-line! 0 0 30 3)
     (painter:draw-line! 3 2 30 15)
     (painter:draw-line! 32 15 34 0)
-    (display painter)))
+    (painter:draw-line! 5 15 34 7)
+    (painter:toString))) ===> "
+▀▀▀▄▄▄▄▖                          ▌
+       ▝▀▀▀▀▀▄▄▄▄▖                ▌
+   ▀▄            ▝▀▀▀▀▀▄▄▄▄▖     ▐ 
+     ▀▄                    ▝▀▀▘  ▐ 
+       ▀▄                        ▐ 
+         ▀▄                      ▐ 
+           ▀▄                    ▌ 
+             ▀▄                ▗▄▛▘
+               ▀▄▖          ▄▞▀▘ ▌ 
+                 ▝▚▖    ▗▄▀▀    ▗▘ 
+                   ▝▚▄▞▀▘       ▐  
+                 ▄▄▀▘▝▚▖        ▐  
+             ▗▄▀▀      ▝▚▖      ▐  
+          ▄▞▀▘           ▝▚▖    ▞  
+      ▄▄▀▀                 ▝▚▖  ▌  
+     ▀                       ▝▘ ▘  
+")
 
 (e.g.
  (parameterize ((the-cell-access-mode CellAccessMode:Evaluating))
