@@ -1,20 +1,3 @@
-* 28.03.2023
-
-no to co tera?
-
-((1 3 5)) czyli "1 3 5"
-
-
-tera piszemy 'extract!' od nowa
-
-(define (extract! at: cursor from: document)
-  ::(either pair HeadTailSeparator Comment)
-  (let-values (((target parent cursor)
-                (target+parent+cursor document cursor)))
-    (otherwise #!null
-      (and-let* ((`(,tip . ,root) cursor))
-
-
 * 27.03.2023
 
 pomysl jest taki, zeby zrefaktoeyzowac
@@ -50,6 +33,20 @@ tworzyli JFrame, na ktorym bysmy
 wywolywali setContentPane
 
 No dobra. A co z tym naszym extractem?
+
+* 27.03.2023 (komputer)
+
+Master plan: window-screen powinien byc JComponentem,
+run-in-AWT-window powinno tworzyc javax.swing.JFrame,
+ktorego content-pane: to bedzie wlasnie window-screen.
+
+Tylko kilka uwag:
+
+- window-screen to nie jest dobra nazwa, i trzeba
+wymyslic inna
+
+- byc moze warto sie zastanowic nad scaleniem ze soba
+tej klasy ze screen-rendererem
 
 * 26.03.2023
 
