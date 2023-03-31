@@ -155,6 +155,10 @@
 							 source)
 		     path)
 	     ))))
+
+  (define (equals x)::boolean
+    (and-let* ((atom ::Atom x))
+      (string=? source atom:source)))
   
   (define (toString)::String
     source)

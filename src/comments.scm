@@ -38,6 +38,9 @@
    (out:append #\#)
    (out:append #\;)
    (show expression))
+
+  ((toString)::String
+   (string-append "#;" (show->string expression)))
   
   ((first-index)::Index
    (expression:first-index))
@@ -91,6 +94,9 @@
      (out:append c))
    (out:append #\|)
    (out:append #\#))
+
+  ((toString)::String
+   (string-append "#|" content "|#"))
   
   ((part-at index::Index)::Indexable*
    (this))
@@ -182,6 +188,9 @@
      (out:append (as char c)))
    (out:append #\newline))
 
+  ((toString)::String
+   (string-append ";" content "\n"))
+  
   ((part-at index::Index)::Indexable*
    (this))
 
