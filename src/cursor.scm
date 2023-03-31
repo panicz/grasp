@@ -115,6 +115,11 @@
 			(in (the-document)))
   (cursor-ref in at))
 
+(define (fully-expanded? cursor::Cursor #;on document)
+  ::boolean
+  (and-let* ((`(,tip . ,root) cursor)
+             (target (cursor-ref document root)))
+    (eq? target (part-at tip target))))
 
 (define (innermost-composition #!key
 			       (at::Cursor (the-cursor))

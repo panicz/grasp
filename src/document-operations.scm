@@ -22,8 +22,7 @@
 (import (text))
 (import (comments))
 
-
-;; take-cell! returns either a cons-cell whose
+;; extract! returns either a cons-cell whose
 ;; car is the desired object, or a head/tail-separator
 ;; (consider: what to do when cursor points to a space?
 ;; we can safely return #!null, because it's different
@@ -37,81 +36,104 @@
 (define/kw (extract! at: cursor::Cursor := (the-cursor)
 		     from: document::pair := (the-document))
   (define (increase-space! space::Space width::real)
-    (let ((last-fragment (last-pair space:fragments)))
-      (set! (car last-fragment)
-	(+ (car last-fragment) width))))
-  
-  (match cursor
-    (`(,,@(isnt _ integer?) . ,root)
-     (extract! at: root from: document))
-    
-    (`(,,@(is _ <= 1) ,parent-index . ,root)
-     (let* ((grandparent ::pair (cursor-ref document root))
-	    (cell (drop (quotient parent-index 2) grandparent))
-	    (removed (car cell)))
-       (if (dotted? removed)
-	   (let* ((new (cons (cdr removed) '())))
-	     (tail-space-to-head removed new)
-	     (set! (car cell) new)
-	     (increase-space! (pre-head-space (car cell)) 1)
-	     (unset! (dotted? removed)))
-	   (set! (car cell) (cdr removed)))
-       (set! (cdr removed) '())
-       (let ((removed-space (post-head-space removed)))
-	 (unset! (post-head-space removed))
-	 (when (pair? (car cell))
-	   (increase-space! (pre-head-space (car cell))
-			    (cell-width removed))
-	   (join-spaces! (pre-head-space (car cell))
-			 removed-space)))
-       (unset! (pre-head-space removed))
-       removed))
-    
-    (`(,index . ,root)
-     (let* ((parent ::pair (cursor-ref document root))
-	    (index (quotient index 2))
-	    (skip (- index 1)))
-       
-       (define (remove-tail! preceding)
-	 (let* ((removed (cdr preceding))
-		(removed-space (post-head-space removed)))
-	   (set! (cdr preceding) (cdr removed))
-	   (set! (cdr removed) '())
-	   (unset! (post-head-space removed))
-	   (increase-space! (post-head-space preceding)
-			    (cell-width removed))
-	   (join-spaces! (post-head-space preceding)
-			 removed-space)
-	   removed))
-	 
-       (if (is skip > 0)
-	   (let* ((skip (- skip 1))
-		  (preceding (drop skip parent)))
-	     (if (dotted? preceding)
-		 (let* ((removed (tail-space-to-head
-				  preceding
-				  (cons (cdr preceding) '()))))
-		   (set! (cdr preceding) '())
-		   (unset! (dotted? preceding))
-		   (increase-space! (post-head-space preceding)
-				    (+ 1 (cell-width removed)))
-		   (unset! (post-head-space (last-pair removed)))
-		   removed)
-		 (remove-tail! (cdr preceding))))
-	  
-	   (let ((preceding (drop skip parent)))
-	     (if (dotted? preceding)
-		 (let* ((separator (head-tail-separator preceding))
-			(added (cons (cdr preceding) '())))
-		   (increase-space! (post-head-space preceding) 1)
-		   (join-spaces! (post-head-space preceding)
-				 (pre-tail-space preceding))
-		   (set! (cdr preceding) added)
-		   (unset! (dotted? preceding))
-		   separator)
-		 (remove-tail! preceding))))))
-    (_
-     document)))
+    (and-let* ((last-fragment (last-pair space:fragments))
+	       (`(,next . ,_) last-fragment))
+      (if (integer? next)
+	  (set! (car last-fragment)
+		(as int (round (+ next width))))
+	  (set! (cdr last-fragment)
+		(cons (as int (round width))
+		      (cdr last-fragment))))))
+  (otherwise #!null
+    (and-let* ((`(,tip ,top . ,root) cursor)
+               (grandpa ::Indexable (cursor-ref document root))
+               (parent ::Indexable (part-at top grandpa))
+               (target ::Indexable (part-at tip parent)))
+      (cond
+       ((eq? parent target)
+	(extract! at: (cdr cursor) from: document))
+       ((pair? parent)
+	(if (eqv? tip 1)
+            (let* ((grandpa ::pair grandpa)
+	           (cell (drop (quotient top 2) grandpa))
+	           (removed (car cell)))
+              (if (dotted? removed)
+		  (let* ((new (cons (cdr removed) '())))
+	            (tail-space-to-head removed new)
+	            (set! (car cell) new)
+	            (increase-space! (pre-head-space (car cell)) 1)
+	            (unset! (dotted? removed)))
+		  (set! (car cell) (cdr removed)))
+              (set! (cdr removed) '())
+              (let ((removed-space (post-head-space removed)))
+		(unset! (post-head-space removed))
+		(when (pair? (car cell))
+	          (increase-space! (pre-head-space (car cell))
+				   (cell-width removed))
+		  (join-spaces! (pre-head-space (car cell))
+				removed-space)))
+              (unset! (pre-head-space removed))
+              removed)
+	    (let* ((parent ::pair parent)
+		   (index (quotient tip 2))
+		   (skip (- index 1)))
+	      
+	      (define (remove-tail! preceding)
+		(let* ((removed (cdr preceding))
+		       (removed-space (post-head-space removed)))
+		  (set! (cdr preceding) (cdr removed))
+		  (set! (cdr removed) '())
+		  (unset! (post-head-space removed))
+		  (increase-space! (post-head-space preceding)
+				   (cell-width removed))
+		  (join-spaces! (post-head-space preceding)
+				removed-space)
+		  removed))
+	      
+	      (if (is skip > 0)
+		  (let* ((skip (- skip 1))
+			 (preceding (drop skip parent)))
+		    (if (dotted? preceding)
+			(let* ((removed (tail-space-to-head
+					 preceding
+					 (cons (cdr preceding) '()))))
+			  (set! (cdr preceding) '())
+			  (unset! (dotted? preceding))
+			  (increase-space! (post-head-space preceding)
+					   (+ 1 (cell-width removed)))
+			  (unset! (post-head-space
+				   (last-pair removed)))
+			  removed)
+			(remove-tail! (cdr preceding))))
+		  
+		  (let ((preceding (drop skip parent)))
+		    (if (dotted? preceding)
+			(let* ((separator (head-tail-separator
+					   preceding))
+			       (added (cons (cdr preceding) '())))
+			  (increase-space! (post-head-space preceding)
+					   1)
+			  (join-spaces! (post-head-space preceding)
+					(pre-tail-space preceding))
+			  (set! (cdr preceding) added)
+			  (unset! (dotted? preceding))
+			  separator)
+			(remove-tail! preceding)))))))
+	((Comment? target)
+         (let ((space ::Space parent))
+	   (let-values (((preceding _) (space-fragment-index
+					space:fragments
+					(- tip 1))))
+	     (and-let* ((`(,n::integer ,c::Comment ,m::integer
+				       . ,rest) preceding))
+	       (cond ((c:breaks-line?)
+		      (set-cdr! preceding (cddr preceding)))
+		     (else
+		      (set-car! preceding (as int (+ n m)))
+		      (set-cdr! preceding rest)))
+	       c))))
+	(else
+	 #!null)))))
 
 (e.g.
  (let* ((document (string->document "1 3 5"))
@@ -170,6 +192,21 @@
  ===>
  "(1    )"
  "5")
+
+(e.g.
+ (parameterize ((the-document (string->document "\
+#;0 1 #|2|# 3 ;4
+5 ;6")))
+   (let* ((0th (extract! at: '(1 0 1)))
+	  (2nd (extract! at: '(2 2 1)))
+	  (4th (extract! at: '(2 4 1)))
+	  (6th (extract! at: '(2 6 1))))
+     (values (show->string 0th)
+	     (show->string 2nd)
+	     (show->string 4th)
+	     (show->string 6th)
+	     (document->string))))
+ ===> "#;0" "#|2|#" ";4\n" ";6\n" " 1  3 \n5 \n")
 
 (define/kw (insert! element
 		    into: document ::pair := (the-document)
