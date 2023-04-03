@@ -1,3 +1,16 @@
+* 01.04.2023 (telefon)
+
+Extract! juz jest zrobiony.
+Teraz co jeszcze musimy zrobic:
+- insert! dla komentarzy
+- CommentExpression i UncommentExpression
+- renderowanie wykomentowanych wyrazen
+  - jako tekst
+  - w terminalu (ciemniejszy kolor)
+
+    
+
+
 * 27.03.2023
 
 pomysl jest taki, zeby zrefaktoeyzowac
