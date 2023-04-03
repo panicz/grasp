@@ -13,6 +13,7 @@
 (import (space))
 (import (functions))
 (import (mapping))
+(import (hash-table))
 
 (define-object (CharPainter)::Painter
 
@@ -348,6 +349,17 @@
   (define (in-selection-drawing-mode?)::boolean
     inSelectionDrawingMode)
 
+  (define current-comment-level ::int 0)
+  
+  (define (enter-comment-drawing-mode!)::void
+    (set! current-comment-level (+ current-comment-level 1)))
+  
+  (define (exit-comment-drawing-mode!)::void
+    (set! current-comment-level (- current-comment-level 1)))
+
+  (define (in-comment-drawing-mode?)::boolean
+    (is current-comment-level > 0))
+  
   (define (draw-line-comment! text::CharSequence context::Cursor)::void
     (let*-values (((semicolons) (count-while (is _ eqv? #\;) text))
 		  ((shift skip) (match semicolons 
@@ -398,12 +410,16 @@
     #!abstract)
 
   )
-  
+
 (define-object (TextPainter)::Painter
   (define width ::int 0)
   (define height ::int 0)
   (define data ::char[])
 
+  (define modifier ::procedure (mapping (key ::int)::char #!null))
+
+  (define current-modifier #!null)
+  
   (define (get row::real col::real)::char
     (let ((x (+ col shiftLeft))
           (y (+ row shiftTop)))
@@ -411,6 +427,17 @@
                (is 0 <= y < height))
           (data (+ (* width y) x))
           #\space)))
+
+  (define (draw-string! text::CharSequence context::Cursor)::void
+    (when (invoke-special CharPainter (this)
+			  'in-comment-drawing-mode?)
+      (set! current-modifier
+	    (if (even? (as int (slot-ref (this)
+					 'current-comment-level)))
+		#\x338
+		#\x336)))
+    (invoke-special CharPainter (this) 'draw-string! text context)
+    (set! current-modifier #!null))
   
   (define (put! c::char row::real col::real)::void
     (let ((x (+ col shiftLeft))
@@ -441,18 +468,23 @@
             (set! width new-width)
             (set! height new-height)
             (set! data new-data)))
-	(set! (data (+ (* width y) x)) c)
+	(let ((n (+ (* width y) x)))
+	  (set! (data n) c)
+	  (when current-modifier
+	    (set! (modifier n) current-modifier)))
 	(when (and inSelectionDrawingMode
 		   (is (+ y 1) < height))
-	  (set! (data (+ (* width (+ y 1)) x)) #\~)))))
+	  (set! (data (+ (* width (+ y 1)) x)) #\~))
+	)))
 
-  (define (clear!)::void
-   (for line from 0 below height
-        (for column from 0 below width
-             (set! (data (+ (* line width) column))
-                   #\space)))
-   (set! shiftLeft 0)
-   (set! shiftTop 0))
+    (define (clear!)::void
+      (reset! modifier)
+      (for line from 0 below height
+           (for column from 0 below width
+		(set! (data (+ (* line width) column))
+                      #\space)))
+      (set! shiftLeft 0)
+      (set! shiftTop 0))
 
   (define (mark-cursor! +left::real +top::real)::void
     (invoke-special CharPainter (this) 'mark-cursor! +left +top)
@@ -470,8 +502,12 @@
 	(write-char #\newline)
 	(for line from 0 below height
              (for column from 0 below width
-                  (write-char (data (+ (* line width)
-				       column))))
+		  (let* ((n (+ (* line width)
+			       column))
+			 (c (data n)))
+		    (and-let* ((mod (modifier n)))
+		      (write-char mod))
+                    (write-char c)))
              (write-char #\newline)))))
 
   (define (current-width)::real width)

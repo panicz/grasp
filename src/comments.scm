@@ -18,9 +18,10 @@
   implementing Comment
   with
   ((draw! context::Cursor)::void
-   ;; powinnismy po prostu zmienic jakies parametry
-   ;; ekranu i wywolac
-   (expression:draw! context))
+   (let ((painter ::Painter (the-painter)))
+     (painter:enter-comment-drawing-mode!)
+     (expression:draw! context)
+     (painter:exit-comment-drawing-mode!)))
   
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
    (expression:cursor-under* x y path))

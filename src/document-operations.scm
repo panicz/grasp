@@ -205,7 +205,7 @@
 	     (show->string 2nd)
 	     (show->string 4th)
 	     (show->string 6th)
-	     (document->string))))
+	     (document->string (the-document)))))
  ===> "#;0" "#|2|#" ";4\n" ";6\n" " 1  3 \n5 \n")
 
 (define/kw (insert! element

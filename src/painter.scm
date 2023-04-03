@@ -82,11 +82,11 @@
   (exit-selection-drawing-mode!)::void
   (in-selection-drawing-mode?)::boolean
 
-  #|
   (enter-comment-drawing-mode!)::void
   (exit-comment-drawing-mode!)::void
   (in-comment-drawing-mode?)::boolean
 
+  #|
   (increase-quotation-level!)::void
   (decrease-quotation-level!)::void
   (quotation-level)::int
@@ -234,6 +234,15 @@
   (define (in-selection-drawing-mode?)::boolean
     #f)
 
+  (define (enter-comment-drawing-mode!)::void
+    (values))
+  
+  (define (exit-comment-drawing-mode!)::void
+    (values))
+
+  (define (in-comment-drawing-mode?)::boolean
+    #f)
+  
   (define (draw-line-comment! text::CharSequence context::Cursor)::void
     (values))
   
