@@ -109,7 +109,12 @@
     (put! #\╵ (- height 1) 0))
 
   (define (draw-box! width::real height::real context::Cursor)::void
-    (let-values (((selection-start selection-end) (the-selection)))
+    (let-values (((selection-start selection-end) (the-selection))
+		 ((bar) (cond
+			 ;;│┃┆┇┊┋
+			 ((= current-comment-level 0) #\│)
+			 ((even? current-comment-level) #\┆)
+			 (else #\┊))))
 	(when (and (pair? (the-cursor))
 		   (equal? context (cdr (the-cursor))))
 	  (match (head (the-cursor))
@@ -122,12 +127,12 @@
 	  (enter-selection-drawing-mode!))
 	(put! #\╭ 0 0)
 	(for i from 1 to (- height 2)
-             (put! #\│ i 0))
+             (put! bar i 0))
 	(put! #\╰ (- height 1) 0)	
 	
 	(put! #\╮ 0 (- width 1))
 	(for i from 1 to (- height 2)
-             (put! #\│ i (- width 1)))
+             (put! bar i (- width 1)))
 	(put!  #\╯ (- height 1) (- width 1))
 
 	(when (and (pair? selection-end)
@@ -505,9 +510,10 @@
 		  (let* ((n (+ (* line width)
 			       column))
 			 (c (data n)))
+		    (write-char c)
 		    (and-let* ((mod (modifier n)))
 		      (write-char mod))
-                    (write-char c)))
+                    ))
              (write-char #\newline)))))
 
   (define (current-width)::real width)
