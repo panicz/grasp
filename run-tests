@@ -1,6 +1,14 @@
 #!/bin/sh
 set -x
 FLAGS="--no-warn-unreachable"
+if [ "$#" -gt 0 ]; then
+    for n in "$@"
+    do
+	N=$(($n+10))
+	`cat $0 | tail -n +$N | head -n 1 | sed "s/\\\$FLAGS/$FLAGS/"`
+    done
+else
 java -jar libs/kawa.jar $FLAGS -f src/test-parser.scm
 java -jar libs/kawa.jar $FLAGS -f src/test-painter.scm
 java -jar libs/kawa.jar $FLAGS -f src/test-editor-operations.scm
+fi
