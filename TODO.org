@@ -1,3 +1,19 @@
+* 04.04.2024
+
+wyglada na to ze mamy awarie karty pamieci
+i nasz projekt quote'ow wzial w leb
+
+no to co teraz:
+- insert!
+- operacje historyczne
+- integracja z interfejsem
+- implementacje w edytorach graficznych
+
+  ok to zacznijmy od analizy inserta
+
+  
+
+
 * 01.04.2023 (telefon)
 
 Extract! juz jest zrobiony.
