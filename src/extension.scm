@@ -54,11 +54,12 @@
   (define (extent)::Extent #!abstract)
 
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
-    (let ((size (extent)))
-      (and (is 0 <= x < size:width)
-	   (is 0 <= y < size:height)
-	   (recons (invoke (this) 'first-index) path))))
-  
+    (otherwise #!null
+      (let ((size (extent)))
+	(and (is 0 <= x < size:width)
+	     (is 0 <= y < size:height)
+	     (recons (invoke (this) 'first-index) path)))))
+
   (Simple))
 
 (define-interface Extension ()

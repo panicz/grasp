@@ -24,11 +24,12 @@
       (+ inner:width 4)
       (+ inner:height 2))
      (with-translation (2 1)
-	 (painter:draw-string!
-	  label
+       (painter:draw-string!
+	label
+	(otherwise #!null
 	  (and (pair? (the-cursor))
 	       (equal? (cdr (the-cursor)) context)
-	       (car (the-cursor)))))))
+	       (the-cursor)))))))
   
   ((extent)::Extent
    (let ((inner ::Extent (string-extent label)))
