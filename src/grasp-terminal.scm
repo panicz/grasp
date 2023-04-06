@@ -120,6 +120,11 @@
 (define-parameter (the-selected-comment-background-color)::Color
   Color:ANSI:WHITE)
 
+(define-parameter (the-odd-comment-color)::Color
+  (Color:RGB 76 76 76))
+(define-parameter (the-even-comment-color)::Color
+  (Color:RGB 127 127 127))
+
 (define-cache (letter character
 		      color: color::Color := (the-text-color)
 		      background: background::Color
@@ -279,6 +284,22 @@
 		    (the-selected-comment-background-color)))
       (invoke-special CharPainter (this) 'draw-line-comment!
 		      text context)))
+
+  (define (enter-comment-drawing-mode!)::void
+    (invoke-special CharPainter (this)
+		    'enter-comment-drawing-mode!)
+    (text-color-stack:push (the-text-color))
+    (set! (the-text-color)
+	  (if (even? (as int (slot-ref
+			      (this)
+			      'current-comment-level)))
+	      (the-even-comment-color)
+	      (the-odd-comment-color))))
+  
+  (define (exit-comment-drawing-mode!)::void
+    (set! (the-text-color) (text-color-stack:pop))
+    (invoke-special CharPainter (this)
+		    'exit-comment-drawing-mode!))
   
   (define (draw-point! left::real top::real color-rgb::int)::void
     (let* ((red ::int (byte-ref color-rgb 2))
