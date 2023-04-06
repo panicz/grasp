@@ -1,4 +1,16 @@
-* 04.04.2024
+* 06.04.2023
+
+test wykazal, ze trzeba jeszcze troche dopiescic
+insercje. i to bysmy zrobili, plus:
+- dodali operacje historyczne
+- zaimplementowali w kliencie desktopowym i androidowym
+
+* 05.04.2023
+
+mamy niby napisany insert dla komentarzy,
+ale trzeba jeszcze napisac testa.
+
+* 04.04.2023
 
 wyglada na to ze mamy awarie karty pamieci
 i nasz projekt quote'ow wzial w leb
@@ -11,9 +23,6 @@ no to co teraz:
 
   ok to zacznijmy od analizy inserta
 
-  
-
-
 * 01.04.2023 (telefon)
 
 Extract! juz jest zrobiony.
@@ -23,8 +32,6 @@ Teraz co jeszcze musimy zrobic:
 - renderowanie wykomentowanych wyrazen
   - jako tekst
   - w terminalu (ciemniejszy kolor)
-
-    
 
 
 * 27.03.2023
