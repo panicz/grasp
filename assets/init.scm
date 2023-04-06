@@ -87,7 +87,7 @@ mutations of an n-element set.\"
 is a serious
 business,
 son|#
-(e.g. (! 5) ===> 120)
+#;(e.g. #;(! #;5) ===> 120)
 (Button action: (lambda () (WARN \"button pressed!\"))
         label: \"Press me!\")
 " parse-document))))
