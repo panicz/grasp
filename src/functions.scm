@@ -460,32 +460,42 @@
  ===> (1 2 a b c 3 4))
 
 
-(define (sublist satisfying?::predicate elements::list)
+(define (first-cell satisfying?::predicate elements::list)
   (and (not (null? elements))
        (if (satisfying? elements)
 	   elements
-	   (sublist satisfying? (cdr elements)))))
+	   (first-cell satisfying? (cdr elements)))))
 
 (e.g.
- (sublist (lambda (cell)
-	    (= (car cell) 3))
-	  '(1 2 3 4 5))
+ (first-cell (is (car _) = 3)
+	     '(1 2 3 4 5))
  ===> (3 4 5))
 
+(define (last-cell satisfying?::predicate elements::list)
+  (let ((first (first-cell satisfying? elements)))
+    (or (and (pair? first) (last-cell satisfying? (cdr first)))
+	first)))
 
-(define (sublist+index satisfying?::predicate elements::list
-		       #!key (start-index 0))
+(e.g.
+ (last-cell (is (car _) even?)
+	    '(1 2 3 4 5))
+ ===> (4 5))
+	
+
+(define (first-cell+index satisfying?::predicate
+			  elements::list
+			  #!key (start-index 0))
   (if (null? elements)
       (values #f start-index)
       (if (satisfying? elements start-index)
 	  (values elements start-index)
-	  (sublist+index satisfying? (cdr elements)
-			 start-index: (+ start-index 1)))))
+	  (first-cell+index satisfying? (cdr elements)
+			    start-index: (+ start-index 1)))))
 
 (e.g.
- (sublist+index (lambda (cell index)
-		  (= (car cell) index))
-	  '(4 3 2 1 0))
+ (first-cell+index (lambda (cell index)
+		     (= (car cell) index))
+		   '(4 3 2 1 0))
  ===> (2 1 0) 2)
 
 (define (for-each-pair action sequence::list)::void
@@ -493,7 +503,7 @@
     (action sequence)
     (for-each-pair action (cdr sequence))))
 
-(define (count-sublists satisfying?::predicate sequence::list)::int
+(define (count-cells satisfying?::predicate sequence::list)::int
   (let ((result ::int 0))
     (for-each-pair (lambda (cell::pair)
 		     (when (satisfying? cell)

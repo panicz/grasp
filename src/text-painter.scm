@@ -91,11 +91,9 @@
       below (min (current-height) clipHeight)
       (put! #\│ i left)))
 
-  (define (horizontal-line-height)::real
-    1)
+  (define (horizontal-line-height)::real 1)
   
-  (define (vertical-line-width)::real
-    1)
+  (define (vertical-line-width)::real 1)
   
   (define (draw-horizontal-bar! width::real)::void
     (for i from 0 below width
@@ -437,8 +435,9 @@
     (when (invoke-special CharPainter (this)
 			  'in-comment-drawing-mode?)
       (set! current-modifier
-	    (if (even? (as int (slot-ref (this)
-					 'current-comment-level)))
+	    (if (even? (as int (slot-ref
+				(this)
+				'current-comment-level)))
 		#\x338
 		#\x336)))
     (invoke-special CharPainter (this) 'draw-string! text context)

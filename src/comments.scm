@@ -143,9 +143,11 @@
   ((remove-from! fragments::list)::list
    (let ((that (this)))
      (cond
-      ((sublist (lambda (l)
-		  (and-let* ((`(,n::integer ,,@(is _ eq? that) ,m::integer . ,_) l))))
-		fragments)
+      ((first-cell (lambda (l)
+		     (and-let* ((`(,n::integer
+				   ,,@(is _ eq? that)
+				   ,m::integer . ,_) l))))
+		   fragments)
        => (lambda (l)
 	    (set! (car l) (as int (+ (car l) (caddr l))))
 	    (set! (cdr l) (cdddr l))

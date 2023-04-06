@@ -212,67 +212,99 @@
 		    into: document ::pair := (the-document)
 		    at: cursor ::Cursor := (the-cursor))
   ::boolean
-  (and-let* ((`(,tip ,top::integer . ,root) cursor)
-	     (grandpa (cursor-ref document root))
-	     (parent (part-at top grandpa))
-	     (target (part-at tip parent)))
-    (if (is top <= 1)
-	(and-let* ((`(,heir . ,origin) root)
-		   (predecesor ::pair (cursor-ref document
-						  origin))
-		   (parent (drop (quotient heir 2)
-				 predecesor))
-		   (following-space ::Space (split-space!
-					     target
-					     tip)))
-	  (set! (car following-space:fragments)
-		(as int
-		    (max (if (empty? (car parent)) 0 1)
-		     (- (car following-space:fragments)
-			(cell-width element)))))
-	  (set! (post-head-space element)
-		following-space)
-	  (set! (last-tail element) (car parent))
-	  (set! (car parent) element) #t)
+  (and-let* ((`(,tip::integer ,top::integer . ,root) cursor)
+	     (grandpa ::list (cursor-ref document root))
+	     (parent ::Space (part-at top grandpa))
+	     (target ::Space (part-at tip parent)))
+    (cond
+     ((Comment? element)
+      (let-values (((suffix remnant)
+		    (space-fragment-index target:fragments
+					  tip)))
+	(cond
+	  ((and-let* ((`(,n::integer . ,rest) suffix))
+	     (assert (is n >= remnant))
+	     (set-car! suffix (- n remnant))
+	     (set-cdr! suffix (cons element
+				    (match rest
+				      (`(,k::integer . ,_)
+				       (set-car! rest
+						 (+ k remnant))
+				       rest)
+				      (_
+				       (cons remnant rest)))))
+	     #t))
+	  ((and-let* ((suffix (last-cell (is (car _) integer?)
+					 target:fragments))
+		      (`(,head . ,tail) suffix))
+	     (set-car! suffix (max head tip))
+	     (set-cdr! suffix (cons element
+				    (cons (abs (- head tip))
+					  tail)))
+	     #t))
+	  (else
+	   (set! target:fragments
+		 (cons* tip element target:fragments))
+	   #t))))
+		 
+     ((is top <= 1)
+      (and-let* ((`(,heir . ,origin) root)
+		 (predecesor ::pair (cursor-ref document
+						origin))
+		 (parent (drop (quotient heir 2)
+			       predecesor))
+		 (following-space ::Space (split-space!
+					   target
+					   tip)))
+	(set! (car following-space:fragments)
+	      (as int
+		  (max (if (empty? (car parent)) 0 1)
+		       (- (car following-space:fragments)
+			  (cell-width element)))))
+	(set! (post-head-space element)
+	      following-space)
+	(set! (last-tail element) (car parent))
+	(set! (car parent) element) #t))
+     (else
+      (let* ((irrelevant (- (quotient top 2) 1))
+	     (before (drop irrelevant grandpa)))
+	(cond
+	 ((pair? element)
+	  (let ((following-space ::Space
+				 (split-space! target
+					       tip)))
+	    (set! (car following-space:fragments)
+		  (as int
+		      (max (if (empty? (cdr before))
+			       0
+			       1)
+			   (- (car following-space:fragments)
+			      (cell-width element)))))
+	    (set! (post-head-space element)
+		  following-space))
+	  (set! (last-tail element) (cdr before))
+	  (set! (cdr before) element) #t)
+	 
+	 ((empty? (cdr (cdr before)))
+	  (assert (head/tail-separator? element))
+	  (let ((following-space ::Space
+				 (split-space! target
+					       tip)))
+	    (set! (car following-space:fragments)
+		  (as int
+		      (max
+		       (- (car following-space:fragments)
+			  1)
+		       1)))
+	    (set! (pre-tail-space before)
+		  following-space))
+	  (set! (cdr before) (car (cdr before)))
+	  (update! (dotted? before) #t) #t)
 
-	(let* ((irrelevant (- (quotient top 2) 1))
-	       (before (drop irrelevant grandpa)))
-	  (cond ((pair? element)
-		 (let ((following-space ::Space
-					(split-space! target
-						      tip)))
-		   (set! (car following-space:fragments)
-			 (as int
-			     (max (if (empty? (cdr before))
-				      0
-				      1)
-			      (- (car following-space:fragments)
-				 (cell-width element)))))
-		   (set! (post-head-space element)
-			 following-space))
-		 (set! (last-tail element) (cdr before))
-		 (set! (cdr before) element) #t)
-		
-		((empty? (cdr (cdr before)))
-		 (assert (head/tail-separator? element))
-		 (let ((following-space ::Space
-					(split-space! target
-						      tip)))
-		   (set! (car following-space:fragments)
-			 (as int
-			     (max
-			      (- (car following-space:fragments)
-				 1)
-			      1)))
-		   (set! (pre-tail-space before)
-			 following-space))
-		 (set! (cdr before) (car (cdr before)))
-		 (update! (dotted? before) #t) #t)
-
-		(else
-		 (WARN "Attempt to splice "element
-		       " in non-tail position") #f))
-	  ))))
+	 (else
+	  (WARN "Attempt to splice "element
+		" in non-tail position") #f))
+	)))))
 
 (e.g.
  (let ((document (string->document "1   5")))
