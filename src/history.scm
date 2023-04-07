@@ -26,6 +26,8 @@
 (import (parse))
 (import (string-building))
 (import (text))
+(import (comments))
+(import (examples))
 
 (define-interface Edit ()
   (apply! document::pair)::Cursor
@@ -256,10 +258,10 @@
 	      (grandpa ::Indexable (cursor-ref document root))
 	      (item ::Space (grandpa:part-at top)))
      (let-values (((fragments
-		    reminant) (space-fragment-index item:fragments
+		    remnant) (space-fragment-index item:fragments
 						    tip)))
        (and-let* ((`(,fragment::integer . ,fragments*) fragments))
-	 (set! (car fragments) reminant)
+	 (set! (car fragments) remnant)
 	 (set! (cdr fragments) (cons content fragments*))
 	 (recons* (content:first-index) (+ tip 1) top root)))))
 
@@ -280,6 +282,34 @@
   ((inverse)::Edit
    (InsertComment content: content
 		  at: (recons (- (car at) 1) (cdr at)))))
+
+(define-type (CommentExpression at: Cursor following: int)
+  implementing Edit
+  with
+  ((apply! document::pair)::Cursor
+   (and-let* ((`(,expression) (extract! at: at from: document))
+              (`(,tip . ,root) at)
+	      (cursor (recons* following (- tip 1) root)))
+     (insert! (ExpressionComment expression: expression)
+              into: document at: cursor)
+     cursor))
+  ((inverse)::Edit
+   (and-let* ((`(,tip . ,root) at))
+     (UncommentExpression at: (recons* following (- tip 1) root)))))
+     
+(define-type (UncommentExpression at: Cursor)
+  implementing Edit
+  with
+  ((apply! document::pair)::Cursor
+   (and-let* (((ExpressionComment expression: expression)
+               (extract! at: at from: document))
+	      (`(,tip ,top . ,root) at))
+     (insert! (cons expression '()) at: at into: document)
+     (recons (+ top 1) root)))
+  ((inverse)::Edit
+   (and-let* ((`(,tip ,top . ,root) at))
+     (CommentExpression at: (recons (+ top 1) root)
+                        following: tip))))
 
 (define-type (SplitElement at: Cursor := (the-cursor)
 			   with: Space)
