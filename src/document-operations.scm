@@ -309,8 +309,9 @@
 	)))))
 
 (e.g.
- (parameterize ((the-document (string->document "\
-#|0|# 1 #;2 3 #|4|# 5 #;6")))
+ (parameterize ((the-document
+		 (string->document
+		  "#|0|# 1 #;2 3 #|4|# 5 #;6")))
    (let* ((0th (extract! at: '(1 0 1)))
 	  (2nd (extract! at: '(2 2 1)))
 	  (4th (extract! at: '(2 4 1)))
@@ -321,7 +322,7 @@
      (insert! 6th at: '(0 0 1))
      (document->string (the-document))))
  ===> "#;6 1 #|4|# 3 #;2 5 #|0|#")
- 
+
 (e.g.
  (let ((document (string->document "1   5")))
    (insert! (parse-string "3") into: document at: '(1 2 1))
