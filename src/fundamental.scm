@@ -16,6 +16,11 @@
 ;; type system doesn't let us express that (see (indexable)).
 (define-alias Tile* java.lang.Object)
 
+(define-simple-class Document (pair)
+  ((*init* content ::list)
+   (invoke-special pair (this) 'setCar content)
+   (invoke-special pair (this) 'setCdr '())))
+
 #|
 
 A Cursor is a list of things that can be used for
