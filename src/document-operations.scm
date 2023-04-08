@@ -28,10 +28,12 @@
 ;; we can safely return #!null, because it's different
 ;; than returning (#!null))
 
-(define (cell-width taken::pair)::real
-  (let* ((extent ::Extent (sequence-extent taken))
+(define (cell-width taken)::int
+  (let* ((extent ::Extent (if (pair? taken)
+			      (sequence-extent taken)
+			      (extent taken)))
 	 (painter ::Painter (the-painter)))
-    (quotient extent:width (painter:space-width))))
+    (as int (round (/ extent:width (painter:space-width))))))
 
 (define/kw (extract! at: cursor::Cursor := (the-cursor)
 		     from: document::pair := (the-document))
@@ -124,13 +126,15 @@
 	   (let-values (((preceding _) (space-fragment-index
 					space:fragments
 					(- tip 1))))
-	     (and-let* ((`(,n::integer ,c::Comment ,m::integer
-				       . ,rest) preceding))
+	     (and-let* ((`(,n::integer ,c::Comment
+				       ,m::integer . ,r) preceding)
+			(w (cell-width c)))
 	       (cond ((c:breaks-line?)
+		      (set-car! preceding (as int (+ n w)))
 		      (set-cdr! preceding (cddr preceding)))
 		     (else
-		      (set-car! preceding (as int (+ n m)))
-		      (set-cdr! preceding rest)))
+		      (set-car! preceding (as int (+ n m w)))
+		      (set-cdr! preceding r)))
 	       c))))
 	(else
 	 #!null)))))
@@ -206,7 +210,7 @@
 	     (show->string 4th)
 	     (show->string 6th)
 	     (document->string (the-document)))))
- ===> "#;0" "#|2|#" ";4\n" ";6\n" " 1  3 \n5 \n")
+ ===> "#;0" "#|2|#" ";4\n" ";6\n" "  1  3 \n5 \n")
 
 (define/kw (insert! element
 		    into: document ::pair := (the-document)
@@ -220,28 +224,32 @@
      ((Comment? element)
       (let-values (((suffix remnant)
 		    (space-fragment-index target:fragments
-					  tip)))
+					  tip))
+		   ((w) (cell-width element)))
 	(cond
 	 ((and-let* ((`(,n::integer . ,rest) suffix)
-		     (coda (max 0 (- n (max 1 remnant)))))
-	     (assert (is n >= remnant))
+		     (coda (max 0 (- n remnant w))))
+	    (assert (is n >= remnant))
+	    #;(DUMP tip target suffix)
 	     (set-car! suffix remnant)
 	     (set-cdr! suffix
 		       (cons element
 			     (match rest
 			       (`(,k::integer . ,_)
 				(set-car! rest
-					  (+ k coda))
+					  (max 0 (+ k coda)))
 				rest)
 			       (_
+				#;(DUMP n remnant suffix coda rest w)
 				(cons coda rest)))))
 	     #t))
 	  ((and-let* ((suffix (last-cell (is (car _) integer?)
 					 target:fragments))
 		      (`(,head . ,tail) suffix))
-	     (set-car! suffix (max head tip))
+	     (set-car! suffix tip)
 	     (set-cdr! suffix (cons element
-				    (cons (abs (- head tip))
+				    (cons (as int (max 0 (- head tip
+							    w)))
 					  tail)))
 	     #t))
 	  (else
@@ -270,7 +278,7 @@
      (else
       (let* ((irrelevant (- (quotient top 2) 1))
 	     (before (drop irrelevant grandpa)))
-	(cond
+  	(cond
 	 ((pair? element)
 	  (let ((following-space ::Space
 				 (split-space! target
@@ -305,8 +313,7 @@
 
 	 (else
 	  (WARN "Attempt to splice "element
-		" in non-tail position") #f))
-	)))))
+		" in non-tail position") #f)))))))
 
 (e.g.
  (parameterize ((the-document
@@ -321,7 +328,7 @@
      (insert! 4th at: '(1 2 1))
      (insert! 6th at: '(0 0 1))
      (document->string (the-document))))
- ===> "#;6 1 #|4|# 3 #;2 5 #|0|#")
+ ===> "#;6 1 #|4|#  3 #;2 5 #|0|# ")
 
 (e.g.
  (let ((document (string->document "1   5")))
