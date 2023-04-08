@@ -7,6 +7,13 @@ dla nie-komentarzy dodaje szerokosc wyrazenia
 do spacji, natomiast procedura insert! dla
 komentarzy juz tego nie robi
 
+no dobra, mamy poprawke.
+
+jutro bysmy sie zajeli
+- integracja wykomentowywania z interfejsem
+- implementacja trybu rysowania komentarzy
+  w klientach graficznych
+
 * 07.04.2023
 
 no dobra. mamy hipoteze dotyczaca tego, jak powinna
