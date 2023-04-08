@@ -283,20 +283,21 @@
    (InsertComment content: content
 		  at: (recons (- (car at) 1) (cdr at)))))
 
-(define-type (CommentExpression at: Cursor following: int)
+(define-type (CommentExpression at: Cursor with-shift: int)
   implementing Edit
   with
   ((apply! document::pair)::Cursor
    (and-let* ((`(,expression) (extract! at: at from: document))
               (`(,tip . ,root) at)
-	      (cursor (recons* following (- tip 1) root)))
+	      (cursor (recons* with-shift (- tip 1) root)))
      (insert! (ExpressionComment expression: expression)
               into: document at: cursor)
      cursor))
   ((inverse)::Edit
    (and-let* ((`(,tip . ,root) at))
-     (UncommentExpression at: (recons* following (- tip 1) root)))))
-     
+     (UncommentExpression at: (recons* (+ with-shift 1)
+				       (- tip 1) root)))))
+
 (define-type (UncommentExpression at: Cursor)
   implementing Edit
   with
@@ -304,13 +305,28 @@
    (and-let* (((ExpressionComment expression: expression)
                (extract! at: at from: document))
 	      (`(,tip ,top . ,root) at))
-     (insert! (cons expression '()) at: at into: document)
+     (insert! (cons expression '())
+	      at: (recons* (- tip 1) top root)
+	      into: document)
      (recons (+ top 1) root)))
   ((inverse)::Edit
    (and-let* ((`(,tip ,top . ,root) at))
      (CommentExpression at: (recons (+ top 1) root)
-                        following: tip))))
+                        with-shift: (- tip 1)))))
 
+(e.g.
+ (parameterize ((the-document
+		 (string->document "(define (f x y) z)")))
+   (let* ((operation ::Edit (CommentExpression at: '(5 3 1 1)
+					       with-shift: 1))
+	  (inverse ::Edit (operation:inverse))
+	  (_ (operation:apply! (the-document)))
+	  (commented (document->string (the-document)))
+	  (_ (inverse:apply! (the-document)))
+	  (uncommented (document->string (the-document))))
+     (values commented uncommented)))
+ ===> "(define (f x #;y) z)" "(define (f x y) z)")
+ 
 (define-type (SplitElement at: Cursor := (the-cursor)
 			   with: Space)
   implementing Edit
