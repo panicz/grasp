@@ -1,3 +1,33 @@
+* 10.04.2023
+
+Wyglada na to, ze laptop od Piotra zdechl (czy
+w zasadzie zepsul mu sie wlacznik)
+
+Mamy niedzialajacy kawalek kodu do komentowania,
+ale nie mamy jak odpalac desktopowego klienta.
+
+Stad pomysl na maly skok w bok: napiszemy sobie
+serwer tcp, ktory bedzie implementowal interfejs
+output-server-port
+
+Czyli tak: wywolanie (tcp-outpt-server port::short)
+
+
+no dobra, to mamy tak:
+(current-output-port) ma typ gnu.kawa.io.BinaryOutPort
+ktory rozszerza gnu.kawa.io.OutPort,
+ktory rozszerza gnu.lists.PrintConsumer i implemenfuje Printable
+
+
+* 09.04.2023
+
+jezeli jestesmy na atomie albo na spacji,
+to wcisniecie srednika powinno spowodowac
+zakomentowanie wyrazenia
+
+a jezeli jestesmy na komentarzu wyrazeniowym,
+to powinnismy zamiast tego odkomentowac wyrazenie
+
 * 08.04.2023
 
 napisalismy test, ktory jednakowoz nie przechodzi.
