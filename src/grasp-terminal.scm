@@ -9,7 +9,7 @@
 (import (define-cache))
 (import (default-value))
 (import (define-parameter))
-
+(import (server))
 (import (extent))
 (import (fundamental))
 (import (conversions))
@@ -321,10 +321,11 @@
   :: void
   (initialize-keymap)  
   (parameterize ((the-painter (TerminalPainter io)))
+    (let ((tcp-server (tcp-output-server 12345)))
+      (set! (current-output-port) tcp-server)
+      (set! (current-error-port) tcp-server))
     (safely
      (load "assets/init.scm"))
-    (set! (current-display-procedure) nothing)
-    (set! (current-message-handler) (ignoring-message-handler))
     (io:startScreen)
     (let* ((editing (future (edit io)))
 	   (rendering (future (render io))))
