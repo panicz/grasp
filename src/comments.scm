@@ -1,3 +1,4 @@
+(import (assert))
 (import (define-cache))
 (import (define-type))
 (import (define-interface))
@@ -32,8 +33,7 @@
   ((expand! traversal::Traversal)::void
    (traversal:expand! (extent)))
 
-  ((breaks-line?)::boolean
-   #f)
+  ((breaks-line?)::boolean #f)
   
   ((print out::gnu.lists.Consumer)::void
    (out:append #\#)
@@ -42,24 +42,20 @@
 
   ((toString)::String
    (string-append "#;" (show->string expression)))
-  
-  ((first-index)::Index
-   (expression:first-index))
 
-  ((last-index)::Index
-   (expression:last-index))
-  
-  ((part-at index::Index)::Index
-   (expression:part-at index))
+  ((part-at index::Index)::Indexable*
+   (assert (eqv? index #\;))
+   expression)
 
-  ((next-index index::Index)::Index
-   (expression:next-index index))
+  ((first-index)::Index #\;)
 
-  ((previous-index index::Index)::Index
-   (expression:previous-index index))
+  ((last-index)::Index #\;)
 
-  ((index< a::Index b::Index)::Index
-   (expression:index< a b)))
+  ((next-index index::Index)::Index #\;)
+
+  ((previous-index index::Index)::Index #\;)
+
+  ((index< a::Index b::Index)::Index #f))
 
 (define-type (BlockComment content: Text := (Text))
   implementing TextualComment
@@ -85,8 +81,7 @@
   ((expand! traversal::Traversal)::void
    (traversal:expand! (extent)))
 
-  ((breaks-line?)::boolean
-   #f)
+  ((breaks-line?)::boolean #f)
   
   ((print out::gnu.lists.Consumer)::void
    (out:append #\#)
@@ -102,8 +97,7 @@
   ((part-at index::Index)::Indexable*
    (this))
   
-  ((first-index)::Index
-   0)
+  ((first-index)::Index 0)
 
   ((last-index)::Index
    (string-length content))
@@ -182,8 +176,7 @@
 			x y content)
 		       path)))))
 
-  ((breaks-line?)::boolean
-   #t)
+  ((breaks-line?)::boolean #t)
   
   ((print out::gnu.lists.Consumer)::void
    (out:append #\;)
@@ -197,8 +190,7 @@
   ((part-at index::Index)::Indexable*
    (this))
 
-  ((first-index)::Index
-   0)
+  ((first-index)::Index 0)
 
   ((last-index)::Index
    (string-length content))

@@ -288,36 +288,36 @@
   with
   ((apply! document::pair)::Cursor
    (and-let* ((`(,expression) (extract! at: at from: document))
-              (`(,tip . ,root) at)
-	      (cursor (recons* with-shift (- tip 1) root)))
+              (`(,tip ,top . ,root) at))
      (insert! (ExpressionComment expression: expression)
-              into: document at: cursor)
-     cursor))
+              into: document at: (recons* with-shift (- top 1) root))
+     (recons* tip #\; (+ with-shift 1) (- top 1) root)))
   ((inverse)::Edit
-   (and-let* ((`(,tip . ,root) at))
-     (UncommentExpression at: (recons* (+ with-shift 1)
-				       (- tip 1) root)))))
+   (and-let* ((`(,tip ,top . ,root) at))
+     (UncommentExpression at: (recons* tip #\;
+				       (+ with-shift 1)
+				       (- top 1) root)))))
 
 (define-type (UncommentExpression at: Cursor)
   implementing Edit
   with
   ((apply! document::pair)::Cursor
-   (and-let* (((ExpressionComment expression: expression)
-               (extract! at: at from: document))
-	      (`(,tip ,top . ,root) at))
+   (and-let* ((`(,cherry #\; ,tip ,top . ,root) at)
+	      ((ExpressionComment expression: expression)
+               (extract! at: (recons* tip top root) from: document)))
      (insert! (cons expression '())
 	      at: (recons* (- tip 1) top root)
 	      into: document)
-     (recons (+ top 1) root)))
+     (recons* cherry (+ top 1) root)))
   ((inverse)::Edit
-   (and-let* ((`(,tip ,top . ,root) at))
-     (CommentExpression at: (recons (+ top 1) root)
+   (and-let* ((`(,cherry #\; ,tip ,top . ,root) at))
+     (CommentExpression at: (recons* cherry (+ top 1) root)
                         with-shift: (- tip 1)))))
 
 (e.g.
  (parameterize ((the-document
 		 (string->document "(define (f x y) z)")))
-   (let* ((operation ::Edit (CommentExpression at: '(5 3 1 1)
+   (let* ((operation ::Edit (CommentExpression at: '(0 5 3 1 1)
 					       with-shift: 1))
 	  (inverse ::Edit (operation:inverse))
 	  (_ (operation:apply! (the-document)))
