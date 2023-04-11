@@ -23,15 +23,19 @@
 \usepackage{fancyvrb}
 \date{\today}
 
+
 \setcopyright{acmcopyright}
 \copyrightyear{2023}
 \acmYear{2023}
-\acmDOI{XXXXXXX.XXXXXXX}
-
-\acmConference[Conference acronym 'ELS]{European Lisp Symposium}{April 24--25,
-  2023}{Amsterdam, NL}
 
 
+\acmConference[ELS'23]{the 16th European Lisp Symposium}
+              {April 24--25 2023}{Amsterdam, Netherlands}
+
+\acmDOI{10.5281/zenodo.7816633}
+\setcopyright{rightsretained}
+\copyrightyear{2023}
+              
 \title{GRASP: An Extensible Tactile Interface for Editing S-expressions}
 \hypersetup{
  pdfauthor={Panicz Maciej Godek},
@@ -226,7 +230,7 @@ If it is loaded, the expression
 	action: (lambda () (WARN "button pressed")))
 \end{Snippet}
 
-can be rendered as a button, and respond
+can be rendered as a button, and responds
 to touch events with the invocation of its
 action callback.
 
@@ -348,7 +352,7 @@ systems).
 
 By default, it provides the ``Common User Access''
 keyboard bindings (ctrl-z for undo, ctrl-c for copy
-etc.) and it allows to use keyboard arrows to
+etc.) and it allows users to use keyboard arrows to
 navigate cursor over the active document.
 
 Keyboard editing is context-sensitive, so
@@ -927,9 +931,9 @@ Although this paper could leave a different impression,
 at the moment of writing (February 2023) GRASP isn't yet 
 a usable application, as:
 \begin{itemize}
-\item it doesn't let open or save files
-\item it doesn't let split or scroll the screen
-\item it doesn't let evaluate expressions
+\item it doesn't let users open or save files
+\item it doesn't let users split or scroll the screen
+\item it doesn't let users evaluate expressions
 \item it doesn't support the basic gestures
 \item the extension mechanism isn't available
 \end{itemize}
@@ -1003,12 +1007,12 @@ by Andrea DiSessa and Harold Abelson \cite{Boxer}. Recently
 there have been efforts to resurrect Boxer
 within the Boxer Sunrise project run by Antranig
 Basman and Steven Ghitens \cite{BoxerSunrise}. However, building
-the project requires LispWorks, and pre-build
+the project requires LispWorks, and pre-built
 snapshots are only released for MacOS X. Also,
 despite being written in Lisp, Boxer itself
 is not a Lisp interpreter.
 
-However, there used to be a Boxer-inspired ``integrated Scheme
+There used to be a Boxer-inspired ``integrated Scheme
 programming environment'' called \textit{Bochser},
 developed by Michael Eisneberg in the 1980s at MIT\cite{Bochser}.
 
@@ -1082,7 +1086,10 @@ with the increasing nesting level.
 \begin{thebibliography}{14}
   
 \bibitem{Andersen}
-  Leif Andersen, \emph{Adding Interactive Visual Syntax to Textual Code} \\
+  Leif Andersen, Michael Ballantyne, Mathias Felleisen,
+  \emph{Adding Interactive Visual Syntax to Textual Code},
+  Proceedings of the ACM on Programming Languages, Volume 4, Issue OOPSLA,
+  Article No.: 222, pp 1–28, \url{https://doi.org/10.1145/3428290}, \\
   presentation: \url{https://www.youtube.com/watch?v=8htgAxJuK5c} \\ 
   defense talk: \url{https://www.youtube.com/watch?v=l0GfMs82PvU} \\
   online IDE: \url{https://visr.pl}
