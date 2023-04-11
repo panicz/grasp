@@ -269,8 +269,10 @@
        ((and (Atom? item) (pair? parent))
 	(let* ((atom ::Atom item)
 	       (n ::int (atom:text-length))
-	       (preceding-cursor (cursor-retreat (recons* 0 top subcursor)))
-	       (following-cursor (cursor-advance (recons* n top subcursor))))
+	       (preceding-cursor (cursor-retreat
+				  (recons* 0 top subcursor)))
+	       (following-cursor (cursor-advance
+				  (recons* n top subcursor))))
 	  (cond
 	   ((and (is tip >= 1) (eq? (atom:char-ref (- tip 1)) #\#))
 	    (cond
@@ -279,22 +281,24 @@
 	      ;; into the space preceding that atom
 		(perform!
 		 (EditSequence
-		  operations: (list
-			       (Remove element: (drop (quotient top 2) parent)
-				       at: (recons top subcursor)
-				       with-shift: (car preceding-cursor))
-			       (InsertComment content: (BlockComment)
-					      at: preceding-cursor)))))
+		  operations:
+		  (list
+		   (Remove element: (drop (quotient top 2) parent)
+			   at: (recons top subcursor)
+			   with-shift: (car preceding-cursor))
+		   (InsertComment content: (BlockComment)
+				  at: preceding-cursor)))))
 	     ((= tip 1)
 	      ;; remove the # character from the beginning 
 	      ;; of the atom and insert an empty comment
 	      ;; into the space preceding that atom
 	      (perform!
 	       (EditSequence
-		operations: (list
-			     (RemoveCharacter list: (cons #\# '()))
-			     (InsertComment content: (BlockComment)
-					    at: preceding-cursor)))))
+		operations:
+		(list
+		 (RemoveCharacter list: (cons #\# '()))
+		 (InsertComment content: (BlockComment)
+				at: preceding-cursor)))))
 
 	     ((= tip n)
 	      ;; remove the # character from the end
@@ -302,23 +306,25 @@
 	      ;; into the space following that atom
 	      (perform!
 	       (EditSequence
-		operations: (list
-			     (RemoveCharacter list: (cons #\# '()))
-			     (InsertComment content: (BlockComment)
-					    at: following-cursor)))))
-	      
+		operations:
+		(list
+		 (RemoveCharacter list: (cons #\# '()))
+		 (InsertComment content: (BlockComment)
+				at: following-cursor)))))
+	     
 	     (else
 	      ;; remove the # character from the middle of the atom.
 	      ;; then split the atom and insert a new block comment
 	      ;; between the splitted parts
 	      (perform!
 	       (EditSequence
-		operations: (list
-			     (RemoveCharacter list: (cons #\# '()))
-			     (SplitElement at: (recons* (- tip 1) top subcursor)
-					   with: (Space fragments:
-							(cons* 0 (BlockComment)
-							       0 '())))))))))
+		operations:
+		(list
+		 (RemoveCharacter list: (cons #\# '()))
+		 (SplitElement at: (recons* (- tip 1) top subcursor)
+			       with: (Space fragments:
+					    (cons* 0 (BlockComment)
+						   0 '())))))))))
 	   ((and (is tip < n) (eq? (atom:char-ref tip) #\#))
 	     (cond
 	     ((= n 1)
@@ -326,50 +332,50 @@
 	      ;; into the space preceding that atom
 	      (perform!
 	       (EditSequence
-		operations: (list
-			     (Remove element: (drop (quotient top 2) parent)
-				     at: (recons top subcursor))
-			     (InsertComment content: (BlockComment)
-					    at: preceding-cursor)))))
+		operations:
+		(list
+		 (Remove element: (drop (quotient top 2) parent)
+			 at: (recons top subcursor))
+		 (InsertComment content: (BlockComment)
+				at: preceding-cursor)))))
 	     ((= tip 0)
 	      ;; remove the # character from the beginning 
 	      ;; of the atom and insert an empty comment
 	      ;; into the space preceding that atom
 	      (perform!
 	       (EditSequence
-		operations: (list
-			     (RemoveCharacter list: (cons #\# '())
-					      before: (recons* 1 top subcursor))
-			     (InsertComment content: (BlockComment)
-					    at: preceding-cursor)))))
+		operations:
+		(list
+		 (RemoveCharacter list: (cons #\# '())
+				  before: (recons* 1 top subcursor))
+		 (InsertComment content: (BlockComment)
+				at: preceding-cursor)))))
 	     ((= tip (- n 1))
 	      ;; remove the # character from the end
 	      ;; of the atom and insert an empty comment
 	      ;; into the space following that atom
 	      (perform!
 	       (EditSequence
-		operations: (list
-			     (RemoveCharacter list: (cons #\# '())
-					      before: (recons* n top cursor))
-			     (InsertComment content: (BlockComment))))))
+		operations:
+		(list
+		 (RemoveCharacter list: (cons #\# '())
+				  before: (recons* n top cursor))
+		 (InsertComment content: (BlockComment))))))
 	     (else
 	      ;; remove the # character from the middle of the atom.
 	      ;; then split the atom and insert a new block comment
 	      ;; between the splitted parts
 	      (perform!
 	       (EditSequence
-		operations: (list
-			     (RemoveCharacter list: (cons #\# '())
-					      before: (recons* (+ tip 1) top subcursor))
-			     (SplitElement with: (Space fragments:
-							(cons* 0 (BlockComment)
-							       0 '())))))))
+		operations:
+		(list
+		 (RemoveCharacter list: (cons #\# '())
+				  before: (recons* (+ tip 1) top
+						   subcursor))
+		 (SplitElement with: (Space fragments:
+					    (cons* 0 (BlockComment)
+						   0 '())))))))
 	     )))))))
-     
-     ((gnu.lists.LList? item)
-      (set! (the-cursor) (cursor-advance))
-      (set! (the-selection-anchor) (the-cursor))
-      (insert-character! c))
      
      ((Space? item)
       (cond
@@ -401,6 +407,24 @@
 				     after: previous-cursor))))
        (else
 	(perform! (Insert element: (cons (Atom (string c)) '()))))))
+
+     ((is c eqv? #\;)
+      ;; mowiac najkrocej: jezeli rodzic targeta to komentarz,
+      ;; to chcemy go wykomentowac, natomiast w przeciwnym razie
+      ;; chcemy go zakomentowac
+      (if (is parent ExpressionComment?)
+	  (perform! (UncommentExpression))
+	  (and-let* ((`(,tip ,top::integer . ,root) (the-cursor))
+		     (parent ::Indexable (the-expression at: root))
+		     (preceding ::Space (parent:part-at (- top 1)))
+		     (shift ::integer (preceding:last-index)))
+	    (perform! (CommentExpression with-shift: shift)))))
+     
+     ((gnu.lists.LList? item)
+      (set! (the-cursor) (cursor-advance))
+      (set! (the-selection-anchor) (the-cursor))
+      (insert-character! c))
+     
      ((Atom? item)
       (cond
        ((is c char-whitespace?)
