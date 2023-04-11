@@ -1,3 +1,91 @@
+* 11.04.2023
+
+Serwer gotowy i zintegrowany. Zidenyfikowalismy tez
+miejsce w kodzie ktote nie tryka.
+
+Z rzeczy do zrobienia na dzis mamy zatem:
+- poprawic pejper na ELS
+- dopracowac wykomentowywanie wyrazen srednikiem
+- moze napisac testy?
+
+Pod haslem 'niedaleka przyszlosc' wisi nad nami jeszcze
+implementacja tgch niwych metod paintera w kliencie
+graficznym, ale tym sie pewnie zajmiemy dopiero
+jutro albo pojutrze.
+
+Mamy natomiast - w zwiazku z przyszloscia nieco
+odleglejsza - pewne zagwozdki odnosnie quasiquote'a.
+
+Abstrahujac na razie od mechanizmu rozszerzen,
+powinno to dzialac tak:
+- jezeli renderujemy quasiquote'a po ktorym
+  nastepuje wyrazeni w nawiasach, to zmieniamy nawiasy
+  na podwojne
+- od tej pory:
+  - wszystkie wyrazenia w nawiasach renderujemy
+    w podwojnych nawiasach
+  - jezeli natrafimy na unquote i nawiasy,
+    to renderujemy jako zwykle nawiasy,
+    a zawartosc renderujemy normalnie
+  - jezeli natrafimy na unquote-splicing
+    i nawiasy, to renderujemy je jako zwykle
+    nawiasy z wielokropkami, a zawartosc renderujemy
+    normalnie
+  - jezeli natrafimy na unquote bez nawiasow, to
+    uzywamy 'malych haczykow na dole'
+  - (analogicznie przy splicingu)
+
+- jezeli renderujemy quasiquote'a po ktorym nastepuje
+  cos innego, niz lista, to uzywamy do tego 'rozkow'
+
+UWAGA, ZMIANA:
+
+nie chcemy uzywac podowjnych nawiasow.
+
+Zrobimy sobie aliasy dla `() ,() '() i ,@(), ale
+tak poza tym nie bedziemy robic zadnych regul.
+
+        0 1 2 3 4 5 6 7 8 9 A B C D E F
+U+250x  ─ ━ │ ┃ ┄ ┅ ┆ ┇ ┈ ┉ ┊ ┋ ┌ ┍ ┎ ┏
+U+251x 	┐ ┑ ┒ ┓ └ ┕ ┖ ┗ ┘ ┙ ┚ ┛ ├ ┝ ┞ ┟
+U+252x 	┠ ┡ ┢ ┣ ┤ ┥ ┦ ┧ ┨ ┩ ┪ ┫ ┬ ┭ ┮ ┯
+U+253x 	┰ ┱ ┲ ┳ ┴ ┵ ┶ ┷ ┸ ┹ ┺ ┻ ┼ ┽ ┾ ┿
+U+254x 	╀ ╁ ╂ ╃ ╄ ╅ ╆ ╇ ╈ ╉ ╊ ╋ ╌ ╍ ╎ ╏
+U+255x 	═ ║ ╒ ╓ ╔ ╕ ╖ ╗ ╘ ╙ ╚ ╛ ╜ ╝ ╞ ╟
+U+256x 	╠ ╡ ╢ ╣ ╤ ╥ ╦ ╧ ╨ ╩ ╪ ╫ ╬ ╭ ╮ ╯
+U+257x 	╰ ╱ ╲ ╳ ╴ ╵ ╶ ╷ ╸ ╹ ╺ ╻ ╼ ╽ ╾ ╿ 
+
+          ┏     ┓
+'(...) => ┃ ... ┃
+          ┗     ┛
+          ┌     ┐
+`(...) => │ ... │
+          ╵     ╵
+       ┈┐     ┌┈
+,@() => │ ... │
+        └     ┘
+       ╷     ╷
+,() => │ ... │
+       └     ┘
+      ▗
+'x =>  x
+
+      ┌ ┐
+`x =>  x
+
+
+,@x => ┈┐x┌┈
+        └ ┘
+
+,x => x
+     └ ┘
+
+`(f ,(+ x y) ,@(- y z))?
+
+╓   ╷       ╷  ╷       ╷  ╖
+║ f │ + x y │ ┈┤ - y z ├┈ ║
+╙   └       ┘  └       ┘  ╜
+
 * 10.04.2023
 
 Wyglada na to, ze laptop od Piotra zdechl (czy
@@ -17,6 +105,7 @@ no dobra, to mamy tak:
 (current-output-port) ma typ gnu.kawa.io.BinaryOutPort
 ktory rozszerza gnu.kawa.io.OutPort,
 ktory rozszerza gnu.lists.PrintConsumer i implemenfuje Printable
+
 
 
 * 09.04.2023
