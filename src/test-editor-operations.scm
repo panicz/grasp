@@ -613,7 +613,6 @@
 
 (insert-character! #\space)
 (insert-character! #\;)
-;(set! verbose #true)
 
 (e.g.
  (snapshot) ===> "
@@ -701,25 +700,55 @@
 ╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
 ")
 
-;;(display (the-expression at: (tail (tail (the-cursor)))))
+(set! verbose #true)
 
+(set! (the-cursor) (cursor #\[ 7 1 1))
+(set! (the-selection-anchor) (the-cursor))
 
-;;(DUMP (last-operation))
-
-;(undo!)
-
-;(DUMP (the-cursor))
-
-;;(snapshot)
-
-#|
-
-(insert-character! #\[)
+(insert-character! #\;)
 
 (e.g.
  (snapshot) ===> "
-╭        ╭  ╮ ╮
-│ define │  │ │
-╰        ╰ |╯ ╯
+╭        ╭     ╮ ⸾ -> int      ╮
+│ define │ ! n │               │
+│        ╰     ╯               │
+│ ❝┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈•     │
+│ ┊ Computes the product ┊     │
+│ ┊ 1 * ... * n          ┊     │
+│ •┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈❞     │
+│ ╭    ╭           ╮         ╮ │
+│ ┊ i̶f̶ ┊ i̶s̶ n̶ <̶=̶ 1̶ ┊         ┊ │
+│ ┊    ╰           ╯         ┊ │
+│ ┊                          ┊ │
+│ ┊   1̶                      ┊ │
+│ ┊                          ┊ │
+│ ┊  ╭     ╭   ╭       ╮ ╮ ╮ ┊ │
+│ ┊  ┊ *̶ n̶ ┊ !̶ ┊ -̶ n̶ 1̶ ┊ ┊ ┊ ┊ │
+╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
 ")
-|#
+
+(undo!)
+
+(e.g.
+ (snapshot) ===> "
+╭        ╭     ╮ ⸾ -> int      ╮
+│ define │ ! n │               │
+│        ╰     ╯               │
+│ ❝┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈•     │
+│ ┊ Computes the product ┊     │
+│ ┊ 1 * ... * n          ┊     │
+│ •┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈❞     │
+│ ╭    ╭           ╮         ╮ │
+│ │ if │ is n <= 1 │         │ │
+│ │    ╰           ╯         │ │
+│ │                          │ │
+│ │   1                      │ │
+│ │                          │ │
+│ │  ╭     ╭   ╭       ╮ ╮ ╮ │ │
+│ │  │ * n │ ! │ - n 1 │ │ │ │ │
+╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
+")
+
+(redo!)
+
+(snapshot)
