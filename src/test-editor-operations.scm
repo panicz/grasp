@@ -613,7 +613,7 @@
 
 (insert-character! #\space)
 (insert-character! #\;)
-(set! verbose #true)
+;(set! verbose #true)
 
 (e.g.
  (snapshot) ===> "

@@ -283,12 +283,14 @@
    (InsertComment content: content
 		  at: (recons (- (car at) 1) (cdr at)))))
 
-(define-type (CommentExpression at: Cursor with-shift: int)
+(define-type (CommentExpression at: Cursor := (the-cursor)
+				with-shift: int)
   implementing Edit
   with
   ((apply! document::pair)::Cursor
-   (and-let* ((`(,expression) (extract! at: at from: document))
-              (`(,tip ,top . ,root) at))
+   (and-let* ((`(,tip ,top . ,root) at)
+	      (`(,expression) (extract! at: (recons top root)
+					from: document)))
      (insert! (ExpressionComment expression: expression)
               into: document at: (recons* with-shift (- top 1) root))
      (recons* tip #\; (+ with-shift 1) (- top 1) root)))
@@ -298,7 +300,7 @@
 				       (+ with-shift 1)
 				       (- top 1) root)))))
 
-(define-type (UncommentExpression at: Cursor)
+(define-type (UncommentExpression at: Cursor := (the-cursor))
   implementing Edit
   with
   ((apply! document::pair)::Cursor
