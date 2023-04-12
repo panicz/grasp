@@ -405,6 +405,24 @@
   
   (define (in-selection-drawing-mode?)::boolean
     selection-drawing-mode?)
+
+  (define current-comment-level ::int 0)
+  
+  (define (enter-comment-drawing-mode!)::void
+    (set! text-color (color #xdddddd))
+    (set! (parenthesis-color) (color #xeeeeee))
+    (set! atom-frame-color (color #xeeeeee))
+    (set! current-comment-level (+ current-comment-level 1)))
+  
+  (define (exit-comment-drawing-mode!)::void
+    (set! current-comment-level (- current-comment-level 1))
+    (when (is current-comment-level <= 0)
+      (set! text-color (color #x555555))
+      (set! atom-frame-color (color #xdddddd))
+      (set! (parenthesis-color) (color #xcccccc))))
+
+  (define (in-comment-drawing-mode?)::boolean
+    (is current-comment-level > 0))
   
   (define (vertical-bar-width)::real 5)
   
