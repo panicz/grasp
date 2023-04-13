@@ -21,11 +21,11 @@
   ((draw! context::Cursor)::void
    (let ((painter ::Painter (the-painter)))
      (painter:enter-comment-drawing-mode!)
-     (expression:draw! context)
+     (expression:draw! (hash-cons #\; context))
      (painter:exit-comment-drawing-mode!)))
   
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
-   (expression:cursor-under* x y path))
+   (expression:cursor-under* x y (hash-cons #\; path)))
 
   ((extent)::Extent
    (expression:extent))
