@@ -1,3 +1,22 @@
+* 12.04.2023
+
+Ale dzisiaj to juz na pewno zrobimy to
+wykomentowywanie wyrazen, prawda?
+
+no, to teraz tak:
+
+do test-editor-opeations dodajemy
+testy wykomentowywania wyrazen
+
+udalo sie, ale mamy bledy, wiec
+trzeba dla tych bledow napisac testy,
+i nastepnie te testy naprawic.
+
+na razie sprobujmy jednak uzupelnic
+implementacje paintera dla klientow
+graficznych
+
+
 * 11.04.2023
 
 Serwer gotowy i zintegrowany. Zidenyfikowalismy tez
@@ -71,16 +90,16 @@ U+257x 	╰ ╱ ╲ ╳ ╴ ╵ ╶ ╷ ╸ ╹ ╺ ╻ ╼ ╽ ╾ ╿
 'x =>  x
 
       ┌ ┐
-`x =>  x
+`x => ╵x╵
 
 
 ,@x => ┈┐x┌┈
         └ ┘
 
-,x => x
+,x =>╷x╷
      └ ┘
 
-`(f ,(+ x y) ,@(- y z))?
+`(f ,(+ x y) ,@(- y z))
 
 ╓   ╷       ╷  ╷       ╷  ╖
 ║ f │ + x y │ ┈┤ - y z ├┈ ║
