@@ -117,3 +117,10 @@
        (for line in (take 4 (string-split (stack-trace ex) "\n"))
 	    (WARN line))
        #!null)))
+
+(define-constant debug ::parameter (make-parameter #f))
+
+(define-syntax-rule (DEBUG action ...)
+  (when (debug)
+    (action ...)))
+
