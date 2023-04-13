@@ -410,8 +410,8 @@
   
   (define (enter-comment-drawing-mode!)::void
     (set! text-color (color #xdddddd))
-    (set! (parenthesis-color) (color #xeeeeee))
-    (set! atom-frame-color (color #xeeeeee))
+    (set! (parenthesis-color) (color #xe5e5e5))
+    (set! atom-frame-color (color #xeaeaea))
     (set! current-comment-level (+ current-comment-level 1)))
   
   (define (exit-comment-drawing-mode!)::void
