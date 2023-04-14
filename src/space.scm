@@ -28,7 +28,7 @@
      0)
     ))
 
-(define (space-fragment-index fragments index)
+(define (space-fragment-index fragments::list index::int)
   (if (or (isnt fragments pair?)
 	  (is (fragment-size (car fragments)) >= index))
       (values fragments index)
