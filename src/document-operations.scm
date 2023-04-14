@@ -59,13 +59,19 @@
             (let* ((grandpa ::pair grandpa)
 	           (cell (drop (quotient top 2) grandpa))
 	           (removed (car cell)))
-              (if (dotted? removed)
-		  (let* ((new (cons (cdr removed) '())))
-	            (tail-space-to-head removed new)
-	            (set! (car cell) new)
-	            (increase-space! (pre-head-space (car cell)) 1)
-	            (unset! (dotted? removed)))
-		  (set! (car cell) (cdr removed)))
+              (cond
+	       ((dotted? removed)
+		(let* ((new (cons (cdr removed) '())))
+	          (tail-space-to-head removed new)
+	          (set! (car cell) new)
+	          (increase-space! (pre-head-space (car cell)) 1)
+	          (unset! (dotted? removed))))
+	       (else
+		(when (pair? (cdr removed))
+		  (set! (pre-head-space (cdr removed))
+			(join-spaces! (pre-head-space (car cell))
+				      (pre-head-space (cdr removed)))))
+		(set! (car cell) (cdr removed))))
               (set! (cdr removed) '())
               (let ((removed-space (post-head-space removed)))
 		(unset! (post-head-space removed))
@@ -230,18 +236,8 @@
 	 ((and-let* ((`(,n::integer . ,rest) suffix)
 		     (coda (max 0 (- n remnant w))))
 	    (assert (is n >= remnant))
-	    #;(DUMP tip target suffix)
 	     (set-car! suffix remnant)
-	     (set-cdr! suffix
-		       (cons element
-			     (match rest
-			       (`(,k::integer . ,_)
-				(set-car! rest
-					  (max 0 (+ k coda)))
-				rest)
-			       (_
-				#;(DUMP n remnant suffix coda rest w)
-				(cons coda rest)))))
+	     (set-cdr! suffix (cons* element coda rest))
 	     #t))
 	  ((and-let* ((suffix (last-cell (is (car _) integer?)
 					 target:fragments))
