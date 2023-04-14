@@ -1,3 +1,60 @@
+* 14.04.2023
+
+mamy jeszcze jakis blad z tym
+komentarzem, ale na razie to sobie
+odpuszczamy
+
+no to co robimy?
+
+dobrze by bylo sie zajac tymi
+quasiquote'ami.
+
+i tutaj plan jest taki:
+
+- dodac wsparcie w parserze
+- zintegrowac mechanizm rozszerzen
+
+no dobra, co do parsera to
+jezeli wczytamy ' ,@ , `, #' #,@ #, #`
+to wywolujemy read rekurencyjnie,
+po czym zwracamy odpowiednia liste
+dwuelementowa
+
+tyle ze zamiast listy powinnismy
+raczej zwrocic rozszerzenie
+
+i teraz: jak w ogole chcemy
+te rozszerzenia definiowac?
+
+(define-extension (quote item)
+  ((draw! context::Cursor)::void
+   (cond
+     ((list? item)
+      ;; zmien typ nawiasow,
+      ;; wnetrze wyrenderuj normalnie
+      )
+     (else
+      ;; wyrenderuj patyczek
+      ;; przed atomem
+      )))
+  ((cursor-under* x y cursor)
+   ...)
+  
+
+
+
+* 13.04.2023
+
+udalo sie zlokalizowac jeden blad
+(gdy wykomentowujemy pierwszy element
+listy), i teraz bysmy sie postarali
+to naprawic
+
+i moze jeszcze ten nasluch na serwerze
+bysmy zrobili jako
+
+./grasp-terminal debug-port: 12345
+
 * 12.04.2023
 
 Ale dzisiaj to juz na pewno zrobimy to
