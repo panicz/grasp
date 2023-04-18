@@ -8,6 +8,8 @@
     (apply action args)
     (apply times (- n 1) action args)))
 
+(define (identity x) x)
+
 (define-early-constant head car)
 
 (define-early-constant tail cdr)
