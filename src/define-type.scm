@@ -2,6 +2,8 @@
 (import (define-syntax-rule))
 (import (assert))
 (import (define-interface))
+(import (define-property))
+(import (match))
 
 ;;(define-alias Cloneable java.lang.Cloneable)
 
@@ -24,11 +26,13 @@
   ((toString) :: String #!abstract)
   ((assign source :: Struct) :: Struct #!abstract)
   ((clone) :: Struct #!abstract))
-
 |#
 
-
-(define-interface Struct (java.lang.Cloneable)
+(define-interface ListSerializable ()
+  (to-list kons::procedure transform::procedure)::list
+  )
+  
+(define-interface Struct (java.lang.Cloneable ListSerializable)
   (typename) :: String
   (fields->string) :: String
   (toString) :: String
@@ -36,6 +40,12 @@
   (assign source :: Struct) :: Struct
   (clone) :: Struct
   ;;(deep-copy)::Struct
+  ;; cons here is passed as an argument, because
+  ;; we want to use the variant of "cons" from
+  ;; the (primitive) module, rather than the built-in.
+  ;; (if we remove this duality by patching Kawa,
+  ;; this argument can be removed)
+  (fields->list kons::procedure transform::procedure)::list
   )
 
 (define (copy struct::Struct)::Struct
@@ -48,10 +58,33 @@
    (string-append "["(typename) (fields->string)"]"))
   ((embedded-in? object)::boolean (instance? object Base))
   ((assign source::Struct)::Struct (this))
+  ((fields->list kons::procedure transform::procedure)::list '())
+  ((to-list kons::procedure transform::procedure)::list
+   (kons (string->symbol (typename))
+		 (fields->list kons transform)))
+  ((hashCode)::int (*:hashCode 'Base))
   ((clone)::Struct (Base)))
 
 (define-syntax-rule (define-type (type-name . fields) . spec)
   (type-definition type-name Base () fields () spec ()))
+
+(define-syntax keyword-value-list
+  (syntax-rules ()
+    ((_ kons transform final)
+     final)
+    ((_ kons transform final first . rest)
+     (kons
+      (symbol->keyword 'first)
+      (kons (transform first)
+	    (keyword-value-list kons transform final . rest))))
+    ))
+
+(define-property (constructor type-name::symbol)
+  ::(maps (list) to: Struct)
+  (lambda (_) #!null))
+
+(define (construct struct-spec::list)::Struct
+  ((constructor (car struct-spec)) (cdr struct-spec)))
 
 (define-syntax type-definition
   (lambda (stx)
@@ -59,52 +92,85 @@
 
       ((_ type-name parent interfaces
 	  () ((slot-symbol . slot-spec) ...) () (methods ...))
-       #'(define-simple-class type-name (parent . interfaces)
-	   ((typename):: String
-	    (symbol->string 'type-name))
-	   
-	   ((fields->string):: String
-	    (string-append
-	     (invoke-special parent (this) 'fields->string)
-	     (string-append " " (symbol->string 'slot-symbol)
-			    ": "(java.lang.String:valueOf slot-symbol))
-	     ...))
-	   	   
-	   ((embedded-in? object):: boolean
-	    (and (instance? object type-name)
-		 (invoke-special parent (this) 'embedded-in? object)
-		 (equal? slot-symbol (field object 'slot-symbol))
-		 ...))
+       #'(begin
+	   (define-simple-class type-name (parent . interfaces)
+	     ((typename):: String
+	      (symbol->string 'type-name))
+	     
+	     ((fields->string)::String
+	      (string-append
+	       (invoke-special parent (this) 'fields->string)
+	       (string-append " " (symbol->string 'slot-symbol)
+			      ": "(java.lang.String:valueOf
+				   slot-symbol))
+	       ...))
+	     
+	     ((fields->list kons::procedure transform::procedure)
+	      ::list
+	      (keyword-value-list
+	       kons transform
+	       (invoke-special parent (this)
+			       'fields->list
+			       kons transform)
+	       slot-symbol ...))
+	     
+	     ((embedded-in? object)::boolean
+	      (and (instance? object type-name)
+		   (invoke-special parent (this) 'embedded-in? object)
+		   (equal? slot-symbol (field object 'slot-symbol))
+		   ...))
 
-	   ((equals object):: boolean
-	    (and (instance? object type-name)
-		 (invoke (as type-name object) 'embedded-in? (this))))
-	   
-	   ((clone):: type-name
-	    (let ((copy (type-name)))
-	      (invoke copy 'assign (as parent (this)))
-	      ;;(invoke-special parent copy 'assign (this))
-	      (slot-set! copy 'slot-symbol slot-symbol)
+	     ((hashCode)::int
+	      ;; the hash function could likely be improved
+	      (as int
+		  (+ (*:hashCode type-name)
+		     (*:hashCode slot-symbol)
+		     ...
+		     (invoke-special parent (this) 'hashCode))))
+	     
+	     ((equals object)::boolean
+	      (and (instance? object type-name)
+		   (invoke (as type-name object)
+			   'embedded-in? (this))))
+	     
+	     ((clone):: type-name
+	      (let ((copy (type-name)))
+		(invoke copy 'assign (as parent (this)))
+		;;(invoke-special parent copy 'assign (this))
+		(slot-set! copy 'slot-symbol slot-symbol)
+		...
+		copy))
+
+	     ((assign source ::type-name)::type-name
+	      (invoke-special parent (this) 'assign
+			      (as parent source))
+	      (set! slot-symbol (field source 'slot-symbol))
 	      ...
-	      copy))
+	      (this))
 
-	   ((assign source :: type-name):: type-name
-	    (invoke-special parent (this) 'assign (as parent source))
-	    (set! slot-symbol (field source 'slot-symbol))
-	    ...
-	    (this))
-
-	   (slot-symbol . slot-spec)
-	   ...
-	   methods ...))
+	     (slot-symbol . slot-spec)
+	     ...
+	     methods ...)
+	   (set! (constructor 'type-name)
+		 (lambda (properties)
+		   (let ((item (type-name)))
+		     (let init ((properties properties))
+		       (otherwise item
+			 (and-let* ((`(,key ,value . ,rest)
+				     properties))
+			   (slot-set! item (keyword->symbol key)
+				      value)
+			   (init rest)))))))))
 
       ((_ type-name parent interfaces
 	  (slot-keyword slot-type := value . fields)
 	  (slot-definitions ...) spec methods)
        (keyword? (syntax->datum #'slot-keyword))
-       (with-syntax ((slot-symbol (datum->syntax stx
-                                    (keyword->symbol
-                                     (syntax->datum #'slot-keyword)))))
+       (with-syntax ((slot-symbol
+		      (datum->syntax
+		       stx
+                       (keyword->symbol
+                        (syntax->datum #'slot-keyword)))))
 	 #'(type-definition
 	    type-name parent interfaces fields
 	    (slot-definitions ... (slot-symbol type: slot-type
