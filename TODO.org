@@ -1,3 +1,171 @@
+* 17.04.2023
+
+no to co?
+
+plan na dzis taki, ze refaktoryzujemy
+enchant-expression! tak zeby disenchant!
+bylo osobna operacja; podpinamy je
+do historii i wywalamy origin, zastepujac
+je uzyciem metody to-list.
+
+No, ale tutaj pomysl jest taki, ze
+bysmy mieli:
+
+(define-property (construct type-name::symbol)::(maps (list) to: Struct)
+  (lambda (_) #!null))
+
+i define-type by dodatkowo robilo
+
+(set! (constructor 'type)
+  (lambda (properties)
+    (let ((item (type)))
+      (let init ((properties (cdr initializer)))
+        (otherwise item
+          (and-let* ((`(,key ,value . ,rest) properties))
+	    (slot-set! item (keyword->symbol key) value)
+	    (init rest)))))))
+
+a zamiastveval btsmy mieli
+	    
+(define (construct struct-spec::list)::Struct
+  ((constructor (car struct-spec)) (cdr struct-spec)))
+
+
+a tu w niedzyczasie sie rodzi plan prezentacji
+1. zamiast jednego duzego dema - duzo malych dem (i opowiesc)
+2. programowanie jako srodek rozumienia
+3. 
+
+  
+* 16.04.2023
+
+No to teraz plan jest taki, ze
+dodajemy nowe metody do define-type:
+- (fields transform::procedure)::list
+- (as-list transform::procedure)::list
+
+w praktyce wyszlo troche inaczej,
+ale to niewazne
+
+moglibysmy tez cos wykombinowac, zeby
+nie alokowac kazdorazowo listy, tylko
+zeby w zamian przechowywac zcache'owana
+liste w ktorej tylko aktualizujemy pola
+(za pomoca set-car!), bo w ten sposob
+zachowamy spacje pomiedzy elementami
+
+no ok, to tym sie tez zajmiemy,
+i co dalej?
+
+dalej wywalamy "origin" z (extensions)
+i uzywamy to-list jako disenchant, natomiast
+list->struct, a moze raczej list->extension
+zamiast evala w przypadku enchanta.
+
+No wlasnie, bo teraz chodzi o to, ze z list->struct
+bedziemy mieli do czynienia tylko w sytuacjach,
+gdy "extension" bedzie implementowalo Struct.
+
+Z pewnoscia takie sytuacje beda typowe, ale
+waznym wyjatkiem od tej reguly bedzie quote
+i przyjaciele.
+
+Oznacza to, ze bedziemy potrzebowac jakiejs
+globalnej tablicy, ktora bedzie nam mapowala
+symbole na funkcje tworzace.
+
+ALe ale w (extension) takie cos jest juz zdefiniowane!
+
+(define-mapping (extension keyword)
+  (begin
+    (WARN "no extension for "keyword)
+    #f))
+
+i jest uzywane np. przez Button o tak:
+
+(set! (extension 'Button)
+      (object (Extension)
+	((create-from source::cons)::Enchanted
+	 (try-catch
+	  (or (as Button (eval source)) #!null)
+	  (ex java.lang.Throwable
+	      (WARN "Unable to create Button from "source": "
+		    (java.lang.String:valueOf ex))
+	      #!null)))))
+	      
+No ok, i teraz zamiast (eval source) bedziemy
+robili (list->struct source)?
+
+No dobra, to sie nawet wydaje miec sens.
+
+Natomiast dla quote'ow i innych zdefiniujemy sobie
+po prostu jakis inny mechanizm (licze ze sie to wyjasni
+w tym tygodniu)
+
+Czyli jaki ma byc kolejny krok?
+
+Teraz caly czas naszym celem jest wywalenie "origin"
+z (extension). Ale z pewnoscia jak to zrobimy, to
+nam sie rozlezie to wyrazenie.
+
+Dlatego bysmy sobie wprowadzili cache'owanie
+i update, i opracowali wariant Buttona, ktory
+juz z "origin" nie bedzie korzystal.
+
+Nastepnie bysmy to zintegrowali z trzema "prawdziwymi"
+klientami (co byc moze bedzie wymagalo zmiany tylko
+w jednym miejscu - tylko koniecznie trzeba pamietac
+o uwzglednieniu historii), i napisali rozszerzenia
+dla quote'a, quasiquote'a itd (co juz bedzie wymagac
+zmian we wszystkich klientach, a w kazdym razie w ich
+malarzach)
+
+Jezeli sie to uda zrobic w ciagu tego tygodnia, to bedzie
+arcy-zacnie.
+
+* 15.04.2023
+
+No dobra, to teraz mamy nowy plan:
+chcemy aktywować mechanizm rozszerzen
+dla guzika, tak jak w primitive-terminal-client.
+
+powinnismy wszelako miec operacje
+zaczarowywania i odczarowywania
+na poziomie historii
+
+No dobra, ale to tylko jeden aspekt.
+
+w (extensions) mamy wlasciwosc origin,
+uzywana przez enchant-expression.
+
+chcielibysmy sie jej pozbyc, a w zamian
+bysmy dodali metode to-s-expression
+ktora by sie automatycznie generowala
+dla struktur definiowanych przez
+define-type.
+
+Cos w stylu
+
+(define-interface Structurizable ()
+  (as-structure)::(either Atom List Text)
+  (from-structure s::(either Atom List Text))::Structurizable)
+
+(define (structure x)::(either Atom List Text)
+  (match x
+    (n::number
+     (Atom (number->string n))
+    (s::symbol
+     (Atom (symbol->string s))
+    (t::string
+     (text t))
+    (r::Structurizable
+     (r:as-structure))
+    (e::Element
+     e)))
+
+
+(as-structure conversion::(maps Object to: Object))::Object
+
 * 14.04.2023
 
 mamy jeszcze jakis blad z tym
@@ -39,8 +207,9 @@ te rozszerzenia definiowac?
       )))
   ((cursor-under* x y cursor)
    ...)
-  
-
+  ((first-index) #\')
+  ((last-index) 0)
+  ...)
 
 
 * 13.04.2023
