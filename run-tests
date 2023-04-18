@@ -4,8 +4,7 @@ FLAGS="--no-warn-unreachable"
 if [ "$#" -gt 0 ]; then
     for n in "$@"
     do
-	N=$(($n+10))
-	`cat $0 | tail -n +$N | head -n 1 | sed "s/\\\$FLAGS/$FLAGS/"`
+        . <(sed -n $(($n+9))p $0)
     done
 else
 java -jar libs/kawa.jar $FLAGS -f src/test-parser.scm
