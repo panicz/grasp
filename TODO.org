@@ -1,3 +1,49 @@
+* 19.04.2023
+
+no to mamy problem.
+
+problem pomiedzy przechodzeniem miedzy swiatem struktur,
+a swiatem wartosci i z powrotem.
+
+dotychczasowe rozwiazanie polegalo na tym, ze
+mielismy mape, ktora przechowywala wyrazenie,
+na podstawie ktorego zostalo wygenerowane
+rozszerzenie.
+
+ograniczeniem tego rozwiazania jest to, ze zmiany
+w rozszerzeniu nie zostana uwzglednione po konwersji
+z powrotem do listy
+
+problem objawia sie np. przy wyrazeniach lambda,
+ktorych po ewaluacji nie mozemy zserializowac
+
+ale wydaje sie, ze wiekszym problemem jest brak
+klarownosci umyslu.
+
+Chodzi o to, ze z jednej strony mamy wyewaluowane struktury,
+z drugiej - drzewa rozbioru skladniowego, a z trzeciej
+- te same drzewa, ale jako edytowalne byty
+
+do tej pory naszym jedynym zrodlem drzew bylo parsowanie,
+ale teraz bedziemy jeszcze dodatkowo mieli:
+- wyniki ewaluacji
+- serializacje rozszerzen
+
+I teraz pomysl jest taki, zeby to autor rozszerzenia byl
+odpowiedzialny za jego serializacje.
+
+Czyli w przypadku Button rzeczywiscie moglibysmy
+zachowywac i przywracac oryginalna liste.
+
+No dobra. Cos tam sobie wyjasnilismy,
+a teraz pora przeniesc rozwiazanie do normalnych klientow.
+To bedzie wymagalo:
+1. rozbicia enchant-expression! na dwie operacje
+2. dodania EnchantExpression i DisenchantExpression
+   do historii
+3. podpiecia tej nowej funkcji do inputu
+   (w assets/init.scm?)
+
 * 18.04.2023
 
 plan na dzis/jutro:
@@ -33,7 +79,7 @@ i define-type by dodatkowo robilo
     (let ((item (type)))
       (let init ((properties (cdr initializer)))
         (otherwise item
-          (and-let* ((`(,key ,value . ,rest) properties))
+          (and-let* ((`(,key ,value . ,rest) properties))``
 	    (slot-set! item (keyword->symbol key) value)
 	    (init rest)))))))
 
