@@ -30,6 +30,9 @@
 	  (and (pair? (the-cursor))
 	       (equal? (cdr (the-cursor)) context)
 	       (the-cursor)))))))
+
+  ((as-expression)::cons
+   (origin (this)))
   
   ((extent)::Extent
    (let ((inner ::Extent (string-extent label)))
@@ -47,13 +50,12 @@
    (action)
    #t))
 
-(define-object (ButtonExtension)::Extension
-  (define (create-from source::cons)::Enchanted
-    (try-catch
-     (or (as Button (eval source)) #!null)
-     (ex java.lang.Throwable
-	 (WARN "Unable to create Button from "source": "
-	       (java.lang.String:valueOf ex))
-	 #!null))))
-
-(set! (extension 'Button) (ButtonExtension))
+(set! (extension 'Button)
+      (object (Extension)
+	((create-from source::cons)::Enchanted
+	 (try-catch
+	  (or (as Button (eval source)) #!null)
+	  (ex java.lang.Throwable
+	      (WARN "Unable to create Button from "source": "
+		    (java.lang.String:valueOf ex))
+	      #!null)))))

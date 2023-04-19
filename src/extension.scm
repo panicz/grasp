@@ -3,6 +3,7 @@
 (import (define-property))
 (import (define-type))
 (import (define-object))
+(import (keyword-arguments))
 (import (mapping))
 (import (fundamental))
 (import (indexable))
@@ -14,14 +15,23 @@
 (import (document-operations))
 (import (print))
 (import (interactive))
+(import (text))
+(import (space))
 
-(define-interface Enchanted (Interactive Tile))
+(define-interface Enchanted (Interactive Tile)
+  (as-expression)::cons)
 
 (define-object (Magic)::Enchanted
   (define (typename)::String "Magic")
 
   (define (fields->string)::String "")
 
+  (define (fields->list kons::procedure transform::procedure)::list
+    '())
+
+  (define (hashCode)::int
+    (*:hashCode 'Magic))
+  
   (define (embedded-in? object)::boolean
     (instance? object Magic))
 
@@ -60,6 +70,9 @@
 	     (is 0 <= y < size:height)
 	     (recons (invoke (this) 'first-index) path)))))
 
+  (define (as-expression)::cons
+    (cons (Atom "Magic") (empty)))
+  
   (Simple))
 
 (define-interface Extension ()
@@ -71,32 +84,47 @@
     (WARN "no extension for "keyword)
     #f))
 
-(define-property (origin enchanted)
-  enchanted)
+(define-property (origin enchanted) enchanted)
 
-(define (enchant-expression! #!optional
-			     #;at (cursor::Cursor (the-cursor))
-				  #;in (document (the-document)))
+(define (editable x)::(either Atom List Text)
+  (match x
+    (n::number
+     (Atom (number->string n)))
+    (s::symbol
+     (Atom (symbol->string s)))
+    (t::CharSequence
+     (text t))
+    (_ x)))
+
+(define (to-list object)
+  (match object
+    (x::ListSerializable
+     (x:to-list (lambda (a d)(cons a d)) editable))))
+
+(define/kw (enchant-expression! at: cursor::Cursor := (the-cursor)
+				in: document := (the-document))
   (parameterize ((the-cell-access-mode CellAccessMode:Evaluating))
     (let ((target (the-expression)))
-      (if (Interactive? target)
-	  (let ((original (origin target)))
-	    (unset! (origin target))
+      (match target
+	(target::Enchanted
+	  (let ((original (target:as-expression)))
+	    ;(unset! (origin target))
 	    (replace-expression! at: cursor
 				 with: original
-				 in: document))
-	  (and-let* ((target (if (pair? target)
-				 target
-				 (innermost-composition
-				  in: document
-				  at: cursor)))
-		     (`(,name . ,_) target)
-		     ((symbol? name))
-		     (extension (extension name))
-		     (illustration (invoke (as Extension
-					       extension)
-					   'create-from target)))
-	    (set! (origin illustration) target)
-	    (replace-expression! at: cursor
-				 with: illustration
-				 in: document))))))
+				 in: document)))
+	(_
+	 (and-let* ((target (if (pair? target)
+				target
+				(innermost-composition
+				 in: document
+				 at: cursor)))
+		    (`(,name . ,_) target)
+		    ((symbol? name))
+		    (extension (extension name))
+		    (illustration (invoke (as Extension
+					      extension)
+					  'create-from target)))
+	   (set! (origin illustration) target)
+	   (replace-expression! at: cursor
+				with: illustration
+				in: document)))))))
