@@ -318,12 +318,23 @@
 (define (run-in-terminal
 	 #!optional
 	 (io :: LanternaScreen (make-terminal-screen)))
-  :: void
-  (initialize-keymap)  
+  ::void
+  (cond
+   ((and-let* ((`(,command "-p" ,port) (command-line))
+	       (port (string->number port))
+	       ((integer? port)))
+      port) =>
+      (lambda (port::integer)
+	(WARN "Starting debug server on port "port)
+	(let ((tcp-server (tcp-output-server 12345)))
+	  (set! (current-output-port) tcp-server)
+	  (set! (current-error-port) tcp-server)
+	  (WARN "Debug server started on port "port))))
+   (else
+     (set! (current-display-procedure) nothing)
+     (set! (current-message-handler) (ignoring-message-handler))))
+  (initialize-keymap)     
   (parameterize ((the-painter (TerminalPainter io)))
-    (let ((tcp-server (tcp-output-server 12345)))
-      (set! (current-output-port) tcp-server)
-      (set! (current-error-port) tcp-server))
     (safely
      (load "assets/init.scm"))
     (io:startScreen)
