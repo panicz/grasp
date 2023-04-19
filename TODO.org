@@ -1,3 +1,15 @@
+* 18.04.2023
+
+plan na dzis/jutro:
+- przetestowac 'construct'
+- zrobic podmianke w extension i button
+- zintegrowac rozszerzenia z docelowymi klientami?
+
+A jak to sie uda, to bedziemy pisac implementacje
+dla quote-ow - najpierw jako rozszerzenia, pozniej
+do parsera
+
+
 * 17.04.2023
 
 no to co?
