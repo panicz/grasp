@@ -10,7 +10,7 @@
 (define (hash-ref table::Map key . default)
   (if (table:contains-key key)
       (table:get key)
-      (if (not (null? default))
+      (if (pair? default)
 	  ((car default)))))
 
 (define (hash-remove! table::Map key)::void
@@ -22,7 +22,7 @@
 (define (hash-ref+ table::Map key . default)
   (if (table:contains-key key)
       (table:get key)
-      (if (not (null? default))
+      (if (pair? default)
 	  (let ((value ((car default))))
 	    (table:put key value)
 	    value))))
@@ -47,3 +47,7 @@
 (define (overrides mapping)::Set
   (let ((table ::Map (procedure-property mapping 'table)))
     (table:keySet)))
+
+(define (overridden-at? mapping key)::boolean
+    (let ((table ::Map (procedure-property mapping 'table)))
+      (table:contains-key key)))
