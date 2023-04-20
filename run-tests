@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -x
 FLAGS="--no-warn-unreachable"
 if [ "$#" -gt 0 ]; then
