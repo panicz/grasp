@@ -52,7 +52,7 @@
 
 (set! (extension 'Button)
       (object (Extension)
-	((create-from source::cons)::Enchanted
+	((enchant source::cons)::Enchanted
 	 (try-catch
 	  (or (as Button (eval source)) #!null)
 	  (ex java.lang.Throwable

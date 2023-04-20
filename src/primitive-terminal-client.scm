@@ -233,7 +233,10 @@ mutations of an n-element set.\"
 	       (continue)))
 
 	    (,KeyType:Tab
-	     (safely (enchant-expression!))
+	     (safely 
+	      (if (is (the-expression) Enchanted?)
+		  (disenchant-expression!)
+		  (enchant-expression!)))
 	     (continue))
 	    
 	    (,KeyType:Delete

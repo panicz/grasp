@@ -76,7 +76,7 @@
   (Simple))
 
 (define-interface Extension ()
-  (create-from source::cons)::Enchanted
+  (enchant source::cons)::Enchanted
   )
 
 (define-mapping (extension keyword)
@@ -86,45 +86,25 @@
 
 (define-property (origin enchanted) enchanted)
 
-(define (editable x)::(either Atom List Text)
-  (match x
-    (n::number
-     (Atom (number->string n)))
-    (s::symbol
-     (Atom (symbol->string s)))
-    (t::CharSequence
-     (text t))
-    (_ x)))
-
-(define (to-list object)
-  (match object
-    (x::ListSerializable
-     (x:to-list (lambda (a d)(cons a d)) editable))))
-
 (define/kw (enchant-expression! at: cursor::Cursor := (the-cursor)
 				in: document := (the-document))
-  (parameterize ((the-cell-access-mode CellAccessMode:Evaluating))
-    (let ((target (the-expression)))
-      (match target
-	(target::Enchanted
-	  (let ((original (target:as-expression)))
-	    ;(unset! (origin target))
-	    (replace-expression! at: cursor
-				 with: original
-				 in: document)))
-	(_
-	 (and-let* ((target (if (pair? target)
-				target
-				(innermost-composition
-				 in: document
-				 at: cursor)))
-		    (`(,name . ,_) target)
-		    ((symbol? name))
-		    (extension (extension name))
-		    (illustration (invoke (as Extension
-					      extension)
-					  'create-from target)))
-	   (set! (origin illustration) target)
-	   (replace-expression! at: cursor
-				with: illustration
-				in: document)))))))
+  ::boolean
+  (parameterize ((cell-access-mode CellAccessMode:Evaluating))
+    (and-let* ((expression ::cons (the-expression at: cursor
+						  in: document))
+	       (`(,keyword::symbol . ,data) expression)
+	       (magic ::Extension (extension keyword))
+	       (enchanted ::Enchanted (magic:enchant expression)))
+      (set! (origin enchanted) expression)
+      (replace-expression! at: cursor with: enchanted
+			   in: document))))
+
+(define/kw (disenchant-expression! at: cursor::Cursor := (the-cursor)
+				   in: document := (the-document))
+  ::boolean
+  (parameterize ((cell-access-mode CellAccessMode:Evaluating))
+    (and-let* ((enchanted ::Enchanted (the-expression at: cursor
+						      in: document))
+	       (expression (enchanted:as-expression)))
+      (replace-expression! at: cursor with: expression
+			   in: document))))
