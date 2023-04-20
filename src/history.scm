@@ -380,16 +380,16 @@
   (define undo-step ::int 0)
   
   (define (buildString out::StringBuilder)::StringBuilder
-    (with-eval-access
-     (and-let* ((`(,front . ,_) fronts))
-       (let ((n ::int 0))
-	 (for operation in front
-	   (when (is n = undo-step)
-	     (out:append "* "))
-	   (out:append (operation:toString))
-	   (out:append "\n")
-	   (set! n (+ n 1)))))
-     out))
+    (parameterize ((cell-access-mode CellAccessMode:Evaluating))
+      (and-let* ((`(,front . ,_) fronts))
+	(let ((n ::int 0))
+	  (for operation in front
+	    (when (is n = undo-step)
+	      (out:append "* "))
+	    (out:append (operation:toString))
+	    (out:append "\n")
+	    (set! n (+ n 1)))))
+      out))
 
   (define (toString)::String
     (let ((builder ::StringBuilder (StringBuilder)))

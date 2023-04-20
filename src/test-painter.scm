@@ -113,7 +113,7 @@
 ")
 
 (e.g.
- (parameterize ((the-cell-access-mode CellAccessMode:Evaluating))
+ (parameterize ((cell-access-mode CellAccessMode:Evaluating))
    (equal?
     document
     '(((define (! n)
@@ -127,7 +127,7 @@
 		label: "Press me!"))))))
 
 
-(parameterize ((the-cell-access-mode CellAccessMode:Evaluating))
+(parameterize ((cell-access-mode CellAccessMode:Evaluating))
   (e.g. (the-expression at: '(1 1 1)) ===> define)
   (e.g. (the-expression at: '(1 3 1 1)) ===> !)
   (e.g. (the-expression at: '(3 3 1 1)) ===> n)

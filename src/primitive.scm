@@ -48,18 +48,18 @@
 
 (define-enum CellAccessMode (Editing Evaluating))
 
-(define-parameter (the-cell-access-mode) ::CellAccessMode
+(define-parameter (cell-access-mode) ::CellAccessMode
   CellAccessMode:Editing)
 
 (define-syntax-rule (with-eval-access actions ...)
-  (parameterize ((the-cell-access-mode CellAccessMode:Evaluating))
+  (parameterize ((cell-access-mode CellAccessMode:Evaluating))
     actions ...))
 
 (define (evaluating?) ::boolean
-  (eq? (the-cell-access-mode) CellAccessMode:Evaluating))
+  (eq? (cell-access-mode) CellAccessMode:Evaluating))
 
 (define (editing?) ::boolean
-  (eq? (the-cell-access-mode) CellAccessMode:Editing))
+  (eq? (cell-access-mode) CellAccessMode:Editing))
 
 (define-property+ (screen-position element #|::Element|#)::Position
   (Position))
