@@ -1,3 +1,54 @@
+* 25.04.2023
+
+ostatnich pare dni krecilo sie glownie wokol ELS,
+w tym mojej wczorajszej prezentacji (ktorej odbior
+byl zdecydowanie pozytywny)
+
+teraz commity beda juz tylko we srode i w czwartek,
+a pozniej przynajmniej tydzien przerwy
+
+do tego czasu vysmy sprobowali zaimplementowac
+te guziki w normalnych klientach
+
+jest tez pare warpliwosci zwiazanych z reprezentacja
+- bo mamy tylko jedna funkcje 'cons', choc tak naprawde
+ bysmy chcieli miec dwie takie funkcje - pierwsza
+do uzywania w ramach dokumentu, oraz druga do uzywania
+wewnatrz aplikacji.
+
+Rzecz jest jeszcze do przemyslenia, ale na pewno
+trzeba to jakos bedzie uporzadkowac, przede wszystkim
+ze wzgledu na pisanie rozszerzen.
+
+No dobra, ale teraz mamy przed soba dwa cele:
+- przetestowac zaczarowywanie i odczarowywanie
+i spiac je z interfejsem (i przetestowac czy
+guzik bedzie dzialal)
+- zaimplementowac quasi-quotacje i te pe.
+
+No dobra. Teoretycznie operacja  jest zaimplementowana,
+tylko trzeba ja podpiac do interfejsu...
+  
+* 22.04.2023
+
+wczoraj palcem nie kiwnelismy, to moze dzis
+kiwniemy? (w samolocie?)
+
+* 21.04.2023
+
+To moze dzisiaj:
+- dodamy enchant! i disenchant! do naszych operacji
+  historycznych
+- dodamy 
+
+
+* 20.04.2023
+
+No dobra, czyli teraz tak:
+- rozrywamy enchant/disenchant! na dwie osobne funkcje
+- linkujemy te funkcje z operacjami historycznymi
+
+
 * 19.04.2023
 
 no to mamy problem.
