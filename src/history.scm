@@ -1,5 +1,7 @@
 (import (define-syntax-rule))
 (import (assert))
+(import (srfi :17))
+(import (hash-table))
 (import (define-interface))
 (import (define-type))
 (import (define-object))
@@ -28,6 +30,7 @@
 (import (text))
 (import (comments))
 (import (examples))
+(import (extension))
 
 (define-interface Edit ()
   (apply! document::pair)::Cursor
@@ -374,6 +377,33 @@
    (SplitElement at: after
 		 with: removing)))
 
+(define-type (EnchantExpression at: Cursor)
+  implementing Edit
+  with
+  ((apply! document::pair)::Cursor
+   (otherwise #!null
+     (and-let* ((enchanted ::Element
+			  (enchant-expression! at: at
+					       in: document)))
+       (recons (enchanted:first-index) at))))
+
+  ((inverse)::Edit
+   (DisenchantExpression at: at)))
+
+(define-type (DisenchantExpression at: Cursor)
+  implementing Edit
+  with
+  ((apply! document::pair)::Cursor
+   (otherwise #!null
+     (and-let* ((expression ::Element
+			    (disenchant-expression! at: at
+						    in: document)))
+       (recons (expression:first-index) at))))
+
+  ((inverse)::Edit
+   (EnchantExpression at: at)))
+
+  
 (define-object (History document::pair)::StringBuilding
   (define fronts ::(list-of (list-of Edit)) '())
 
