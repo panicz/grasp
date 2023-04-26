@@ -79,16 +79,16 @@
   (enchant source::cons)::Enchanted
   )
 
-(define-mapping (extension keyword)
-  (begin
-    (WARN "no extension for "keyword)
-    #f))
+(define-constant extension
+  (mapping (keyword)
+	   (begin
+	     (WARN "no extension for "keyword)
+	     #f)))
 
 (define-property (origin enchanted) enchanted)
 
 (define/kw (enchant-expression! at: cursor::Cursor := (the-cursor)
 				in: document := (the-document))
-  ::boolean
   (parameterize ((cell-access-mode CellAccessMode:Evaluating))
     (and-let* ((expression ::cons (the-expression at: cursor
 						  in: document))
@@ -97,14 +97,15 @@
 	       (enchanted ::Enchanted (magic:enchant expression)))
       (set! (origin enchanted) expression)
       (replace-expression! at: cursor with: enchanted
-			   in: document))))
+			   in: document)
+      enchanted)))
 
 (define/kw (disenchant-expression! at: cursor::Cursor := (the-cursor)
 				   in: document := (the-document))
-  ::boolean
   (parameterize ((cell-access-mode CellAccessMode:Evaluating))
     (and-let* ((enchanted ::Enchanted (the-expression at: cursor
 						      in: document))
 	       (expression (enchanted:as-expression)))
       (replace-expression! at: cursor with: expression
-			   in: document))))
+			   in: document)
+      expression)))
