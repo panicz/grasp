@@ -23,14 +23,18 @@
   (let* ((painter (the-painter))
 	 (cursor-position ::Position (painter:cursor-position)))
     (set! (cursor-column) cursor-position:left))
-  (set! (the-selection-anchor) (the-cursor)))
+  (set! (the-selection-anchor) (the-cursor))
+  ;;(DUMP (the-cursor))
+  )
 
 (define (move-cursor-left!)
   (set! (the-cursor) (cursor-retreat))
   (let* ((painter (the-painter))
 	 (cursor-position ::Position (painter:cursor-position)))
     (set! (cursor-column) cursor-position:left))
-  (set! (the-selection-anchor) (the-cursor)))
+  (set! (the-selection-anchor) (the-cursor))
+  ;;(DUMP (the-cursor))
+  )
 
 (define (unnest-cursor-right!)
   (and-let* ((`(,tip ,top . ,root) (the-cursor))
@@ -105,23 +109,22 @@
   (let ((document-history ::History (history (the-document))))
     (document-history:redo!)))
 
+(define (perform&record! operation ::Edit)::boolean
+  (and-let* ((document (the-document))
+	     (history ::History (history document))
+	     (new-cursor (operation:apply! document)))
+    ;; A note: in case of removal operations,
+    ;; we record the operation after applying it,
+    ;; but in case of insertion operation, we record
+    ;; them before applying them.
+    ;; This allows for structural sharing to work
+    ;; in the presence of history merging.
+    (history:record! operation)
+    (set! (the-cursor) new-cursor)
+    (set! (the-selection-anchor) new-cursor)
+    #t))
+
 (define (delete-backward!)::boolean
-
-  (define (perform! operation ::Edit)::boolean
-    (and-let* ((document (the-document))
-	       (history ::History (history document))
-	       (new-cursor (operation:apply! document)))
-      ;; A note: in case of removal operations,
-      ;; we record the operation after applying it,
-      ;; but in case of insertion operation, we record
-      ;; them before applying them.
-      ;; This allows for structural sharing to work
-      ;; in the presence of history merging.
-      (history:record! operation)
-      (set! (the-cursor) new-cursor)
-      (set! (the-selection-anchor) new-cursor)
-      #t))
-
   (and-let* ((`(,tip ,top . ,root) (the-cursor))
 	     (parent ::Indexable (the-expression at: root))
 	     (target ::Indexable (parent:part-at top))
@@ -131,7 +134,8 @@
 	     (preceding-cursor (cursor-retreat (recons*
 						first-index
 						top root)))
-	     (preceding-element (the-expression at: preceding-cursor)))
+	     (preceding-element (the-expression
+				 at: preceding-cursor)))
     (cond
      ((Atom? target)
       (let ((target ::Atom target))
@@ -141,15 +145,17 @@
 	  (set! (the-selection-anchor) (the-cursor))
 	  (delete-backward!))
 	 ((is (text-length target) <= 1)
-	    ;; the cell will be cut off from the rest
-	    ;; of the document after performing Remove
-	    (perform! (Remove element: (drop (quotient top 2) parent)
-			      at: (recons top root)
-			      with-shift: (car preceding-cursor))))
+	  ;; the cell will be cut off from the rest
+	  ;; of the document after performing Remove
+	  (perform&record!
+	   (Remove element: (drop (quotient top 2) parent)
+		   at: (recons top root)
+		   with-shift: (car preceding-cursor))))
 	 (else
-	  (perform!
+	  (perform&record!
 	   (RemoveCharacter
-	    list: (cons (target:char-ref (target:previous-index tip))
+	    list: (cons (target:char-ref
+			 (target:previous-index tip))
 			'())))))))
      ((Space? target)
       (let ((target ::Space target))
@@ -170,19 +176,22 @@
 		       (preceding-element ::Textual preceding-element)
 		       ((eq? (preceding-element:getClass)
 			     (following-element:getClass))))
-	      (perform! (MergeElements removing: target
-				       after: preceding-cursor))))
+	      (perform&record!
+	       (MergeElements removing: target
+			      after: preceding-cursor))))
 	   ((and (eq? preceding-element parent)
 		 (is (text-length (as Space target)) > 0))
-	    (perform! (RemoveCharacter
-		       list: (cons (target:char-ref tip) '()))))
+	    (perform&record!
+	     (RemoveCharacter
+	      list: (cons (target:char-ref tip) '()))))
 	   ;; teoretycznie moglibysmy tutaj dodac scalanie
 	   ;; list
 	   (else #f)))
 	 (else
-	  (perform! (RemoveCharacter
-		     list: (cons (target:char-ref tip)
-				 '())))))))
+	  (perform&record!
+	   (RemoveCharacter
+	    list: (cons (target:char-ref tip)
+			'())))))))
      ((Text? target)
       (let ((target ::Text target))
 	(cond
@@ -192,36 +201,41 @@
 	  (delete-backward!))
 	 ((or (eqv? tip last-index)
 	      (is (text-length (as Text target)) <= 0))
-	    ;; the cell will be cut off from the rest
-	    ;; of the document after performing Remove
-	  (perform! (Remove element: (drop (quotient top 2) parent)
-			      at: (recons top root)
-			      with-shift: (text-length
-					   preceding-element))))
+	  ;; the cell will be cut off from the rest
+	  ;; of the document after performing Remove
+	  (perform&record!
+	   (Remove element: (drop (quotient top 2) parent)
+		   at: (recons top root)
+		   with-shift: (text-length
+				preceding-element))))
 	 (else
-	  (perform! (RemoveCharacter list: (cons (target:char-ref
-						  (- tip 1))
-						 '())))))))
+	  (perform&record!
+	   (RemoveCharacter list: (cons (target:char-ref
+					 (- tip 1))
+					'())))))))
      ((TextualComment? target)
       (let ((target ::TextualComment target))
 	(cond
 	 ((target:removable?)
-	  (perform! (RemoveComment content: target
-				   at: (recons top root))))
+	  (perform&record!
+	   (RemoveComment content: target
+			  at: (recons top root))))
 	 (else
-	  (perform! (RemoveCharacter list: (cons (target:char-ref
-						  (- tip 1))
-						 '())))))))
+	  (perform&record!
+	   (RemoveCharacter list: (cons (target:char-ref
+					 (- tip 1))
+					'())))))))
      ((gnu.lists.LList? target)
       (if (or (eqv? tip last-index)
 	      (null? target)
 	      (and-let* ((empty ::EmptyListProxy target)
 			 ((is empty:space EmptySpace?)))))
-	    (perform! (Remove element: (drop (quotient top 2) parent)
-			      at: (recons top root)
-			      with-shift: (text-length
-					   preceding-element)))
-	    #f))
+	  (perform&record!
+	   (Remove element: (drop (quotient top 2) parent)
+		   at: (recons top root)
+		   with-shift: (text-length
+				preceding-element)))
+	  #f))
      (else
       #f))))
 
@@ -240,15 +254,16 @@
       (move-cursor-right!)
       (delete-backward!)))))
 
+(define (record&perform! operation ::Edit)::boolean
+  (let* ((document (the-document))
+	 (history ::History (history document)))
+    (history:record! operation)
+    (and-let* ((new-cursor (operation:apply! document)))
+      (set! (the-cursor) new-cursor)
+      (set! (the-selection-anchor) new-cursor)
+      #t)))
+
 (define (insert-character! c::char)::boolean
-  (define (perform! operation ::Edit)::boolean
-    (let* ((document (the-document))
-	   (history ::History (history document)))
-      (history:record! operation)
-      (and-let* ((new-cursor (operation:apply! document)))
-	(set! (the-cursor) new-cursor)
-	(set! (the-selection-anchor) new-cursor)
-	#t)))
   (and-let* (((isnt c eqv? #\null))
 	     (`(,tip ,top . ,subcursor) (the-cursor))
 	     (parent ::Indexable (the-expression at: subcursor))
@@ -259,7 +274,7 @@
       (WARN "attempted to insert character "c" to non-final position")
       #f)
      ((or (Text? item) (TextualComment? item))
-      (perform! (InsertCharacter list: (list c))))
+      (record&perform! (InsertCharacter list: (list c))))
      
      ((is c in '(#\] #\) #\}))
       (unnest-cursor-right!))
@@ -279,7 +294,7 @@
 	     ((= n 1)
 	      ;; remove the single # atom and insert an empty comment
 	      ;; into the space preceding that atom
-		(perform!
+		(record&perform!
 		 (EditSequence
 		  operations:
 		  (list
@@ -292,7 +307,7 @@
 	      ;; remove the # character from the beginning 
 	      ;; of the atom and insert an empty comment
 	      ;; into the space preceding that atom
-	      (perform!
+	      (record&perform!
 	       (EditSequence
 		operations:
 		(list
@@ -304,7 +319,7 @@
 	      ;; remove the # character from the end
 	      ;; of the atom and insert an empty comment
 	      ;; into the space following that atom
-	      (perform!
+	      (record&perform!
 	       (EditSequence
 		operations:
 		(list
@@ -316,7 +331,7 @@
 	      ;; remove the # character from the middle of the atom.
 	      ;; then split the atom and insert a new block comment
 	      ;; between the splitted parts
-	      (perform!
+	      (record&perform!
 	       (EditSequence
 		operations:
 		(list
@@ -330,7 +345,7 @@
 	     ((= n 1)
 	      ;; remove the single # atom and insert an empty comment
 	      ;; into the space preceding that atom
-	      (perform!
+	      (record&perform!
 	       (EditSequence
 		operations:
 		(list
@@ -342,7 +357,7 @@
 	      ;; remove the # character from the beginning 
 	      ;; of the atom and insert an empty comment
 	      ;; into the space preceding that atom
-	      (perform!
+	      (record&perform!
 	       (EditSequence
 		operations:
 		(list
@@ -354,7 +369,7 @@
 	      ;; remove the # character from the end
 	      ;; of the atom and insert an empty comment
 	      ;; into the space following that atom
-	      (perform!
+	      (record&perform!
 	       (EditSequence
 		operations:
 		(list
@@ -365,7 +380,7 @@
 	      ;; remove the # character from the middle of the atom.
 	      ;; then split the atom and insert a new block comment
 	      ;; between the splitted parts
-	      (perform!
+	      (record&perform!
 	       (EditSequence
 		operations:
 		(list
@@ -380,22 +395,22 @@
      ((Space? item)
       (cond
        ((eqv? c #\")
-	(perform! (Insert element: (cons (Text) '()))))
+	(record&perform! (Insert element: (cons (Text) '()))))
        
        ((is c in '(#\[ #\( #\{))
-	(perform! (Insert element: (cons (empty) '()))))
+	(record&perform! (Insert element: (cons (empty) '()))))
 
        ((is c char-whitespace?)
-	(perform! (InsertCharacter list: (list c))))
+	(record&perform! (InsertCharacter list: (list c))))
 
        ((eqv? c #\;)
-	(perform! (InsertComment content: (LineComment))))
+	(record&perform! (InsertComment content: (LineComment))))
        
        ((and-let* (((is tip eqv? (item:last-index)))
 		   (next-cursor (cursor-advance))
 		   (next-target (the-expression at: next-cursor))
 		   ((Atom? next-target)))
-	  (perform! (InsertCharacter list: (list c)
+	  (record&perform! (InsertCharacter list: (list c)
 				     after: next-cursor))))
 
        ((and-let* (((is tip eqv? (item:first-index)))
@@ -403,22 +418,23 @@
 		   (previous-target (the-expression
 				     at: previous-cursor))
 		   ((Atom? previous-target)))
-	  (perform! (InsertCharacter list: (list c)
+	  (record&perform! (InsertCharacter list: (list c)
 				     after: previous-cursor))))
        (else
-	(perform! (Insert element: (cons (Atom (string c)) '()))))))
+	(record&perform!
+	 (Insert element: (cons (Atom (string c)) '()))))))
 
      ((is c eqv? #\;)
       ;; mowiac najkrocej: jezeli rodzic targeta to komentarz,
       ;; to chcemy go wykomentowac, natomiast w przeciwnym razie
       ;; chcemy go zakomentowac
       (if (is parent ExpressionComment?)
-	  (perform! (UncommentExpression))
+	  (record&perform! (UncommentExpression))
 	  (and-let* ((`(,tip ,top::integer . ,root) (the-cursor))
 		     (parent ::Indexable (the-expression at: root))
 		     (preceding ::Space (parent:part-at (- top 1)))
 		     (shift ::integer (preceding:last-index)))
-	    (perform! (CommentExpression with-shift: shift)))))
+	    (record&perform! (CommentExpression with-shift: shift)))))
      
      ((gnu.lists.LList? item)
       (set! (the-cursor) (cursor-advance))
@@ -430,27 +446,27 @@
        ((is c char-whitespace?)
 	(cond
 	 ((eqv? (final:first-index) tip)
-	  (perform! (InsertCharacter list: (list c)
+	  (record&perform! (InsertCharacter list: (list c)
 				     after: (cursor-retreat))))
 	 ((eqv? (final:last-index) tip)
-	  (perform! (InsertCharacter list: (list c)
+	  (record&perform! (InsertCharacter list: (list c)
 				     after: (cursor-advance))))
 	 (else
-	  (perform! (SplitElement with: (SpaceFrom c))))))
+	  (record&perform! (SplitElement with: (SpaceFrom c))))))
        
        ((is c in '(#\[ #\( #\{))
 	(cond
 	 ((eqv? (final:first-index) tip)
-	  (perform! (Insert element: (cons (empty) '())
+	  (record&perform! (Insert element: (cons (empty) '())
 			    at: (cursor-retreat))))
 	 ((eqv? (final:last-index) tip)
-	  (perform! (Insert element: (cons (empty) '())
+	  (record&perform! (Insert element: (cons (empty) '())
 			    at: (cursor-advance))))
 	 (else
-	  (perform! (SplitElement with: (EmptySpace)))
-	  (perform! (Insert element: (cons (empty) '()))))))
+	  (record&perform! (SplitElement with: (EmptySpace)))
+	  (record&perform! (Insert element: (cons (empty) '()))))))
        (else
-	(perform! (InsertCharacter list: (list c))))))
+	(record&perform! (InsertCharacter list: (list c))))))
      ((Text? item)
       (InsertCharacter list: (list c)))
 	 
