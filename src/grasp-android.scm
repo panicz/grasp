@@ -27,6 +27,9 @@
 (import (android-keymap))
 (import (history))
 ;;(import (primitive))
+(import (extension))
+(import (button))
+
 
 (define-alias Bundle android.os.Bundle)
 ;;(define-alias KeyEvent android.view.KeyEvent)
@@ -836,7 +839,7 @@ ue
   
   (define (onCreate savedState::Bundle)::void
     (invoke-special AndroidActivity (this) 'onCreate savedState)
-    (set! (current-message-handler) (ScreenLogger 100))
+    ;;(set! (current-message-handler) (ScreenLogger 100))
     (let ((scheme ::gnu.expr.Language (or kawa.standard.Scheme:instance
 					  (kawa.standard.Scheme))))
       (kawa.standard.Scheme:registerEnvironment)

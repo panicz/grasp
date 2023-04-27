@@ -31,6 +31,8 @@
 (import (editor-operations))
 (import (history))
 (import (desktop-keymap))
+(import (extension))
+(import (button))
 
 (define-alias Font java.awt.Font)
 (define-alias FontMetrics java.awt.FontMetrics)
