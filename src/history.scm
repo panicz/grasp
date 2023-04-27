@@ -377,7 +377,7 @@
    (SplitElement at: after
 		 with: removing)))
 
-(define-type (EnchantExpression at: Cursor)
+(define-type (EnchantExpression at: Cursor := (the-cursor))
   implementing Edit
   with
   ((apply! document::pair)::Cursor
@@ -390,7 +390,7 @@
   ((inverse)::Edit
    (DisenchantExpression at: at)))
 
-(define-type (DisenchantExpression at: Cursor)
+(define-type (DisenchantExpression at: Cursor := (the-cursor))
   implementing Edit
   with
   ((apply! document::pair)::Cursor
