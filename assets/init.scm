@@ -24,10 +24,12 @@
 (import (conversions))
 (import (examples))
 (import (indexable))
+(import (extension))
 (import (editor-operations))
 (import (pane))
 (import (parse))
 (import (cursor))
+(import (button))
 
 (set-key! 'left move-cursor-left!)
 
@@ -44,6 +46,15 @@
 (set-key! '(ctrl q) exit)
 
 (set-key! 'F12 exit)
+
+(set-key! 'tab
+	  (lambda ()
+	    (let ((target (the-expression)))
+	      (if (is target Enchanted?)
+		  (perform&record!
+		   (DisenchantExpression))
+		  (perform&record!
+		   (EnchantExpression))))))
 
 (set-key! 'backspace delete-backward!)
 (set-key! 'delete delete-forward!)
