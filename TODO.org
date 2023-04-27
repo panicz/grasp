@@ -1,3 +1,10 @@
+* 26.04.2023
+
+wydaje sie ze tab juz dziala (tylko trzeba jeszcze
+potestowac na kliencie terminalowym), teraz zas
+bysmy jeszcze sprobowali popodpinac te event handlery
+w normalnych klientach (tak jak w primitive-terminal-client).
+
 * 25.04.2023
 
 ostatnich pare dni krecilo sie glownie wokol ELS,
