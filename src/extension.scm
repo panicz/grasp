@@ -75,8 +75,9 @@
   
   (Simple))
 
-(define-interface Extension ()
-  (enchant source::cons)::Enchanted
+(define-simple-class Extension ()
+  ((enchant source::cons)::Enchanted
+   #!abstract)
   )
 
 (define-constant extension
