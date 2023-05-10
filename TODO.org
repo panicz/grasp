@@ -1,9 +1,53 @@
+* 07.05.2023
+
+na razie bysmy tak zrobili, zeby guziki
+sie dobrze wyswietlaly w klientach
+
+trzeba tez cos wykombinowac zeby klikniecie
+na atomy powodowalo wysuwanie klawiatury
+(a na przyklad wcisniecie guzika tego nie powodowalo)
+
+
+
+* 01.05.2023
+
+teraz jakos bardziej siedzi w glowie system
+obslugi zdarzen (dla kazdego klienta bedzie
+trzeba zrobic osobno)
+
+ale oprocz niego chcemy:
+- mechanizm rozszerzen
+- kwazi-kwotacje
+- otwieranie i zapisywanie plikow
+- dzielenie ekranu
+- scrollowanie
+- pozbycie sie bugow
+
+  moze sie to uda osiagnac w kolejnym ufo
+
+* 27.04.2023
+
+no to teraz plan jest taki:
+- najpierw analizujemy dzialanie systemu zdarzen
+  na androidzie i ew w starej aplikacji
+- nastepnie przenosimy ten model do klientow kawowych
+
+a i jeszcze w miedzyczasie naprawiamy moze
+renderowanie guzika w klientach graficznych?
+
 * 26.04.2023
 
 wydaje sie ze tab juz dziala (tylko trzeba jeszcze
 potestowac na kliencie terminalowym), teraz zas
 bysmy jeszcze sprobowali popodpinac te event handlery
 w normalnych klientach (tak jak w primitive-terminal-client).
+
+no dobra, a teraz bedzie jeszcze kilka uwag dotyczacych
+obslugi inputu
+
+mamy wszak trzy klienty, i wszystkie dzialaja
+nieco inaczej
+
 
 * 25.04.2023
 
