@@ -50,24 +50,23 @@
 
 (define-object (Stroke)::Drawable
   (define points ::List[Point] (ArrayList[Point]))
+
+  (define source-pane ::Pane #!null)
   
   (define (draw!)::void
     (let ((painter ::Painter (the-painter)))
       (for i from 1 below (points:size)
         (let ((p0 ::Point (points (- i 1)))
 	      (p1 ::Point (points i)))
-          (painter:draw-line! p0:x p0:y p1:x p1:y)))))
-  
-  (define (add-point! p::Point)::void
-    (points:add p)))
+          (painter:draw-line! p0:x p0:y p1:x p1:y))))))
 
 (define-object (Drawing stroke::Stroke)::Drag
 
   (define (move! x::real y::real dx::real dy::real)::void
-    (stroke:add-point! (Point x y)))
+    (stroke:points:add (Point x y)))
     
   (define (drop! x::real y::real vx::real vy::real)::void
-    (the-overlay:elements:removeIf (is _ Stroke?)))
+    (the-overlay:elements:remove stroke))
 
   (the-overlay:add! stroke))
 
@@ -173,18 +172,49 @@
   (draw! context::Cursor)::void
   (tap! finger::byte #;at x::real y::real)::boolean
   (press! finger::byte #;at x::real y::real)::boolean
-
-  (release! finger::byte #;at x::real y::real
-	    #;with vx::real vy::real)
-  ::boolean
-  
-  (move! finger::byte #;to x::real y::real
-	 #;by vx::real vy::real)
-  ::boolean
+  (release! finger::byte x::real y::real vx::real vy::real)::boolean
+  (move! finger::byte x::real y::real dx::real dy::real)::boolean
+  (second-press! finger::byte #;at x::real y::real)::boolean
+  (double-tap! finger::byte x::real y::real)::boolean
+  (long-press! finger::byte x::real y::real)::boolean
   
   (key-typed! key-code::long)::boolean
   )
 
+  
+(define-object (WrappedPane content ::Pane)::Pane
+
+  (define (draw! context::Cursor)::void
+    (content:draw! context))
+  
+  (define (tap! finger::byte #;at x::real y::real)::boolean
+    (content:tap! finger x y))
+  
+  (define (press! finger::byte #;at x::real y::real)::boolean
+    (content:press! finger x y))
+  
+  (define (release! finger::byte x::real y::real
+		    vx::real vy::real)
+    ::boolean
+    (content:release! finger x y vx vy))
+  
+  (define (move! finger::byte x::real y::real
+		 dx::real dy::real)
+    ::boolean
+    (content:move! finger x y dx dy))
+  
+  (define (second-press! finger::byte #;at x::real y::real)::boolean
+    (content:second-press! finger x y))
+  
+  (define (double-tap! finger::byte x::real y::real)::boolean
+    (content:double-tap! finger x y))
+  
+  (define (long-press! finger::byte x::real y::real)::boolean
+    (content:long-press! finger x y))
+  
+  (define (key-typed! key-code::long)::boolean
+    (content:key-typed! key-code))
+  )
 
 ;; this parameter must be set by the
 ;; graphical framework (Lanterna, AWT, ...)
@@ -238,6 +268,7 @@
 			    height: extent:height)))
 	     (invoke right 'draw!
 		     (recons 'right context))))))))
+  
   ((tap! finger::byte #;at x::real y::real)::boolean
    (let* ((painter (the-painter))
 	  (extent (the-pane-extent))
@@ -307,7 +338,55 @@
 	    (right:move! finger
 			 #;to (- x left-width line-width) y
 			      #;by dx dy)))))
-  
+
+  ((second-press! finger::byte #;at x::real y::real)::boolean
+   (let* ((painter (the-painter))
+	  (extent (the-pane-extent))
+	  (line-width (invoke painter 'vertical-line-width))
+          (inner-width (- extent:width
+			  line-width))
+          (left-width (* at inner-width))
+          (right-width (- inner-width left-width)))
+     (cond ((is x < left-width)
+	    (set! focus HorizontalSplitFocus:Left)
+	    (left:second-press! finger #;at x y))
+	   ((is (+ left-width line-width) < x)
+	    (set! focus HorizontalSplitFocus:Right)
+	    (right:second-press! finger
+			 #;at (- x left-width line-width) y)))))
+   
+  ((double-tap! finger::byte x::real y::real)::boolean
+   (let* ((painter (the-painter))
+	  (extent (the-pane-extent))
+	  (line-width (invoke painter 'vertical-line-width))
+          (inner-width (- extent:width
+			  line-width))
+          (left-width (* at inner-width))
+          (right-width (- inner-width left-width)))
+     (cond ((is x < left-width)
+	    (set! focus HorizontalSplitFocus:Left)
+	    (left:double-tap! finger #;at x y))
+	   ((is (+ left-width line-width) < x)
+	    (set! focus HorizontalSplitFocus:Right)
+	    (right:double-tap! finger
+			 #;at (- x left-width line-width) y)))))
+
+  ((long-press! finger::byte x::real y::real)::boolean
+   (let* ((painter (the-painter))
+	  (extent (the-pane-extent))
+	  (line-width (invoke painter 'vertical-line-width))
+          (inner-width (- extent:width
+			  line-width))
+          (left-width (* at inner-width))
+          (right-width (- inner-width left-width)))
+     (cond ((is x < left-width)
+	    (set! focus HorizontalSplitFocus:Left)
+	    (left:long-press! finger #;at x y))
+	   ((is (+ left-width line-width) < x)
+	    (set! focus HorizontalSplitFocus:Right)
+	    (right:long-press! finger
+			 #;at (- x left-width line-width) y)))))
+
   ((key-typed! key-code::long)::boolean
    (match focus
      (,HorizontalSplitFocus:Left
@@ -329,15 +408,26 @@
       (draw-sequence! (head document))))
   
   (define (tap! finger::byte #;at x::real y::real)::boolean
+    (WARN "tap! "finger" "x" "y)
     (parameterize/update-sources ((the-document document))
-      (set! cursor (cursor-under x y))
-      (set! selection-anchor cursor)
-      (display cursor)
-      (display (the-expression at: cursor))
-      (newline)
-      #t))
+
+      (let* ((target-cursor (cursor-under x y))
+	     (target (the-expression at: target-cursor)))
+	(DUMP target)
+	(match target
+	  (enchanted::Interactive
+	   (enchanted:tapped x y))
+	  (else
+	   (set! cursor target-cursor)
+	   (set! selection-anchor cursor)
+
+	   (display cursor)
+	   (display (the-expression at: cursor))
+	   (newline)
+	   #t)))))
 
   (define (press! finger::byte #;at x::real y::real)::boolean
+    (WARN "press! "finger" "x" "y)
     (parameterize/update-sources ((the-document document)
 				  (the-cursor cursor)
 				  (the-selection-anchor
@@ -359,7 +449,8 @@
 	    (WARN "should start scrolling or zooming"))
 	   
 	   ((is target Space?)
-	    (set! (dragging 0) (Drawing (Stroke))))
+	    (set! (dragging 0)
+		  (Drawing (Stroke source-pane: (this)))))
 	   
 	   ((is selection-start cursor< path
 		cursor< selection-end)
@@ -398,6 +489,7 @@
   (define (release! finger::byte #;at x::real y::real
 		    #;with vx::real vy::real)
     ::boolean
+    (WARN "release! "finger" "x" "y" "vx" "vy)
     (parameterize/update-sources ((the-document document)
 				  (the-cursor cursor)
 				  (the-selection-anchor
@@ -414,6 +506,7 @@
   (define (move! finger::byte #;to x::real y::real
 		 #;by dx::real dy::real)
     ::boolean
+    (WARN "move! "finger" "x" "y" "dx" "dy)
     (parameterize/update-sources ((the-document document)
 				  (the-cursor cursor)
 				  (the-selection-anchor
@@ -422,6 +515,22 @@
 	(drag:move! x y dx dy)
 	#t)))
 
+  (define (second-press! finger::byte #;at x::real y::real)::boolean
+    (WARN "second-press! "finger" "x" "y)
+    ;; powinnismy sobie skopiowac dany element
+    ;; albo zaczac scrollowanie
+    #f)
+    
+  (define (double-tap! finger::byte x::real y::real)::boolean
+    (WARN "double-tap! "finger" "x" "y)
+    ;; centrowanie na dokumencie/maksymalizacja wyrazenia
+    #f)
+
+  (define (long-press! finger::byte x::real y::real)::boolean
+    (WARN "long-press! "finger" "x" "y)
+    ;; dodanie menu kontekstowego
+    #f)
+  
   (define (key-typed! key-code::long)::boolean
     (parameterize/update-sources ((the-document document)
 				  (the-cursor cursor)

@@ -25,6 +25,8 @@
 (import (editor-operations))
 (import (input))
 (import (android-keymap))
+(import (postponed))
+(import (touch-event-processor))
 (import (history))
 ;;(import (primitive))
 (import (extension))
@@ -42,8 +44,6 @@
 (define-alias InputMethodManager
   android.view.inputmethod.InputMethodManager)
 (define-alias Path2D android.graphics.Path)
-(define-alias GestureDetector
-  android.view.GestureDetector)
 (define-alias DisplayMetrics
   android.util.DisplayMetrics)
 (define-alias Color android.graphics.Color)
@@ -86,7 +86,19 @@
 
 (define the-view ::AndroidView #!null)
 
+(define-object (EventCanceller action::java.lang.Runnable
+			       sync::android.os.Handler)::Cancellable
+  (define (cancel)::Cancellable
+    (sync:removeCallbacks action)
+    cancellable-nothing))
+
+(define-object (EventRunner sync::android.os.Handler)::Postponed
+  (define (after time-ms::long action::java.lang.Runnable)::Cancellable
+    (sync:postDelayed action time-ms)
+    (EventCanceller action sync)))
+  
 (define-initializer (initialize-activity activity::android.app.Activity)
+
   (define Basic-Regular ::Typeface
     (load-font "Basic-Regular.otf" activity))
 
@@ -229,7 +241,7 @@
     (let* ((canvas ::Canvas (as Canvas output))
 	   (font ::Font (the-log-font))
 	   (screen-extent ::Extent (the-screen-extent))
-	   (top ::float  screen-extent:height))
+	   (top ::float  (- screen-extent:height (* 4 font:size))))
       (paint:setTypeface font:face)
       (paint:setTextSize font:size)
       (for message in messages
@@ -237,7 +249,16 @@
 	   (set! top (- top font:size)))))
 
   (logger size))
-  
+
+(define-object (ShowKeyboardOnTap content::Pane view::View)
+
+  (define (tap! finger::byte #;at x::real y::real)::boolean
+    (and (invoke-special WrappedPane (this) 'tap! finger x y)
+	 (is (the-expression) Textual?)
+	 (truly (view:showKeyboard))))
+
+  (WrappedPane content))
+
 (define-object (View source::AndroidActivity)::Painter
   
   (define canvas ::Canvas)
@@ -711,115 +732,61 @@
   ;;(setClickable #t)
   (paint:setFlags Paint:ANTI_ALIAS_FLAG))
 
-(define-interface Polysensoric
-    (GestureDetector:OnGestureListener
-     GestureDetector:OnDoubleTapListener
-     #;SensorListener))
-
-(define-object (GRASP)::Polysensoric
+(define-object (GRASP)
 
   (define view :: View)
-  (define gesture-detector ::GestureDetector)
   
-  (define x ::float[] (float[] 0 1 2 3 4 5 6 7 8 9))
-  (define y ::float[] (float[] 0 1 2 3 4 5 6 7 8 9))
-
+  (define process-finger ::TouchEventProcessor[]
+    (TouchEventProcessor[] length: 10))
+  
   (define (invalidating result::boolean)::boolean
     (when result
       (view:invalidate))
     result)
   
-  #|
-  (define (onAccuracyChanged sensor::int accuracy::int)::void
-    (values))
-ue
-  (define (onSensorChanged sensor::int values ::float[])::void
-    (values))
-  |#
-
-  (define (onDown event::MotionEvent)::boolean
-    #f)
-
-  (define (onFling e1::MotionEvent e2::MotionEvent
-		   vx::float vy::float)
-    ::boolean
-    #f)
-
-  (define (onLongPress event::MotionEvent)::void
-    (view:invalidate))
-  
-  (define (onScroll e1::MotionEvent e2::MotionEvent
-		    dx::float dy::float)
-    ::boolean
-    #f)
-
-  (define (onShowPress event::MotionEvent)::void
-    (values))
-
-  (define (onSingleTapUp event::MotionEvent)::boolean
-    #f)
-
-  (define (onSingleTapConfirmed event::MotionEvent)::boolean
-    (safely 
-     (view:showKeyboard)
-     (invalidating
-      (invoke (the-screen) 'tap! 0
-	      #;at (event:getX) (- (event:getY) 60)))))
-
-  (define (onDoubleTap event::MotionEvent)::boolean
-    #f)
-
-  (define (onDoubleTapEvent event::MotionEvent)::boolean
-    #f)
-
-  (define (onDoubleTapConfirmed event::MotionEvent)::boolean
-    #f)
-  
   (define (onTouchEvent event::MotionEvent)::boolean
+    (define (pointer-down? event-action::int)::boolean
+      (or (eq? event-action MotionEvent:ACTION_DOWN)
+	  (eq? event-action MotionEvent:ACTION_POINTER_DOWN)))
+
+    (define (pointer-up? event-action::int)::boolean
+      (or (eq? event-action MotionEvent:ACTION_UP)
+	  (eq? event-action MotionEvent:ACTION_POINTER_UP)
+	  (eq? event-action MotionEvent:ACTION_OUTSIDE)
+	  (eq? event-action MotionEvent:ACTION_CANCEL)))
+
     (safely
      (invalidating
-      (or (gesture-detector:onTouchEvent event)
-	  (match (event:getActionMasked)
-	    (,MotionEvent:ACTION_DOWN
-	     (let* ((x* (event:getX))
-		    (y* (- (event:getY) 60))
-		    (result (invoke (the-screen) 'press!
-				    0 x* y*)))
-	       (set! (x 0) x*)
-	       (set! (y 0) y*)
-	       result))
-	    (,MotionEvent:ACTION_POINTER_DOWN
-	     #f)
-	    (,MotionEvent:ACTION_UP
-	     (let* ((x* (event:getX))
-		    (y* (- (event:getY) 60))
-		    (result (invoke (the-screen) 'release!
-				    0 x* y* 0 0)))
-	       (set! (x 0) x*)
-	       (set! (y 0) y*)
-	       result))
-	    (,MotionEvent:ACTION_POINTER_UP
-	     #f)
-	    (,MotionEvent:ACTION_OUTSIDE
-	     #f)
-	    (,MotionEvent:ACTION_MOVE
-	     ;;(WARN"force: "(event:getPressure)", size: "(event:getSize))
-	     (let* ((x* (event:getX))
-		    (y* (- (event:getY) 60))
-		    (result (invoke (the-screen) 'move!
-				    0 x* y*
-				    (- x* (x 0))
-				    (- y* (y 0)))))
-	       (set! (x 0) x*)
-	       (set! (y 0) y*)
-	       result))
-	    (,MotionEvent:ACTION_POINTER_UP
-	     #f)
-	    (,MotionEvent:ACTION_CANCEL
-	     #f)
-	    (_
-	     #f))))))
-
+      (match (event:getActionMasked)
+	(,@pointer-down?
+	 (let* ((i ::int (event:getActionIndex))
+		(p ::int (event:getPointerId i))
+		(finger ::TouchEventProcessor (process-finger p)))
+	   (finger:press! (event:getX i) (event:getY i)
+			  (event:getEventTime))))
+	(,@pointer-up?
+	 (let* ((i ::int (event:getActionIndex))
+		(p ::int (event:getPointerId i))
+		(finger ::TouchEventProcessor (process-finger p)))
+	   (finger:release! (event:getX i) (event:getY i)
+			    (event:getEventTime))))
+	(,MotionEvent:ACTION_MOVE
+	 (let ((n ::int (event:getPointerCount))
+	       (result ::boolean #f))
+	   (for i from 0 below n
+		(let* ((p ::int (event:getPointerId i))
+		       (finger ::TouchEventProcessor
+			       (process-finger p)))
+		  (set! result
+			(or (finger:move! (event:getX i)
+					  (event:getY i)
+					  (event:getEventTime))
+			    result))))
+	   result))
+	(_
+	 #f))
+      )))
+  
   (define (onKeyUp keyCode::int event::KeyEvent)::boolean
     #f)
 
@@ -839,14 +806,16 @@ ue
   
   (define (onCreate savedState::Bundle)::void
     (invoke-special AndroidActivity (this) 'onCreate savedState)
-    ;;(set! (current-message-handler) (ScreenLogger 100))
-    (let ((scheme ::gnu.expr.Language (or kawa.standard.Scheme:instance
-					  (kawa.standard.Scheme))))
+    (set! (current-message-handler) (ScreenLogger 100))
+    (let ((scheme ::gnu.expr.Language
+		  (or kawa.standard.Scheme:instance
+		      (kawa.standard.Scheme))))
+  
       (kawa.standard.Scheme:registerEnvironment)
       (gnu.mapping.Environment:setCurrent (scheme:getEnvironment)))
+    (set! cancellable-nothing (CancellableNothing))
     (initialize-activity (this))
     (safely (initialize-keymap))
-    (set! gesture-detector (GestureDetector (this) (this)))
     (set! view (View (this)))
     (set! the-view view)
 
@@ -859,10 +828,16 @@ ue
 
     (setContentView view)
     (set! (the-painter) view)
-
     (for expression in init-script
 	 (safely
 	  (eval expression)))
+    (set! (the-screen)
+	  (ShowKeyboardOnTap (the-screen) view))
+    (let ((postpone ::Postponed (EventRunner (android.os.Handler))))
+      (for finger from 0 below 10
+	   (set! (process-finger finger)
+		 (TouchEventProcessor finger (the-screen) postpone
+				      vicinity: 7))))
     )
   
   (AndroidActivity))

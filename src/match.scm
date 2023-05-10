@@ -404,3 +404,15 @@
      value)
     ((_ default . precedents)
      (or (otherwise . precedents) default))))
+
+(define-syntax-rule (begin/or clause ...)
+  (let ((result #f))
+    (set! result (or clause result))
+    ...
+    result))
+
+(define-syntax-rule (begin/and clause ...)
+  (let ((result #t))
+    (set! result (and clause result))
+    ...
+    result))
