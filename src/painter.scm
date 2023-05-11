@@ -56,6 +56,12 @@
   
   (draw-quoted-text! s::CharSequence context::Cursor)::void
   (draw-string! s::CharSequence context::Cursor)::void
+
+  (draw-caption! caption::CharSequence)::void
+  (caption-extent caption::CharSequence)::Extent
+  (caption-vertical-margin)::real
+  (caption-horizontal-margin)::real
+  
   (quoted-text-extent text::CharSequence)::Extent
   
   (draw-atom! text::CharSequence context::Cursor)::void
@@ -86,6 +92,7 @@
   (exit-comment-drawing-mode!)::void
   (in-comment-drawing-mode?)::boolean
 
+  
   #|
   (increase-quotation-level!)::void
   (decrease-quotation-level!)::void
@@ -182,6 +189,16 @@
     ::void
     (values))
 
+  (define (draw-caption! caption::CharSequence)::void
+    (values))
+  
+  (define (caption-extent caption::CharSequence)::Extent
+    (Extent width: 1 height: 1))
+  
+  (define (caption-vertical-margin)::real 1)
+  
+  (define (caption-horizontal-margin)::real 1)
+  
   (define (quoted-text-extent text::CharSequence)::Extent
     (Extent width: 0 height: 0))
   

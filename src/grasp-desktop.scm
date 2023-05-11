@@ -124,6 +124,9 @@
 (define-parameter+ (the-comment-font) ::Font
   GloriaHallelujah)
 
+(define-parameter+ (the-caption-font) ::Font
+  Oswald-Regular)
+
 (define-parameter+ (the-block-comment-font) ::Font
   NotoSerif-Regular)
 
@@ -517,7 +520,7 @@
   
   (define (draw-string! text::CharSequence context::Cursor)::void
     (draw-text! text (the-string-font) context))
-
+  
   (define quoted-text-cursor-offset::Position
     (Position left: -1 top: 2))
   
@@ -571,6 +574,20 @@
 			    (is left <= x < (+ left width)))
 		       i
 		       (loop (+ i 1) (+ left width) top))))))))))
+
+  (define (draw-caption! caption::CharSequence)::void
+    (draw-text! caption (the-caption-font) #!null))
+
+  (define (caption-extent caption::CharSequence)::Extent
+    (text-extent caption (the-caption-font)))
+  
+  (define (caption-vertical-margin)::real
+    (let* ((font ::Font (the-caption-font))
+	   (metrics ::FontMetrics (graphics:getFontMetrics font)))
+      (metrics:getHeight)))
+  
+  (define (caption-horizontal-margin)::real
+    (caption-vertical-margin))
   
   (define (atom-extent text::CharSequence)::Extent
     (let ((inner (text-extent text (the-atom-font))))

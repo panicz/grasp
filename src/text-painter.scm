@@ -306,6 +306,27 @@
 		      n
 		      (next (+ row 1) 0 (+ n 1)))
 		  (next row (+ col 1) (+ n 1))))))))
+
+  (define (draw-caption! caption::CharSequence)::void
+    (let ((row 0)
+	  (col 0)
+	  (n 0))
+	(for c in caption
+          (cond ((eq? c #\newline)
+		 (set! row (+ row 1))
+		 (set! col 0))
+		(else
+		 (put! c row col)
+		 (set! col (+ col 1))))
+	  
+	  (set! n (+ n 1)))))
+      
+  (define (caption-extent caption::CharSequence)::Extent
+    (string-extent caption))
+
+  (define (caption-vertical-margin)::real 1)
+
+  (define (caption-horizontal-margin)::real 2)
   
   (define (quoted-text-extent text::CharSequence)::Extent
     (let ((inner ::Extent (string-extent text)))

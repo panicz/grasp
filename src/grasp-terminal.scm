@@ -43,36 +43,6 @@
 
 (define-alias Thread java.lang.Thread)
 
-;; OK, wyglada na to, ze klienta terminalowego
-;; bedziemy rozwijac na telefonie.
-
-;; nie zmienia to jednak faktu, ze chcemy
-;; sie teraz zajac klikaniem
-
-;; plan zatem taki:
-;; - dodajemy metode cursor-under* do interfejsu Element
-;; - tworzymy implementacje tej metody dla:
-;;   - spacji
-;;   - textu
-;;   - atomow
-;;   - par/sekwencji
-;;   - kombinacji
-;;   - innych instancji?
-;; - tworzymy duzo testow jednostkowych
-;;   (moze byc w test-painter)
-
-;; dalej: poki siedzimy na telefonie, powinnismy
-;; rozbudowac klienta terminalowego
-;; (tak zeby finalnie usunac primitive-terminal-client)
-;;
-;; fajnie by tez bylo zaimplementowac protokol
-;; kitty do rysowania w terminalu
-;; albo terminal ze wsparciem dla grafiki wektorowej
-;;
-;; ale teraz to bez znaczenia
-;;
-;; 
-
 (define-syntax define-box
   (syntax-rules (::)
     ((_ (name)::type initial-value)

@@ -254,7 +254,7 @@
 
   (define (tap! finger::byte #;at x::real y::real)::boolean
     (and (invoke-special WrappedPane (this) 'tap! finger x y)
-	 (is (the-expression) Textual?)
+	 ;;(is (the-expression) Textual?)
 	 (truly (view:showKeyboard))))
 
   (WrappedPane content))
@@ -601,6 +601,19 @@
       (Extent width: max-width
 	      height: (* lines line-height))))
 
+  (define (draw-caption! caption::CharSequence)::void
+    (draw-text! caption (the-caption-font) #!null))
+
+  (define (caption-extent caption::CharSequence)::Extent
+    (text-extent caption (the-caption-font)))
+  
+  (define (caption-vertical-margin)::real
+    (let* ((font ::Font (the-caption-font)))
+      font:size))
+      
+  (define (caption-horizontal-margin)::real
+    (caption-vertical-margin))
+  
   (define (atom-extent text::CharSequence)::Extent
     (let ((painter ::Painter (the-painter))
 	  (inner ::Extent (text-extent text (the-atom-font))))
@@ -813,7 +826,7 @@
   
       (kawa.standard.Scheme:registerEnvironment)
       (gnu.mapping.Environment:setCurrent (scheme:getEnvironment)))
-    (set! cancellable-nothing (CancellableNothing))
+    ;;(set! cancellable-nothing (CancellableNothing))
     (initialize-activity (this))
     (safely (initialize-keymap))
     (set! view (View (this)))
@@ -838,6 +851,7 @@
 	   (set! (process-finger finger)
 		 (TouchEventProcessor finger (the-screen) postpone
 				      vicinity: 7))))
+    (WARN (the-screen))
     )
   
   (AndroidActivity))

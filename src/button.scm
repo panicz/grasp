@@ -19,25 +19,30 @@
   with
   ((draw! context::Cursor)::void
    (let* ((painter ::Painter (the-painter))
-	  (inner ::Extent (string-extent label)))
-     (painter:draw-rounded-rectangle!
-      (+ inner:width 4)
-      (+ inner:height 2))
-     (with-translation (2 1)
-       (painter:draw-string!
-	label
-	(otherwise #!null
-	  (and (pair? (the-cursor))
-	       (equal? (cdr (the-cursor)) context)
-	       (the-cursor)))))))
+	  (inner ::Extent (painter:caption-extent label))
+	  (horizontal-margin ::real
+			     (painter:caption-horizontal-margin))
+	  (vertical-margin ::real
+			   (painter:caption-vertical-margin)))
+    (painter:draw-rounded-rectangle!
+      (+ inner:width (* horizontal-margin 2))
+      (+ inner:height (* vertical-margin 2)))
+    (with-translation (horizontal-margin vertical-margin)
+      (painter:draw-caption! label))))
 
   ((as-expression)::cons
    (origin (this)))
   
   ((extent)::Extent
-   (let ((inner ::Extent (string-extent label)))
-     (Extent width: (+ inner:width 4)
-	     height: (+ inner:height 2))))
+   (let* ((painter ::Painter (the-painter))
+	  (inner ::Extent (painter:caption-extent label))
+	  (horizontal-margin ::real
+			     (painter:caption-horizontal-margin))
+	  (vertical-margin ::real
+			   (painter:caption-vertical-margin)))
+
+     (Extent width: (+ inner:width (* horizontal-margin 2))
+	     height: (+ inner:height (* vertical-margin 2)))))
 
   ((key-pressed key::char)::boolean
    (cond ((eq? key #\newline)
