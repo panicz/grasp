@@ -8,7 +8,7 @@
   (define (cancel)::Cancellable
     (this)))
 
-(define cancellable-nothing ::Cancellable
+(define-early-constant cancellable-nothing ::Cancellable
   (CancellableNothing))
 
 (define-interface Postponed ()

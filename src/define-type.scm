@@ -79,9 +79,9 @@
 	    (keyword-value-list kons transform final . rest))))
     ))
 
-(define-property (constructor type-name::symbol)
-  ::(maps (list) to: Struct)
-  (lambda (_) #!null))
+(define-early-constant constructor
+  (property (type-name::symbol)
+	    (lambda (_) #!null)))
 
 (define (construct struct-spec::list)::Struct
   ((constructor (car struct-spec)) (cdr struct-spec)))
