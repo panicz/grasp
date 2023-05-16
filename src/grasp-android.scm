@@ -40,16 +40,26 @@
 (define-alias AndroidActivity android.app.Activity)
 (define-alias AndroidView android.view.View)
 (define-alias Paint android.graphics.Paint)
+
 (define-alias Typeface android.graphics.Typeface)
 (define-alias InputMethodManager
   android.view.inputmethod.InputMethodManager)
 (define-alias Path2D android.graphics.Path)
+(define-alias RectF android.graphics.RectF)
+(define-alias AssetManager android.content.res.AssetManager)
+
 (define-alias DisplayMetrics
   android.util.DisplayMetrics)
 (define-alias Color android.graphics.Color)
 
 (define-alias AndroidResources
   android.content.res.Resources)
+
+(define-alias AndroidWindow
+  android.view.Window)
+
+(define-alias WindowInsets
+  android.view.WindowInsets)
 
 (define-alias SensorListener
   android.hardware.SensorListener)
@@ -61,7 +71,7 @@
     path))
 
 (define (path-extent path::Path2D)::Extent
-  (let ((rect ::android.graphics.RectF (android.graphics.RectF)))
+  (let ((rect ::RectF (RectF)))
     (path:computeBounds rect #t)
     (Extent width: (rect:width)
 	    height: (rect:height))))
@@ -69,35 +79,42 @@
 (define-type (Font face: Typeface
 		   size: real))
 
-(define (load-font name::string activity::android.app.Activity)::Typeface
+(define (load-font name::string activity::AndroidActivity)
+  ::Typeface
   (Typeface:createFromAsset (activity:getAssets) name))
 
 (define-syntax define-initializer
   (syntax-rules  (::)
-    ((define-initializer (initializer-name object-name::object-type)
+    ((define-initializer (initializer-name
+			  object-name::object-type)
        (definition name etc ... initialization)
        ...)
      (begin 
        (definition name etc ... #!null)
        ...
-       (define (initializer-name object-name::object-type)::void
+       (define (initializer-name object-name::object-type)
+	 ::void
 	 (set! name initialization)
 	 ...)))))
 
 (define the-view ::AndroidView #!null)
 
 (define-object (EventCanceller action::java.lang.Runnable
-			       sync::android.os.Handler)::Cancellable
+			       sync::android.os.Handler)
+  ::Cancellable
   (define (cancel)::Cancellable
     (sync:removeCallbacks action)
     cancellable-nothing))
 
-(define-object (EventRunner sync::android.os.Handler)::Postponed
-  (define (after time-ms::long action::java.lang.Runnable)::Cancellable
+(define-object (EventRunner sync::android.os.Handler)
+  ::Postponed
+  (define (after time-ms::long action::java.lang.Runnable)
+    ::Cancellable
     (sync:postDelayed action time-ms)
     (EventCanceller action sync)))
   
-(define-initializer (initialize-activity activity::android.app.Activity)
+(define-initializer (initialize-activity
+		     activity::AndroidActivity)
 
   (define Basic-Regular ::Typeface
     (load-font "Basic-Regular.otf" activity))
@@ -117,8 +134,7 @@
   (define assets ((activity:getAssets):list ""))
   
   (define init-script
-    (let* ((assets ::android.content.res.AssetManager
-		   (activity:getAssets))
+    (let* ((assets ::AssetManager (activity:getAssets))
 	   (input (gnu.kawa.io.InPort
 		   (java.io.InputStreamReader
 		    (assets:open "init.scm")))))
@@ -139,6 +155,11 @@
      (Font face: GloriaHallelujah
 	   size: 28)))
 
+  (define the-caption-font ::parameter[Font]
+    (make-parameter
+     (Font face: Oswald-Regular
+	   size: 44)))
+  
   (define the-block-comment-font ::parameter[Font]
     (make-parameter
      (Font face: NotoSerif-Regular
@@ -241,7 +262,8 @@
     (let* ((canvas ::Canvas (as Canvas output))
 	   (font ::Font (the-log-font))
 	   (screen-extent ::Extent (the-screen-extent))
-	   (top ::float  (- screen-extent:height (* 4 font:size))))
+	   (top ::float  (- screen-extent:height
+			    (* 4 font:size))))
       (paint:setTypeface font:face)
       (paint:setTextSize font:size)
       (for message in messages
@@ -271,7 +293,8 @@
 		 (as InputMethodManager
 		     (activity:getSystemService
 		      android.content.Context:INPUT_METHOD_SERVICE))))
-	(imm:showSoftInput (this) InputMethodManager:SHOW_IMPLICIT))))
+	(imm:showSoftInput (this)
+			   InputMethodManager:SHOW_IMPLICIT))))
 
   (define clipLeft ::real 0)
   (define clipTop ::real 0)
@@ -330,20 +353,23 @@
 	   (bottom ::float (+ top (horizontal-line-height)))
 	   (right ::float (+ left (current-clip-width))))
       (paint:setColor text-color)
-      (canvas:drawRect left (as float top) right bottom paint)))
+      (canvas:drawRect left (as float top) right bottom
+		       paint)))
   
   (define (draw-vertical-line! left::real)::void
     (let* ((top ::float (max 0 (current-clip-top)))
 	   (right ::float (+ left (vertical-line-width)))
 	   (bottom ::float (+ top (current-clip-height))))
       (paint:setColor text-color)
-      (canvas:drawRect (as float left) top right bottom paint)))
+      (canvas:drawRect (as float left) top right bottom
+		       paint)))
 
   (define (draw-line! x0::real y0::real x1::real y1::real)
     ::void
     (paint:setColor Color:LTGRAY)
     (paint:setStrokeWidth 4)
-    (canvas:drawLine x0 y0 x1 y1 paint))
+    (canvas:drawLine x0 y0 x1 y1 paint)
+    (paint:setStrokeWidth 1))
 
   (define (draw-stroke! x0::real y0::real x1::real y1::real)
     ::void
@@ -358,10 +384,10 @@
 	   (cursor-offset (the-cursor-offset))
 	   (left (+ +left cursor-offset:left))
 	   (top (+ +top cursor-offset:top)))
-      (set! marked-cursor-position:left (+ (current-translation-left)
-					   +left))
-      (set! marked-cursor-position:top (+ (current-translation-top)
-					  +top))
+      (set! marked-cursor-position:left
+	    (+ (current-translation-left) +left))
+      (set! marked-cursor-position:top
+	    (+ (current-translation-top) +top))
       (paint:setColor text-color)
       (canvas:drawRect left top
 		       (+ left cursor-extent:width)
@@ -428,9 +454,13 @@
 
   (define (space-width)::real 16)
 
-  (define (draw-rounded-rectangle! width::real height::real)::void
+  (define (draw-rounded-rectangle! width::real height::real)
+    ::void
     (paint:setColor text-color)
-    (canvas:drawRoundRect 0 0 (as int width) (as int height) 10 10 paint))
+    (paint:setStyle Paint:Style:STROKE)
+    (canvas:drawRoundRect 0 0 (as int width) (as int height)
+			  10 10 paint)
+    (paint:setStyle Paint:Style:FILL))
 
   (define (draw-rectangle! width::real height::real)::void
     (let ((b ::int 2))
@@ -440,7 +470,8 @@
 		       (as int width) (as int height) paint)
       (canvas:drawRect 0 b b (as int (- height b)) paint)
       (canvas:drawRect (as int (- width b)) b
-		       (as int width) (as int (- height b)) paint)
+		       (as int width) (as int (- height b))
+		       paint)
       ))
   
   (define (paren-width)::real
@@ -453,8 +484,10 @@
   (define (min-box-height)::real
     (let ((font ::Font (the-atom-font)))
       (max font:size
-	   (+ top-left-extent:height bottom-left-extent:height)
-	   (+ top-right-extent:height bottom-right-extent:height))))
+	   (+ top-left-extent:height
+	      bottom-left-extent:height)
+	   (+ top-right-extent:height
+	      bottom-right-extent:height))))
 
   (define (open-paren! height::real color::long)::void
     (let ((line-height (max 0 (- height
@@ -463,7 +496,8 @@
       (paint:setColor color)
       (canvas:drawPath top-left-paren paint)
       (canvas:drawRect 0 top-left-extent:height
-		       10 (+ top-left-extent:height line-height)
+		       10 (+ top-left-extent:height
+			     line-height)
 		       paint)
       (with-translation (0 (+ top-left-extent:height
 			      line-height))
@@ -511,9 +545,11 @@
 		      font::Font
 		      context::Cursor)
     ::void
-    (let-values (((selection-start selection-end) (the-selection)))
+    (let-values (((selection-start selection-end)
+		  (the-selection)))
       (let* ((focused? (and (pair? (the-cursor))
-			    (equal? context (cdr (the-cursor)))))
+			    (equal? context
+				    (cdr (the-cursor)))))
 	     (enters-selection-drawing-mode?
 	      (and (pair? selection-start)
 		   (equal? (cdr selection-start) context)))
@@ -525,8 +561,9 @@
 	     (lines 1)
 	     (height ::float font:size)
 	     (string-end (text:length)))
-	(parameterize ((the-cursor-extent (Extent width: 2
-						  height: height)))
+	(parameterize ((the-cursor-extent (Extent
+					   width: 2
+					   height: height)))
 	  (define (render-fragment! segment-end::int)
 	    (let* ((fragment (text:subSequence segment-start
 					       segment-end))
@@ -536,7 +573,8 @@
 			       (+ left width) (* lines height)
 			       paint)
 	      (paint:setColor text-color)
-	      (canvas:drawText fragment left (* lines height) paint)
+	      (canvas:drawText fragment left (* lines height)
+			       paint)
 	      (set! left (+ left width))))
 	  
 	  (paint:setTypeface font:face)
@@ -565,17 +603,22 @@
 		 (set! lines (+ lines 1))
 		 (set! segment-start (+ i 1))))
 	  (render-fragment! string-end)
-	  (when (and focused? (eqv? (car (the-cursor)) string-end))
+	  (when (and focused? (eqv? (car (the-cursor))
+				    string-end))
 	    (mark-cursor! left (* (- lines 1) height)))))))
 
-  (define (draw-string! text::CharSequence context::Cursor)::void
+  (define (draw-string! text::CharSequence context::Cursor)
+    ::void
     (draw-text! text (the-string-font) context))
 
   (define quoted-text-cursor-offset::Position
     (Position left: -1 top: 2))
   
-  (define (draw-quoted-text! text::CharSequence context::Cursor)::void
-    (parameterize ((the-cursor-offset quoted-text-cursor-offset))
+  (define (draw-quoted-text! text::CharSequence
+			     context::Cursor)
+    ::void
+    (parameterize ((the-cursor-offset
+		    quoted-text-cursor-offset))
       (draw-string! text context)))
 
   (define (text-extent text::CharSequence font::Font)::Extent
@@ -621,7 +664,8 @@
 	      height: (max (painter:min-box-height)
 			   (+ inner:height 16)))))
 
-  (define atom-cursor-offset::Position (Position left: 0 top: 4))
+  (define atom-cursor-offset::Position (Position left: 0
+						 top: 4))
 
   (define atom-frame-color ::long #xffdddddd)
 
@@ -634,7 +678,8 @@
 			    (as int (+ extent:height 16))
 			    12 12 paint)
       (with-translation (4 16)
-	  (parameterize ((the-cursor-offset atom-cursor-offset))
+	(parameterize ((the-cursor-offset
+			atom-cursor-offset))
 	    (draw-text! text font context)))))
   
   (define (text-character-index-under x::real y::real
@@ -655,12 +700,14 @@
 		     i
 		     (loop (+ i 1) 0 (+ top line-height))))
 		(_
-		 (let ((width (text-width (text:subSequence i (+ i 1))
+		 (let ((width (text-width (text:subSequence
+					   i (+ i 1))
 					  font)))
 		   (if (and (is top <= y < (+ top line-height))
 			    (is left <= x < (+ left width)))
 		       i
-		       (loop (+ i 1) (+ left width) top))))))))))
+		       (loop (+ i 1) (+ left width)
+			     top))))))))))
   
   (define (atom-character-index-under x::real y::real
 				      text::CharSequence)
@@ -670,12 +717,13 @@
   (define (quoted-text-extent text::CharSequence)::Extent
     (text-extent text (the-string-font)))
 
-  (define (quoted-text-character-index-under x::real y::real
-					     text::CharSequence)
+  (define (quoted-text-character-index-under
+	   x::real y::real text::CharSequence)
     ::int
     (text-character-index-under x y text (the-string-font)))
 
-  (define (draw-line-comment! text::CharSequence context::Cursor)
+  (define (draw-line-comment! text::CharSequence
+			      context::Cursor)
     ::void
     (draw-text! text (the-comment-font) context))
   
@@ -683,12 +731,13 @@
     ::Extent
     (text-extent text (the-comment-font)))
   
-  (define (line-comment-character-index-under x::real y::real
-					      text::CharSequence)
+  (define (line-comment-character-index-under
+	   x::real y::real text::CharSequence)
     ::int
     (text-character-index-under x y text (the-comment-font)))
 
-  (define (draw-block-comment! text::CharSequence context::Cursor)
+  (define (draw-block-comment! text::CharSequence
+			       context::Cursor)
     ::void
     (let* ((font ::Font (the-block-comment-font))
 	   (outer ::Extent (block-comment-extent text))
@@ -704,19 +753,21 @@
       (Extent width: (+ inner:width margin margin)
 	      height: (+ inner:height font:size))))
   
-  (define (block-comment-character-index-under x::real y::real
-					       text::CharSequence)
+  (define (block-comment-character-index-under
+	   x::real y::real text::CharSequence)
     ::int
     (let* ((font ::Font (the-block-comment-font))
 	   (margin ::real (the-block-comment-margin)))
-      (text-character-index-under (- x margin) (- y (* 0.4 font:size))
+      (text-character-index-under (- x margin)
+				  (- y (* 0.4 font:size))
 				  text font)))
   
   (define (draw-point! left::real top::real aRGB::int)::void
-    (let* ((alpha ::int (- 255
-			   (bitwise-and
-			    #xff
-			    (bitwise-arithmetic-shift aRGB -24))))
+    (let* ((alpha ::int
+		  (- 255
+		     (bitwise-and
+		      #xff
+		      (bitwise-arithmetic-shift aRGB -24))))
 	   (red ::int (bitwise-and
 		       #xff
 		       (bitwise-arithmetic-shift aRGB -16)))
@@ -724,11 +775,12 @@
 			 #xff
 			 (bitwise-arithmetic-shift aRGB -8)))
 	   (blue ::int (bitwise-and #xff aRGB)))
-      (paint:setColor (as int (bitwise-ior
-			       (bitwise-arithmetic-shift alpha 24)
-			       (bitwise-arithmetic-shift red 16)
-			       (bitwise-arithmetic-shift green 8)
-			       blue)))
+      (paint:setColor (as int
+			  (bitwise-ior
+			   (bitwise-arithmetic-shift alpha 24)
+			   (bitwise-arithmetic-shift red 16)
+			   (bitwise-arithmetic-shift green 8)
+			   blue)))
       (canvas:drawCircle left top 10.0 paint)))
   
   (define (onDraw c::Canvas)::void
@@ -738,7 +790,7 @@
     (the-overlay:draw!)
     (invoke (current-message-handler)
 	    'display-messages canvas))
-
+  
   (AndroidView source)
   (setFocusable #t)
   (setFocusableInTouchMode #t)
@@ -767,33 +819,38 @@
 	  (eq? event-action MotionEvent:ACTION_POINTER_UP)
 	  (eq? event-action MotionEvent:ACTION_OUTSIDE)
 	  (eq? event-action MotionEvent:ACTION_CANCEL)))
-
     (safely
      (invalidating
       (match (event:getActionMasked)
 	(,@pointer-down?
 	 (let* ((i ::int (event:getActionIndex))
 		(p ::int (event:getPointerId i))
-		(finger ::TouchEventProcessor (process-finger p)))
-	   (finger:press! (event:getX i) (event:getY i)
+		(finger ::TouchEventProcessor
+			(process-finger p)))
+	   (finger:press! (- (event:getX i) (view:getLeft))
+			  (- (event:getY i) (view:getTop))
 			  (event:getEventTime))))
 	(,@pointer-up?
 	 (let* ((i ::int (event:getActionIndex))
 		(p ::int (event:getPointerId i))
-		(finger ::TouchEventProcessor (process-finger p)))
-	   (finger:release! (event:getX i) (event:getY i)
+		(finger ::TouchEventProcessor
+			(process-finger p)))
+	   (finger:release! (- (event:getX i) (view:getLeft))
+			    (- (event:getY i) (view:getTop))
 			    (event:getEventTime))))
 	(,MotionEvent:ACTION_MOVE
 	 (let ((n ::int (event:getPointerCount))
 	       (result ::boolean #f))
+
 	   (for i from 0 below n
 		(let* ((p ::int (event:getPointerId i))
 		       (finger ::TouchEventProcessor
 			       (process-finger p)))
 		  (set! result
-			(or (finger:move! (event:getX i)
-					  (event:getY i)
-					  (event:getEventTime))
+			(or (finger:move!
+			     (- (event:getX i) (view:getLeft))
+			     (- (event:getY i) (view:getTop))
+			     (event:getEventTime))
 			    result))))
 	   result))
 	(_
@@ -815,18 +872,33 @@
 		     (as long keyCode)
 		     (if (event:ctrl-pressed?) CTRL_MASK 0)
 		     (if (event:alt-pressed?) ALT_MASK 0)
-		     (if (event:shift-pressed?) SHIFT_MASK 0))))))))
+		     (if (event:shift-pressed?) SHIFT_MASK 0)
+		     )))))))
   
   (define (onCreate savedState::Bundle)::void
-    (invoke-special AndroidActivity (this) 'onCreate savedState)
+    (invoke-special AndroidActivity (this) 'onCreate
+		    savedState)
     (set! (current-message-handler) (ScreenLogger 100))
     (let ((scheme ::gnu.expr.Language
 		  (or kawa.standard.Scheme:instance
 		      (kawa.standard.Scheme))))
   
       (kawa.standard.Scheme:registerEnvironment)
-      (gnu.mapping.Environment:setCurrent (scheme:getEnvironment)))
-    ;;(set! cancellable-nothing (CancellableNothing))
+      (gnu.mapping.Environment:setCurrent
+       (scheme:getEnvironment)))
+
+    (let* ((window ::AndroidWindow (invoke-special
+				    AndroidActivity
+				    (this) 'getWindow))
+	   (decor ::AndroidView (window:getDecorView))
+	   (flags ::int
+		  (bitwise-ior 
+		   #;AndroidView:SYSTEM_UI_FLAG_HIDE_NAVIGATION
+		   AndroidView:SYSTEM_UI_FLAG_FULLSCREEN
+		   #;AndroidView:SYSTEM_UI_FLAG_IMMERSIVE
+		   )))
+      (decor:setSystemUiVisibility flags))
+    
     (initialize-activity (this))
     (safely (initialize-keymap))
     (set! view (View (this)))
@@ -839,18 +911,24 @@
       (set! screen-extent:width metrics:widthPixels)
       (set! screen-extent:height metrics:heightPixels))
 
+    (view:setSystemUiVisibility
+     AndroidView:SYSTEM_UI_FLAG_FULLSCREEN)
+    (view:setFitsSystemWindows #t)
     (setContentView view)
+    
     (set! (the-painter) view)
     (for expression in init-script
 	 (safely
 	  (eval expression)))
     (set! (the-screen)
 	  (ShowKeyboardOnTap (the-screen) view))
-    (let ((postpone ::Postponed (EventRunner (android.os.Handler))))
+    (let ((postpone ::Postponed (EventRunner
+				 (android.os.Handler))))
       (for finger from 0 below 10
 	   (set! (process-finger finger)
-		 (TouchEventProcessor finger (the-screen) postpone
-				      vicinity: 7))))
+		 (TouchEventProcessor finger (the-screen)
+				      postpone
+				      vicinity: 15))))
     (WARN (the-screen))
     )
   
