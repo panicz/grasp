@@ -768,6 +768,7 @@ by the AWT framework."))
       (window:setSize 640 480)
       (window:setDefaultCloseOperation
        javax.swing.JFrame:EXIT_ON_CLOSE)
+      (window:setFocusTraversalKeysEnabled #f)
       (window:setVisible #t))))
 
 (run-in-AWT-window)
