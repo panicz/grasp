@@ -1,3 +1,196 @@
+* 16.05.2023
+
+z jednej strony mozemy sie zajac tym event-processorem,
+z drugiej - warto sie skupic na tych quote'ach
+(co wydaje sie o tyle problematyczne, ze od razu
+bysmy tez chcieli zrobic zmiany dla klientow graficznych)
+
+No ale dopsz. Przywolajmy sobie rysowanie sekwencji:
+
+tak wyglada metoda draw! w klasie cons:
+
+  (define (draw! context::Cursor)
+    ::void
+    (let* ((inner (sequence-extent (this)))
+	   (painter (the-painter))
+	   (paren-width (painter:paren-width)))
+      (painter:draw-box! (+ inner:width (* 2 paren-width))
+			 inner:height
+			 context)
+      (with-translation (paren-width 0)
+	  (draw-sequence! (this) context: context))))
+
+moglibysmy zrobic taki enum:
+
+(define-enum ParenType
+  (Regular Quote Quasiquote Unquote UnquoteSplicing))
+
+( quote x )
+[0  1  234]  
+
+
+a jeszcze z innej beczki: chcielibysmy, zeby
+long-press robil nam inwalidacje ekranu na Androidzie
+
+no ale dobra, bysmy dodali takie metody do paintera:
+
+-draw-quote-box!
+-draw-quasiquote-box!
+-draw-unquote-box!
+-draw-unquote-splicing-box!
+
+-draw-quote-mark!
+-draw-unquote-mark!
+-draw-quasiquote-mark!
+-draw-unquote-splicing-mark!
+
+-quote-paren-width
+-quasiquote-paren-width
+-unquote-paren-width
+-unquote-splicing-paren-width
+
+
+* 15.05.2023
+
+no to co teraz robimy:
+wtorek - commitujemy to co mamy,
+sroda - dodajemy touch event processor do klientow pctowych?
+czwartek - operator "quote" w malarzu i parserze?
+
+kolejny tydzien bysmy poswieili na quasiquote'y
+
+nastepnie bysmy troche zmienili reprezentacje atomow,
+dodali mozliwosc scrollowania ekranu i wczytywania plikow,
+i juz od tego momentu bysmy probowali uzywac edytora
+do edytowania niego samego
+
+* 14.05.2023
+
+no dobra, to na czym stoimy:
+- mamy w miare chyba sprawny mechanizm rozszerzen
+  (choc jeszcze nie wszedzie nalezycie podpiety)
+- mamy touch event processor czekajacy na podpiecie
+  do klientow pecetowych
+
+i to sa takie drobniejsze rzeczy, ktorymi mozemy zajmowac
+sie w miedzyczasie
+
+natomiast tym, co nas ekscytuje nieco bardziej,
+jest mechanizm cytowania
+
+do tego trzeba:
+- dodac mechanizm do paintera
+- dodac rozszerzenie
+- zmodyfikowac parser
+
+
+natomiast samo rozszerzenie powinno z grubsza tak dzialac:
+- sprawdzamy, czy nasz 'target' to lista. jezeli tak,
+to renderujemy te liste ze specjalnymi nawiasami, a jezeli
+nie, to renderujemy specjalne markery wokol elementu
+
+
+zaczniemy od quote'a
+
+no i trzeba pamietac, ze oprocz klienta terminaloaego
+wypadaloby dodac te funkcjonalnosc w klientach graficznych,
+wiec bedzie trzeba dodac odpowiednie funkcje rysujace
+
+(define-object (quote target)::Extension
+
+ (define (draw! context)::void
+  (cond
+    ((gnu.lists.LList? target)
+     (draw-sequence! ze specjalnymi nawiasami)
+     ...)
+    (else
+     (draw! ale najpierw narysuj prostokacik)
+     ...)))
+
+ (define (extent)::Extent
+  (cond
+    ((gnu.lists.LList? target)
+     ;; rozmiar targetu + rozmiar nawiasow
+     ...)
+    (else
+     ;; rozmiar markera + rozmiar targetu
+     ...)))
+
+ ;; i jeszcze inne metody
+   )  
+   
+
+
+* 13.05.2023
+
+na razie niewiele udalo sie ustalic
+(choc pewnie rzecz ma zwiazek ze status
+barem)
+
+na razie poprawilismy renderowanie
+zaokraglonych prostokatow
+
+poniewaz jednak w klientach graficznych te
+napisy wygladaja dosc brzydkawo, trzeba bedzie
+troche pokomplikowac malarza (ale to nic)
+
+rowniez rysowanie linii w kliencie androidowym
+powoduje swego rodzaju brzydkosc, chociaz
+to pewnie szybko poprawimy
+
+
+* 12.05.2023
+
+dzis moze zaczniemy od tego przesuniecia
+
+* 11.05.2023
+
+rzeczy do wyjasnienia:
+- dlaczego button w androidzie powoduje crash?
+  - ok to juz wyjasnione (i naprawione)
+- dlaczego klikanie na button nie dziala
+  w klientach terminalowych?
+- skad jest to przesuniecie
+
+co wiecej, chcemy touch-event-processor podpiac
+do klienta terminalowego i desktopowego
+(najlepiej na asusie, tylko trzeba tam najpierw
+postawic system, a zeby to sie udalo - trzeba
+go uruchomic)
+
+a kiedy to sie uda, zajmiemy sie tym quasiqouote'owaniem
+
+normalnie 'x to (quote x)
+
+(quote (quote x))
+
+czyli tak:
+
+(quote x)
+
+jezeli x jest param to renderujemy ja
+w specjalnych nawiasach
+
+
+* 10.05.2023
+
+plan z grubsza taki:
+- poprawne renderowanie guzika w klientach graficznych
+  (wymaga poprawek w malarzu)
+- podpiecie zdarzen do rozszerzen
+- podpiecie touch-event-processora do klientow pecetowych
+
+
+Do tego bysmy chcieli zrobic rozszerzenie
+"quote", ktore po prostu renderuje grubsze
+nawiasy, albo 
+
+      ▗
+'x =>  x
+
+
+czyli tak: jezeli mamy (quote (quote ...))
+
 * 07.05.2023
 
 na razie bysmy tak zrobili, zeby guziki
