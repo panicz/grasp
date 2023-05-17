@@ -46,7 +46,8 @@
   android.view.inputmethod.InputMethodManager)
 (define-alias Path2D android.graphics.Path)
 (define-alias RectF android.graphics.RectF)
-(define-alias AssetManager android.content.res.AssetManager)
+(define-alias AssetManager
+  android.content.res.AssetManager)
 
 (define-alias DisplayMetrics
   android.util.DisplayMetrics)
@@ -84,7 +85,7 @@
   (Typeface:createFromAsset (activity:getAssets) name))
 
 (define-syntax define-initializer
-  (syntax-rules  (::)
+  (syntax-rules (::)
     ((define-initializer (initializer-name
 			  object-name::object-type)
        (definition name etc ... initialization)
@@ -106,13 +107,15 @@
     (sync:removeCallbacks action)
     cancellable-nothing))
 
-(define-object (EventRunner sync::android.os.Handler)
+(define-object (EventRunner sync::android.os.Handler
+			    view::AndroidView)
   ::Postponed
   (define (after time-ms::long action::java.lang.Runnable)
     ::Cancellable
     (sync:postDelayed action time-ms)
+    (view:invalidate)
     (EventCanceller action sync)))
-  
+
 (define-initializer (initialize-activity
 		     activity::AndroidActivity)
 
@@ -878,7 +881,7 @@
   (define (onCreate savedState::Bundle)::void
     (invoke-special AndroidActivity (this) 'onCreate
 		    savedState)
-    (set! (current-message-handler) (ScreenLogger 100))
+    ;;(set! (current-message-handler) (ScreenLogger 100))
     (let ((scheme ::gnu.expr.Language
 		  (or kawa.standard.Scheme:instance
 		      (kawa.standard.Scheme))))
@@ -895,7 +898,7 @@
 		  (bitwise-ior 
 		   #;AndroidView:SYSTEM_UI_FLAG_HIDE_NAVIGATION
 		   AndroidView:SYSTEM_UI_FLAG_FULLSCREEN
-		   #;AndroidView:SYSTEM_UI_FLAG_IMMERSIVE
+		   AndroidView:SYSTEM_UI_FLAG_IMMERSIVE
 		   )))
       (decor:setSystemUiVisibility flags))
     
@@ -923,7 +926,8 @@
     (set! (the-screen)
 	  (ShowKeyboardOnTap (the-screen) view))
     (let ((postpone ::Postponed (EventRunner
-				 (android.os.Handler))))
+				 (android.os.Handler)
+				 view)))
       (for finger from 0 below 10
 	   (set! (process-finger finger)
 		 (TouchEventProcessor finger (the-screen)
