@@ -5,6 +5,7 @@
 (import (pane))
 (import (functions))
 (import (postponed))
+(import (print))
 
 (define-object (TouchEventProcessor finger::byte
 				    target::Pane
@@ -81,10 +82,15 @@
 	 (set! x0 x)
 	 (set! y0 y)
 	 (set! timeout
-	       (run:after long-press-time-ms
-			  (lambda ()
-			    (set! suppressed-presses 0)
-			    (target:long-press! finger x0 y0))))
+	       (run:after
+		long-press-time-ms
+		(lambda ()
+		  (set! suppressed-presses 0)
+		  ;; for some reason, the diagnostic message
+		  ;; here seems to solve the problem :/
+		  ;; (to be investigated)
+		  (WARN "invoking long press")
+		  (target:long-press! finger x0 y0))))
 	 #f)
       (1 (cond
 	  ((is (distance x0 y0 x y) <= vicinity)
@@ -102,10 +108,11 @@
     (match suppressed-presses
       (0 (target:release! finger x y vx vy))
       (1 (set! timeout
-	       (run:after double-tap-timeout-ms
-			  (lambda ()
-			    (set! suppressed-presses 0)
-			    (target:tap! finger x0 y0))))
+	       (run:after
+		double-tap-timeout-ms
+		(lambda ()
+		  (set! suppressed-presses 0)
+		  (target:tap! finger x0 y0))))
 	 #f)
       (2 (set! suppressed-presses 0)
 	 (target:double-tap! finger x y))))
