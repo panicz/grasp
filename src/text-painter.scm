@@ -106,13 +106,18 @@
          (put! #\│ i 0))
     (put! #\╵ (- height 1) 0))
 
-  (define (draw-box! width::real height::real context::Cursor)::void
-    (let-values (((selection-start selection-end) (the-selection))
-		 ((bar) (cond
-			 ;;│┃┆┇┊┋
-			 ((= current-comment-level 0) #\│)
-			 ((even? current-comment-level) #\┆)
-			 (else #\┊))))
+  (define (draw-custom-box!
+	   top-left::gnu.text.Char
+	   top-right::gnu.text.Char
+	   bar::gnu.text.Char ;;│┃┆┇┊┋
+	   bottom-left::gnu.text.Char
+	   bottom-right::gnu.text.Char
+	   width::real
+	   height::real
+	   context::Cursor)
+    ::void
+    (let-values (((selection-start selection-end)
+		  (the-selection)))
 	(when (and (pair? (the-cursor))
 		   (equal? context (cdr (the-cursor))))
 	  (match (head (the-cursor))
@@ -123,21 +128,151 @@
 		   (equal? (tail selection-start) context)
 		   (is (head selection-start) in '(#\[ #\])))
 	  (enter-selection-drawing-mode!))
-	(put! #\╭ 0 0)
+	(put! top-left 0 0)
 	(for i from 1 to (- height 2)
              (put! bar i 0))
-	(put! #\╰ (- height 1) 0)	
+	(put! bottom-left (- height 1) 0)	
 	
-	(put! #\╮ 0 (- width 1))
+	(put! top-right 0 (- width 1))
 	(for i from 1 to (- height 2)
              (put! bar i (- width 1)))
-	(put!  #\╯ (- height 1) (- width 1))
+	(put!  bottom-right (- height 1) (- width 1))
 
 	(when (and (pair? selection-end)
 		   (equal? (tail selection-end) context)
 		   (is (head selection-end) in '(#\[ #\])))
 	  (exit-selection-drawing-mode!))
 	))
+
+  (define (draw-box! width::real height::real
+		     context::Cursor)
+    ::void
+    (draw-custom-box!
+     #\╭                             #\╮
+     (cond 
+      ((= current-comment-level 0)   #\│)
+      ((even? current-comment-level) #\┆)
+      (else                          #\┊))
+     #\╰                             #\╯
+     width height context))
+
+  (define (draw-quote-box! width::real
+			   height::real
+			   context::Cursor)
+    ::void
+    (draw-custom-box!
+     #\┏                             #\┓
+     (cond 
+      ((= current-comment-level 0)   #\┃)
+      ((even? current-comment-level) #\┇)
+      (else                          #\┋))
+     #\┗                             #\┛
+     width height context))
+
+  (define (quote-paren-width)::real 2)
+
+  (define (draw-quote-marker! width::real
+			      height::real
+			      context::Cursor)
+    ::void
+    (put! #\┈ 0 0))
+
+  (define (quote-marker-width)::real 1)
+
+  (define (draw-quasiquote-box! width::real
+				height::real
+				context::Cursor)
+    ::void
+    (draw-custom-box!
+     #\╓ #\╖
+     #\║
+     #\╙ #\╜
+     width height context))
+
+  (define (quasiquote-paren-width)::real 2)
+
+  (define (draw-quasiquote-markers! width::real
+				    height::real
+				    context::Cursor)
+    ::void
+    (put! #\┌ 0 0)
+    (put! #\╵ 1 0)
+    (put! #\┐ 0 (- width 1))
+    (put! #\╵ 1 (- width 1)))
+
+  (define (quasiquote-marker-width)::real 1)
+  
+  (define (draw-unquote-box! width::real
+			     height::real
+			     context::Cursor)
+    ::void
+    (draw-custom-box!
+     #\╷                             #\╷
+     (cond 
+      ((= current-comment-level 0)   #\│)
+      ((even? current-comment-level) #\┆)
+      (else                          #\┊))
+     #\└                             #\┘
+     width height context))
+
+  (define (unquote-paren-width)::real 2)
+
+  (define (draw-unquote-markers! width::real
+				 height::real
+				 context::Cursor)
+    ::void
+    (put! #\╷ (- height 2) 0)
+    (put! #\└ (- height 1) 0)
+    (put! #\╷ (- height 2) (- width 1))
+    (put! #\┘ (- height 1) (- width 1)))
+
+  (define (unquote-marker-width)::real 1)
+  
+  (define (draw-unquote-splicing-box!
+	   width::real
+	   height::real
+	   context::Cursor)
+    ::void
+    (with-translation (1 0)
+      (draw-unquote-box! width height context))
+
+    (let-values (((selection-start selection-end)
+		  (the-selection)))
+      (when (and (pair? selection-start)
+		 (equal? (tail selection-start)
+			 context)
+		 (is (head selection-start)
+		     in '(#\[ #\])))
+	(enter-selection-drawing-mode!))
+
+      (put! #\┈ (- height 2) 0)	
+      (put! #\┤ (- height 2) 1)
+
+      (put! #\├ (- height 2) (- width 2))
+      (put! #\┈ (- height 2) (- width 1))
+      
+      (when (and (pair? selection-end)
+		 (equal? (tail selection-end)
+			 context)
+		 (is (head selection-end)
+		     in '(#\[ #\])))
+	(exit-selection-drawing-mode!))))
+
+  (define (unquote-splicing-paren-width)::real 3)
+
+  (define (draw-unquote-splicing-markers!
+	   width::real
+	   height::real
+	   context::Cursor)
+    ::void
+    (put! #\┈ (- height 2) 0)
+    (put! #\┐ (- height 2) 1)
+    (put! #\└ (- height 1) 1)
+    (put! #\┈ (- height 2) (- width 1))
+    (put! #\┌ (- height 2) (- width 2))
+    (put! #\┘ (- height 1) (- width 2)))
+
+  (define (unquote-marker-width)::real 2)
   
   (define (draw-rounded-rectangle! width::real
 				   height::real)
@@ -156,7 +291,8 @@
          (put! #\│ i (- width 1)))
     (put! #\╯ (- height 1) (- width 1)))
 
-  (define (draw-rectangle! width::real height::real)::void
+  (define (draw-rectangle! width::real
+			   height::real)::void
     (put! #\┌ 0 0)
     (for i from 1 to (- height 2)
          (put! #\│ i 0))
@@ -204,8 +340,10 @@
 	   (v ::int (remainder y4 2))
 	   (c ::char (get y x))
 	   (existing-code ::int (4pix-code c))
-	   (mask ::int (arithmetic-shift 1 (+ (* 2 v) h)))
-	   (new-code ::int (bitwise-ior existing-code mask))
+	   (mask ::int (arithmetic-shift
+			1 (+ (* 2 v) h)))
+	   (new-code ::int (bitwise-ior
+			    existing-code mask))
 	   (c* ::char (4pix new-code)))
       (put! c* y x)))
 
@@ -219,25 +357,33 @@
        ((is -pi/4 <= angle <= pi/4)
 	(let ((slope ::real (tan angle))
               (x0 ::int (round x0)))
-          (for i from 0 to (as int (ceiling x1-x0))
+          (for i from 0 to (as int (ceiling
+				    x1-x0))
 	       (let* ((x (+ x0 i))
 	              (y (+ y0 (* slope i))))
-		 (4pix-set! x (as int (round y)))))))
+		 (4pix-set!
+		  x (as int (round y)))))))
        ((is pi/4 <= angle <= (* 3 pi/4))
-	(let ((slope ::real (/ (cos angle) (sin angle)))
+	(let ((slope ::real (/ (cos angle)
+			       (sin angle)))
               (y0 ::int (round y0)))
-          (for j from 0 to (as int (ceiling y1-y0))
+          (for j from 0 to (as int
+			       (ceiling y1-y0))
 	       (let ((x (+ x0 (* slope j)))
 	             (y (+ y0 j)))
-		 (4pix-set! (as int (round x)) y)))))
+		 (4pix-set! (as int (round x))
+			    y)))))
        (else
 	(draw-line-4pix! x1 y1 x0 y0)))))
 
-  (define (draw-line! x0::real y0::real x1::real y1::real)
+  (define (draw-line! x0::real y0::real
+		      x1::real y1::real)
     ::void
-    (draw-line-4pix! (* x0 2) (* y0 2) (* x1 2) (* y1 2)))
+    (draw-line-4pix! (* x0 2) (* y0 2)
+		     (* x1 2) (* y1 2)))
   
-  (define (draw-quoted-text! s::CharSequence context::Cursor)
+  (define (draw-quoted-text! s::CharSequence
+			     context::Cursor)
     ::void
     (let ((extent ::Extent (string-extent s)))
       (put! #\❝ 0 0)
@@ -249,21 +395,32 @@
 	   (put! #\┊ i 0)
 	   (put! #\┊ i (+ extent:width 3)))
       (put! #\• (+ extent:height 1) 0)
-      (put! #\❞ (+ extent:height 1) (+ extent:width 3))
+      (put! #\❞ (+ extent:height 1)
+	    (+ extent:width 3))
       (with-translation (2 1)
 	  (draw-string! s context))
-      (put! #\❞ (+ extent:height 1) (+ extent:width 3))))
+      (put! #\❞ (+ extent:height 1)
+	    (+ extent:width 3))))
 
-  (define (draw-string! text::CharSequence context::Cursor)::void
-    (let-values (((selection-start selection-end) (the-selection)))
-      (let ((focused? (and (pair? (the-cursor))
-			   (equal? context (cdr (the-cursor)))))
+  (define (draw-string! text::CharSequence
+			context::Cursor)
+    ::void
+    (let-values (((selection-start
+		   selection-end)
+		  (the-selection)))
+      (let ((focused?
+	     (and (pair? (the-cursor))
+		  (equal? context
+			  (cdr (the-cursor)))))
 	    (enters-selection-drawing-mode?
 	     (and (pair? selection-start)
-		  (equal? (tail selection-start) context)))
+		  (equal? (tail selection-start)
+			  context)))
 	    (exits-selection-drawing-mode?
 	     (and (pair? selection-end)
-		      (equal? (tail selection-end) context)))
+		  (equal?
+		   (tail selection-end)
+		   context)))
 	    (row 0)
 	    (col 0)
 	    (n 0))
@@ -290,8 +447,9 @@
 	  (set! n (+ n 1)))
 	(handle-cursor-and-selection!))))
 
-  (define (string-character-index-under x::real y::real
-					text::CharSequence)
+  (define (string-character-index-under
+	   x::real y::real
+	   text::CharSequence)
     ::int
     (let ((end (text:length)))
       (let next ((row 0)
@@ -304,10 +462,15 @@
 	      (if (eq? c #\newline)
 		  (if (is y <= row)
 		      n
-		      (next (+ row 1) 0 (+ n 1)))
-		  (next row (+ col 1) (+ n 1))))))))
+		      (next (+ row 1)
+			    0
+			    (+ n 1)))
+		  (next row
+			(+ col 1)
+			(+ n 1))))))))
 
-  (define (draw-caption! caption::CharSequence)::void
+  (define (draw-caption! caption::CharSequence)
+    ::void
     (let ((row 0)
 	  (col 0)
 	  (n 0))
@@ -321,40 +484,54 @@
 	  
 	  (set! n (+ n 1)))))
       
-  (define (caption-extent caption::CharSequence)::Extent
+  (define (caption-extent caption::CharSequence)
+    ::Extent
     (string-extent caption))
 
   (define (caption-vertical-margin)::real 1)
 
   (define (caption-horizontal-margin)::real 2)
   
-  (define (quoted-text-extent text::CharSequence)::Extent
+  (define (quoted-text-extent text::CharSequence)
+    ::Extent
     (let ((inner ::Extent (string-extent text)))
       (Extent width: (+ inner:width 4)
-	      height: (+ (max inner:height 1) 2))))
+	      height: (+ (max inner:height 1)
+			 2))))
 
-  (define (quoted-text-character-index-under x::real y::real
-					     text::CharSequence)
+  (define (quoted-text-character-index-under
+	   x::real y::real
+	   text::CharSequence)
     ::int
-   (string-character-index-under (- x 2) (- y 1) text))
+    (string-character-index-under (- x 2)
+				  (- y 1)
+				  text))
   
-  (define (draw-atom! text::CharSequence context::Cursor)::void
+  (define (draw-atom! text::CharSequence
+		      context::Cursor)
+    ::void
     (with-translation (0 1)
 	(draw-string! text context)))
 
-  (define (atom-extent text::CharSequence)::Extent
+  (define (atom-extent text::CharSequence)
+    ::Extent
     (let ((inner ::Extent (string-extent text)))
       (Extent width: inner:width
-	      height: (max (min-box-height) inner:height))))
+	      height: (max (min-box-height)
+			   inner:height))))
 
-  (define (atom-character-index-under x::real y::real
-				      text::CharSequence)
+  (define (atom-character-index-under
+	   x::real y::real
+	   text::CharSequence)
     ::int
     (string-character-index-under x (- y 1) text))
   
-  (define (get row::real col::real)::char #!abstract)
+  (define (get row::real col::real)::char
+    #!abstract)
 
-  (define (put! c::char row::real col::real)::void #!abstract)
+  (define (put! c::char row::real col::real)
+    ::void
+    #!abstract)
 
   (define (clear!)::void #!abstract)
 
@@ -376,61 +553,84 @@
   (define current-comment-level ::int 0)
   
   (define (enter-comment-drawing-mode!)::void
-    (set! current-comment-level (+ current-comment-level 1)))
+    (set! current-comment-level
+	  (+ current-comment-level 1)))
   
   (define (exit-comment-drawing-mode!)::void
-    (set! current-comment-level (- current-comment-level 1)))
+    (set! current-comment-level
+	  (- current-comment-level 1)))
 
   (define (in-comment-drawing-mode?)::boolean
     (is current-comment-level > 0))
   
-  (define (draw-line-comment! text::CharSequence context::Cursor)::void
-    (let*-values (((semicolons) (count-while (is _ eqv? #\;) text))
-		  ((shift skip) (match semicolons 
-				  (0 (put! #\⸾ 0 0)
-				     (values 1 0))
-				  (1 (put! #\┃ 0 0)
-				     (values 1 1))
-				  (n (put! #\┣ 0 0)
-				     (for i from 1 below n
-					  (put! #\━ 0 i))
-				     (values (- n 1) n))))
+  (define (draw-line-comment! text::CharSequence
+			      context::Cursor)
+    ::void
+    (let*-values (((semicolons)
+		   (count-while (is _ eqv? #\;)
+				text))
+		  ((shift skip)
+		   (match semicolons 
+		     (0 (put! #\⸾ 0 0)
+			(values 1 0))
+		     (1 (put! #\┃ 0 0)
+			(values 1 1))
+		     (n (put! #\┣ 0 0)
+			(for i from 1 below n
+			     (put! #\━ 0 i))
+			(values (- n 1) n))))
 		  ((end) (string-length text)))
       (with-translation (shift 0)
 	  (draw-string! (substring text skip end)
 			 context))))
   
-  (define (line-comment-extent text::CharSequence)::Extent
-    (let ((semicolons (count-while (is _ eqv? #\;) text)))
-      (Extent width: (match semicolons
-			   (0 (+ (string-length text) 1))
-			   (1 (string-length text))
-			   (n (- (string-length text) 1)))
+  (define (line-comment-extent
+	   text::CharSequence)
+    ::Extent
+    (let ((semicolons
+	   (count-while (is _ eqv? #\;) text)))
+      (Extent width:
+	      (match semicolons
+		(0 (+ (string-length text) 1))
+		(1 (string-length text))
+		(n (- (string-length text) 1)))
 	      height: 1)))
 
-  (define (line-comment-character-index-under x::real y::real
-					      text::CharSequence)
+  (define (line-comment-character-index-under
+	   x::real y::real
+	   text::CharSequence)
     ::int
-    (let* ((semicolons (count-while (is _ eqv? #\;) text)))
+    (let* ((semicolons (count-while
+			(is _ eqv? #\;) text)))
       (string-character-index-under x y text)))
 
-  (define (draw-block-comment! text::CharSequence context::Cursor)
+  (define (draw-block-comment! text::CharSequence
+			       context::Cursor)
     ::void
-    (let ((outer ::Extent (block-comment-extent text)))
+    (let ((outer ::Extent (block-comment-extent
+			   text)))
       (draw-rectangle! outer:width outer:height)
       (with-translation (1 1)
 	  (draw-string! text context))))
   
-  (define (block-comment-extent text::CharSequence)::Extent
+  (define (block-comment-extent
+	   text::CharSequence)
+    ::Extent
     (let ((inner ::Extent (string-extent text)))
-      (Extent width: (+ inner:width 2) height: (+ inner:height 2))))
+      (Extent width: (+ inner:width 2)
+	      height: (+ inner:height 2))))
   
-  (define (block-comment-character-index-under x::real y::real
-					       text::CharSequence)
+  (define (block-comment-character-index-under
+	   x::real y::real
+	   text::CharSequence)
     ::int
-    (string-character-index-under (- x 1) (- y 1) text))
+    (string-character-index-under (- x 1)
+				  (- y 1)
+				  text))
   
-  (define (draw-point! left::real top::real color-rgba::int)::void
+  (define (draw-point! left::real top::real
+		       color-rgba::int)
+    ::void
     #!abstract)
 
   )
@@ -440,7 +640,8 @@
   (define height ::int 0)
   (define data ::char[])
 
-  (define modifier ::procedure (mapping (key ::int)::char #!null))
+  (define modifier ::procedure
+    (mapping (key ::int)::char #!null))
 
   (define current-modifier #!null)
   
@@ -452,25 +653,34 @@
           (data (+ (* width y) x))
           #\space)))
 
-  (define (draw-string! text::CharSequence context::Cursor)::void
-    (when (invoke-special CharPainter (this)
-			  'in-comment-drawing-mode?)
+  (define (draw-string! text::CharSequence
+			context::Cursor)
+    ::void
+    (when (invoke-special
+	   CharPainter (this)
+	   'in-comment-drawing-mode?)
       (set! current-modifier
-	    (if (even? (as int (slot-ref
-				(this)
-				'current-comment-level)))
+	    (if (even?
+		 (as int
+		     (slot-ref
+		      (this)
+		      'current-comment-level)))
 		#\x338
 		#\x336)))
-    (invoke-special CharPainter (this) 'draw-string! text context)
+    (invoke-special CharPainter (this)
+		    'draw-string! text context)
     (set! current-modifier #!null))
   
-  (define (put! c::char row::real col::real)::void
+  (define (put! c::char row::real col::real)
+    ::void
     (let ((x (+ col shiftLeft))
           (y (+ row shiftTop))
 	  (left (max 0 clipLeft))
 	  (top (max 0 clipTop)))
-      (when (and (is left <= x < (+ left clipWidth))
-                 (is top <= y < (+ top clipHeight)))
+      (when (and (is left <= x < (+ left
+				    clipWidth))
+                 (is top <= y < (+ top
+				   clipHeight)))
 	(when (or (is x >= width)
                   (is y >= height))
           (let* ((new-width (if (is x >= width)
@@ -479,11 +689,13 @@
                  (new-height (if (is y >= height)
                                  (+ y 1)
                                  height))
-                 (new-data (char[] length: (* new-width
-					      new-height))))
+                 (new-data (char[] length:
+				(* new-width
+				   new-height))))
             (for line from 0 below new-height
                  (for column from 0 below new-width
-		      (set! (new-data (+ (* new-width line)
+		      (set! (new-data (+ (* new-width
+					    line)
                                          column))
                         (if (and (is column < width)
                                  (is line < height))
@@ -506,13 +718,15 @@
       (reset! modifier)
       (for line from 0 below height
            (for column from 0 below width
-		(set! (data (+ (* line width) column))
+		(set! (data (+ (* line width)
+			       column))
                       #\space)))
       (set! shiftLeft 0)
       (set! shiftTop 0))
 
   (define (mark-cursor! +left::real +top::real)::void
-    (invoke-special CharPainter (this) 'mark-cursor! +left +top)
+    (invoke-special CharPainter (this)
+		    'mark-cursor! +left +top)
     (match (the-expression)
       (,@Space?
        (put! #\| (+ +top 1) +left))
@@ -540,7 +754,8 @@
 
   (define (current-height)::real height)
 
-  (define (draw-point! left::real top::real color-rgba::int)::void
+  (define (draw-point! left::real top::real
+		       color-rgba::int)::void
     (put! #\⦿ top left))
   
   (CharPainter))
