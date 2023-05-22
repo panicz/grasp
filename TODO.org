@@ -1,3 +1,67 @@
+* 20.05.2023
+
+na pewno trzeba poprawic zachowanie kursora podczas
+zaczarowywania wyrazenia, oraz zaimplementowac
+podswietlanie markerow (tak jak to jest z nawiasami)
+
+* 19.05.2023
+
+mamy juz mniej wiecej zdefiniowane rozszerzenia
+dla quote'ow. teraz:
+
+- przetestujmy je na kliencie terminalowym
+- dodajmy stosowne funkcje do klientow graficznych
+- zintegrujmy te rozszerzenia z parserem
+
+no ale najpierw trzeba dopiescic samego klienta
+terminalowego, czyli:
+
+- wyswietlanie kursora
+- resize
+
+
+do tego jeszcze bysmy chcieli dodac funkcje edycji:
+- wcisniecie ` na nawiasie
+
+
+* 18.05.2023
+
+otoz mamy to.
+teraz dalsze akcje:
+- napisac rozszerzenie dla quote
+
+  Na razie robimy to recznie, a potem moze
+  cos sobie wyabstrahujemy.
+
+wydaje sie, ze trzeba troche wyprostowac
+zaleznosci w modulach
+
+ok, to sie udalo
+
+to terax chcemy dla tych swoich cycatow zaimplementowac:
+
+  (part-at index::Index)::Indexable*
+  
+  (first-index)::Index
+  (last-index)::Index
+  
+  (next-index index::Index)::Index
+  (previous-index index::Index)::Index
+  
+  (index< a::Index b::Index)::boolean
+
+  (draw! context::Cursor)::void
+  (cursor-under* x::real y::real path::Cursor)::Cursor*
+
+  (extent)::Extent
+
+
+* 17.05.2023
+
+to dzis moze bysmy zaimplementowali metody do quote'ow
+w kliencie tekstowym, ale jeszcze bez rozszerzania
+interfejsu Painter (albo na razie tylko w komentarzach)
+
 * 16.05.2023
 
 z jednej strony mozemy sie zajac tym event-processorem,
@@ -40,9 +104,14 @@ no ale dobra, bysmy dodali takie metody do paintera:
 -draw-unquote-splicing-box!
 
 -draw-quote-mark!
--draw-unquote-mark!
--draw-quasiquote-mark!
--draw-unquote-splicing-mark!
+-quote-mark-width
+
+-draw-unquote-marks!
+-unquote-mark-width
+-draw-quasiquote-marks!
+-quasiquote-mark-width
+-draw-unquote-splicing-marks!
+-unquote-splicing-mark-width
 
 -quote-paren-width
 -quasiquote-paren-width
@@ -185,10 +254,27 @@ Do tego bysmy chcieli zrobic rozszerzenie
 "quote", ktore po prostu renderuje grubsze
 nawiasy, albo 
 
-      ▗
+      ▖ ▗
 'x =>  x
 
+      ▗ 
+'x =>  x
 
+      ▖    ▗
+'x =>  atom
+           
+
+▼    ▼
+ atom
+
+◤    ◥
+ atom
+
+◥    ◤
+ atom
+
+ 
+	
 czyli tak: jezeli mamy (quote (quote ...))
 
 * 07.05.2023
