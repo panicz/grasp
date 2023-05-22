@@ -17,6 +17,11 @@
 (import (text))
 (import (match))
 (import (comments))
+(import (cursor))
+(import (print))
+(import (interactive))
+(import (extension))
+(import (quotations))
 
 (define (separator? c)::boolean
   (or (eof-object? c)

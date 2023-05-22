@@ -131,7 +131,7 @@
 	(put! top-left 0 0)
 	(for i from 1 to (- height 2)
              (put! bar i 0))
-	(put! bottom-left (- height 1) 0)	
+	(put! bottom-left (- height 1) 0)
 	
 	(put! top-right 0 (- width 1))
 	(for i from 1 to (- height 2)
@@ -143,7 +143,7 @@
 		   (is (head selection-end) in '(#\[ #\])))
 	  (exit-selection-drawing-mode!))
 	))
-
+  
   (define (draw-box! width::real height::real
 		     context::Cursor)
     ::void
@@ -171,11 +171,30 @@
 
   (define (quote-paren-width)::real 2)
 
-  (define (draw-quote-marker! width::real
-			      height::real
-			      context::Cursor)
+  (define (draw-quote-markers! width::real
+			       height::real
+			       context::Cursor)
     ::void
-    (put! #\┈ 0 0))
+    (let-values (((selection-start selection-end)
+		  (the-selection)))
+      (when (and (pair? (the-cursor))
+		 (equal? context (cdr (the-cursor))))
+	(match (head (the-cursor))
+	  (#\[ (mark-cursor! 0 0))
+	  (#\] (mark-cursor! (+ width 1) 0))
+	  (_ (values))))
+      (when (and (pair? selection-start)
+		 (equal? (tail selection-start) context)
+		 (is (head selection-start) in '(#\[ #\])))
+	(enter-selection-drawing-mode!))
+
+      (put! #\◤ 0 0)
+      (put! #\◥ 0 (+ width 1))
+
+      (when (and (pair? selection-end)
+		 (equal? (tail selection-end) context)
+		 (is (head selection-end) in '(#\[ #\])))
+	(exit-selection-drawing-mode!))))
 
   (define (quote-marker-width)::real 1)
 
@@ -195,10 +214,28 @@
 				    height::real
 				    context::Cursor)
     ::void
-    (put! #\┌ 0 0)
-    (put! #\╵ 1 0)
-    (put! #\┐ 0 (- width 1))
-    (put! #\╵ 1 (- width 1)))
+    (let-values (((selection-start selection-end)
+		  (the-selection)))
+      (when (and (pair? (the-cursor))
+		 (equal? context (cdr (the-cursor))))
+	(match (head (the-cursor))
+	  (#\[ (mark-cursor! 0 0))
+	  (#\] (mark-cursor! (+ width 1) 0))
+	  (_ (values))))
+      (when (and (pair? selection-start)
+		 (equal? (tail selection-start) context)
+		 (is (head selection-start) in '(#\[ #\])))
+	(enter-selection-drawing-mode!))
+      
+      (put! #\┌ 0 0)
+      (put! #\╵ 1 0)
+      (put! #\┐ 0 (+ width 1))
+      (put! #\╵ 1 (+ width 1))
+
+      (when (and (pair? selection-end)
+		 (equal? (tail selection-end) context)
+		 (is (head selection-end) in '(#\[ #\])))
+	(exit-selection-drawing-mode!))))
 
   (define (quasiquote-marker-width)::real 1)
   
@@ -221,11 +258,29 @@
 				 height::real
 				 context::Cursor)
     ::void
-    (put! #\╷ (- height 2) 0)
-    (put! #\└ (- height 1) 0)
-    (put! #\╷ (- height 2) (- width 1))
-    (put! #\┘ (- height 1) (- width 1)))
+    (let-values (((selection-start selection-end)
+		  (the-selection)))
+      (when (and (pair? (the-cursor))
+		 (equal? context (cdr (the-cursor))))
+	(match (head (the-cursor))
+	  (#\[ (mark-cursor! 0 (- height 1)))
+	  (#\] (mark-cursor! (+ width 1) (- height 1)))
+	  (_ (values))))
+      (when (and (pair? selection-start)
+		 (equal? (tail selection-start) context)
+		 (is (head selection-start) in '(#\[ #\])))
+	(enter-selection-drawing-mode!))
 
+      (put! #\╷ (- height 2) 0)
+      (put! #\└ (- height 1) 0)
+      (put! #\╷ (- height 2) (+ width 1))
+      (put! #\┘ (- height 1) (+ width 1))
+
+      (when (and (pair? selection-end)
+		 (equal? (tail selection-end) context)
+		 (is (head selection-end) in '(#\[ #\])))
+	(exit-selection-drawing-mode!))))
+  
   (define (unquote-marker-width)::real 1)
   
   (define (draw-unquote-splicing-box!
@@ -248,8 +303,8 @@
       (put! #\┈ (- height 2) 0)	
       (put! #\┤ (- height 2) 1)
 
-      (put! #\├ (- height 2) (- width 2))
-      (put! #\┈ (- height 2) (- width 1))
+      (put! #\├ (- height 2) width)
+      (put! #\┈ (- height 2) (+ width 1))
       
       (when (and (pair? selection-end)
 		 (equal? (tail selection-end)
@@ -265,14 +320,36 @@
 	   height::real
 	   context::Cursor)
     ::void
-    (put! #\┈ (- height 2) 0)
-    (put! #\┐ (- height 2) 1)
-    (put! #\└ (- height 1) 1)
-    (put! #\┈ (- height 2) (- width 1))
-    (put! #\┌ (- height 2) (- width 2))
-    (put! #\┘ (- height 1) (- width 2)))
+    (let-values (((selection-start selection-end)
+		  (the-selection)))
+      (when (and (pair? (the-cursor))
+		 (equal? context (cdr (the-cursor))))
+	(match (head (the-cursor))
+	  (#\[ (mark-cursor! 0 (- height 1)))
+	  (#\] (mark-cursor! (+ width 1) (- height 1)))
+	  (_ (values))))
+      (when (and (pair? selection-start)
+		 (equal? (tail selection-start) context)
+		 (is (head selection-start) in '(#\[ #\])))
+	(enter-selection-drawing-mode!))
+      
+      (put! #\┈ (- height 2) 0)
+      (put! #\┐ (- height 2) 1)
+      (put! #\└ (- height 1) 1)
+      (put! #\┈ (- height 2) (+ width 3))
+      (put! #\┌ (- height 2) (+ width 2))
+      (put! #\┘ (- height 1) (+ width 2))
 
-  (define (unquote-marker-width)::real 2)
+      (when (and (pair? selection-end)
+		 (equal? (tail selection-end)
+			 context)
+		 (is (head selection-end)
+		     in '(#\[ #\])))
+	(exit-selection-drawing-mode!))))
+
+    
+
+  (define (unquote-splicing-marker-width)::real 2)
   
   (define (draw-rounded-rectangle! width::real
 				   height::real)

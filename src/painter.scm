@@ -107,16 +107,16 @@
   (exit-comment-drawing-mode!)::void
   (in-comment-drawing-mode?)::boolean
 
-  #|
+  #||#
   (draw-quote-box! width::real
 		   height::real
 		   context::Cursor)
   ::void
   
   (quote-paren-width)::real
-  (draw-quote-marker! width::real
-		      height::real
-		      context::Cursor)
+  (draw-quote-markers! width::real
+		       height::real
+		       context::Cursor)
   ::void
   
   (quote-marker-width)::real
@@ -159,8 +159,8 @@
 				  context::Cursor)
   ::void
 
-  (unquote-marker-width)::real
-  |#
+  (unquote-splicing-marker-width)::real
+  #||#
   
   (draw-line-comment! text::CharSequence
 		      context::Cursor)
@@ -378,9 +378,9 @@
   
   (define (quote-paren-width)::real 1)
   
-  (define (draw-quote-marker! width::real
-			      height::real
-			      context::Cursor)
+  (define (draw-quote-markers! width::real
+			       height::real
+			       context::Cursor)
     ::void
     (values))
 
@@ -434,7 +434,7 @@
     ::void
     (values))
 
-  (define (unquote-marker-width)::real 1)
+  (define (unquote-splicing-marker-width)::real 1)
 
   (define (draw-point! left::real top::real
 		       color-rgba::int)::void

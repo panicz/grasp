@@ -73,26 +73,25 @@
 ;; edited objects, even though the "value" of
 ;; those atoms can be a different kind of object
 ;; on every query.
-(define-object (Atom source-string::String)::ShadowedTextualTile
+(define-object (Atom name::String)::ShadowedTextualTile
   
   (define builder :: java.lang.StringBuilder)
-  (define source :: String "")
   
   (define cache #!null)
   
   (define (value)
     (or cache
-	(let ((result (call-with-input-string source read)))
+	(let ((result (call-with-input-string name read)))
 	  (set! cache result)
 	  result)))
   
   (define (draw! context::Cursor)
     ::void
-    (invoke (the-painter) 'draw-atom! source
+    (invoke (the-painter) 'draw-atom! name
 	    context))
   
   (define (extent)::Extent
-    (invoke (the-painter) 'atom-extent source))
+    (invoke (the-painter) 'atom-extent name))
   
   (define (part-at index::Index)::Indexable*
     (this))
@@ -101,7 +100,7 @@
     0)
   
   (define (last-index)::Index
-    (string-length source))
+    (string-length name))
   
   (define (next-index index::Index)::Index
     (min (last-index) (+ index 1)))
@@ -116,30 +115,30 @@
   (define (insert-char! c::char index::int)::void
     (builder:insert index c)
     (set! cache #!null)
-    (set! source (invoke (builder:toString) 'intern)))
+    (set! name (invoke (builder:toString) 'intern)))
 
   (define (delete-char! index::int)::char
     (let ((result (builder:charAt index)))
       (builder:deleteCharAt index)
       (set! cache #!null)
-      (set! source (invoke (builder:toString) 'intern))
+      (set! name (invoke (builder:toString) 'intern))
       result))
 
   (define (char-ref index::int)::char
     (builder:charAt index))
   
   (define (split! position::int)::Textual
-    (let ((reminent ::Atom (Atom (source:substring position))))
+    (let ((reminent ::Atom (Atom (name:substring position))))
       (builder:setLength position)
       (set! cache #!null)
-      (set! source (invoke (builder:toString) 'intern))
+      (set! name (invoke (builder:toString) 'intern))
       reminent))
 
   (define (merge! next::Textual)::boolean
     (and-let* ((next ::Atom next))
       (builder:append next:builder)
       (set! cache #!null)
-      (set! source (invoke (builder:toString) 'intern))
+      (set! name (invoke (builder:toString) 'intern))
       #t))
   
   (define (text-length)::int
@@ -152,19 +151,18 @@
 	(and (is 0 <= x < inner:width)
 	     (is 0 <= y < inner:height)
 	     (recons (painter:atom-character-index-under x y
-							 source)
+							 name)
 		     path)
 	     ))))
 
   (define (equals x)::boolean
     (and-let* ((atom ::Atom x))
-      (string=? source atom:source)))
+      (string=? name atom:name)))
   
   (define (toString)::String
-    source)
+    name)
   
-  (set! builder (java.lang.StringBuilder source-string))
-  (set! source (builder:toString)))
+  (set! builder (java.lang.StringBuilder name)))
 
 (define-object (cons car cdr)::Tile
   
@@ -530,12 +528,21 @@
 (define (sequence-extent #!optional
 			 (elems::list (head (the-document))))
   ::Extent
-  (traverse elems
-	    returning:
-	    (lambda (traversal::Traversal)
-	      (Extent width: traversal:max-width
-		      height: (+ traversal:top
-				 traversal:max-line-height)))))
+  (if (empty? elems)
+      (let* ((painter ::Painter (the-painter))
+	     (traversal ::Traversal (Traversal
+				     max-line-height:
+				     (painter:min-box-height)))
+	     (empty ::EmptyListProxy elems))
+	(empty:space:expand! traversal)
+	(Extent width: traversal:max-width
+		height: (+ traversal:top traversal:max-line-height)))
+      (traverse elems
+		returning:
+		(lambda (traversal::Traversal)
+		  (Extent width: traversal:max-width
+			  height: (+ traversal:top
+				     traversal:max-line-height))))))
 
 (define (extent object)
   ::Extent

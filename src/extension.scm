@@ -12,7 +12,6 @@
 (import (match))
 (import (functions))
 (import (cursor))
-(import (document-operations))
 (import (print))
 (import (interactive))
 (import (text))
@@ -26,7 +25,9 @@
 
   (define (fields->string)::String "")
 
-  (define (fields->list kons::procedure transform::procedure)::list
+  (define (fields->list kons::procedure
+			transform::procedure)
+    ::list
     '())
 
   (define (hashCode)::int
@@ -87,26 +88,3 @@
 	     #f)))
 
 (define-property (origin enchanted) enchanted)
-
-(define/kw (enchant-expression! at: cursor::Cursor := (the-cursor)
-				in: document := (the-document))
-  (parameterize ((cell-access-mode CellAccessMode:Evaluating))
-    (and-let* ((expression ::cons (the-expression at: cursor
-						  in: document))
-	       (`(,keyword::symbol . ,data) expression)
-	       (magic ::Extension (extension keyword))
-	       (enchanted ::Enchanted (magic:enchant expression)))
-      (set! (origin enchanted) expression)
-      (replace-expression! at: cursor with: enchanted
-			   in: document)
-      enchanted)))
-
-(define/kw (disenchant-expression! at: cursor::Cursor := (the-cursor)
-				   in: document := (the-document))
-  (parameterize ((cell-access-mode CellAccessMode:Evaluating))
-    (and-let* ((enchanted ::Enchanted (the-expression at: cursor
-						      in: document))
-	       (expression (enchanted:as-expression)))
-      (replace-expression! at: cursor with: expression
-			   in: document)
-      expression)))

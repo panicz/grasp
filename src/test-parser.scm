@@ -15,6 +15,16 @@
   (cursor)
   )
 
+(e.g.
+ (parameterize ((the-document
+		 (string->document "(define (f x y) z)")))
+   (show->string (the-expression at: '(5 3 1 1)))) ===> "y")
+
+(e.g.
+ (parameterize ((the-document
+		 (string->document "(define (f x #;y) z)")))
+   (show->string (the-expression at: '(2 4 3 1 1)))) ===> "#;y")
+
 (define (check-parser-correctness input::string)
   (let* ((parsed ::pair (with-input-from-string input parse-document))
 	 (output ::string (with-output-to-string

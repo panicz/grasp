@@ -16,7 +16,6 @@
 (import (functions))
 (import (print))
 (import (examples))
-(import (parse))
 
 ;; See the `fundamental.scm` file for a detailed explanation
 ;; how cursors are represented
@@ -116,16 +115,6 @@
 			(at::Cursor (the-cursor))
 			(in (the-document)))
   (cursor-ref in at))
-
-(e.g.
- (parameterize ((the-document
-		 (string->document "(define (f x y) z)")))
-   (show->string (the-expression at: '(5 3 1 1)))) ===> "y")
-
-(e.g.
- (parameterize ((the-document
-		 (string->document "(define (f x #;y) z)")))
-   (show->string (the-expression at: '(2 4 3 1 1)))) ===> "#;y")
 
 (define (fully-expanded? cursor::Cursor #;on document)
   ::boolean

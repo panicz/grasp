@@ -120,7 +120,6 @@
       (_
        fragments
        ))))
-    
 
 (e.g.
  (let* ((fragments (list 1 2 3))
@@ -173,12 +172,16 @@
 (define-type (Space fragments: pair)
   implementing Element with
   ((part-at index::Index)::Indexable*
-   (let-values (((fragments* index*) (space-fragment-index
-				      fragments index)))
-     (if (or (empty? fragments*)
-	     (number? (car fragments*)))
-	 (this)
-	 (car fragments*))))
+   (try-catch
+    (let-values (((fragments* index*) (space-fragment-index
+				       fragments index)))
+      (if (or (empty? fragments*)
+	      (number? (car fragments*)))
+	  (this)
+	  (car fragments*)))
+    (ex java.lang.Throwable
+	(WARN"fragments: "fragments", index "index)
+	#!null)))
 
   ((first-index)::Index 0)
   
@@ -721,9 +724,15 @@
 	  (space:draw! (hash-cons 0 context)))))
 
   (define (print out::gnu.lists.Consumer)::void
-    (out:append #\()
+    (out:append #\[)
     (space:print out)
-    (out:append #\)))
+    (out:append #\]))
+
+  (define (toString)::String
+    (string-append "[" (with-output-to-string
+			(lambda ()
+			  (space:print (current-output-port))))
+		   "]"))
 
   (gnu.lists.LList))
 

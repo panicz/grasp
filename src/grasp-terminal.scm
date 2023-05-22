@@ -35,6 +35,7 @@
 (import (text-painter))
 (import (extension))
 (import (button))
+(import (quotations))
 (import (input))
 (import (mapping))
 (import (pane))
