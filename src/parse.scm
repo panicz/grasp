@@ -240,6 +240,30 @@
 		(add-element! text (read-space)))
 	      (read-next))
 
+	     ((eq? c #\')
+	      (let-values (((next-item spaces) (read-list 1)))
+		(add-element! (Quote (car next-item))
+			      (post-head-space next-item))
+		(read-next)))
+
+	     ((eq? c #\`)
+	      (let-values (((next-item spaces) (read-list 1)))
+		(add-element! (Quasiquote (car next-item))
+			      (post-head-space next-item))
+		(read-next)))
+	     
+	     ((eq? c #\,)
+	      (let ((d (peek-char)))
+		(if (eq? d #\@)
+		    (let*-values (((_) (read-char))
+				  ((next-item spaces) (read-list 1)))
+		      (add-element! (UnquoteSplicing (car next-item))
+				    (post-head-space next-item)))
+		    (let-values (((next-item spaces) (read-list 1)))
+		      (add-element! (Unquote (car next-item))
+				    (post-head-space next-item))))
+		(read-next)))
+	     
 	     ((eq? c #\#)
 	      (let ((d (read-char)))
 		(cond
@@ -256,7 +280,7 @@
 				(cons
 				 (ExpressionComment
 				  expression: (car unexpr))
-			 next-space:fragments))
+				 next-space:fragments))
 		      (read-next))))
 
 		 ((eq? d #\|)

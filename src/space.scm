@@ -724,15 +724,9 @@
 	  (space:draw! (hash-cons 0 context)))))
 
   (define (print out::gnu.lists.Consumer)::void
-    (out:append #\[)
+    (out:append #\()
     (space:print out)
-    (out:append #\]))
-
-  (define (toString)::String
-    (string-append "[" (with-output-to-string
-			(lambda ()
-			  (space:print (current-output-port))))
-		   "]"))
+    (out:append #\)))
 
   (gnu.lists.LList))
 

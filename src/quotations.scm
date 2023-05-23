@@ -51,42 +51,30 @@
     (if (or (eqv? index #\[)
 	    (eqv? index #\]))
 	(this)
-	(let ((target ::Indexable (expression:part-at index)))
-	  (if (eq? target expression)
-	      (this)
-	      target))))
+	(if (gnu.lists.LList? expression)
+	    (let ((target ::Indexable (expression:part-at index)))
+	      (if (eq? target expression)
+		  (this)
+		  target))
+	    expression)))
     
   (define (first-index)::Index #\[)
 
   (define (last-index)::Index #\])
 
   (define (next-index index::Index)::Index
-    (let ((first ::Index (expression:first-index)))
-      (match index
-	(,first
-	 (expression:next-index index))
-	(#\[
-	 first)
-	(,(expression:last-index)
-	 #\])
-	(#\]
-	 #\])
-	(else
-	 (expression:next-index index)))))
+    (if (gnu.lists.LList? expression)
+	(expression:next-index index)
+	(match index
+	  (#\[ 0)
+	  (_ #\]))))
     
   (define (previous-index index::Index)::Index
-    (let ((last ::Index (expression:last-index)))
-     (match index
-       (,last
-	(expression:previous-index index))
-       (#\]
-	last)
-       (,(expression:first-index)
-	#\[)
-       (#\[
-	#\[)
-       (else
-	(expression:previous-index index)))))
+    (if (gnu.lists.LList? expression)
+	(expression:previous-index index)
+	(match index
+	  (#\] 0)
+	  (_ #\[))))
     
   (define (index< a::Index b::Index)::boolean
     (and (isnt a eqv? b)
@@ -114,7 +102,7 @@
 			   inner:height
 			   context)
 	    (with-translation (marker-width 0)
-	      (expression:draw! context))))))
+	      (expression:draw! (recons 0 context)))))))
 
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
     (let* ((painter ::Painter (the-painter))
@@ -123,7 +111,10 @@
 			       (expression:extent)))
 	   (lag-width ::real (if (gnu.lists.LList? expression)
 				 (paren-width painter)
-				 (marker-width painter))))
+				 (marker-width painter)))
+	   (path*  (if (gnu.lists.LList? expression)
+		       path
+		       (recons 0 path))))
       (otherwise #!null
       	(and (is 0 <= y < inner:height)
 	     (or (and (is 0 <= x < lag-width)
@@ -132,7 +123,7 @@
 		 (and (is 0 <= (- x lag-width) < inner:width)
 		      (cursor-under (- x lag-width) y
 				    expression
-				    context: path))
+				    context: path*))
 		 (and (is 0 <= (- x lag-width inner:width)
 			  < lag-width)
 		      (recons (last-index) path)))))))
@@ -176,7 +167,7 @@
   (define (typename)::String "quote")
 
   (define (toString)::String
-    (string-append "'" (expression:toString)))
+    (string-append "'" (show->string expression)))
   
   (Quotation expression))
 
@@ -205,7 +196,7 @@
   (define (typename)::String "quasiquote")
 
   (define (toString)::String
-    (string-append "`" (expression:toString)))
+    (string-append "`" (show->string expression)))
   
   (Quotation expression))
 
@@ -234,7 +225,7 @@
   (define (typename)::String "unquote")
 
   (define (toString)::String
-    (string-append "," (expression:toString)))
+    (string-append "," (show->string expression)))
   
   (Quotation expression))
 
@@ -264,7 +255,7 @@
   (define (typename)::String "unquote-splicing")
 
   (define (toString)::String
-    (string-append ",@" (expression:toString)))
+    (string-append ",@" (show->string expression)))
   
   (Quotation expression))
 

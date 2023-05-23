@@ -385,7 +385,8 @@
      (and-let* ((enchanted ::Element
 			  (enchant-expression! at: at
 					       in: document)))
-       (recons (enchanted:first-index) at))))
+       (recons (enchanted:first-index)
+	       (cursor-core at document)))))
 
   ((inverse)::Edit
    (DisenchantExpression at: at)))
@@ -398,7 +399,8 @@
      (and-let* ((expression ::Element
 			    (disenchant-expression! at: at
 						    in: document)))
-       (recons (expression:first-index) at))))
+       (recons (expression:first-index)
+	       (cursor-core at document)))))
 
   ((inverse)::Edit
    (EnchantExpression at: at)))

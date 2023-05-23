@@ -32,7 +32,18 @@
 			      (show-document parsed)))))
     (unless (string=? input output)
       (WARN "Invalid parsing, expected: \"\\\n"input
-	    "\, ngot: \"\\\n"output"\"\n"))))
+	    "\ngot: \"\\\n"output"\"\n"))))
+
+(check-parser-correctness "
+(let ((quoted 'x)
+      (quasiquoted `x)
+      (unquoted ,x)
+      (spliced ,@x))
+  `(,'(quoted)
+    ,`(quasiquoted)
+    ,,(un quoted)
+    ,@,@(un quote spliced)))
+")
 
 (check-parser-correctness "
 (define (factorial n)

@@ -188,8 +188,8 @@
 		 (is (head selection-start) in '(#\[ #\])))
 	(enter-selection-drawing-mode!))
 
-      (put! #\◤ 0 0)
-      (put! #\◥ 0 (+ width 1))
+      (put! #\◢ #;◤ 0 0)
+      (put! #\◣ #;◥ 0 (+ width 1))
 
       (when (and (pair? selection-end)
 		 (equal? (tail selection-end) context)
@@ -289,7 +289,7 @@
 	   context::Cursor)
     ::void
     (with-translation (1 0)
-      (draw-unquote-box! width height context))
+      (draw-unquote-box! (- width 2) height context))
 
     (let-values (((selection-start selection-end)
 		  (the-selection)))
@@ -303,8 +303,8 @@
       (put! #\┈ (- height 2) 0)	
       (put! #\┤ (- height 2) 1)
 
-      (put! #\├ (- height 2) width)
-      (put! #\┈ (- height 2) (+ width 1))
+      (put! #\├ (- height 2) (- width 2))
+      (put! #\┈ (- height 2) (- width 1))
       
       (when (and (pair? selection-end)
 		 (equal? (tail selection-end)

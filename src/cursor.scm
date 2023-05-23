@@ -122,6 +122,19 @@
              (target (cursor-ref document root)))
     (eq? target (part-at tip target))))
 
+(define (cursor-core cursor::Cursor document)::Cursor
+  (otherwise cursor
+    (and-let* ((`(,tip . ,root) cursor)
+	       (parent ::Indexable (cursor-ref document cursor))
+	       (target ::Indexable (parent:part-at tip)))
+      (if (eq? parent target)
+	  (cursor-core root document)
+	  cursor))))
+
+#;(assert
+   (forall (document cursor)
+     (isnt (cursor-core cursor document) fully-expanded? document)))
+
 (define (innermost-composition #!key
 			       (at::Cursor (the-cursor))
 			       (in (the-document)))
