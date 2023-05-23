@@ -1,3 +1,47 @@
+* 23.05.2023
+
+no dobra, to dzisiaj bysmy wreszcie sie zajeli tymi
+klientami graficznymi
+
+czyli mamy do dodania 16 nowych funkcji,
+o implementacjach raczej trywialnych
+
+przede wszystkim jednak chcemy zaprojektowac wyglad
+tych znaczkow, i moze przy tej okazji przeprojektowac
+nawiasy
+
+do tego dochodzi jeszcze taka mysl, zeby funkcje rysujace
+dla quote'a i quasiquote'a sprawdzaly, czy elementem
+wewnetrznym jest unquote, i w takich przypadkach rysowaly
+sie ciasniej, niz w pozostalych
+
+* 22.05.2023
+
+dzis bysmy sie zajeli poprawka zachowania kursora
+na quote'ach:
+- jezeli "expression" to lista, to wtedy sie
+  pod nia podszywamy
+- natomiast w przeciwnym razie implementujemy
+  schemat indeksacji [ 0 ]
+
+Do tego dochodza rzeczy, o ktorych nie myslelismy,
+czyli obsluga w ramach naszego systemu edycji
+- i to chyba bysmy sprobowali zrobic przed implementacja
+w klientach graficznych
+
+no ale moze najpierw uporzadkujemy kwestie
+kursora po zaczarowaniu wyrazenia
+
+wydaje sie tez, ze mamy pewne problemy z unquote-splicing
+
+ok, chyba je rowniez sie udalo naprawic.
+
+No to co dalej?
+
+teraz bysmy sie chyba zajeli klientami graficznymi.
+
+albo ewentualnie obsluga cytowan w parserze.
+
 * 20.05.2023
 
 na pewno trzeba poprawic zachowanie kursora podczas
