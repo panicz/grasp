@@ -354,6 +354,73 @@
   (define (paren-width)::real
     top-left-bounds:width)
 
+
+  (define (draw-quote-box! width::real
+			   height::real
+			   context::Cursor)
+    ::void
+    (values))
+  
+  (define (quote-paren-width)::real 1)
+  
+  (define (draw-quote-markers! width::real
+			       height::real
+			       context::Cursor)
+    ::void
+    (values))
+
+  (define (quote-marker-width)::real 1)
+
+  (define (draw-quasiquote-box! width::real
+				height::real
+				context::Cursor)
+    ::void
+    (values))
+  
+  (define (quasiquote-paren-width)::real 1)
+  
+  (define (draw-quasiquote-markers! width::real
+				    height::real
+				    context::Cursor)
+    ::void
+    (values))
+  
+  (define (quasiquote-marker-width)::real 1)
+  
+  (define (draw-unquote-box! width::real
+			     height::real
+			     context::Cursor)
+    ::void
+    (values))
+
+  (define (unquote-paren-width)::real 1)
+    
+  (define (draw-unquote-markers! width::real
+				 height::real
+				 context::Cursor)
+    ::void
+    (values))
+  
+  (define (unquote-marker-width)::real 1)
+
+  (define (draw-unquote-splicing-box!
+	   width::real
+	   height::real
+	   context::Cursor)
+    ::void
+    (values))
+
+  (define (unquote-splicing-paren-width)::real 1)
+
+  (define (draw-unquote-splicing-markers!
+	   width::real
+	   height::real
+	   context::Cursor)
+    ::void
+    (values))
+
+  (define (unquote-splicing-marker-width)::real 1)
+  
   (define (min-box-height)::real
     (max (invoke (the-atom-font) 'getSize2D)
 	 (+ top-left-bounds:height bottom-left-bounds:height)
@@ -429,7 +496,7 @@
   (define (in-comment-drawing-mode?)::boolean
     (is current-comment-level > 0))
   
-  (define (vertical-bar-width)::real 5)
+  (define (vertical-bar-width)::real 15)
   
   (define (horizontal-bar-height)::real 5)
   

@@ -342,10 +342,10 @@
     shiftTop)
 
   (define (horizontal-line-height)::real
-    50)
+    30)
   
   (define (vertical-line-width)::real
-    50)
+    30)
 
   (define text-color ::long #xff555555)
 
@@ -442,10 +442,10 @@
     (canvas:drawRGB 255 255 255))
 
   (define (vertical-bar-width)::real
-    5)
+    10)
   
   (define (horizontal-bar-height)::real
-    5)
+    10)
   
   (define (draw-horizontal-bar! width::real)::void
     (paint:setColor text-color)
@@ -544,6 +544,73 @@
 			  (_
 			   (parenthesis-color)))))))
 
+  (define (draw-quote-box! width::real
+			   height::real
+			   context::Cursor)
+    ::void
+    (values))
+  
+  (define (quote-paren-width)::real 1)
+  
+  (define (draw-quote-markers! width::real
+			       height::real
+			       context::Cursor)
+    ::void
+    (values))
+
+  (define (quote-marker-width)::real 1)
+
+  (define (draw-quasiquote-box! width::real
+				height::real
+				context::Cursor)
+    ::void
+    (values))
+  
+  (define (quasiquote-paren-width)::real 1)
+  
+  (define (draw-quasiquote-markers! width::real
+				    height::real
+				    context::Cursor)
+    ::void
+    (values))
+  
+  (define (quasiquote-marker-width)::real 1)
+  
+  (define (draw-unquote-box! width::real
+			     height::real
+			     context::Cursor)
+    ::void
+    (values))
+
+  (define (unquote-paren-width)::real 1)
+    
+  (define (draw-unquote-markers! width::real
+				 height::real
+				 context::Cursor)
+    ::void
+    (values))
+  
+  (define (unquote-marker-width)::real 1)
+
+  (define (draw-unquote-splicing-box!
+	   width::real
+	   height::real
+	   context::Cursor)
+    ::void
+    (values))
+
+  (define (unquote-splicing-paren-width)::real 1)
+
+  (define (draw-unquote-splicing-markers!
+	   width::real
+	   height::real
+	   context::Cursor)
+    ::void
+    (values))
+
+  (define (unquote-splicing-marker-width)::real 1)
+
+  
   (define (draw-text! text::CharSequence
 		      font::Font
 		      context::Cursor)
@@ -881,7 +948,7 @@
   (define (onCreate savedState::Bundle)::void
     (invoke-special AndroidActivity (this) 'onCreate
 		    savedState)
-    ;;(set! (current-message-handler) (ScreenLogger 100))
+    (set! (current-message-handler) (ScreenLogger 10))
     (let ((scheme ::gnu.expr.Language
 		  (or kawa.standard.Scheme:instance
 		      (kawa.standard.Scheme))))
