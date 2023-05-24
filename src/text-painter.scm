@@ -188,8 +188,8 @@
 		 (is (head selection-start) in '(#\[ #\])))
 	(enter-selection-drawing-mode!))
 
-      (put! #\◢ #;◤ 0 0)
-      (put! #\◣ #;◥ 0 (+ width 1))
+      (put! #\▗ #;◢ #;◤ 0 0)
+      ;;(put! #\▖ #;◣ #;◥ 0 (+ width 1))
 
       (when (and (pair? selection-end)
 		 (equal? (tail selection-end) context)
@@ -228,9 +228,9 @@
 	(enter-selection-drawing-mode!))
       
       (put! #\┌ 0 0)
-      (put! #\╵ 1 0)
+      ;;(put! #\╵ 1 0)
       (put! #\┐ 0 (+ width 1))
-      (put! #\╵ 1 (+ width 1))
+      ;;(put! #\╵ 1 (+ width 1))
 
       (when (and (pair? selection-end)
 		 (equal? (tail selection-end) context)
@@ -271,9 +271,9 @@
 		 (is (head selection-start) in '(#\[ #\])))
 	(enter-selection-drawing-mode!))
 
-      (put! #\╷ (- height 2) 0)
+      ;;(put! #\╷ (- height 2) 0)
       (put! #\└ (- height 1) 0)
-      (put! #\╷ (- height 2) (+ width 1))
+      ;;(put! #\╷ (- height 2) (+ width 1))
       (put! #\┘ (- height 1) (+ width 1))
 
       (when (and (pair? selection-end)
@@ -325,8 +325,8 @@
       (when (and (pair? (the-cursor))
 		 (equal? context (cdr (the-cursor))))
 	(match (head (the-cursor))
-	  (#\[ (mark-cursor! 0 (- height 1)))
-	  (#\] (mark-cursor! (+ width 1) (- height 1)))
+	  (#\[ (mark-cursor! 1 (- height 1)))
+	  (#\] (mark-cursor! (+ width 2) (- height 1)))
 	  (_ (values))))
       (when (and (pair? selection-start)
 		 (equal? (tail selection-start) context)
@@ -347,42 +347,49 @@
 		     in '(#\[ #\])))
 	(exit-selection-drawing-mode!))))
 
-    
-
   (define (unquote-splicing-marker-width)::real 2)
+
+  (define (draw-custom-rectangle!
+	   top-left::gnu.text.Char
+	   horizontal::gnu.text.Char
+	   top-right::gnu.text.Char
+	   vertical::gnu.text.Char
+	   bottom-left::gnu.text.Char
+	   bottom-right::gnu.text.Char
+	   width::real
+	   height::real)
+    ::void
+    (put! top-left 0 0)
+    (for i from 1 to (- height 2)
+         (put! vertical i 0))
+    (put! bottom-left (- height 1) 0)
+
+    (for i from 1 to (- width 2)
+         (put! horizontal 0 i)
+	 (put! horizontal (- height 1) i))
+    
+    (put! top-right 0 (- width 1))
+    (for i from 1 to (- height 2)
+         (put! vertical i (- width 1)))
+    (put! bottom-right (- height 1) (- width 1)))
   
   (define (draw-rounded-rectangle! width::real
 				   height::real)
     ::void
-    (put! #\╭ 0 0)
-    (for i from 1 to (- height 2)
-         (put! #\│ i 0))
-    (put! #\╰ (- height 1) 0)
-
-    (for i from 1 to (- width 2)
-         (put! #\─ 0 i)
-	 (put! #\─ (- height 1) i))
-    
-    (put! #\╮ 0 (- width 1))
-    (for i from 1 to (- height 2)
-         (put! #\│ i (- width 1)))
-    (put! #\╯ (- height 1) (- width 1)))
+    (draw-custom-rectangle!
+     #\╭ #\─ #\╮
+     #\│
+     #\╰     #\╯
+     width height))
 
   (define (draw-rectangle! width::real
-			   height::real)::void
-    (put! #\┌ 0 0)
-    (for i from 1 to (- height 2)
-         (put! #\│ i 0))
-    (put! #\└ (- height 1) 0)
-
-    (for i from 1 to (- width 2)
-         (put! #\─ 0 i)
-	 (put! #\─ (- height 1) i))
-    
-    (put! #\┐ 0 (- width 1))
-    (for i from 1 to (- height 2)
-         (put! #\│ i (- width 1)))
-    (put! #\┘ (- height 1) (- width 1)))
+			   height::real)
+    ::void
+    (draw-custom-rectangle!
+     #\┌ #\─ #\┐
+     #\│
+     #\└     #\┘
+     width height))
 
   (define 4pix-code
     (let ((4pix (mapping (4p::char)::int 0)))
@@ -498,9 +505,9 @@
 		  (equal?
 		   (tail selection-end)
 		   context)))
-	    (row 0)
-	    (col 0)
-	    (n 0))
+	    (row ::int 0)
+	    (col ::int 0)
+	    (n ::int 0))
 	
 	(define (handle-cursor-and-selection!)
 	  (when (and enters-selection-drawing-mode?
@@ -529,8 +536,8 @@
 	   text::CharSequence)
     ::int
     (let ((end (text:length)))
-      (let next ((row 0)
-		 (col 0)
+      (let next ((row ::int 0)
+		 (col ::int 0)
 		 (n ::int 0))
 	(if (or (and (is x = col) (is y <= row))
 		(is n >= end))
@@ -548,9 +555,9 @@
 
   (define (draw-caption! caption::CharSequence)
     ::void
-    (let ((row 0)
-	  (col 0)
-	  (n 0))
+    (let ((row ::int 0)
+	  (col ::int 0)
+	  (n ::int 0))
 	(for c in caption
           (cond ((eq? c #\newline)
 		 (set! row (+ row 1))
