@@ -118,13 +118,15 @@
 
 (define-initializer (initialize-activity
 		     activity::AndroidActivity)
+  (define FiraMono ::Typeface
+    (load-font "FiraMono-Medium.ttf" activity))
+  
+  (define BarlowCondensed
+    (load-font "BarlowCondensed-Medium.ttf" activity))
 
-  (define Basic-Regular ::Typeface
-    (load-font "Basic-Regular.otf" activity))
-
-  (define LobsterTwo-Regular ::Typeface
-    (load-font "LobsterTwo-Regular.otf" activity))
-
+  (define Crimson
+    (load-font "Crimson-Roman.ttf" activity))
+  
   (define Oswald-Regular ::Typeface
     (load-font "Oswald-Regular.ttf" activity))
 
@@ -145,13 +147,13 @@
   
   (define the-atom-font ::parameter[Font]
     (make-parameter
-     (Font face: LobsterTwo-Regular #;Basic-Regular
+     (Font face: BarlowCondensed
 	   size: 56)))
 
   (define the-string-font ::parameter[Font]
     (make-parameter
-     (Font face: Basic-Regular #;LobsterTwo-Regular
-	   size: 40)))
+     (Font face: FiraMono
+	   size: 32)))
 
   (define the-comment-font ::parameter[Font]
     (make-parameter
@@ -165,8 +167,8 @@
   
   (define the-block-comment-font ::parameter[Font]
     (make-parameter
-     (Font face: NotoSerif-Regular
-	   size: 26)))
+     (Font face: Crimson ;;NotoSerif-Regular
+	   size: 36)))
 
   (define the-block-comment-margin ::parameter[real]
     (make-parameter 10))
@@ -193,10 +195,12 @@
   
   (define top-left-paren ::Path2D
     (Path
-     (moveTo 20 0)
-     (quadTo 5 0 0 50)
+     (moveTo 0 50)
+     (lineTo 0 20)
+     (quadTo 0 0 20 0)
+     (lineTo 20 10)
+     (quadTo 10 10 10 20)
      (lineTo 10 50)
-     (quadTo 10 30 20 30)
      (close)))
 
   (define top-left-extent ::Extent
@@ -204,10 +208,12 @@
 
   (define bottom-left-paren ::Path2D
     (Path
-     (moveTo 20 50)
-     (quadTo 5 50 0 0)
+     (moveTo 0 0)
+     (lineTo 0 30)
+     (quadTo 0 50 20 50)
+     (lineTo 20 40)
+     (quadTo 10 40 10 30)
      (lineTo 10 0)
-     (quadTo 10 20 20 20)
      (close)))
 
   (define bottom-left-extent ::Extent
@@ -216,9 +222,11 @@
   (define top-right-paren ::Path2D
     (Path
      (moveTo 0 0)
-     (quadTo 15 0 20 50)
+     (quadTo 20 0 20 20)
+     (lineTo 20 50)
      (lineTo 10 50)
-     (quadTo 10 30 0 30)
+     (lineTo 10 20)
+     (quadTo 10 10 0 10)
      (close)))
 
   (define top-right-extent ::Extent
@@ -226,14 +234,77 @@
 
   (define bottom-right-paren ::Path2D
     (Path
-     (moveTo 0 50)
-     (quadTo 15 50 20 0)
+     (moveTo 20 0)
+     (lineTo 20 30)
+     (quadTo 20 50 0 50)
+     (lineTo 0 40)
+     (quadTo 10 40 10 30)
      (lineTo 10 0)
-     (quadTo 10 20 0 20)
      (close)))
 
   (define bottom-right-extent ::Extent
     (path-extent bottom-right-paren))
+
+  ;; quote
+
+  (define top-left-quote-paren ::Path2D
+    (Path
+     (lineTo 20 0)
+     (lineTo 20 10)
+     (lineTo 10 10)
+     (lineTo 10 50)
+     (lineTo 0 50)
+     (close)))
+
+  (define top-left-quote-extent ::Extent
+    (path-extent top-left-quote-paren))
+
+  (define bottom-left-quote-paren ::Path2D
+    (Path
+     (lineTo 0 50)
+     (lineTo 20 50)
+     (lineTo 20 40)
+     (lineTo 10 40)
+     (lineTo 10 0)
+     (close)))
+
+  (define bottom-left-quote-extent ::Extent
+    (path-extent bottom-left-quote-paren))
+
+  (define top-right-quote-paren ::Path2D
+    (Path
+     (lineTo 20 0)
+     (lineTo 20 50)
+     (lineTo 10 50)
+     (lineTo 10 10)
+     (lineTo 0 10)
+     (close)))
+
+  (define top-right-quote-extent ::Extent
+    (path-extent top-right-quote-paren))
+
+  (define bottom-right-quote-paren ::Path2D
+    (Path
+     (moveTo 20 0)
+     (lineTo 20 50)
+     (lineTo 0 50)
+     (lineTo 0 40)
+     (lineTo 10 40)
+     (lineTo 10 0)
+     (close)))
+
+  (define bottom-right-quote-extent ::Extent
+    (path-extent bottom-right-quote-paren))
+
+  (define quote-marker ::Path2D
+    (Path
+     (lineTo 10 0)
+     (lineTo 10 50)
+     (close)))
+
+  (define quote-marker-extent ::Extent
+    (path-extent quote-marker))
+  
   )
 
 (define (INFO . messages)
@@ -478,7 +549,7 @@
       ))
   
   (define (paren-width)::real
-    top-left-extent:width)
+    (+ 1 top-left-extent:width))
 
   (define (min-line-height)::real
     (let ((font ::Font (the-atom-font)))
@@ -522,75 +593,174 @@
 			      line-height))
 	  (canvas:drawPath bottom-right-paren paint))))
 
+  (define (opening-parenthesis-color context::Cursor)::long
+    (match (the-cursor)
+      (`(#\[ . ,,context)
+       (focused-parenthesis-color))
+      (`(#\] . ,,context)
+       (matching-parenthesis-color))
+      (_
+       (parenthesis-color))))
+
+  (define (closing-parenthesis-color context::Cursor)::long
+    (match (the-cursor)
+      (`(#\] . ,,context)
+       (focused-parenthesis-color))
+      (`(#\[ . ,,context)
+       (matching-parenthesis-color))
+      (_
+       (parenthesis-color))))
+
   (define (draw-box! width::real height::real
 		     context::Cursor)
     ::void
-    (let ((cursor (the-cursor)))
-      (open-paren! height
-		   (match cursor
-		     (`(#\[ . ,,context)
-		      (focused-parenthesis-color))
-		     (`(#\] . ,,context)
-		      (matching-parenthesis-color))
-		     (_
-		      (parenthesis-color))))
-      (with-translation ((- width (paren-width)) 0)
-	  (close-paren! height
-			(match cursor
-			  (`(#\] . ,,context)
-			   (focused-parenthesis-color))
-			  (`(#\[ . ,,context)
-			   (matching-parenthesis-color))
-			  (_
-			   (parenthesis-color)))))))
+    (open-paren! height (opening-parenthesis-color context))
+    (with-translation ((- width (paren-width)) 0)
+      (close-paren! height
+		    (closing-parenthesis-color context))))
 
+  (define (open-quote-paren! height::real color::long)::void
+    (let ((line-height (max 0 (- height
+				 top-left-extent:height
+				 bottom-left-extent:height))))
+      (paint:setColor color)
+      (canvas:drawPath top-left-quote-paren paint)
+      (canvas:drawRect 0 top-left-quote-extent:height
+		       10 (+ top-left-quote-extent:height
+			     line-height)
+		       paint)
+      (with-translation (0 (+ top-left-quote-extent:height
+			      line-height))
+	  (canvas:drawPath bottom-left-quote-paren paint))))
+
+  (define (close-quote-paren! height::real color::long)::void
+    (let ((line-height (max 0 (- height
+				 top-right-extent:height
+				 bottom-right-extent:height))))
+      (paint:setColor color)
+      (canvas:drawPath top-right-quote-paren paint)
+      (canvas:drawRect (- top-right-quote-extent:width 10)
+		       top-right-quote-extent:height
+		       top-right-quote-extent:width
+		       (+ top-right-quote-extent:height line-height)
+		       paint)
+
+      (with-translation (0 (+ top-right-quote-extent:height
+			      line-height))
+	  (canvas:drawPath bottom-right-quote-paren paint))))
+
+  
   (define (draw-quote-box! width::real
 			   height::real
 			   context::Cursor)
     ::void
-    (values))
+    (open-quote-paren! height (opening-parenthesis-color context))
+    (with-translation ((- width (quote-paren-width)) 0)
+      (close-quote-paren! height
+			  (closing-parenthesis-color context))))
   
-  (define (quote-paren-width)::real 1)
+  (define (quote-paren-width)::real
+    (+ 1 top-left-quote-extent:width))
   
   (define (draw-quote-markers! width::real
 			       height::real
 			       context::Cursor)
     ::void
-    (values))
+    (paint:setColor (opening-parenthesis-color context))
+    (canvas:drawPath quote-marker paint))
 
-  (define (quote-marker-width)::real 1)
+  (define (quote-marker-width)::real
+    (+ 1 quote-marker-extent:width))
 
+  (define (open-quasiquote-paren! height::real color::long)::void
+    (let ((line-height (max 0 (- height top-left-extent:height))))
+      (paint:setColor color)
+      (canvas:drawPath top-left-quote-paren paint)
+      (canvas:drawRect 0 top-left-quote-extent:height
+		       10 (+ top-left-quote-extent:height
+			     line-height)
+		       paint)))
+
+  (define (close-quasiquote-paren! height::real color::long)::void
+    (let ((line-height (max 0 (- height top-right-extent:height))))
+      (paint:setColor color)
+      (canvas:drawPath top-right-quote-paren paint)
+      (canvas:drawRect (- top-right-quote-extent:width 10)
+		       top-right-quote-extent:height
+		       top-right-quote-extent:width
+		       (+ top-right-quote-extent:height line-height)
+		       paint)))
+  
   (define (draw-quasiquote-box! width::real
 				height::real
 				context::Cursor)
     ::void
-    (values))
+    (open-quasiquote-paren! height
+			    (opening-parenthesis-color context))
+    (with-translation ((- width (quasiquote-paren-width)) 0)
+      (close-quasiquote-paren! height
+			       (closing-parenthesis-color context))))
   
-  (define (quasiquote-paren-width)::real 1)
+  (define (quasiquote-paren-width)::real
+    (+ 1 top-left-quote-extent:width))
   
   (define (draw-quasiquote-markers! width::real
 				    height::real
 				    context::Cursor)
     ::void
-    (values))
+    (paint:setColor (opening-parenthesis-color context))
+    (canvas:drawPath top-left-quote-paren paint)
+    (with-translation ((+ width (quasiquote-marker-width)) 0)
+      (paint:setColor (closing-parenthesis-color context))
+      (canvas:drawPath top-right-quote-paren paint)))
   
-  (define (quasiquote-marker-width)::real 1)
+  (define (quasiquote-marker-width)::real
+    (+ 1 top-left-quote-extent:width))
+
+  (define (open-unquote-paren! height::real color::long)::void
+    (let ((line-height (max 0 (- height
+				 bottom-left-quote-extent:height))))
+      (paint:setColor color)
+      (canvas:drawRect 0 0 10 line-height paint)
+      (with-translation (0 line-height)
+	(canvas:drawPath bottom-left-quote-paren paint))
+      ))
+
+  (define (close-unquote-paren! height::real color::long)::void
+    (let ((line-height (max 0 (- height
+				 bottom-right-quote-extent:height))))
+      (paint:setColor color)
+      (canvas:drawRect (- bottom-right-quote-extent:width 10) 0
+		       bottom-right-quote-extent:width line-height
+		       paint)
+      (with-translation (0 line-height)
+	(canvas:drawPath bottom-right-quote-paren paint))))
   
   (define (draw-unquote-box! width::real
 			     height::real
 			     context::Cursor)
     ::void
-    (values))
+    (open-unquote-paren! height (opening-parenthesis-color context))
+    (with-translation ((- width (quasiquote-paren-width)) 0)
+      (close-unquote-paren! height
+			    (closing-parenthesis-color context))))
 
-  (define (unquote-paren-width)::real 1)
+  (define (unquote-paren-width)::real
+    (+ 1 bottom-left-quote-extent:width))
     
   (define (draw-unquote-markers! width::real
 				 height::real
 				 context::Cursor)
     ::void
-    (values))
+    (with-translation (0 (- height bottom-left-quote-extent:height))
+      (paint:setColor (opening-parenthesis-color context))
+      (canvas:drawPath bottom-left-quote-paren paint)
+      (with-translation ((+ width (quasiquote-marker-width)) 0)
+	(paint:setColor (closing-parenthesis-color context))
+	(canvas:drawPath bottom-right-quote-paren paint))))
   
-  (define (unquote-marker-width)::real 1)
+  (define (unquote-marker-width)::real
+    (+ 1 bottom-left-quote-extent:width))
 
   (define (draw-unquote-splicing-box!
 	   width::real
@@ -610,7 +780,6 @@
 
   (define (unquote-splicing-marker-width)::real 1)
 
-  
   (define (draw-text! text::CharSequence
 		      font::Font
 		      context::Cursor)
