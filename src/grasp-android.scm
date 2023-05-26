@@ -304,7 +304,26 @@
 
   (define quote-marker-extent ::Extent
     (path-extent quote-marker))
-  
+
+  (define single-quote ::Path2D
+    (Path
+     (moveTo 7.5 0)
+     (quadTo 15 0 15 7.5)
+     (quadTo 15 15 7.5 15)
+     (quadTo 0 15 0 7.5)
+     (quadTo 0 0 7.5 0)
+     (close)
+
+     (moveTo (+ 7.5 (* 0.5 7.5 (sqrt 2)))
+	     (- 7.5 (* 0.5 7.5 (sqrt 2))))
+     (quadTo 22.5 22.5 0 30)
+     (quadTo 7.5 30 7.5 15)
+     (close)
+     ))
+
+  (define single-quote-extent ::Extent
+    (path-extent single-quote))
+
   )
 
 (define (INFO . messages)
@@ -762,23 +781,55 @@
   (define (unquote-marker-width)::real
     (+ 1 bottom-left-quote-extent:width))
 
+  (define (open-unquote-splicing-paren! height::real color::long)
+    ::void
+    (paint:setColor color)
+    (canvas:drawRect 0 10 2.5 20 paint)
+    (canvas:drawRect 5 10 10 20 paint)
+    (with-translation (10 0)
+      (open-unquote-paren! height color)))
+
+  (define (close-unquote-splicing-paren! height::real color::long)
+    ::void
+    (paint:setColor color)
+    (close-unquote-paren! height color)
+    (canvas:drawRect 20 10 25 20 paint)
+    (canvas:drawRect 27.5 10 30 20 paint))
+  
   (define (draw-unquote-splicing-box!
 	   width::real
 	   height::real
 	   context::Cursor)
     ::void
-    (values))
+    (open-unquote-splicing-paren!
+     height (opening-parenthesis-color context))
+    (with-translation ((- width (unquote-splicing-paren-width)) 0)
+      (close-unquote-splicing-paren!
+       height (closing-parenthesis-color context))))
 
-  (define (unquote-splicing-paren-width)::real 1)
+  (define (unquote-splicing-paren-width)::real
+    (+ (unquote-paren-width) 10))
 
   (define (draw-unquote-splicing-markers!
 	   width::real
 	   height::real
 	   context::Cursor)
     ::void
-    (values))
+    (with-translation (0 (- height bottom-left-quote-extent:height))
+      (paint:setColor (opening-parenthesis-color context))
+      (canvas:drawRect 0 10 2.5 20 paint)
+      (canvas:drawRect 5 10 10 20
+		       paint)
+      (with-translation (10 0)
+	(canvas:drawPath bottom-left-quote-paren paint)      
+	(with-translation ((+ width (quasiquote-marker-width)) 0)
+	  (paint:setColor (closing-parenthesis-color context))
+	  (canvas:drawPath bottom-right-quote-paren paint)
+	  (canvas:drawRect 20 10 25 20 paint)
+	  (canvas:drawRect 27.5 10 30 20 paint)))))
 
-  (define (unquote-splicing-marker-width)::real 1)
+  (define (unquote-splicing-marker-width)::real
+    (+ (unquote-marker-width) 10))
 
   (define (draw-text! text::CharSequence
 		      font::Font
@@ -858,8 +909,35 @@
     ::void
     (parameterize ((the-cursor-offset
 		    quoted-text-cursor-offset))
-      (draw-string! text context)))
+      (canvas:drawPath single-quote paint)
+      (with-translation (single-quote-extent:width 0)
+	(canvas:drawPath single-quote paint)
+	(with-translation (single-quote-extent:width
+			   single-quote-extent:height)
+	  (draw-string! text context)
+	  (let ((extent ::Extent (text-extent text
+					      (the-string-font))))
+	    (with-translation (extent:width extent:height)
+	      (canvas:drawPath single-quote paint)
+	      (with-translation (single-quote-extent:width 0)
+		(canvas:drawPath single-quote paint))))))))
 
+  (define (quoted-text-extent text::CharSequence)::Extent
+    (let ((inner ::Extent (text-extent text (the-string-font))))
+      (Extent width: (+ inner:width
+			(* 4 single-quote-extent:width))
+	      height: (+ inner:height
+			 (* 2 single-quote-extent:height)))))
+
+  (define (quoted-text-character-index-under
+	   x::real y::real text::CharSequence)
+    ::int
+    (text-character-index-under
+     (- x (* 2 single-quote-extent:width))
+     (- y single-quote-extent:height)
+     text (the-string-font)))
+
+  
   (define (text-extent text::CharSequence font::Font)::Extent
     (let* ((line-start 0)
 	   (lines ::int 1)
@@ -953,14 +1031,6 @@
     ::int
     (text-character-index-under x y text (the-atom-font)))
   
-  (define (quoted-text-extent text::CharSequence)::Extent
-    (text-extent text (the-string-font)))
-
-  (define (quoted-text-character-index-under
-	   x::real y::real text::CharSequence)
-    ::int
-    (text-character-index-under x y text (the-string-font)))
-
   (define (draw-line-comment! text::CharSequence
 			      context::Cursor)
     ::void
