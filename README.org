@@ -119,6 +119,32 @@ information from the Android device itself and
 wouldn't mind sharing that information with me,
 I'd be grateful.
 
+** Running the desktop client on Android
+
+While it might seem ridiculous from the usability
+perspective, it may sometimes be convenient to be
+able to test the desktop client from Android.
+
+The exact tutorial on running the X11 server in Termux
+can be found at
+https://wiki.termux.com/wiki/Graphical_Environment
+but once all the packages and apps are installed
+and configured, the VNC server can be run by typing
+(in Termux)
+
+#+BEGIN_SRC bash
+vncserver -localhost
+#+END_SRC
+
+Once this is done, it is also required to type
+
+#+BEGIN_SRC bash
+export DISPLAY=":1"
+#+END_SRC
+
+to be able to run the desktop client from a particular bash
+session.
+
 ** Older prototypes
 
 The older prototypes of GRASP (for Android only) can be found

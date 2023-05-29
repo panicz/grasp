@@ -1,3 +1,58 @@
+* 26.05.2023
+
+plany na najblizszy czas to:
+- przeniesc nowe cymesy tak zeby manifestowaly
+  sie w kliencie graficznym
+
+to sie moze udac nawet dzis. ale co dalej?
+
+jeszcze bysmy chcieli moze zintegrowac
+touch-event-processor z klientami pecetowymi
+- ale tak naprawde chyba najlepiej to zrobic
+  jak bedziemy mieli obsluzony second-press itp.,
+  no bo jak inaczej to przetestujemy?
+
+w takim razie wydaje sie, ze byc moze kolejnym
+istotnym do zaimplementowania ficzerem jest
+wyswietlanoe menu oraz otwieranie i zapisywanie
+plikow
+
+
+ale mozemy to potraktowac jako okazje do
+przemyslenia jak to powinno wygladac
+
+na razie mamy
+
+New
+Open...
+Switch to...
+Save as...
+Close
+
+i takue cos powinno sie rzeczywiscie pojawiac
+na pustym dokumencie
+
+ale do tego jeszcze:
+Paste
+History view/Document view
+
+na wyrazeniu zas bysmy chcieli miec:
+Copy
+Cut
+Paste (replace)
+
+
+* 24.05.2023
+
+male podsumowanie: udalo sie dodac do klienta
+androidowego quote, quasiquote i unquote.
+
+jutro bysmy sie jeszcze zajeli unquote-splicingiem
+oraz cudzyslowami do stringa, a takze odpowiednim
+kolorowaniem kreski oddzielajacej glowe od ogona,
+a takze przeniesieniem tych zmian do klienta AWT
+
+
 * 23.05.2023
 
 no dobra, to dzisiaj bysmy wreszcie sie zajeli tymi
