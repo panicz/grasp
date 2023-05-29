@@ -100,6 +100,15 @@
     (graphics-environment:registerFont font)
     (font:deriveFont size)))
 
+(define-constant FiraMono
+  (load-font "assets/FiraMono-Medium.ttf" size: 16))
+  
+(define-constant BarlowCondensed
+  (load-font "assets/BarlowCondensed-Medium.ttf" size: 28))
+
+(define-constant Crimson
+  (load-font "assets/Crimson-Roman.ttf" size: 18))
+
 (define-constant Basic-Regular
   (load-font "assets/Basic-Regular.otf" size: 20))
 
@@ -116,10 +125,10 @@
   (load-font "assets/NotoSerif-Regular.ttf" size: 16))
 
 (define-parameter+ (the-atom-font) ::Font
-  #;Basic-Regular LobsterTwo-Regular)
+  BarlowCondensed)
 
 (define-parameter+ (the-string-font) ::Font
-  Basic-Regular #;LobsterTwo-Regular)
+  FiraMono)
 
 (define-parameter+ (the-comment-font) ::Font
   GloriaHallelujah)
@@ -147,10 +156,12 @@
 
 (define-constant top-left-paren ::Path2D
   (Path
-   (moveTo 10 0)
-   (quadTo 2.5 0 0 25)
+   (moveTo 0 25)
+   (lineTo 0 10)
+   (quadTo 0 0 10 0)
+   (lineTo 10 5)
+   (quadTo 5 5 5 10)
    (lineTo 5 25)
-   (quadTo 5 15 10 15)
    (closePath)))
 
 (define-constant top-left-bounds ::Rectangle
@@ -158,10 +169,12 @@
 
 (define-constant bottom-left-paren ::Path2D
   (Path
-   (moveTo 10 25)
-   (quadTo 2.5 25 0 0)
-   (lineTo 5 0)
-   (quadTo 5 10 10 10)
+   (moveTo 0 0)
+   (lineTo 0 15)
+   (quadTo 0 25 10 25)
+   (lineTo 10 20)
+   (quadTo 5 20 5 15)
+   (lineTo 5 0)   
    (closePath)))
 
 (define-constant bottom-left-bounds ::Rectangle
@@ -170,9 +183,11 @@
 (define-constant top-right-paren ::Path2D
   (Path
    (moveTo 0 0)
-   (quadTo 7.5 0 10 25)
+   (quadTo 10 0 10 10)
+   (lineTo 10 25)
    (lineTo 5 25)
-   (quadTo 5 15 0 15)
+   (lineTo 5 10)
+   (quadTo 5 5 0 5)
    (closePath)))
 
 (define-constant top-right-bounds ::Rectangle
@@ -180,14 +195,100 @@
 
 (define-constant bottom-right-paren ::Path2D
   (Path
-   (moveTo 0 25)
-   (quadTo 7.5 25 10 0)
+   (moveTo 10 0)
+   (lineTo 10 15)
+   (quadTo 10 25 0 25)
+   (lineTo 0 20)
+   (quadTo 5 20 5 15)
    (lineTo 5 0)
-   (quadTo 5 10 0 10)
    (closePath)))
 
 (define-constant bottom-right-bounds ::Rectangle
   (bottom-right-paren:getBounds))
+
+  ;; quote
+
+(define-constant top-left-quote-paren ::Path2D
+  (Path
+   (moveTo 0 0)
+   (lineTo 10 0)
+   (lineTo 10 5)
+   (lineTo 5 5)
+   (lineTo 5 25)
+   (lineTo 0 25)
+   (closePath)))
+
+(define-constant top-left-quote-bounds ::Rectangle
+  (top-left-quote-paren:getBounds))
+
+(define-constant bottom-left-quote-paren ::Path2D
+  (Path
+   (moveTo 0 0)
+   (lineTo 0 25)
+   (lineTo 10 25)
+   (lineTo 10 20)
+   (lineTo 5 20)
+   (lineTo 5 0)
+   (closePath)))
+
+(define-constant bottom-left-quote-bounds ::Rectangle
+  (bottom-left-quote-paren:getBounds))
+
+(define-constant top-right-quote-paren ::Path2D
+  (Path
+   (moveTo 0 0)
+   (lineTo 10 0)
+   (lineTo 10 25)
+   (lineTo 5 25)
+   (lineTo 5 5)
+   (lineTo 0 5)
+   (closePath)))
+
+(define-constant top-right-quote-bounds ::Rectangle
+  (top-right-quote-paren:getBounds))
+
+(define-constant bottom-right-quote-paren ::Path2D
+  (Path
+   (moveTo 10 0)
+   (lineTo 10 25)
+   (lineTo 0 25)
+   (lineTo 0 20)
+   (lineTo 5 20)
+   (lineTo 5 0)
+   (closePath)))
+
+(define-constant bottom-right-quote-bounds ::Rectangle
+  (bottom-right-quote-paren:getBounds))
+
+(define-constant quote-marker ::Path2D
+  (Path
+   (moveTo 0 0)
+   (lineTo 5 0)
+   (lineTo 5 25)
+   (closePath)))
+
+(define-constant quote-marker-bounds ::Rectangle
+  (quote-marker:getBounds))
+
+(define-constant single-quote ::Path2D
+  (Path
+   (moveTo 3.75 0)
+   (quadTo 7.5 0 7.5 3.75)
+   (quadTo 7.5 7.5 3.75 7.5)
+   (quadTo 0 7.5 0 3.75)
+   (quadTo 0 0 3.75 0)
+   (closePath)
+
+   (moveTo (+ 3.75 (* 0.5 3.75 (sqrt 2)))
+	   (- 3.75 (* 0.5 3.75 (sqrt 2))))
+   (quadTo 11.25 11.25 0 15)
+   (quadTo 3.75 15 3.75 7.5)
+   (closePath)
+   ))
+
+(define-constant single-quote-extent ::Rectangle
+  (single-quote:getBounds))
+
 
 (define-constant transparent ::Color (Color 0.0 0.0 0.0 0.0))
 
@@ -301,7 +402,25 @@
   (define rendering-hints ::RenderingHints
     (RenderingHints RenderingHints:KEY_TEXT_ANTIALIASING
 		    RenderingHints:VALUE_TEXT_ANTIALIAS_ON))
-    
+
+  (define (opening-parenthesis-color context::Cursor)::Color
+    (match (the-cursor)
+      (`(#\[ . ,,context)
+       (focused-parenthesis-color))
+      (`(#\] . ,,context)
+       (matching-parenthesis-color))
+      (_
+       (parenthesis-color))))
+
+  (define (closing-parenthesis-color context::Cursor)::Color
+    (match (the-cursor)
+      (`(#\] . ,,context)
+       (focused-parenthesis-color))
+      (`(#\[ . ,,context)
+       (matching-parenthesis-color))
+      (_
+       (parenthesis-color))))
+  
   (define (open-paren! height::real color::Color)::void
     (let ((line-height (max 0 (- height
 				 top-left-bounds:height
@@ -332,94 +451,198 @@
     ::void
     (let ((cursor (the-cursor)))
       (open-paren! height
-		   (match cursor
-		     (`(#\[ . ,,context)
-		      (focused-parenthesis-color))
-		     (`(#\] . ,,context)
-		      (matching-parenthesis-color))
-		     (_
-		      (parenthesis-color))))
+		   (opening-parenthesis-color context))
       (with-translation ((- width (paren-width)) 0)
 	  (close-paren! height
-			(match cursor
-			  (`(#\] . ,,context)
-			   (focused-parenthesis-color))
-			  (`(#\[ . ,,context)
-			   (matching-parenthesis-color))
-			  (_
-			   (parenthesis-color)))))))
+			(closing-parenthesis-color context)))))
   
   (define (space-width)::real 8)
   
   (define (paren-width)::real
     top-left-bounds:width)
 
+  (define (open-quote-paren! height::real color::Color)::void
+    (let ((line-height (max 0 (- height
+				 top-left-bounds:height
+				 bottom-left-bounds:height))))
+      (graphics:setColor color)
+      (graphics:fill top-left-quote-paren)
+      (graphics:fillRect 0 top-left-quote-bounds:height
+		       5 line-height)
+      (with-translation (0 (+ top-left-quote-bounds:height
+			      line-height))
+	  (graphics:fill bottom-left-quote-paren))))
 
+  (define (close-quote-paren! height::real color::Color)::void
+    (let ((line-height (max 0 (- height
+				 top-right-bounds:height
+				 bottom-right-bounds:height))))
+      (graphics:setColor color)
+      (graphics:fill top-right-quote-paren)
+      (graphics:fillRect (- top-right-quote-bounds:width 5)
+			 top-right-quote-bounds:height
+			 5
+			 line-height)
+
+      (with-translation (0 (+ top-right-quote-bounds:height
+			      line-height))
+	  (graphics:fill bottom-right-quote-paren))))
+  
   (define (draw-quote-box! width::real
 			   height::real
 			   context::Cursor)
     ::void
-    (values))
+    (open-quote-paren! height (opening-parenthesis-color context))
+    (with-translation ((- width (quote-paren-width)) 0)
+      (close-quote-paren! height
+			  (closing-parenthesis-color context))))
   
-  (define (quote-paren-width)::real 1)
+  (define (quote-paren-width)::real
+    (+ 1 top-left-quote-bounds:width))
   
   (define (draw-quote-markers! width::real
 			       height::real
 			       context::Cursor)
     ::void
-    (values))
+    (graphics:setColor (opening-parenthesis-color context))
+    (graphics:fill quote-marker))
 
-  (define (quote-marker-width)::real 1)
+  (define (quote-marker-width)::real
+    (+ 1 top-left-quote-bounds:width))
+
+  (define (open-quasiquote-paren! height::real color::Color)::void
+    (let ((line-height (max 0 (- height top-left-bounds:height))))
+      (graphics:setColor color)
+      (graphics:fill top-left-quote-paren)
+      (graphics:fillRect 0 top-left-quote-bounds:height
+		       5 line-height)))
+
+  (define (close-quasiquote-paren! height::real color::Color)::void
+    (let ((line-height (max 0 (- height top-right-bounds:height))))
+      (graphics:setColor color)
+      (graphics:fill top-right-quote-paren)
+      (graphics:fillRect (- top-right-quote-bounds:width 5)
+			 top-right-quote-bounds:height
+			 5 line-height)))
 
   (define (draw-quasiquote-box! width::real
 				height::real
 				context::Cursor)
     ::void
-    (values))
+    (open-quasiquote-paren! height
+			    (opening-parenthesis-color context))
+    (with-translation ((- width (quasiquote-paren-width)) 0)
+      (close-quasiquote-paren! height
+			       (closing-parenthesis-color context))))
   
-  (define (quasiquote-paren-width)::real 1)
+  (define (quasiquote-paren-width)::real
+    (+ 1 top-left-quote-bounds:width))
   
   (define (draw-quasiquote-markers! width::real
 				    height::real
 				    context::Cursor)
     ::void
-    (values))
+    (graphics:setColor (opening-parenthesis-color context))
+    (graphics:fill top-left-quote-paren)
+    (with-translation ((+ width (quasiquote-marker-width)) 0)
+      (graphics:setColor (closing-parenthesis-color context))
+      (graphics:fill top-right-quote-paren)))
   
-  (define (quasiquote-marker-width)::real 1)
+  (define (quasiquote-marker-width)::real
+    (+ 1 quote-marker-bounds:width))
+
+  (define (open-unquote-paren! height::real color::Color)::void
+    (let ((line-height (max 0 (- height
+				 bottom-left-quote-bounds:height))))
+      (graphics:setColor color)
+      (graphics:fillRect 0 0 5 line-height)
+      (with-translation (0 line-height)
+	(graphics:fill bottom-left-quote-paren))
+      ))
+
+  (define (close-unquote-paren! height::real color::Color)::void
+    (let ((line-height (max 0 (- height
+				 bottom-right-quote-bounds:height))))
+      (graphics:setColor color)
+      (graphics:fillRect (- bottom-right-quote-bounds:width 5) 0
+			 5 line-height)
+      (with-translation (0 line-height)
+	(graphics:fill bottom-right-quote-paren))))
   
   (define (draw-unquote-box! width::real
 			     height::real
 			     context::Cursor)
     ::void
-    (values))
+    (open-unquote-paren! height (opening-parenthesis-color context))
+    (with-translation ((- width (quasiquote-paren-width)) 0)
+      (close-unquote-paren! height
+			    (closing-parenthesis-color context))))
 
-  (define (unquote-paren-width)::real 1)
+  (define (unquote-paren-width)::real
+    (+ 1 bottom-left-quote-bounds:width))
     
   (define (draw-unquote-markers! width::real
 				 height::real
 				 context::Cursor)
     ::void
-    (values))
+    (with-translation (0 (- height bottom-left-quote-bounds:height))
+      (graphics:setColor (opening-parenthesis-color context))
+      (graphics:fill bottom-left-quote-paren)
+      (with-translation ((+ width (quasiquote-marker-width)) 0)
+	(graphics:setColor (closing-parenthesis-color context))
+	(graphics:fill bottom-right-quote-paren))))
   
-  (define (unquote-marker-width)::real 1)
+  (define (unquote-marker-width)::real
+    (+ 1 bottom-left-quote-bounds:width))
 
+  (define (open-unquote-splicing-paren! height::real color::Color)
+    ::void
+    (graphics:setColor color)
+    (graphics:fillRect 0 5 1 5)
+    (graphics:fillRect 3 5 3 5)
+    (with-translation (5 0)
+      (open-unquote-paren! height color)))
+
+  (define (close-unquote-splicing-paren! height::real color::Color)
+    ::void
+    (graphics:setColor color)
+    (close-unquote-paren! height color)
+    (graphics:fillRect 10 5 3 5)
+    (graphics:fillRect 14 5 1 5))
+  
   (define (draw-unquote-splicing-box!
 	   width::real
 	   height::real
 	   context::Cursor)
     ::void
-    (values))
+    (open-unquote-splicing-paren!
+     height (opening-parenthesis-color context))
+    (with-translation ((- width (unquote-splicing-paren-width)) 0)
+      (close-unquote-splicing-paren!
+       height (closing-parenthesis-color context))))
 
-  (define (unquote-splicing-paren-width)::real 1)
+  (define (unquote-splicing-paren-width)::real
+    (+ (unquote-paren-width) 5))
 
   (define (draw-unquote-splicing-markers!
 	   width::real
 	   height::real
 	   context::Cursor)
     ::void
-    (values))
+    (with-translation (0 (- height bottom-left-quote-bounds:height))
+      (graphics:setColor (opening-parenthesis-color context))
+      (graphics:fillRect 0 5 1 10)
+      (graphics:fillRect 3 5 5 10)
+      (with-translation (5 0)
+	(graphics:fill bottom-left-quote-paren)
+	(with-translation ((+ width (quasiquote-marker-width)) 0)
+	  (graphics:setColor (closing-parenthesis-color context))
+	  (graphics:fill bottom-right-quote-paren)
+	  (graphics:fillRect 10 5 13 10)
+	  (graphics:fillRect 14 5 15 10)))))
 
-  (define (unquote-splicing-marker-width)::real 1)
+  (define (unquote-splicing-marker-width)::real
+    (+ (unquote-marker-width) 10))
   
   (define (min-box-height)::real
     (max (invoke (the-atom-font) 'getSize2D)
@@ -496,7 +719,7 @@
   (define (in-comment-drawing-mode?)::boolean
     (is current-comment-level > 0))
   
-  (define (vertical-bar-width)::real 15)
+  (define (vertical-bar-width)::real 5)
   
   (define (horizontal-bar-height)::real 5)
   
@@ -593,7 +816,18 @@
   
   (define (draw-quoted-text! text::CharSequence context::Cursor)::void
     (parameterize ((the-cursor-offset quoted-text-cursor-offset))
-      (draw-string! text context)))
+      (graphics:fill single-quote)
+      (with-translation (single-quote-extent:width 0)
+	(graphics:fill single-quote)
+	(with-translation (single-quote-extent:width
+			   single-quote-extent:height)
+	  (draw-string! text context)
+      	  (let ((extent ::Extent (text-extent text
+					      (the-string-font))))
+	    (with-translation (extent:width extent:height)
+	      (graphics:fill single-quote)
+	      (with-translation (single-quote-extent:width 0)
+		(graphics:fill single-quote))))))))
 
   (define (text-extent text::CharSequence font::Font)::Extent
     (let* ((metrics ::FontMetrics (graphics:getFontMetrics font))
@@ -680,14 +914,21 @@
 				      text::CharSequence)
     ::int
     (text-character-index-under x y text (the-atom-font)))
-  
-  (define (quoted-text-extent text::CharSequence)::Extent
-    (text-extent text (the-string-font)))
 
-  (define (quoted-text-character-index-under x::real y::real
-					     text::CharSequence)
+  (define (quoted-text-extent text::CharSequence)::Extent
+    (let ((inner ::Extent (text-extent text (the-string-font))))
+      (Extent width: (+ inner:width
+			(* 4 single-quote-extent:width))
+	      height: (+ inner:height
+			 (* 2 single-quote-extent:height)))))
+
+  (define (quoted-text-character-index-under
+	   x::real y::real text::CharSequence)
     ::int
-    (text-character-index-under x y text (the-string-font)))
+    (text-character-index-under
+     (- x (* 2 single-quote-extent:width))
+     (- y single-quote-extent:height)
+     text (the-string-font)))
 
   (define line-comment-cursor-offset::Position
     (Position left: 0 top: 0))
