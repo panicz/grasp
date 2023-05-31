@@ -1,3 +1,121 @@
+* 30.05.2023
+
+udalo sie zrobic tak zeby Overload bylo Pane
+- i ten klient terminalowy teraz nawet dziala,
+  choc sa problemy z androidowym, a desktopowy
+  to nawrt nie byl jeszcze testowany
+
+i pomijajac kwestie przywrocenia dzialania
+- co chcemy robic dalej?
+
+na pewno chcielibysmy miec menu, takie
+jak w kliencie javowym
+
+musimy zatem odkopac nieco starego kodu
+
+To by teraz jakos tak wygladalo
+
+(define-object (Editor)::Pane
+  ...
+  (define (long-press! finger::byte x::real y::real)::boolean
+    (screen:overlay:add!
+      (PopUp
+        left: x top: y
+	content:
+        (Below
+	  (Button label: "New" action: ...)
+	  (Button label: "Open..." action: ...)
+	  (Button label: "Switch to..." action: ...)
+	  (Button label: "Save as..." action: ...)
+	  (Bitton label: "Close" action: ...)))))
+  ...)
+
+no dobrze, w Javowym prototypie mielismy metode trySetSize,
+i element Below mogl go sobie wywolac
+
+I tutaj tez bysmy chcieli miec cos podobnego.
+
+(define-interface PotentiallyResizable ()
+  (try-set-width! width::real)::void
+  (try-set-height! height::real)::void
+  )
+
+no dobra, ale teraz pojawia sie nam tutaj nowy aspekt,
+mianowicie chcielibysmy, zeby wszystkie widgety byly
+"Enchanted"
+
+i wowczas bysmy:
+1. zaimplementowali try-set-<size>! dla Button
+2. zmienili czcionki na takie
+   ktore wygladaja jak w starym kliencie javowym
+
+tylko jeszcze pytanie, jak sprzac ze soba guziki
+w taki sposob, zeby w kliencie terminalowym te guziki
+wygladaly tak
+
+╭────────────────╮
+│┌──────────────┐│
+││ New          ││
+│├──────────────┤│
+││ Open...      ││
+│├──────────────┤│
+││ Switch to... ││
+│├──────────────┤│
+││ Save as...   ││
+│├──────────────┤│
+││ Close        ││
+│└──────────────┘│
+╰────────────────╯
+
+Zamiast
+
+┌──────────────┐
+│ New          │
+└──────────────┘
+┌──────────────┐
+│ Open...      │
+└──────────────┘
+┌──────────────┐
+│ Switch to... │
+└──────────────┘
+┌──────────────┐
+│ Save as...   │
+└──────────────┘
+┌──────────────┐
+│ Close        │
+└──────────────┘
+
+
+* 29.05.2023
+
+zmiany, od ktorych zaczynamy obsluge plywajacych
+okien:
+- usuwamy move! z interfejsu Pane
+- tworzymy klase Screen, zawierajaca:
+  - overlay
+  - dragginng
+  - top-pane
+  - metode move!
+  - elementy overlay rowniez powinny stac sie
+    Pane, natomiast Drag powinno byc klasa
+    abstrakcyjna implementujaca Pane
+  
+no dobra, klase Screen juz mamy (choc bez podniety),
+natomisdt pozostaja nam jeszcze takie rzeczy, jak:
+- usunac move! z Pane
+- spraeic, zeby Drag bylo Pane
+
+
+no ale chwila
+
+dlaczego chcemy zeby Drag bylo Pane?
+
+to chyba bez sensu?
+
+chcemy za to, zeby Overlay bylo Pane.
+
+
+    
 * 26.05.2023
 
 plany na najblizszy czas to:
@@ -40,7 +158,6 @@ na wyrazeniu zas bysmy chcieli miec:
 Copy
 Cut
 Paste (replace)
-
 
 * 24.05.2023
 
