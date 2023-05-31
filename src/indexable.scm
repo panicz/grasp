@@ -176,7 +176,13 @@ operate on cursors.
   
   (let* ((length/a (length a))
 	 (length/b (length b)))
-    (cond ((is length/a < length/b)
+    (cond ((is length/b = 0)
+	   #f)
+
+	  ((is length/a = 0)
+	   #t)
+
+	  ((is length/a < length/b)
 	   (let ((stem/b (drop (- length/b length/a) b)))
 	     (k< (- length/a 1) a stem/b document)))
 	     

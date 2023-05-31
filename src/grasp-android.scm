@@ -354,8 +354,7 @@
   (define (display-messages output::Object)::void
     (let* ((canvas ::Canvas (as Canvas output))
 	   (font ::Font (the-log-font))
-	   (screen-extent ::Extent (the-screen-extent))
-	   (top ::float  (- screen-extent:height
+	   (top ::float  (- screen:extent:height
 			    (* 4 font:size))))
       (paint:setTypeface font:face)
       (paint:setTextSize font:size)
@@ -1095,8 +1094,7 @@
   (define (onDraw c::Canvas)::void
     (set! canvas c)
     (clear!)
-    (invoke (the-screen) 'draw! '())
-    (the-overlay:draw!)
+    (screen:draw!)
     (invoke (current-message-handler)
 	    'display-messages canvas))
   
@@ -1174,15 +1172,14 @@
      (parameterize ((unicode-input (integer->char
 				    (event:getUnicodeChar))))
        (invalidating
-	(invoke (the-screen)
-		'key-typed!
-		(as long
-		    (bitwise-ior
-		     (as long keyCode)
-		     (if (event:ctrl-pressed?) CTRL_MASK 0)
-		     (if (event:alt-pressed?) ALT_MASK 0)
-		     (if (event:shift-pressed?) SHIFT_MASK 0)
-		     )))))))
+	(screen:key-typed!
+	 (as long
+	     (bitwise-ior
+	      (as long keyCode)
+	      (if (event:ctrl-pressed?) CTRL_MASK 0)
+	      (if (event:alt-pressed?) ALT_MASK 0)
+	      (if (event:shift-pressed?) SHIFT_MASK 0)
+	      )))))))
   
   (define (onCreate savedState::Bundle)::void
     (invoke-special AndroidActivity (this) 'onCreate
@@ -1213,12 +1210,11 @@
     (set! view (View (this)))
     (set! the-view view)
 
-    (let* ((screen-extent ::Extent (the-screen-extent))
-	   (resources ::AndroidResources (getResources))
+    (let* ((resources ::AndroidResources (getResources))
 	   (metrics ::DisplayMetrics
 		    (resources:getDisplayMetrics)))
-      (set! screen-extent:width metrics:widthPixels)
-      (set! screen-extent:height metrics:heightPixels))
+      (set! screen:extent:width metrics:widthPixels)
+      (set! screen:extent:height metrics:heightPixels))
 
     (view:setSystemUiVisibility
      AndroidView:SYSTEM_UI_FLAG_FULLSCREEN)
@@ -1227,19 +1223,19 @@
     
     (set! (the-painter) view)
     (for expression in init-script
-	 (safely
-	  (eval expression)))
-    (set! (the-screen)
-	  (ShowKeyboardOnTap (the-screen) view))
+      (safely
+       (eval expression)))
+    (set! screen:top
+	  (ShowKeyboardOnTap screen:top view))
     (let ((postpone ::Postponed (EventRunner
 				 (android.os.Handler)
 				 view)))
       (for finger from 0 below 10
 	   (set! (process-finger finger)
-		 (TouchEventProcessor finger (the-screen)
+		 (TouchEventProcessor finger screen
 				      postpone
 				      vicinity: 15))))
-    (WARN (the-screen))
+    (WARN screen)
     )
   
   (AndroidActivity))

@@ -121,13 +121,11 @@
       (set! (screen-up-to-date?) #t))
     (let* ((resize ::TerminalSize (io:doResizeIfNecessary))
 	   (size (or resize (io:getTerminalSize)))
-	   (extent ::Extent (the-screen-extent))
 	   (painter (the-painter)))
-      (set! extent:width (size:getColumns))
-      (set! extent:height (size:getRows))
+      (set! screen:extent:width (size:getColumns))
+      (set! screen:extent:height (size:getRows))
       (painter:clear!)
-      (invoke (the-screen) 'draw! '())
-      (the-overlay:draw!)
+      (screen:draw!)
       ;; swap front- and back-buffer
       (io:refresh (if resize
 		      LanternaScreen:RefreshType:COMPLETE
@@ -161,7 +159,7 @@
 	      
 	      (match (action:getButton)
 		(,MouseButton:Left
-		 (invoke (the-screen) 'press! 0 #;at left top)
+		 (screen:press! 0 #;at left top)
 		 (set! previous-mouse:left left)
 		 (set! previous-mouse:top top))
 		(,MouseButton:Right
@@ -169,16 +167,14 @@
 		(_
 		 (values))))
 	     ((action:isMouseDrag)
-	      (invoke (the-screen)
-		      'move! 0 left top
-		      (- left previous-mouse:left)
-		      (- top previous-mouse:top))
+	      (screen:move! 0 left top
+			    (- left previous-mouse:left)
+			    (- top previous-mouse:top))
 	      (set! previous-mouse:left left)
 	      (set! previous-mouse:top top))
 
 	     ((action:isMouseUp)
-	      (invoke (the-screen)
-		      'release! 0 left top
+	      (screen:release! 0 left top
 		      (- left previous-mouse:left)
 		      (- top previous-mouse:top))
 	      (set! previous-mouse:left left)
@@ -186,7 +182,7 @@
 	 
 	 (_
 	  (parameterize ((unicode-input (input-character key)))
-	    (invoke (the-screen) 'key-typed! (scancode key)))))))
+	    (screen:key-typed! (scancode key)))))))
      
     (synchronized screen-up-to-date?
       (set! (screen-up-to-date?) #f)

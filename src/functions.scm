@@ -2,6 +2,7 @@
 (import (match))
 (import (examples))
 (import (infix))
+(import (for))
 
 (define (times n::int action . args)
   (when (is n > 0)
@@ -96,27 +97,33 @@
 (define predicate procedure)
 
 (define (any satisfying? elements)
-  (and-let* ((`(,first . ,rest) elements))
-    (or (satisfying? first)
-	(any satisfying? rest))))
+  (call/cc
+   (lambda (return)
+     (for x in elements
+       (let ((result (satisfying? x)))
+	 (when result
+	   (return result))))
+     #f)))
 
 (e.g.
  (any even? '(1 2 3)))
 
-(define (every satisfying? elements)
-  (or (null? elements)
-      (and-let* ((`(,first . ,rest) elements))
-	(and (satisfying? first)
-	  (every satisfying? rest)))))
+(define (every satisfying? elements)::boolean
+  (call/cc
+   (lambda (return)
+     (for x in elements
+	 (unless (satisfying? x)
+	   (return #f)))
+     #t)))
 
 (e.g.
  (every even? '(2 4 6)))
 
 (define (fold-left f x0 . xs*)
   (define (fold-left1 f x0 xs)
-    (if (null? xs)
-	x0
-	(fold-left1 f (f x0 (car xs)) (cdr xs))))
+    (for x in xs
+      (set! x0 (f x0 x)))
+    x0)
 
   (define (fold-left2 f x0 xs xs2)
     (if (or (null? xs) (null? xs2))
@@ -296,7 +303,6 @@
   (<= (char->integer #\0)
       (char->integer c)
       (char->integer #\9)))
-
 
 (define (char-hex-digit? c::char)::boolean
   (or (char-digit? c)

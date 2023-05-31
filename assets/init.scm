@@ -31,9 +31,18 @@
 (import (cursor))
 (import (button))
 
-(set-key! 'left move-cursor-left!)
+(set-key! 'left (lambda ()
+		  (let ((cursor (the-cursor)))
+		    (move-cursor-left!)
+		    (WARN "moved cursor from "
+			  cursor" to "(the-cursor)))))
 
-(set-key! 'right move-cursor-right!)
+(set-key! 'right (lambda ()
+		   (let ((cursor (the-cursor)))
+		     (move-cursor-right!)
+		     (WARN "moved cursor from "
+			  cursor" to "(the-cursor)))))
+
 (set-key! 'up move-cursor-up!)
 (set-key! 'down move-cursor-down!)
 
@@ -59,9 +68,9 @@
 (set-key! 'backspace delete-backward!)
 (set-key! 'delete delete-forward!)
 
-(set-key! '(ctrl /) (lambda ()
-		      (WARN "cursor: "(the-cursor)
-			    ", expression: "(the-expression))))
+(set-key! 'F1 (lambda ()
+		(WARN "cursor: "(the-cursor)
+		      ", expression: "(the-expression))))
 
 #|
 
@@ -74,10 +83,11 @@
 (set-key! 'mouse-wheel-down scroll-down!)
 |#
 
-(when (is (the-screen) instance? Editor)
-    (let ((editor ::Editor (as Editor (the-screen))))
+(let ((top ::Pane (field screen 'top)))
+  (when (is top instance? Editor)
+    (let ((editor ::Editor (as Editor top)))
       (slot-set! editor 'document
-		 (with-input-from-string "
+		 (with-input-from-string #;"
           #|FAC|# #|  
 TOR
   |# #|
@@ -87,7 +97,11 @@ IAL|#
   ;  A factorial of an integer number n
   ;  is a product 1 * 2 * 3 * 4 * ... * n.
   ;  It represents the number of permutations
-  ;  of an n-element set.
+  ;  of an n-element set.""
+`',x
+(quote ())
+(quote (a b))
+(quote (a . b))
 (define (! n) ; -> int
 \"Computes the product 1*...*n.
 It represents the number of per-
@@ -101,7 +115,7 @@ son|#
 #;(e.g. #;(! #;5) ===> 120)
 (Button action: (lambda () (WARN \"button pressed!\"))
         label: \"Press me!\")
-" parse-document))))
+" parse-document)))))
 
 (WARN "loaded init.scm")
 

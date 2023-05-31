@@ -993,8 +993,7 @@ by the AWT framework."))
     (set! (the-painter) (this))
     ;; cf. https://docs.oracle.com/javase/tutorial/2d/advanced/quality.html
     (graphics:setRenderingHints rendering-hints)
-    (invoke (the-screen) 'draw! '())
-    (the-overlay:draw!))
+    (screen:draw!))
 
   (define (x event::MouseEvent)::real
     (event:getX))
@@ -1003,7 +1002,7 @@ by the AWT framework."))
     (event:getY))
   
   (define (mouseClicked event::MouseEvent)::void
-    (when (invoke (the-screen) 'tap! 0 #;at (x event) (y event))
+    (when (screen:tap! 0 #;at (x event) (y event))
       (repaint)))
   
   (define previous-x ::real 0)
@@ -1012,7 +1011,7 @@ by the AWT framework."))
   (define (mousePressed event::MouseEvent)::void
     (let ((x (x event))
 	  (y (y event)))
-      (when (invoke (the-screen) 'press! 0 #;at x y)
+      (when (screen:press! 0 #;at x y)
 	(repaint))
       (set! previous-x x)
       (set! previous-y y)))
@@ -1020,7 +1019,7 @@ by the AWT framework."))
   (define (mouseDragged event::MouseEvent)::void
     (let ((x (x event))
 	  (y (y event)))
-      (when (invoke (the-screen) 'move!
+      (when (screen:move!
 		    0 x y (- x previous-x) (- y previous-y))
 	(repaint))
       (set! previous-x x)
@@ -1029,7 +1028,7 @@ by the AWT framework."))
   (define (mouseReleased event::MouseEvent)::void
     (let ((x (x event))
 	  (y (y event)))
-      (when (invoke (the-screen) 'release!
+      (when (screen:release!
 		    0 x y (- x previous-x) (- y previous-y))
 	(repaint))))
 
@@ -1039,7 +1038,7 @@ by the AWT framework."))
 					      typed)
 					#\null
 					(integer->char typed))))
-	(invoke (the-screen) 'key-typed!
+	(screen:key-typed!
 		(as long (bitwise-ior
 			  (as long (event:getKeyCode))
 			  (if (event:control-down?) CTRL_MASK 0)
@@ -1048,9 +1047,9 @@ by the AWT framework."))
 	(repaint))))
 
   (define (componentResized event::ComponentEvent)::void
-    (slot-set! (the-screen-extent) 'width
+    (set! screen:extent:width
 	       (invoke (this) 'getWidth))
-    (slot-set! (the-screen-extent) 'height
+    (set! screen:extent:height
 	       (invoke (this) 'getHeight)))
   
   (InputHandler)
