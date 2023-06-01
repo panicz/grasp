@@ -1,3 +1,57 @@
+* 31.05.2023
+
+chyba ze wzgledu na klienta terminalowego
+zaimplementujemy raczej ButtonList. Czyli
+cos w rodzaju
+
+(define-object (Editor)::Pane
+  ...
+  (define (long-press! finger::byte x::real y::real)::boolean
+    (screen:overlay:add!
+      (PopUp
+        left: x top: y
+	content:
+        (ButtonList
+	  (Button label: "New" action: ...)
+	  (Button label: "Open..." action: ...)
+	  (Button label: "Switch to..." action: ...)
+	  (Button label: "Save as..." action: ...)
+	  (Bitton label: "Close" action: ...)))))
+  ...)
+
+Wtedy mozemy na razie zupelnie zrezygnowac
+z ustawiania rozmiaru
+
+trzeba sie zastanowic jak do tego podejsc od strony
+painterow
+
+i moze tym sie zajmiemy pozniej.
+
+najpierw jednak skupimy sie na przywroceniu funkcjonowania
+rysowania gestow, bo to zepsulismy nasza refaktoryzacja
+
+no dobra, to juz wyglada na naprawione
+
+to co dalej?
+
+
+teraz bysmy chcieli stworzyc pop-upa
+
+📁 ..
+📄 file.grasp
+
+co sie stanie jezeli wyrzucimy zawartosc pop-upa ze starego
+prototypu?
+
+ogolnie nie ma takiej mozliwosci, bo kazdy pop-up
+ma jakis target.
+
+
+ok, to teraz painter bedzie musial otrzymac nowe metody:
+
+
+
+
 * 30.05.2023
 
 udalo sie zrobic tak zeby Overload bylo Pane
