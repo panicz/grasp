@@ -22,6 +22,13 @@
 
     ((_ var in collection . actions)
      (for-each (lambda (var) . actions) collection))
+
+    ((_ var::type from start to end by increment actions ...)
+     (let loop ((var::type start))
+       (if (<= var end)
+	   (begin
+	     actions ...
+	     (loop (+ var increment))))))
     
     ((_ var from start to end by increment actions ...)
      (let loop ((var start))
@@ -30,6 +37,13 @@
 	     actions ...
 	     (loop (+ var increment))))))
 
+    ((_ var::type from start below end by increment actions ...)
+     (let loop ((var start))
+       (if (< var end)
+	   (begin
+	     actions ...
+	     (loop (+ var increment))))))
+    
     ((_ var from start below end by increment actions ...)
      (let loop ((var start))
        (if (< var end)
@@ -37,6 +51,13 @@
 	     actions ...
 	     (loop (+ var increment))))))
 
+    ((_ var::type from start to end actions ...)
+     (let loop ((var start))
+       (if (<= var end)
+	   (begin
+	     actions ...
+	     (loop (+ var 1))))))
+    
     ((_ var from start to end actions ...)
      (let loop ((var start))
        (if (<= var end)
@@ -44,6 +65,13 @@
 	     actions ...
 	     (loop (+ var 1))))))
 
+    ((_ var::type from start below end actions ...)
+     (let loop ((var start))
+       (if (< var end)
+	   (begin
+	     actions ...
+	     (loop (+ var 1))))))
+    
     ((_ var from start below end actions ...)
      (let loop ((var start))
        (if (< var end)

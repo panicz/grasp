@@ -472,7 +472,7 @@
   
   (define (release! finger::byte x::real y::real vx::real vy::real)
     ::boolean
-    (or (and-let* ((drag ::Drag (dragging 0)))
+    (or (and-let* ((drag ::Drag (dragging finger)))
 	  (drag:drop! x y vx vy)
 	  (unset! (dragging finger))
 	  #t)
@@ -481,14 +481,9 @@
     
   (define (move! finger::byte x::real y::real dx::real dy::real)
     ::boolean
-    (let ((result ::boolean #f))
-      (for finger from 0 below 10
-	   (set! result
-		 (or (and-let* ((drag ::Drag (dragging finger)))
-		       (drag:move! x y dx dy)
-		       #t)
-		     result)))
-      result))
+    (and-let* ((drag ::Drag (dragging finger)))
+      (drag:move! x y dx dy)
+      #t))
     
   (define (second-press! finger::byte #;at x::real y::real)::boolean
     (or (overlay:second-press! finger x y)
@@ -559,10 +554,12 @@
 	   #;((isnt parent eq? target)
 	    (WARN "reached non-final item on press"))
 	   
-	   ((isnt dragging clean?)
-	    (WARN "should start scrolling or zooming"))
+	   #;((isnt dragging clean?)
+	    (WARN "should start scrolling or zooming "
+		  (keys dragging)))
 	   
 	   ((is target Space?)
+	    (WARN "drawing a stroke")
 	    (set! (dragging finger)
 		  (Drawing (Stroke source-pane: (this)))))
 	   
@@ -607,19 +604,7 @@
   (define (release! finger::byte #;at x::real y::real
 		    #;with vx::real vy::real)
     ::boolean
-    ;;(WARN "release! "finger" "x" "y" "vx" "vy)
-    (parameterize/update-sources ((the-document document)
-				  (the-cursor cursor)
-				  (the-selection-anchor
-				   selection-anchor))
-      (or
-       #;(and-let* ((drag ::Drag (dragging 0)))
-	 (drag:drop! x y vx vy)
-	 (unset! (dragging finger))
-	 #t)
-       (and-let* ((cursor (cursor-under x y)))
-	 (set! (the-cursor) cursor)
-	 (set! (the-selection-anchor) cursor)))))
+    #f)
 
   (define (second-press! finger::byte #;at x::real y::real)
     ::boolean
