@@ -38,28 +38,19 @@
 
   (define (assign source::Struct)::Struct
     (this))
-  
-  (define (key-pressed key::int)::boolean
-    #f)
-  
-  (define (key-released key::int)::boolean
-    #f)
 
-  (define (key-typed unicode::int)::boolean
+  (define (tap! finger::byte  x::real y::real)::boolean #f)
+  (define (press! finger::byte x::real y::real)::boolean #f)
+  (define (move! finger::byte x::real y::real dx::real dy::real)
+    ::boolean #f)
+  (define (release! finger::byte x::real y::real vx::real vy::real)
+    ::boolean #f)
+  (define (second-press! finger::byte #;at x::real y::real)::boolean
     #f)
+  (define (double-tap! finger::byte x::real y::real)::boolean #f)
+  (define (long-press! finger::byte x::real y::real)::boolean #f)
+  (define (key-typed! key-code::long)::boolean #f)
   
-  (define (tapped x::real y::real)::boolean #f)
-  (define (pressed x::real y::real)::boolean #f)
-  (define (released x::real y::real)::boolean #f)
-  
-  (define (dragged-over x::real y::real item::Tile*)::boolean #f)
-  (define (dragged-out x::real y::real item::Tile*)::boolean #f)
-  (define (dropped x::real y::real item::Tile*)::boolean #f)
-  
-  (define (held x::real y::real)::boolean #f)
-  (define (double-tapped x::real y::real)::boolean #f)
-  (define (second-pressed x::real y::real)::boolean #f)
-
   (define (draw! context::Cursor)::void #!abstract)
 
   (define (extent)::Extent #!abstract)

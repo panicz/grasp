@@ -8,7 +8,7 @@
 (import (print))
 
 (define-object (TouchEventProcessor finger::byte
-				    target::Pane
+				    target::Screen
 				    run::Postponed)
   
   (define (distance x1::real y1::real x2::real y2::real)::real

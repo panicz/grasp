@@ -279,13 +279,8 @@ mutations of an n-element set.\"
 		 (WARN "mouse move to "
 		       (position:toString)))
 		((action:isMouseUp)
-		 (let ((target (the-expression)))
-		   (when (is target Interactive?)
-		     (invoke (as Interactive target)
-			     'tapped left top)))
-		 
-		 )
-		))
+		 (and-let* ((target ::Interactive (the-expression)))
+		   (target:tap! left top)))))
 	     (continue))
 	    
 	    (_

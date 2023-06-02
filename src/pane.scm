@@ -38,51 +38,12 @@
   (draw!)::void
   )
 
-(define-interface InputReceiver ()
-  (tap! finger::byte #;at x::real y::real)::boolean
-  (press! finger::byte #;at x::real y::real)::boolean
-  (move! finger::byte x::real y::real dx::real dy::real)::boolean
-  (release! finger::byte x::real y::real vx::real vy::real)::boolean
-  (second-press! finger::byte #;at x::real y::real)::boolean
-  (double-tap! finger::byte x::real y::real)::boolean
-  (long-press! finger::byte x::real y::real)::boolean
-  
-  (key-typed! key-code::long)::boolean
-  )
-
-(define-interface Pane (Drawable InputReceiver))
+(define-interface Pane (Drawable Interactive))
 
 (define-interface Drag ()
   (move! x::real y::real dx::real dy::real)::void
   (drop! x::real y::real vx::real vy::real)::void
   )
-
-(define-object (IgnoreInput)::InputReceiver
-  (define (tap! finger::byte #;at x::real y::real)::boolean #f)
-  (define (press! finger::byte #;at x::real y::real)::boolean #f)
-  (define (move! finger::byte x::real y::real dx::real dy::real)
-    ::boolean #f)
-  (define (release! finger::byte x::real y::real vx::real vy::real)
-    ::boolean #f)
-  (define (second-press! finger::byte #;at x::real y::real)::boolean
-    #f)
-  (define (double-tap! finger::byte x::real y::real)::boolean #f)
-  (define (long-press! finger::byte x::real y::real)::boolean #f)
-  
-  (define (key-typed! key-code::long)::boolean #f))
-
-(define-object (ConsumeInput)::InputReceiver
-  (define (tap! finger::byte #;at x::real y::real)::boolean #t)
-  (define (press! finger::byte #;at x::real y::real)::boolean #t)
-  (define (move! finger::byte x::real y::real dx::real dy::real)
-    ::boolean #t)
-  (define (release! finger::byte x::real y::real vx::real vy::real)
-    ::boolean #t)
-  (define (second-press! finger::byte #;at x::real y::real)::boolean
-    #t)
-  (define (double-tap! finger::byte x::real y::real)::boolean #t)
-  (define (long-press! finger::byte x::real y::real)::boolean #t)
-  (define (key-typed! key-code::long)::boolean #t))
 
 (define-object (Point x y)::Drawable
   (define (draw!)
@@ -134,12 +95,6 @@
   (define (press! finger::byte #;at x::real y::real)::boolean
     (any (lambda (element::Pane)
 	   (element:press! finger x y))
-	 elements))
-
-  (define (move! finger::byte x::real y::real dx::real dy::real)
-    ::boolean
-    (any (lambda (element::Pane)
-	   (element:move! finger x y dx dy))
 	 elements))
   
   (define (release! finger::byte x::real y::real vx::real vy::real)
@@ -267,11 +222,6 @@
     ::boolean
     (content:release! finger x y vx vy))
   
-  (define (move! finger::byte x::real y::real
-		 dx::real dy::real)
-    ::boolean
-    (content:move! finger x y dx dy))
-  
   (define (second-press! finger::byte #;at x::real y::real)::boolean
     (content:second-press! finger x y))
   
@@ -351,24 +301,6 @@
 	    (set! focus HorizontalSplitFocus:Right)
 	    (right:press! finger #;at (- x left-width line-width) y
 			  )))))
-
-  ((move! finger::byte #;to x::real y::real
-          #;by dx::real dy::real)
-   ::boolean
-   (let* ((painter (the-painter))
-	  (extent (the-pane-extent))
-          (line-width (invoke painter 'vertical-line-width))
-          (inner-width (- extent:width line-width))
-          (left-width (* at inner-width))
-          (right-width (- inner-width left-width)))
-     (cond ((is x < left-width)
-	    (set! focus HorizontalSplitFocus:Left)
-            (left:move! finger #;to x y #;by dx dy))
-           ((is (+ left-width line-width) < x)
-	    (set! focus HorizontalSplitFocus:Right)
-            (right:move! finger
-                         #;to (- x left-width line-width) y
-                              #;by dx dy)))))
   
   ((release! finger::byte #;at x::real y::real
 	     #;with vx::real vy::real)
@@ -523,7 +455,7 @@
 	(DUMP target)
 	(match target
 	  (enchanted::Interactive
-	   (enchanted:tapped x y))
+	   (enchanted:tap! finger x y))
 	  (else
 	   (set! cursor target-cursor)
 	   (set! selection-anchor cursor)
@@ -596,10 +528,6 @@
 	    (set! (the-selection-anchor) path)
 	     )))
 	#t)))
-
-  (define (move! finger::byte x::real y::real dx::real dy::real)
-    ::boolean
-    #f)
   
   (define (release! finger::byte #;at x::real y::real
 		    #;with vx::real vy::real)

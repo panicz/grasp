@@ -51,7 +51,7 @@
 	 (else
 	  #f)))
   
-  ((tapped x::real y::real)::boolean
+  ((tap! finger::byte x::real y::real)::boolean
    (action)
    #t))
 
