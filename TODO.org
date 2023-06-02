@@ -1,3 +1,72 @@
+* 01.06.2023
+
+w najblizszym czasie chcemy zrobic takie rzeczy:
+- plywajace okienka
+- widget z lista guzikow
+- ewentualnie mrugniecie guzika przed aktywowaniem akcji
+
+najpierw sie zajmiemy plywajacym oknem
+
+to by dzialalo jakos tak:
+
+
+(define-type (PopUp left: real := 0 top: real := 0
+                    content: Tile)
+		    
+  implementing Tile
+  with
+  ((part-at index::Index)::Indexable* (this))
+  
+  ((first-index)::Index 0)
+  ((last-index)::Index 0)
+  
+  ((next-index index::Index)::Index 0)
+  ((previous-index index::Index)::Index 0)
+
+  ((index< a::Index b::Index)::boolean #f) ;>
+
+  ((cursor-under* x::real y::real path::Cursor)::Cursor*
+    #!abstract)
+  implementing Drag
+  with
+    
+  implementing Pane
+  with
+  ((tap! finger::byte #;at x::real y::real)::boolean #f)
+  ((press! finger::byte #;at x::real y::real)::boolean
+   (let* ((painter ::Painter (the-painter))
+          (inner ::Extent (content:extent))
+	  (horizontal ::real (painter:horizontal-popup-margin))
+	  (vertical ::real (painter:vertical-popup-margin))
+	  (right ::real
+     (if (or (is 0 <= x < horizontal) ;>>
+             (is 0 <= y < vertical) ;>>
+	     (is (+ inner:width horizontal) < x) ;>
+	     (is (+ inner:height vertical) < y)) ;>
+	 (screen:dragging:add!
+     ))
+  ((move! finger::byte x::real y::real dx::real dy::real)
+  ::boolean #f)
+  ((release! finger::byte x::real y::real vx::real vy::real)
+  ::boolean #f)
+  ((second-press! finger::byte #;at x::real y::real)::boolean
+  #f)
+  ((double-tap! finger::byte x::real y::real)::boolean #f)
+  ((long-press! finger::byte x::real y::real)::boolean #f)
+  ((key-typed! key-code::long)::boolean #f)
+  implementing Enchanted
+  with
+  ((as-expression)::cons
+  ...)
+  )
+
+
+(painter:draw-popup!
+  (+ inner:width (* 2 (painter:horizontal-popup-margin)))
+  (+ inner:height (* 2 (painter:vertical-popup-margin))))
+
+
+  
 * 31.05.2023
 
 chyba ze wzgledu na klienta terminalowego
