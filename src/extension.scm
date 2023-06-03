@@ -43,8 +43,6 @@
   (define (press! finger::byte x::real y::real)::boolean #f)
   (define (move! finger::byte x::real y::real dx::real dy::real)
     ::boolean #f)
-  (define (release! finger::byte x::real y::real vx::real vy::real)
-    ::boolean #f)
   (define (second-press! finger::byte #;at x::real y::real)::boolean
     #f)
   (define (double-tap! finger::byte x::real y::real)::boolean #f)
@@ -71,6 +69,29 @@
   ((enchant source::cons)::Enchanted
    #!abstract)
   )
+
+(define (to-expression object)
+  (match object
+    (magic::Enchanted
+     (magic:as-expression))
+    (struct::ListSerializable
+     (struct:to-list (lambda (a d) (cons a d))
+		     to-expression))
+    (cell::cons
+     cell)
+    (cell::pair
+     (cons (to-expression (car pair))
+           (to-expression (cdr pair))))
+    (s::symbol
+     (Atom (symbol->string s)))
+    (,@(null? object)
+     (empty))
+    (n::number
+     (Atom (number->string n)))
+    (t::Text
+     t)
+    (s::string
+     (text s))))
 
 (define-constant extension
   (mapping (keyword)

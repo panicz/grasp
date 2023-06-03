@@ -97,12 +97,6 @@
 	   (element:press! finger x y))
 	 elements))
   
-  (define (release! finger::byte x::real y::real vx::real vy::real)
-    ::boolean
-    (any (lambda (element::Pane)
-	   (element:release! finger x y vx vy))
-	 elements))
-  
   (define (second-press! finger::byte #;at x::real y::real)::boolean
     (any (lambda (element::Pane)
 	   (element:second-press! finger x y))
@@ -217,11 +211,6 @@
   (define (press! finger::byte #;at x::real y::real)::boolean
     (content:press! finger x y))
   
-  (define (release! finger::byte x::real y::real
-		    vx::real vy::real)
-    ::boolean
-    (content:release! finger x y vx vy))
-  
   (define (second-press! finger::byte #;at x::real y::real)::boolean
     (content:second-press! finger x y))
   
@@ -301,25 +290,6 @@
 	    (set! focus HorizontalSplitFocus:Right)
 	    (right:press! finger #;at (- x left-width line-width) y
 			  )))))
-  
-  ((release! finger::byte #;at x::real y::real
-	     #;with vx::real vy::real)
-   ::boolean
-   (let* ((painter (the-painter))
-	  (extent (the-pane-extent))
-	  (line-width (invoke painter 'vertical-line-width))
-          (inner-width (- extent:width
-			  line-width))
-          (left-width (* at inner-width))
-          (right-width (- inner-width left-width)))
-     (cond ((is x < left-width)
-	    (set! focus HorizontalSplitFocus:Left)
-	    (left:release! finger #;at x y #;with vx vy))
-	   ((is (+ left-width line-width) < x)
-	    (set! focus HorizontalSplitFocus:Right)
-	    (right:release! finger
-			    #;at (- x left-width line-width) y
-				 #;with vx vy)))))
 
   ((second-press! finger::byte #;at x::real y::real)::boolean
    (let* ((painter (the-painter))
@@ -404,12 +374,10 @@
   
   (define (release! finger::byte x::real y::real vx::real vy::real)
     ::boolean
-    (or (and-let* ((drag ::Drag (dragging finger)))
-	  (drag:drop! x y vx vy)
-	  (unset! (dragging finger))
-	  #t)
-	(overlay:release! finger x y vx vy)
-	(top:release! finger x y vx vy)))
+    (and-let* ((drag ::Drag (dragging finger)))
+      (drag:drop! x y vx vy)
+      (unset! (dragging finger))
+      #t))
     
   (define (move! finger::byte x::real y::real dx::real dy::real)
     ::boolean
@@ -528,11 +496,6 @@
 	    (set! (the-selection-anchor) path)
 	     )))
 	#t)))
-  
-  (define (release! finger::byte #;at x::real y::real
-		    #;with vx::real vy::real)
-    ::boolean
-    #f)
 
   (define (second-press! finger::byte #;at x::real y::real)
     ::boolean
