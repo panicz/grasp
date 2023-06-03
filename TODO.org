@@ -1,4 +1,4 @@
-* 01.06.2023
+* 01-02.06.2023
 
 w najblizszym czasie chcemy zrobic takie rzeczy:
 - plywajace okienka
@@ -9,63 +9,164 @@ najpierw sie zajmiemy plywajacym oknem
 
 to by dzialalo jakos tak:
 
+(define/kw (pop-up-action pop-up::PopUp
+                          x::real y::real
+                          inside: inner-action
+			  ::(maps (Tile byte real real . list)
+                             to: boolean) := never
+                          outside: outer-action
+                          ::(maps (PopUp byte real real . list)
+                                  to: boolean) := never
+			  on-the-edge: boundary-action
+			  ::(maps (PopUp byte real real . list)
+                                  to: boolean) := never
+		          . args)
+   (let* ((painter ::Painter (the-painter))
+          (content ::Tile pop-up:content)
+          (inner ::Extent (content:extent))
+	  (horizontal ::real (painter:horizontal-popup-margin))
+	  (vertical ::real (painter:vertical-popup-margin))
+	  (inner-left ::real (+ left horizontal))
+	  (inner-top :: (+ top horizontal))
+	  (inner-right ::real (+ inner:width horizontal))
+	  (inner-bottom ::real (+ inner:height vertical))
+	  (right ::real (+ inner-right horizontal))
+	  (botom ::real (+ inner-bottom vertical)))
+     (cond ((and (is inner-left <= x < inner-right) ;>>
+                 (is inner-top <= y < inner-bottom)) ;>>
+	    (apply inner-action content finger
+	           (- x inner-left) (- y inner-top) args))
+	   ((or (is x < left) (is x > right)
+	        (is y < top) (is y > bottom))
+	    (apply outer-action pop-up finger x y args))
+	   (else
+	    (apply boundary-action pop-up finger x y args)))))
+
 
 (define-type (PopUp left: real := 0 top: real := 0
                     content: Tile)
 		    
   implementing Tile
   with
-  ((part-at index::Index)::Indexable* (this))
+  ((part-at index::Index)::Indexable*
+   (match index
+    ('edge (this))
+    ('content content)))
   
-  ((first-index)::Index 0)
-  ((last-index)::Index 0)
+  ((first-index)::Index 'edge)
+  ((last-index)::Index 'content)
   
-  ((next-index index::Index)::Index 0)
-  ((previous-index index::Index)::Index 0)
+  ((next-index index::Index)::Index 'content)
+  ((previous-index index::Index)::Index 'edge)
 
-  ((index< a::Index b::Index)::boolean #f) ;>
+  ((index< a::Index b::Index)::boolean ;>
+   (and (eq? a 'content) (eq? b 'edge)))
 
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
-    #!abstract)
+   (call/cc
+    (lambda (return)
+     (pop-up-action (this) x y
+      inside:
+      (lambda (content::Tile finger::byte x::real y::real)::boolean
+        (return
+	 (otherwise #!null
+	   (and path
+	     (content:cursor-under*
+	      x y (recons 'content path))))))
+      outside:
+      (lambda (pop-up::PopUp finger::byte x::real y::real)::boolean
+        (return #!null))
+      on-the-edge:
+      (lambda (pop-up::PopUp finger::byte x::real y::real)::boolean
+        (return
+	  (otherwise #!null
+	    (and path (recons 'edge path)))))))))
+	    
   implementing Drag
   with
-    
+  ((move! x::real y::real dx::real dy::real)::void
+   (set! left (+ left dx))
+   (set! top (+ top dy)))
+   
+  ((drop! x::real y::real vx::real vy::real)::void
+   (values))
+   
   implementing Pane
   with
-  ((tap! finger::byte #;at x::real y::real)::boolean #f)
-  ((press! finger::byte #;at x::real y::real)::boolean
-   (let* ((painter ::Painter (the-painter))
-          (inner ::Extent (content:extent))
-	  (horizontal ::real (painter:horizontal-popup-margin))
-	  (vertical ::real (painter:vertical-popup-margin))
-	  (right ::real
-     (if (or (is 0 <= x < horizontal) ;>>
-             (is 0 <= y < vertical) ;>>
-	     (is (+ inner:width horizontal) < x) ;>
-	     (is (+ inner:height vertical) < y)) ;>
-	 (screen:dragging:add!
-     ))
-  ((move! finger::byte x::real y::real dx::real dy::real)
-  ::boolean #f)
-  ((release! finger::byte x::real y::real vx::real vy::real)
-  ::boolean #f)
+  
+  ((tap! finger::byte #;at x::real y::real)::boolean
+   (pop-up-action (this) x y
+     inside:
+     (lambda (content::Tile finger::byte x::real y::real)::boolean
+       (content:tap! finger x y))
+     outside:
+     (lambda (pop-up::PopUp finger::byte x::real y::real)::boolean
+       (screen:overlay:remove! pop-up))
+     on-the-edge:
+     (lambda (pop-up::PopUp finger::byte x::real y::real)::boolean
+       (let ((dragging screen:dragging))
+         (set! (dragging finger) pop-up)))))
+
   ((second-press! finger::byte #;at x::real y::real)::boolean
-  #f)
-  ((double-tap! finger::byte x::real y::real)::boolean #f)
-  ((long-press! finger::byte x::real y::real)::boolean #f)
-  ((key-typed! key-code::long)::boolean #f)
+   (pop-up-action (this) x y
+     inside:
+     (lambda (content::Tile finger::byte x::real y::real)::boolean
+       (content:second-press! finger x y))))
+
+  ((double-tap! finger::byte x::real y::real)::boolean
+   (pop-up-action (this) x y
+    inside:
+    (lambda (content::Tile finger::byte x::real y::real)::boolean
+      (content:double-tap! finger x y))))
+
+  ((long-press! finger::byte x::real y::real)::boolean
+   (pop-up-action (this) x y
+     inside:
+     (lambda (content::Tile finger::byte x::real y::real)::boolean
+       (content:long-press! finger x y))))
+  
+  ((key-typed! key-code::long)::boolean
+   (content:key-typed! key-code))
+   
   implementing Enchanted
   with
   ((as-expression)::cons
-  ...)
-  )
+   (to-list cons to-expression))
+)
 
+(define (to-expression object)
+  (match object
+    (magic::Enchanted
+     (magic:as-expression))
+    (struct::ListSerializable
+     (struct:to-list cons to-expression))
+    (cell::cons
+     cell)
+    (cell::pair
+     (cons (to-expression (car pair))
+           (to-expression (cdr pair))))
+    (s::symbol
+     (Atom (symbol->string s))
+    (,@(null? object)
+     (empty))
+    (n::number
+     (Atom (number->string n))
+    (t::Text
+     t)
+    (s::string
+     (text s))))
 
 (painter:draw-popup!
   (+ inner:width (* 2 (painter:horizontal-popup-margin)))
   (+ inner:height (* 2 (painter:vertical-popup-margin))))
 
 
+a ogolnie "kamienie milowe" bysmy okreslili jako:
+- edycja GRASP w GRASP (i wypchniecie do sklepu)
+- ewaluator wizualny
+- kompozycjonalny system budowania rozszerzen
+- ksiazka o GRASP
+- ksiazka w GRASP o komputerach
   
 * 31.05.2023
 
