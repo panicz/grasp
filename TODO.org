@@ -1,3 +1,61 @@
+* 04.06.2023
+
+dzis wykonamy drugie podejscie do rozbicia pane
+na mniejsze moduly
+
+przede wszystkim, Screen musi sie stac interfejsem
+
+po drugie, chcemy stworzyc null-objecta implementujacego
+Screen, NullScreen, bedacego domyslna wartoscia screen.
+
+po trzecie, biezacy Screen powinien sie stac RealScreen
+albo ActualScreen
+
+No dobra, chyba to mamy.
+
+To teraz: tak naprawde wcale nie chcemy dodawac tego
+okienka z poziomu ekranu, tylko z poziomu edytora.
+
+Mozemy zatem skasowac sobie tego NullScreena, ale chcemy
+wyizolowac modul editor
+
+i teraz problem jest taki, ze ActualScreen
+ma swoj 'top' ktory jest Editor.
+
+Zamiast tego:
+- top powinno sie nazywac content
+- content powinien byc ustawiany w init,
+  w sensie cos w rodzaju
+  (screen:set-content! (Editor document: ...))
+
+no, to teraz powinnismy juz moc dosc gladko
+wyodrebnic modul edytora
+
+i w dalszym kroku mozemy zaimportowac (popup) w module
+(editor) i dodac przy akcji (long-press!) nowy pop-up
+z jakims buttonem do screena
+
+teraz trzeba jeszcze wyjasnic dlaczego w PopUp
+nie ma metody "to-list" (czy aby jest klasÿ Struct
+albo Base?)
+
+* 03.06.2023
+
+dzisiaj bysmy sprobowali dodac do tekstowego paintera
+opcje rysowania plywajacych okien
+
+to akurat chybs sie udalo :P
+
+ale jest taki problem, ze modul (pane) ma zbyt wiele zaleznosci.
+
+wiec chcielibysmy go rozbic na nastepujace:
+
+- pane
+- editor
+- screen
+- split
+- stroke
+
 * 01-02.06.2023
 
 w najblizszym czasie chcemy zrobic takie rzeczy:
