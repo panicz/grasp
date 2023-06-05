@@ -9,6 +9,7 @@
 (import (default-value))
 (import (define-parameter))
 (import (define-cache))
+(import (keyword-arguments))
 (import (mapping))
 (import (infix))
 (import (match))
@@ -20,6 +21,7 @@
 (import (cursor))
 (import (interactive))
 (import (primitive))
+(import (extension))
 (import (extent))
 (import (parse))
 (import (conversions))
@@ -31,19 +33,36 @@
 (import (input))
 (import (history))
 
-(define-alias List java.util.List)
-(define-alias ArrayList java.util.ArrayList)
-
 (define-interface Drawable ()
   (draw!)::void
   )
 
 (define-interface Pane (Drawable Interactive))
 
+(define-object (NullPane)::Pane
+  (define (draw!)::void (values))
+  (IgnoreInput))
+
 (define-interface Drag ()
   (move! x::real y::real dx::real dy::real)::void
   (drop! x::real y::real vx::real vy::real)::void
   )
+
+(define-interface Resizable ()
+  (set-size! width::real height::real)::void
+  (size)::Extent
+  )
+  
+(define-interface Screen (Resizable Pane)
+  (release! finger::byte x::real y::real vx::real vy::real)::boolean
+  (move! finger::byte x::real y::real dx::real dy::real)::boolean
+  (overlay! element::Pane)::void
+  (remove-overlay! element::Pane)::void
+  (drag! finger::byte action::Drag)::void
+  (set-content! content::Pane)::void
+  (content)::Pane
+  )
+
 
 (define-object (Point x y)::Drawable
   (define (draw!)
@@ -70,53 +89,9 @@
     (stroke:points:add (Point x y)))
     
   (define (drop! x::real y::real vx::real vy::real)::void
-    (screen:overlay:remove! stroke))
+    (screen:remove-overlay! stroke))
 
-  (screen:overlay:add! stroke))
-
-(define-object (Overlay)::Pane
-  (define elements :: List[Pane] (ArrayList[Pane]))
-  
-  (define (draw!)::void
-    (for element::Pane in-reverse elements
-      (element:draw!)))
-  
-  (define (add! element::Pane)::void
-    (elements:add 0 element))
-  
-  (define (remove! element::Pane)::void
-    (elements:remove element))
-
-  (define (tap! finger::byte #;at x::real y::real)::boolean
-    (any (lambda (element::Pane)
-	   (element:tap! finger x y))
-	 elements))
-  
-  (define (press! finger::byte #;at x::real y::real)::boolean
-    (any (lambda (element::Pane)
-	   (element:press! finger x y))
-	 elements))
-  
-  (define (second-press! finger::byte #;at x::real y::real)::boolean
-    (any (lambda (element::Pane)
-	   (element:second-press! finger x y))
-	 elements))
-  
-  (define (double-tap! finger::byte x::real y::real)::boolean
-    (any (lambda (element::Pane)
-	   (element:double-tap! finger x y))
-	 elements))
-  
-  (define (long-press! finger::byte x::real y::real)::boolean
-    (any (lambda (element::Pane)
-	   (element:long-press! finger x y))
-	 elements))
-  
-  (define (key-typed! key-code::long)::boolean
-    (any (lambda (element::Pane)
-	   (element:key-typed! key-code))
-	 elements))
-  )
+  (screen:overlay! stroke))
 
 (define-object (Selected items::cons position::Position)::Pane
   
@@ -170,9 +145,9 @@
 	 (else
 	  (WARN "unhandled "tip" in "parent)))))
       
-      (screen:overlay:remove! selected)))
+      (screen:remove-overlay! selected)))
 
-  (screen:overlay:add! selected))
+  (screen:overlay! selected))
 
 (define-object (Resize box::cons path::Cursor anchor::real)::Drag
 
@@ -199,6 +174,51 @@
 				    to: (copy final)
 				    with-anchor: anchor)))))
   )
+
+
+(define-object (Overlay)::Pane
+  (define elements :: List[Pane] (ArrayList[Pane]))
+  
+  (define (draw!)::void
+    (for element::Pane in-reverse elements
+      (element:draw!)))
+  
+  (define (add! element::Pane)::void
+    (elements:add 0 element))
+  
+  (define (remove! element::Pane)::void
+    (elements:remove element))
+
+  (define (tap! finger::byte #;at x::real y::real)::boolean
+    (any (lambda (element::Pane)
+	   (element:tap! finger x y))
+	 elements))
+  
+  (define (press! finger::byte #;at x::real y::real)::boolean
+    (any (lambda (element::Pane)
+	   (element:press! finger x y))
+	 elements))
+  
+  (define (second-press! finger::byte #;at x::real y::real)::boolean
+    (any (lambda (element::Pane)
+	   (element:second-press! finger x y))
+	 elements))
+  
+  (define (double-tap! finger::byte x::real y::real)::boolean
+    (any (lambda (element::Pane)
+	   (element:double-tap! finger x y))
+	 elements))
+  
+  (define (long-press! finger::byte x::real y::real)::boolean
+    (any (lambda (element::Pane)
+	   (element:long-press! finger x y))
+	 elements))
+  
+  (define (key-typed! key-code::long)::boolean
+    (any (lambda (element::Pane)
+	   (element:key-typed! key-code))
+	 elements))
+  )
   
 (define-object (WrappedPane content ::Pane)::Pane
 
@@ -223,8 +243,6 @@
   (define (key-typed! key-code::long)::boolean
     (content:key-typed! key-code))
   )
-
-(define-parameter (the-focus)::Cursor '())
 
 (define-enum HorizontalSplitFocus (Left Right))
 
@@ -347,18 +365,38 @@
       (right:key-typed! key-code))))
   )
 
-(define-object (Screen)::Pane
+(define-object (ActualScreen)::Screen
   (define overlay ::Overlay (Overlay))
   (define dragging ::(maps byte to: Drag)
     (mapping (finger::byte)::Drag #!null))
 
-  (define top ::Pane (Editor))
+  (define top ::Pane (NullPane))
 
   ;; this parameter must be set by the
   ;; graphical framework (Lanterna, AWT, ...)
   ;; and changed every time the hosting
   ;; window is resized
   (define extent ::Extent (Extent width: 0 height: 0))
+
+  (define (overlay! element::Pane)::void
+    (overlay:add! element))
+  
+  (define (remove-overlay! element::Pane)::void
+    (overlay:remove! element))
+  
+  (define (drag! finger::byte action::Drag)::void
+    (set! (dragging finger) action))
+  
+  (define (set-size! width::real height::real)::void
+    (set! extent:width width)
+    (set! extent:height height))
+  
+  (define (size)::Extent extent)
+
+  (define (set-content! content::Pane)::void
+    (set! top content))
+  
+  (define (content)::Pane top)
   
   (define (draw!)::void
     (top:draw!)
@@ -401,6 +439,165 @@
     (or (overlay:key-typed! key-code)
 	(top:key-typed! key-code)))
   )
+
+(define/kw (pop-up-action pop-up::PopUp finger::byte x::real y::real
+			  inside: inner-action
+			  ::(maps (Enchanted byte real real)
+				  to: boolean)
+			  := never
+			  outside: outer-action
+			  ::(maps (PopUp byte real real) to: boolean)
+			  := always
+			  on-the-edge: boundary-action
+			  ::(maps (PopUp byte real real) to: boolean)
+			  := always)
+  (let* ((painter ::Painter (the-painter))
+         (content ::Enchanted pop-up:content)
+	 (left ::real pop-up:left)
+	 (top ::real pop-up:top)
+         (inner ::Extent (content:extent))
+	 (horizontal ::real (painter:horizontal-popup-margin))
+	 (vertical ::real (painter:vertical-popup-margin))
+	 (inner-left ::real (+ left horizontal))
+	 (inner-top ::real (+ top horizontal))
+	 (inner-right ::real (+ inner:width horizontal))
+	 (inner-bottom ::real (+ inner:height vertical))
+	 (right ::real (+ inner-right horizontal))
+	 (bottom ::real (+ inner-bottom vertical)))
+    (cond ((and (is inner-left <= x < inner-right)
+                (is inner-top <= y < inner-bottom))
+	   (inner-action content finger
+	          (- x inner-left) (- y inner-top)))
+	  ((or (is x < left) (is x > right)
+	       (is y < top) (is y > bottom))
+	   (outer-action pop-up finger x y))
+	  (else
+	   (boundary-action pop-up finger x y)))))
+
+(define-type (PopUp left: real := 0 top: real := 0
+                    content: Enchanted)
+  implementing Pane
+  with
+  ((draw!)::void
+   (let ((tile ::Tile (as Tile (this))))
+     (tile:draw! '())))
+  
+  ((press! finger::byte #;at x::real y::real)::boolean
+   (pop-up-action (this) finger x y
+     inside:
+     (lambda (content::Enchanted finger::byte x::real y::real)
+       ::boolean
+       (content:press! finger x y))
+     on-the-edge:
+     (lambda (pop-up::PopUp finger::byte x::real y::real)
+       ::boolean
+       (screen:drag! finger pop-up))))
+
+  ((tap! finger::byte #;at x::real y::real)::boolean
+   (pop-up-action (this) finger x y
+     inside:
+     (lambda (content::Enchanted finger::byte x::real y::real)
+       ::boolean
+       (content:tap! finger x y))
+          outside:
+     (lambda (pop-up::PopUp finger::byte x::real y::real)
+       ::boolean
+       (screen:remove-overlay! pop-up))))
+  
+  ((second-press! finger::byte #;at x::real y::real)::boolean
+   (pop-up-action (this) finger x y
+     inside:
+     (lambda (content::Enchanted finger::byte x::real y::real)
+       ::boolean
+       (content:second-press! finger x y))))
+
+  ((double-tap! finger::byte x::real y::real)::boolean
+   (pop-up-action (this) finger x y
+    inside:
+    (lambda (content::Enchanted finger::byte x::real y::real)
+      ::boolean
+      (content:double-tap! finger x y))))
+
+  ((long-press! finger::byte x::real y::real)::boolean
+   (pop-up-action (this) finger x y
+     inside:
+     (lambda (content::Enchanted finger::byte x::real y::real)
+       ::boolean
+       (content:long-press! finger x y))))
+  
+  ((key-typed! key-code::long)::boolean
+   (content:key-typed! key-code))
+		    
+  implementing Tile
+  with
+  ((draw! context::Cursor)::void
+   (let* ((painter ::Painter (the-painter))
+	  (inner ::Extent (content:extent))
+	  (horizontal ::real (painter:horizontal-popup-margin))
+	  (vertical ::real (painter:vertical-popup-margin)))
+     (with-translation (left top)
+       (painter:draw-popup! (+ inner:width (* 2 horizontal))
+			    (+ inner:height (* 2 vertical)))
+       (with-translation (horizontal vertical)
+	 (content:draw! (recons 'content context))))))
+  
+  ((part-at index::Index)::Indexable*
+   (match index
+    ('edge (this))
+    ('content content)))
+  
+  ((first-index)::Index 'edge)
+  ((last-index)::Index 'content)
+  
+  ((next-index index::Index)::Index 'content)
+  ((previous-index index::Index)::Index 'edge)
+
+  ((index< a::Index b::Index)::boolean ;>
+   (and (eq? a 'content) (eq? b 'edge)))
+
+  ((cursor-under* x::real y::real path::Cursor)::Cursor*
+   (call/cc
+    (lambda (return)
+     (pop-up-action (this) 0 x y
+      inside:
+      (lambda (content::Tile finger::byte x::real y::real)::boolean
+        (return
+	 (otherwise #!null
+	   (and path
+	     (content:cursor-under*
+	      x y (recons 'content path))))))
+      outside:
+      (lambda (pop-up::PopUp finger::byte x::real y::real)::boolean
+        (return #!null))
+      on-the-edge:
+      (lambda (pop-up::PopUp finger::byte x::real y::real)::boolean
+        (return
+	  (otherwise #!null
+	    (and path (recons 'edge path)))))))))
+
+  ((extent)::Extent
+   (let ((painter ::Painter (the-painter))
+	 (inner ::Extent (content:extent)))
+     (Extent width: (+ inner:width
+		       (* 2 (painter:horizontal-popup-margin)))
+	     height: (+ inner:height
+			(* 2 (painter:vertical-popup-margin))))))
+  
+  implementing Drag
+  with
+  ((move! x::real y::real dx::real dy::real)::void
+   (set! left (+ left dx))
+   (set! top (+ top dy)))
+   
+  ((drop! x::real y::real vx::real vy::real)::void
+   ;; sprawdzic czy v jest wieksza niz prog,
+   ;; i iesli tak - usunac (this) ze screen:overlay
+   (values))
+      
+  implementing Enchanted
+  with
+  ((as-expression)::cons
+   (invoke-special Base 'to-list cons to-expression)))
 
 (define-object (Editor)::Pane
   (define document (cons '() '()))
@@ -446,8 +643,6 @@
 		   (parent ::Element (the-expression
 				      at: subpath))
 		   (target ::Element (parent:part-at tip))
-		   (dragging ::(maps finger to: Drag)
-			     screen:dragging)
 		   (position ::Position (screen-position
 					 target)))
 	  (cond
@@ -460,8 +655,8 @@
 	   
 	   ((is target Space?)
 	    (WARN "drawing a stroke")
-	    (set! (dragging finger)
-		  (Drawing (Stroke source-pane: (this)))))
+	    (screen:drag! finger
+			  (Drawing (Stroke source-pane: (this)))))
 	   
 	   ((is selection-start cursor< path
 		cursor< selection-end)
@@ -483,13 +678,14 @@
 					(copy position))))
 	      (unset! (screen-position removed:element))
 	      (unset! (screen-position (head removed:element)))
-	      (set! (dragging finger) (DragAround selection))))
+	      (screen:drag! finger (DragAround selection))))
 
 	   ((and (is target cons?)
 		 (eqv? tip (target:last-index)))
 	    (let ((extent ::Extent (extent target)))
-	      (set! (dragging finger)
-		    (Resize target subpath (- y position:top)))))
+	      (screen:drag! finger
+			    (Resize target subpath
+				    (- y position:top)))))
 	   (else
 	    (WARN "setting the cursor to "path)
 	    (set! (the-cursor) path)
@@ -522,13 +718,14 @@
       ((keymap key-code))))
 
   )
-  
+
+
 (define-early-constant screen ::Screen
-  (Screen))
+  (ActualScreen))
 
 ;; At the top level, (the-pane-extent)
 ;; must be bound to the same object
-;; as screen:extent.
+;; as (screen:size)
 ;;
 (define-parameter (the-pane-extent)::Extent
-  screen:extent)
+  (screen:size))

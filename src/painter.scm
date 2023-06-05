@@ -160,7 +160,10 @@
   ::void
 
   (unquote-splicing-marker-width)::real
-  #||#
+
+  (draw-popup! width::real height::real)::void
+  (horizontal-popup-margin)::real
+  (vertical-popup-margin)::real
   
   (draw-line-comment! text::CharSequence
 		      context::Cursor)
@@ -313,6 +316,12 @@
   (define (draw-rectangle! width::real height::real)
     ::void
     (values))
+
+  (define (draw-popup! width::real height::real)::void
+    (values))
+
+  (define (horizontal-popup-margin)::real 0)
+  (define (vertical-popup-margin)::real 0)
   
   (define (mark-cursor! +left::real +top::real)
     ::void

@@ -39,7 +39,6 @@
 (import (input))
 (import (mapping))
 (import (pane))
-
 (import (terminal-keymap))
 
 (define-alias Thread java.lang.Thread)
@@ -122,8 +121,7 @@
     (let* ((resize ::TerminalSize (io:doResizeIfNecessary))
 	   (size (or resize (io:getTerminalSize)))
 	   (painter (the-painter)))
-      (set! screen:extent:width (size:getColumns))
-      (set! screen:extent:height (size:getRows))
+      (screen:set-size! (size:getColumns) (size:getRows))
       (painter:clear!)
       (screen:draw!)
       ;; swap front- and back-buffer

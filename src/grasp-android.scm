@@ -354,7 +354,8 @@
   (define (display-messages output::Object)::void
     (let* ((canvas ::Canvas (as Canvas output))
 	   (font ::Font (the-log-font))
-	   (top ::float  (- screen:extent:height
+	   (screen-extent ::Extent (screen:size))
+	   (top ::float  (- screen-extent:height
 			    (* 4 font:size))))
       (paint:setTypeface font:face)
       (paint:setTextSize font:size)
@@ -554,6 +555,14 @@
 			  10 10 paint)
     (paint:setStyle Paint:Style:FILL))
 
+  (define (draw-popup! width::real height::real)::void
+    (paint:setColor text-color)
+    (canvas:drawRoundRect 0 0 (as int width) (as int height)
+			  25 25 paint))
+
+  (define (horizontal-popup-margin)::real 4)
+  (define (vertical-popup-margin)::real 40)
+  
   (define (draw-rectangle! width::real height::real)::void
     (let ((b ::int 2))
       (paint:setColor text-color)
@@ -1213,8 +1222,7 @@
     (let* ((resources ::AndroidResources (getResources))
 	   (metrics ::DisplayMetrics
 		    (resources:getDisplayMetrics)))
-      (set! screen:extent:width metrics:widthPixels)
-      (set! screen:extent:height metrics:heightPixels))
+      (screen:set-size! metrics:widthPixels metrics:heightPixels))
 
     (view:setSystemUiVisibility
      AndroidView:SYSTEM_UI_FLAG_FULLSCREEN)
@@ -1224,9 +1232,10 @@
     (set! (the-painter) view)
     (for expression in init-script
       (safely
+       (WARN "Evaluating "expression)
        (eval expression)))
-    (set! screen:top
-	  (ShowKeyboardOnTap screen:top view))
+    (screen:set-content!
+     (ShowKeyboardOnTap (screen:content) view))
     (let ((postpone ::Postponed (EventRunner
 				 (android.os.Handler)
 				 view)))

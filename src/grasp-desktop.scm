@@ -34,6 +34,7 @@
 (import (extension))
 (import (button))
 
+
 (define-alias Font java.awt.Font)
 (define-alias FontMetrics java.awt.FontMetrics)
 (define-alias File java.io.File)
@@ -1047,10 +1048,8 @@ by the AWT framework."))
 	(repaint))))
 
   (define (componentResized event::ComponentEvent)::void
-    (set! screen:extent:width
-	       (invoke (this) 'getWidth))
-    (set! screen:extent:height
-	       (invoke (this) 'getHeight)))
+    (screen:set-size! (invoke (this) 'getWidth)
+		      (invoke (this) 'getHeight)))
   
   (InputHandler)
   (rendering-hints:put RenderingHints:KEY_ANTIALIASING

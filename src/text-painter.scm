@@ -391,6 +391,12 @@
      #\└     #\┘
      width height))
 
+  (define (draw-popup! width::real height::real)::void
+    (draw-rounded-rectangle! width height))
+
+  (define (horizontal-popup-margin)::real 1)
+  (define (vertical-popup-margin)::real 1)
+  
   (define 4pix-code
     (let ((4pix (mapping (4p::char)::int 0)))
       (set! (4pix #\space) #b0000)

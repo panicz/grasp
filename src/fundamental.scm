@@ -21,6 +21,10 @@
    (invoke-special pair (this) 'setCar content)
    (invoke-special pair (this) 'setCdr '())))
 
+(define-alias List java.util.List)
+(define-alias ArrayList java.util.ArrayList)
+
+
 #|
 
 A Cursor is a list of things that can be used for

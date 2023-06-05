@@ -83,11 +83,18 @@
 (set-key! 'mouse-wheel-down scroll-down!)
 |#
 
-(let ((top ::Pane (field screen 'top)))
-  (when (is top instance? Editor)
-    (let ((editor ::Editor (as Editor top)))
-      (slot-set! editor 'document
-		 (with-input-from-string #;"
+(define-syntax $lookup$
+  (syntax-rules ()
+    (($lookup$ object method)
+     (lambda args
+       (apply invoke object method args)))))
+
+(let ((p ::PopUp (PopUp)))
+  (WARN (instance? p Base) (instance? p Struct)
+	(invoke p 'to-list cons values)))
+
+(screen:set-content!
+ (Editor document: (with-input-from-string #;"
           #|FAC|# #|  
 TOR
   |# #|
@@ -115,7 +122,7 @@ son|#
 #;(e.g. #;(! #;5) ===> 120)
 (Button action: (lambda () (WARN \"button pressed!\"))
         label: \"Press me!\")
-" parse-document)))))
+" parse-document)))
 
 (WARN "loaded init.scm")
 
