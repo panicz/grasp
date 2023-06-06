@@ -110,11 +110,15 @@
 (define-object (EventRunner sync::android.os.Handler
 			    view::AndroidView)
   ::Postponed
-  (define (after time-ms::long action::java.lang.Runnable)
+  (define (after time-ms::long action::procedure)
     ::Cancellable
-    (sync:postDelayed action time-ms)
-    (view:invalidate)
-    (EventCanceller action sync)))
+    (let ((action* ::java.lang.Runnable
+		   (object (java.lang.Runnable)
+		     ((run)::void
+		      (when (action)
+			(view:postInvalidate))))))
+      (sync:postDelayed action* time-ms)
+      (EventCanceller action* sync))))
 
 (define-initializer (initialize-activity
 		     activity::AndroidActivity)
@@ -549,6 +553,9 @@
 
   (define (draw-rounded-rectangle! width::real height::real)
     ::void
+    (paint:setColor #xffffffff)
+    (canvas:drawRoundRect 0 0 (as int width) (as int height)
+			  10 10 paint)
     (paint:setColor text-color)
     (paint:setStyle Paint:Style:STROKE)
     (canvas:drawRoundRect 0 0 (as int width) (as int height)
@@ -556,7 +563,8 @@
     (paint:setStyle Paint:Style:FILL))
 
   (define (draw-popup! width::real height::real)::void
-    (paint:setColor text-color)
+    (paint:setColor (- text-color
+		       #x77000000))
     (canvas:drawRoundRect 0 0 (as int width) (as int height)
 			  25 25 paint))
 

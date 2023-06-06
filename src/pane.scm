@@ -32,6 +32,7 @@
 (import (space))
 (import (input))
 (import (history))
+(import (button))
 
 (define-interface Drawable ()
   (draw!)::void
@@ -459,9 +460,9 @@
 	 (horizontal ::real (painter:horizontal-popup-margin))
 	 (vertical ::real (painter:vertical-popup-margin))
 	 (inner-left ::real (+ left horizontal))
-	 (inner-top ::real (+ top horizontal))
-	 (inner-right ::real (+ inner:width horizontal))
-	 (inner-bottom ::real (+ inner:height vertical))
+	 (inner-top ::real (+ top vertical))
+	 (inner-right ::real (+ inner-left inner:width))
+	 (inner-bottom ::real (+ inner-top inner:height))
 	 (right ::real (+ inner-right horizontal))
 	 (bottom ::real (+ inner-bottom vertical)))
     (cond ((and (is inner-left <= x < inner-right)
@@ -706,9 +707,23 @@
     #f)
 
   (define (long-press! finger::byte x::real y::real)::boolean
-    (invoke (current-message-handler) 'clear-messages!)
-    ;; dodanie menu kontekstowego
-    #t)
+    (safely
+     (invoke (current-message-handler) 'clear-messages!)
+     (let* ((content ::Enchanted (Button label: "Dupa biskupa"
+					 action: (lambda ()
+						   (WARN "Dupa"))))
+	    (window ::PopUp (PopUp content: content))
+	    (inner ::Extent (window:extent))
+	    (outer ::Extent (screen:size)))
+       (set! window:left
+	     (max 0 (min (- outer:width inner:width)
+			 (- x (quotient inner:width 2)))))
+       (set! window:top
+	     (max 0 (min (- outer:height inner:height)
+			 (- y (quotient inner:height 2)))))
+       (screen:overlay! window)))
+     ;; dodanie menu kontekstowego
+     #t)
   
   (define (key-typed! key-code::long)::boolean
     (parameterize/update-sources ((the-document document)

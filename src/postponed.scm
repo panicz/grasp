@@ -12,7 +12,7 @@
   (CancellableNothing))
 
 (define-interface Postponed ()
-  (after delay-ms::long action::java.lang.Runnable)::Cancellable)
+  (after delay-ms::long action::procedure)::Cancellable)
 
 (define (current-time-ms)::long
   (java.lang.System:currentTimeMillis))

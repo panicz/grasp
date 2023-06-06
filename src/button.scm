@@ -50,6 +50,9 @@
 	  #t)
 	 (else
 	  #f)))
+
+  ((press! finger::byte x::real y::real)::boolean
+   #t)
   
   ((tap! finger::byte x::real y::real)::boolean
    (action)
