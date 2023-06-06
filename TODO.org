@@ -1,3 +1,32 @@
+* 05.06.2023
+
+mamy juz zrobione "rusztowanie" do odpalinia
+pop-upow (w kliencie terminalowym i desktopowym),
+teraz bysmy sprobowali to odpalic (np. dodajac
+do pop-upa jakiegos buttona) i przeniesc tez
+na desktopa, a jak to bedzie gotowe, to bysmy
+tez zaimplementowali widget ButtonList
+
+jak do tej pory naprawilismy tez aktualizacje
+ekranu po opoznionym zdarzeniu (tap!), i jeszcze by
+wypadalo zrobic rysowanie tla w guzikach w kliencie
+androidowym, oraz zdebugowac zachowanie popupow
+
+co niniejszym rowniez sie udalo
+
+no to tetaz tak:
+- dodac rysowanie pop-upa do klienta desktopowego
+- zintegrowac touch-event-processor z klientem terminalowym
+- zintegrowac touch-event-processor z klientem desktopowym
+- zaimplementowac ButtonList
+- zrobic menu glowne
+- zaimplementowac przegladarke plikow
+- funkcjonalnosc odczytu i zapisu
+- przelaczanie dokumentow
+- scrollowanie edytora
+- podzial ekranu
+
+
 * 04.06.2023
 
 dzis wykonamy drugie podejscie do rozbicia pane
