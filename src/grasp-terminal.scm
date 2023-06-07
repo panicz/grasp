@@ -40,8 +40,16 @@
 (import (mapping))
 (import (pane))
 (import (terminal-keymap))
+(import (postponed))
+(import (touch-event-processor))
+
 
 (define-alias Thread java.lang.Thread)
+(define-alias TimerTask java.util.TimerTask)
+(define-alias BlockingQueue java.util.concurrent.BlockingQueue)
+(define-alias ArrayBlockingQueue
+  java.util.concurrent.ArrayBlockingQueue)
+(define-alias System java.lang.System)
 
 (define-syntax define-box
   (syntax-rules (::)
@@ -130,62 +138,93 @@
 		      LanternaScreen:RefreshType:DELTA))
       (loop))))
 
-(define previous-mouse ::Position (Position))
+(define-interface CancellableRunner (Postponed Cancellable))
 
-(define (edit io :: LanternaScreen)::void
-  (let loop ()
-    (safely
-     (let* ((key ::KeyStroke (io:readInput))
-	    (type ::KeyType (key:getKeyType))
-	    (caret ::TerminalPosition (io:getCursorPosition)))
-       (match type
-	 #;(,KeyType:Character 
-	 (parameterize ((unicode-input (input-character key)))
-	 (invoke (the-screen) 'key-typed! (scancode key))))
+(define-object (EventRunner queue::BlockingQueue)
+  ::CancellableRunner
 
-	 (,KeyType:MouseEvent
-	  (let* ((action ::MouseAction
-			 (as MouseAction key))
-		 (position ::TerminalPosition
-			   (action:getPosition))
-		 (left (position:getColumn))
-		 (top (position:getRow)))
-	    (cond
-	     ((action:isMouseMove)
-	      (values))
-	     ((action:isMouseDown)
-	      
-	      (match (action:getButton)
-		(,MouseButton:Left
-		 (screen:press! 0 #;at left top)
-		 (set! previous-mouse:left left)
-		 (set! previous-mouse:top top))
-		(,MouseButton:Right
-		 (values))
-		(_
-		 (values))))
-	     ((action:isMouseDrag)
-	      (screen:move! 0 left top
-			    (- left previous-mouse:left)
-			    (- top previous-mouse:top))
-	      (set! previous-mouse:left left)
-	      (set! previous-mouse:top top))
+  (define postponed-action ::(maps () to: boolean) never)
+  
+  (define timer ::java.util.Timer (java.util.Timer))
+  
+  (define (cancel)::Cancellable
+    (invoke-special TimerTask (this) 'cancel)
+    (timer:purge)
+    (this))
+  
+  (define (after time-ms::long action::procedure)
+    ::Cancellable
+    (timer:schedule (this) time-ms)
+    (this))
 
-	     ((action:isMouseUp)
-	      (screen:release! 0 left top
-		      (- left previous-mouse:left)
-		      (- top previous-mouse:top))
-	      (set! previous-mouse:left left)
-	      (set! previous-mouse:top top)))))
-	 
-	 (_
-	  (parameterize ((unicode-input (input-character key)))
-	    (screen:key-typed! (scancode key)))))))
-     
-    (synchronized screen-up-to-date?
-      (set! (screen-up-to-date?) #f)
-      (invoke screen-up-to-date? 'notify))
-    (loop)))
+  (define (run)::void
+    (queue:put postponed-action))
+    
+  (TimerTask))
+
+(define (rewrite-events io::LanternaScreen queue::BlockingQueue)::void
+  ;; although a thread rewriting stuff from one place
+  ;; to another may not seem very useful, the point is
+  ;; to expose a queue, so that things can be added to it
+  ;; asynchronously, from a timer event
+  (while #t
+    (let ((event ::KeyStroke (io:readInput)))
+      (queue:put event))))
+
+(define (edit io ::LanternaScreen queue::BlockingQueue)::void
+  (let* ((postpone ::CancellableRunner (EventRunner queue))
+	 (pointer ::TouchEventProcessor
+		  (TouchEventProcessor 0 screen postpone
+				       vicinity: 1)))
+    (while #t
+      (safely
+       (let ((input (queue:take)))
+	 (if (procedure? input)
+	     (input)
+	     (let* ((key ::KeyStroke input)
+		    (type ::KeyType (key:getKeyType))
+		    (caret ::TerminalPosition (io:getCursorPosition)))
+	       (match type
+		 #;(,KeyType:Character 
+		 (parameterize ((unicode-input (input-character key)))
+		 (invoke (the-screen) 'key-typed! (scancode key))))
+
+		 (,KeyType:MouseEvent
+		  (let* ((action ::MouseAction
+				 (as MouseAction key))
+			 (position ::TerminalPosition
+				   (action:getPosition))
+			 (left (position:getColumn))
+			 (top (position:getRow)))
+		    (cond
+		     ((action:isMouseMove)
+		      (values))
+		     ((action:isMouseDown)
+		      
+		      (match (action:getButton)
+			(,MouseButton:Left
+			 (pointer:press! left top
+					 (System:currentTimeMillis)))
+			(,MouseButton:Right
+			 (values))
+			(_
+			 (values))))
+		     ((action:isMouseDrag)
+		      (pointer:move! left top
+				     (System:currentTimeMillis)))
+
+		     ((action:isMouseUp)
+		      (pointer:release! left top
+					(System:currentTimeMillis)))
+		     )))
+		 
+		 (_
+		  (parameterize ((unicode-input (input-character
+						 key)))
+		    (screen:key-typed! (scancode key))))))))       
+       (synchronized screen-up-to-date?
+	 (set! (screen-up-to-date?) #f)
+	 (invoke screen-up-to-date? 'notify))))))
 
 (define-object (TerminalPainter screen::LanternaScreen)::Painter
   
@@ -303,7 +342,9 @@
     (safely
      (load "assets/init.scm"))
     (io:startScreen)
-    (let* ((editing (future (edit io)))
+    (let* ((event-queue ::BlockingQueue (ArrayBlockingQueue 16))
+	   (preprocessing (future (rewrite-events io event-queue)))
+	   (editing (future (edit io event-queue)))
 	   (rendering (future (render io))))
       ;; we want the rendering thread to have a lower
       ;; priority than the editing thread

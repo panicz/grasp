@@ -89,10 +89,6 @@
      (lambda args
        (apply invoke object method args)))))
 
-(let ((p ::PopUp (PopUp)))
-  (WARN (instance? p Base) (instance? p Struct)
-	(invoke p 'to-list cons values)))
-
 (screen:set-content!
  (Editor document: (with-input-from-string #;"
           #|FAC|# #|  

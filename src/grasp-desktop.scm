@@ -18,7 +18,6 @@
 (import (functions))
 (import (for))
 (import (while))
-(import (pane))
 (import (indexable))
 (import (painter))
 (import (print))
@@ -32,7 +31,10 @@
 (import (history))
 (import (desktop-keymap))
 (import (extension))
+(import (pane))
 (import (button))
+(import (postponed))
+(import (touch-event-processor))
 
 
 (define-alias Font java.awt.Font)
@@ -62,6 +64,8 @@
 
 (define-alias Rectangle java.awt.Rectangle)
 (define-alias AffineTransform java.awt.geom.AffineTransform)
+
+(define-alias System java.lang.System)
 
 (define-alias Color java.awt.Color)
 
@@ -359,6 +363,39 @@
   (addMouseMotionListener (this))
   )
 
+(define-interface CancellableRunner
+  (Postponed
+   Cancellable
+   java.awt.event.ActionListener))
+
+(define-object (EventRunner target::java.awt.Component)
+  ::CancellableRunner
+
+  (define postponed-action ::(maps () to: boolean) never)
+  
+  (define (actionPerformed event::java.awt.event.ActionEvent)::void
+    (when (postponed-action)
+      (target:repaint)))
+  
+  (define timer ::javax.swing.Timer
+    (let ((timer ::javax.swing.Timer
+		 (javax.swing.Timer 1 (this))))
+      (timer:stop)
+      (timer:setRepeats #f)
+      timer))
+  
+  (define (cancel)::Cancellable
+    (timer:stop)
+    (set! postponed-action never)
+    (this))
+  
+  (define (after time-ms::long action::procedure)
+    ::Cancellable
+    (timer:setInitialDelay time-ms)
+    (set! postponed-action action)
+    (timer:start)
+    (this)))
+    
 (define-object (GRASP)::Application
   (define graphics ::Graphics2D)
   
@@ -653,6 +690,14 @@
   (define (min-line-height)::real
     (invoke (the-atom-font) 'getSize2D))
 
+  (define (draw-popup! width::real height::real)::void
+    (graphics:setColor (color #x77AAAAAA))
+    (graphics:fillRoundRect 0 0 (as int width) (as int height)
+			    12 12))
+
+  (define (horizontal-popup-margin)::real 2)
+  (define (vertical-popup-margin)::real 20)
+  
   (define (draw-rounded-rectangle! width::real height::real)::void
     (graphics:drawRoundRect 0 0 (as int width) (as int height) 5 5))
 
@@ -996,42 +1041,28 @@ by the AWT framework."))
     (graphics:setRenderingHints rendering-hints)
     (screen:draw!))
 
-  (define (x event::MouseEvent)::real
-    (event:getX))
+  (define pointer ::TouchEventProcessor
+    (TouchEventProcessor 0 screen (EventRunner (this)) vicinity: 1))
 
-  (define (y event::MouseEvent)::real
-    (event:getY))
-  
-  (define (mouseClicked event::MouseEvent)::void
-    (when (screen:tap! 0 #;at (x event) (y event))
-      (repaint)))
-  
-  (define previous-x ::real 0)
-  (define previous-y ::real 0)
+  (define (invalidating result::boolean)::boolean
+    (when result
+      (repaint))
+    result)
   
   (define (mousePressed event::MouseEvent)::void
-    (let ((x (x event))
-	  (y (y event)))
-      (when (screen:press! 0 #;at x y)
-	(repaint))
-      (set! previous-x x)
-      (set! previous-y y)))
-  
+    (invalidating
+     (pointer:press! (event:getX) (event:getY)
+		     (System:currentTimeMillis))))
+
   (define (mouseDragged event::MouseEvent)::void
-    (let ((x (x event))
-	  (y (y event)))
-      (when (screen:move!
-		    0 x y (- x previous-x) (- y previous-y))
-	(repaint))
-      (set! previous-x x)
-      (set! previous-y y)))
+    (invalidating
+     (pointer:move! (event:getX) (event:getY)
+		    (System:currentTimeMillis))))
 
   (define (mouseReleased event::MouseEvent)::void
-    (let ((x (x event))
-	  (y (y event)))
-      (when (screen:release!
-		    0 x y (- x previous-x) (- y previous-y))
-	(repaint))))
+    (invalidating
+     (pointer:release! (event:getX) (event:getY)
+		       (System:currentTimeMillis))))
 
   (define (keyPressed event::KeyEvent)::void
     (let ((typed (event:getKeyChar)))
