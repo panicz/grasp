@@ -1,3 +1,88 @@
+* 06.06.2023
+
+dzisiaj priorytetem jest implementacja funkcji
+do rysowania pop-upow w kliencie desktopowym,
+zeby przywrocic jego budowalnosc
+
+a jesli to sie uda, to bysmy moze sprobowali
+podzialac z tym touch-event-processorem, zeby
+miec juz pop-upy we wszystkich klientach
+
+ok budowalnosc mamy,
+to teraz sprobujemy zintegrowac touch-event-processor
+
+z desktopem sie to chyba udalo. teraz zas
+bysmy zrobili to samo, tylko dla terminala
+
+
+w tym celu:
+- stworzymy sobie
+
+  (define events ::BlockingQueue
+    (ArrayBlockingQueue 32))
+
+teraz mamy:
+    (let* ((editing (future (edit io)))
+	   (rendering (future (render io))))
+      ;; we want the rendering thread to have a lower
+      ...)
+
+stworzylibysmy sobie nowy watek:
+
+(let* ((events ...)
+       (preprocessing (future (process io events)))
+       (editing (future (edit ioevents)))
+       (rendering (future (render io))))
+  ...)
+
+ale do tego potrzebny bylby rowniez timer.
+
+a moze sie uda bex tego preprocessingu, tylko
+wtedy trzeba rozwazyc kwestie ewentualnych
+wyscigow
+
+w kazdym razie jak ma w teeminalu dzialac nasz EventRunner?
+
+
+(define-interface CancellableRunner (Postponed Cancellable))
+
+(define-object (EventRunner queue::BlockingQueue)
+  ::CancellableRunner
+
+  (define postponed-action ::(maps () to: boolean) never)
+  
+  (define timer ::java.util.Timer (java.util.Timer))
+  
+  (define (cancel)::Cancellable
+    (invoke-special TimerTask (this) 'cancel)
+    (timer:purge)
+    (this))
+  
+  (define (after time-ms::long action::procedure)
+    ::Cancellable
+    (timer:schedule (this) time-ms)
+    (this))
+
+  (define (run)::void
+    (queue:put postponed-action))
+    
+  (TimerTask))
+
+Ok, to jakis zamysl jest (i jutro sie tym bardziej zajmiemy),
+a tymczasem mozna pomalu myslec o widgecie ButtonsList
+i o tym, jak to obsluzyc od strony Paintera
+
+
+(define (rewrite-events io::LanternaScreen queue::BlockingQueue)::void
+  ;; although a thread rewriting stuff from one place
+  ;; to another may not seem very useful, the point is
+  ;; to expose a queue, so that things can be added to it
+  ;; asynchronously, from a timer event
+  (while #t
+    (let ((event ::KeyStroke (io:readInput)))
+      (queue:put event))))
+
+      
 * 05.06.2023
 
 mamy juz zrobione "rusztowanie" do odpalinia
