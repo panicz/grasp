@@ -47,6 +47,11 @@
 (define-alias Thread java.lang.Thread)
 (define-alias TimerTask java.util.TimerTask)
 (define-alias BlockingQueue java.util.concurrent.BlockingQueue)
+(define-alias ThreadPool java.util.concurrent.ScheduledThreadPoolExecutor)
+(define-alias Scheduler java.util.concurrent.ScheduledExecutorService)
+(define-alias ScheduledTask java.util.concurrent.ScheduledFuture)
+(define-alias TimeUnit java.util.concurrent.TimeUnit)
+
 (define-alias ArrayBlockingQueue
   java.util.concurrent.ArrayBlockingQueue)
 (define-alias System java.lang.System)
@@ -138,29 +143,33 @@
 		      LanternaScreen:RefreshType:DELTA))
       (loop))))
 
-(define-interface CancellableRunner (Postponed Cancellable))
+(define-interface CancellableRunner (java.lang.Runnable Postponed Cancellable))
 
 (define-object (EventRunner queue::BlockingQueue)
   ::CancellableRunner
 
   (define postponed-action ::(maps () to: boolean) never)
+
+  (define thread-pool ::Scheduler (ThreadPool 1))
   
-  (define timer ::java.util.Timer (java.util.Timer))
+  (define scheduled-task ::ScheduledTask #!null)
   
   (define (cancel)::Cancellable
-    (invoke-special TimerTask (this) 'cancel)
-    (timer:purge)
+    (when scheduled-task
+      (scheduled-task:cancel #f)
+      (set! postponed-action never)
+      (set! scheduled-task #!null))
     (this))
   
   (define (after time-ms::long action::procedure)
     ::Cancellable
-    (timer:schedule (this) time-ms)
+    (set! postponed-action action)
+    (set! scheduled-task
+	  (thread-pool:schedule (this) time-ms TimeUnit:MILLISECONDS))
     (this))
 
   (define (run)::void
-    (queue:put postponed-action))
-    
-  (TimerTask))
+    (queue:put postponed-action)))
 
 (define (rewrite-events io::LanternaScreen queue::BlockingQueue)::void
   ;; although a thread rewriting stuff from one place
