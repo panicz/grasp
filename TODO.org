@@ -1,3 +1,68 @@
+* 07.06.2023
+
+(dzis trzeba zamknac miesiac ksiegowy)
+
+mamy zintegrowany touch event processor
+- no i super, i teraz musimy to przetestowac,
+  i zajac sie implementacja ButtonList
+  (czyli po stronie paintera to bedzie
+  rysowanie i wymiarowanie gridow)
+
+Tyle ze to nie bedzie ButtonList.
+To bedzie raczej cos w rodzaju
+
+(Link content: (Caption "Open...")
+      action: ...)
+
+czyli Link bedzie troche jak Button
+
+Natomiast tabele bysmy budowali tak,
+ze mamy
+
+(Table
+ (Column
+  (Row content: (Link content: ...)
+       span: 1)
+  
+
+Niewazne, nie skupiajmy sie na razie na tabeli.
+
+W razie czego to sobie przemodelujemy
+Natomiast teraz pytanie jest takie, jak sie
+z tym uporac od strony paintera?
+
+Jak powinien wygladac kod renderujacy
+ButtonList?
+
+(define (column . items)
+  (Column items))  
+
+
+(define-object (Column items::(sequence-of Enchanted))::Enchanted
+  (define (extent)::Extent
+    (let* ((painter ::Painter (the-painter))
+           (grid-border ::real (painter:grid-border))
+           (max-width ::real 0)
+           (total-height ::real grid-border))
+      (for item::Enchanted in items
+        (let ((inner ::Extent (item:extent)))
+          (set! max-width (max max-width inner:width))
+	  (set! total-height
+	        (+ total-height inner:height grid-border))))
+      (Extent width: (+ max-width (* 2 grid-border))
+              height: total-height)))
+	      
+  (define (draw! context::Cursor)::void
+    (let* ((painter ::Painter (the-painter))
+           (grid-border ::real (painter:grid-border))
+           (n ::int 0)
+           (x0 ::real (painter:current-translation-left))
+	   (y0 ::real ...))
+    (for item in items
+      (item:draw! 
+
+  
+
 * 06.06.2023
 
 dzisiaj priorytetem jest implementacja funkcji
