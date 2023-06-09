@@ -257,7 +257,7 @@
   ((draw!)::void
    (let* ((painter (the-painter))
 	  (extent (the-pane-extent))
-	  (line-width (invoke painter 'vertical-line-width))
+	  (line-width (invoke painter 'vertical-split-width))
           (inner-width (- extent:width
 			  line-width))
           (left-width (* at inner-width))
@@ -269,7 +269,7 @@
 			height: extent:height)))
 	 (left:draw!)))
      (with-translation (left-width 0)
-       (invoke painter 'draw-vertical-line! 0)
+       (invoke painter 'draw-vertical-split! 0)
        (with-translation (line-width 0)
 	 (with-clip (right-width extent:height)
 	   (parameterize ((the-pane-extent
@@ -281,7 +281,7 @@
   ((tap! finger::byte #;at x::real y::real)::boolean
    (let* ((painter (the-painter))
 	  (extent (the-pane-extent))
-	  (line-width (invoke painter 'vertical-line-width))
+	  (line-width (invoke painter 'vertical-split-width))
           (inner-width (- extent:width
 			  line-width))
           (left-width (* at inner-width))
@@ -297,7 +297,7 @@
   ((press! finger::byte #;at x::real y::real)::boolean
    (let* ((painter (the-painter))
 	  (extent (the-pane-extent))
-	  (line-width (invoke painter 'vertical-line-width))
+	  (line-width (invoke painter 'vertical-split-width))
           (inner-width (- extent:width
 			  line-width))
           (left-width (* at inner-width))
@@ -313,7 +313,7 @@
   ((second-press! finger::byte #;at x::real y::real)::boolean
    (let* ((painter (the-painter))
 	  (extent (the-pane-extent))
-	  (line-width (invoke painter 'vertical-line-width))
+	  (line-width (invoke painter 'vertical-split-width))
           (inner-width (- extent:width
 			  line-width))
           (left-width (* at inner-width))
@@ -329,7 +329,7 @@
   ((double-tap! finger::byte x::real y::real)::boolean
    (let* ((painter (the-painter))
 	  (extent (the-pane-extent))
-	  (line-width (invoke painter 'vertical-line-width))
+	  (line-width (invoke painter 'vertical-split-width))
           (inner-width (- extent:width
 			  line-width))
           (left-width (* at inner-width))
@@ -345,7 +345,7 @@
   ((long-press! finger::byte x::real y::real)::boolean
    (let* ((painter (the-painter))
 	  (extent (the-pane-extent))
-	  (line-width (invoke painter 'vertical-line-width))
+	  (line-width (invoke painter 'vertical-split-width))
           (inner-width (- extent:width
 			  line-width))
           (left-width (* at inner-width))

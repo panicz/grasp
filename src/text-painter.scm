@@ -81,19 +81,19 @@
 
   (define (horizontal-bar-height)::real 1)
 
-  (define (draw-horizontal-line! top::real)::void
+  (define (draw-horizontal-split! top::real)::void
     (for i from (max 0 (current-clip-left))
       below (min (current-width) clipWidth)
       (put! #\─ top i)))
   
-  (define (draw-vertical-line! left::real)::void
+  (define (draw-vertical-split! left::real)::void
     (for i from (max 0 (current-clip-top))
       below (min (current-height) clipHeight)
       (put! #\│ i left)))
 
-  (define (horizontal-line-height)::real 1)
+  (define (horizontal-split-height)::real 1)
   
-  (define (vertical-line-width)::real 1)
+  (define (vertical-split-width)::real 1)
   
   (define (draw-horizontal-bar! width::real)::void
     (for i from 0 below width

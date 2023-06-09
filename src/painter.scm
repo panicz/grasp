@@ -32,10 +32,10 @@
   )
 
 (define-interface Splittable ()
-  (draw-horizontal-line! top::real)::void
-  (draw-vertical-line! left::real)::void
-  (horizontal-line-height)::real
-  (vertical-line-width)::real
+  (draw-horizontal-split! top::real)::void
+  (draw-vertical-split! left::real)::void
+  (horizontal-split-height)::real
+  (vertical-split-width)::real
   )
   
 (define-interface Painter (Splittable
@@ -236,10 +236,10 @@
   (define (current-clip-top)::real
     0)
   
-  (define (draw-horizontal-line! top::real)::void
+  (define (draw-horizontal-split! top::real)::void
     (values))
   
-  (define (draw-vertical-line! left::real)::void
+  (define (draw-vertical-split! left::real)::void
     (values))
 
   (define (draw-line! x0::real y0::real
@@ -247,10 +247,10 @@
     ::void
     (values))
 
-  (define (horizontal-line-height)::real
+  (define (horizontal-split-height)::real
     0)
   
-  (define (vertical-line-width)::real
+  (define (vertical-split-width)::real
     0)
   
   (define (draw-quoted-text! s::CharSequence

@@ -435,17 +435,17 @@
   (define (current-translation-top)::real
     shiftTop)
 
-  (define (horizontal-line-height)::real
+  (define (horizontal-split-height)::real
     30)
   
-  (define (vertical-line-width)::real
+  (define (vertical-split-width)::real
     30)
 
   (define text-color ::long #xff555555)
 
   (define background-color ::long transparent)
   
-  (define (draw-horizontal-line! top::real)::void
+  (define (draw-horizontal-split! top::real)::void
     (let* ((left ::float (max 0 (current-clip-left)))
 	   (bottom ::float (+ top (horizontal-line-height)))
 	   (right ::float (+ left (current-clip-width))))
@@ -453,7 +453,7 @@
       (canvas:drawRect left (as float top) right bottom
 		       paint)))
   
-  (define (draw-vertical-line! left::real)::void
+  (define (draw-vertical-split! left::real)::void
     (let* ((top ::float (max 0 (current-clip-top)))
 	   (right ::float (+ left (vertical-line-width)))
 	   (bottom ::float (+ top (current-clip-height))))

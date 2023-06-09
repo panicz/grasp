@@ -775,15 +775,15 @@
   (define (draw-vertical-bar! height::real)::void
     (graphics:fillRect 0 0 (vertical-bar-width) height))
 
-  (define (horizontal-line-height)::real 20)
+  (define (horizontal-split-height)::real 20)
   
-  (define (vertical-line-width)::real 20)
+  (define (vertical-split-width)::real 20)
   
-  (define (draw-horizontal-line! top::real)::void
+  (define (draw-horizontal-split! top::real)::void
     (graphics:fillRect (max 0 (current-clip-left)) top
 		       (current-clip-width) (horizontal-line-height)))
     
-  (define (draw-vertical-line! left::real)::void
+  (define (draw-vertical-split! left::real)::void
     (graphics:fillRect left (max 0 (current-clip-top)) 
 		       (vertical-line-width) (current-clip-height)))
 

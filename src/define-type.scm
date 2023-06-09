@@ -15,6 +15,9 @@
 (define-syntax-rule (list-of type)
   list)
 
+(define-syntax-rule (sequence-of type)
+  sequence)
+
 (define-syntax-rule (either type ...)
   java.lang.Object)
 
