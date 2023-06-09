@@ -1,6 +1,58 @@
-* 07.06.2023
+* 09.06.2023
 
-(dzis trzeba zamknac miesiac ksiegowy)
+mamy z grubsza zarysowane metody draw! i extent,
+ale do pelni szczescia bylyby nam jeszcze potrzebne:
+
+  (define (part-at index::Index)::Indexable*
+    (items index))
+
+  (define (first-index)::Index 0)
+  (define (last-index)::Index (- (length items 1)))
+  
+  (define (next-index index::Index)::Index
+    (min (+ index 1) (last-index)))
+    
+  (define (previous-index index::Index)::Index
+    (max 0 (- index 1)))
+  
+  (define (index< a::Index b::Index)::boolean
+    (is a < b)) ;>>
+    
+  (define (cursor-under* x::real y::real path::Cursor)::Cursor*
+    ???)
+
+  (define (tap! finger::byte #;at x::real y::real)::boolean
+    (for item::Enchanted in items
+      ...))
+
+  (press! finger::byte #;at x::real y::real)::boolean
+  (second-press! finger::byte #;at x::real y::real)::boolean
+  (double-tap! finger::byte x::real y::real)::boolean
+  (long-press! finger::byte x::real y::real)::boolean
+  (key-typed! key-code::long)::boolean
+
+przy czym te ostatnie raczej powinny byc robione
+na jedno kopyto (analogicznie do tego jak zrobilismy
+tego PopUpa)
+
+(define (for-row-in column::Column finger::byte x::real y::real
+                    action::(maps (Enchanted byte real real) to: ?))
+  (let* ((painter ::Painter (the-painter))
+         (grid-border ::real (painter:grid-border))
+	 (ceiling ::real grid-border)
+	 (n ::real 0))
+    (call/cc
+      (lambda (return)
+        (for item::Enchanted in column:items
+          (let ((inner ::Extent (item:extent)))
+	    (when (is ceiling < y < (+ celiing inner:height));>>
+	      (return (action item finger
+	                 (- x grid-border) (- y ceiling))))
+	      (set! ceiling (+ inner:height grid-border))))
+	#f))))
+
+
+* 08-07.06.2023
 
 mamy zintegrowany touch event processor
 - no i super, i teraz musimy to przetestowac,
@@ -31,6 +83,18 @@ W razie czego to sobie przemodelujemy
 Natomiast teraz pytanie jest takie, jak sie
 z tym uporac od strony paintera?
 
+Na pewno musimy zaczac od tego, zeby zmienic nazwy
+metod draw-horizontal-line na draw-horizontal-split itd.
+
+ok, to juz zrobione
+
+teraz bysmy dodali do paintera
+draw-horizontal-grid!
+draw-vertical-grid!
+grid-border
+
+
+
 Jak powinien wygladac kod renderujacy
 ButtonList?
 
@@ -55,11 +119,22 @@ ButtonList?
   (define (draw! context::Cursor)::void
     (let* ((painter ::Painter (the-painter))
            (grid-border ::real (painter:grid-border))
+	   (total ::Extent (extent))
            (n ::int 0)
            (x0 ::real (painter:current-translation-left))
-	   (y0 ::real ...))
-    (for item in items
-      (item:draw! 
+	   (y0 ::real (painter:current-translation-top)))
+      (painter:translate! grid-border grid-border)
+      (for item::Enchanted in items
+        (let ((inner ::Extent (item:extent)))
+          (item:draw! (recons n context))
+	  (painter:translate! 0 inner:height)
+	  (painter:draw-horizontal-grid! total:width)
+	  (painter:translate! 0 grid-border)
+	(set! n (+ n 1))))
+      (painter:translate!
+       (- (painter:current-translation-left) x0)
+       (- (painter:current-translation-top) y0))))
+      
 
   
 
