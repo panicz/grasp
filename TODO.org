@@ -1,3 +1,49 @@
+* 10.06.2023
+
+Na razie bedziemy dodawac do modulu (button):
+- ColumnGrid
+- Capture
+- Caption
+
+ale tez musimy dodac 3 metody do Painter
+(na razie do TextPainter)
+
+
+╵╶ ╷ ╴ ─ └ ┘ ┌ ┐ ┤ ├ ┬ ┴ ┼
+
+  (define 4dirs-code
+    (let ((4dirs (mapping (4p::char)::int 0)))
+      (set! (4dirs #\space) #b0000)
+      (set! (4dirs #\╵) #b0001)
+      (set! (4dirs #\╶) #b0010)
+      (set! (4dirs #\└) #b0011)
+      (set! (4dirs #\╷) #b0100)
+      (set! (4dirs #\│) #b0101)
+      (set! (4dirs #\┌) #b0110)
+      (set! (4dirs #\├) #b0111)
+      (set! (4dirs #\╴) #b1000)
+      (set! (4dirs #\┘) #b1001)
+      (set! (4dirs #\─) #b1010)
+      (set! (4dirs #\┴) #b1011)
+      (set! (4dirs #\┐) #b1100)
+      (set! (4dirs #\┤) #b1101)
+      (set! (4dirs #\┬) #b1110)
+      (set! (4dirs #\┼) #b1111)
+      4dirs))
+
+  (define 4dirs ::char[]
+    (char[] #\space
+	 #\╵ #\╶ #\└ #\╷ #\│
+	 #\┌ #\├ #\╴ #\┘ #\─
+	 #\┴ #\┐ #\┤ #\┬ #\┼))
+
+  (define (4dirs-put! c::char x::int y::int)::void
+    (put! (4dirs (bitwise-ior
+                  (4dirs-code (get y x))
+                  (4dirs-code c))) y x))
+
+
+
 * 09.06.2023
 
 mamy z grubsza zarysowane metody draw! i extent,
@@ -18,40 +64,64 @@ ale do pelni szczescia bylyby nam jeszcze potrzebne:
   (define (index< a::Index b::Index)::boolean
     (is a < b)) ;>>
     
-  (define (cursor-under* x::real y::real path::Cursor)::Cursor*
-    ???)
-
-  (define (tap! finger::byte #;at x::real y::real)::boolean
-    (for item::Enchanted in items
-      ...))
-
-  (press! finger::byte #;at x::real y::real)::boolean
-  (second-press! finger::byte #;at x::real y::real)::boolean
-  (double-tap! finger::byte x::real y::real)::boolean
-  (long-press! finger::byte x::real y::real)::boolean
-  (key-typed! key-code::long)::boolean
-
 przy czym te ostatnie raczej powinny byc robione
 na jedno kopyto (analogicznie do tego jak zrobilismy
 tego PopUpa)
 
-(define (for-row-in column::Column finger::byte x::real y::real
-                    action::(maps (Enchanted byte real real) to: ?))
+(define (propagate finger::byte x::real y::real
+                   action::(maps (Enchanted byte real real int) to: ?))
   (let* ((painter ::Painter (the-painter))
          (grid-border ::real (painter:grid-border))
 	 (ceiling ::real grid-border)
 	 (n ::real 0))
     (call/cc
       (lambda (return)
-        (for item::Enchanted in column:items
+        (for item::Enchanted in items
           (let ((inner ::Extent (item:extent)))
 	    (when (is ceiling < y < (+ celiing inner:height));>>
 	      (return (action item finger
 	                 (- x grid-border) (- y ceiling))))
-	      (set! ceiling (+ inner:height grid-border))))
+	      (set! ceiling (+ inner:height grid-border))
+	      (set! n (+ n 1))))
 	#f))))
 
+  (define (cursor-under* x::real y::real path::Cursor)::Cursor*
+    (otherwise #!null
+      (propagate 0 x y
+        (lambda (item::Enchanted finger::byte x::real y::real
+                 index::int)::boolean
+          (item:cursor-under* x y (recons index path))))))
 
+  (define (tap! finger::byte #;at x::real y::real)::boolean
+    (propagate finger x y
+      (lambda (child::Enchanted finger::byte x::real y::real index::int)
+        (child:tap! finger x y))))
+
+  (define (press! finger::byte #;at x::real y::real)::boolean
+    (propagate finger x y
+      (lambda (child::Enchanted finger::byte x::real y::real index::int)
+        (child:press! finger x y))))
+  
+  (define (second-press! finger::byte #;at x::real y::real)::boolean
+    (propagate finger x y
+      (lambda (child::Enchanted finger::byte x::real y::real index::int)
+        (child:second-press! finger x y))))
+  
+  (define (double-tap! finger::byte x::real y::real)::boolean
+    (propagate finger x y
+      (lambda (child::Enchanted finger::byte x::real y::real index::int)
+        (child:double-tap! finger x y))))
+
+  (define (long-press! finger::byte x::real y::real)::boolean
+    (propagate finger x y
+      (lambda (child::Enchanted finger::byte x::real y::real index::int)
+        (child:long-press! finger x y))))
+
+  (define (key-typed! key-code::long)::boolean
+    ;; na razie tego nie obslugujemy; docelowo warto by bylo
+    ;; przemyslec obsluge klawiatury
+    #f)
+	
 * 08-07.06.2023
 
 mamy zintegrowany touch event processor
