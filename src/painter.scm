@@ -186,7 +186,11 @@
    x::real y::real
    text::CharSequence)
   ::int
-  
+
+  (draw-horizontal-grid! width::real)::void
+  (draw-vertical-grid! height::real)::void
+  (grid-border)::real
+
   (draw-point! left::real top::real
 	       color-rgba::int)::void
   
@@ -445,6 +449,14 @@
 
   (define (unquote-splicing-marker-width)::real 1)
 
+  (define (draw-horizontal-grid! width::real)::void
+    (values))
+  
+  (define (draw-vertical-grid! height::real)::void
+    (values))
+
+  (define (grid-border)::real 1)
+  
   (define (draw-point! left::real top::real
 		       color-rgba::int)::void
     (void))

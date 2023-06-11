@@ -717,6 +717,51 @@
     (string-character-index-under (- x 1)
 				  (- y 1)
 				  text))
+
+  (define 4dirs-code
+    (let ((4dirs (mapping (4p::char)::int 0)))
+      (set! (4dirs #\space) #b0000)
+      (set! (4dirs #\╵) #b0001)
+      (set! (4dirs #\╶) #b0010)
+      (set! (4dirs #\└) #b0011)
+      (set! (4dirs #\╷) #b0100)
+      (set! (4dirs #\│) #b0101)
+      (set! (4dirs #\┌) #b0110)
+      (set! (4dirs #\├) #b0111)
+      (set! (4dirs #\╴) #b1000)
+      (set! (4dirs #\┘) #b1001)
+      (set! (4dirs #\─) #b1010)
+      (set! (4dirs #\┴) #b1011)
+      (set! (4dirs #\┐) #b1100)
+      (set! (4dirs #\┤) #b1101)
+      (set! (4dirs #\┬) #b1110)
+      (set! (4dirs #\┼) #b1111)
+      4dirs))
+
+  (define 4dirs ::char[]
+    (char[] #\space
+	 #\╵ #\╶ #\└ #\╷ #\│
+	 #\┌ #\├ #\╴ #\┘ #\─
+	 #\┴ #\┐ #\┤ #\┬ #\┼))
+
+  (define (4dirs-put! c::char x::int y::int)::void
+    (put! (4dirs (bitwise-ior
+                  (4dirs-code (get y x))
+                  (4dirs-code c))) y x))
+  
+  (define (draw-horizontal-grid! width::real)::void
+    (4dirs-put! #\╶ 0 0)
+    (for i from 1 below (- width 1)
+	 (4dirs-put! #\─ i 0))
+    (4dirs-put! #\╴ (- width 1) 0))
+  
+  (define (draw-vertical-grid! height::real)::void
+    (4dirs-put! #\╷ 0 0)
+    (for i from 1 below (- height 1)
+	 (4dirs-put! #\│ 0 i))
+    (4dirs-put! #\╵ 0 (- height 1)))
+
+  (define (grid-border)::real 1)
   
   (define (draw-point! left::real top::real
 		       color-rgba::int)
