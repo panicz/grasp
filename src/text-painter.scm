@@ -14,6 +14,7 @@
 (import (functions))
 (import (mapping))
 (import (hash-table))
+(import (print))
 
 (define-object (CharPainter)::Painter
 
@@ -361,7 +362,9 @@
     ::void
     (put! top-left 0 0)
     (for i from 1 to (- height 2)
-         (put! vertical i 0))
+         (put! vertical i 0)
+	 (for j from 1 to (- width 2)
+	      (put! #\space i j)))
     (put! bottom-left (- height 1) 0)
 
     (for i from 1 to (- width 2)
@@ -745,9 +748,11 @@
 	 #\┴ #\┐ #\┤ #\┬ #\┼))
 
   (define (4dirs-put! c::char x::int y::int)::void
-    (put! (4dirs (bitwise-ior
-                  (4dirs-code (get y x))
-                  (4dirs-code c))) y x))
+    (let* ((current (get y x))
+	   (new (4dirs (bitwise-ior
+		    (4dirs-code current)
+		    (4dirs-code c)))))
+      (put! new y x)))
   
   (define (draw-horizontal-grid! width::real)::void
     (4dirs-put! #\╶ 0 0)

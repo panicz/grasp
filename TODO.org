@@ -1,3 +1,18 @@
+* 11.06.2023
+
+No dobra, to teraz chcemy dodac nowe widgety:
+
+
+(define-type (Capture on-tap: (maps (Link byte real real) to: boolean) := always
+                      on-double-tap: (maps (Link byte real real) to: boolean) := always
+                      on-press: (maps (Link byte real real) to: boolean) := always
+                      on-second-press: (maps (Link byte real real) to: boolean) := always
+                      on-release: (maps (Link byte real real) to: boolean) := always
+                      on-key: (maps (Link char) to: boolean) := always
+                      content: Enchanted)
+  implementing Enchanted
+  with
+
 * 10.06.2023
 
 Na razie bedziemy dodawac do modulu (button):
@@ -41,8 +56,6 @@ ale tez musimy dodac 3 metody do Painter
     (put! (4dirs (bitwise-ior
                   (4dirs-code (get y x))
                   (4dirs-code c))) y x))
-
-
 
 * 09.06.2023
 

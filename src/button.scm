@@ -37,23 +37,23 @@
            (x0 ::real (painter:current-translation-left))
 	   (y0 ::real (painter:current-translation-top)))
       (for item::Enchanted in items
-        (let ((inner ::Extent (item:extent)))
-	  (painter:draw-horizontal-grid! (+ total:width
-					    (* 2 grid-border)))
-	  (painter:draw-vertical-grid! (+ inner:height
-					  (* 2 grid-border)))
-	  (with-translation (grid-border grid-border)
-            (item:draw! (recons n context)))
-	  (with-translation ((+ total:width grid-border) 0)
-	    (painter:draw-vertical-grid! (+ inner:height
-					    (* 2 grid-border))))
-	  (painter:translate! 0 (+ grid-border inner:height))
-	  (set! n (+ n 1))))
-      (painter:draw-horizontal-grid! (+ total:width
-					(* 2 grid-border)))
+	   (let ((inner ::Extent (item:extent)))
+	     (painter:draw-horizontal-grid! total:width)
+	     (painter:draw-vertical-grid! (+ inner:height
+					     (* 2 grid-border)))
+	     (with-translation ((- total:width grid-border) 0)
+			       (painter:draw-vertical-grid! (+ inner:height
+							       (* 2 grid-border))))
+
+
+	     (with-translation (grid-border grid-border)
+			       (item:draw! (recons n context)))
+	     (painter:translate! 0 (+ grid-border inner:height))
+	     (set! n (+ n 1))))
+      (painter:draw-horizontal-grid! total:width)
       (painter:translate!
-       (- (painter:current-translation-left) x0)
-       (- (painter:current-translation-top) y0))))
+       (- x0 (painter:current-translation-left))
+       (- y0 (painter:current-translation-top)))))
   
   (define (propagate finger::byte x::real y::real
                      action::(maps (Enchanted byte real real int)
@@ -65,11 +65,12 @@
       (call/cc
        (lambda (return)
          (for item::Enchanted in items
-           (let ((inner ::Extent (item:extent)))
-	     (when (is ceiling < y < (+ ceiling inner:height))
+	   (let ((inner ::Extent (item:extent)))
+	     (when (is ceiling <= y < (+ ceiling inner:height))
 	       (return (action item finger
-	                       (- x grid-border) (- y ceiling))))
-	     (set! ceiling (+ inner:height grid-border))
+			       (- x grid-border) (- y ceiling)
+			       n)))
+	     (set! ceiling (+ ceiling inner:height grid-border))
 	     (set! n (+ n 1))))
 	 #f))))
 
@@ -149,13 +150,89 @@
     #f)
 
   (define (as-expression)
-    (fold-left (lambda (l x)
-		 (set-cdr! l (cons (to-expression x) '()))
-		 (cdr l))
-	       (cons (Atom "ColumnGrid") '())
-	       items))
+    (cons (Atom "ColumnGrid")
+	  (cons (fold-left (lambda (l x)
+			     (set-cdr! l (cons (to-expression x) '()))
+			     (cdr l))
+			   (cons (Atom "list") (empty))
+			   items)
+		(empty))))
   )
+
+(define-object (Caption content::string)::Enchanted
+  (define (draw! context::Cursor)::void
+    (let ((painter ::Painter (the-painter)))
+      (painter:draw-caption! content)))
+
+  (define (extent)::Extent
+    (let ((painter ::Painter (the-painter)))
+      (painter:caption-extent content)))
+
+  (define (as-expression)::cons
+    (cons (Atom "Caption") (cons (if (Text? content)
+				     content
+				     (text content))
+				 '())))
+
+  (define (typename)::String
+    "Caption")
+
+  (define (fields->string)::String
+    text)
   
+  (Magic))
+
+(define-type (Link on-tap: (maps (Link byte real real) to: boolean)
+		   := always
+                   on-double-tap: (maps (Link byte real real) to: boolean)
+		   := always
+                   on-press: (maps (Link byte real real) to: boolean)
+		   := always
+                   on-second-press: (maps (Link byte real real) to: boolean)
+		   := always
+                   on-long-press: (maps (Link byte real real) to: boolean)
+		   := always
+                   on-key-typed: (maps (Link long) to: boolean)
+		   := always
+                   content: Enchanted)
+  implementing Enchanted
+  with
+  ((tap! finger::byte x::real y::real)::boolean
+   (on-tap (this) finger x y))
+  ((press! finger::byte x::real y::real)::boolean
+   (on-press (this) finger x y))
+  ((second-press! finger::byte #;at x::real y::real)::boolean
+   (on-second-press (this) finger x y))
+  ((double-tap! finger::byte x::real y::real)::boolean
+   (on-double-tap (this) finger x y))
+  ((long-press! finger::byte x::real y::real)::boolean
+   (on-long-press (this) finger x y))
+  ((key-typed! key-code::long)::boolean
+   (on-key-typed (this) key-code))
+
+  ((draw! context::Cursor)::void
+   (invoke content 'draw! (recons (first-index) context)))
+  
+  ((extent)::Extent
+   (content:extent))
+  
+  ((cursor-under* x::real y::real path::Cursor)::Cursor*
+   (content:cursor-under* x y (recons (first-index) path)))
+  ((part-at index::Index)::Indexable* (this))
+  
+  ((first-index)::Index 0)
+  ((last-index)::Index 0)
+  
+  ((next-index index::Index)::Index 0)
+  ((previous-index index::Index)::Index 0)
+
+  ((index< a::Index b::Index)::boolean #f)
+
+  ((as-expression)
+   (origin (this)))
+  )
+
+
 (define-type (Button action: (maps () to: void)
 		     label: string)
   extending Magic

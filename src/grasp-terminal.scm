@@ -273,7 +273,8 @@
 		    'exit-selection-drawing-mode!))
   
   (define (get row::real col::real)::char
-    (let ((letter (io:getBackCharacter col row)))
+    (let ((letter (io:getBackCharacter (+ col shiftLeft)
+				       (+ row shiftTop))))
       (letter:getCharacter)))
 
   (define (clear!)::void

@@ -499,8 +499,9 @@
      inside:
      (lambda (content::Enchanted finger::byte x::real y::real)
        ::boolean
+       (WARN "passing popup tap inside")
        (content:tap! finger x y))
-          outside:
+     outside:
      (lambda (pop-up::PopUp finger::byte x::real y::real)
        ::boolean
        (screen:remove-overlay! pop-up))))
@@ -709,9 +710,19 @@
   (define (long-press! finger::byte x::real y::real)::boolean
     (safely
      (invoke (current-message-handler) 'clear-messages!)
-     (let* ((content ::Enchanted (Button label: "Dupa biskupa"
-					 action: (lambda ()
-						   (WARN "Dupa"))))
+     (let* ((content ::Enchanted
+		     (ColumnGrid
+		      (list
+		       (Link content: (Caption "New")
+			     on-tap: (lambda _ (WARN "New") #t))
+		       (Link content: (Caption "Open...")
+			     on-tap: (lambda _ (WARN "Open") #t))
+		       (Link content: (Caption "Switch to...")
+			     on-tap: (lambda _ (WARN "Switch to...") #t))
+		       (Link content: (Caption "Save as...")
+			     on-tap: (lambda _ (WARN "Save") #t))
+		       (Link content: (Caption "Close")
+			     on-tap: (lambda _ (WARN "Close") #t)))))
 	    (window ::PopUp (PopUp content: content))
 	    (inner ::Extent (window:extent))
 	    (outer ::Extent (screen:size)))
