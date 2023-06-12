@@ -2,16 +2,16 @@
 
 No dobra, to teraz chcemy dodac nowe widgety:
 
-
-(define-type (Capture on-tap: (maps (Link byte real real) to: boolean) := always
-                      on-double-tap: (maps (Link byte real real) to: boolean) := always
-                      on-press: (maps (Link byte real real) to: boolean) := always
-                      on-second-press: (maps (Link byte real real) to: boolean) := always
-                      on-release: (maps (Link byte real real) to: boolean) := always
-                      on-key: (maps (Link char) to: boolean) := always
-                      content: Enchanted)
+(define-type (Link on-tap: (maps (Link byte real real) to: boolean) := always
+                   on-double-tap: (maps (Link byte real real) to: boolean) := always
+                   on-press: (maps (Link byte real real) to: boolean) := always
+                   on-second-press: (maps (Link byte real real) to: boolean) := always
+                   on-long-press: (maps (Link byte real real) to: boolean) := always
+                   on-key: (maps (Link char) to: boolean) := always
+                   content: Enchanted)
   implementing Enchanted
   with
+  
 
 * 10.06.2023
 
@@ -22,9 +22,6 @@ Na razie bedziemy dodawac do modulu (button):
 
 ale tez musimy dodac 3 metody do Painter
 (na razie do TextPainter)
-
-
-╵╶ ╷ ╴ ─ └ ┘ ┌ ┐ ┤ ├ ┬ ┴ ┼
 
   (define 4dirs-code
     (let ((4dirs (mapping (4p::char)::int 0)))
