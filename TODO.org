@@ -1,3 +1,94 @@
+* 12.06.2023
+
+mamy juz wyswietlanie menu w kliencie terminalowym,
+a teraz bysmy sie postarali, zeby miec to samo
+na androidzie i na desktopie
+
+zasadniczo mamy to, ale nie wyglada to tak, jak bysmy
+tego chcieli: funkcja do rysowania grida powinna
+rysowac biale tlo
+
+czyli do paintera powinnismy dodac
+
+(fill-grid-cell! width::real height::real)::void
+
+Ok, a jak to juz bedziemy mieli, to co wtedy bedzie?
+
+W dalszym kroku bedziemy chcieli zrobic widget Scrollable
+oraz przegladarke plikow.
+
+A kiedy to juz bedzie, zrobimy ladowanie plikow oraz
+okienko "Switch to...", zamiemy sie scrollowaniem okna edytora
+
+**** I od tego momentu mozemy juz probowac rozwijac GRASP w GRASP.
+
+I kiedy to juz bedzie, zrobimy dzielenie ekranu
+oraz wstepny zarys systemu do rozpoznawania gestow.
+
+No ale dobra. Teraz zajmijmy sie Scrollem.
+
+(define-type (Scroll width: real
+                     height: real
+		     left: real := 0
+		     top: real := 0
+		     content: Enchanted)
+  implementing Drag
+  with
+  ((move! x::real y::real dx::real dy::real)::void
+   (let ((inner ::Extent (content:extent)))
+     (set! left (max 0 (min (- inner:width width) (- left dx))))
+     (set! top (max 0 (min (- inner:height height) (- top dy))))))
+   
+  ((drop! x::real y::real vx::real vy::real)::void
+   (values))
+   
+  implementing Enchanted
+  with
+  ((draw! context::Cursor)::void
+   (with-clip (width height)
+     (with-translation ((- left) (- top))
+       (content:draw! (recons 0 context)))))
+
+  ((tap! finger::byte  x::real y::real)::boolean
+   (content:tap! finger (- x left) (- y real)))
+   
+  ((press! finger::byte x::real y::real)::boolean
+   (screen:drag! finger (this)))
+   
+  ((second-press! finger::byte #;at x::real y::real)::boolean
+    (content:press! finger (- x left) (- y real)))
+    
+  ((double-tap! finger::byte x::real y::real)::boolean
+    (content:double-tap! finger (- x left) (- y real)))
+    
+  ((long-press! finger::byte x::real y::real)::boolean
+    (content:long-press! finger (- x left) (- y real)))
+    
+  ((key-typed! key-code::long)::boolean
+    (content:key-typed! key-code))
+
+  ((extent)::Extent
+   (Extent width: width
+           height: height))
+
+  ((cursor-under* x::real y::real path::Cursor)::Cursor*
+   (content:cursor-under* (- x left) (- y top) (recons 0 path)))
+
+  ((part-at index::Index)::Indexable* content)
+  
+  ((first-index)::Index 0)
+   
+  ((last-index)::Index 0)
+  
+  ((next-index index::Index)::Index 0)
+  
+  ((previous-index index::Index)::Index 0)
+  
+  ((index< a::Index b::Index)::boolean #f)
+
+  ((as-expression)::cons
+   (invoke-special Base 'to-list cons to-expression)))
+  
 * 11.06.2023
 
 No dobra, to teraz chcemy dodac nowe widgety:
