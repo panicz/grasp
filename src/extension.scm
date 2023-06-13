@@ -41,8 +41,6 @@
 
   (define (tap! finger::byte  x::real y::real)::boolean #f)
   (define (press! finger::byte x::real y::real)::boolean #f)
-  (define (move! finger::byte x::real y::real dx::real dy::real)
-    ::boolean #f)
   (define (second-press! finger::byte #;at x::real y::real)::boolean
     #f)
   (define (double-tap! finger::byte x::real y::real)::boolean #f)

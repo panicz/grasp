@@ -14,6 +14,8 @@
 (import (print))
 (import (for))
 (import (while))
+(import (space))
+(import (text))
 
 (define-object (ColumnGrid items::(sequence-of Enchanted))::Enchanted
   (define (extent)::Extent
@@ -37,19 +39,21 @@
            (x0 ::real (painter:current-translation-left))
 	   (y0 ::real (painter:current-translation-top)))
       (for item::Enchanted in items
-	   (let ((inner ::Extent (item:extent)))
-	     (painter:draw-horizontal-grid! total:width)
-	     (painter:draw-vertical-grid! (+ inner:height
-					     (* 2 grid-border)))
-	     (with-translation ((- total:width grid-border) 0)
-			       (painter:draw-vertical-grid! (+ inner:height
-							       (* 2 grid-border))))
+	(let ((inner ::Extent (item:extent)))
+	  (painter:fill-grid-cell! total:width (+ inner:height
+						  (* 2 grid-border)))
+	  (painter:draw-horizontal-grid! total:width)
+	  (painter:draw-vertical-grid! (+ inner:height
+					  (* 2 grid-border)))
+	  (with-translation ((- total:width grid-border) 0)
+	    (painter:draw-vertical-grid! (+ inner:height
+					    (* 2 grid-border))))
 
 
-	     (with-translation (grid-border grid-border)
-			       (item:draw! (recons n context)))
-	     (painter:translate! 0 (+ grid-border inner:height))
-	     (set! n (+ n 1))))
+	  (with-translation (grid-border grid-border)
+	    (item:draw! (recons n context)))
+	  (painter:translate! 0 (+ grid-border inner:height))
+	  (set! n (+ n 1))))
       (painter:draw-horizontal-grid! total:width)
       (painter:translate!
        (- x0 (painter:current-translation-left))

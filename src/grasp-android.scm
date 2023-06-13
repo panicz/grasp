@@ -461,6 +461,20 @@
       (canvas:drawRect (as float left) top right bottom
 		       paint)))
 
+  (define (grid-border)::real 20)
+
+  (define (draw-horizontal-grid! width::real)::void
+    (paint:setColor text-color)
+    (canvas:drawRect 8 8 (- width 8) 12 paint))
+  
+  (define (draw-vertical-grid! height::real)::void
+    (paint:setColor text-color)
+    (canvas:drawRect 8 8 12 (- height 8) paint))
+
+  (define (fill-grid-cell! width::real height::real)::void
+    (paint:setColor Color:WHITE)
+    (canvas:drawRect 10 10 (- width 10) (- height 10) paint))
+  
   (define (draw-line! x0::real y0::real x1::real y1::real)
     ::void
     (paint:setColor Color:LTGRAY)

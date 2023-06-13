@@ -781,12 +781,27 @@
   
   (define (draw-horizontal-split! top::real)::void
     (graphics:fillRect (max 0 (current-clip-left)) top
-		       (current-clip-width) (horizontal-line-height)))
+		       (current-clip-width)
+		       (horizontal-split-height)))
     
   (define (draw-vertical-split! left::real)::void
     (graphics:fillRect left (max 0 (current-clip-top)) 
-		       (vertical-line-width) (current-clip-height)))
+		       (vertical-split-width) (current-clip-height)))
 
+  (define (grid-border)::real 10)
+
+  (define (draw-horizontal-grid! width::real)::void
+    (graphics:setColor text-color)
+    (graphics:fillRect 4 4 (- width 8) 2))
+  
+  (define (draw-vertical-grid! height::real)::void
+    (graphics:setColor text-color)
+    (graphics:fillRect 4 4 2 (- height 8)))
+
+  (define (fill-grid-cell! width::real height::real)::void
+    (graphics:setColor Color:WHITE)
+    (graphics:fillRect 5 5 (- width 10) (- height 10)))
+  
   (define (draw-line! x0::real y0::real x1::real y1::real)
     ::void
     (graphics:drawLine (as int (round x0))

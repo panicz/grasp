@@ -767,6 +767,11 @@
     (4dirs-put! #\╵ 0 (- height 1)))
 
   (define (grid-border)::real 1)
+
+  (define (fill-grid-cell! width::real height::real)::void
+    (for row from 1 below (- height 1)
+	 (for column from 1 below (- width 1)
+	      (put! #\space row column))))
   
   (define (draw-point! left::real top::real
 		       color-rgba::int)

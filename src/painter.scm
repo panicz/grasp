@@ -190,7 +190,9 @@
   (draw-horizontal-grid! width::real)::void
   (draw-vertical-grid! height::real)::void
   (grid-border)::real
+  (fill-grid-cell! width::real height::real)::void
 
+  
   (draw-point! left::real top::real
 	       color-rgba::int)::void
   
@@ -456,6 +458,9 @@
     (values))
 
   (define (grid-border)::real 1)
+
+  (define (fill-grid-cell! width::real height::real)::void
+    (values))
   
   (define (draw-point! left::real top::real
 		       color-rgba::int)::void
