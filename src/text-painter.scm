@@ -56,6 +56,18 @@
   (define (current-clip-top)::real
     clipTop)
 
+  (define (with-clip w::real h::real action::(maps () to: void))::void
+    (let ((painter (the-painter)))
+      (let ((x0 clipLeft)
+	    (y0 clipTop)
+	    (w0 clipWidth)
+            (h0 clipHeight)
+            (x shiftLeft)
+	    (y shiftTop))
+	(invoke painter 'clip! x y w h)
+        (action)
+	(invoke painter 'clip! x0 y0 w0 h0))))
+  
   (define markedCursorPosition ::Position
     (Position left: 0
 	      top: 0))

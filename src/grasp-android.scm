@@ -398,6 +398,13 @@
   (define clipWidth ::real +inf.0)
   (define clipHeight ::real +inf.0)
 
+  (define (with-clip w::real h::real action::(maps () to: void))::void
+    (canvas:save)
+    (canvas:clipRect 0 0 w h)
+    (action)
+    (canvas:restore))
+
+  
   (define (clip! left::real  top::real
 		 width::real height::real)
     ::void

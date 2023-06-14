@@ -398,6 +398,16 @@
     
 (define-object (GRASP)::Application
   (define graphics ::Graphics2D)
+
+  (define (with-clip w::real h::real action::(maps () to: void))::void
+    (let* ((previous-clip (graphics:getClip))
+           (transform ::AffineTransform
+ 		      (graphics:getTransform))
+           #;(x (transform:getTranslateX))
+	   #;(y (transform:getTranslateY)))
+      (graphics:clipRect 0 0 w h)
+      (action)
+      (graphics:setClip previous-clip)))
   
   (define (clip! left::real  top::real
 		 width::real height::real)

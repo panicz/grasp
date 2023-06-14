@@ -499,7 +499,6 @@
      inside:
      (lambda (content::Enchanted finger::byte x::real y::real)
        ::boolean
-       (WARN "passing popup tap inside")
        (content:tap! finger x y))
      outside:
      (lambda (pop-up::PopUp finger::byte x::real y::real)
@@ -600,6 +599,69 @@
   with
   ((as-expression)::cons
    (invoke-special Base 'to-list cons to-expression)))
+
+(define-type (Scroll width: real
+                     height: real
+		     left: real := 0
+		     top: real := 0
+		     content: Enchanted)
+  implementing Drag
+  with
+  ((move! x::real y::real dx::real dy::real)::void
+   (let ((inner ::Extent (content:extent)))
+     (set! left (max 0 (min (- inner:width width) (- left dx))))
+     (set! top (max 0 (min (- inner:height height) (- top dy))))))
+   
+  ((drop! x::real y::real vx::real vy::real)::void
+   (values))
+   
+  implementing Enchanted
+  with
+  ((draw! context::Cursor)::void
+   (with-clip (width height)
+     (with-translation ((- left) (- top))
+       (content:draw! (recons 0 context)))))
+
+  ((tap! finger::byte  x::real y::real)::boolean
+   (content:tap! finger (+ x left) (+ y top)))
+   
+  ((press! finger::byte x::real y::real)::boolean
+   (screen:drag! finger (this)))
+   
+  ((second-press! finger::byte #;at x::real y::real)::boolean
+    (content:press! finger (+ x left) (+ y top)))
+    
+  ((double-tap! finger::byte x::real y::real)::boolean
+    (content:double-tap! finger (+ x left) (+ y top)))
+    
+  ((long-press! finger::byte x::real y::real)::boolean
+    (content:long-press! finger (+ x left) (+ y top)))
+    
+  ((key-typed! key-code::long)::boolean
+    (content:key-typed! key-code))
+
+  ((extent)::Extent
+   (Extent width: width
+           height: height))
+
+  ((cursor-under* x::real y::real path::Cursor)::Cursor*
+   (content:cursor-under* (- x left) (- y top) (recons 0 path)))
+
+  ((part-at index::Index)::Indexable* content)
+  
+  ((first-index)::Index 0)
+   
+  ((last-index)::Index 0)
+  
+  ((next-index index::Index)::Index 0)
+  
+  ((previous-index index::Index)::Index 0)
+  
+  ((index< a::Index b::Index)::boolean #f)
+
+  ((as-expression)::cons
+   (invoke-special Base 'to-list cons to-expression)))
+
 
 (define-object (Editor)::Pane
   (define document (cons '() '()))
@@ -718,11 +780,20 @@
 		       (Link content: (Caption "Open...")
 			     on-tap: (lambda _ (WARN "Open") #t))
 		       (Link content: (Caption "Switch to...")
-			     on-tap: (lambda _ (WARN "Switch to...") #t))
+			     on-tap: (lambda _ (WARN "Switch to...")
+					     #t))
 		       (Link content: (Caption "Save as...")
 			     on-tap: (lambda _ (WARN "Save") #t))
 		       (Link content: (Caption "Close")
-			     on-tap: (lambda _ (WARN "Close") #t)))))
+			     on-tap: (lambda _ (WARN "Close") #t))
+		       )))
+	    (inner ::Extent (content:extent))
+	    (content ::Enchanted (Scroll width:
+					 inner:width
+					 height: (quotient
+						  inner:height
+						  2)
+					 content: content))
 	    (window ::PopUp (PopUp content: content))
 	    (inner ::Extent (window:extent))
 	    (outer ::Extent (screen:size)))
