@@ -1,3 +1,119 @@
+* 13.06.2023
+
+wyglada na to, ze implementacja with-clip jest niepoorawna,
+a lezace u jej podstaw funkcjonalnosci niedostateczne
+do dostarczenia poprawnej implementacji.
+
+Dlatego dzis skupilibysmy sie na tym, zeby odpowiednio
+rozbudowac paintera
+
+Zamiast
+
+(define-syntax-rule (with-clip (w h) . actions)
+  (let ((painter (the-painter)))
+    (let ((x0 (invoke painter 'current-clip-left))
+	  (y0 (invoke painter 'current-clip-top))
+	  (w0 (invoke painter 'current-clip-width))
+	  (h0 (invoke painter 'current-clip-height))
+	  (x! (invoke painter 'current-translation-left))
+	  (y! (invoke painter 'current-translation-top))
+	  (w! w)
+	  (h! h))
+      (invoke painter 'clip! x! y! w! h!)
+      (begin . actions)
+      (invoke painter 'clip! x0 y0 w0 h0))))
+
+chcielibysmy raczej miec
+
+(define-syntax-rule (with-clip (w h) . actions)
+  (let ((painter ::Painter (the-painter)))
+      (painter:store-state!)
+      (painter:clip! w h)
+      (begin . actions)
+      (painter:restore-state!))
+
+znow musimy porownac Androida, AWT i terminal.
+W terminalu musimy wszytskie mechanizmy
+sami zaimplementowac i tak.
+
+
+w starym kliencie Androidowym mielismy
+
+canvas.save();
+canvas.clipRect(0, 0, _width, _height);
+canvas.translate(-hscroll, -vscroll);
+target.render(canvas);
+canvas.restore();
+      
+byc moze w Androidzie mozna uzyc pary
+
+clipRect
+
+clipOutRect
+
+natomiast w awt mozemy zrobic tak:
+
+
+(let ((previous-clip ::Shape (graphics:getClip)))
+  (graphics:clipRect ...)
+
+  (graphics:setClip previous-clip))
+
+
+(define-alias ClipState java.lang.Object)
+
+(clip! width::real height::real)::Clip
+(restore-clip! clip::Clip)::void
+
+(define-syntax-rule (with-clip (w h) . actions)
+  (let* ((painter ::Painter (the-painter))
+         (previous ::Clip (painter:clip! w h)))
+      (begin . actions)
+      (painter:restore-clip! previous)))
+
+i w kliencie awt to by bylo:
+
+(define (clip! w h)::Clip
+(let* ((previous-clip (graphics:getClip))
+         (transform ::AffineTransform
+ 		      (graphics:getTransform))
+         (x (transform:getTranslateX))
+	 (y (transform:getTranslateY)))
+    (graphics:setClip x y w h)))
+                      
+(define (restote-clip! clip::Clip)::void
+  (graphics:setClip (as Shape clip)))
+
+
+a w kliencie androidowym
+
+(define (clip! w h)::Clip
+  (let ((clip ::RectF (RectF 0 0 w h)))
+    (canvas:clipRect clip)
+    clip))
+
+
+(define (restote-clip! clip::Clip)::void
+
+a moze po prodtu dodac:
+
+(with-clip w::real h::real action::(maps () to: void))
+
+no, to na tym w koncu stanelo. jak na razie dziala
+na desktopie i androidzie, zas terminal musi jeszcze zostac
+przetestowany
+
+wydaje sie, ze nastepnym krokiem jest implementacja
+przegladarki plikiw - i tutaj chyba najrozsadniej
+jest zaczac od implementacji przegladarki plikow
+z poprzedniego prototypu
+
+i wyglada na to, ze:
+- w kliencie androidowym chcemy dodac biblioteke android-svg
+- a do klienta desktopowego bysmy sprobowali jsvg
+
+
+
 * 12.06.2023
 
 mamy juz wyswietlanie menu w kliencie terminalowym,
