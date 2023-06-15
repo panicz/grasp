@@ -1,3 +1,74 @@
+* 14.06.2023
+
+wstepnie wyglada na to, ze Scroll w terminalu dziala
+(choc cos sie z jakichs wzgledow jeszcze zawiesza)
+
+no to teraz tak: w klientach graficznych bysmy chcieli
+ladowac svg, natomiast w kliencie tekstowym
+po prostu uzylibysmy ikonek z unicode'a
+
+📁 ..
+📄 file.grasp
+
+po stronie paintera bysmy zrobili
+
+(draw-directory-icon!)::void
+(directory-icon-size)::Extent
+(draw-file-icon!)::void
+(file-icon-size)::Extent
+
+duzo chyba teraz bedzie rozkminy koncepcyjnej, bo
+na androidzie przegladarka plikow musi miec uprawnienia,
+ale u pozostalych klientow juz niekoniecznie
+
+no dobra, to odgrzebmy moze dzialanie starej przegladarki
+
+
+lomNg press powoduje wstawienie pop-upu OpenFileBrowser
+albo SaveFileBrowser, ktore implementuja (nasz wlasny)
+interfejs PermissiomGrantedHandler, ktory dziala tak,
+ze w klasie GRASP mamy metodd
+
+@override
+public void onRequestPermissionsResult(
+  int requestCode,
+  String[] permissions,
+  int[] grantResults
+)
+
+no dobra. ale teraz takie pytanie:
+w jaki sposob zroznicowac obsluge plikow
+w kliencie androidowym i pozostalych?
+
+moze opiszmy sobie jak dziala OpenFileBrowser:
+ma metode perform, ktora jest wywolywana
+przy nacisnieciu przycisku Open w menu edytowa
+
+kiedy do tego dojdzie, zostaje wywolane zapytanie
+o dostep do plikow, a jako kontynuacja zostaje
+ustawiony sam ten obiekt.
+
+za wywolanie kontynuacji odpowiada system, i to
+on wywola metode onPermissionGranted, ktora
+tworzy nowe okienko
+
+gdybysmy chcieli dodac te funkcje do paintera,
+to bysmy mieli metody
+
+(define-interface Keeper ()
+  (with-read-permissions action::(maps (...) to: void))::void
+  (with-write-permissions action::(maps (...) to: void))::void
+)
+
+(define-object (PermissiveKeeper)::Keeper
+  (define (with-read-permissions action::(maps () to: void))::void
+    (action))
+  (define (with-write-permissions action::(maps () to: void))::void
+    (action)))
+
+(define-parameter (the-keeper)::Keeper (PermissiveKeeper))
+
+
 * 13.06.2023
 
 wyglada na to, ze implementacja with-clip jest niepoorawna,
@@ -44,7 +115,7 @@ canvas.clipRect(0, 0, _width, _height);
 canvas.translate(-hscroll, -vscroll);
 target.render(canvas);
 canvas.restore();
-      
+
 byc moze w Androidzie mozna uzyc pary
 
 clipRect
@@ -80,7 +151,7 @@ i w kliencie awt to by bylo:
          (x (transform:getTranslateX))
 	 (y (transform:getTranslateY)))
     (graphics:setClip x y w h)))
-                      
+
 (define (restote-clip! clip::Clip)::void
   (graphics:setClip (as Shape clip)))
 
@@ -154,10 +225,10 @@ No ale dobra. Teraz zajmijmy sie Scrollem.
    (let ((inner ::Extent (content:extent)))
      (set! left (max 0 (min (- inner:width width) (- left dx))))
      (set! top (max 0 (min (- inner:height height) (- top dy))))))
-   
+
   ((drop! x::real y::real vx::real vy::real)::void
    (values))
-   
+
   implementing Enchanted
   with
   ((draw! context::Cursor)::void
@@ -167,19 +238,19 @@ No ale dobra. Teraz zajmijmy sie Scrollem.
 
   ((tap! finger::byte  x::real y::real)::boolean
    (content:tap! finger (- x left) (- y real)))
-   
+
   ((press! finger::byte x::real y::real)::boolean
    (screen:drag! finger (this)))
-   
+
   ((second-press! finger::byte #;at x::real y::real)::boolean
     (content:press! finger (- x left) (- y real)))
-    
+
   ((double-tap! finger::byte x::real y::real)::boolean
     (content:double-tap! finger (- x left) (- y real)))
-    
+
   ((long-press! finger::byte x::real y::real)::boolean
     (content:long-press! finger (- x left) (- y real)))
-    
+
   ((key-typed! key-code::long)::boolean
     (content:key-typed! key-code))
 
@@ -191,20 +262,20 @@ No ale dobra. Teraz zajmijmy sie Scrollem.
    (content:cursor-under* (- x left) (- y top) (recons 0 path)))
 
   ((part-at index::Index)::Indexable* content)
-  
+
   ((first-index)::Index 0)
-   
+
   ((last-index)::Index 0)
-  
+
   ((next-index index::Index)::Index 0)
-  
+
   ((previous-index index::Index)::Index 0)
-  
+
   ((index< a::Index b::Index)::boolean #f)
 
   ((as-expression)::cons
    (invoke-special Base 'to-list cons to-expression)))
-  
+
 * 11.06.2023
 
 No dobra, to teraz chcemy dodac nowe widgety:
@@ -218,7 +289,7 @@ No dobra, to teraz chcemy dodac nowe widgety:
                    content: Enchanted)
   implementing Enchanted
   with
-  
+
 
 * 10.06.2023
 
@@ -271,16 +342,16 @@ ale do pelni szczescia bylyby nam jeszcze potrzebne:
 
   (define (first-index)::Index 0)
   (define (last-index)::Index (- (length items 1)))
-  
+
   (define (next-index index::Index)::Index
     (min (+ index 1) (last-index)))
-    
+
   (define (previous-index index::Index)::Index
     (max 0 (- index 1)))
-  
+
   (define (index< a::Index b::Index)::boolean
     (is a < b)) ;>>
-    
+
 przy czym te ostatnie raczej powinny byc robione
 na jedno kopyto (analogicznie do tego jak zrobilismy
 tego PopUpa)
@@ -318,12 +389,12 @@ tego PopUpa)
     (propagate finger x y
       (lambda (child::Enchanted finger::byte x::real y::real index::int)
         (child:press! finger x y))))
-  
+
   (define (second-press! finger::byte #;at x::real y::real)::boolean
     (propagate finger x y
       (lambda (child::Enchanted finger::byte x::real y::real index::int)
         (child:second-press! finger x y))))
-  
+
   (define (double-tap! finger::byte x::real y::real)::boolean
     (propagate finger x y
       (lambda (child::Enchanted finger::byte x::real y::real index::int)
@@ -338,7 +409,7 @@ tego PopUpa)
     ;; na razie tego nie obslugujemy; docelowo warto by bylo
     ;; przemyslec obsluge klawiatury
     #f)
-	
+
 * 08-07.06.2023
 
 mamy zintegrowany touch event processor
@@ -362,7 +433,7 @@ ze mamy
  (Column
   (Row content: (Link content: ...)
        span: 1)
-  
+
 
 Niewazne, nie skupiajmy sie na razie na tabeli.
 
@@ -386,7 +457,7 @@ Jak powinien wygladac kod renderujacy
 ButtonList?
 
 (define (column . items)
-  (Column items))  
+  (Column items))
 
 
 (define-object (Column items::(sequence-of Enchanted))::Enchanted
@@ -402,7 +473,7 @@ ButtonList?
 	        (+ total-height inner:height grid-border))))
       (Extent width: (+ max-width (* 2 grid-border))
               height: total-height)))
-	      
+
   (define (draw! context::Cursor)::void
     (let* ((painter ::Painter (the-painter))
            (grid-border ::real (painter:grid-border))
@@ -421,9 +492,9 @@ ButtonList?
       (painter:translate!
        (- (painter:current-translation-left) x0)
        (- (painter:current-translation-top) y0))))
-      
 
-  
+
+
 
 * 06.06.2023
 
@@ -477,14 +548,14 @@ w kazdym razie jak ma w teeminalu dzialac nasz EventRunner?
   ::CancellableRunner
 
   (define postponed-action ::(maps () to: boolean) never)
-  
+
   (define timer ::java.util.Timer (java.util.Timer))
-  
+
   (define (cancel)::Cancellable
     (invoke-special TimerTask (this) 'cancel)
     (timer:purge)
     (this))
-  
+
   (define (after time-ms::long action::procedure)
     ::Cancellable
     (timer:schedule (this) time-ms)
@@ -492,7 +563,7 @@ w kazdym razie jak ma w teeminalu dzialac nasz EventRunner?
 
   (define (run)::void
     (queue:put postponed-action))
-    
+
   (TimerTask))
 
 Ok, to jakis zamysl jest (i jutro sie tym bardziej zajmiemy),
@@ -509,7 +580,7 @@ i o tym, jak to obsluzyc od strony Paintera
     (let ((event ::KeyStroke (io:readInput)))
       (queue:put event))))
 
-      
+
 * 05.06.2023
 
 mamy juz zrobione "rusztowanie" do odpalinia
@@ -644,17 +715,17 @@ to by dzialalo jakos tak:
 
 (define-type (PopUp left: real := 0 top: real := 0
                     content: Tile)
-		    
+
   implementing Tile
   with
   ((part-at index::Index)::Indexable*
    (match index
     ('edge (this))
     ('content content)))
-  
+
   ((first-index)::Index 'edge)
   ((last-index)::Index 'content)
-  
+
   ((next-index index::Index)::Index 'content)
   ((previous-index index::Index)::Index 'edge)
 
@@ -680,19 +751,19 @@ to by dzialalo jakos tak:
         (return
 	  (otherwise #!null
 	    (and path (recons 'edge path)))))))))
-	    
+
   implementing Drag
   with
   ((move! x::real y::real dx::real dy::real)::void
    (set! left (+ left dx))
    (set! top (+ top dy)))
-   
+
   ((drop! x::real y::real vx::real vy::real)::void
    (values))
-   
+
   implementing Pane
   with
-  
+
   ((tap! finger::byte #;at x::real y::real)::boolean
    (pop-up-action (this) x y
      inside:
@@ -723,10 +794,10 @@ to by dzialalo jakos tak:
      inside:
      (lambda (content::Tile finger::byte x::real y::real)::boolean
        (content:long-press! finger x y))))
-  
+
   ((key-typed! key-code::long)::boolean
    (content:key-typed! key-code))
-   
+
   implementing Enchanted
   with
   ((as-expression)::cons
@@ -766,7 +837,7 @@ a ogolnie "kamienie milowe" bysmy okreslili jako:
 - kompozycjonalny system budowania rozszerzen
 - ksiazka o GRASP
 - ksiazka w GRASP o komputerach
-  
+
 * 31.05.2023
 
 chyba ze wzgledu na klienta terminalowego
@@ -922,7 +993,7 @@ okien:
   - elementy overlay rowniez powinny stac sie
     Pane, natomiast Drag powinno byc klasa
     abstrakcyjna implementujaca Pane
-  
+
 no dobra, klase Screen juz mamy (choc bez podniety),
 natomisdt pozostaja nam jeszcze takie rzeczy, jak:
 - usunac move! z Pane
@@ -938,7 +1009,7 @@ to chyba bez sensu?
 chcemy za to, zeby Overlay bylo Pane.
 
 
-    
+
 * 26.05.2023
 
 plany na najblizszy czas to:
@@ -1080,13 +1151,13 @@ ok, to sie udalo
 to terax chcemy dla tych swoich cycatow zaimplementowac:
 
   (part-at index::Index)::Indexable*
-  
+
   (first-index)::Index
   (last-index)::Index
-  
+
   (next-index index::Index)::Index
   (previous-index index::Index)::Index
-  
+
   (index< a::Index b::Index)::boolean
 
   (draw! context::Cursor)::void
@@ -1129,7 +1200,7 @@ moglibysmy zrobic taki enum:
   (Regular Quote Quasiquote Unquote UnquoteSplicing))
 
 ( quote x )
-[0  1  234]  
+[0  1  234]
 
 
 a jeszcze z innej beczki: chcielibysmy, zeby
@@ -1225,8 +1296,8 @@ wiec bedzie trzeba dodac odpowiednie funkcje rysujace
      ...)))
 
  ;; i jeszcze inne metody
-   )  
-   
+   )
+
 
 
 * 13.05.2023
@@ -1291,17 +1362,17 @@ plan z grubsza taki:
 
 Do tego bysmy chcieli zrobic rozszerzenie
 "quote", ktore po prostu renderuje grubsze
-nawiasy, albo 
+nawiasy, albo
 
       ▖ ▗
 'x =>  x
 
-      ▗ 
+      ▗
 'x =>  x
 
       ▖    ▗
 'x =>  atom
-           
+
 
 ▼    ▼
  atom
@@ -1312,8 +1383,8 @@ nawiasy, albo
 ◥    ◤
  atom
 
- 
-	
+
+
 czyli tak: jezeli mamy (quote (quote ...))
 
 * 07.05.2023
@@ -1397,7 +1468,7 @@ guzik bedzie dzialal)
 
 No dobra. Teoretycznie operacja  jest zaimplementowana,
 tylko trzeba ja podpiac do interfejsu...
-  
+
 * 22.04.2023
 
 wczoraj palcem nie kiwnelismy, to moze dzis
@@ -1408,7 +1479,7 @@ kiwniemy? (w samolocie?)
 To moze dzisiaj:
 - dodamy enchant! i disenchant! do naszych operacji
   historycznych
-- dodamy 
+- dodamy
 
 
 * 20.04.2023
@@ -1504,7 +1575,7 @@ i define-type by dodatkowo robilo
 	    (init rest)))))))
 
 a zamiastveval btsmy mieli
-	    
+
 (define (construct struct-spec::list)::Struct
   ((constructor (car struct-spec)) (cdr struct-spec)))
 
@@ -1512,9 +1583,9 @@ a zamiastveval btsmy mieli
 a tu w niedzyczasie sie rodzi plan prezentacji
 1. zamiast jednego duzego dema - duzo malych dem (i opowiesc)
 2. programowanie jako srodek rozumienia
-3. 
+3.
 
-  
+
 * 16.04.2023
 
 No to teraz plan jest taki, ze
@@ -1570,7 +1641,7 @@ i jest uzywane np. przez Button o tak:
 	      (WARN "Unable to create Button from "source": "
 		    (java.lang.String:valueOf ex))
 	      #!null)))))
-	      
+
 No ok, i teraz zamiast (eval source) bedziemy
 robili (list->struct source)?
 
@@ -1776,7 +1847,7 @@ U+253x 	┰ ┱ ┲ ┳ ┴ ┵ ┶ ┷ ┸ ┹ ┺ ┻ ┼ ┽ ┾ ┿
 U+254x 	╀ ╁ ╂ ╃ ╄ ╅ ╆ ╇ ╈ ╉ ╊ ╋ ╌ ╍ ╎ ╏
 U+255x 	═ ║ ╒ ╓ ╔ ╕ ╖ ╗ ╘ ╙ ╚ ╛ ╜ ╝ ╞ ╟
 U+256x 	╠ ╡ ╢ ╣ ╤ ╥ ╦ ╧ ╨ ╩ ╪ ╫ ╬ ╭ ╮ ╯
-U+257x 	╰ ╱ ╲ ╳ ╴ ╵ ╶ ╷ ╸ ╹ ╺ ╻ ╼ ╽ ╾ ╿ 
+U+257x 	╰ ╱ ╲ ╳ ╴ ╵ ╶ ╷ ╸ ╹ ╺ ╻ ╼ ╽ ╾ ╿
 
           ┏     ┓
 '(...) => ┃ ... ┃
@@ -1879,7 +1950,7 @@ a pozniej co?
 - rozszerzenia
 - partykularne rozszerzenia
 - sklep + wersja platna
-  
+
 * 06.04.2023
 
 test wykazal, ze trzeba jeszcze troche dopiescic
@@ -1910,7 +1981,7 @@ insercje. i to bysmy zrobili, plus:
   ((inverse)::Edit
    (and-let* ((`(,tip . ,root) at))
      (UncommentExpression at: (recons* following (- tip 1) root)))))
-     
+
 (define-type (UncommentExpression at: Cursor)
   implementing Edit
   with
@@ -2077,7 +2148,7 @@ Dobra, zacznijmy od tego rysowania kresek.
 
   (define (move! x::real y::real dx::real dy::real)::void
     (stroke:add (Point x y)))
-    
+
   (define (drop! x::real y::real vx::real vy::real)::void
     (the-overlay:removeIf (is _ Stroke?)))
 
@@ -2131,7 +2202,7 @@ rysowanie gestu jako 'Drag'?
   (define (move! x::real y::real dx::real dy::real)::void
     ;; dodajemy Point do stroke'a
     ...)
-    
+
   (define (drop! x::real y::real vx::real vy::real)::void
     ;; wywolujemy recognizer
     ...)
@@ -2184,7 +2255,7 @@ wreszcie isShapeBeingDrawn jest:
 - w onMotion przy dodawaniu nowego odcinka
   do aktualnego stroke'a
 - w onUp przed rozpoczeciem rysowania
-  
+
 
 natomiast finalizeStroke jest wywolywany przy
 konczeniu rysowania
@@ -2210,7 +2281,7 @@ kiedy zaczynamy cos rysowac.
 
 ale jak sie on bedzie nazywal?
 
-    
+
 * 19.03.2023
 
 teraz to bysmy chcieli miec funkcje
@@ -2290,7 +2361,7 @@ y = sqrt(r^2 - x^2)
         (4pix-set! x +y)
         (4pix-set! x -y)))))
 
-    
+
 * 18.03.2023
 
 
@@ -2335,10 +2406,10 @@ y1 = ax1 + b
   ▀
 
 ▖▗ ▘▝
-  
+
  ▗▀
 ▐   ▌
- 
+
   ▀
 * 17.03.2023 (telefon)
 
@@ -2373,7 +2444,7 @@ tekstowego bysmy uzyli tego:
 
 ▛▜
 ▙▟ █
-  
+
 czyli dodajemy do paintera funkcje
 
 (draw-line! x1::real y1::real x2::real y2::real)::void
@@ -2454,7 +2525,7 @@ do spacji, oraz test dla niej.
 
 Dzis bysmy sprobowali zintegrowac te funkcje z edytorem,
 tak zeby wcisniecie srednika powodowalo dodanie komentarza
-- aczkolwiek do tego bedzie jeszcze konieczne dodanie 
+- aczkolwiek do tego bedzie jeszcze konieczne dodanie
 operacji odwrotnej, tj. usuniecie komentarza
 
 * 07.03.2023
@@ -2499,7 +2570,7 @@ to usuwamy caly komentarz
 To ostatnie bedzie najpewniej wymagalo zaimplementowania
 interfejsu Textual w LineComment
 
-Trzeba bedzie dodac nowe operacje: 
+Trzeba bedzie dodac nowe operacje:
 (InsertComment content: TextualComment at: Cursor)
 
 oraz
@@ -2618,7 +2689,7 @@ Dziala to tak, ze najpierw total wynosi 0. Nastepnie:
 - wywolujemy (advance-with-cursor! width) i dodajemy
 width do total
 - nastepnie mamy LC. Ono powinno byc na indeksie 3
-kolejna 2 
+kolejna 2
 
 
 ** a to takie tam bazgrolki:
@@ -2631,7 +2702,7 @@ kolejna 2
 ⌇
 
 ╭  ╮
-︴ ︴ 
+︴ ︴
 ︴ ︴
 ︴ ︴
 ╰
@@ -2650,7 +2721,7 @@ kolejna 2
 ⸾ ⸾ ⸾ ╙      ^      ╜ ╯ ╯ ⌇
 
 
-⸾   ⌇  
+⸾   ⌇
 ⸾   ⌇
 ⸾   ⌇
 
@@ -2932,7 +3003,7 @@ Musimy tylko zaktualizowac metody wewnatrz
 Space:
 - draw!
 - cursor-under*
-- advance! 
+- advance!
 
 * 20.02.2023
 
@@ -2951,7 +3022,7 @@ komentarzy, ... (czyli mowiac krotko - edycja komentarzy)
 - po drugie, obsluga kawowych rozszerzen skladniowych,
 tak zebysmy mogli parsowac zrodla GRASP,
 a przy okazji zajelibysmy sie obsluga rozszerzen
-jako takich, tak zeby moc wyswietlac quote'y, 
+jako takich, tak zeby moc wyswietlac quote'y,
 unquote'y i quasiquote'y, a takze - skoro to juz jest
 w jakiejs formie - to moze nasz guzik?
 
@@ -2980,7 +3051,7 @@ Chodziloby o to, ze:
   pogrubione
 - teksty i nawiasy owiniete w jednego unquote'a
   rysujemy kursywa
-  
+
 Czy cos. Jakos to sprobujemy pomyslec.
 
 Na razie jednak te komentarze.
@@ -3023,7 +3094,7 @@ komentarzy i zakomentowywania linii
 * 18.02.2023
 
 *bold*
-/italic/ 
+/italic/
 
 ╭        ╭         ╮                                   ╮
 │ define │ map f l │                                   │
@@ -3347,7 +3418,7 @@ Teraz jednak wydaje sie, ze bylby sens, zeby Space
 byl Textual.
 
 * 02.02.2023
-  
+
 kilka planow na dzis:
 - zrefaktoryzowac extract! w taki sposob, zeby biezacy
   "extract!" stal sie "extract-from-cell!" albo cos takiego,
@@ -3415,7 +3486,7 @@ Czyli zasadniczo sprawdzamy, kto jest rodzicem naszego elementu:
   to wywolamy "extract-tile-from-cell!"
 - jezeli jest to atom, to usuwamy znak i zwracamy go
 - jezeli jest to spacja, to zwrocimy albo nowa linie, albo
-  znak spacji - chyba ze spacja jest pusta, wtedy 
+  znak spacji - chyba ze spacja jest pusta, wtedy
   albo scalamy elementy (jesli mozemy), albo nic
   nie robimy
 
@@ -3443,7 +3514,7 @@ Byc moze latwiej bedzie zalozyc, ze drag&drop
 rowniez wplywa na polozenia kursora (bo zasadniczo
 to sie wydaje nie miec znaczenia), i ze zawsze
 umieszczamy kursor za dodanym elementem
-albo przed usunietym elementem. 
+albo przed usunietym elementem.
 
 -----
 
@@ -3485,7 +3556,7 @@ historycznych oraz drag&dropa.
 Co do drag&dropa to mamy pewna koncepcje.
 
 
-* 28.01.2023 
+* 28.01.2023
 
 <<analiza-edycji>>
 
@@ -3525,7 +3596,7 @@ A. insert-char!
      rozszerzenie zajmuje sie kursorem))
 
   3. jezeli wstawiany znak to #\[, to:
-    a. jezeli kursor jest na spacji albo krawedzi atomu, to 
+    a. jezeli kursor jest na spacji albo krawedzi atomu, to
      tworzymy nowe pudelko
     b. jezeli kursor jest wewnatrz atomu, to przedzielamy atom
      nowym pudelkiem
@@ -3533,7 +3604,7 @@ A. insert-char!
      w pudelko)
 
   4. jezeli wstawiamy znak #\", to:
-    a. jezeli kursor jest na spacji albo krawedzi atomu, to 
+    a. jezeli kursor jest na spacji albo krawedzi atomu, to
      tworzymy nowy Text
     b. jezeli kursor jest wewnatrz atomu, to przedzielamy atom
      nowym Textem
@@ -3712,7 +3783,7 @@ sa testy jednostkowe w test-editor-operations.scm.
 1. insert! [lista do spacji]
    - wyodrebnic "insert-into-box!"
 2. insert! [spacja do atomu]
-   - rozbijamy atom na dwa - 
+   - rozbijamy atom na dwa -
 3. insert! [spacje do spacji]
    - to sie moze wydawac nieco nieintuicyjne,
      ale powinnismy rozbic jedno pudelko na dwa
@@ -3768,10 +3839,10 @@ dodawac nowy ficzer edycji do GRASPa.
 
 Najogolniej rzecz biorac, chcemy, zeby
 wcisniecie klawisza powodowalo domyslnie
-wywolanie 
+wywolanie
 
-(insert-character! (unicode-input) 
-             into: (the-document) 
+(insert-character! (unicode-input)
+             into: (the-document)
                at: (the-cursor))
 
 gdzie:
@@ -3830,7 +3901,7 @@ zadania na dzis/jutro:
   (i ew. ponaprawiac)
 - uzupelnic mapy klawiatury
 - dodac (shift left) oraz (shift right) jako ekspansje selekcji
-  
+
 * 14.01.2023
 
 zbudowalismy juz zalazki map klawiatur dla
@@ -3949,7 +4020,7 @@ w roznych kontekstach.
 
 (define-type (KeyMap bindings: (maps (key::int) to: () to: void)
                      parent: KeyMap))
-      
+
 * 10.01.2023
 
 Wczorajszybi dzisiejszy dzien to glownie
@@ -4283,7 +4354,7 @@ i teraz insert! analogicznie:
    split-text! at: Cursor in: document
 5. remove-characters! at: Cursor from: document
    insert-charactets! at: Cursor into: document
-   
+
 * 02.01.2023
 
 Dwie pierwsze zmiany w nowym roku:
