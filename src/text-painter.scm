@@ -24,10 +24,10 @@
   (define (translate! x::real y::real)::void
     (set! shiftLeft (+ shiftLeft x))
     (set! shiftTop (+ shiftTop y)))
-  
+
   (define (current-translation-left)::real
     shiftLeft)
-  
+
   (define (current-translation-top)::real
     shiftTop)
 
@@ -36,42 +36,41 @@
   (define clipWidth ::real +inf.0)
   (define clipHeight ::real +inf.0)
 
-  (define (clip! left::real  top::real
+  (define (clip! left::real top::real
 		 width::real height::real)
     ::void
     (set! clipLeft left)
     (set! clipTop top)
     (set! clipWidth width)
     (set! clipHeight height))
-		 
+
   (define (current-clip-width)::real
     clipWidth)
-  
+
   (define (current-clip-height)::real
     clipHeight)
-  
+
   (define (current-clip-left)::real
     clipLeft)
-  
+
   (define (current-clip-top)::real
     clipTop)
 
   (define (with-clip w::real h::real action::(maps () to: void))::void
-    (let ((painter (the-painter)))
-      (let ((x0 clipLeft)
-	    (y0 clipTop)
-	    (w0 clipWidth)
-            (h0 clipHeight)
-            (x shiftLeft)
-	    (y shiftTop))
-	(invoke painter 'clip! x y w h)
-        (action)
-	(invoke painter 'clip! x0 y0 w0 h0))))
-  
+    (let ((x0 clipLeft)
+	  (y0 clipTop)
+	  (w0 clipWidth)
+          (h0 clipHeight)
+          (x shiftLeft)
+	  (y shiftTop))
+      (clip! x y w h)
+      (action)
+      (clip! x0 y0 w0 h0)))
+
   (define markedCursorPosition ::Position
     (Position left: 0
 	      top: 0))
-  
+
   (define (mark-cursor! +left::real +top::real)::void
     (set! markedCursorPosition:left (+ shiftLeft +left))
     (set! markedCursorPosition:top (+ shiftTop +top))
@@ -81,15 +80,15 @@
     markedCursorPosition)
 
   (define (cursor-height)::real 1)
-  
+
   (define (space-width)::real 1)
-  
+
   (define (paren-width)::real 2)
 
   (define (min-box-height)::real 3)
-  
+
   (define (min-line-height)::real 1)
-  
+
   (define (vertical-bar-width)::real 1)
 
   (define (horizontal-bar-height)::real 1)
@@ -98,21 +97,21 @@
     (for i from (max 0 (current-clip-left))
       below (min (current-width) clipWidth)
       (put! #\─ top i)))
-  
+
   (define (draw-vertical-split! left::real)::void
     (for i from (max 0 (current-clip-top))
       below (min (current-height) clipHeight)
       (put! #\│ i left)))
 
   (define (horizontal-split-height)::real 1)
-  
+
   (define (vertical-split-width)::real 1)
-  
+
   (define (draw-horizontal-bar! width::real)::void
     (for i from 0 below width
          (when (eq? (get -1 i) #\space)
            (put! #\_ -1 i))))
-   
+
   (define (draw-vertical-bar! height::real)::void
     (put! #\╷ 0 0)
     (for i from 1 below (- height 1)
@@ -145,7 +144,7 @@
 	(for i from 1 to (- height 2)
              (put! bar i 0))
 	(put! bottom-left (- height 1) 0)
-	
+
 	(put! top-right 0 (- width 1))
 	(for i from 1 to (- height 2)
              (put! bar i (- width 1)))
@@ -156,13 +155,13 @@
 		   (is (head selection-end) in '(#\[ #\])))
 	  (exit-selection-drawing-mode!))
 	))
-  
+
   (define (draw-box! width::real height::real
 		     context::Cursor)
     ::void
     (draw-custom-box!
      #\╭                             #\╮
-     (cond 
+     (cond
       ((= current-comment-level 0)   #\│)
       ((even? current-comment-level) #\┆)
       (else                          #\┊))
@@ -175,7 +174,7 @@
     ::void
     (draw-custom-box!
      #\┏                             #\┓
-     (cond 
+     (cond
       ((= current-comment-level 0)   #\┃)
       ((even? current-comment-level) #\┇)
       (else                          #\┋))
@@ -239,7 +238,7 @@
 		 (equal? (tail selection-start) context)
 		 (is (head selection-start) in '(#\[ #\])))
 	(enter-selection-drawing-mode!))
-      
+
       (put! #\┌ 0 0)
       ;;(put! #\╵ 1 0)
       (put! #\┐ 0 (+ width 1))
@@ -251,14 +250,14 @@
 	(exit-selection-drawing-mode!))))
 
   (define (quasiquote-marker-width)::real 1)
-  
+
   (define (draw-unquote-box! width::real
 			     height::real
 			     context::Cursor)
     ::void
     (draw-custom-box!
      #\╷                             #\╷
-     (cond 
+     (cond
       ((= current-comment-level 0)   #\│)
       ((even? current-comment-level) #\┆)
       (else                          #\┊))
@@ -293,9 +292,9 @@
 		 (equal? (tail selection-end) context)
 		 (is (head selection-end) in '(#\[ #\])))
 	(exit-selection-drawing-mode!))))
-  
+
   (define (unquote-marker-width)::real 1)
-  
+
   (define (draw-unquote-splicing-box!
 	   width::real
 	   height::real
@@ -313,12 +312,12 @@
 		     in '(#\[ #\])))
 	(enter-selection-drawing-mode!))
 
-      (put! #\┈ (- height 2) 0)	
+      (put! #\┈ (- height 2) 0)
       (put! #\┤ (- height 2) 1)
 
       (put! #\├ (- height 2) (- width 2))
       (put! #\┈ (- height 2) (- width 1))
-      
+
       (when (and (pair? selection-end)
 		 (equal? (tail selection-end)
 			 context)
@@ -345,7 +344,7 @@
 		 (equal? (tail selection-start) context)
 		 (is (head selection-start) in '(#\[ #\])))
 	(enter-selection-drawing-mode!))
-      
+
       (put! #\┈ (- height 2) 0)
       (put! #\┐ (- height 2) 1)
       (put! #\└ (- height 1) 1)
@@ -382,12 +381,12 @@
     (for i from 1 to (- width 2)
          (put! horizontal 0 i)
 	 (put! horizontal (- height 1) i))
-    
+
     (put! top-right 0 (- width 1))
     (for i from 1 to (- height 2)
          (put! vertical i (- width 1)))
     (put! bottom-right (- height 1) (- width 1)))
-  
+
   (define (draw-rounded-rectangle! width::real
 				   height::real)
     ::void
@@ -411,7 +410,7 @@
 
   (define (horizontal-popup-margin)::real 1)
   (define (vertical-popup-margin)::real 1)
-  
+
   (define 4pix-code
     (let ((4pix (mapping (4p::char)::int 0)))
       (set! (4pix #\space) #b0000)
@@ -486,7 +485,7 @@
     ::void
     (draw-line-4pix! (* x0 2) (* y0 2)
 		     (* x1 2) (* y1 2)))
-  
+
   (define (draw-quoted-text! s::CharSequence
 			     context::Cursor)
     ::void
@@ -529,7 +528,7 @@
 	    (row ::int 0)
 	    (col ::int 0)
 	    (n ::int 0))
-	
+
 	(define (handle-cursor-and-selection!)
 	  (when (and enters-selection-drawing-mode?
 		     (eqv? n (head selection-start)))
@@ -539,7 +538,7 @@
 	    (exit-selection-drawing-mode!))
 	  (when (and focused? (eqv? n (car (the-cursor))))
 	    (mark-cursor! col row)))
-	
+
 	(for c in text
 	  (handle-cursor-and-selection!)
           (cond ((eq? c #\newline)
@@ -548,7 +547,7 @@
 		(else
 		 (put! c row col)
 		 (set! col (+ col 1))))
-	  
+
 	  (set! n (+ n 1)))
 	(handle-cursor-and-selection!))))
 
@@ -586,9 +585,9 @@
 		(else
 		 (put! c row col)
 		 (set! col (+ col 1))))
-	  
+
 	  (set! n (+ n 1)))))
-      
+
   (define (caption-extent caption::CharSequence)
     ::Extent
     (string-extent caption))
@@ -596,7 +595,7 @@
   (define (caption-vertical-margin)::real 1)
 
   (define (caption-horizontal-margin)::real 2)
-  
+
   (define (quoted-text-extent text::CharSequence)
     ::Extent
     (let ((inner ::Extent (string-extent text)))
@@ -611,7 +610,7 @@
     (string-character-index-under (- x 2)
 				  (- y 1)
 				  text))
-  
+
   (define (draw-atom! text::CharSequence
 		      context::Cursor)
     ::void
@@ -630,7 +629,7 @@
 	   text::CharSequence)
     ::int
     (string-character-index-under x (- y 1) text))
-  
+
   (define (get row::real col::real)::char
     #!abstract)
 
@@ -645,29 +644,29 @@
   (define (current-height)::real #!abstract)
 
   (define inSelectionDrawingMode ::boolean #f)
-  
+
   (define (enter-selection-drawing-mode!)::void
     (set! inSelectionDrawingMode #t))
 
   (define (exit-selection-drawing-mode!)::void
     (set! inSelectionDrawingMode #f))
-  
+
   (define (in-selection-drawing-mode?)::boolean
     inSelectionDrawingMode)
 
   (define current-comment-level ::int 0)
-  
+
   (define (enter-comment-drawing-mode!)::void
     (set! current-comment-level
 	  (+ current-comment-level 1)))
-  
+
   (define (exit-comment-drawing-mode!)::void
     (set! current-comment-level
 	  (- current-comment-level 1)))
 
   (define (in-comment-drawing-mode?)::boolean
     (is current-comment-level > 0))
-  
+
   (define (draw-line-comment! text::CharSequence
 			      context::Cursor)
     ::void
@@ -675,7 +674,7 @@
 		   (count-while (is _ eqv? #\;)
 				text))
 		  ((shift skip)
-		   (match semicolons 
+		   (match semicolons
 		     (0 (put! #\⸾ 0 0)
 			(values 1 0))
 		     (1 (put! #\┃ 0 0)
@@ -688,7 +687,7 @@
       (with-translation (shift 0)
 	  (draw-string! (substring text skip end)
 			 context))))
-  
+
   (define (line-comment-extent
 	   text::CharSequence)
     ::Extent
@@ -717,14 +716,14 @@
       (draw-rectangle! outer:width outer:height)
       (with-translation (1 1)
 	  (draw-string! text context))))
-  
+
   (define (block-comment-extent
 	   text::CharSequence)
     ::Extent
     (let ((inner ::Extent (string-extent text)))
       (Extent width: (+ inner:width 2)
 	      height: (+ inner:height 2))))
-  
+
   (define (block-comment-character-index-under
 	   x::real y::real
 	   text::CharSequence)
@@ -765,13 +764,13 @@
 		    (4dirs-code current)
 		    (4dirs-code c)))))
       (put! new y x)))
-  
+
   (define (draw-horizontal-grid! width::real)::void
     (4dirs-put! #\╶ 0 0)
     (for i from 1 below (- width 1)
 	 (4dirs-put! #\─ i 0))
     (4dirs-put! #\╴ (- width 1) 0))
-  
+
   (define (draw-vertical-grid! height::real)::void
     (4dirs-put! #\╷ 0 0)
     (for i from 1 below (- height 1)
@@ -784,7 +783,7 @@
     (for row from 1 below (- height 1)
 	 (for column from 1 below (- width 1)
 	      (put! #\space row column))))
-  
+
   (define (draw-point! left::real top::real
 		       color-rgba::int)
     ::void
@@ -801,7 +800,7 @@
     (mapping (key ::int)::char #!null))
 
   (define current-modifier #!null)
-  
+
   (define (get row::real col::real)::char
     (let ((x (+ col shiftLeft))
           (y (+ row shiftTop)))
@@ -827,7 +826,7 @@
     (invoke-special CharPainter (this)
 		    'draw-string! text context)
     (set! current-modifier #!null))
-  
+
   (define (put! c::char row::real col::real)
     ::void
     (let ((x (+ col shiftLeft))
@@ -891,7 +890,7 @@
        (put! #\^ (+ +top 1) +left))
       (_
        (values))))
-  
+
   (define (toString)::String
     (with-output-to-string
       (lambda ()
@@ -914,5 +913,5 @@
   (define (draw-point! left::real top::real
 		       color-rgba::int)::void
     (put! #\⦿ top left))
-  
+
   (CharPainter))

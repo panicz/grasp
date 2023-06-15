@@ -1,5 +1,6 @@
 (import (define-interface))
 (import (define-object))
+(import (define-type))
 (import (define-syntax-rule))
 (import (define-parameter))
 (import (default-value))
@@ -18,12 +19,7 @@
   )
 
 (define-interface Clippable ()
-  (clip! left::real  top::real
-	 width::real height::real)::void	 
-  (current-clip-width)::real
-  (current-clip-height)::real
-  (current-clip-left)::real
-  (current-clip-top)::real
+  (with-clip w::real h::real action::(maps () to: void))::void
   )  
 
 (define-interface Scalable ()
@@ -225,22 +221,8 @@
   (define (current-translation-top)::real
     0)
 
-  (define (clip! left::real  top::real
-		 width::real height::real)
-    ::void
-    (values))
-  
-  (define (current-clip-width)::real
-    0)
-  
-  (define (current-clip-height)::real
-    0)
-  
-  (define (current-clip-left)::real
-    0)
-  
-  (define (current-clip-top)::real
-    0)
+  (define (with-clip w::real h::real action::(maps () to: void))::void
+    (action))
   
   (define (draw-horizontal-split! top::real)::void
     (values))
@@ -482,15 +464,5 @@
     (invoke painter 'translate! (- x!) (- y!))))
 
 (define-syntax-rule (with-clip (w h) . actions)
-  (let ((painter (the-painter)))
-    (let ((x0 (invoke painter 'current-clip-left))
-	  (y0 (invoke painter 'current-clip-top))
-	  (w0 (invoke painter 'current-clip-width))
-	  (h0 (invoke painter 'current-clip-height))
-	  (x! (invoke painter 'current-translation-left))
-	  (y! (invoke painter 'current-translation-top))
-	  (w! w)
-	  (h! h))
-      (invoke painter 'clip! x! y! w! h!)
-      (begin . actions)
-      (invoke painter 'clip! x0 y0 w0 h0))))
+  (let ((painter ::Painter (the-painter)))
+    (painter:with-clip w h (lambda () (begin . actions)))))
