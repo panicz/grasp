@@ -7,6 +7,7 @@
 (import (define-cache))
 (import (define-parameter))
 (import (default-value))
+(import (hash-table))
 (import (fundamental))
 (import (infix))
 (import (match))
@@ -49,6 +50,11 @@
 (define-alias AssetManager
   android.content.res.AssetManager)
 
+(define-alias PackageManager
+  android.content.pm.PackageManager)
+
+(define-alias Manifest android.Manifest)
+
 (define-alias DisplayMetrics
   android.util.DisplayMetrics)
 (define-alias Color android.graphics.Color)
@@ -64,6 +70,11 @@
 
 (define-alias SensorListener
   android.hardware.SensorListener)
+
+(define-alias PreserveAspectRatio
+  com.caverock.androidsvg.PreserveAspectRatio)
+
+(define-alias SVG com.caverock.androidsvg.SVG)
 
 (define-syntax-rule (Path (command args ...) ...)
   (let ((path ::Path2D (Path2D)))
@@ -82,7 +93,10 @@
 
 (define (load-font name::string activity::AndroidActivity)
   ::Typeface
-  (Typeface:createFromAsset (activity:getAssets) name))
+   (Typeface:createFromAsset (activity:getAssets) name))
+
+(define (load-svg name::string activity::AndroidActivity)::SVG
+   (SVG:getFromAsset (activity:getAssets) name))
 
 (define-syntax define-initializer
   (syntax-rules (::)
@@ -140,6 +154,12 @@
   (define NotoSerif-Regular ::Typeface
     (load-font "NotoSerif-Regular.ttf" activity))
 
+  (define file-icon ::SVG
+    (load-svg "file.svg" activity))
+
+  (define directory-icon ::SVG
+    (load-svg "directory.svg" activity))
+
   (define assets ((activity:getAssets):list ""))
 
   (define init-script
@@ -149,52 +169,53 @@
 		    (assets:open "init.scm")))))
       (safely (read-all input))))
 
-  (define the-atom-font ::parameter[Font]
+  (define the-atom-font ::($bracket-apply$ parameter Font)
     (make-parameter
      (Font face: BarlowCondensed
 	   size: 56)))
 
-  (define the-string-font ::parameter[Font]
+  (define the-string-font ::($bracket-apply$ parameter Font)
     (make-parameter
      (Font face: FiraMono
 	   size: 32)))
 
-  (define the-comment-font ::parameter[Font]
+  (define the-comment-font ::($bracket-apply$ parameter Font)
     (make-parameter
      (Font face: GloriaHallelujah
 	   size: 28)))
 
-  (define the-caption-font ::parameter[Font]
+  (define the-caption-font ::($bracket-apply$ parameter Font)
     (make-parameter
      (Font face: Oswald-Regular
 	   size: 44)))
 
-  (define the-block-comment-font ::parameter[Font]
+  (define the-block-comment-font ::($bracket-apply$ parameter Font)
     (make-parameter
      (Font face: Crimson ;;NotoSerif-Regular
 	   size: 36)))
 
-  (define the-block-comment-margin ::parameter[real]
+  (define the-block-comment-margin ::($bracket-apply$ parameter real)
     (make-parameter 10))
 
-  (define the-log-font ::parameter[Font]
+  (define the-log-font ::($bracket-apply$ parameter Font)
     (make-parameter
      (Font face: Oswald-Regular
 	   size: 28)))
 
-  (define the-cursor-offset ::parameter[Position]
+  (define the-cursor-offset ::($bracket-apply$ parameter Position)
     (make-parameter (Position left: 0 top: 32)))
 
-  (define the-cursor-extent ::parameter[Extent]
+  (define the-cursor-extent ::($bracket-apply$ parameter Extent)
     (make-parameter (Extent width: 2 height: 32)))
 
-  (define parenthesis-color ::parameter[long]
+  (define parenthesis-color ::($bracket-apply$ parameter long)
     (make-parameter #xffcccccc))
 
-  (define focused-parenthesis-color ::parameter[long]
+  (define focused-parenthesis-color ::($bracket-apply$ parameter long)
     (make-parameter #xff555555))
 
-  (define matching-parenthesis-color ::parameter[long]
+  (define matching-parenthesis-color ::($bracket-apply$
+					parameter long)
     (make-parameter #xff888888))
 
   (define top-left-paren ::Path2D
@@ -400,7 +421,8 @@
 
   (define (with-clip w::real h::real action::(maps () to: void))::void
     (canvas:save)
-    (canvas:clipRect 0 0 w h)
+    (canvas:clipRect (as float 0) (as float 0)
+		     (as float w) (as float h))
     (action)
     (canvas:restore))
 
@@ -454,7 +476,7 @@
 
   (define (draw-horizontal-split! top::real)::void
     (let* ((left ::float (max 0 (current-clip-left)))
-	   (bottom ::float (+ top (horizontal-line-height)))
+	   (bottom ::float (+ top (horizontal-split-height)))
 	   (right ::float (+ left (current-clip-width))))
       (paint:setColor text-color)
       (canvas:drawRect left (as float top) right bottom
@@ -462,7 +484,7 @@
 
   (define (draw-vertical-split! left::real)::void
     (let* ((top ::float (max 0 (current-clip-top)))
-	   (right ::float (+ left (vertical-line-width)))
+	   (right ::float (+ left (vertical-split-width)))
 	   (bottom ::float (+ top (current-clip-height))))
       (paint:setColor text-color)
       (canvas:drawRect (as float left) top right bottom

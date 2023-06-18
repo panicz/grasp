@@ -1,5 +1,6 @@
 #!/bin/sh
 stty susp ^Q
+FLAGS=--no-warn-unreachable
 java -cp "./libs/kawa.jar:./libs/lanterna-3.1.1.jar" kawa.repl \
-     --no-warn-unreachable -f src/grasp-terminal.scm "$@"
+     $FLAGS -f src/grasp-terminal.scm "$@"
 

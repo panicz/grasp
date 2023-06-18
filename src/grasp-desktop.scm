@@ -69,6 +69,14 @@
 
 (define-alias Color java.awt.Color)
 
+(define-alias SVGLoader
+  com.github.weisj.jsvg.parser.SVGLoader)
+
+(define-alias SVGDocument
+  com.github.weisj.jsvg.SVGDocument)
+
+
+
 (define-cache (color aRGB::int)::Color
   (let* ((alpha ::int (- 255
 			 (bitwise-and #xff
@@ -96,38 +104,45 @@
    java.awt.GraphicsEnvironment
    'getLocalGraphicsEnvironment))
 
-(define (load-font path::String #!key (size ::float 12.0))
-  (let* ((font-source ::InputStream
-		      (ClassLoader:getResourceAsStream path))
+(define (load-resource path::String)::InputStream
+  (or
+   (ClassLoader:getResourceAsStream path)
+   (ClassLoader:getResourceAsStream (string-drop path 1))))
+
+(define (load-font path::String #!key (size ::float 12.0))::Font
+  (let* ((data ::InputStream (load-resource path))
 	 (font ::Font (Font:createFont
 		       Font:TRUETYPE_FONT
-		       font-source)))
+		       data)))
     (graphics-environment:registerFont font)
     (font:deriveFont size)))
 
-(define-constant FiraMono
-  (load-font "assets/FiraMono-Medium.ttf" size: 16))
-  
-(define-constant BarlowCondensed
-  (load-font "assets/BarlowCondensed-Medium.ttf" size: 28))
+(define svg-loader ::SVGLoader (SVGLoader))
 
-(define-constant Crimson
-  (load-font "assets/Crimson-Roman.ttf" size: 18))
+(define (load-svg path::String)::SVGDocument
+  (let ((data ::InputStream (load-resource path)))
+    (svg-loader:load data)))
 
-(define-constant Basic-Regular
-  (load-font "assets/Basic-Regular.otf" size: 20))
+(define-constant FiraMono ::Font
+  (load-font "./assets/FiraMono-Medium.ttf" size: 16))
 
-(define-constant LobsterTwo-Regular
-  (load-font "assets/LobsterTwo-Regular.otf" size: 28))
+(define-constant BarlowCondensed ::Font
+  (load-font "./assets/BarlowCondensed-Medium.ttf" size: 28))
 
-(define-constant Oswald-Regular
-  (load-font "assets/Oswald-Regular.ttf" size: 22))
+(define-constant Crimson ::Font
+  (load-font "./assets/Crimson-Roman.ttf" size: 18))
 
-(define-constant GloriaHallelujah
-  (load-font "assets/GloriaHallelujah.ttf" size: 16))
+(define-constant Basic-Regular ::Font
+  (load-font "./assets/Basic-Regular.otf" size: 20))
 
-(define-constant NotoSerif-Regular
-  (load-font "assets/NotoSerif-Regular.ttf" size: 16))
+(define-constant Oswald-Regular ::Font
+  (load-font "./assets/Oswald-Regular.ttf" size: 22))
+
+(define-constant GloriaHallelujah ::Font
+  (load-font "./assets/GloriaHallelujah.ttf" size: 16))
+
+(define-constant NotoSerif-Regular ::Font
+  (load-font "./assets/NotoSerif-Regular.ttf" size: 16))
 
 (define-parameter+ (the-atom-font) ::Font
   BarlowCondensed)
@@ -179,7 +194,7 @@
    (quadTo 0 25 10 25)
    (lineTo 10 20)
    (quadTo 5 20 5 15)
-   (lineTo 5 0)   
+   (lineTo 5 0)
    (closePath)))
 
 (define-constant bottom-left-bounds ::Rectangle
@@ -348,7 +363,7 @@
 
   (define (componentShown event::ComponentEvent)::void
     (values))
-  
+
   (define (componentMoved event::ComponentEvent)::void
     (values))
 
@@ -372,30 +387,30 @@
   ::CancellableRunner
 
   (define postponed-action ::(maps () to: boolean) never)
-  
+
   (define (actionPerformed event::java.awt.event.ActionEvent)::void
     (when (postponed-action)
       (target:repaint)))
-  
+
   (define timer ::javax.swing.Timer
     (let ((timer ::javax.swing.Timer
 		 (javax.swing.Timer 1 (this))))
       (timer:stop)
       (timer:setRepeats #f)
       timer))
-  
+
   (define (cancel)::Cancellable
     (timer:stop)
     (set! postponed-action never)
     (this))
-  
+
   (define (after time-ms::long action::procedure)
     ::Cancellable
     (timer:setInitialDelay time-ms)
     (set! postponed-action action)
     (timer:start)
     (this)))
-    
+
 (define-object (GRASP)::Application
   (define graphics ::Graphics2D)
 
@@ -408,27 +423,27 @@
       (graphics:clipRect 0 0 w h)
       (action)
       (graphics:setClip previous-clip)))
-  
+
   (define (clip! left::real  top::real
 		 width::real height::real)
     ::void
     (graphics:setClip left top width height))
-  
+
   (define (current-clip-width)::real
     (let ((clip-area ::Rectangle
 		     (graphics:getClipBounds)))
       clip-area:width))
-    
+
   (define (current-clip-height)::real
     (let ((clip-area ::Rectangle
 		     (graphics:getClipBounds)))
       clip-area:height))
-  
+
   (define (current-clip-left)::real
     (let ((clip-area ::Rectangle
 		     (graphics:getClipBounds)))
       clip-area:x))
-  
+
   (define (current-clip-top)::real
     (let ((clip-area ::Rectangle
 		     (graphics:getClipBounds)))
@@ -436,12 +451,12 @@
 
   (define (translate! x::real y::real)::void
     (graphics:translate (as double x) (as double y)))
-	    
+
   (define (current-translation-left)::real
     (let ((transform ::AffineTransform
 		     (graphics:getTransform)))
       (transform:getTranslateX)))
-    
+
   (define (current-translation-top)::real
     (let ((transform ::AffineTransform
 		     (graphics:getTransform)))
@@ -468,7 +483,7 @@
        (matching-parenthesis-color))
       (_
        (parenthesis-color))))
-  
+
   (define (open-paren! height::real color::Color)::void
     (let ((line-height (max 0 (- height
 				 top-left-bounds:height
@@ -503,9 +518,9 @@
       (with-translation ((- width (paren-width)) 0)
 	  (close-paren! height
 			(closing-parenthesis-color context)))))
-  
+
   (define (space-width)::real 8)
-  
+
   (define (paren-width)::real
     top-left-bounds:width)
 
@@ -535,7 +550,7 @@
       (with-translation (0 (+ top-right-quote-bounds:height
 			      line-height))
 	  (graphics:fill bottom-right-quote-paren))))
-  
+
   (define (draw-quote-box! width::real
 			   height::real
 			   context::Cursor)
@@ -544,10 +559,10 @@
     (with-translation ((- width (quote-paren-width)) 0)
       (close-quote-paren! height
 			  (closing-parenthesis-color context))))
-  
+
   (define (quote-paren-width)::real
     (+ 1 top-left-quote-bounds:width))
-  
+
   (define (draw-quote-markers! width::real
 			       height::real
 			       context::Cursor)
@@ -582,10 +597,10 @@
     (with-translation ((- width (quasiquote-paren-width)) 0)
       (close-quasiquote-paren! height
 			       (closing-parenthesis-color context))))
-  
+
   (define (quasiquote-paren-width)::real
     (+ 1 top-left-quote-bounds:width))
-  
+
   (define (draw-quasiquote-markers! width::real
 				    height::real
 				    context::Cursor)
@@ -595,7 +610,7 @@
     (with-translation ((+ width (quasiquote-marker-width)) 0)
       (graphics:setColor (closing-parenthesis-color context))
       (graphics:fill top-right-quote-paren)))
-  
+
   (define (quasiquote-marker-width)::real
     (+ 1 quote-marker-bounds:width))
 
@@ -616,7 +631,7 @@
 			 5 line-height)
       (with-translation (0 line-height)
 	(graphics:fill bottom-right-quote-paren))))
-  
+
   (define (draw-unquote-box! width::real
 			     height::real
 			     context::Cursor)
@@ -628,7 +643,7 @@
 
   (define (unquote-paren-width)::real
     (+ 1 bottom-left-quote-bounds:width))
-    
+
   (define (draw-unquote-markers! width::real
 				 height::real
 				 context::Cursor)
@@ -639,7 +654,7 @@
       (with-translation ((+ width (quasiquote-marker-width)) 0)
 	(graphics:setColor (closing-parenthesis-color context))
 	(graphics:fill bottom-right-quote-paren))))
-  
+
   (define (unquote-marker-width)::real
     (+ 1 bottom-left-quote-bounds:width))
 
@@ -657,7 +672,7 @@
     (close-unquote-paren! height color)
     (graphics:fillRect 10 5 3 5)
     (graphics:fillRect 14 5 1 5))
-  
+
   (define (draw-unquote-splicing-box!
 	   width::real
 	   height::real
@@ -691,12 +706,12 @@
 
   (define (unquote-splicing-marker-width)::real
     (+ (unquote-marker-width) 10))
-  
+
   (define (min-box-height)::real
     (max (invoke (the-atom-font) 'getSize2D)
 	 (+ top-left-bounds:height bottom-left-bounds:height)
 	 (+ top-right-bounds:height bottom-right-bounds:height)))
-  
+
   (define (min-line-height)::real
     (invoke (the-atom-font) 'getSize2D))
 
@@ -707,17 +722,17 @@
 
   (define (horizontal-popup-margin)::real 2)
   (define (vertical-popup-margin)::real 20)
-  
+
   (define (draw-rounded-rectangle! width::real height::real)::void
     (graphics:drawRoundRect 0 0 (as int width) (as int height) 5 5))
 
   (define (draw-rectangle! width::real height::real)::void
     (graphics:drawRect 0 0 (as int width) (as int height)))
-  
+
   (define marked-cursor-position ::Position
     (Position left: 0
 	      top: 0))
-  
+
   (define (mark-cursor! +left::real +top::real)::void
     (let ((cursor-extent (the-cursor-extent))
 	  (cursor-offset (the-cursor-offset)))
@@ -729,7 +744,7 @@
 			 (+ +top cursor-offset:top)
 			 cursor-extent:width
 			 cursor-extent:height)))
-  
+
   (define (cursor-position)::Position
     marked-cursor-position)
 
@@ -737,13 +752,13 @@
     (let ((offset ::Position (the-cursor-offset))
 	  (extent ::Extent (the-cursor-extent)))
       (+ offset:top extent:height)))
-  
+
   (define text-color ::Color Color:DARK_GRAY)
 
   (define background-color ::Color transparent)
-  
+
   (define selection-drawing-mode? ::boolean #f)
-  
+
   (define (enter-selection-drawing-mode!)::void
     (set! selection-drawing-mode? #t)
     (set! text-color Color:WHITE)
@@ -753,18 +768,18 @@
     (set! selection-drawing-mode? #f)
     (set! text-color Color:DARK_GRAY)
     (set! background-color transparent))
-  
+
   (define (in-selection-drawing-mode?)::boolean
     selection-drawing-mode?)
 
   (define current-comment-level ::int 0)
-  
+
   (define (enter-comment-drawing-mode!)::void
     (set! text-color (color #xdddddd))
     (set! (parenthesis-color) (color #xe5e5e5))
     (set! atom-frame-color (color #xeaeaea))
     (set! current-comment-level (+ current-comment-level 1)))
-  
+
   (define (exit-comment-drawing-mode!)::void
     (set! current-comment-level (- current-comment-level 1))
     (when (is current-comment-level <= 0)
@@ -774,28 +789,28 @@
 
   (define (in-comment-drawing-mode?)::boolean
     (is current-comment-level > 0))
-  
+
   (define (vertical-bar-width)::real 5)
-  
+
   (define (horizontal-bar-height)::real 5)
-  
+
   (define (draw-horizontal-bar! width::real)::void
     (graphics:fillRect 0 0 width (horizontal-bar-height)))
-    
+
   (define (draw-vertical-bar! height::real)::void
     (graphics:fillRect 0 0 (vertical-bar-width) height))
 
   (define (horizontal-split-height)::real 20)
-  
+
   (define (vertical-split-width)::real 20)
-  
+
   (define (draw-horizontal-split! top::real)::void
     (graphics:fillRect (max 0 (current-clip-left)) top
 		       (current-clip-width)
 		       (horizontal-split-height)))
-    
+
   (define (draw-vertical-split! left::real)::void
-    (graphics:fillRect left (max 0 (current-clip-top)) 
+    (graphics:fillRect left (max 0 (current-clip-top))
 		       (vertical-split-width) (current-clip-height)))
 
   (define (grid-border)::real 10)
@@ -803,7 +818,7 @@
   (define (draw-horizontal-grid! width::real)::void
     (graphics:setColor text-color)
     (graphics:fillRect 4 4 (- width 8) 2))
-  
+
   (define (draw-vertical-grid! height::real)::void
     (graphics:setColor text-color)
     (graphics:fillRect 4 4 2 (- height 8)))
@@ -811,14 +826,14 @@
   (define (fill-grid-cell! width::real height::real)::void
     (graphics:setColor Color:WHITE)
     (graphics:fillRect 5 5 (- width 10) (- height 10)))
-  
+
   (define (draw-line! x0::real y0::real x1::real y1::real)
     ::void
     (graphics:drawLine (as int (round x0))
 		       (as int (round y0))
 		       (as int (round x1))
 		       (as int (round y1))))
-  
+
   (define (draw-text! text::CharSequence
 		      font::Font
 		      context::Cursor)
@@ -850,26 +865,26 @@
 	      (graphics:setColor text-color)
 	      (graphics:drawString fragment left (* lines height))
 	      (set! left (+ left width))))
-	  
+
 	  (graphics:setFont font)
 	  (for i from 0 below string-end
 	       (when (and focused? (eqv? (head (the-cursor)) i))
 		 (render-fragment! i)
 		 (set! segment-start i)
 		 (mark-cursor! left (* (- lines 1) height)))
-	       
+
 	       (when (and enters-selection-drawing-mode?
 			  (eqv? (head selection-start) i))
 		 (render-fragment! i)
 		 (set! segment-start i)
 		 (enter-selection-drawing-mode!))
-	       
+
 	       (when (and exits-selection-drawing-mode?
 			  (eqv? (head selection-end) i))
 		 (render-fragment! i)
 		 (set! segment-start i)
 		 (exit-selection-drawing-mode!))
-	       
+
 	       (when (eq? (text:charAt i) #\newline)
 		 (render-fragment! i)
 		 (set! left 0)
@@ -878,13 +893,13 @@
 	  (render-fragment! string-end)
 	  (when (and focused? (eqv? (head (the-cursor)) string-end))
 	    (mark-cursor! left (* (- lines 1) height)))))))
-  
+
   (define (draw-string! text::CharSequence context::Cursor)::void
     (draw-text! text (the-string-font) context))
-  
+
   (define quoted-text-cursor-offset::Position
     (Position left: -1 top: 2))
-  
+
   (define (draw-quoted-text! text::CharSequence context::Cursor)::void
     (parameterize ((the-cursor-offset quoted-text-cursor-offset))
       (graphics:fill single-quote)
@@ -952,15 +967,15 @@
 
   (define (caption-extent caption::CharSequence)::Extent
     (text-extent caption (the-caption-font)))
-  
+
   (define (caption-vertical-margin)::real
     (let* ((font ::Font (the-caption-font))
 	   (metrics ::FontMetrics (graphics:getFontMetrics font)))
       (metrics:getHeight)))
-  
+
   (define (caption-horizontal-margin)::real
     (caption-vertical-margin))
-  
+
   (define (atom-extent text::CharSequence)::Extent
     (let ((inner (text-extent text (the-atom-font))))
       (Extent width: (+ inner:width 8)
@@ -969,7 +984,7 @@
   (define atom-cursor-offset::Position (Position left: 0 top: 4))
 
   (define atom-frame-color ::Color (Color #xdddddd))
-  
+
   (define (draw-atom! text::CharSequence context::Cursor)::void
     (let* ((extent (atom-extent text))
 	   (font (the-atom-font)))
@@ -1008,11 +1023,11 @@
     ::void
     (parameterize ((the-cursor-offset line-comment-cursor-offset))
       (draw-text! text (the-comment-font) context)))
-  
+
   (define (line-comment-extent text::CharSequence)
     ::Extent
     (text-extent text (the-string-font)))
-  
+
   (define (line-comment-character-index-under x::real y::real
 					      text::CharSequence)
     ::int
@@ -1027,7 +1042,7 @@
       (draw-rectangle! outer:width (- outer:height 5))
       (with-translation (margin (* 0.5 font-size))
 	  (draw-text! text font context))))
-  
+
   (define (block-comment-extent text::CharSequence)::Extent
     (let* ((font ::Font (the-block-comment-font))
 	   (font-size ::real (font:getSize))
@@ -1035,7 +1050,7 @@
 	   (margin ::real (the-block-comment-margin)))
       (Extent width: (+ inner:width margin margin)
 	      height: (+ inner:height font-size))))
-  
+
   (define (block-comment-character-index-under x::real y::real
 					       text::CharSequence)
     ::int
@@ -1044,7 +1059,7 @@
 	   (margin ::real (the-block-comment-margin)))
       (text-character-index-under (- x margin) (- y (* 0.5 font-size))
 				  text font)))
-  
+
   (define (draw-point! left::real top::real aRGB::int)::void
     (graphics:setColor (color aRGB))
     (graphics:fillOval (as int (- left 4))
@@ -1055,9 +1070,9 @@
   (define (clear!)::void
     (error "
 The `clear!' method is not implemented for the AWT,
-because the screen is cleared automatically 
+because the screen is cleared automatically
 by the AWT framework."))
-  
+
   (define (paint g::Graphics)::void
     (invoke-special javax.swing.JComponent (this) 'paint g)
     (set! graphics (as Graphics2D g))
@@ -1073,7 +1088,7 @@ by the AWT framework."))
     (when result
       (repaint))
     result)
-  
+
   (define (mousePressed event::MouseEvent)::void
     (invalidating
      (pointer:press! (event:getX) (event:getY)
@@ -1106,7 +1121,7 @@ by the AWT framework."))
   (define (componentResized event::ComponentEvent)::void
     (screen:set-size! (invoke (this) 'getWidth)
 		      (invoke (this) 'getHeight)))
-  
+
   (InputHandler)
   (rendering-hints:put RenderingHints:KEY_ANTIALIASING
 		       RenderingHints:VALUE_ANTIALIAS_ON)
@@ -1122,7 +1137,7 @@ by the AWT framework."))
   (let ((application ::GRASP (GRASP)))
     (set! (the-painter) application)
     (initialize-keymap)
-    (safely (load "assets/init.scm"))
+    (safely (load "./assets/init.scm"))
     (let ((window ::javax.swing.JFrame
 		  (javax.swing.JFrame title: "GRASP"
 				      content-pane: application)))

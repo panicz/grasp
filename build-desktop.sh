@@ -6,9 +6,10 @@ mkdir -p build/desktop
 cd src
 
 KAWA_JAR="../libs/kawa.jar"
+JSVG="../libs/jsvg-1.0.0.jar"
 
 DEPS=`java -jar $KAWA_JAR --no-warn-unreachable \
- -f analdep.scm -- --list grasp-desktop.scm` 
+ -f analdep.scm -- --list grasp-desktop.scm`
 
 
 UPDATE=""
@@ -27,7 +28,7 @@ echo $UPDATE
 
 set -x
 
-java -cp "../build/desktop/:$KAWA_JAR" kawa.repl \
+java -cp "../build/desktop/:$KAWA_JAR:$JSVG" kawa.repl \
      --no-warn-unreachable -d ../build/desktop -C \
      $UPDATE grasp-desktop.scm || exit
 set +x
@@ -40,9 +41,15 @@ fi
 
 cd build/desktop
 
-if [ ! -f build/desktop/kawa ]; then
+if [ ! -f com/github/weisj/jsvg ]; then
+    cp ../../libs/jsvg-1.0.0.jar .
+    unzip jsvg-1.0.0.jar || exit
+    rm jsvg-1.0.0.jar module-info.class
+fi
+
+if [ ! -f kawa ]; then
     cp ../../libs/kawa.jar .
-    unzip kawa.jar || exit
+    unzip -uo kawa.jar || exit
     rm kawa.jar
 fi
 

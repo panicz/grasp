@@ -8,28 +8,31 @@ mkdir -p build/android/obj
 
 PKGNAME="$(grep -o "package=.*" AndroidManifest.xml | cut -d\" -f2)"
 
+JARS="../libs/kawa.jar:../libs/android.jar:../libs/androidsvg-1.4.jar"
+
 aapt package -f -m \
      -M "AndroidManifest.xml" \
      -J "build/android/gen" \
      -S "res" || exit
 
-# -P $PKGNAME. -T $PKGNAME.Grasp 
+# -P $PKGNAME. -T $PKGNAME.Grasp
 
 cd src
 
-java -cp "../libs/kawa.jar:../libs/android.jar" kawa.repl \
+java -cp $JARS kawa.repl \
      --no-warn-unreachable -d ../build/android/obj -C \
      `java -jar ../libs/kawa.jar --no-warn-unreachable \
       -f analdep.scm -- --list grasp-android.scm` || exit
 
-java -cp "../libs/kawa.jar:../libs/android.jar:../build/android/obj" \
+java -cp "$JARS:../build/android/obj" \
      kawa.repl --no-warn-unreachable -d ../build/android/obj \
      -P $PKGNAME. -T $PKGNAME.GRASP \
      -C grasp-android.scm || exit
 cd ..
 
 d8 --min-api 23 --lib libs/android.jar \
-   `find build/android/obj -name '*.class'` libs/kawa.dex || exit
+   `find build/android/obj -name '*.class'` libs/kawa.dex \
+    libs/androidsvg-1.4.dex || exit
 
 mv classes.dex build/android/bin/
 
@@ -50,7 +53,7 @@ if [ ! -s ~/pland.keystore ]; then
     keytool -genkey -v -keystore ~/pland.keystore \
 	    -alias pland -keyalg RSA -keysize 2048 -validity 10000
 fi
-    
+
 jarsigner -storepass quack01 -verbose -sigalg SHA1withRSA \
 	  -digestalg SHA1 -keystore ~/pland.keystore "$PKGNAME.apk" pland
 
