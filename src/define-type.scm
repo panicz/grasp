@@ -40,7 +40,7 @@
   ;; this argument can be removed)
   (fields->list kons::procedure transform::procedure)::list
   )
-  
+
 (define-interface Struct (java.lang.Cloneable ListSerializable)
   (typename) :: String
   (fields->string) :: String
@@ -99,7 +99,7 @@
 	   (define-simple-class type-name (parent . interfaces)
 	     ((typename):: String
 	      (symbol->string 'type-name))
-	     
+
 	     ((fields->string)::String
 	      (string-append
 	       (invoke-special parent (this) 'fields->string)
@@ -107,7 +107,7 @@
 			      ": "(java.lang.String:valueOf
 				   slot-symbol))
 	       ...))
-	     
+
 	     ((fields->list kons::procedure transform::procedure)
 	      ::list
 	      (keyword-value-list
@@ -116,7 +116,7 @@
 			       'fields->list
 			       kons transform)
 	       slot-symbol ...))
-	     
+
 	     ((embedded-in? object)::boolean
 	      (and (instance? object type-name)
 		   (invoke-special parent (this) 'embedded-in? object)
@@ -130,12 +130,12 @@
 		     (*:hashCode slot-symbol)
 		     ...
 		     (invoke-special parent (this) 'hashCode))))
-	     
+
 	     ((equals object)::boolean
 	      (and (instance? object type-name)
 		   (invoke (as type-name object)
 			   'embedded-in? (this))))
-	     
+
 	     ((clone):: type-name
 	      (let ((copy (type-name)))
 		(invoke copy 'assign (as parent (this)))
@@ -207,7 +207,7 @@
        #'(type-definition
 	  type-name parent (interface . interfaces) () slots
 	  spec methods))
-      
+
       ((_ type-name Base interfaces
 	  () slots (extending
 		    parent

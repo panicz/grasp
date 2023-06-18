@@ -54,7 +54,7 @@
    (set! left 0)
    (set! max-line-height (invoke (the-painter)
 				 'min-line-height)))
-  
+
   )
 
 (define-interface Expandable ()
@@ -70,13 +70,13 @@
 
 (define-interface Indexable ()
   (part-at index::Index)::Indexable*
-  
+
   (first-index)::Index
   (last-index)::Index
-  
+
   (next-index index::Index)::Index
   (previous-index index::Index)::Index
-  
+
   (index< a::Index b::Index)::boolean
   )
 
@@ -99,7 +99,7 @@
   (delete-char! index::int)::char
   (char-ref index::int)::char
   (text-length)::int
-  
+
   (split! position::int)::Textual
   (merge! following::Textual)::boolean
   )
@@ -110,10 +110,10 @@
 (define-object (Simple)::Element
   (define (typename)::String "Simple")
   (define (part-at index::Index)::Indexable* (this))
-  
+
   (define (first-index)::Index 0)
   (define (last-index)::Index 0)
-  
+
   (define (next-index index::Index)::Index 0)
   (define (previous-index index::Index)::Index 0)
 
@@ -173,7 +173,7 @@ operate on cursors.
 	  (if (eqv? a/k b/k)
 	      (k< (- k 1) a* b* (parent:part-at a/k))
 	      (parent:index< a/k b/k)))))
-  
+
   (let* ((length/a (length a))
 	 (length/b (length b)))
     (cond ((is length/b = 0)
@@ -185,10 +185,10 @@ operate on cursors.
 	  ((is length/a < length/b)
 	   (let ((stem/b (drop (- length/b length/a) b)))
 	     (k< (- length/a 1) a stem/b document)))
-	     
+
 	  ((is length/a = length/b)
 	   (k< (- length/a 1) a b document))
-    
+
 	  ((is length/a > length/b)
 	   (not (cursor< b a document))))))
 
@@ -212,3 +212,21 @@ operate on cursors.
        (isnt (the-selection-anchor) equal? (the-cursor))
        (let-values (((selection-start selection-end) (the-selection)))
 	 (is selection-start cursor< context cursor< selection-end))))
+
+
+;; A Keeper is needed to obtain permissions on Android
+;; - otherwise it does nothing special
+(define-interface Keeper ()
+  (with-read-permission action::(maps () to: void))::void
+  (with-write-permission action::(maps () to: void))::void
+  )
+
+(define-object (PermissiveKeeper)::Keeper
+  (define (with-read-permission action::(maps () to: void))::void
+    (action))
+  (define (with-write-permission action::(maps () to: void))::void
+    (action))
+  )
+
+(define-parameter (the-keeper)::Keeper
+  (PermissiveKeeper))

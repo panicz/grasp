@@ -75,7 +75,7 @@
      (define-early-constant mapping-name
        (with-procedure-properties ((name 'mapping-name))
 	 (mapping (object::key-type)::value-type default))))
-    
+
     ((define-mapping (mapping-name object::key-type) default)
      (define-mapping (mapping-name object::key-type)
        ::java.lang.Object
@@ -99,7 +99,7 @@
      (define-early-constant bimapping-name
        (with-procedure-properties ((name 'bimapping-name))
 	 (bimapping (object::key-type)::value-type default))))
-    
+
     ((define-bimapping (bimapping-name object::key-type) default)
      (define-bimapping (bimapping-name object::key-type)
        ::java.lang.Object

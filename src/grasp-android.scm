@@ -1163,12 +1163,64 @@
   ;;(setClickable #t)
   (paint:setFlags Paint:ANTI_ALIAS_FLAG))
 
-(define-object (GRASP)
+(define-object (GRASP)::Keeper
+
+  (define permission-request
+    (property (request-code::int)::(maps () to: void)
+      nothing))
+
+  (define last-request-code ::int 0)
+
+  (define (new-request-code)::int
+    (set! last-request-code (+ last-request-code 1))
+    last-request-code)
+
+  (define (onRequestPermissionsResult requestCode::int
+                                      permissions::($bracket-apply$
+						    String)
+                                      grantResults::($bracket-apply$
+						     int))
+    ::void
+    (invoke-special AndroidActivity (this)
+		    'onRequestPermissionsResult requestCode
+                                      permissions
+                                      grantResults)
+    (safely
+     (cond
+      ((and (is (length grantResults) > 0)
+	    (eq? (grantResults 0)
+		 PackageManager:PERMISSION_GRANTED))
+       ((permission-request requestCode))
+       (unset! (permission-request requestCode)))
+      (else
+       (WARN "permission request "requestCode" for "
+	     permissions" has been denied: "grantResults)
+       (unset! (permission-request requestCode))))))
+
+  (define (with-permission permission::String
+			   action::(maps () to: void))
+    ::void
+    (safely
+     (if (eq? (checkSelfPermission permission)
+	      PackageManager:PERMISSION_DENIED)
+	 (let ((request-code ::int (new-request-code)))
+	   (set! (permission-request request-code) action)
+	   (requestPermissions (($bracket-apply$ String)
+				permission) request-code))
+	 (action))))
+
+  (define (with-read-permission action::(maps () to: void))::void
+    (with-permission Manifest:permission:WRITE_EXTERNAL_STORAGE
+		     action))
+
+  (define (with-write-permission action::(maps () to: void))::void
+    (with-permission Manifest:permission:READ_EXTERNAL_STORAGE
+		     action))
 
   (define view :: View)
 
-  (define process-finger ::TouchEventProcessor[]
-    (TouchEventProcessor[] length: 10))
+  (define process-finger ::($bracket-apply$ TouchEventProcessor)
+    (($bracket-apply$ TouchEventProcessor) length: 10))
 
   (define (invalidating result::boolean)::boolean
     (when result
@@ -1266,6 +1318,7 @@
 
     (initialize-activity (this))
     (safely (initialize-keymap))
+    (set! (the-keeper) (this))
     (set! view (View (this)))
     (set! the-view view)
 

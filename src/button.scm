@@ -30,7 +30,7 @@
 	        (+ total-height inner:height grid-border))))
       (Extent width: (+ max-width (* 2 grid-border))
               height: total-height)))
-	      
+
   (define (draw! context::Cursor)::void
     (let* ((painter ::Painter (the-painter))
            (grid-border ::real (painter:grid-border))
@@ -58,7 +58,7 @@
       (painter:translate!
        (- x0 (painter:current-translation-left))
        (- y0 (painter:current-translation-top)))))
-  
+
   (define (propagate finger::byte x::real y::real
                      action::(maps (Enchanted byte real real int)
 				   to: Object))
@@ -83,16 +83,16 @@
 
   (define (first-index)::Index 0)
   (define (last-index)::Index (- (length items) 1))
-  
+
   (define (next-index index::Index)::Index
     (min (+ index 1) (last-index)))
-    
+
   (define (previous-index index::Index)::Index
     (max 0 (- index 1)))
-  
+
   (define (index< a::Index b::Index)::boolean
     (is a < b))
-  
+
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
     (otherwise #!null
       (propagate 0 x y
@@ -120,7 +120,7 @@
 			index::int)
 		 ::boolean
 		 (child:press! finger x y))))
-  
+
   (define (second-press! finger::byte #;at x::real y::real)::boolean
     (propagate finger x y
 	       (lambda (child::Enchanted
@@ -129,7 +129,7 @@
 			index::int)
 		 ::boolean
 		 (child:second-press! finger x y))))
-  
+
   (define (double-tap! finger::byte x::real y::real)::boolean
     (propagate finger x y
 	       (lambda (child::Enchanted
@@ -176,14 +176,14 @@
     (cons (Atom "Caption") (cons (if (Text? content)
 				     content
 				     (text content))
-				 '())))
+				 (empty))))
 
   (define (typename)::String
     "Caption")
 
   (define (fields->string)::String
     text)
-  
+
   (Magic))
 
 (define-type (Link on-tap: (maps (Link byte real real) to: boolean)
@@ -216,17 +216,17 @@
 
   ((draw! context::Cursor)::void
    (invoke content 'draw! (recons (first-index) context)))
-  
+
   ((extent)::Extent
    (content:extent))
-  
+
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
    (content:cursor-under* x y (recons (first-index) path)))
   ((part-at index::Index)::Indexable* (this))
-  
+
   ((first-index)::Index 0)
   ((last-index)::Index 0)
-  
+
   ((next-index index::Index)::Index 0)
   ((previous-index index::Index)::Index 0)
 
@@ -256,7 +256,7 @@
 
   ((as-expression)::cons
    (origin (this)))
-  
+
   ((extent)::Extent
    (let* ((painter ::Painter (the-painter))
 	  (inner ::Extent (painter:caption-extent label))
@@ -277,7 +277,7 @@
 
   ((press! finger::byte x::real y::real)::boolean
    #t)
-  
+
   ((tap! finger::byte x::real y::real)::boolean
    (action)
    #t))

@@ -431,11 +431,11 @@
       (set! (4pix #\█) #b1111)
       4pix))
 
-  (define 4pix ::char[]
-    (char[] #\space
-	 #\▘ #\▝ #\▀ #\▖ #\▌
-	 #\▞ #\▛ #\▗ #\▚ #\▐
-	 #\▜ #\▄ #\▙ #\▟ #\█))
+  (define 4pix ::($bracket-apply$ char)
+    (($bracket-apply$ char) #\space
+     #\▘ #\▝ #\▀ #\▖ #\▌
+     #\▞ #\▛ #\▗ #\▚ #\▐
+     #\▜ #\▄ #\▙ #\▟ #\█))
 
   (define (4pix-set! x4::int y4::int)::void
     (let* ((x ::int (quotient x4 2))
@@ -752,11 +752,11 @@
       (set! (4dirs #\┼) #b1111)
       4dirs))
 
-  (define 4dirs ::char[]
-    (char[] #\space
-	 #\╵ #\╶ #\└ #\╷ #\│
-	 #\┌ #\├ #\╴ #\┘ #\─
-	 #\┴ #\┐ #\┤ #\┬ #\┼))
+  (define 4dirs ::($bracket-apply$ char)
+    (($bracket-apply$ char) #\space
+     #\╵ #\╶ #\└ #\╷ #\│
+     #\┌ #\├ #\╴ #\┘ #\─
+     #\┴ #\┐ #\┤ #\┬ #\┼))
 
   (define (4dirs-put! c::char x::int y::int)::void
     (let* ((current (get y x))
@@ -794,7 +794,7 @@
 (define-object (TextPainter)::Painter
   (define width ::int 0)
   (define height ::int 0)
-  (define data ::char[])
+  (define data ::($bracket-apply$ char))
 
   (define modifier ::procedure
     (mapping (key ::int)::char #!null))
@@ -845,9 +845,10 @@
                  (new-height (if (is y >= height)
                                  (+ y 1)
                                  height))
-                 (new-data (char[] length:
-				(* new-width
-				   new-height))))
+                 (new-data (($bracket-apply$ char)
+			    length:
+			    (* new-width
+			       new-height))))
             (for line from 0 below new-height
                  (for column from 0 below new-width
 		      (set! (new-data (+ (* new-width
