@@ -1,3 +1,157 @@
+* 18.06.2023
+
+zaczniemy od tego, zeby pobrac rozmiary ikonek dla klienta
+desktopowego, a pozniej to samo dla androidowegp
+
+* 17.06.2023
+
+musimy zaimplementowac wyswietlanie ikon w edytorach:
+- tekstowym (latwizna)
+- androidowym (bylo grane)
+- desktopowym (z jsvg)
+
+  w tym drugim przypadku mamy juz dograne budowanie
+  i teoretycznie napisanie kodu powinno wystarczyc
+
+  no to teraz: jak ma wygladac ten kod?
+
+  do paintera dochodza 3 metody:
+
+  (icon-extent)::Extent
+  (draw-directory-icon!)
+  (draw-file-icon!)
+
+teraz trzeba zaimplementowac te metody i dodac je
+do interfejsu Painter
+
+
+* 16.06.2023
+
+Keeper wydaje sie dzialac.
+
+Teraz mamy do zrobienia zasadniczo dwie operacje, tj.
+otwieranie i zapis pliku
+
+zaczniemy od otwierania, bo do zapisu bedziemy jescze
+potrzebowac pola tekstowego
+
+no ale dobra.
+
+i teraz sprawa tak wyglada, ze chcemy miec funkcjem
+ktora pobiera plik (tzn obiekt typu java.io.File)
+i zwraca nam Popup z list gridem
+
+czyli cos takiego
+
+(define-alias File java.io.File)
+(define-alias Array java.util.Arrays)
+
+(define-type (FileButton target: File
+                         action: (maps (File) to: void))
+  extending Magic
+  with
+  ((draw! context::Cursor)::void
+   (let* ((painter ::Painter (the-painter))
+          (icon ::Extent (painter:icon-extent))
+	  (caption ::String (target:label)))
+     (if (target:isDirectory)
+        (painter:draw-directory-icon!)
+	(painter:draw-file-icon!))
+     (with-translation (icon:width 0)
+       (draw-caption! caption))))
+
+  ((as-expression)::cons
+   (origin (this)))
+
+  ((extent)::Extent
+   (let* ((painter ::Painter (the-painter))
+          (icon ::Extent (painter:icon-extent))
+	  (label ::String (target:label))
+	  (caption ::Extent (painter:caption-extent label)))
+     (Extent width: (+ icon:width caption:width)
+             height: (max icon:height caption:height))))
+
+  ((key-pressed key::char)::boolean
+   (cond ((eq? key #\newline)
+	  (act)
+	  #t)
+	 (else
+	  #f)))
+
+  ((label)::String
+   (target:getName))
+
+  ((press! finger::byte x::real y::real)::boolean
+   #t)
+
+  ((tap! finger::byte x::real y::real)::boolean
+   (action target)
+   #t)
+
+  implementing ($bracket-apply$ java.lang.Comparable FileButton)
+  with
+  ((compareTo other::FileButton)
+   (cond
+     ((and (target:isDirectory) (not (other:target:isDirectory)))
+      -1)
+     ((and (not (target:isDirectory)) (other:target:isDirectory))
+      +1)
+     (else
+      (target:compareTo other:target)))))
+
+(define-object (ParentDirectoryButton)::Enchanted
+  (define (typename)::String "ParentDirectoryButton")
+  (define (label) "..")
+  (define (compareTo other::FileButton)::int -1)
+  (FileButton))
+
+(define (file-list directory::File
+                   file-action::(maps (File) to: void)
+		   directory-action::(maps (File) to: void))
+  ::Enchanted
+  (let* ((filename ::String[] (directory:list))
+         (n ::int (length filenames))
+         (button ::FileButton[] (FileButton[] length: (+ n 1))))
+    (set! (button 0) (ParentDirectoryButton
+                       (directory:getParentFile)))
+    (for i from 0 to n
+      (let* ((file (File directory (filename i)))
+             (action (if (file:isDirectory)
+	                 directory-action
+			 file-action)))
+        (set! (button (+ i 1)) (FileButton target: file
+                                           action: action))))
+    (Array:sort button)
+    (let* ((scroll ::Scroll
+                   (Scroll content: (ColumnGrid button)))
+           (popup (PopUp content: scroll))
+	   (outer ::Extent (popup:extent))
+	   (available ::Extent (screen:size)))
+      (set! scroll:width (- scroll:width
+                            (max 0 (- outer:width
+			              available:width))))
+      (set! scroll:height (- scroll:height
+                             (max 0 (- outer:height
+			               available:height))))
+      popup)))
+
+
+zakladajac, ze powyzszy kod jest sprawny, zrobilibtsmy tak,
+ze przycisk Open dodaje nowy file-list do overlaya, taki
+ze akcja "directory-action" rowniez dodaje do overlaya
+odpowiedni file-list, natomiast file-action czysci overlaye
+i dodaje nowy domument, ktory otwiera w edytorze
+
+
+* 15.06.2023
+
+czyli na razie wiemy juz, ze potrzebujemy
+obiekt (the-keepeer), ktory w nieandroidowych
+klientach tylko wywoluje okreslone funkcje,
+a w androidowych - wywoluje po otrzymaniu okreslonych
+uprawnien
+
+
 * 14.06.2023
 
 wstepnie wyglada na to, ze Scroll w terminalu dziala
