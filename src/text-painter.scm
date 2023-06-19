@@ -7,6 +7,7 @@
 (import (extent))
 (import (painter))
 (import (define-object))
+(import (define-type))
 (import (indexable))
 (import (cursor))
 (import (match))
@@ -117,6 +118,19 @@
     (for i from 1 below (- height 1)
          (put! #\│ i 0))
     (put! #\╵ (- height 1) 0))
+
+  (define icon-size ::Extent
+    (Extent width: 2
+	    height: 1))
+
+  (define (icon-extent)::Extent
+    icon-size)
+
+  (define (draw-directory-icon!)::void
+    (put! #\📁 0 0))
+
+  (define (draw-file-icon!)::void
+    (put! #\📄 0 0))
 
   (define (draw-custom-box!
 	   top-left::gnu.text.Char

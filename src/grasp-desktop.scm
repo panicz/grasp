@@ -69,23 +69,35 @@
 
 (define-alias Color java.awt.Color)
 
+(define-constant IdentityTransform ::AffineTransform
+  (AffineTransform))
+
 (define-alias SVGLoader
   com.github.weisj.jsvg.parser.SVGLoader)
 
 (define-alias SVGDocument
   com.github.weisj.jsvg.SVGDocument)
 
+(define-alias FloatSize
+  com.github.weisj.jsvg.geometry.size.FloatSize)
 
+(define-alias ViewBox
+  com.github.weisj.jsvg.attributes.ViewBox)
 
 (define-cache (color aRGB::int)::Color
   (let* ((alpha ::int (- 255
-			 (bitwise-and #xff
-				      (bitwise-arithmetic-shift
-				       aRGB -24))))
-	 (red ::int (bitwise-and #xff (bitwise-arithmetic-shift
-				       aRGB -16)))
-	 (green ::int (bitwise-and #xff (bitwise-arithmetic-shift
-					 aRGB -8)))
+			 (bitwise-and
+			  #xff
+			  (bitwise-arithmetic-shift
+			   aRGB -24))))
+	 (red ::int (bitwise-and
+		     #xff
+		     (bitwise-arithmetic-shift
+		      aRGB -16)))
+	 (green ::int (bitwise-and
+		       #xff
+		       (bitwise-arithmetic-shift
+			aRGB -8)))
 	 (blue ::int (bitwise-and #xff aRGB)))
     (Color red green blue alpha)))
 
@@ -123,26 +135,37 @@
   (let ((data ::InputStream (load-resource path)))
     (svg-loader:load data)))
 
+(define (svg-extent svg::SVGDocument)::Extent
+  (let ((size ::FloatSize (svg:size)))
+    (Extent width: size:width
+	    height: size:height)))
+
 (define-constant FiraMono ::Font
-  (load-font "./assets/FiraMono-Medium.ttf" size: 16))
+  (load-font "/assets/FiraMono-Medium.ttf" size: 16))
 
 (define-constant BarlowCondensed ::Font
-  (load-font "./assets/BarlowCondensed-Medium.ttf" size: 28))
+  (load-font "/assets/BarlowCondensed-Medium.ttf" size: 28))
 
 (define-constant Crimson ::Font
-  (load-font "./assets/Crimson-Roman.ttf" size: 18))
+  (load-font "/assets/Crimson-Roman.ttf" size: 18))
 
 (define-constant Basic-Regular ::Font
-  (load-font "./assets/Basic-Regular.otf" size: 20))
+  (load-font "/assets/Basic-Regular.otf" size: 20))
 
 (define-constant Oswald-Regular ::Font
-  (load-font "./assets/Oswald-Regular.ttf" size: 22))
+  (load-font "/assets/Oswald-Regular.ttf" size: 22))
 
 (define-constant GloriaHallelujah ::Font
-  (load-font "./assets/GloriaHallelujah.ttf" size: 16))
+  (load-font "/assets/GloriaHallelujah.ttf" size: 16))
 
 (define-constant NotoSerif-Regular ::Font
-  (load-font "./assets/NotoSerif-Regular.ttf" size: 16))
+  (load-font "/assets/NotoSerif-Regular.ttf" size: 16))
+
+(define-constant directory-icon ::SVGDocument
+  (load-svg "/assets/directory.svg"))
+
+(define-constant file-icon ::SVGDocument
+  (load-svg "/assets/file.svg"))
 
 (define-parameter+ (the-atom-font) ::Font
   BarlowCondensed)
@@ -414,7 +437,38 @@
 (define-object (GRASP)::Application
   (define graphics ::Graphics2D)
 
-  (define (with-clip w::real h::real action::(maps () to: void))::void
+  (define directory-box ::ViewBox
+    (let* ((box ::FloatSize (directory-icon:size))
+	   (w/h ::float (/ box:width box:height))
+	   (height ::float 24.0)
+	   (width (* w/h height)))
+      (ViewBox width height)))
+
+  (define file-box ::ViewBox
+    (let* ((box ::FloatSize (file-icon:size))
+	   (w/h ::float (/ box:width box:height))
+	   (height ::float 24.0)
+	   (width (* w/h height)))
+      (ViewBox width height)))
+
+  (define icon-size ::Extent
+    (Extent width: (+ 8 (max directory-box:width
+			     file-box:width))
+	    height: (max directory-box:height
+			 file-box:height)))
+
+  (define (icon-extent)::Extent
+    icon-size)
+
+  (define (draw-directory-icon!)::void
+    (directory-icon:render (this) graphics directory-box))
+
+  (define (draw-file-icon!)::void
+    (file-icon:render (this) graphics file-box))
+
+  (define (with-clip w::real h::real
+		     action::(maps () to: void))
+    ::void
     (let* ((previous-clip (graphics:getClip))
            (transform ::AffineTransform
  		      (graphics:getTransform))

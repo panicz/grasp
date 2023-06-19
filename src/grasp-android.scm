@@ -6,6 +6,7 @@
 (import (define-property))
 (import (define-cache))
 (import (define-parameter))
+(import (keyword-arguments))
 (import (default-value))
 (import (hash-table))
 (import (fundamental))
@@ -95,8 +96,23 @@
   ::Typeface
    (Typeface:createFromAsset (activity:getAssets) name))
 
-(define (load-svg name::string activity::AndroidActivity)::SVG
-   (SVG:getFromAsset (activity:getAssets) name))
+(define/kw (load-svg name::string
+		     activity::AndroidActivity
+		     width: width ::real := +nan.0
+		     height: height ::real := +nan.0)
+  ::SVG
+  (let* ((svg ::SVG (SVG:getFromAsset (activity:getAssets)
+				      name))
+	 (preserve ::PreserveAspectRatio
+		   PreserveAspectRatio:START))
+    (when (and (or (isnt width nan?) (isnt height nan?))
+	       (or (is width nan?) (is height nan?)))
+      (svg:setDocumentPreserveAspectRatio preserve))
+    (when (isnt width nan?)
+      (svg:setDocumentWidth (as float width)))
+    (when (isnt height nan?)
+      (svg:setDocumentHeight (as float height)))
+    svg))
 
 (define-syntax define-initializer
   (syntax-rules (::)
@@ -402,6 +418,29 @@
 (define-object (View source::AndroidActivity)::Painter
 
   (define canvas ::Canvas)
+
+  (define icon-size ::Extent #!null)
+
+  (define (icon-extent)::Extent
+    (when (and (eq? icon-size #!null)
+	       (isnt file-icon eq? #!null)
+	       (isnt directory.svg eq? #!null))
+      (set! icon-size
+	    (Extent width:
+		    (max
+		     (directory-icon:getDocumentWidth)
+		     (file-icon:getDocumentWidth))
+		    height:
+		    (max
+		     (directory-icon:getDocumentHeight)
+		     (file-icon:getDocumentHeight)))))
+    icon-size)
+
+  (define (draw-directory-icon!)::void
+    (directory-icon:renderToCanvas canvas))
+
+  (define (draw-file-icon!)::void
+    (file-icon:renderToCanvas canvas))
 
   (define activity ::AndroidActivity source)
 
