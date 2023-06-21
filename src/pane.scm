@@ -34,6 +34,8 @@
 (import (history))
 (import (button))
 
+(define-alias Array java.util.Arrays)
+
 (define-interface Drawable ()
   (draw!)::void
   )
@@ -662,6 +664,43 @@
   ((as-expression)::cons
    (invoke-special Base 'to-list cons to-expression)))
 
+(define (file-list directory::File
+                   file-action::(maps (File) to: void)
+		   directory-action::(maps (File) to: void))
+  ::Enchanted
+  (let* ((filenames ::($bracket-apply$ String)
+		    (directory:list))
+         (n ::int (length filenames))
+         (button ::($bracket-apply$ FileButton)
+		 (($bracket-apply$ FileButton)
+		  length: (+ n 1))))
+    (set! (button 0) (ParentDirectoryButton
+                       target: (directory:getParentFile)
+		       action: directory-action))
+    (for i from 0 below n
+      (let ((file (File directory (filenames i))))
+        (set! (button (+ i 1))
+	     (if (file:isDirectory)
+	       (DirectoryButton target: file
+	                        action: directory-action)
+               (FileButton target: file
+                            action: file-action)))))
+    (Array:sort button)
+    (let* ((content ::Enchanted (ColumnGrid button))
+	   (inner ::Extent (content:extent))
+	   (scroll ::Scroll (Scroll width: inner:width
+				    height: inner:height
+				    content: content))
+           (popup (PopUp content: scroll))
+	   (outer ::Extent (popup:extent))
+	   (available ::Extent (screen:size)))
+      (set! scroll:width (- scroll:width
+                            (max 0 (- outer:width
+			              available:width))))
+      (set! scroll:height (- scroll:height
+                             (max 0 (- outer:height
+			               available:height))))
+      popup)))
 
 (define-object (Editor)::Pane
   (define document (cons '() '()))
@@ -772,42 +811,46 @@
   (define (long-press! finger::byte x::real y::real)::boolean
     (safely
      (invoke (current-message-handler) 'clear-messages!)
-     (let* ((content ::Enchanted
-		     (ColumnGrid
-		      (list
-		       (Link content: (Caption "New")
-			     on-tap: (lambda _ (WARN "New") #t))
-		       (Link content: (Caption "Open...")
-			     on-tap: (lambda _
-				       (let ((keeper ::Keeper
-						     (the-keeper)))
-					 (keeper:with-read-permission
-					  (lambda ()
-					    (WARN "Open")))) #t))
-		       (Link content: (Caption "Switch to...")
-			     on-tap: (lambda _ (WARN "Switch to...")
-					     #t))
-		       (Link content: (Caption "Save as...")
-			     on-tap: (lambda _
-				       (let ((keeper ::Keeper
-						     (the-keeper)))
-					 (keeper:with-write-permission
-					  (lambda ()
-					    (WARN "Save"))))
-				       #t))
-		       (Link content: (Caption "Close")
-			     on-tap: (lambda _ (WARN "Close") #t))
-		       )))
+     (let* ((content
+	     ::Enchanted
+	     (ColumnGrid
+	      (list
+	       (Link content: (Caption "New")
+		     on-tap: (lambda _ (WARN "New") #t))
+	       (Link content: (Caption "Open...")
+		     on-tap: (lambda _
+			       (let ((keeper ::Keeper
+					     (the-keeper)))
+				 (keeper:with-read-permission
+				  (lambda ()
+				    (screen:overlay!
+				     (file-list
+				      (keeper:initial-directory)
+				      nothing nothing)))))))
+	       (Link content: (Caption "Switch to...")
+		     on-tap: (lambda _ (WARN "Switch to...")
+				     #t))
+	       (Link content: (Caption "Save as...")
+		     on-tap: (lambda _
+			       (let ((keeper ::Keeper
+					     (the-keeper)))
+				 (keeper:with-write-permission
+				  (lambda ()
+				    (WARN "Save"))))
+			       #t))
+	       (Link content: (Caption "Close")
+		     on-tap: (lambda _ (WARN "Close") #t))
+	       )))
 	    (inner ::Extent (content:extent))
 	    (content ::Enchanted (Scroll width:
-					 inner:width
-					 height: (quotient
-						  inner:height
-						  2)
-					 content: content))
-	    (window ::PopUp (PopUp content: content))
-	    (inner ::Extent (window:extent))
-	    (outer ::Extent (screen:size)))
+					  inner:width
+					  height: (quotient
+						   inner:height
+						   2)
+					  content: content))
+	     (window ::PopUp (PopUp content: content))
+	     (inner ::Extent (window:extent))
+	     (outer ::Extent (screen:size)))
        (set! window:left
 	     (max 0 (min (- outer:width inner:width)
 			 (- x (quotient inner:width 2)))))

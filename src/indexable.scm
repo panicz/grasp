@@ -219,6 +219,7 @@ operate on cursors.
 (define-interface Keeper ()
   (with-read-permission action::(maps () to: void))::void
   (with-write-permission action::(maps () to: void))::void
+  (initial-directory)::java.io.File
   )
 
 (define-object (PermissiveKeeper)::Keeper
@@ -226,6 +227,8 @@ operate on cursors.
     (action))
   (define (with-write-permission action::(maps () to: void))::void
     (action))
+  (define (initial-directory)::java.io.File
+    (java.io.File "."))
   )
 
 (define-parameter (the-keeper)::Keeper

@@ -17,7 +17,10 @@
 (import (space))
 (import (text))
 
-(define-object (ColumnGrid items::(sequence-of Enchanted))::Enchanted
+(define-alias File java.io.File)
+
+(define-object (ColumnGrid items::(sequence-of Enchanted))
+  ::Enchanted
   (define (extent)::Extent
     (let* ((painter ::Painter (the-painter))
            (grid-border ::real (painter:grid-border))
@@ -244,8 +247,8 @@
   ((draw! context::Cursor)::void
    (let* ((painter ::Painter (the-painter))
 	  (inner ::Extent (painter:caption-extent label))
-	  (horizontal-margin ::real
-			     (painter:caption-horizontal-margin))
+	  (horizontal-margin
+	   ::real (painter:caption-horizontal-margin))
 	  (vertical-margin ::real
 			   (painter:caption-vertical-margin)))
     (painter:draw-rounded-rectangle!
@@ -260,8 +263,8 @@
   ((extent)::Extent
    (let* ((painter ::Painter (the-painter))
 	  (inner ::Extent (painter:caption-extent label))
-	  (horizontal-margin ::real
-			     (painter:caption-horizontal-margin))
+	  (horizontal-margin
+	   ::real (painter:caption-horizontal-margin))
 	  (vertical-margin ::real
 			   (painter:caption-vertical-margin)))
 
@@ -291,3 +294,75 @@
 	      (WARN "Unable to create Button from "source": "
 		    (java.lang.String:valueOf ex))
 	      #!null)))))
+
+(define-type (FileButton target: File
+                         action: (maps (File) to: void))
+  extending Magic
+  with
+  ((draw! context::Cursor)::void
+   (let* ((painter ::Painter (the-painter))
+          (icon ::Extent (painter:icon-extent))
+	  (caption ::String (label)))
+     (draw-icon!)
+     (with-translation (icon:width 0)
+       (painter:draw-caption! caption))))
+
+  ((as-expression)::cons
+   (origin (this)))
+
+  ((extent)::Extent
+   (let* ((painter ::Painter (the-painter))
+          (icon ::Extent (painter:icon-extent))
+	  (label ::String (label))
+	  (caption ::Extent (painter:caption-extent label)))
+     (Extent width: (+ icon:width caption:width)
+             height: (max icon:height caption:height))))
+
+  ((key-pressed key::char)::boolean
+   (cond ((eq? key #\newline)
+	  (action target)
+	  #t)
+	 (else
+	  #f)))
+
+  ((label)::String
+   (target:getName))
+
+  ((draw-icon!)::void
+   (let ((painter ::Painter (the-painter)))
+     (painter:draw-file-icon!)))
+
+  ((press! finger::byte x::real y::real)::boolean
+   #t)
+
+  ((tap! finger::byte x::real y::real)::boolean
+   (action target)
+   #t)
+
+  implementing ($bracket-apply$ java.lang.Comparable
+				FileButton)
+  with
+  ((compareTo other::FileButton)::int
+   (if (other:target:isDirectory)
+      +1
+      (target:compareTo other:target))))
+
+(define-object (DirectoryButton)::Enchanted
+  (define (typename)::String "DirectoryButton")
+  (define (draw-icon!)::void
+    (let ((painter ::Painter (the-painter)))
+      (painter:draw-directory-icon!)))
+
+  (define (compareTo other::FileButton)::int
+    (if (not (other:target:isDirectory))
+      -1
+      (target:compareTo other:target)))
+
+  (FileButton))
+
+
+(define-object (ParentDirectoryButton)::Enchanted
+  (define (typename)::String "ParentDirectoryButton")
+  (define (label) "..")
+  (define (compareTo other::FileButton)::int -1)
+  (DirectoryButton))

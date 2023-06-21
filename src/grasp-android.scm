@@ -171,10 +171,10 @@
     (load-font "NotoSerif-Regular.ttf" activity))
 
   (define file-icon ::SVG
-    (load-svg "file.svg" activity))
+    (load-svg "file.svg" activity width: 48 height: 48))
 
   (define directory-icon ::SVG
-    (load-svg "directory.svg" activity))
+    (load-svg "directory.svg" activity width: 48 height: 48))
 
   (define assets ((activity:getAssets):list ""))
 
@@ -216,7 +216,7 @@
   (define the-log-font ::($bracket-apply$ parameter Font)
     (make-parameter
      (Font face: Oswald-Regular
-	   size: 28)))
+	   size: 16)))
 
   (define the-cursor-offset ::($bracket-apply$ parameter Position)
     (make-parameter (Position left: 0 top: 32)))
@@ -424,12 +424,13 @@
   (define (icon-extent)::Extent
     (when (and (eq? icon-size #!null)
 	       (isnt file-icon eq? #!null)
-	       (isnt directory.svg eq? #!null))
+	       (isnt directory-icon eq? #!null))
       (set! icon-size
 	    (Extent width:
-		    (max
-		     (directory-icon:getDocumentWidth)
-		     (file-icon:getDocumentWidth))
+		    (+ 12
+		       (max
+			(directory-icon:getDocumentWidth)
+			(file-icon:getDocumentWidth)))
 		    height:
 		    (max
 		     (directory-icon:getDocumentHeight)
@@ -1255,6 +1256,9 @@
   (define (with-write-permission action::(maps () to: void))::void
     (with-permission Manifest:permission:READ_EXTERNAL_STORAGE
 		     action))
+
+  (define (initial-directory)::java.io.File
+    (android.os.Environment:getExternalStorageDirectory))
 
   (define view :: View)
 
