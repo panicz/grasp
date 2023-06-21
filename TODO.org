@@ -1,3 +1,17 @@
+* 20-19.06.2023
+
+teoretycznie mamy juz te ikonki, choc w praktyce
+sa jeszcze nieprzetestowane
+
+to teraz bysmy wzieli te funkcje, ktore wczesniej napisalismy,
+i umiescili w odpowiednim miejscu w kodzie (no i doszlifowali
+tak zeby dzialalo)
+
+tylko pytanie: gdzie to umiescic?
+
+Wydaje sie, ze (button) jest do tego
+najodpowiedniejszym modulem
+
 * 18.06.2023
 
 zaczniemy od tego, zeby pobrac rozmiary ikonek dla klienta
@@ -54,9 +68,7 @@ czyli cos takiego
    (let* ((painter ::Painter (the-painter))
           (icon ::Extent (painter:icon-extent))
 	  (caption ::String (target:label)))
-     (if (target:isDirectory)
-        (painter:draw-directory-icon!)
-	(painter:draw-file-icon!))
+     (draw-icon!)
      (with-translation (icon:width 0)
        (draw-caption! caption))))
 
@@ -81,6 +93,10 @@ czyli cos takiego
   ((label)::String
    (target:getName))
 
+  ((draw-icon!)::void
+   (let ((painter ::Painter (the-painter)))
+     (painter:draw-file-icon!)))
+
   ((press! finger::byte x::real y::real)::boolean
    #t)
 
@@ -90,20 +106,30 @@ czyli cos takiego
 
   implementing ($bracket-apply$ java.lang.Comparable FileButton)
   with
-  ((compareTo other::FileButton)
-   (cond
-     ((and (target:isDirectory) (not (other:target:isDirectory)))
-      -1)
-     ((and (not (target:isDirectory)) (other:target:isDirectory))
-      +1)
-     (else
-      (target:compareTo other:target)))))
+  ((compareTo other::FileButton)::int
+   (if (other:target:isDirectory)
+      +1
+      (target:compareTo other:target))))
+
+(define-object (DirectoryButton)::Enchanted
+  (define (typename)::String "DirectoryButton")
+  (define (draw-icon!)::void
+    (let ((painter ::Painter (the-painter)))
+      (painter:draw-directory-icon!)))
+
+  (define (compareTo other::FileButton)::int
+    (if (not (other:target:isDirectory))
+      -1
+      (target:compareTo other:target)))
+
+  (FileButton))
+
 
 (define-object (ParentDirectoryButton)::Enchanted
   (define (typename)::String "ParentDirectoryButton")
   (define (label) "..")
   (define (compareTo other::FileButton)::int -1)
-  (FileButton))
+  (DirectoryButton))
 
 (define (file-list directory::File
                    file-action::(maps (File) to: void)
@@ -113,14 +139,16 @@ czyli cos takiego
          (n ::int (length filenames))
          (button ::FileButton[] (FileButton[] length: (+ n 1))))
     (set! (button 0) (ParentDirectoryButton
-                       (directory:getParentFile)))
+                       target: (directory:getParentFile)
+		       action: directory-action))
     (for i from 0 to n
-      (let* ((file (File directory (filename i)))
-             (action (if (file:isDirectory)
-	                 directory-action
-			 file-action)))
-        (set! (button (+ i 1)) (FileButton target: file
-                                           action: action))))
+      (let ((file (File directory (filename i))))
+        (set! (button (+ i 1))
+	     (if (file:isDirectory)
+	       (DirectoryButton target: file
+	                        action: directory-action)
+               (FileButton target: file
+                            action: file-action)))))
     (Array:sort button)
     (let* ((scroll ::Scroll
                    (Scroll content: (ColumnGrid button)))
