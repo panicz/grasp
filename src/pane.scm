@@ -61,6 +61,7 @@
   (move! finger::byte x::real y::real dx::real dy::real)::boolean
   (overlay! element::Pane)::void
   (remove-overlay! element::Pane)::void
+  (clear-overlay!)::void
   (drag! finger::byte action::Drag)::void
   (set-content! content::Pane)::void
   (content)::Pane
@@ -191,6 +192,9 @@
 
   (define (remove! element::Pane)::void
     (elements:remove element))
+
+  (define (clear!)::void
+    (elements:clear))
 
   (define (tap! finger::byte #;at x::real y::real)::boolean
     (any (lambda (element::Pane)
@@ -386,6 +390,9 @@
 
   (define (remove-overlay! element::Pane)::void
     (overlay:remove! element))
+
+  (define (clear-overlay!)::void
+    (overlay:clear!))
 
   (define (drag! finger::byte action::Drag)::void
     (set! (dragging finger) action))
@@ -667,7 +674,7 @@
 (define (file-list directory::File
                    file-action::(maps (File) to: void)
 		   directory-action::(maps (File) to: void))
-  ::Enchanted
+  ::PopUp
   (let* ((filenames ::($bracket-apply$ String)
 		    (directory:list))
          (n ::int (length filenames))
@@ -702,11 +709,31 @@
 			               available:height))))
       popup)))
 
+(define (open-file-browser directory::File editor::Editor)
+  ::PopUp
+  (let ((popup ::PopUp #!null))
+    (set! popup
+	  (file-list directory
+		     (lambda (file::File)
+		       ::void
+		       (screen:clear-overlay!)
+		       (editor:load-file file))
+		     (lambda (directory::File)
+		       ::void
+		       (screen:remove-overlay! popup)
+		       (screen:overlay!
+			(open-file-browser directory
+					   editor)))))
+    popup))
+
 (define-object (Editor)::Pane
   (define document (cons '() '()))
   (define cursor :: Cursor '())
 
   (define selection-anchor :: Cursor '())
+
+  (define (load-file file::File)::void
+    (WARN "loading files is not supported"))
 
   (define (draw!)::void
     (parameterize ((the-document document)
@@ -824,9 +851,9 @@
 				 (keeper:with-read-permission
 				  (lambda ()
 				    (screen:overlay!
-				     (file-list
+				     (open-file-browser
 				      (keeper:initial-directory)
-				      nothing nothing)))))))
+				      (this))))))))
 	       (Link content: (Caption "Switch to...")
 		     on-tap: (lambda _ (WARN "Switch to...")
 				     #t))

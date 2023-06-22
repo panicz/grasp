@@ -189,19 +189,20 @@
 
   (Magic))
 
-(define-type (Link on-tap: (maps (Link byte real real) to: boolean)
-		   := always
-                   on-double-tap: (maps (Link byte real real) to: boolean)
-		   := always
-                   on-press: (maps (Link byte real real) to: boolean)
-		   := always
-                   on-second-press: (maps (Link byte real real) to: boolean)
-		   := always
-                   on-long-press: (maps (Link byte real real) to: boolean)
-		   := always
-                   on-key-typed: (maps (Link long) to: boolean)
-		   := always
-                   content: Enchanted)
+(define-type (Link
+	      on-tap: (maps (Link byte real real) to: boolean)
+	      := always
+              on-double-tap: (maps (Link byte real real) to: boolean)
+	      := always
+              on-press: (maps (Link byte real real) to: boolean)
+	      := always
+              on-second-press: (maps (Link byte real real) to: boolean)
+	      := always
+              on-long-press: (maps (Link byte real real) to: boolean)
+	      := always
+              on-key-typed: (maps (Link long) to: boolean)
+	      := always
+              content: Enchanted)
   implementing Enchanted
   with
   ((tap! finger::byte x::real y::real)::boolean

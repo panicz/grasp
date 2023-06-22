@@ -228,7 +228,8 @@ operate on cursors.
   (define (with-write-permission action::(maps () to: void))::void
     (action))
   (define (initial-directory)::java.io.File
-    (java.io.File "."))
+    (let ((wd ::java.io.File (java.io.File ".")))
+      (wd:getAbsoluteFile)))
   )
 
 (define-parameter (the-keeper)::Keeper
