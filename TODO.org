@@ -1,3 +1,57 @@
+* 21.06.2023
+
+Okienko z plikami dziala na Androidzie, ale na desktopowych
+klientach sa problemy. Prawdopodobnie jest to zwiazane
+z implementacja (initial-directory) w domyslnym Keeperze,
+i temu chcielibysmy sie przyjrzec najpierw
+
+Jak to sie uda naprawicm to bysmy jeszcze sprobowali
+dodac przegladanie folderow i otwieranie plikow, i bysmy sie
+juz zaczeli sposobic do tego, zeby zapisywac pliki
+(do tego bedzie potrzebne pole tekstowe)
+
+no ale dobrze, najpierw testy co może być nietak
+- ale podejrzenie jest takie, ze problemem jest uzycie
+  wzglednej sciezki
+
+ok, podejrzenie potwierdzone
+
+czyli co robimy dalej?
+
+- klikniecie na katalog powinno nam otwierac nowe okienko
+  (ewentualnie usuwac stare)
+- klikniecie na plik powinno otwierac ow plik w edytorze
+- okienka powinny sie otwierac wokol palca
+- maksymalna wysokosc okienka nie powinna
+  byc wieksxa od 2/3 wysokosci ekranu
+
+
+to tak jak mamy funkcje
+
+(define (file-list directory::File
+                   file-action::(maps (File) to: void)
+		   directory-action::(maps (File) to: void))
+  ::PopUp
+  ...)
+
+to bysmy sobie zrobili
+
+(define (open-file-browser directory::File editor::Editor)
+  ::PopUp
+  (letrec ((popup ::PopUp
+    (file-list directory
+      (lambda (file::File)::void
+        (screen:clear-overlay!)
+        (editor:load-file file))
+      (lambda (directory::File)::void
+        (screen:remove-overlay! popup)
+        (screen:overlay! (open-file-browser directory editor))))))
+     popup))
+
+no i to jako tako dziala, ale nie ma mozliwosci wypozycjonowania
+
+pytanie jak to bylo zrobione w poprzednim prototypie
+
 * 20-19.06.2023
 
 teoretycznie mamy juz te ikonki, choc w praktyce
