@@ -1,3 +1,103 @@
+* 24.06.2023
+
+teraz chcielibysmy miec funkcje ktora laduje nam dokument
+z pliku. Czyli cos w rodzaju:
+
+
+(define (open-document file::java.io.File)
+  (call-with-input-file file ; ew. (file:getAbsolutePath)
+    (let-values (((result spaces) (read-list)))
+      (Document (if (empty? result)
+	          (EmptyListProxy spaces)
+		  result)
+		file))))
+
+* 23.06.2023
+
+to na razie plan jest taki, zeby dodac nowy modul,
+(document), w ktorym bedzie zdefiniowany typ Document,
+a w kolejnym kroku bysmy sprobowali podmienic wszystkie
+wystapienia document::pair na document::Document
+
+mozemy zrobic tak:
+- (parse) bedzie inkludowal (document)
+
+czy moze na odwrot?
+
+- draw-document! przenosimy z (primitive) do (document)
+
+najwiecej document::pair jest w (history), ale moze
+lepiej tak zostawic
+
+* 22.06.2023
+
+na razie nie ma pomyslu na to w jaki sposob pozycjonowac
+okna - w starym prototypie mielismy zmienne globalne;
+w nowym moglibysmy chciec miec parametry
+
+pointer-left/screen, pointer-top/screen, pointer-index,
+pointer-left/pane, pointer-top/pane
+pointer-left/parent, pointer-top/parent
+
+albo cos takiego.
+
+ale na razie to olewamy, i jezeli kiedys sie pojawi
+taka potrzeba w innym kontekscie, to sie nia zajmiemy
+
+a tymczasem chcemy sie skupic na ladowaniu plikow
+
+editor:load-file powinno dzialac tak, ze
+powinna byc jakas instancja, ktora nam sledzi
+wszystkie otwarte dokumenty, i to ja powinnismy
+prosic o dokument - i to ona powinna byc
+odpowiedzialna za ewentualne ladowanie
+dokumentu, gdyby mialo sie to okazac
+konieczne
+
+
+Otwieranie wygląda tak:
+
+Document document = Document.fromFile(file);
+screen.layers.clear();
+editor.previousDocument.put(document, editor.document);
+editor.switchToDocument(document);
+
+gdzie w klasie Document jest sobie statyczna lista
+openedDocuments, natomiast Editor posiada dwie mapy:
+previousDocument, ktora wskazuje na dokument, ktory
+byl otwarty przed zadanym dokumentem, oraz documentTransform,
+ktory przechowuje transformacje dokumentu w edytorze
+
+a jak bysmy to chcieli miec w nowym edytorze?
+
+... Editor ...
+
+
+(define-type (Document content: ... source: File))
+
+(define-parameter (open-documents)::(list-of Document)
+  '())
+
+(define (open-document source::File)::Document
+  (or (find (is _:source eq? source) (open-documents))
+    (let* ((document ...))
+      (set! (open-documents) (cons document (open-documents)))
+      document)))
+
+(define-property (previously-edited document::Document)::Document
+  (or (and-let* ((`(,_ ,next . ,_) (first-cell (is (car _) eq? document)
+                                      (open-documents))))
+         next)
+      (and-let* ((`(,first . ,_) (open-documents))
+                 ((isnt first eq? document)))
+	 first)
+      document))
+
+(define (open-file file::File)::void
+  (let ((opened ::Document (open-document file)))
+    (set! (previously-edited opened) document)
+    (set! document opened)))
+
 * 21.06.2023
 
 Okienko z plikami dziala na Androidzie, ale na desktopowych
