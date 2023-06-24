@@ -1,3 +1,5 @@
+;; -*- mode: scheme; *preserve-trailing-whitespace*: t -*-
+
 (import
  (define-syntax-rule)
  (define-interface)
@@ -26,6 +28,7 @@
  (history)
  (painter)
  (text-painter)
+ (document)
  )
 
 

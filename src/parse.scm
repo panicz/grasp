@@ -95,7 +95,7 @@
 				   (as gnu.text.Char c)
 				   'intValue))
 	  (result:appendCharacter c)))
-    
+
     (define (read-hex-sequence #!optional (code 0))
       (let ((d ::char (peek-char)))
 	(cond ((or (eof-object? d)
@@ -124,7 +124,7 @@
 	     ;;(WARN "Unrecognized escape character: "c)
 	     (add! c)))
 	  (read-normal)))))
-      
+
     (define (read-normal)
       (let ((c ::char (read-char)))
 	(cond
@@ -136,7 +136,7 @@
 	 (else
 	  (add! c)
 	  (read-normal)))))
-    
+
     (read-normal)))
 
 
@@ -167,7 +167,7 @@
 	     (read-spaces-into pair))
 	    (_
 	     (read-spaces-into pair))))))
-  
+
   (read-spaces-into result:fragments))
 
 (define (read-list #!optional (max-items +inf.0))
@@ -192,14 +192,14 @@
       (update! (post-head-space growth-cone)
 	       following-space)
       (set! total-items (+ total-items 1)))
-    
+
     (define (read-next)
       (if (is total-items >= max-items)
 	  (values result initial-space)
 	  (let ((c (read-char)))
 	    (cond
              ((or (eof-object? c) (eq? c #\)))
-              (when (pair? result)                 
+              (when (pair? result)
 		(update! (pre-head-space result)
 			 initial-space))
               (values result initial-space))
@@ -251,7 +251,7 @@
 		(add-element! (Quasiquote (car next-item))
 			      (post-head-space next-item))
 		(read-next)))
-	     
+
 	     ((eq? c #\,)
 	      (let ((d (peek-char)))
 		(if (eq? d #\@)
@@ -263,7 +263,7 @@
 		      (add-element! (Unquote (car next-item))
 				    (post-head-space next-item))))
 		(read-next)))
-	     
+
 	     ((eq? c #\#)
 	      (let ((d (read-char)))
 		(cond
@@ -334,4 +334,3 @@
 
 (define (pair->string p::list)
   (with-output-to-string (lambda () (show-pair p))))
-

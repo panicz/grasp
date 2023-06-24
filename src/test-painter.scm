@@ -1,3 +1,6 @@
+;; -*- mode: scheme; *preserve-trailing-whitespace*: t -*-
+
+
 (import
   (define-interface)
   (define-type)
@@ -18,6 +21,7 @@
   (match)
   (functions)
   (print)
+  (document)
   )
 
 #|

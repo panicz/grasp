@@ -29,6 +29,7 @@
  (interactive)
  (extension)
  (button)
+ (document)
  )
 
 (define (/old/insert-character! c::char)::void
@@ -57,7 +58,7 @@
      ((is c memq '(#\] #\) #\}))
       (set! (the-cursor)
 	    (recons #\] root)))
-     
+
      ((is target instance? Atom)
       (cond
        ((or (eq? c #\space) (eq? c #\newline))
@@ -91,7 +92,7 @@
 					 (cons* 0 0 '())
 					 (cons 1 '()))))
 		 (move-cursor-right!)))))
-       
+
 	 (else
 	  (invoke (as Atom target) 'insert-char! c (car (the-cursor)))
 	  (set! (the-cursor)
@@ -110,7 +111,7 @@
        ((is c memq '(#\. #\|))
 	(insert! head/tail-separator at: (cdr (the-cursor)))
 	(times 2 move-cursor-right!))
-       
+
        (else
 	(let* ((space-after (split-space!
 			     target
@@ -122,9 +123,6 @@
 		     (cdr (cdr (the-cursor)))))))))
      )))
 
-
-;;(import (button))
-
 (define input ::string "\
 (define (! n)
 \"Computes the product 1*...*n.
@@ -132,7 +130,7 @@ It represents the number of per-
 mutations of an n-element set.\"
   (if (<= n 0)
       1
-      (* n (! (- n 1))))) 
+      (* n (! (- n 1)))))
 (e.g. (factorial 5) ===> 120)
 (Button action: (lambda () (WARN \"button pressed!\"))
         label: \"Press me!\")
@@ -144,12 +142,12 @@ mutations of an n-element set.\"
 (define input-extent ::Extent (string-extent input))
 
 (define-object (editor-message-handler size::int)::MessageHandler
-  
+
   (define (display-messages output::Object)::void
     (let ((io ::Terminal (as Terminal output)))
       (for message in messages
 	   (io:putString message))))
-  
+
   (logger size))
 
 
@@ -171,7 +169,7 @@ mutations of an n-element set.\"
 		       (lambda ()
 			 (display
 			  message)))))))
-          
+
     (let continue ()
       (let ((output-extent ::Extent
 			   (extent (head (the-document)))))
@@ -200,26 +198,26 @@ mutations of an n-element set.\"
 	(io:setCursorVisible #t)
 	(let* ((key ::KeyStroke (io:readInput))
 	       (type ::KeyType (key:getKeyType)))
-	  (match type	
+	  (match type
 	    (,KeyType:ArrowLeft
 	     (safely
 	      (if (key:shift-down?)
 		  (expand-selection-left!)
 		  (move-cursor-left!)))
 	     (continue))
-	    
+
 	    (,KeyType:ArrowRight
 	     (safely
 	      (if (key:shift-down?)
 		  (expand-selection-right!)
 		  (move-cursor-right!)))
 	     (continue))
-	    	    
+
 	    (,KeyType:F12
 	     (exit))
 
 	    (,KeyType:Character
-	     
+
 	     (let* ((code::char
 		     ((key:getCharacter):charValue))
 		    (c::gnu.text.Char (gnu.text.Char
@@ -227,18 +225,18 @@ mutations of an n-element set.\"
 	       (if (and (key:ctrl-down?)
 			(eq? c #\space))
 		   (invoke (current-message-handler)
-			   'clear-messages!)
+			    'clear-messages!)
 		   (/old/insert-character! c)
 		   )
 	       (continue)))
 
 	    (,KeyType:Tab
-	     (safely 
+	     (safely
 	      (if (is (the-expression) Enchanted?)
 		  (disenchant-expression!)
 		  (enchant-expression!)))
 	     (continue))
-	    
+
 	    (,KeyType:Delete
 	     (safely (delete-forward!))
 	     (continue))
@@ -247,12 +245,12 @@ mutations of an n-element set.\"
 	     (insert-character! #\newline)
 	     (move-cursor-right!)
 	     (continue))
-	    
+
 	    (,KeyType:Backspace
 	     (safely (delete-backward!))
 
 	     (continue))
-	    
+
 	    (,KeyType:MouseEvent
 	     (let* ((action ::MouseAction
 			    (as MouseAction key))
@@ -280,9 +278,9 @@ mutations of an n-element set.\"
 		       (position:toString)))
 		((action:isMouseUp)
 		 (and-let* ((target ::Interactive (the-expression)))
-		   (target:tap! left top)))))
+		   (target:tap! 0 left top)))))
 	     (continue))
-	    
+
 	    (_
 	     (WARN "key: "key)
 	     (continue))

@@ -16,14 +16,8 @@
 ;; type system doesn't let us express that (see (indexable)).
 (define-alias Tile* java.lang.Object)
 
-(define-simple-class Document (pair)
-  ((*init* content ::list)
-   (invoke-special pair (this) 'setCar content)
-   (invoke-special pair (this) 'setCdr '())))
-
 (define-alias List java.util.List)
 (define-alias ArrayList java.util.ArrayList)
-
 
 #|
 
@@ -33,7 +27,7 @@ be compared using the 'eqv?' predicate (except
 #!null), but in practice those values can either
 be integers, symbols orcharacters.
 
-The order of elements in the cursor list is such 
+The order of elements in the cursor list is such
 that the first element of the list is an index of
 the innermost element relative to its parent (which
 is pointed to by the second element of the list, or
@@ -46,7 +40,7 @@ a sub-expression on a top-level.
 The reason we chose this "reverse" order has to do
 with the way we build those indices: we start from
 the top level, and we descend deeper recursively;
-therefore, we "cons" the inermost expressions' 
+therefore, we "cons" the inermost expressions'
 indices last.
 
 Also, this strategy maximizes "structural sharing"
@@ -61,16 +55,16 @@ boundedness of the stack seems ok.
 
 Another thing with cursors is that, when refering to
 normal boxes (or "lists"), even indices usually
-refer to spaces, and odd indices refer to 
+refer to spaces, and odd indices refer to
 subsequent elements in a list.
 
 The exception is in the case of a dotted tail:
-the odd index refers to the tail itself, as if 
-it was an element, and the next odd index refers 
+the odd index refers to the tail itself, as if
+it was an element, and the next odd index refers
 to the tail of the list.
 
-Also, if the index is #\[, then it refers to the 
-opening parentehsis of a box, and if it is #\], 
+Also, if the index is #\[, then it refers to the
+opening parentehsis of a box, and if it is #\],
 it refers to its closing parenthesis.
 
 Every kind of tile manages its own cursor values,
@@ -92,10 +86,10 @@ left paren of the document, and (#\] 1) is the
 (define-alias Cursor* gnu.lists.LList)
 
 #|
-Each tile can choose whatever it pleases to be 
+Each tile can choose whatever it pleases to be
 its index.
 
-For built-in types (boxes, combinators, atoms) 
+For built-in types (boxes, combinators, atoms)
 indices are typically either integers or characters
 or symbols.
 |#

@@ -74,37 +74,37 @@
 ;; those atoms can be a different kind of object
 ;; on every query.
 (define-object (Atom name::String)::ShadowedTextualTile
-  
+
   (define builder :: java.lang.StringBuilder)
-  
+
   (define cache #!null)
-  
+
   (define (value)
     (or cache
 	(let ((result (call-with-input-string name read)))
 	  (set! cache result)
 	  result)))
-  
+
   (define (draw! context::Cursor)
     ::void
     (invoke (the-painter) 'draw-atom! name
 	    context))
-  
+
   (define (extent)::Extent
     (invoke (the-painter) 'atom-extent name))
-  
+
   (define (part-at index::Index)::Indexable*
     (this))
 
   (define (first-index)::Index
     0)
-  
+
   (define (last-index)::Index
     (string-length name))
-  
+
   (define (next-index index::Index)::Index
     (min (last-index) (+ index 1)))
-  
+
   (define (previous-index index::Index)::Index
     (max 0 (- index 1)))
 
@@ -126,7 +126,7 @@
 
   (define (char-ref index::int)::char
     (builder:charAt index))
-  
+
   (define (split! position::int)::Textual
     (let ((reminent ::Atom (Atom (name:substring position))))
       (builder:setLength position)
@@ -140,10 +140,10 @@
       (set! cache #!null)
       (set! name (invoke (builder:toString) 'intern))
       #t))
-  
+
   (define (text-length)::int
     (builder:length))
-  
+
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
     (otherwise #!null
       (let ((inner (extent))
@@ -158,14 +158,14 @@
   (define (equals x)::boolean
     (and-let* ((atom ::Atom x))
       (string=? name atom:name)))
-  
+
   (define (toString)::String
     name)
-  
+
   (set! builder (java.lang.StringBuilder name)))
 
 (define-object (cons car cdr)::Tile
-  
+
   (define (equals object)::boolean
    (eq? object (this)))
 
@@ -191,14 +191,14 @@
 	(and (is 0 <= y < inner:height)
 	     (or (and (is 0 <= x < paren-width)
 		      (recons (first-index) path))
-		 
+
 		 (and (is 0 <= (- x paren-width) < inner:width)
 		      (cursor-under (- x paren-width) y
 				    (this) context: path))
 		 (and (is 0 <= (- x paren-width inner:width)
 			  < paren-width)
 		      (recons (last-index) path)))))))
-  
+
   (define (extent)::Extent
     (let ((extent ::Extent (sequence-extent
 			    (this))))
@@ -206,19 +206,19 @@
 			(* 2 (invoke (the-painter)
 				     'paren-width)))
 	      height: extent:height)))
-  
+
   (define (part-at index::Index)::Indexable*
     (if (or (eq? index (first-index))
 	    (eq? index (last-index)))
 	(this)
 	(cell-index (this) (as int index))))
-  
+
   (define (first-index)::Index
     #\[)
-  
+
   (define (last-index)::Index
     #\])
-  
+
   (define (next-index index::Index)::Index
     (match index
       (,(first-index) 0)
@@ -227,7 +227,7 @@
        (+ index 1))
       (_
        (last-index))))
-  
+
   (define (previous-index index::Index)::Index
     (match index
       (0 (first-index))
@@ -266,7 +266,7 @@
 
   (define (setCdr value)
     (error "The cons cell is immutable: "(this)))
-  
+
   (cons car cdr))
 
 (define-cache (recons head tail)
@@ -284,7 +284,7 @@
   (syntax-rules ()
     ((_ a b)
      (recons a b))
-    
+
     ((_ a b c ...)
      (recons a (recons* b c ...)))))
 
@@ -387,13 +387,6 @@
 	       (when (equal? context selection-end)
 		 (painter:exit-selection-drawing-mode!)))))))))
 
-(define (draw-document! document::pair)
-  (cond ((EmptyListProxy? (head document))
-	 (let ((proxy (as EmptyListProxy (head document))))
-	   (draw! proxy:space)))
-	((pair? (head document))
-	 (draw! (pre-head-space (head document)))
-	 (draw-sequence! (head document)))))
 
 (define (draw! object #!key
 	      (context::Cursor '()))
@@ -459,7 +452,7 @@
 	(comment::Comment
 	 (let ((extent ::Extent (comment:extent)))
 	   extent:width))))
-      
+
     (call/cc
      (lambda (return)
        (traverse
@@ -486,7 +479,7 @@
 		   (next:expand-by! (width (car input)))
 		   (next:new-line!)
 		   (skip (cdr input) (+ fragment-index 1)))))
-		   
+
 		(`(,,@(lambda (x)
 			(or (integer? x)
 			    (and-let* ((c ::Comment x))
@@ -559,7 +552,7 @@
 	((symbol? object)
 	 (invoke (the-painter) 'atom-extent
 		 (symbol->string object)))
-	
+
 	(else
 	 (invoke (the-painter) 'atom-extent
 		 (with-output-to-string

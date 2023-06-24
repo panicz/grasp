@@ -21,6 +21,7 @@
 (import (cursor))
 (import (interactive))
 (import (primitive))
+(import (document))
 (import (extension))
 (import (extent))
 (import (parse))
@@ -33,6 +34,7 @@
 (import (input))
 (import (history))
 (import (button))
+(import (document))
 
 (define-alias Array java.util.Arrays)
 
@@ -739,7 +741,8 @@
     (parameterize ((the-document document)
 		   (the-cursor cursor)
 		   (the-selection-anchor selection-anchor))
-      (draw-sequence! (head document))))
+      (document:draw! '())
+      #;(draw-sequence! (head document))))
 
   (define (tap! finger::byte #;at x::real y::real)::boolean
     (WARN "tap! "finger" "x" "y)
@@ -869,15 +872,9 @@
 		     on-tap: (lambda _ (WARN "Close") #t))
 	       )))
 	    (inner ::Extent (content:extent))
-	    (content ::Enchanted (Scroll width:
-					  inner:width
-					  height: (quotient
-						   inner:height
-						   2)
-					  content: content))
-	     (window ::PopUp (PopUp content: content))
-	     (inner ::Extent (window:extent))
-	     (outer ::Extent (screen:size)))
+	    (window ::PopUp (PopUp content: content))
+	    (inner ::Extent (window:extent))
+	    (outer ::Extent (screen:size)))
        (set! window:left
 	     (max 0 (min (- outer:width inner:width)
 			 (- x (quotient inner:width 2)))))
@@ -885,8 +882,8 @@
 	     (max 0 (min (- outer:height inner:height)
 			 (- y (quotient inner:height 2)))))
        (screen:overlay! window)))
-     ;; dodanie menu kontekstowego
-     #t)
+    ;; dodanie menu kontekstowego
+    #t)
 
   (define (key-typed! key-code::long)::boolean
     (parameterize/update-sources ((the-document document)

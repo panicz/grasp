@@ -63,7 +63,7 @@
   ((assign source::Struct)::Struct (this))
   ((fields->list kons::procedure transform::procedure)::list '())
   ((to-list kons::procedure transform::procedure)::list
-   (kons (string->symbol (typename))
+   (kons (transform (string->symbol (typename)))
 		 (fields->list kons transform)))
   ((hashCode)::int (*:hashCode 'Base))
   ((clone)::Struct (Base)))
@@ -77,7 +77,7 @@
      final)
     ((_ kons transform final first . rest)
      (kons
-      (symbol->keyword 'first)
+      (transform (symbol->keyword 'first))
       (kons (transform first)
 	    (keyword-value-list kons transform final . rest))))
     ))

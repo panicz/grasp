@@ -389,13 +389,13 @@
 	  (let* ((rival (head opponents))
 		 (quality (property rival)))
 	    (cond ((is quality < failure)
-		   (next-trial winner rival mastery quality 
+		   (next-trial winner rival mastery quality
 			       (tail opponents)))
 		  ((is quality > mastery)
-		   (next-trial rival looser quality failure 
+		   (next-trial rival looser quality failure
 			       (tail opponents)))
 		  (else
-		   (next-trial winner looser mastery failure 
+		   (next-trial winner looser mastery failure
 			       (tail opponents)))))))))
 
 (e.g.
@@ -405,7 +405,7 @@
 (define (numbers #!key
 		 (from::real 0)
 		 (to::real 0)
-		 (by::real (if (> from to) -1 1)))  
+		 (by::real (if (> from to) -1 1)))
   (if (or (and (> from to) (>= by 0))
 	  (and (< from to) (<= by 0)))
       '()
@@ -488,7 +488,18 @@
  (last-cell (is (car _) even?)
 	    '(1 2 3 4 5))
  ===> (4 5))
-	
+
+(define (find satisfying-element?::predicate in::sequence)
+  (call/cc
+   (lambda (return)
+     (for-each (lambda (x)
+		 (when (satisfying-element? x)
+		   (return x)))
+	       in)
+     #f)))
+
+(e.g.
+ (find even? '(1 2 3)) ===> 2)
 
 (define (first-cell+index satisfying?::predicate
 			  elements::list

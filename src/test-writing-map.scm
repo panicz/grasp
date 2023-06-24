@@ -1,3 +1,5 @@
+;; -*- mode: scheme; *preserve-trailing-whitespace*: t -*-
+
 (import
  (define-syntax-rule)
  (define-interface)
@@ -109,7 +111,7 @@
 │ define │ map │ │
 ╰        ╰    ^╯ ╯
 ")
-
++
 (insert-character! #\space)
 
 (snapshot "
@@ -991,7 +993,7 @@
 ")
 
 
-(times 4 insert-character! #\space)
+-(times 4 insert-character! #\space)
 
 (snapshot "
 ╭        ╭         ╮                  ╮

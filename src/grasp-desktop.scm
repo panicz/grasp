@@ -38,7 +38,7 @@
 
 (define-alias Font java.awt.Font)
 (define-alias FontMetrics java.awt.FontMetrics)
-(define-alias File java.io.File)
+;;(define-alias File java.io.File)
 (define-alias InputStream java.io.InputStream)
 (define ClassLoader ::java.lang.ClassLoader
   (java.lang.ClassLoader:getSystemClassLoader))

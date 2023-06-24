@@ -184,7 +184,7 @@
 	#!null)))
 
   ((first-index)::Index 0)
-  
+
   ((last-index)::Index
    (fold-left (lambda (total next)
 		(if (number? next)
@@ -192,13 +192,13 @@
 		    total))
 	      (length (cdr fragments))
 	      fragments))
-  
+
   ((next-index index::Index)::Index
    (min (+ index 1) (last-index)))
-  
+
   ((previous-index index::Index)::Index
    (max (first-index) (- index 1)))
-   
+
   ((index< a::Index b::Index)::boolean
    (is (as int a) < (as int b)))
 
@@ -252,7 +252,7 @@
 							   width)))
 	       (painter:exit-selection-drawing-mode!)))
 	   (t:expand-by! (* width space-width)))
-	 
+
 	 (match input
 	   (`(,comment::Comment . ,rest)
 	    (parameterize ((the-traversal t))
@@ -260,17 +260,17 @@
 		  (comment:draw! (hash-cons (+ total 1) context))))
 	    (comment:expand! t)
 	    (skip rest (+ total 2)))
-	   
+
 	   (`(,width::integer ,next::integer . ,_)
 	    (expand-with-cursor! width)
 	    (t:new-line!)
 	    (skip (cdr input) (+ total width 1)))
-	   
+
 	   (`(,width::integer . ,rest)
 	    (expand-with-cursor! width)
 	    (skip rest (+ total width)))
-	   
-	   
+
+
 	   ('()
 	    (values)))))))
 
@@ -296,7 +296,7 @@
 	     (begin
 	       (comment:expand! t)
 	       (skip rest (+ total 2)))))
-	   
+
 	   (`(,width::integer ,next-line-prefix::integer . ,_)
 	    (cond
 	     ((is 0 <= (- y t:top) < t:max-line-height)
@@ -321,7 +321,7 @@
 	     (begin
 	       (t:expand-by! (* space-width width))
 	       (skip rest (+ total width)))))
-	   
+
 	   ('()
 	    #!null))))))
   ((print out::gnu.lists.Consumer)::void
@@ -341,7 +341,7 @@
        (`(,comment::Comment . ,rest)
 	(comment:print out)
 	(process rest))
-       
+
        (_
 	(values)))))
 
@@ -356,16 +356,16 @@
 	 (`(,comment::Comment . ,rest)
 	  (comment:expand! t)
 	  (skip rest (+ total 2)))
-	 
+
 	 (`(,width::integer ,next-line-prefix::integer . ,_)
 	  (t:expand-by! (* space-width width))
 	  (t:new-line!)
 	  (skip (cdr input) (+ total width 1)))
-	 
+
 	 (`(,width::integer . ,rest)
 	  (t:expand-by! (* space-width width))
 	  (skip rest (+ total width)))
-	 
+
 	 ('()
 	  (values))))))
 
@@ -377,12 +377,12 @@
       (insert-space! index))
      (#\newline
       (insert-break! index))))
-  
+
   ((delete-char! index::int)::char
    (let ((result (char-ref index)))
      (delete-space-fragment! fragments index)
      result))
-  
+
   ((char-ref index::int)::char
    (let-values (((fragment index) (space-fragment-index
 				   fragments index)))
@@ -403,7 +403,7 @@
      (set! (car suffix) (as int (+ m n)))
      (set! (cdr suffix) appendix)
      #t))
-  
+
   ((text-length)::int
    (fold-left (lambda (x0::int f)::int
 		      (+ x0 (fragment-size f)
@@ -588,7 +588,7 @@
   (define (next-index index::Index)::Index #\|)
   (define (previous-index index::Index)::Index #\|)
   (define (index< a::Index b::Index) #f)
-  
+
   (define (toString)::String "|"))
 
 (define-constant head/tail-separator
@@ -606,7 +606,7 @@
     (Extent width: width
 	    height: (invoke (the-painter)
 			    'horizontal-bar-height)))
-  
+
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
     (otherwise #!null
       (let ((inner (extent)))
@@ -622,11 +622,11 @@
   (define height :: real 0)
   (define (draw! context::Cursor)::void
     (invoke (the-painter) 'draw-vertical-bar! height))
-  
+
   (define (extent)::Extent
     (Extent width: (invoke (the-painter) 'vertical-bar-width)
 	    height: height))
-  
+
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
     (otherwise #!null
       (let ((inner (extent)))
@@ -661,24 +661,24 @@
 (define-object (EmptyListProxy space::Space)::ShadowedTile
 
   (define (value) '())
-  
+
   (define (hashCode)::int
     (java.lang.System:identityHashCode (this)))
-  
+
   (define (part-at index::Index)::Indexable*
     (match index
       (0 space)
       (_ (this))))
-  
+
   (define (first-index)::Index #\[)
-  
+
   (define (last-index)::Index #\])
-  
+
   (define (next-index index::Index)::Index
     (match index
       (#\[ 0)
       (_ #\])))
-  
+
   (define (previous-index index::Index)::Index
     (match index
       (#\] 0)
@@ -700,7 +700,7 @@
 		    (hash-cons (last-index) path))
 		   (else
 		    #!null))))))
-  
+
   (define (index< a::Index b::Index)
     (or (and (eqv? a #\[) (or (eqv? b 0)
 			      (eqv? b #\])))
@@ -732,6 +732,8 @@
 
 (define/kw (empty space ::Space := (EmptySpace))::EmptyListProxy
   (EmptyListProxy space))
+
+(define-early-constant Empty ::EmptyListProxy (empty))
 
 (define cell-display-properties
   (list
@@ -801,10 +803,10 @@
     (print-space (pre-head-space p))
     (show-pair p)
     (write-char #\)))
-   
+
    ((EmptyListProxy? p)
     (invoke (as EmptyListProxy p) 'print (current-output-port)))
-   
+
    (else
     (write p))))
 
@@ -816,7 +818,7 @@
    ((pair? (car d))
     (print-space (pre-head-space (car d)))
     (show-pair (car d)))
-   
+
    (else
     (display (car d)))))
 
