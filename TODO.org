@@ -1,3 +1,15 @@
+* 25.06.2023
+
+plan jest taki, zeby:
+- dodac sprawne ladowanie pliku do modulu (document)
+- uzyc tej funkcji do ladowania "assets/init.scm"
+
+i jezeli to bedziemy mieli, to sie zajmiemy scrollowaniem,
+zoomowaniem i obracaniem dokumentu
+(a pozniej dzieleniem ekranu i taka zmiana reprezntacji,
+zeby "a::b" bylo interpretowane jako 3 tokeny podczas
+ewaluacji)
+  
 * 24.06.2023
 
 teraz chcielibysmy miec funkcje ktora laduje nam dokument
