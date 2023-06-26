@@ -6,7 +6,8 @@
 (import (define-property))
 (import (define-type))
 (import (keyword-arguments))
-(import (srfi :11) (srfi :17))
+(import (srfi :11))
+(import (srfi :17))
 (import (conversions))
 (import (functions))
 (import (primitive))
@@ -312,19 +313,16 @@
 (define (parse #!optional (port (current-input-port)))::list
   (parameterize ((current-input-port port))
     (let-values (((result spaces) (read-list)))
-      result)))
+      (if (empty? result)
+	  (EmptyListProxy spaces)
+	  result))))
 
 (define (parse-string s::string)::list
   (call-with-input-string s parse))
 
 (define (parse-document #!optional
 			(port (current-input-port)))
-  (parameterize ((current-input-port port))
-    (let-values (((result spaces) (read-list)))
-      (cons (if (empty? result)
-		(EmptyListProxy spaces)
-		result)
-	    '()))))
+  (cons (parse port) '()))
 
 (define (string->document s::string)::list
   (call-with-input-string s parse-document))

@@ -729,13 +729,27 @@
     popup))
 
 (define-object (Editor)::Pane
-  (define document (cons '() '()))
-  (define cursor :: Cursor '())
+  (define document ::Document (Document (empty) #!null))
+  (define cursor ::Cursor '())
 
-  (define selection-anchor :: Cursor '())
+  (define selection-anchor ::Cursor '())
 
+  (define previously-edited
+    (property (document::Document)
+      ::Document
+      (or (and-let* ((`(,_ ,next . ,_)
+		      (first-cell (is (car _) eq? document)
+				  (open-documents))))
+	    next)
+	  (and-let* ((`(,first . ,_) (open-documents))
+		     ((isnt first eq? document)))
+	    first)
+	  document)))
+  
   (define (load-file file::File)::void
-    (WARN "loading files is not supported"))
+    (let ((opened ::Document (open-document file)))
+      (set! (previously-edited opened) document)
+      (set! document opened)))
 
   (define (draw!)::void
     (parameterize ((the-document document)

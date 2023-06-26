@@ -4,6 +4,7 @@
 (import (define-property))
 (import (infix))
 (import (match))
+(import (srfi :11))
 (import (functions))
 (import (fundamental))
 (import (indexable))
@@ -12,6 +13,7 @@
 (import (define-cache))
 (import (conversions))
 (import (parse))
+(import (print))
 
 (define-object (Document car ::Object source ::java.io.File)::Tile
   ;; TODO: cursor-under* etc.
@@ -34,19 +36,9 @@
 	      ::boolean
 	      (eq? document:source source))
 	    (open-documents))
-    (let* ((document ::Document (Document #!null #!null)))
-      (set! (open-documents) (cons document (open-documents)))
-      document)))
-
-(define-property (previously-edited document::Document)::Document
-  (or (and-let* ((`(,_ ,next . ,_) (first-cell
-				    (is (car _) eq? document)
-                                    (open-documents))))
-         next)
-      (and-let* ((`(,first . ,_) (open-documents))
-                 ((isnt first eq? document)))
-	 first)
-      document))
+      (call-with-input-file (source:getAbsolutePath)
+	(lambda (port)
+	  (Document (parse port) source)))))
 
 (define (draw-document! document::pair)
   (cond ((EmptyListProxy? (head document))
