@@ -1,3 +1,108 @@
+* 26.06.2023
+
+dzis dla idmiany bysmy sie skupili na zapisywaniu
+plikow
+
+widok by tak wygladal mniej wiecej:
+
+(Below
+ top:
+ (Beside left: (text-field) right: (button))
+ bottom:
+ (file-list))
+
+a konkretniej moze tak:
+
+(define (save-file-browser directory::string
+                           name-hint::string
+			   editor::Editor)
+  ::PopUp
+  (let* ((window ::PopUp #!null)
+         (text-field (TextField content: name-hint))
+         (button (Button label: "Save"
+	                 action: (lambda _
+			           (screen:clear-overlay!)
+				   (save-document!
+				     (java.io.File
+				      directory
+				      text-field:content)))))
+	 (files (file-list directory
+	                   (lambda (file::java.io.File)::void
+			     ;; ustawiamy zawartosc text-field
+			     ...)
+			   (lambda (dir::java.io.File)::void
+			     ;; zastepujemy to okno innym oknem
+			     ...)))
+	 (content (Below top: (Beside left: text-field right: button)
+                         bottom: files)))
+     (set! window (popup content))
+     window))
+
+
+(define-object (TextField)::Enchanted
+  (define content::String "")
+  ;; pytanie: czy uda sie uzyc kursora do tego,
+  ;; zeby reprezentowac polozenie wewnatrz pola tekstowego?
+  )
+     
+ok
+
+czyli ogolniej: w tym tygodniu bysmy chcieli zrobic zapisywanie
+plikow, co wymaga:
+- uczynienia combinatorsow "Enchanted"
+- zaimplementowania TextField
+- ewentualnie drobnych refaktoryzacji po stronie file-list,
+  tak zeby miec slowa kluczowe w argumentach i obsluge
+  podwojnego klikniecia
+
+natomiast juz nas troche swedzi, zeby zrobic jakas narracje
+na SplashCon, w tym:
+
+if we look at the top 20 languages on the TIOBE index,
+we'll notice, that most of them share a common trait,
+and the one which doesn't share this trate isn't considered
+a 'real' (or 'professional') programming language
+
+;; concrete data
+;; pattern matching
+;; (and possibly other textual notations)
+;; abstract definitions
+
+- emacs i lisp
+- pliki tekstowe vs s-wyrazenia
+
+
+plan developerski jest z grubsza taki:
+jutro(wtorek): zrobic zeby kombinatory byly zaczarowane
+
+pojutrze(sroda): zaimplementowac pole tekstowe
+
+popojutrze(czwartek): zaimplementowac zapisywanie plikow
+
+piatek: ewentualne refaktoryzacje, zapis podwojnym kliknieciem,
+elastyczny mechanizm ladowania pliku init.scm tak zeby dzialal
+rowniez z pliku .jar
+
+no i przelaczanie dokumentow!
+
+i tak w kolejnym tygodniu bysmy:
+- zaczeli robic zgloszenie na splash
+- przesuwanie widoku edytora
+- zoomowanie widoku edytora
+- i ewentualnie obracanie
+
+a nastepnie: dzielenie ekranu
+
+a nastepnie? ewaluacje wyrazen?
+
+a nastepnie: pomiar predkosci ruchu palcem
+
+a nastepnie: naprawic bledy w edycji
+
+a nastepnue: zaczac edytowac GRASP w GRASP
+oraz rozpoczac implementacje ewaluacji wizualnej
+
+
 * 25.06.2023
 
 plan jest taki, zeby:
@@ -9,7 +114,8 @@ zoomowaniem i obracaniem dokumentu
 (a pozniej dzieleniem ekranu i taka zmiana reprezntacji,
 zeby "a::b" bylo interpretowane jako 3 tokeny podczas
 ewaluacji)
-  
+
+
 * 24.06.2023
 
 teraz chcielibysmy miec funkcje ktora laduje nam dokument
@@ -17,7 +123,7 @@ z pliku. Czyli cos w rodzaju:
 
 
 (define (open-document file::java.io.File)
-  (call-with-input-file file ; ew. (file:getAbsolutePath)
+(call-with-input-file file ; ew. (file:getAbsolutePath)
     (let-values (((result spaces) (read-list)))
       (Document (if (empty? result)
 	          (EmptyListProxy spaces)
