@@ -673,6 +673,23 @@
   ((as-expression)::cons
    (invoke-special Base 'to-list cons to-expression)))
 
+(define (popup content::Enchanted)::PopUp
+  (let* ((content ::Enchanted content)
+	 (inner ::Extent (content:extent))
+	 (scroll ::Scroll (Scroll width: inner:width
+				  height: inner:height
+				  content: content))
+         (popup (PopUp content: scroll))
+	 (outer ::Extent (popup:extent))
+	 (available ::Extent (screen:size)))
+    (set! scroll:width (- scroll:width
+                          (max 0 (- outer:width
+			            available:width))))
+    (set! scroll:height (- scroll:height
+                           (max 0 (- outer:height
+			             available:height))))
+    popup)
+  
 (define (file-list directory::File
                    file-action::(maps (File) to: void)
 		   directory-action::(maps (File) to: void))
@@ -680,53 +697,40 @@
   (let* ((filenames ::($bracket-apply$ String)
 		    (directory:list))
          (n ::int (length filenames))
-         (button ::($bracket-apply$ FileButton)
+         (buttons ::($bracket-apply$ FileButton)
 		 (($bracket-apply$ FileButton)
 		  length: (+ n 1))))
-    (set! (button 0) (ParentDirectoryButton
+    (set! (buttons 0) (ParentDirectoryButton
                        target: (directory:getParentFile)
 		       action: directory-action))
     (for i from 0 below n
       (let ((file (File directory (filenames i))))
-        (set! (button (+ i 1))
+        (set! (buttons (+ i 1))
 	     (if (file:isDirectory)
 	       (DirectoryButton target: file
 	                        action: directory-action)
                (FileButton target: file
                             action: file-action)))))
-    (Array:sort button)
-    (let* ((content ::Enchanted (ColumnGrid button))
-	   (inner ::Extent (content:extent))
-	   (scroll ::Scroll (Scroll width: inner:width
-				    height: inner:height
-				    content: content))
-           (popup (PopUp content: scroll))
-	   (outer ::Extent (popup:extent))
-	   (available ::Extent (screen:size)))
-      (set! scroll:width (- scroll:width
-                            (max 0 (- outer:width
-			              available:width))))
-      (set! scroll:height (- scroll:height
-                             (max 0 (- outer:height
-			               available:height))))
-      popup)))
+    (Array:sort buttons)
+    (ColumnGrid buttons)))
 
 (define (open-file-browser directory::File editor::Editor)
   ::PopUp
-  (let ((popup ::PopUp #!null))
-    (set! popup
-	  (file-list directory
-		     (lambda (file::File)
-		       ::void
-		       (screen:clear-overlay!)
-		       (editor:load-file file))
-		     (lambda (directory::File)
-		       ::void
-		       (screen:remove-overlay! popup)
-		       (screen:overlay!
-			(open-file-browser directory
-					   editor)))))
-    popup))
+  (let ((window ::PopUp #!null))
+    (set! window
+	  (popup
+	   (file-list directory
+		      (lambda (file::File)
+			::void
+			(screen:clear-overlay!)
+			(editor:load-file file))
+		      (lambda (directory::File)
+			::void
+			(screen:remove-overlay! window)
+			(screen:overlay!
+			 (open-file-browser directory
+					    editor))))))
+    window))
 
 (define-object (Editor)::Pane
   (define document ::Document (Document (empty) #!null))

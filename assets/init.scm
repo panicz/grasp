@@ -28,6 +28,7 @@
 (import (editor-operations))
 (import (pane))
 (import (parse))
+(import (document))
 (import (cursor))
 (import (button))
 
@@ -90,8 +91,8 @@
        (apply invoke object method args)))))
 
 (screen:set-content!
- (Editor document: (with-input-from-string #;"
-          #|FAC|# #|  
+ (Editor document: (Document (car (with-input-from-string #;"
+          #|FAC|# #|
 TOR
   |# #|
 IAL|# #|FAC
@@ -118,7 +119,8 @@ son|#
 #;(e.g. #;(! #;5) ===> 120)
 (Button action: (lambda () (WARN \"button pressed!\"))
         label: \"Press me!\")
-" parse-document)))
+" parse-document))
+			     #!null)))
 
 (WARN "loaded init.scm")
 
