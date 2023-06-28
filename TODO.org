@@ -1,3 +1,22 @@
+* 27.06.2023
+
+dzis sie zajmiemy tym, zeby combinatorsy byly
+zaczarowane
+
+ok, to powinno dzialac - pomijajac kwestie
+obslugi klawiatury
+
+co do klawiatury, plan moglby byc taki, zeby:
+- dodac kontekst do funkcji key-typed
+- przeslaniac (the-cursor) przy obsludze
+  overlay
+
+To to by tak wygladalo, ze:
+- z HorizontalSplit usuwamy focus
+- dodajemy HorizontalSplit do Indexable
+- czy ogolniej dodajemy Pane do Indexable?
+- uzywamy "cursor-climb-front" do inicjalizacji kursora
+
 * 26.06.2023
 
 dzis dla idmiany bysmy sie skupili na zapisywaniu
