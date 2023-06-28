@@ -12,6 +12,8 @@
   (space)
   (cursor)
   (primitive)
+  (interactive)
+  (extension)
   (combinators)
   (text-painter)
   (parse)

@@ -688,12 +688,12 @@
     (set! scroll:height (- scroll:height
                            (max 0 (- outer:height
 			             available:height))))
-    popup)
+    popup))
   
 (define (file-list directory::File
                    file-action::(maps (File) to: void)
 		   directory-action::(maps (File) to: void))
-  ::PopUp
+  ::Enchanted
   (let* ((filenames ::($bracket-apply$ String)
 		    (directory:list))
          (n ::int (length filenames))

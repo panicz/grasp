@@ -13,6 +13,8 @@
  (primitive)
  (extent)
  (text-painter)
+ (interactive)
+ (extension)
  (combinators)
  (parse)
  (examples)

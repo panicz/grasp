@@ -8,9 +8,11 @@
 (import (extent))
 (import (match))
 (import (infix))
+(import (interactive))
+(import (extension))
 
-(define-type (Over back: Tile front: Tile)
-  implementing Tile
+(define-type (Over back: Enchanted front: Enchanted)
+  implementing Enchanted
   with
   ((draw! context::Cursor)::void
    (let* ((back-context (recons 'back context))
@@ -59,10 +61,35 @@
   ((index< a::Index b::Index)::boolean
    (and (is a eq? (first-index))
 	(isnt b eq? (first-index))))
+
+  ((tap! finger::byte #;at x::real y::real)::boolean
+   (or (front:tap! finger x y)
+       (back:tap! finger x y)))
+  
+  ((press! finger::byte #;at x::real y::real)::boolean
+   (or (front:press! finger x y)
+       (back:press! finger x y)))
+
+  ((second-press! finger::byte #;at x::real y::real)::boolean
+   (or (front:second-press! finger x y)
+       (back:second-press! finger x y)))
+  
+  ((double-tap! finger::byte x::real y::real)::boolean
+   (or (front:double-tap! finger x y)
+       (back:double-tap! finger x y)))
+
+  ((long-press! finger::byte x::real y::real)::boolean
+   (or (front:long-press! finger x y)
+       (back:long-press! finger x y)))
+  
+  ((key-typed! key-code::long)::boolean #f)
+
+  ((as-expression)::cons
+   (invoke-special Base 'to-list cons to-expression))
   )
 
-(define-type (Below top: Tile bottom: Tile)
-  implementing Tile
+(define-type (Below top: Enchanted bottom: Enchanted)
+  implementing Enchanted
   with  
   ((draw! context::Cursor)::void
    (let ((top-context (recons 'top context))
@@ -114,12 +141,46 @@
   ((index< a::Index b::Index)::boolean
    (and (is a eq? (first-index))
 	(isnt b eq? (first-index))))
+
+  ((tap! finger::byte #;at x::real y::real)::boolean
+   (let ((top-extent (top:extent)))
+     (if (is y < top-extent:height)
+	 (top:tap! finger x y)
+	 (bottom:tap! finger x (- y top-extent:height)))))
   
+  ((press! finger::byte #;at x::real y::real)::boolean
+   (let ((top-extent (top:extent)))
+     (if (is y < top-extent:height)
+	 (top:press! finger x y)
+	 (bottom:press! finger x (- y top-extent:height)))))
+  
+  ((second-press! finger::byte #;at x::real y::real)::boolean
+   (let ((top-extent (top:extent)))
+     (if (is y < top-extent:height)
+	 (top:second-press! finger x y)
+	 (bottom:second-press! finger x (- y top-extent:height)))))
+
+  ((double-tap! finger::byte x::real y::real)::boolean
+   (let ((top-extent (top:extent)))
+     (if (is y < top-extent:height)
+	 (top:double-tap! finger x y)
+	 (bottom:double-tap! finger x (- y top-extent:height)))))
+  
+  ((long-press! finger::byte x::real y::real)::boolean
+   (let ((top-extent (top:extent)))
+     (if (is y < top-extent:height)
+	 (top:long-press! finger x y)
+	 (bottom:long-press! finger x (- y top-extent:height)))))
+
+  ((key-typed! key-code::long)::boolean #f)
+
+  ((as-expression)::cons
+   (invoke-special Base 'to-list cons to-expression))
   )
 
 
-(define-type (Beside left: Tile right: Tile)
-  implementing Tile
+(define-type (Beside left: Enchanted right: Enchanted)
+  implementing Enchanted
   with
   ((draw! context::Cursor)::void
    (let ((left-context (recons 'left context))
@@ -172,4 +233,38 @@
    (and (is a eq? (first-index))
 	(isnt b eq? (first-index))))
 
+  ((tap! finger::byte  x::real y::real)::boolean
+   (let ((left-extent (left:extent)))
+     (if (is x < left-extent:width)
+	 (left:tap! finger x y)
+	 (right:tap! finger (- x left-extent:width) y))))
+
+  ((press! finger::byte x::real y::real)::boolean
+   (let ((left-extent (left:extent)))
+     (if (is x < left-extent:width)
+	 (left:press! finger x y)
+	 (right:press! finger (- x left-extent:width) y))))
+   
+  ((second-press! finger::byte #;at x::real y::real)::boolean
+   (let ((left-extent (left:extent)))
+     (if (is x < left-extent:width)
+	 (left:second-press! finger x y)
+	 (right:second-press! finger (- x left-extent:width) y))))
+
+  ((double-tap! finger::byte x::real y::real)::boolean
+   (let ((left-extent (left:extent)))
+     (if (is x < left-extent:width)
+	 (left:double-tap! finger x y)
+	 (right:double-tap! finger (- x left-extent:width) y))))
+   
+  ((long-press! finger::byte x::real y::real)::boolean
+   (let ((left-extent (left:extent)))
+     (if (is x < left-extent:width)
+	 (left:long-press! finger x y)
+	 (right:long-press! finger (- x left-extent:width) y))))
+   
+  ((key-typed! key-code::long)::boolean #f)
+
+  ((as-expression)::cons
+   (invoke-special Base 'to-list cons to-expression))
   )

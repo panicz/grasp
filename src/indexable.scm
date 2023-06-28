@@ -87,7 +87,6 @@
   (draw! context::Cursor)::void
   (cursor-under* x::real y::real path::Cursor)::Cursor*
 
-
   #|
   (cursor-above* path::Cursor)::Cursor*
   (cursor-below* path::Cursor)::Cursor*
