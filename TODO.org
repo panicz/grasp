@@ -1,3 +1,70 @@
+* 29.06.2023
+
+sprobujmy moze przypomniec sobie dlaczego chcemy, zeby
+Pane bylo Indexable? (bo chyba byloby lepiej, gdyby
+jednak nie bylo)
+
+Zasadniczo idzie o to, ze jak mamy sobie te warstwy,
+to chcemy na nich wywolac cursor-climb-up. I tylko tyle.
+
+Ale moze powinnismy raczej zrobic
+
+(define-interface Layer (Indexable Pane))
+
+i sprawic, zeby PopUp bylo  Layer (co jest o tyle
+latwe, ze juz nim de facto jest)
+
+ale wtedy potrzebujemy innej nazwy na to co
+teraz nazywa sie Layer. A moze nie?
+
+* 28.06.2023
+
+no dobra, to plan jest taki:
+1. dodajemy parametr "context" do key-typed
+2. dodajemy Pane do Indexable
+3. do 'overlay' dodajemy 'cursor', ktorym
+   bedziemy parametryzowac (the-cursor)
+4. dodajac nowego pane'a do overlaya,
+   wywolujemy na nim "cursor-climb-front"
+
+sprawdzamy, czy takie cos zadziala :D
+
+Pane jeszcze nie jest 'indexable'.
+Poki co, trzeba zrobic tak, zeby Overlay nie trzymalo
+"Pane", tylko pare (Pane, cursor)
+
+(define-type (Layer content: Pane cursor: Cursor))
+
+wowczas bysmy robili tak, ze overlay:add!
+by robil (cursor-climb-front content '())
+jako pozycje poczatkowa kursora.
+
+I wowczas te nieparzyste indeksy tak naprawde nie mialyby
+znaczenia.
+
+Ok, ale po drodze sie pojawil taki problem:
+- co jezeli bedziemy mieli nielokalne wyjscie
+  z parameterize/update-sources ?
+
+Kawa definiuje np. dynamic-wind o tak:
+
+(define (dynamic-wind before thunk after)
+  (before)
+  (try-finally
+   (thunk)
+   (after)))
+
+zrobilismy fixa i to co teraz mamy byc moze dziala,
+ale nie ma jak tego przetestowac, dlatego sobie sklonujemty druga
+kopie repo i wytestujemy poprawke
+
+no dobra, to chyba niczego nie psuje (albo testy okazaly sie
+na owo zepsucie niewrazliwe - ale czy to aby mozliwe?)
+
+to wracamy do naszego glownego tematu, czyli
+sprawienia, zeby Pane bylo Indexable.
+   
+
 * 27.06.2023
 
 dzis sie zajmiemy tym, zeby combinatorsy byly
