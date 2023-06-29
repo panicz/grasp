@@ -1,5 +1,6 @@
 (import (define-type))
 (import (fundamental))
+(import (functions))
 (import (primitive))
 (import (indexable))
 (import (space))
@@ -82,7 +83,17 @@
    (or (front:long-press! finger x y)
        (back:long-press! finger x y)))
   
-  ((key-typed! key-code::long)::boolean #f)
+  ((key-typed! key-code::long context::Cursor)::boolean
+   (let* ((cursor (the-cursor))
+	  (first-context (recons (first-index) context))
+	  (last-context (recons (last-index) context)))
+     (cond
+      ((is first-context suffix? cursor)
+       (front:key-typed! key-code first-context))
+      ((is last-context suffix? cursor)
+       (back:key-typed! key-code last-context))
+      (else
+       #f))))
 
   ((as-expression)::cons
    (invoke-special Base 'to-list cons to-expression))
@@ -172,7 +183,17 @@
 	 (top:long-press! finger x y)
 	 (bottom:long-press! finger x (- y top-extent:height)))))
 
-  ((key-typed! key-code::long)::boolean #f)
+  ((key-typed! key-code::long context::Cursor)::boolean
+   (let* ((cursor (the-cursor))
+	  (first-context (recons (first-index) context))
+	  (last-context (recons (last-index) context)))
+     (cond
+      ((is first-context suffix? cursor)
+       (top:key-typed! key-code first-context))
+      ((is last-context suffix? cursor)
+       (bottom:key-typed! key-code last-context))
+      (else
+       #f))))
 
   ((as-expression)::cons
    (invoke-special Base 'to-list cons to-expression))
@@ -262,9 +283,19 @@
      (if (is x < left-extent:width)
 	 (left:long-press! finger x y)
 	 (right:long-press! finger (- x left-extent:width) y))))
-   
-  ((key-typed! key-code::long)::boolean #f)
 
+  ((key-typed! key-code::long context::Cursor)::boolean
+   (let* ((cursor (the-cursor))
+	  (first-context (recons (first-index) context))
+	  (last-context (recons (last-index) context)))
+     (cond
+      ((is first-context suffix? cursor)
+       (left:key-typed! key-code first-context))
+      ((is last-context suffix? cursor)
+       (right:key-typed! key-code last-context))
+      (else
+       #f))))
+  
   ((as-expression)::cons
    (invoke-special Base 'to-list cons to-expression))
   )

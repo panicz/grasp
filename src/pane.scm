@@ -36,6 +36,7 @@
 (import (button))
 (import (document))
 
+
 (define-alias Array java.util.Arrays)
 
 (define-interface Drawable ()
@@ -43,6 +44,8 @@
   )
 
 (define-interface Pane (Drawable Interactive))
+
+(define-interface Layer (Indexable Pane))
 
 (define-object (NullPane)::Pane
   (define (draw!)::void (values))
@@ -75,7 +78,7 @@
     (let ((painter ::Painter (the-painter)))
       (painter:draw-point! x y #xff0000))))
 
-(define-object (Stroke)::Pane
+(define-object (Stroke)::Layer
   (define points ::List[Point] (ArrayList[Point]))
 
   (define source-pane ::Pane #!null)
@@ -87,6 +90,16 @@
 	      (p1 ::Point (points i)))
           (painter:draw-line! p0:x p0:y p1:x p1:y)))))
 
+  (define (part-at index::Index)::Indexable* (this))
+
+  (define (first-index)::Index 0)
+  (define (last-index)::Index 0)
+
+  (define (next-index index::Index)::Index 0)
+  (define (previous-index index::Index)::Index 0)
+
+  (define (index< a::Index b::Index)::boolean #f)
+  
   (IgnoreInput))
 
 (define-object (Drawing stroke::Stroke)::Drag
@@ -109,7 +122,6 @@
 	  (set! items-position:top 0)))
       (with-translation (position:left position:top)
 	(draw-sequence! items))))
-
   (IgnoreInput))
 
 (define-object (DragAround selected::Selected)::Drag
@@ -181,52 +193,62 @@
 				    with-anchor: anchor)))))
   )
 
-
 (define-object (Overlay)::Pane
-  (define elements :: List[Pane] (ArrayList[Pane]))
+  (define layers ::($bracket-apply$ List Layer)
+    (($bracket-apply$ ArrayList Layer)))
 
+  (define cursor ::(maps (Layer) to: Cursor)
+    (property+ (layer::Layer)::Cursor
+	       (cursor-climb-front '() layer)))		  
+  
   (define (draw!)::void
-    (for element::Pane in-reverse elements
-      (element:draw!)))
+    (for layer::Layer in-reverse layers
+      (layer:draw!)))
 
-  (define (add! element::Pane)::void
-    (elements:add 0 element))
+  (define (add! element::Layer)::void
+    (layers:add 0 element))
 
-  (define (remove! element::Pane)::void
-    (elements:remove element))
+  (define (remove! element::Layer)::void
+    (layers:remove element))
 
   (define (clear!)::void
-    (elements:clear))
+    (layers:clear))
 
   (define (tap! finger::byte #;at x::real y::real)::boolean
-    (any (lambda (element::Pane)
-	   (element:tap! finger x y))
-	 elements))
+    (any (lambda (layer::Layer)
+	   (layer:tap! finger x y))
+	 layers))
 
   (define (press! finger::byte #;at x::real y::real)::boolean
-    (any (lambda (element::Pane)
-	   (element:press! finger x y))
-	 elements))
+    (any (lambda (layer::Layer)
+	   (layer:press! finger x y))
+	 layers))
 
   (define (second-press! finger::byte #;at x::real y::real)::boolean
-    (any (lambda (element::Pane)
-	   (element:second-press! finger x y))
-	 elements))
+    (any (lambda (layer::Layer)
+	   (layer:second-press! finger x y))
+	 layers))
 
   (define (double-tap! finger::byte x::real y::real)::boolean
-    (any (lambda (element::Pane)
-	   (element:double-tap! finger x y))
-	 elements))
+    (any (lambda (layer::Layer)
+	   (layer:double-tap! finger x y))
+	 layers))
 
   (define (long-press! finger::byte x::real y::real)::boolean
-    (any (lambda (element::Pane)
-	   (element:long-press! finger x y))
-	 elements))
+    (any (lambda (layer::Layer)
+	   (layer:long-press! finger x y))
+	 layers))
 
-  (define (key-typed! key-code::long)::boolean
-    (any (lambda (element::Pane)
-	   (element:key-typed! key-code))
-	 elements))
+  (define (key-typed! key-code::long context::Cursor)::boolean  
+    (let ((n ::int (+ 1 (* 2 (length layers)))))
+      (call/cc
+       (lambda (return)
+	 (for layer::Layer in layers
+	   (parameterize/update-sources ((the-cursor (cursor layer)))
+	     (when (layer:key-typed! key-code context)
+	       (return #t))
+	   (set! n (- n 2))))
+	 #f))))
   )
 
 (define-object (WrappedPane content ::Pane)::Pane
@@ -249,8 +271,8 @@
   (define (long-press! finger::byte x::real y::real)::boolean
     (content:long-press! finger x y))
 
-  (define (key-typed! key-code::long)::boolean
-    (content:key-typed! key-code))
+  (define (key-typed! key-code::long context::Cursor)::boolean
+    (content:key-typed! key-code context))
   )
 
 (define-enum HorizontalSplitFocus (Left Right))
@@ -366,12 +388,16 @@
 	    (right:long-press! finger
 			 #;at (- x left-width line-width) y)))))
 
-  ((key-typed! key-code::long)::boolean
+  ((key-typed! key-code::long context::Cursor)::boolean
    (match focus
      (,HorizontalSplitFocus:Left
-      (left:key-typed! key-code))
+      (left:key-typed! key-code
+		       (recons HorizontalSplitFocus:Left
+			       context)))
      (,HorizontalSplitFocus:Right
-      (right:key-typed! key-code))))
+      (right:key-typed! key-code
+			(recons HorizontalSplitFocus:Right
+				context)))))
   )
 
 (define-object (ActualScreen)::Screen
@@ -447,9 +473,10 @@
     (or (overlay:long-press! finger x y)
 	(top:long-press! finger x y)))
 
-  (define (key-typed! key-code::long)::boolean
-    (or (overlay:key-typed! key-code)
-	(top:key-typed! key-code)))
+  (define (key-typed! key-code::long context::Cursor)::boolean
+    (assert (empty? context))
+    (or (overlay:key-typed! key-code context)
+	(top:key-typed! key-code context)))
   )
 
 (define/kw (pop-up-action pop-up::PopUp finger::byte x::real y::real
@@ -488,7 +515,7 @@
 
 (define-type (PopUp left: real := 0 top: real := 0
                     content: Enchanted)
-  implementing Pane
+  implementing Layer
   with
   ((draw!)::void
    (let ((tile ::Tile (as Tile (this))))
@@ -537,11 +564,10 @@
        ::boolean
        (content:long-press! finger x y))))
 
-  ((key-typed! key-code::long)::boolean
-   (content:key-typed! key-code))
+  ((key-typed! key-code::long context::Cursor)::boolean
+   ;;(WARN "context: "context" cursor: "(the-cursor))
+   (content:key-typed! key-code (recons (first-index) context)))
 
-  implementing Tile
-  with
   ((draw! context::Cursor)::void
    (let* ((painter ::Painter (the-painter))
 	  (inner ::Extent (content:extent))
@@ -558,14 +584,14 @@
     ('edge (this))
     ('content content)))
 
-  ((first-index)::Index 'edge)
-  ((last-index)::Index 'content)
+  ((first-index)::Index 'content)
+  ((last-index)::Index 'edge)
 
-  ((next-index index::Index)::Index 'content)
-  ((previous-index index::Index)::Index 'edge)
+  ((next-index index::Index)::Index 'edge)
+  ((previous-index index::Index)::Index 'content)
 
   ((index< a::Index b::Index)::boolean ;>
-   (and (eq? a 'content) (eq? b 'edge)))
+   (and (eq? a 'edge) (eq? b 'content)))
 
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
    (call/cc
@@ -648,8 +674,8 @@
   ((long-press! finger::byte x::real y::real)::boolean
     (content:long-press! finger (+ x left) (+ y top)))
 
-  ((key-typed! key-code::long)::boolean
-    (content:key-typed! key-code))
+  ((key-typed! key-code::long context::Cursor)::boolean
+    (content:key-typed! key-code (recons (first-index) context)))
 
   ((extent)::Extent
    (Extent width: width
@@ -903,7 +929,7 @@
     ;; dodanie menu kontekstowego
     #t)
 
-  (define (key-typed! key-code::long)::boolean
+  (define (key-typed! key-code::long context::Cursor)::boolean
     (parameterize/update-sources ((the-document document)
 				  (the-cursor cursor)
 				  (the-selection-anchor

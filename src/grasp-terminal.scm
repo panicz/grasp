@@ -230,7 +230,7 @@
 		 (_
 		  (parameterize ((unicode-input (input-character
 						 key)))
-		    (screen:key-typed! (scancode key))))))))       
+		    (screen:key-typed! (scancode key) '())))))))
        (synchronized screen-up-to-date?
 	 (set! (screen-up-to-date?) #f)
 	 (invoke screen-up-to-date? 'notify))))))

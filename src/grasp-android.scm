@@ -1333,7 +1333,8 @@
 	      (if (event:ctrl-pressed?) CTRL_MASK 0)
 	      (if (event:alt-pressed?) ALT_MASK 0)
 	      (if (event:shift-pressed?) SHIFT_MASK 0)
-	      )))))))
+	      ))
+	 '())))))
 
   (define (onCreate savedState::Bundle)::void
     (invoke-special AndroidActivity (this) 'onCreate

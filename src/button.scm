@@ -151,7 +151,7 @@
 		 ::boolean
 		 (child:long-press! finger x y))))
 
-  (define (key-typed! key-code::long)::boolean
+  (define (key-typed! key-code::long context::Cursor)::boolean
     ;; na razie tego nie obslugujemy; docelowo warto by bylo
     ;; przemyslec obsluge klawiatury
     #f)
@@ -200,7 +200,7 @@
 	      := always
               on-long-press: (maps (Link byte real real) to: boolean)
 	      := always
-              on-key-typed: (maps (Link long) to: boolean)
+              on-key-typed: (maps (Link long Cursor) to: boolean)
 	      := always
               content: Enchanted)
   implementing Enchanted
@@ -215,8 +215,8 @@
    (on-double-tap (this) finger x y))
   ((long-press! finger::byte x::real y::real)::boolean
    (on-long-press (this) finger x y))
-  ((key-typed! key-code::long)::boolean
-   (on-key-typed (this) key-code))
+  ((key-typed! key-code::long context::Cursor)::boolean
+   (on-key-typed (this) key-code context))
 
   ((draw! context::Cursor)::void
    (invoke content 'draw! (recons (first-index) context)))

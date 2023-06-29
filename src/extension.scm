@@ -45,7 +45,7 @@
     #f)
   (define (double-tap! finger::byte x::real y::real)::boolean #f)
   (define (long-press! finger::byte x::real y::real)::boolean #f)
-  (define (key-typed! key-code::long)::boolean #f)
+  (define (key-typed! key-code::long context::Cursor)::boolean #f)
   
   (define (draw! context::Cursor)::void #!abstract)
 

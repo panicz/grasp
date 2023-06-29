@@ -1168,7 +1168,8 @@ by the AWT framework."))
 			  (as long (event:getKeyCode))
 			  (if (event:control-down?) CTRL_MASK 0)
 			  (if (event:alt-down?) ALT_MASK 0)
-			  (if (event:shift-down?) SHIFT_MASK 0))))
+			  (if (event:shift-down?) SHIFT_MASK 0)))
+		'())
 	(repaint))))
 
   (define (componentResized event::ComponentEvent)::void
