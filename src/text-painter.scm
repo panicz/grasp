@@ -451,18 +451,18 @@
      #\▞ #\▛ #\▗ #\▚ #\▐
      #\▜ #\▄ #\▙ #\▟ #\█))
 
-  (define (4pix-set! x4::int y4::int)::void
-    (let* ((x ::int (quotient x4 2))
-           (h ::int (remainder x4 2))
-           (y ::int (quotient y4 2))
-	   (v ::int (remainder y4 2))
-	   (c ::char (get y x))
-	   (existing-code ::int (4pix-code c))
-	   (mask ::int (arithmetic-shift
-			1 (+ (* 2 v) h)))
-	   (new-code ::int (bitwise-ior
-			    existing-code mask))
-	   (c* ::char (4pix new-code)))
+  (define (4pix-set! x2::int y2::int)::void
+    (let* ((x ::int (quotient x2 2))
+           (h ::int (remainder x2 2))
+           (y ::int (quotient y2 2))
+	         (v ::int (remainder y2 2))
+	         (c ::char (get y x))
+	         (existing-code ::int (4pix-code c))
+	         (mask ::int (arithmetic-shift
+			                  1 (+ (* 2 v) h)))
+	         (new-code ::int (bitwise-ior
+			                      existing-code mask))
+	         (c* ::char (4pix new-code)))
       (put! c* y x)))
 
   (define (draw-line-4pix! x0::real y0::real
@@ -494,11 +494,70 @@
        (else
 	(draw-line-4pix! x1 y1 x0 y0)))))
 
+  (define 8pix ::($bracket-apply$ int)
+    (($bracket-apply$ int)
+     0 1 2 6
+     3 4 5 7))
+
+  (define (8pix-bit x::int y::int)::int
+    (arithmetic-shift 1 (8pix (+ y (* 4 x)))))
+
+  (define (8pix-code c::int)::int
+    (let ((masked ::int (bitwise-and c #xff00)))
+      (if (= masked #x2800)
+          (bitwise-and c #x00ff)
+          0)))
+
+  (define (8pix-set! x2::int y4::int)::void
+    (let* ((x ::int (quotient x2 2))
+           (h ::int (remainder x2 2))
+           (y ::int (quotient y4 4))
+           (v ::int (remainder y4 4))
+           (c ::char (get y x))
+           (c* ::char (as char
+                          (as int
+                              (bitwise-ior
+                               #x2800
+                               (8pix-code (as int c))
+                               (8pix-bit h v))))))
+      (put! c* y x)))
+
+  (define (draw-line-8pix! x0::real y0::real
+			                     x1::real y1::real)
+    ::void
+    (let* ((x1-x0 ::real (- x1 x0))
+           (y1-y0 ::real (- y1 y0))
+	         (angle ::real (atan y1-y0 x1-x0)))
+      (cond
+       ((is -pi/4 <= angle <= pi/4)
+	      (let ((slope ::real (tan angle))
+              (x0 ::int (round x0)))
+          (for i from 0 to (as int (ceiling
+				                            x1-x0))
+	             (let* ((x (+ x0 i))
+	                    (y (+ y0 (* slope i))))
+		             (8pix-set! x (as int (round y)))))))
+       ((is pi/4 <= angle <= (* 3 pi/4))
+	      (let ((slope ::real (/ (cos angle)
+			                         (sin angle)))
+              (y0 ::int (round y0)))
+          (for j from 0 to (as int
+			                         (ceiling y1-y0))
+	             (let ((x (+ x0 (* slope j)))
+	                   (y (+ y0 j)))
+		             (8pix-set! (as int (round x))
+			                      y)))))
+       (else
+	      (draw-line-8pix! x1 y1 x0 y0)))))
+
   (define (draw-line! x0::real y0::real
-		      x1::real y1::real)
+		                  x1::real y1::real)
     ::void
     (draw-line-4pix! (* x0 2) (* y0 2)
-		     (* x1 2) (* y1 2)))
+		                 (* x1 2) (* y1 2))
+    #;(draw-line-8pix! (* x0 2) (* y0 4)
+		                 (* x1 2) (* y1 4))
+    )
 
   (define (draw-quoted-text! s::CharSequence
 			     context::Cursor)
