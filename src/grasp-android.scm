@@ -155,11 +155,11 @@
   (define FiraMono ::Typeface
     (load-font "FiraMono-Medium.ttf" activity))
 
+  (define Basic-Regular
+    (load-font "Basic-Regular.otf" activity))
+  
   (define BarlowCondensed
     (load-font "BarlowCondensed-Medium.ttf" activity))
-
-  (define Crimson
-    (load-font "Crimson-Roman.ttf" activity))
 
   (define Oswald-Regular ::Typeface
     (load-font "Oswald-Regular.ttf" activity))
@@ -202,12 +202,17 @@
 
   (define the-caption-font ::($bracket-apply$ parameter Font)
     (make-parameter
-     (Font face: Oswald-Regular
-	   size: 44)))
+     (Font face: Basic-Regular #;Oswald-Regular
+	   size: 42)))
 
+  (define the-text-input-font ::($bracket-apply$ parameter Font)
+    (make-parameter
+     (Font face: NotoSerif-Regular
+	   size: 36)))
+  
   (define the-block-comment-font ::($bracket-apply$ parameter Font)
     (make-parameter
-     (Font face: Crimson ;;NotoSerif-Regular
+     (Font face: NotoSerif-Regular
 	   size: 36)))
 
   (define the-block-comment-margin ::($bracket-apply$ parameter real)
@@ -1073,6 +1078,19 @@
   (define (caption-horizontal-margin)::real
     (caption-vertical-margin))
 
+  (define (draw-text-input! text::CharSequence
+			    context::Cursor)
+    ::void
+    (draw-text! text (the-text-input-font) context))
+
+  (define (text-input-extent text::CharSequence)::Extent
+    (text-extent text (the-text-input-font)))
+
+  (define (text-input-character-index-under
+	   x::real y::real text::CharSequence)
+    ::int
+    (text-character-index-under x y text (the-text-input-font)))
+  
   (define (atom-extent text::CharSequence)::Extent
     (let ((inner ::Extent (text-extent text (the-atom-font))))
       (Extent width: (+ inner:width 8)

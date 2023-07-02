@@ -145,9 +145,6 @@
 (define-constant BarlowCondensed ::Font
   (load-font "/assets/BarlowCondensed-Medium.ttf" size: 28))
 
-(define-constant Crimson ::Font
-  (load-font "/assets/Crimson-Roman.ttf" size: 18))
-
 (define-constant Basic-Regular ::Font
   (load-font "/assets/Basic-Regular.otf" size: 20))
 
@@ -156,6 +153,9 @@
 
 (define-constant GloriaHallelujah ::Font
   (load-font "/assets/GloriaHallelujah.ttf" size: 16))
+
+(define-constant BasicRegular
+  (load-font "Basic-Regular.otf" size: 21))
 
 (define-constant NotoSerif-Regular ::Font
   (load-font "/assets/NotoSerif-Regular.ttf" size: 16))
@@ -177,6 +177,9 @@
 
 (define-parameter+ (the-caption-font) ::Font
   Oswald-Regular)
+
+(define-parameter+ (the-text-input-font) ::Font
+  NotoSerif-Regular)
 
 (define-parameter+ (the-block-comment-font) ::Font
   NotoSerif-Regular)
@@ -1015,6 +1018,19 @@
 		       i
 		       (loop (+ i 1) (+ left width) top))))))))))
 
+  (define (draw-text-input! text::CharSequence
+			    context::Cursor)
+    ::void
+    (draw-text! text (the-text-input-font) context))
+
+  (define (text-input-extent text::CharSequence)::Extent
+    (text-extent text (the-text-input-font)))
+
+  (define (text-input-character-index-under
+	   x::real y::real text::CharSequence)
+    ::int
+    (text-character-index-under x y text (the-text-input-font)))
+  
   (define (draw-caption! caption::CharSequence)::void
     (draw-text! caption (the-caption-font) #!null))
 

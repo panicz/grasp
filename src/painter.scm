@@ -176,6 +176,17 @@
    text::CharSequence)
   ::int
 
+  (draw-text-input! text::CharSequence
+		    context::Cursor)
+  ::void
+
+  (text-input-extent text::CharSequence)::Extent
+
+  (text-input-character-index-under
+   x::real y::real
+   text::CharSequence)
+  ::int
+  
   (draw-block-comment! text::CharSequence
 		       context::Cursor)
   ::void
@@ -350,6 +361,19 @@
   (define (in-comment-drawing-mode?)::boolean
     #f)
 
+  (define (draw-text-input! text::CharSequence
+			    context::Cursor)
+    ::void
+    (values))
+
+  (define (text-input-extent text::CharSequence)::Extent
+    (Extent width: 0 height: 0))
+
+  (define (text-input-character-index-under
+	   x::real y::real text::CharSequence)
+    ::int
+    0)
+  
   (define (draw-line-comment! text::CharSequence
 			      context::Cursor)
     ::void

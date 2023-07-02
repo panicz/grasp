@@ -665,6 +665,19 @@
     ::Extent
     (string-extent caption))
 
+  (define (draw-text-input! text::CharSequence
+			    context::Cursor)
+    ::void
+    (draw-string! text context))
+
+  (define (text-input-extent text::CharSequence)::Extent
+    (string-extent text))
+
+  (define (text-input-character-index-under
+	   x::real y::real text::CharSequence)
+    ::int
+    (string--character-index-under x y text))
+  
   (define (caption-vertical-margin)::real 1)
 
   (define (caption-horizontal-margin)::real 2)

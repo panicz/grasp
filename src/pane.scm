@@ -203,7 +203,8 @@
   
   (define (draw!)::void
     (for layer::Layer in-reverse layers
-      (layer:draw!)))
+      (parameterize ((the-cursor (cursor layer)))
+	(layer:draw!))))
 
   (define (add! element::Layer)::void
     (layers:add 0 element))
