@@ -1,3 +1,42 @@
+* 01.07.2023
+
+teraz stoimy przed takim problemem, ze nie wiemy,
+jakiej czcionki uzyc do tekstu
+
+pomysl jest taki, ze:
+- jako caption font uzyjemy tej czcionki, ktora
+  mielismy w javowym prototypie
+- i jako czcionki pola tekstowego rowniez
+  uzyjemy odpiwiedniej czcionki, ktora nazwiemy
+  text-input-font
+- do paintera dojdzie draw-input-text! i input-text-extent
+
+  ok, to tak: input-text uzywa stings_font, czyli
+  NotoSerif-Regular
+  guziki uzywaja menu_font, czyli Basic-Regular
+
+
+* 30.06.2023
+
+dzis niby ma byc notyfokacja hapoc, wiec jezeli
+sie uda, to bym w niedziele dodal pejper do repo
+
+poza tym trzeba wcommitowac te 8pix do repo
+
+no a poza tym, to sie trzeba zajac tym polem tekstowym.
+
+I teraz moze taka uwaga ogolna: pole tekstowe bedzie
+mialo stala wysokosc, natomiast jego szerokosc bedzie
+zmienna, i bedziemy ja ograniczac
+
+ewentualnie mozemy zrobic tak, ze scroll przed rysowaniem
+koloruje tlo? wowczas jednak nie daloby sie uzywac TextInputa
+(czy moze TextFielda) spoza Scrolla.
+
+Ewentualnie mozemy po prostu osadzic nieudekorowany tekst
+w scrollbarze (nieudekorowany tj bez cudzyslowiow) i nazwac
+to dniem.
+
 * 29.06.2023
 
 sprobujmy moze przypomniec sobie dlaczego chcemy, zeby
@@ -16,6 +55,16 @@ latwe, ze juz nim de facto jest)
 
 ale wtedy potrzebujemy innej nazwy na to co
 teraz nazywa sie Layer. A moze nie?
+
+Kod sie juz kompiluje i jest scommitowany.
+
+Teraz bysmy chcieli:
+- dodac obsluge pola tekstowego
+- dodac obsluge nawigacji strzalkami
+  (w szczegolnosci pole "scroll" powinno sie
+  doscrollowywac tak, zeby zfocusowany element
+  byl widoczny)
+
 
 * 28.06.2023
 
