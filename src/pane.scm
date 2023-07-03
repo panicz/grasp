@@ -35,6 +35,7 @@
 (import (history))
 (import (button))
 (import (document))
+(import (combinators))
 
 
 (define-alias Array java.util.Arrays)
@@ -700,6 +701,14 @@
   ((as-expression)::cons
    (invoke-special Base 'to-list cons to-expression)))
 
+(define (text-field width::real content::CharSequence)::Scroll
+  (let* ((input ::TextInput (text-input content))
+	 (inner ::Extent (input:extent))
+	 (scroll ::Scroll (Scroll width: width
+				  height: inner:height
+				  content: input)))
+    scroll))
+
 (define (popup content::Enchanted)::PopUp
   (let* ((content ::Enchanted content)
 	 (inner ::Extent (content:extent))
@@ -757,6 +766,40 @@
 			(screen:overlay!
 			 (open-file-browser directory
 					    editor))))))
+    window))
+
+(define (save-file-browser directory::File
+                           name-hint::string
+			   editor::Editor)
+  ::PopUp
+  (let* ((window ::PopUp #!null)
+         (text-field ::Scroll (text-field 0 name-hint))
+         (button (Button label: "Save"
+	                 action: (lambda _
+			           (screen:clear-overlay!)
+				   (save-document!
+				    (java.io.File
+				     directory
+				     text-field:content)))))
+	 (files (file-list directory
+	                   (lambda (file::java.io.File)::void
+				   (set! text-field:content
+					 (text-input
+					  (file:toString))))
+			   (lambda (dir::java.io.File)::void
+				   (screen:remove-overlay! window)
+				   (screen:overlay!
+				    (save-file-browser
+				     directory
+			             text-field:content
+                                     editor)))))
+	 (button-size ::Extent (button:extent))
+	 (file-list-size ::Extent (files:extent))
+	 (content (Below top: (Beside left: text-field right: button)
+                         bottom: files)))
+    (set! text-field:width (- file-list-size:width
+			      button-size:width))
+    (set! window (popup content))
     window))
 
 (define-object (Editor)::Pane
@@ -911,7 +954,11 @@
 					     (the-keeper)))
 				 (keeper:with-write-permission
 				  (lambda ()
-				    (WARN "Save"))))
+				    (screen:overlay!
+				     (save-file-browser
+				      (keeper:initial-directory)
+				      "filename.scm"
+				      (this))))))
 			       #t))
 	       (Link content: (Caption "Close")
 		     on-tap: (lambda _ (WARN "Close") #t))

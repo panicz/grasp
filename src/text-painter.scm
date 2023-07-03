@@ -676,7 +676,7 @@
   (define (text-input-character-index-under
 	   x::real y::real text::CharSequence)
     ::int
-    (string--character-index-under x y text))
+    (string-character-index-under x y text))
   
   (define (caption-vertical-margin)::real 1)
 

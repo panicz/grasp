@@ -16,6 +16,7 @@
 (import (while))
 (import (space))
 (import (text))
+(import (input))
 
 (define-alias File java.io.File)
 
@@ -367,3 +368,88 @@
   (define (label) "..")
   (define (compareTo other::FileButton)::int -1)
   (DirectoryButton))
+
+(define-object (TextInput)::Enchanted
+
+  (define (draw! context::Cursor)
+    (invoke (the-painter) 'draw-text-input!
+	    (this)
+	    context))
+
+  (define (extent)::Extent
+    (invoke (the-painter) 'text-input-extent (this)))
+
+  (define (cursor-under* x::real y::real path::Cursor)::Cursor*
+    (recons path
+	    (invoke (the-painter) 'text-input-character-index-under
+	    x y (this))))
+
+  (define (part-at index::Index)::Indexable* (this))
+
+  (define (first-index)::Index (as int 0))
+  
+  (define (last-index)::Index (string-length (this)))
+
+  (define (next-index index::Index)::Index
+    (as int (min (last-index) (+ index 1))))
+  
+  (define (previous-index index::Index)::Index
+    (as int (max 0 (- index 1))))
+    
+  (define (index< a::Index b::Index)::boolean
+    (is a < b))
+
+  (define (tap! finger::byte #;at x::real y::real)::boolean
+    #t)
+
+  (define (press! finger::byte #;at x::real y::real)::boolean #t)
+  
+  (define (second-press! finger::byte #;at x::real y::real)::boolean
+    #t)
+
+  (define (double-tap! finger::byte x::real y::real)::boolean
+    #t)
+  
+  (define (long-press! finger::byte x::real y::real)::boolean
+    #t)
+  
+  (define (key-typed! key-code::long context::Cursor)::boolean
+    (let ((input ::gnu.text.Char (unicode-input))
+	  (key-name (key-code-name key-code)))
+      (cond
+       ((eq? key-name 'backspace)
+	(and-let* ((`(,index . ,stem) (the-cursor))
+		   ((integer? index))
+		   ((is (first-index) < index <= (last-index))))
+	  (delete index (+ index 1))
+	  (set! (the-cursor) (max 0 (- index 1)))
+	  #t))
+       
+       ((eq? key-name 'delete)
+	(and-let* ((`(,index . ,_) (the-cursor))
+		   ((integer? index))
+		   ((is (first-index) <= index < (last-index))))
+	  (delete index (+ index 1))
+	  #t))
+       
+       ((eq? key-name 'enter)
+	#f)
+       
+       ((isnt input eq? #\null)
+	(and-let* ((`(,index . ,_) (the-cursor))
+		   ((integer? index))
+		   ((is (first-index) <= index <= (last-index))))
+	  (insert index (input:intValue) #t)
+	  #t)))))
+
+  (define (as-expression)::cons
+    (cons (Atom "text-input")
+	  (recons (text (this))
+		  (EmptyListProxy (EmptySpace)))))
+  
+  (gnu.lists.FString))
+
+(define (text-input string::CharSequence)::TextInput
+  (let ((result ::TextInput (TextInput)))
+    (result:append string)
+    result))
