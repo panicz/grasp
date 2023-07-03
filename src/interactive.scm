@@ -22,7 +22,8 @@
   (define (long-press! finger::byte x::real y::real)::boolean #f)
   
   (define (key-typed! key-code::long context::Cursor)::boolean #f)
-  )
+
+  (Simple))
 
 (define-object (ConsumeInput)::Interactive
   (define (tap! finger::byte #;at x::real y::real)::boolean #t)
@@ -32,4 +33,5 @@
   (define (double-tap! finger::byte x::real y::real)::boolean #t)
   (define (long-press! finger::byte x::real y::real)::boolean #t)
   (define (key-typed! key-code::long context::Cursor)::boolean #t)
-  )
+
+  (Simple))

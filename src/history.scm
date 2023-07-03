@@ -60,7 +60,7 @@
         (transform tail (cons (head:inverse) inverted)))
        ('()
         inverted)))
-   (transform operations '()))
+   (EditSequence operations: (transform operations '())))
   )
 
 (define-type (Move from: Cursor

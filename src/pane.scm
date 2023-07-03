@@ -112,7 +112,7 @@
 
   (screen:overlay! stroke))
 
-(define-object (Selected items::cons position::Position)::Pane
+(define-object (Selected items::cons position::Position)::Layer
 
   (define (draw!)::void
     (parameterize ((the-document items))

@@ -155,7 +155,7 @@
   (load-font "/assets/GloriaHallelujah.ttf" size: 16))
 
 (define-constant BasicRegular
-  (load-font "Basic-Regular.otf" size: 21))
+  (load-font "/assets/Basic-Regular.otf" size: 21))
 
 (define-constant NotoSerif-Regular ::Font
   (load-font "/assets/NotoSerif-Regular.ttf" size: 16))

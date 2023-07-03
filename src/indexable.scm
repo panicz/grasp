@@ -106,7 +106,7 @@
 (define (text-length item::Textual)::int
   (item:text-length))
 
-(define-object (Simple)::Element
+(define-object (Simple)::Indexable
   (define (typename)::String "Simple")
   (define (part-at index::Index)::Indexable* (this))
 
@@ -117,9 +117,6 @@
   (define (previous-index index::Index)::Index 0)
 
   (define (index< a::Index b::Index)::boolean #f)
-
-  (define (cursor-under* x::real y::real path::Cursor)::Cursor*
-    #!abstract)
 
   (Base))
 
