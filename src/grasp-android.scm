@@ -650,6 +650,10 @@
 			  10 10 paint)
     (paint:setStyle Paint:Style:FILL))
 
+  (define (fill-background! width::real height::real)::void
+    (paint:setColor #xffffffff)
+    (canvas:drawRect 0 0 (as int width) (as int height) paint))
+  
   (define (draw-popup! width::real height::real)::void
     (paint:setColor (- text-color
 		       #x77000000))
@@ -1071,12 +1075,12 @@
   (define (caption-extent caption::CharSequence)::Extent
     (text-extent caption (the-caption-font)))
 
-  (define (caption-vertical-margin)::real
-    (let* ((font ::Font (the-caption-font)))
-      font:size))
+  (define (caption-margin-top)::real 4)
 
+  (define (caption-margin-bottom)::real 14)
+  
   (define (caption-horizontal-margin)::real
-    (caption-vertical-margin))
+    (space-width))
 
   (define (draw-text-input! text::CharSequence
 			    context::Cursor)
@@ -1306,8 +1310,8 @@
 		(p ::int (event:getPointerId i))
 		(finger ::TouchEventProcessor
 			(process-finger p)))
-	   (finger:press! (- (event:getX i) (view:getLeft))
-			  (- (event:getY i) (view:getTop))
+	   (finger:press! (- (event:getX i) (view:getX))
+			  (- (event:getY i) (view:getY))
 			  (event:getEventTime))))
 	(,@pointer-up?
 	 (let* ((i ::int (event:getActionIndex))
@@ -1390,7 +1394,9 @@
       (screen:set-size! metrics:widthPixels metrics:heightPixels))
 
     (view:setSystemUiVisibility
-     AndroidView:SYSTEM_UI_FLAG_FULLSCREEN)
+     (bitwise-ior
+      AndroidView:SYSTEM_UI_FLAG_FULLSCREEN
+      AndroidView:SYSTEM_UI_FLAG_IMMERSIVE))
     (view:setFitsSystemWindows #t)
     (setContentView view)
 

@@ -18,8 +18,6 @@
 (import (text))
 (import (input))
 
-(define-alias File java.io.File)
-
 (define-object (ColumnGrid items::(sequence-of Enchanted))
   ::Enchanted
   (define (extent)::Extent
@@ -251,12 +249,14 @@
 	  (inner ::Extent (painter:caption-extent label))
 	  (horizontal-margin
 	   ::real (painter:caption-horizontal-margin))
-	  (vertical-margin ::real
-			   (painter:caption-vertical-margin)))
+	  (top-margin ::real
+		      (painter:caption-margin-top))
+	  (bottom-margin ::real
+			 (painter:caption-margin-bottom)))
     (painter:draw-rounded-rectangle!
       (+ inner:width (* horizontal-margin 2))
-      (+ inner:height (* vertical-margin 2)))
-    (with-translation (horizontal-margin vertical-margin)
+      (+ inner:height (+ top-margin bottom-margin)))
+    (with-translation (horizontal-margin top-margin)
       (painter:draw-caption! label))))
 
   ((as-expression)::cons
@@ -267,11 +267,14 @@
 	  (inner ::Extent (painter:caption-extent label))
 	  (horizontal-margin
 	   ::real (painter:caption-horizontal-margin))
-	  (vertical-margin ::real
-			   (painter:caption-vertical-margin)))
+	  (top-margin ::real
+		      (painter:caption-margin-top))
+	  (bottom-margin ::real
+			 (painter:caption-margin-bottom)))
 
      (Extent width: (+ inner:width (* horizontal-margin 2))
-	     height: (+ inner:height (* vertical-margin 2)))))
+	     height: (+ inner:height (+ top-margin
+					bottom-margin)))))
 
   ((key-pressed key::char)::boolean
    (cond ((eq? key #\newline)
@@ -297,8 +300,8 @@
 		    (java.lang.String:valueOf ex))
 	      #!null)))))
 
-(define-type (FileButton target: File
-                         action: (maps (File) to: void))
+(define-type (FileButton target: java.io.File
+                         action: (maps (java.io.File) to: void))
   extending Magic
   with
   ((draw! context::Cursor)::void

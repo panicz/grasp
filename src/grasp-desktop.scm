@@ -771,6 +771,10 @@
   (define (min-line-height)::real
     (invoke (the-atom-font) 'getSize2D))
 
+  (define (fill-background! width::real height::real)::void
+    (graphics:setColor (color #xffffffff))
+    (graphics:fillRect 0 0 (as int width) (as int height)))
+  
   (define (draw-popup! width::real height::real)::void
     (graphics:setColor (color #x77AAAAAA))
     (graphics:fillRoundRect 0 0 (as int width) (as int height)
@@ -1037,13 +1041,12 @@
   (define (caption-extent caption::CharSequence)::Extent
     (text-extent caption (the-caption-font)))
 
-  (define (caption-vertical-margin)::real
-    (let* ((font ::Font (the-caption-font))
-	   (metrics ::FontMetrics (graphics:getFontMetrics font)))
-      (metrics:getHeight)))
+  (define (caption-margin-top)::real 2)
 
+  (define (caption-margin-bottom)::real 8)
+  
   (define (caption-horizontal-margin)::real
-    (caption-vertical-margin))
+    (space-width))
 
   (define (atom-extent text::CharSequence)::Extent
     (let ((inner (text-extent text (the-atom-font))))

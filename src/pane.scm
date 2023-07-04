@@ -657,9 +657,11 @@
   implementing Enchanted
   with
   ((draw! context::Cursor)::void
-   (with-clip (width height)
-     (with-translation ((- left) (- top))
-       (content:draw! (recons 0 context)))))
+   (let ((painter ::Painter (the-painter)))
+     (painter:fill-background! width height)
+     (with-clip (width height)
+       (with-translation ((- left) (- top))
+	 (content:draw! (recons 0 context))))))
 
   ((tap! finger::byte  x::real y::real)::boolean
    (content:tap! finger (+ x left) (+ y top)))
@@ -709,7 +711,7 @@
 				  content: input)))
     scroll))
 
-(define (popup content::Enchanted)::PopUp
+(define (popup-scroll content::Enchanted)::PopUp
   (let* ((content ::Enchanted content)
 	 (inner ::Extent (content:extent))
 	 (scroll ::Scroll (Scroll width: inner:width
@@ -726,9 +728,9 @@
 			             available:height))))
     popup))
   
-(define (file-list directory::File
-                   file-action::(maps (File) to: void)
-		   directory-action::(maps (File) to: void))
+(define (file-list directory::java.io.File
+                   file-action::(maps (java.io.File) to: void)
+		   directory-action::(maps (java.io.File) to: void))
   ::Enchanted
   (let* ((filenames ::($bracket-apply$ String)
 		    (directory:list))
@@ -740,7 +742,7 @@
                        target: (directory:getParentFile)
 		       action: directory-action))
     (for i from 0 below n
-      (let ((file (File directory (filenames i))))
+      (let ((file (java.io.File directory (filenames i))))
         (set! (buttons (+ i 1))
 	     (if (file:isDirectory)
 	       (DirectoryButton target: file
@@ -750,17 +752,17 @@
     (Array:sort buttons)
     (ColumnGrid buttons)))
 
-(define (open-file-browser directory::File editor::Editor)
+(define (open-file-browser directory::java.io.File editor::Editor)
   ::PopUp
   (let ((window ::PopUp #!null))
     (set! window
-	  (popup
+	  (popup-scroll
 	   (file-list directory
-		      (lambda (file::File)
+		      (lambda (file::java.io.File)
 			::void
 			(screen:clear-overlay!)
 			(editor:load-file file))
-		      (lambda (directory::File)
+		      (lambda (directory::java.io.File)
 			::void
 			(screen:remove-overlay! window)
 			(screen:overlay!
@@ -768,7 +770,7 @@
 					    editor))))))
     window))
 
-(define (save-file-browser directory::File
+(define (save-file-browser directory::java.io.File
                            name-hint::string
 			   editor::Editor)
   ::PopUp
@@ -778,6 +780,7 @@
 	                 action: (lambda _
 			           (screen:clear-overlay!)
 				   (save-document!
+				    editor:document
 				    (java.io.File
 				     directory
 				     text-field:content)))))
@@ -790,16 +793,31 @@
 				   (screen:remove-overlay! window)
 				   (screen:overlay!
 				    (save-file-browser
-				     directory
+				     dir
 			             text-field:content
                                      editor)))))
-	 (button-size ::Extent (button:extent))
-	 (file-list-size ::Extent (files:extent))
-	 (content (Below top: (Beside left: text-field right: button)
-                         bottom: files)))
-    (set! text-field:width (- file-list-size:width
+	 (inner ::Extent (files:extent))
+	 (browser ::Scroll (Scroll content: files
+				   width: inner:width
+				   height: inner:height))
+	 (top (Beside left: text-field right: button))
+	 (upper ::Extent (top:extent))
+	 (content (Below top: top
+                         bottom: browser))
+         (popup (PopUp content: content))
+	 (outer ::Extent (popup:extent))
+	 (available ::Extent (screen:size))
+	 (button-size ::Extent (button:extent)))
+    (set! browser:width (- browser:width
+                          (max 0 (- outer:width
+			            available:width))))
+    (set! browser:height (- browser:height
+                            (max 0 (- outer:height
+				      (- upper:height)
+			              available:height))))
+    (set! text-field:width (- browser:width
 			      button-size:width))
-    (set! window (popup content))
+    (set! window popup)
     window))
 
 (define-object (Editor)::Pane
@@ -820,7 +838,7 @@
 	    first)
 	  document)))
   
-  (define (load-file file::File)::void
+  (define (load-file file::java.io.File)::void
     (let ((opened ::Document (open-document file)))
       (set! (previously-edited opened) document)
       (set! document opened)))
@@ -954,11 +972,12 @@
 					     (the-keeper)))
 				 (keeper:with-write-permission
 				  (lambda ()
-				    (screen:overlay!
-				     (save-file-browser
-				      (keeper:initial-directory)
-				      "filename.scm"
-				      (this))))))
+				    (safely
+				     (screen:overlay!
+				      (save-file-browser
+				       (keeper:initial-directory)
+				       "filename.scm"
+				       (this)))))))
 			       #t))
 	       (Link content: (Caption "Close")
 		     on-tap: (lambda _ (WARN "Close") #t))

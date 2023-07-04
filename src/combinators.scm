@@ -29,7 +29,7 @@
 	     height: (max front-extent:height
 			  back-extent:height))))
 
-  ((part-at index::Index)::Tile
+  ((part-at index::Index)::Indexable*
    (match index
      (,(first-index) back)
      (,(last-index) front)))
@@ -118,7 +118,7 @@
 	     height: (+ top-extent:height
 			bottom-extent:height))))
 
-  ((part-at index::Index)::Tile
+  ((part-at index::Index)::Indexable*
    (match index
      (,(first-index) top)
      (,(last-index) bottom)))
@@ -219,7 +219,7 @@
 	     height: (max left-extent:height
 			  right-extent:height))))
   
-  ((part-at index::Index)::Tile
+  ((part-at index::Index)::Indexable*
    (match index
      (,(first-index) left)
      (,(last-index) right)))

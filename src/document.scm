@@ -40,6 +40,12 @@
 	(lambda (port)
 	  (Document (parse port) source)))))
 
+(define (save-document! document::Document file::java.io.File)
+  (call-with-output-file (file:getAbsolutePath)
+    (lambda (port)
+      (parameterize ((current-output-port port))
+	(show-document document)))))
+
 (define (draw-document! document::pair)
   (cond ((EmptyListProxy? (head document))
 	 (let ((proxy (as EmptyListProxy (head document))))

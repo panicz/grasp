@@ -61,7 +61,8 @@
 
   (draw-caption! caption::CharSequence)::void
   (caption-extent caption::CharSequence)::Extent
-  (caption-vertical-margin)::real
+  (caption-margin-top)::real
+  (caption-margin-bottom)::real
   (caption-horizontal-margin)::real
 
   (quoted-text-extent text::CharSequence)::Extent
@@ -96,6 +97,8 @@
 
   (draw-rectangle! width::real height::real)::void
 
+  (fill-background! width::real height::real)::void
+  
   (draw-line! x0::real y0::real x1::real y1::real)
   ::void
 
@@ -282,7 +285,9 @@
     ::Extent
     (Extent width: 1 height: 1))
 
-  (define (caption-vertical-margin)::real 1)
+  (define (caption-margin-top)::real 1)
+
+  (define (caption-margin-bottom)::real 1)
 
   (define (caption-horizontal-margin)::real 1)
 
@@ -329,6 +334,9 @@
     ::void
     (values))
 
+  (define (fill-background! width::real height::real)::void
+    (values))
+  
   (define (draw-popup! width::real height::real)::void
     (values))
 

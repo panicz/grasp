@@ -419,6 +419,11 @@
      #\└     #\┘
      width height))
 
+  (define (fill-background! width::real height::real)::void
+    (for j from 0 below height
+	 (for i from 0 below width
+	      (put! #\space j i))))
+  
   (define (draw-popup! width::real height::real)::void
     (draw-rounded-rectangle! width height))
 
@@ -678,7 +683,9 @@
     ::int
     (string-character-index-under x y text))
   
-  (define (caption-vertical-margin)::real 1)
+  (define (caption-margin-top)::real 1)
+
+  (define (caption-margin-bottom)::real 1)
 
   (define (caption-horizontal-margin)::real 2)
 
