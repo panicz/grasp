@@ -1,3 +1,26 @@
+* 03.07.2023
+
+dzis bysmy:
+1. sprobowali doprowadzic do dzialania
+   save-file-browser
+2. jak sie uda, dodali okienko wyboru dokumentow
+
+ad 1: musimy:
+- zmniejszyc guzik
+- dorobic tlo do pola tekstowego
+- dobrze obsluzyc klawiature w popupie/polu tekstowym
+
+  to bysmy zaczeli od tego, zeby dodac do paintera
+  fill-background
+  
+* 02.07.2023
+
+teraz bysmy zrobili text-input, co by wygladalo tak
+mniej wiecej, ze oprocz Text, ktory mamy teraz, bysmy
+zrobili jeszcze dziedziczaca po nim klase text-input,
+ktora po prostu by uzywala innej czcionki
+
+
 * 01.07.2023
 
 teraz stoimy przed takim problemem, ze nie wiemy,
@@ -153,7 +176,7 @@ a konkretniej moze tak:
 			   editor::Editor)
   ::PopUp
   (let* ((window ::PopUp #!null)
-         (text-field (TextField content: name-hint))
+         (text-field ::Scroll (text-field 0 name-hint))
          (button (Button label: "Save"
 	                 action: (lambda _
 			           (screen:clear-overlay!)
@@ -163,22 +186,21 @@ a konkretniej moze tak:
 				      text-field:content)))))
 	 (files (file-list directory
 	                   (lambda (file::java.io.File)::void
-			     ;; ustawiamy zawartosc text-field
-			     ...)
+			     (set! text-field:content
+			       (text-input (file:toString))))
 			   (lambda (dir::java.io.File)::void
-			     ;; zastepujemy to okno innym oknem
-			     ...)))
+                             (screen:remove-overlay! window)
+                             (screen:overlay!
+                              (save-file-browser directory
+			                         text-field:content
+                                                 editor)))))
+	 (button-size ::Extent (button:extent))
+	 (file-list-size ::Extent (files:extent))
 	 (content (Below top: (Beside left: text-field right: button)
                          bottom: files)))
+     (set! text-field:width (- file-list:width button:width))
      (set! window (popup content))
      window))
-
-
-(define-object (TextField)::Enchanted
-  (define content::String "")
-  ;; pytanie: czy uda sie uzyc kursora do tego,
-  ;; zeby reprezentowac polozenie wewnatrz pola tekstowego?
-  )
      
 ok
 
