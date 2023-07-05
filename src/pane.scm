@@ -37,7 +37,6 @@
 (import (document))
 (import (combinators))
 
-
 (define-alias Array java.util.Arrays)
 
 (define-interface Drawable ()
@@ -62,15 +61,79 @@
   (size)::Extent
   )
 
-(define-interface Screen (Resizable Pane)
-  (release! finger::byte x::real y::real vx::real vy::real)::boolean
-  (move! finger::byte x::real y::real dx::real dy::real)::boolean
-  (overlay! element::Pane)::void
-  (remove-overlay! element::Pane)::void
-  (clear-overlay!)::void
-  (drag! finger::byte action::Drag)::void
-  (set-content! content::Pane)::void
-  (content)::Pane
+(define-interface ResizablePane (Resizable Pane))
+
+(define-object (Screen)::ResizablePane
+  (define overlay ::Overlay (Overlay))
+  (define dragging ::(maps byte to: Drag)
+    (mapping (finger::byte)::Drag #!null))
+
+  (define top ::Pane (NullPane))
+
+  ;; this parameter must be set by the
+  ;; graphical framework (Lanterna, AWT, ...)
+  ;; and changed every time the hosting
+  ;; window is resized
+  (define extent ::Extent (Extent width: 0 height: 0))
+
+  (define (drag! finger::byte action::Drag)::void
+    (set! (dragging finger) action))
+
+  (define (set-size! width::real height::real)::void
+    (set! extent:width width)
+    (set! extent:height height))
+
+  (define (size)::Extent extent)
+
+  (define (set-content! content::Pane)::void
+    (set! top content))
+
+  (define (content)::Pane top)
+
+  (define (draw!)::void
+    (top:draw!)
+    (overlay:draw!))
+
+  (define (tap! finger::byte #;at x::real y::real)::boolean
+    (or (overlay:tap! finger x y)
+	(top:tap! finger x y)))
+
+  (define (press! finger::byte #;at x::real y::real)::boolean
+    (or (overlay:press! finger x y)
+	(top:press! finger x y)))
+
+  (define (release! finger::byte x::real y::real
+		    vx::real vy::real)
+    ::boolean
+    (and-let* ((drag ::Drag (dragging finger)))
+      (drag:drop! x y vx vy)
+      (unset! (dragging finger))
+      #t))
+
+  (define (move! finger::byte x::real y::real
+		 dx::real dy::real)
+    ::boolean
+    (and-let* ((drag ::Drag (dragging finger)))
+      (drag:move! x y dx dy)
+      #t))
+
+  (define (second-press! finger::byte #;at x::real y::real)
+    ::boolean
+    (or (overlay:second-press! finger x y)
+	(top:second-press! finger x y)))
+
+  (define (double-tap! finger::byte x::real y::real)::boolean
+    (or (overlay:double-tap! finger x y)
+	(top:double-tap! finger x y)))
+
+  (define (long-press! finger::byte x::real y::real)::boolean
+    (or (overlay:long-press! finger x y)
+	(top:long-press! finger x y)))
+
+  (define (key-typed! key-code::long context::Cursor)::boolean
+    (assert (empty? context))
+    (or (overlay:key-typed! key-code context)
+	(top:key-typed! key-code context)))
   )
 
 
@@ -90,17 +153,7 @@
         (let ((p0 ::Point (points (- i 1)))
 	      (p1 ::Point (points i)))
           (painter:draw-line! p0:x p0:y p1:x p1:y)))))
-
-  (define (part-at index::Index)::Indexable* (this))
-
-  (define (first-index)::Index 0)
-  (define (last-index)::Index 0)
-
-  (define (next-index index::Index)::Index 0)
-  (define (previous-index index::Index)::Index 0)
-
-  (define (index< a::Index b::Index)::boolean #f)
-
+  
   (IgnoreInput))
 
 (define-object (Drawing stroke::Stroke)::Drag
@@ -109,9 +162,9 @@
     (stroke:points:add (Point x y)))
 
   (define (drop! x::real y::real vx::real vy::real)::void
-    (screen:remove-overlay! stroke))
+    (screen:overlay:remove! stroke))
 
-  (screen:overlay! stroke))
+  (screen:overlay:add! stroke))
 
 (define-object (Selected items::cons position::Position)::Layer
 
@@ -123,6 +176,7 @@
 	  (set! items-position:top 0)))
       (with-translation (position:left position:top)
 	(draw-sequence! items))))
+  
   (IgnoreInput))
 
 (define-object (DragAround selected::Selected)::Drag
@@ -164,9 +218,9 @@
 	 (else
 	  (WARN "unhandled "tip" in "parent)))))
 
-      (screen:remove-overlay! selected)))
+      (screen:overlay:remove! selected)))
 
-  (screen:overlay! selected))
+  (screen:overlay:add! selected))
 
 (define-object (Resize box::cons path::Cursor anchor::real)::Drag
 
@@ -201,7 +255,7 @@
   (define cursor ::(maps (Layer) to: Cursor)
     (property+ (layer::Layer)::Cursor
 	       (cursor-climb-front '() layer)))
-
+  
   (define (draw!)::void
     (for layer::Layer in-reverse layers
       (parameterize ((the-cursor (cursor layer)))
@@ -246,7 +300,8 @@
       (call/cc
        (lambda (return)
 	 (for layer::Layer in layers
-	   (parameterize/update-sources ((the-cursor (cursor layer)))
+	   (parameterize/update-sources ((the-cursor (cursor
+						      layer)))
 	     (when (layer:key-typed! key-code context)
 	       (return #t))
 	   (set! n (- n 2))))
@@ -402,84 +457,6 @@
 				context)))))
   )
 
-(define-object (ActualScreen)::Screen
-  (define overlay ::Overlay (Overlay))
-  (define dragging ::(maps byte to: Drag)
-    (mapping (finger::byte)::Drag #!null))
-
-  (define top ::Pane (NullPane))
-
-  ;; this parameter must be set by the
-  ;; graphical framework (Lanterna, AWT, ...)
-  ;; and changed every time the hosting
-  ;; window is resized
-  (define extent ::Extent (Extent width: 0 height: 0))
-
-  (define (overlay! element::Pane)::void
-    (overlay:add! element))
-
-  (define (remove-overlay! element::Pane)::void
-    (overlay:remove! element))
-
-  (define (clear-overlay!)::void
-    (overlay:clear!))
-
-  (define (drag! finger::byte action::Drag)::void
-    (set! (dragging finger) action))
-
-  (define (set-size! width::real height::real)::void
-    (set! extent:width width)
-    (set! extent:height height))
-
-  (define (size)::Extent extent)
-
-  (define (set-content! content::Pane)::void
-    (set! top content))
-
-  (define (content)::Pane top)
-
-  (define (draw!)::void
-    (top:draw!)
-    (overlay:draw!))
-
-  (define (tap! finger::byte #;at x::real y::real)::boolean
-    (or (overlay:tap! finger x y)
-	(top:tap! finger x y)))
-
-  (define (press! finger::byte #;at x::real y::real)::boolean
-    (or (overlay:press! finger x y)
-	(top:press! finger x y)))
-
-  (define (release! finger::byte x::real y::real vx::real vy::real)
-    ::boolean
-    (and-let* ((drag ::Drag (dragging finger)))
-      (drag:drop! x y vx vy)
-      (unset! (dragging finger))
-      #t))
-
-  (define (move! finger::byte x::real y::real dx::real dy::real)
-    ::boolean
-    (and-let* ((drag ::Drag (dragging finger)))
-      (drag:move! x y dx dy)
-      #t))
-
-  (define (second-press! finger::byte #;at x::real y::real)::boolean
-    (or (overlay:second-press! finger x y)
-	(top:second-press! finger x y)))
-
-  (define (double-tap! finger::byte x::real y::real)::boolean
-    (or (overlay:double-tap! finger x y)
-	(top:double-tap! finger x y)))
-
-  (define (long-press! finger::byte x::real y::real)::boolean
-    (or (overlay:long-press! finger x y)
-	(top:long-press! finger x y)))
-
-  (define (key-typed! key-code::long context::Cursor)::boolean
-    (assert (empty? context))
-    (or (overlay:key-typed! key-code context)
-	(top:key-typed! key-code context)))
-  )
 
 (define/kw (pop-up-action pop-up::PopUp finger::byte x::real y::real
 			  inside: inner-action
@@ -522,7 +499,7 @@
   ((draw!)::void
    (let ((tile ::Tile (as Tile (this))))
      (tile:draw! '())))
-
+  
   ((press! finger::byte #;at x::real y::real)::boolean
    (pop-up-action (this) finger x y
      inside:
@@ -543,7 +520,7 @@
      outside:
      (lambda (pop-up::PopUp finger::byte x::real y::real)
        ::boolean
-       (screen:remove-overlay! pop-up))))
+       (screen:overlay:remove! pop-up))))
 
   ((second-press! finger::byte #;at x::real y::real)::boolean
    (pop-up-action (this) finger x y
@@ -759,12 +736,12 @@
 	   (file-list directory
 		      (lambda (file::java.io.File)
 			::void
-			(screen:clear-overlay!)
+			(screen:overlay:clear!)
 			(editor:load-file file))
 		      (lambda (directory::java.io.File)
 			::void
-			(screen:remove-overlay! window)
-			(screen:overlay!
+			(screen:overlay:remove! window)
+			(screen:overlay:add!
 			 (open-file-browser directory
 					    editor))))))
     window))
@@ -776,48 +753,67 @@
   (let* ((window ::PopUp #!null)
          (text-field ::Scroll (text-field 0 name-hint))
          (button (Button label: "Save"
-	                       action: (lambda _
-			                             (screen:clear-overlay!)
-				                           (save-document!
-				                            editor:document
-				                            (java.io.File
-				                             directory
-				                             text-field:content)))))
-	       (files (file-list directory
-	                         (lambda (file::java.io.File)::void
-				                           (set! text-field:content
-					                               (text-input
-					                                (file:getName))))
-			                     (lambda (dir::java.io.File)::void
-				                           (screen:remove-overlay! window)
-				                           (screen:overlay!
-				                            (save-file-browser
-				                             dir
-			                               text-field:content
+	                 action: (lambda _
+			           (screen:overlay:clear!)
+				   (save-document!
+				    editor:document
+				    (java.io.File
+				     directory
+				     text-field:content)))))
+	 (files (file-list directory
+	                   (lambda (file::java.io.File)::void
+				   (set! text-field:content
+					 (text-input
+					  (file:getName))))
+			   (lambda (dir::java.io.File)::void
+				   (screen:overlay:remove!
+				    window)
+				   (screen:overlay:add!
+				    (save-file-browser
+				     dir
+			             text-field:content
                                      editor)))))
-	       (inner ::Extent (files:extent))
-	       (browser ::Scroll (Scroll content: files
-				                           width: inner:width
-				                           height: inner:height))
-	       (top (Beside left: text-field right: button))
-	       (upper ::Extent (top:extent))
-	       (content (Below top: top
+	 (inner ::Extent (files:extent))
+	 (browser ::Scroll (Scroll content: files
+				   width: inner:width
+				   height: inner:height))
+	 (top (Beside left: text-field right: button))
+	 (upper ::Extent (top:extent))
+	 (content (Below top: top
                          bottom: browser))
          (popup (PopUp content: content))
-	       (outer ::Extent (popup:extent))
-	       (available ::Extent (screen:size))
-	       (button-size ::Extent (button:extent)))
+	 (outer ::Extent (popup:extent))
+	 (available ::Extent (screen:size))
+	 (button-size ::Extent (button:extent)))
     (set! browser:width (- browser:width
                            (max 0 (- outer:width
-			                               available:width))))
+			             available:width))))
     (set! browser:height (- browser:height
                             (max 0 (- outer:height
-				                              (- upper:height)
-			                                available:height))))
+				      (- upper:height)
+			              available:height))))
     (set! text-field:width (- browser:width
-			                        button-size:width))
+			      button-size:width))
     (set! window popup)
+    (and-let* ((`(,tip . ,root) (screen:overlay:cursor popup)))
+      (set! (screen:overlay:cursor popup)
+	    (recons (text-field:content:last-index) root)))
     window))
+
+(define (document-switcher editor::Editor)
+  (let* ((choices (map (lambda (document::Document)
+			 (Link content:
+			       (Caption
+				(if document:source
+				    (document:source:getName)
+				    "(unnamed)"))
+			       on-tap: (lambda _
+					 (screen:overlay:clear!)
+					 (editor:switch-to!
+					  document)
+					 #t)))
+		       (open-documents))))
+    (popup-scroll (ColumnGrid choices))))
 
 (define-object (Editor)::Pane
   (define document ::Document (Document (empty) #!null))
@@ -837,6 +833,11 @@
 	    first)
 	  document)))
 
+  (define (switch-to! target::Document)::void
+    (unless (eq? target document)
+      (set! (previously-edited target) document)
+      (set! document target)))
+  
   (define (load-file file::java.io.File)::void
     (let ((opened ::Document (open-document file)))
       (set! (previously-edited opened) document)
@@ -958,13 +959,15 @@
 					     (the-keeper)))
 				 (keeper:with-read-permission
 				  (lambda ()
-				    (screen:overlay!
+				    (screen:overlay:add!
 				     (open-file-browser
 				      (keeper:initial-directory)
 				      (this))))))))
 	       (Link content: (Caption "Switch to...")
-		     on-tap: (lambda _ (WARN "Switch to...")
-				     #t))
+		     on-tap: (lambda _
+			       (screen:overlay:add!
+				(document-switcher (this)))
+				#t))
 	       (Link content: (Caption "Save as...")
 		     on-tap: (lambda _
 			       (let ((keeper ::Keeper
@@ -972,7 +975,7 @@
 				 (keeper:with-write-permission
 				  (lambda ()
 				    (safely
-				     (screen:overlay!
+				     (screen:overlay:add!
 				      (save-file-browser
 				       (keeper:initial-directory)
 				       "filename.scm"
@@ -991,7 +994,7 @@
        (set! window:top
 	     (max 0 (min (- outer:height inner:height)
 			 (- y (quotient inner:height 2)))))
-       (screen:overlay! window)))
+       (screen:overlay:add! window)))
     ;; dodanie menu kontekstowego
     #t)
 
@@ -1006,7 +1009,7 @@
 
 
 (define-early-constant screen ::Screen
-  (ActualScreen))
+  (Screen))
 
 ;; At the top level, (the-pane-extent)
 ;; must be bound to the same object
