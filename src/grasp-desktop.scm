@@ -774,7 +774,7 @@
   (define (fill-background! width::real height::real)::void
     (graphics:setColor (color #xffffffff))
     (graphics:fillRect 0 0 (as int width) (as int height)))
-  
+
   (define (draw-popup! width::real height::real)::void
     (graphics:setColor (color #x77AAAAAA))
     (graphics:fillRoundRect 0 0 (as int width) (as int height)
@@ -1034,17 +1034,17 @@
 	   x::real y::real text::CharSequence)
     ::int
     (text-character-index-under x y text (the-text-input-font)))
-  
+
   (define (draw-caption! caption::CharSequence)::void
     (draw-text! caption (the-caption-font) #!null))
 
   (define (caption-extent caption::CharSequence)::Extent
     (text-extent caption (the-caption-font)))
 
-  (define (caption-margin-top)::real 2)
+  (define (caption-margin-top)::real 6)
 
-  (define (caption-margin-bottom)::real 8)
-  
+  (define (caption-margin-bottom)::real 0)
+
   (define (caption-horizontal-margin)::real
     (space-width))
 

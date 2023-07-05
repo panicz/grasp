@@ -390,15 +390,15 @@
   (define (part-at index::Index)::Indexable* (this))
 
   (define (first-index)::Index (as int 0))
-  
+
   (define (last-index)::Index (string-length (this)))
 
   (define (next-index index::Index)::Index
     (as int (min (last-index) (+ index 1))))
-  
+
   (define (previous-index index::Index)::Index
     (as int (max 0 (- index 1))))
-    
+
   (define (index< a::Index b::Index)::boolean
     (is a < b))
 
@@ -406,50 +406,61 @@
     #t)
 
   (define (press! finger::byte #;at x::real y::real)::boolean #t)
-  
+
   (define (second-press! finger::byte #;at x::real y::real)::boolean
     #t)
 
   (define (double-tap! finger::byte x::real y::real)::boolean
     #t)
-  
+
   (define (long-press! finger::byte x::real y::real)::boolean
     #t)
-  
+
   (define (key-typed! key-code::long context::Cursor)::boolean
     (let ((input ::gnu.text.Char (unicode-input))
-	  (key-name (key-code-name key-code)))
+	        (key-name (key-code-name (java.lang.Integer key-code))))
       (cond
        ((eq? key-name 'backspace)
-	(and-let* ((`(,index . ,stem) (the-cursor))
-		   ((integer? index))
-		   ((is (first-index) < index <= (last-index))))
-	  (delete index (+ index 1))
-	  (set! (the-cursor) (max 0 (- index 1)))
-	  #t))
-       
+	      (and-let* ((`(,index . ,stem) (the-cursor))
+		               ((integer? index))
+		               ((is (first-index) < index <= (last-index))))
+	        (delete (previous-index index) index)
+	        (set! (the-cursor) (recons (previous-index index) stem))
+	        #t))
+
+       ((eq? key-name 'left)
+        (and-let* ((`(,index . ,stem) (the-cursor)))
+          (set! (the-cursor) (recons (previous-index index) stem))
+          #t))
+
+       ((eq? key-name 'right)
+        (and-let* ((`(,index . ,stem) (the-cursor)))
+          (set! (the-cursor) (recons (next-index index) stem))
+          #t))
+
        ((eq? key-name 'delete)
-	(and-let* ((`(,index . ,_) (the-cursor))
-		   ((integer? index))
-		   ((is (first-index) <= index < (last-index))))
-	  (delete index (+ index 1))
-	  #t))
-       
+	      (and-let* ((`(,index . ,_) (the-cursor))
+		               ((integer? index))
+		               ((is (first-index) <= index < (last-index))))
+	        (delete index (next-index index))
+	        #t))
+
        ((eq? key-name 'enter)
-	#f)
-       
+	      #f)
+
        ((isnt input eq? #\null)
-	(and-let* ((`(,index . ,_) (the-cursor))
-		   ((integer? index))
-		   ((is (first-index) <= index <= (last-index))))
-	  (insert index (input:intValue) #t)
-	  #t)))))
+	      (and-let* ((`(,index . ,stem) (the-cursor))
+		               ((integer? index))
+		               ((is (first-index) <= index <= (last-index))))
+	        (insert index (input:intValue) #t)
+          (set! (the-cursor) (recons (next-index index) stem))
+	         #t)))))
 
   (define (as-expression)::cons
     (cons (Atom "text-input")
 	  (recons (text (this))
 		  (EmptyListProxy (EmptySpace)))))
-  
+
   (gnu.lists.FString))
 
 (define (text-input string::CharSequence)::TextInput

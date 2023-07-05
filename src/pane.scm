@@ -100,7 +100,7 @@
   (define (previous-index index::Index)::Index 0)
 
   (define (index< a::Index b::Index)::boolean #f)
-  
+
   (IgnoreInput))
 
 (define-object (Drawing stroke::Stroke)::Drag
@@ -200,8 +200,8 @@
 
   (define cursor ::(maps (Layer) to: Cursor)
     (property+ (layer::Layer)::Cursor
-	       (cursor-climb-front '() layer)))		  
-  
+	       (cursor-climb-front '() layer)))
+
   (define (draw!)::void
     (for layer::Layer in-reverse layers
       (parameterize ((the-cursor (cursor layer)))
@@ -241,7 +241,7 @@
 	   (layer:long-press! finger x y))
 	 layers))
 
-  (define (key-typed! key-code::long context::Cursor)::boolean  
+  (define (key-typed! key-code::long context::Cursor)::boolean
     (let ((n ::int (+ 1 (* 2 (length layers)))))
       (call/cc
        (lambda (return)
@@ -567,7 +567,6 @@
        (content:long-press! finger x y))))
 
   ((key-typed! key-code::long context::Cursor)::boolean
-   ;;(WARN "context: "context" cursor: "(the-cursor))
    (content:key-typed! key-code (recons (first-index) context)))
 
   ((draw! context::Cursor)::void
@@ -727,7 +726,7 @@
                            (max 0 (- outer:height
 			             available:height))))
     popup))
-  
+
 (define (file-list directory::java.io.File
                    file-action::(maps (java.io.File) to: void)
 		   directory-action::(maps (java.io.File) to: void))
@@ -772,51 +771,51 @@
 
 (define (save-file-browser directory::java.io.File
                            name-hint::string
-			   editor::Editor)
+			                     editor::Editor)
   ::PopUp
   (let* ((window ::PopUp #!null)
          (text-field ::Scroll (text-field 0 name-hint))
          (button (Button label: "Save"
-	                 action: (lambda _
-			           (screen:clear-overlay!)
-				   (save-document!
-				    editor:document
-				    (java.io.File
-				     directory
-				     text-field:content)))))
-	 (files (file-list directory
-	                   (lambda (file::java.io.File)::void
-				   (set! text-field:content
-					 (text-input
-					  (file:toString))))
-			   (lambda (dir::java.io.File)::void
-				   (screen:remove-overlay! window)
-				   (screen:overlay!
-				    (save-file-browser
-				     dir
-			             text-field:content
+	                       action: (lambda _
+			                             (screen:clear-overlay!)
+				                           (save-document!
+				                            editor:document
+				                            (java.io.File
+				                             directory
+				                             text-field:content)))))
+	       (files (file-list directory
+	                         (lambda (file::java.io.File)::void
+				                           (set! text-field:content
+					                               (text-input
+					                                (file:getName))))
+			                     (lambda (dir::java.io.File)::void
+				                           (screen:remove-overlay! window)
+				                           (screen:overlay!
+				                            (save-file-browser
+				                             dir
+			                               text-field:content
                                      editor)))))
-	 (inner ::Extent (files:extent))
-	 (browser ::Scroll (Scroll content: files
-				   width: inner:width
-				   height: inner:height))
-	 (top (Beside left: text-field right: button))
-	 (upper ::Extent (top:extent))
-	 (content (Below top: top
+	       (inner ::Extent (files:extent))
+	       (browser ::Scroll (Scroll content: files
+				                           width: inner:width
+				                           height: inner:height))
+	       (top (Beside left: text-field right: button))
+	       (upper ::Extent (top:extent))
+	       (content (Below top: top
                          bottom: browser))
          (popup (PopUp content: content))
-	 (outer ::Extent (popup:extent))
-	 (available ::Extent (screen:size))
-	 (button-size ::Extent (button:extent)))
+	       (outer ::Extent (popup:extent))
+	       (available ::Extent (screen:size))
+	       (button-size ::Extent (button:extent)))
     (set! browser:width (- browser:width
-                          (max 0 (- outer:width
-			            available:width))))
+                           (max 0 (- outer:width
+			                               available:width))))
     (set! browser:height (- browser:height
                             (max 0 (- outer:height
-				      (- upper:height)
-			              available:height))))
+				                              (- upper:height)
+			                                available:height))))
     (set! text-field:width (- browser:width
-			      button-size:width))
+			                        button-size:width))
     (set! window popup)
     window))
 
@@ -837,7 +836,7 @@
 		     ((isnt first eq? document)))
 	    first)
 	  document)))
-  
+
   (define (load-file file::java.io.File)::void
     (let ((opened ::Document (open-document file)))
       (set! (previously-edited opened) document)
