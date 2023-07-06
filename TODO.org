@@ -1,3 +1,45 @@
+* 05.07.2023
+
+teraz tak: metody initialize nie ma. zamiast niej
+jest globalna hszamapa, co wydaje sie lepszym
+rozwiazaniem.
+
+natomiast teraz bysmy sie zajeli scrollowaniem, przy czym
+w kluencie terminalowym nie bedzie obslugi zoom ani rotate.
+
+
+
+* 04.07.2023
+
+paln na dzisiaj to doprowadzenie do edytowalnosci
+tego pola tekstowego
+
+co tam sie nam w nocy przysnilo:
+zeby dodac do Layer metode "initialize"
+wolana w momencie gdy juz stworzymy kursor
+dla danej warstwy
+
+no ale dobrze, kiedy juz to zrobimy, to co
+wtedy bedzie?
+
+to bysmy sie zajeli zrobieniem przelaczania
+dokumentow
+
+a kiedy to juz bedzie, to sie z kolei zajmiemy
+scrollowaniem itp., przy czym tym razem bysmy
+sprobowali zachowac pewne wiezy
+
+a jak bedzie scrollowanie, zrobimy podzial
+ekranu
+
+a po nim zajmiemy sie poprawkami w edycji
+i ewaluacja
+
+i ewaluatorem wizualnym
+
+i wizualizacja grafow
+
+
 * 03.07.2023
 
 dzis bysmy:
