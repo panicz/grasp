@@ -38,7 +38,10 @@
 	    (open-documents))
       (call-with-input-file (source:getAbsolutePath)
 	(lambda (port)
-	  (Document (parse port) source)))))
+	  (let ((document (Document (parse port) source)))
+	    (set! (open-documents)
+		  (cons document (open-documents)))
+	    document)))))
 
 (define (save-document! document::Document file::java.io.File)
   (call-with-output-file (file:getAbsolutePath)

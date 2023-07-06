@@ -800,18 +800,19 @@
 	    (recons (text-field:content:last-index) root)))
     window))
 
-(define (document-switcher editor::Editor)
+(define (document-switcher editor::Editor)::PopUp
   (let* ((choices (map (lambda (document::Document)
 			 (Link content:
 			       (Caption
 				(if document:source
 				    (document:source:getName)
 				    "(unnamed)"))
-			       on-tap: (lambda _
-					 (screen:overlay:clear!)
-					 (editor:switch-to!
-					  document)
-					 #t)))
+			       on-tap:
+			       (lambda _
+				 (screen:overlay:clear!)
+				 (editor:switch-to!
+				  document)
+				 #t)))
 		       (open-documents))))
     (popup-scroll (ColumnGrid choices))))
 
@@ -950,40 +951,47 @@
      (let* ((content
 	     ::Enchanted
 	     (ColumnGrid
-	      (list
-	       (Link content: (Caption "New")
-		     on-tap: (lambda _ (WARN "New") #t))
-	       (Link content: (Caption "Open...")
-		     on-tap: (lambda _
-			       (let ((keeper ::Keeper
-					     (the-keeper)))
-				 (keeper:with-read-permission
-				  (lambda ()
-				    (screen:overlay:add!
-				     (open-file-browser
-				      (keeper:initial-directory)
-				      (this))))))))
-	       (Link content: (Caption "Switch to...")
-		     on-tap: (lambda _
+	      `(,(Link content: (Caption "New")
+		       on-tap: (lambda _ (WARN "New") #t))
+		,(Link content: (Caption "Open...")
+		       on-tap:
+		       (lambda _
+			 (let ((keeper ::Keeper
+				       (the-keeper)))
+			   (keeper:with-read-permission
+			    (lambda ()
+			      (screen:overlay:add!
+			       (open-file-browser
+				(keeper:initial-directory)
+				(this))))))))
+		,@(if (is (length (open-documents)) > 1)
+		      '()
+		      `(,(Link
+			  content:
+			  (Caption "Switch to...")
+			  on-tap:
+			  (lambda _
+			    (safely
+			     (screen:overlay:add!
+			      (document-switcher (this))))
+			    #t))))
+		,(Link content: (Caption "Save as...")
+		       on-tap:
+		       (lambda _
+			 (let ((keeper ::Keeper
+				       (the-keeper)))
+			   (keeper:with-write-permission
+			    (lambda ()
+			      (safely
 			       (screen:overlay:add!
-				(document-switcher (this)))
-				#t))
-	       (Link content: (Caption "Save as...")
-		     on-tap: (lambda _
-			       (let ((keeper ::Keeper
-					     (the-keeper)))
-				 (keeper:with-write-permission
-				  (lambda ()
-				    (safely
-				     (screen:overlay:add!
-				      (save-file-browser
-				       (keeper:initial-directory)
-				       "filename.scm"
-				       (this)))))))
-			       #t))
-	       (Link content: (Caption "Close")
-		     on-tap: (lambda _ (WARN "Close") #t))
-	       )))
+				(save-file-browser
+				 (keeper:initial-directory)
+				 "filename.scm"
+				 (this)))))))
+			 #t))
+		,(Link content: (Caption "Close")
+		       on-tap: (lambda _ (WARN "Close") #t))
+		)))
 	    (inner ::Extent (content:extent))
 	    (window ::PopUp (PopUp content: content))
 	    (inner ::Extent (window:extent))
