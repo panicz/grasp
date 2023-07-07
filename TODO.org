@@ -1,3 +1,107 @@
+* 06.07.2023
+
+jak zwykle zaczelibysmy sobie od analizy rozwiazania
+ze starego prototypu.
+
+Mamy tam interfejs Transform z metodami:
+x, y, unx, uny, canvas, uncanvas, anchor,
+towards.
+
+Do tego wyglada na to, ze mamy dwie implementacje:
+Grab oraz Shift, zas same obiekty mozns przekazywac
+(za pomoca metod inwards i outwards) do Below,
+Drag, DragAround, Point, Popup, Resize, Scroll,
+Shift, Split oraz Stretch.
+
+Obiekty Shift sa tworzone w: Below, Beside,
+Panel i Popup, i sprawdzane w Resize.
+
+Obiekty Grab sa tworzone w Editor, GRASP i
+Resize.
+
+Sprobujemy teraz zrozumiec role tych uzusow.
+Jezeli idzie o Below, Beside, Panel i Popup,
+mozna sobie wyobrazic, ze chodzi o to, co teraz
+rozwiazujemy odejmowaniem.
+
+Natomiast co do Grab, to tutaj oczywiscie
+wchodzi w gre obracanie i skalowanie (i przesuwanie)
+Edytora. Dlatego tez mamy tam haszmape
+
+documentTransform : Document -> Grab
+
+ktora zapamietuje, w jakiej pozycji w danym edytorze
+byl ostatnio edytowany dokument
+
+co do naszej sytuacji, to nie bedziemy robic Shiftow.
+Natomiast nasxa transformacja winna sie nazywac
+IsogonalTransform albo ConformalTransform
+
+(define-type
+  (Isogonal scale: real
+            shift-left: real
+	    shift-top: real
+	    rotation: real))
+	    
+przy czym jest pare spraw, ktore bysmy chcieli ogarnac:
+
+1. renderowanie klienta androidowego
+2. renderowanie klienta desktopowego
+3. renderowanie klienta terminalowego (tylko translacja)
+4. mapowanie klikniec od edytora do dokumentu
+5. scrollowanie - czyli zmiany przesuniecia
+6. scrollowanie, zoomowanie i obracanie
+7. do tego chcielibysmy tez zaimplementowac
+   rolke myszki do scrollowania ekranu, ale takze
+   do scrollowania scrolli
+8. oraz sprawic, zeby wyjechanie kursorem poza
+   ekran powodowalo odpowiednie przewiniecie ekranu
+9. dodatkowo chcemy to, co sie znajduje poza granicami
+   dokumentu renderowac na szaro
+
+
+zaczelibysmy od tego, zeby podwojne klikniecie
+na dokument powodowalo scrollowanie ekranu,
+tzn. stworzenie obiektu Drag, ktore odpowiednio
+by modyfikowalo wartosci przesuniecia w edytorze
+
+(define-object (Editor)
+  (define (second-press! finger::byte #;at x::real y::real)
+    ::boolean
+    (parameterize/update-sources ((the-document document)
+				  (the-cursor cursor)
+				  (the-selection-anchor
+				   selection-anchor))
+      (let-values (((selection-start selection-end)
+		    (the-selection)))
+    
+        (and-let* ((path (cursor-at x y))
+                   (`(,tip . ,subpath) path)
+	           (parent ::Element (the-expression
+		                      at: subpath))
+	           (target ::Element (parent:part-at tip)))
+          (cond
+	    ((is target Space?)
+             (screen:drag! finger
+	                   (ScrollEditor (this))))
+
+	    ((is target Tile?)
+	     ;; tworzymy kopie elementu
+	     ;; co zasadniczo powinno stworzyc operacje,
+	     ;; ktora przy dodaniu elementu do dokumentu
+	     ;; dodaje do historii
+	     ;; (CopyElement at: source into: destination)
+	     )
+	     
+(define-object (ScrollEditor editor::Editor)::Drag
+  (define (move! x::real y::real dx::real dy::real)::void
+    (editor:transform:translate! dx dy))
+  (define (drop! x::real y::real vx::real vy::real)::void
+   (values)))
+
+
+
+   
 * 05.07.2023
 
 teraz tak: metody initialize nie ma. zamiast niej
@@ -6,8 +110,6 @@ rozwiazaniem.
 
 natomiast teraz bysmy sie zajeli scrollowaniem, przy czym
 w kluencie terminalowym nie bedzie obslugi zoom ani rotate.
-
-
 
 * 04.07.2023
 
