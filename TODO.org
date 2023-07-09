@@ -1,3 +1,69 @@
+* 07.07.2023
+
+(define-interface Transform
+  (apply! painter::Painter)::void
+  (unapply! painter::Painter)::void
+  
+  (map point::Point)::Point
+  (unmap point::Point)::Point
+  
+  (map! point::Point)::void
+  (unmap! point::Point)::void
+  
+  (map! point::Point result::Point)::void
+  (unmap! point::Point result::Point)::void
+  
+  (map-x x::real y::real)::real
+  (map-y x::real y::real)::real
+  
+  (unmap-x x::real y::real)::real
+  (unmap-y x::real y::real)::real
+  
+  (map x::real y::real)::(Values real real)
+  (unmap x::real y::real)::(Values real real)
+
+  (translate! dx::real dy::real)::void
+  (stretch! p0::Point q0::Point p1::Point q1::Point)::void
+
+  (stretch! x00::real y00::real x10::real y10::real
+            x01::real y01::real x11::real y11::real)
+  ::void
+  )
+  
+;; i wowczas renderowanie edytora
+;; wygladaloby tak
+
+  (define (draw!)::void
+    (parameterize ((the-document document)
+		   (the-cursor cursor)
+		   (the-selection-anchor selection-anchor))
+      (let ((painter ::Painter (the-painter)))
+        (transform:apply! painter)
+        (document:draw! '())
+	(transform:unapply! painter))))
+
+;; no i fajnie, i teraz sobie sprobujmy wyobrazic
+_'';; co trzeba zrobic zeby rozciagac widok.
+;; przede wszystkim, od strony mechanicznej:
+
+;; ... wewnatrz on-press! ...
+(cond
+  ;; jeszcze bysmy sprawdzili czy nie ma tutaj
+  ;; od razu jakiegos stretcha dla biezacego
+  ;; edytora
+ ((any (lambda (layer::Layer)
+         (and-let* (((Stroke source-pane: ,(this)) layer))
+	     layer))
+           screen:overlay)
+  => (lambda (stroke::Stroke)
+       (screen:overlay:remove! stroke)
+       (unset! (screen:dragging stroke:finger))
+       (set! (screen:dragging stroke:finger)
+             
+             ...)
+       (set! (screen:dragging finger)
+             ...)))
+
 * 06.07.2023
 
 jak zwykle zaczelibysmy sobie od analizy rozwiazania
