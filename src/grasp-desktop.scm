@@ -506,7 +506,7 @@
       clip-area:y))
 
   (define (translate! x::real y::real)::void
-    (graphics:translate (as double x) (as double y)))
+    (graphics:translate (as int x) (as int y)))
 
   (define (current-translation-left)::real
     (let ((transform ::AffineTransform

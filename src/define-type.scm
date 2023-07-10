@@ -21,6 +21,9 @@
 (define-syntax-rule (either type ...)
   java.lang.Object)
 
+(define-syntax-rule (Values type ...)
+  java.lang.Object)
+
 #|
 (define-simple-class Struct ()
   interface: #t

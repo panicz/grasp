@@ -36,6 +36,7 @@
 (import (button))
 (import (document))
 (import (combinators))
+(import (transform))
 
 (define-alias Array java.util.Arrays)
 
@@ -142,11 +143,9 @@
     (let ((painter ::Painter (the-painter)))
       (painter:draw-point! x y #xff0000))))
 
-(define-object (Stroke)::Layer
+(define-object (Stroke finger ::byte source-pane ::Pane)::Layer
   (define points ::List[Point] (ArrayList[Point]))
-
-  (define source-pane ::Pane #!null)
-
+  
   (define (draw!)::void
     (let ((painter ::Painter (the-painter)))
       (for i from 1 below (points:size)
@@ -816,10 +815,20 @@
 		       (open-documents))))
     (popup-scroll (ColumnGrid choices))))
 
+
+(define-object (Translate target::Transform)::Drag
+  (define (move! x::real y::real dx::real dy::real)::void
+    (target:translate! dx dy))
+
+  (define (drop! x::real y::real vx::real vy::real)::void
+    (values)))
+
 (define-object (Editor)::Pane
   (define document ::Document (Document (empty) #!null))
   (define cursor ::Cursor '())
 
+  (define transform ::Transform (Translation))
+  
   (define selection-anchor ::Cursor '())
 
   (define previously-edited
@@ -848,8 +857,10 @@
     (parameterize ((the-document document)
 		   (the-cursor cursor)
 		   (the-selection-anchor selection-anchor))
-      (document:draw! '())
-      #;(draw-sequence! (head document))))
+      (let ((painter ::Painter (the-painter)))
+	(transform:apply! painter)
+	(document:draw! '())
+	(transform:unapply! painter))))
 
   (define (tap! finger::byte #;at x::real y::real)::boolean
     (WARN "tap! "finger" "x" "y)
@@ -896,7 +907,7 @@
 	   ((is target Space?)
 	    (WARN "drawing a stroke")
 	    (screen:drag! finger
-			  (Drawing (Stroke source-pane: (this)))))
+			  (Drawing (Stroke finger (this)))))
 
 	   ((is selection-start cursor< path
 		cursor< selection-end)
@@ -936,9 +947,32 @@
   (define (second-press! finger::byte #;at x::real y::real)
     ::boolean
     (WARN "second-press! "finger" "x" "y)
-    ;; powinnismy sobie skopiowac dany element
-    ;; albo zaczac scrollowanie
-    #f)
+    (parameterize/update-sources ((the-document document)
+				  (the-cursor cursor)
+				  (the-selection-anchor
+				   selection-anchor))
+      (let-values (((selection-start selection-end)
+		    (the-selection)))
+	(and-let* ((path (cursor-under x y))
+		   (`(,tip . ,subpath) path)
+		   (parent ::Element (the-expression
+				      at: subpath))
+		   (target ::Element (parent:part-at tip))
+		   (position ::Position (screen-position
+					 target)))
+	  (cond
+	   #;((isnt parent eq? target)
+	    (WARN "reached non-final item on press"))
+
+	   #;((isnt dragging clean?)
+	    (WARN "should start scrolling or zooming "
+		  (keys dragging)))
+
+	   ((is target Space?)
+	    (WARN "drawing a stroke")
+	    (screen:drag! finger
+			  (Translate transform)))))
+	#t)))
 
   (define (double-tap! finger::byte x::real y::real)::boolean
     (WARN "double-tap! "finger" "x" "y)
