@@ -849,9 +849,10 @@
       (set! document target)))
   
   (define (load-file file::java.io.File)::void
-    (let ((opened ::Document (open-document file)))
-      (set! (previously-edited opened) document)
-      (set! document opened)))
+    (safely
+     (let ((opened ::Document (open-document file)))
+       (set! (previously-edited opened) document)
+       (set! document opened))))
 
   (define (draw!)::void
     (parameterize ((the-document document)
@@ -862,33 +863,32 @@
 	(document:draw! '())
 	(transform:unapply! painter))))
 
-  (define (tap! finger::byte #;at x::real y::real)::boolean
-    (WARN "tap! "finger" "x" "y)
+  (define (tap! finger::byte #;at xe::real ye::real)::boolean
     (parameterize/update-sources ((the-document document))
+      (let-values (((x y) (transform:map xe ye)))
+	(let* ((target-cursor (cursor-under x y))
+	       (target (the-expression at: target-cursor)))
+	  (DUMP target)
+	  (match target
+	    (enchanted::Interactive
+	     (enchanted:tap! finger x y))
+	    (else
+	     (set! cursor target-cursor)
+	     (set! selection-anchor cursor)
 
-      (let* ((target-cursor (cursor-under x y))
-	     (target (the-expression at: target-cursor)))
-	(DUMP target)
-	(match target
-	  (enchanted::Interactive
-	   (enchanted:tap! finger x y))
-	  (else
-	   (set! cursor target-cursor)
-	   (set! selection-anchor cursor)
+	     (display cursor)
+	     (display (the-expression at: cursor))
+	     (newline)
+	     #t))))))
 
-	   (display cursor)
-	   (display (the-expression at: cursor))
-	   (newline)
-	   #t)))))
-
-  (define (press! finger::byte #;at x::real y::real)::boolean
-    (WARN "press! "finger" "x" "y)
+  (define (press! finger::byte #;at xe::real ye::real)::boolean
     (parameterize/update-sources ((the-document document)
 				  (the-cursor cursor)
 				  (the-selection-anchor
 				   selection-anchor))
       (let-values (((selection-start selection-end)
-		    (the-selection)))
+		    (the-selection))
+		   ((x y) (transform:map xe ye)))
 	(and-let* ((path (cursor-under x y))
 		   (`(,tip . ,subpath) path)
 		   (parent ::Element (the-expression
@@ -905,7 +905,6 @@
 		  (keys dragging)))
 
 	   ((is target Space?)
-	    (WARN "drawing a stroke")
 	    (screen:drag! finger
 			  (Drawing (Stroke finger (this)))))
 
@@ -936,23 +935,22 @@
 	    (let ((extent ::Extent (extent target)))
 	      (screen:drag! finger
 			    (Resize target subpath
-				    (- y position:top)))))
+				    (- ye position:top)))))
 	   (else
-	    (WARN "setting the cursor to "path)
 	    (set! (the-cursor) path)
 	    (set! (the-selection-anchor) path)
 	     )))
 	#t)))
 
-  (define (second-press! finger::byte #;at x::real y::real)
+  (define (second-press! finger::byte #;at xe::real ye::real)
     ::boolean
-    (WARN "second-press! "finger" "x" "y)
     (parameterize/update-sources ((the-document document)
 				  (the-cursor cursor)
 				  (the-selection-anchor
 				   selection-anchor))
       (let-values (((selection-start selection-end)
-		    (the-selection)))
+		    (the-selection))
+		   ((x y) (transform:map xe ye)))
 	(and-let* ((path (cursor-under x y))
 		   (`(,tip . ,subpath) path)
 		   (parent ::Element (the-expression
@@ -969,7 +967,6 @@
 		  (keys dragging)))
 
 	   ((is target Space?)
-	    (WARN "drawing a stroke")
 	    (screen:drag! finger
 			  (Translate transform)))))
 	#t)))
@@ -998,7 +995,7 @@
 			       (open-file-browser
 				(keeper:initial-directory)
 				(this))))))))
-		,@(if (is (length (open-documents)) > 1)
+		,@(if (is (length (open-documents)) < 1)
 		      '()
 		      `(,(Link
 			  content:

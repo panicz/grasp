@@ -23,7 +23,6 @@
 (import (space))
 (import (cursor))
 (import (document-operations))
-(import (editor-operations))
 (import (print))
 (import (parse))
 (import (string-building))
