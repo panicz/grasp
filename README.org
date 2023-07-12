@@ -73,7 +73,12 @@ for the terminal client, and
 ./build-desktop.sh
 #+END_SRC
 
-for the desktop client.
+for the desktop client. Note that builds performed
+on a Windows file system will fail, because the build
+process creates distinct .class files whose names
+only differ by letter case (e.g. ~Painter.class~
+vs ~painter.class~), so if you want to build on
+Windows, it's best to use WSL's internal file system.
 
 After the operation is done, the terminal client can be invoked
 by running
