@@ -138,10 +138,11 @@
   )
 
 
-(define-object (Point x y)::Drawable
+(define-object (Point x y)::Layer
   (define (draw!)
     (let ((painter ::Painter (the-painter)))
-      (painter:draw-point! x y #xff0000))))
+      (painter:draw-point! x y #xff0000)))
+  (IgnoreInput))
 
 (define-object (Stroke finger ::byte source-pane ::Pane)::Layer
   (define points ::List[Point] (ArrayList[Point]))
@@ -827,7 +828,7 @@
   (define document ::Document (Document (empty) #!null))
   (define cursor ::Cursor '())
 
-  (define transform ::Transform (Translation))
+  (define transform ::Transform ((default-transform)))
   
   (define selection-anchor ::Cursor '())
 
@@ -904,6 +905,56 @@
 	    (WARN "should start scrolling or zooming "
 		  (keys dragging)))
 
+	   ((any (lambda (layer::Layer)
+		   (and-let* (((Stroke source-pane: ,(this))
+			       layer))
+		     layer))
+		 screen:overlay:layers) ;<=
+	    => (lambda (stroke::Stroke)
+		 (screen:overlay:remove! stroke)
+		 (unset! (screen:dragging stroke:finger))
+		 (let ((p0 ::Point (Point xe ye))
+		       (p1 ::Point (stroke:points
+				    (- (length stroke:points)
+				       1)))
+		       (editor ::Editor (this)))
+		   (screen:overlay:add! p0)
+		   (screen:overlay:add! p1)
+		   (set! (screen:dragging stroke:finger)
+			 (object (Drag)
+			   ((move! x::real y::real
+				   dx::real dy::real)
+			    ::void
+			    (let ((p1x ::real (+ p1:x dx))
+				  (p1y ::real (+ p1:y dy)))
+			      (editor:transform:stretch!
+			       p0:x p0:y p1:x p1:y
+			       p0:x p0:y p1x  p1y)
+			      (set! p1:x p1x)
+			      (set! p1:y p1y)))
+			   ((drop! x::real y::real
+				   dx::real dy::real)
+			    ::void
+			    (screen:overlay:remove! p1))))
+
+		   (set! (screen:dragging finger)
+			 (object (Drag)
+			   ((move! x::real y::real
+				   dx::real dy::real)
+			    ::void
+			    (let ((p0x ::real (+ p0:x dx))
+				  (p0y ::real (+ p0:y dy)))
+			      (editor:transform:stretch!
+			       p0:x p0:y p1:x p1:y
+			       p0x  p0y  p1:x p1:y)
+			      (set! p0:x p0x)
+			      (set! p0:y p0y)))
+			   ((drop! x::real y::real
+				   dx::real dy::real)
+			    ::void
+			    (screen:overlay:remove! p0)))))))
+
+	   
 	   ((is target Space?)
 	    (screen:drag! finger
 			  (Drawing (Stroke finger (this)))))

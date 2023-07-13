@@ -31,6 +31,7 @@
 (import (history))
 (import (desktop-keymap))
 (import (extension))
+(import (transform))
 (import (pane))
 (import (button))
 (import (postponed))
@@ -506,7 +507,7 @@
       clip-area:y))
 
   (define (translate! x::real y::real)::void
-    (graphics:translate (as int x) (as int y)))
+    (graphics:translate (as double x) (as double y)))
 
   (define (current-translation-left)::real
     (let ((transform ::AffineTransform
@@ -518,6 +519,23 @@
 		     (graphics:getTransform)))
       (transform:getTranslateY)))
 
+  (define rotation ::real 0.0)
+  
+  (define (rotate! angle ::real)::void
+    (set! rotation (+ rotation angle))
+    (graphics:rotate angle))
+
+  (define (current-rotation-angle)::real
+    rotation)
+
+  (define (scale! factor ::real)::void
+    (graphics:scale factor factor))
+
+  (define (current-scale)::real
+    (let ((transform ::AffineTransform
+		     (graphics:getTransform)))
+      (transform:getScaleX)))
+  
   (define rendering-hints ::RenderingHints
     (RenderingHints RenderingHints:KEY_TEXT_ANTIALIASING
 		    RenderingHints:VALUE_TEXT_ANTIALIAS_ON))
@@ -1207,6 +1225,7 @@ by the AWT framework."))
 (define-parameter (meta-pressed?) ::boolean #f)
 
 (define (run-in-AWT-window)::void
+  (set! (default-transform) (lambda () (Isogonal)))
   (let ((application ::GRASP (GRASP)))
     (set! (the-painter) application)
     (initialize-keymap)

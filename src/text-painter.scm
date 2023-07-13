@@ -32,6 +32,18 @@
   (define (current-translation-top)::real
     shiftTop)
 
+  (define (rotate! angle::real)::void
+    (error "Rotation not supported in textual painters"))
+
+  (define (current-rotation-angle)::real
+    0.0)
+
+  (define (scale! factor::real)::void
+    (error "Scaling not supported in textual painters"))
+
+  (define (current-scale)::real
+    1.0)
+
   (define clipLeft ::real 0)
   (define clipTop ::real 0)
   (define clipWidth ::real +inf.0)

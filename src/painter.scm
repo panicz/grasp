@@ -36,7 +36,9 @@
 
 (define-interface Painter (Splittable
 			   Clippable
-			   Translatable)
+			   Translatable
+			   Scalable
+			   Rotatable)
 
   (mark-cursor! +left::real +top::real)::void
   (cursor-position)::Position
@@ -241,6 +243,18 @@
 
   (define (translate! x::real y::real)::void
     (values))
+
+  (define (rotate! angle ::real)::void
+    (values))
+
+  (define (current-rotation-angle)::real
+    0)
+
+  (define (scale! factor ::real)::void
+    (values))
+
+  (define (current-scale)::real
+    1)
 
   (define (current-translation-left)::real
     0)

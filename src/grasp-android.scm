@@ -15,6 +15,7 @@
 (import (functions))
 (import (for))
 (import (while))
+(import (transform))
 (import (pane))
 (import (indexable))
 (import (painter))
@@ -509,6 +510,24 @@
   (define (current-translation-top)::real
     shiftTop)
 
+  (define rotation ::real 0.0)
+
+  (define (rotate! angle ::real)::void
+    (canvas:rotate (java.lang.Math:toDegrees angle))
+    (set! rotation (+ rotation angle)))
+
+  (define (current-rotation-angle)::real
+    rotation)
+
+  (define scale ::real 1.0)
+
+  (define (scale! factor ::real)::void
+    (set! scale (* scale factor))
+    (canvas:scale factor factor))
+
+  (define (current-scale)::real
+    scale)
+  
   (define (horizontal-split-height)::real
     30)
 
@@ -1361,6 +1380,7 @@
   (define (onCreate savedState::Bundle)::void
     (invoke-special AndroidActivity (this) 'onCreate
 		    savedState)
+    (set! (default-transform) (lambda () (Isogonal)))
     (set! (current-message-handler) (ScreenLogger 10))
     (let ((scheme ::gnu.expr.Language
 		  (or kawa.standard.Scheme:instance
