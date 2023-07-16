@@ -48,8 +48,18 @@
 
 (define-interface Layer (Indexable Pane))
 
-(define-object (NullPane)::Pane
+(define-interface Embeddable (Pane Map2D)
+  (pane-under x::real y::real)::Embeddable
+  )
+
+(define-object (NullPane)::Embeddable
   (define (draw!)::void (values))
+  (define (pane-under x::real y::real)::Embeddable
+    (this))
+  (define (map x::real y::real)::(Values real real)
+    (values x y))
+  (define (unmap x::real y::real)::(Values real real)
+    (values x y))
   (IgnoreInput))
 
 (define-interface Drag ()
@@ -69,8 +79,8 @@
   (define dragging ::(maps byte to: Drag)
     (mapping (finger::byte)::Drag #!null))
 
-  (define top ::Pane (NullPane))
-
+  (define top ::Embeddable (NullPane))
+  
   ;; this parameter must be set by the
   ;; graphical framework (Lanterna, AWT, ...)
   ;; and changed every time the hosting
@@ -142,10 +152,14 @@
   (define (draw!)
     (let ((painter ::Painter (the-painter)))
       (painter:draw-point! x y #xff0000)))
+  
   (IgnoreInput))
 
 (define-object (Stroke finger ::byte source-pane ::Pane)::Layer
   (define points ::List[Point] (ArrayList[Point]))
+
+  (define (add-point! p::Point)::void
+    (points:add p))
   
   (define (draw!)::void
     (let ((painter ::Painter (the-painter)))
@@ -159,7 +173,7 @@
 (define-object (Drawing stroke::Stroke)::Drag
 
   (define (move! x::real y::real dx::real dy::real)::void
-    (stroke:points:add (Point x y)))
+    (stroke:add-point! (Point x y)))
 
   (define (drop! x::real y::real vx::real vy::real)::void
     (screen:overlay:remove! stroke))
@@ -187,38 +201,49 @@
       (set! position:top (+ position:top dy))))
 
   (define (drop! x::real y::real vx::real vy::real)::void
-    (and-let* ((cursor (cursor-under x y))
-	       (`(,tip . ,precursor) cursor)
-	       (parent ::Element (the-expression at: precursor))
-	       (location ::Element (parent:part-at tip)))
-      (cond
-       ((isnt parent eq? location)
-	(WARN "reached "location" in "parent" at "cursor))
+    ;; musimy sobie przetransformowac wspolrzedne
+    ;; do wspolrzednych edytora oraz wybrac dokument
+    (and-let* ((editor ::Editor (screen:top:pane-under x y))
+	       (xe ye (screen:top:map x y))
+	       (xd yd (editor:transform:map xe ye)))
+      (parameterize/update-sources ((the-document
+				     editor:document)
+				    (the-cursor
+				     editor:cursor))
+	(and-let* ((cursor (cursor-under xd yd))
+		   (`(,tip . ,precursor) cursor)
+		   (parent ::Element (the-expression
+				      at: precursor))
+		   (location ::Element (parent:part-at tip)))
+	  (cond
+	   ((isnt parent eq? location)
+	    (WARN "reached "location" in "parent" at "cursor))
 
-       ((is parent Space?)
-	(let* ((action ::Insert (Insert element: selected:items
-					at: cursor))
-	       (document (the-document))
-	       (history ::History (history document)))
-	  (history:record! action)
-	  (set! (the-cursor) (action:apply! document))
-	  (set! (the-selection-anchor) (the-cursor))))
+	   ((is parent Space?)
+	    (let* ((action ::Insert (Insert element:
+					    selected:items
+					    at: cursor))
+		   (document (the-document))
+		   (history ::History (history document)))
+	      (history:record! action)
+	      (set! (the-cursor) (action:apply! document))
+	      (set! (the-selection-anchor) (the-cursor))))
 
-       ((is parent cons?)
-	(cond
-	 ((eqv? tip (parent:first-index))
-	  (insert! selected:items
-		   at: (recons (parent:next-index tip)
-			       cursor)))
-	 ((eqv? tip (parent:last-index))
-	  (insert! selected:items
-		   at: (recons
-			(parent:previous-index tip)
-			cursor)))
-	 (else
-	  (WARN "unhandled "tip" in "parent)))))
+	   ((is parent cons?)
+	    (cond
+	     ((eqv? tip (parent:first-index))
+	      (insert! selected:items
+		       at: (recons (parent:next-index tip)
+				   cursor)))
+	     ((eqv? tip (parent:last-index))
+	      (insert! selected:items
+		       at: (recons
+			    (parent:previous-index tip)
+			    cursor)))
+	     (else
+	      (WARN "unhandled "tip" in "parent)))))))
 
-      (screen:overlay:remove! selected)))
+	  (screen:overlay:remove! selected)))
 
   (screen:overlay:add! selected))
 
@@ -260,7 +285,7 @@
     (for layer::Layer in-reverse layers
       (parameterize ((the-cursor (cursor layer)))
 	(layer:draw!))))
-
+  
   (define (add! element::Layer)::void
     (layers:add 0 element))
 
@@ -308,11 +333,20 @@
 	 #f))))
   )
 
-(define-object (WrappedPane content ::Pane)::Pane
+(define-object (WrappedPane content ::Embeddable)::Pane
 
   (define (draw!)::void
     (content:draw!))
 
+  (define (pane-under x::real y::real)::Embeddable
+    (content:pane-under x y))
+  
+  (define (map x::real y::real)::(Values real real)
+    (content:map x y))
+  
+  (define (unmap x::real y::real)::(Values real real)
+    (content:unmap x y))
+  
   (define (tap! finger::byte #;at x::real y::real)::boolean
     (content:tap! finger x y))
 
@@ -335,11 +369,11 @@
 (define-enum HorizontalSplitFocus (Left Right))
 
 (define-type (HorizontalSplit at: rational
-			      left: Pane
-			      right: Pane
+			      left: Embeddable
+			      right: Embeddable
 			      focus: HorizontalSplitFocus
 			      := HorizontalSplitFocus:Left)
-  implementing Pane
+  implementing Embeddable
   with
   ((draw!)::void
    (let* ((painter (the-painter))
@@ -365,6 +399,51 @@
 			    height: extent:height)))
 	     (right:draw!)))))))
 
+  ((pane-under x::real y::real)::Embeddable
+    (let* ((painter (the-painter))
+	   (extent (the-pane-extent))
+	   (line-width (invoke painter 'vertical-split-width))
+           (inner-width (- extent:width
+			   line-width))
+           (left-width (* at inner-width))
+           (right-width (- inner-width left-width)))
+      (cond ((is x < left-width)
+	     (left:pane-under x y))
+	    ((is (+ left-width line-width) < x)
+	     (right:pane-under (- x left-width line-width) y))
+	    (else
+	     (this)))))
+  
+  ((map x::real y::real)::(Values real real)
+    (let* ((painter (the-painter))
+	   (extent (the-pane-extent))
+	   (line-width (invoke painter 'vertical-split-width))
+           (inner-width (- extent:width
+			   line-width))
+           (left-width (* at inner-width))
+           (right-width (- inner-width left-width)))
+      (cond ((is x < left-width)
+	     (left:map x y))
+	    ((is (+ left-width line-width) < x)
+	     (right:map (- x left-width line-width) y))
+	    (else
+	     (values (- x left-width) y)))))
+
+  ((unmap x::real y::real)::(Values real real)
+    (let* ((painter (the-painter))
+	   (extent (the-pane-extent))
+	   (line-width (invoke painter 'vertical-split-width))
+           (inner-width (- extent:width
+			   line-width))
+           (left-width (* at inner-width))
+           (right-width (- inner-width left-width)))
+      (cond ((is x < left-width)
+	     (left:unmap x y))
+	    ((is (+ left-width line-width) < x)
+	     (right:unmap (+ x left-width line-width) y))
+	    (else
+	     (values (+ x left-width) y)))))
+  
   ((tap! finger::byte #;at x::real y::real)::boolean
    (let* ((painter (the-painter))
 	  (extent (the-pane-extent))
@@ -748,7 +827,7 @@
 
 (define (save-file-browser directory::java.io.File
                            name-hint::string
-			                     editor::Editor)
+			   editor::Editor)
   ::PopUp
   (let* ((window ::PopUp #!null)
          (text-field ::Scroll (text-field 0 name-hint))
@@ -824,10 +903,18 @@
   (define (drop! x::real y::real vx::real vy::real)::void
     (values)))
 
-(define-object (Editor)::Pane
+(define-object (Editor)::Embeddable
+
+  (define (pane-under x::real y::real)::Embeddable
+    (this))
+  (define (map x::real y::real)::(Values real real)
+    (values x y))
+  (define (unmap x::real y::real)::(Values real real)
+    (values x y))
+
   (define document ::Document (Document (empty) #!null))
   (define cursor ::Cursor '())
-
+  
   (define transform ::Transform ((default-transform)))
   
   (define selection-anchor ::Cursor '())
@@ -973,8 +1060,11 @@
 	    (set! (the-cursor) (cursor-climb-back
 				(cursor-retreat (tail path))))
 	    (set! (the-selection-anchor) (the-cursor))
-	    (let* ((removed ::Remove (remove-element! at: subpath))
-		   (position (screen-position (head removed:element)))
+	    (let* ((removed ::Remove (remove-element!
+				      at: subpath))
+		   (position (screen-position
+			      (head removed:element)))
+		  
 		   (selection (Selected removed:element
 					(copy position))))
 	      (unset! (screen-position removed:element))

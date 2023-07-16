@@ -6,12 +6,14 @@
 (import (painter))
 (import (print))
 
-(define-interface Transform ()
-  (apply! painter::Painter)::void
-  (unapply! painter::Painter)::void
-
+(define-interface Map2D ()
   (map x::real y::real)::(Values real real)
   (unmap x::real y::real)::(Values real real)
+  )
+
+(define-interface Transform (Map2D)
+  (apply! painter::Painter)::void
+  (unapply! painter::Painter)::void
 
   (translate! dx::real dy::real)::void
 
@@ -60,7 +62,6 @@
 
   (define s ::real 0.0)
   (define c ::real 1.0)
-
   
   (define (apply! painter::Painter)::void
     (painter:scale! scale)
@@ -72,17 +73,19 @@
     (painter:rotate! (- angle/rad))
     (painter:scale! 1/scale))
 
-  (define (map x::real y::real)::(Values real real)
-    (let ((dx (- x left))
-	  (dy (- y top)))
+  ;; document to editor
+  (define (unmap x::real y::real)::(Values real real)
+    (let ((dx (+ x left))
+	  (dy (+ y top)))
       (values
        (* scale (- (* c dx) (* s dy)))
        (* scale (+ (* s dx) (* c dy))))))
-  
-  (define (unmap x::real y::real)::(Values real real)
+
+  ;; editor to document
+  (define (map x::real y::real)::(Values real real)
     (values
-     (+ (* (+ (* c x) (* s y)) 1/scale) left)
-     (+ (* (- (* c y) (* s x)) 1/scale) top)))
+     (- (* (+ (* c x) (* s y)) 1/scale) left)
+     (- (* (- (* c y) (* s x)) 1/scale) top)))
 
   (define (translate! dx::real dy::real)::void
     (set! left (+ left (* (+ (* c dx) (* s dy))
