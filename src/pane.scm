@@ -205,45 +205,41 @@
     ;; do wspolrzednych edytora oraz wybrac dokument
     (and-let* ((editor ::Editor (screen:top:pane-under x y))
 	       (xe ye (screen:top:map x y))
-	       (xd yd (editor:transform:map xe ye)))
-      (parameterize/update-sources ((the-document
-				     editor:document)
-				    (the-cursor
-				     editor:cursor))
-	(and-let* ((cursor (cursor-under xd yd))
-		   (`(,tip . ,precursor) cursor)
-		   (parent ::Element (the-expression
-				      at: precursor))
-		   (location ::Element (parent:part-at tip)))
+	       (xd yd (editor:transform:map xe ye))
+	       (cursor (cursor-under xd yd editor:document context: '()))
+	       (`(,tip . ,precursor) cursor)
+	       (parent ::Element (the-expression
+				  at: precursor in: editor:document))
+	       (location ::Element (parent:part-at tip)))
+      (parameterize/update-sources ((the-document editor:document)
+				    (the-cursor editor:cursor))
+	(cond
+	 ((isnt parent eq? location)
+	  (WARN "reached "location" in "parent" at "cursor))
+
+	 ((is parent Space?)
+	  (let* ((action ::Insert (Insert element: selected:items
+					  at: cursor))
+		 (history ::History (history editor:document)))
+	    (history:record! action)
+	    (set! (the-cursor) (action:apply! editor:document))
+	    (set! (the-selection-anchor) (the-cursor))))
+
+	 ((is parent cons?)
 	  (cond
-	   ((isnt parent eq? location)
-	    (WARN "reached "location" in "parent" at "cursor))
+	   ((eqv? tip (parent:first-index))
+	    (insert! selected:items
+		     at: (recons (parent:next-index tip)
+				 cursor)))
+	   ((eqv? tip (parent:last-index))
+	    (insert! selected:items
+		     at: (recons
+			  (parent:previous-index tip)
+			  cursor)))
+	   (else
+	    (WARN "unhandled "tip" in "parent)))))
 
-	   ((is parent Space?)
-	    (let* ((action ::Insert (Insert element:
-					    selected:items
-					    at: cursor))
-		   (document (the-document))
-		   (history ::History (history document)))
-	      (history:record! action)
-	      (set! (the-cursor) (action:apply! document))
-	      (set! (the-selection-anchor) (the-cursor))))
-
-	   ((is parent cons?)
-	    (cond
-	     ((eqv? tip (parent:first-index))
-	      (insert! selected:items
-		       at: (recons (parent:next-index tip)
-				   cursor)))
-	     ((eqv? tip (parent:last-index))
-	      (insert! selected:items
-		       at: (recons
-			    (parent:previous-index tip)
-			    cursor)))
-	     (else
-	      (WARN "unhandled "tip" in "parent)))))))
-
-	  (screen:overlay:remove! selected)))
+	(screen:overlay:remove! selected))))
 
   (screen:overlay:add! selected))
 
@@ -956,7 +952,6 @@
       (let-values (((x y) (transform:map xe ye)))
 	(let* ((target-cursor (cursor-under x y))
 	       (target (the-expression at: target-cursor)))
-	  (DUMP target)
 	  (match target
 	    (enchanted::Interactive
 	     (enchanted:tap! finger x y))
@@ -964,9 +959,6 @@
 	     (set! cursor target-cursor)
 	     (set! selection-anchor cursor)
 
-	     (display cursor)
-	     (display (the-expression at: cursor))
-	     (newline)
 	     #t))))))
 
   (define (press! finger::byte #;at xe::real ye::real)::boolean

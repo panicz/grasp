@@ -78,14 +78,14 @@
     (let ((dx (+ x left))
 	  (dy (+ y top)))
       (values
-       (* scale (- (* c dx) (* s dy)))
-       (* scale (+ (* s dx) (* c dy))))))
+       (as int (round (* scale (- (* c dx) (* s dy)))))
+       (as int (round (* scale (+ (* s dx) (* c dy))))))))
 
   ;; editor to document
   (define (map x::real y::real)::(Values real real)
     (values
-     (- (* (+ (* c x) (* s y)) 1/scale) left)
-     (- (* (- (* c y) (* s x)) 1/scale) top)))
+     (as int (round (- (* (+ (* c x) (* s y)) 1/scale) left)))
+     (as int (round (- (* (- (* c y) (* s x)) 1/scale) top)))))
 
   (define (translate! dx::real dy::real)::void
     (set! left (+ left (* (+ (* c dx) (* s dy))
