@@ -330,7 +330,7 @@
 
 (define-syntax and-let*
   (lambda (stx)
-    (syntax-case stx (values ::)
+    (syntax-case stx (::)
 
       ((_)
        #'#t)
@@ -357,14 +357,6 @@
                   (and-let* rest
 		    . body)))))
 
-      ((_ (((values . structure) expression) . rest) . body)
-       #'(call-with-values (lambda () expression)
-           (lambda args
-             (match args
-               (structure
-                (and-let* rest . body))
-               (_ #f)))))
-
       ((_ ((value binding) . rest) . body)
        #'(match binding
            (value
@@ -381,7 +373,7 @@
        #'(call-with-values (lambda () expression)
            (lambda args
              (match args
-               ((value * ... . _)
+               (`(,value ,* ... . ,_)
                 (and value
                      (and-let* rest . body)))
                (_ #f)))))
@@ -390,7 +382,7 @@
        #'(call-with-values (lambda () expression)
            (lambda args
              (match args
-               ((value ... . _)
+               (`(,value ... . ,_)
                 (and-let* rest . body))
                (_ #f)))))
 
