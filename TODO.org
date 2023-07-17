@@ -1,8 +1,61 @@
+* 14.07.2023
+
+okazuje sie ze z tych wszystkich rzeczy zajalem
+sie problemem wstawiania elementow do dokumentu
+- problem jest taki, ze w kontekscie drop! parametr
+  (the-document) ma zla wartosc
+
+stad tez trzeba bedzie dodac moze
+
+(define-interface Embeddable (Pane Map2D)
+  (pane-under x::real y::real)::Embdable
+  )
+
+* 13.07.2023
+
+obracanie widokiem juz jako tako dziala (jupi), ale
+jeszcze nie calkiem dziala mapowanie elementow
+na dokument - i to jest pierwsza rzecz, ktora bysmy
+sie zajeli
+
+druga to zerowanie rotacji za pomoca podwojnego
+klikniecia (i to bedzie wymagalo dodania mechanizmu
+do kontrolowania animacji)
+
+trzecia to rysowanie krawedzi dokumentu,
+
+czwarta to niedopuszczanie do tego, zeby dokument
+znalazl sie poza widokiem edytora
+
+piata wreszcie to sprawienie zeby wyjechanie kursorem
+poza krawedz widoku powodowalo przesuniecie tego
+widoku
+
+szosta, to oprogramowac walek myszki, i jeszcze
+zrobic tak, zeby klawiatura dzialaka na windowsie
+
+siodma to zrobic tak, zeby przenoszenie elementow
+i zmiana ich rozmiaru z powrotem dobrze dzialaly
+
+
+No dobra, chyba mamy maly problemix.
+Jest sobie funkcja 'screen-position', ktora
+podczas rysowania zapamietuje
+'painter:current-translation-left' oraz
+'painter:current-translation-top'.
+
+A tymczasem my chcielibysmy raczej miec
+document-position, czyli pozycje wzgledem dokumentu
+- bo ja mozemy sobie wygodnie (za pomoca unmap?)
+  przeksztalcic we wspolrzedne edytora
+
+powinnismy tez znalezc jakis sposob, zeby te wspolrzedne
+edytora przeksztalcic we wspolrzedne ekranu
+
 * 12.07.2023
 
 z jakichs wxgledow jak zmieniamy "default-transform"
 to system nam wybucha :o (na androidzie)
-
 
 * 10.07.2023
 
