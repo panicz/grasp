@@ -412,7 +412,8 @@
 
   (logger size))
 
-(define-object (ShowKeyboardOnTap content::Pane view::View)
+(define-object (ShowKeyboardOnTap content::Embeddable
+				  view::View)
 
   (define (tap! finger::byte #;at x::real y::real)::boolean
     (and (invoke-special WrappedPane (this) 'tap! finger x y)

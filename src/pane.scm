@@ -96,7 +96,7 @@
 
   (define (size)::Extent extent)
 
-  (define (set-content! content::Pane)::void
+  (define (set-content! content::Embeddable)::void
     (set! top content))
 
   (define (content)::Pane top)
@@ -329,7 +329,7 @@
 	 #f))))
   )
 
-(define-object (WrappedPane content ::Embeddable)::Pane
+(define-object (WrappedPane content ::Embeddable)::Embeddable
 
   (define (draw!)::void
     (content:draw!))
