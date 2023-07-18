@@ -292,7 +292,7 @@
 	     (comment:cursor-under* (- x t:left)
 				    (- y t:top)
 				    (hash-cons*
-				     (+ total 1) path))
+				     (as int (+ total 1)) path))
 	     (begin
 	       (comment:expand! t)
 	       (skip rest (+ total 2)))))
@@ -300,10 +300,11 @@
 	   (`(,width::integer ,next-line-prefix::integer . ,_)
 	    (cond
 	     ((is 0 <= (- y t:top) < t:max-line-height)
-	      (hash-cons (+ total
-			    (min width
-				 (quotient (- x t:left)
-					   space-width)))
+	      (hash-cons (as int (+ total
+				    (min width
+					 (quotient
+					  (- x t:left)
+					  space-width))))
 			 path))
 	     (else
 	      (t:expand-by! (* space-width width))
@@ -695,7 +696,7 @@
 		    (hash-cons (first-index) path))
 		   ((is paren-width <= x < (- outer:width
 					      paren-width))
-		    (hash-cons 0 path))
+		    (hash-cons (as int 0) path))
 		   ((is (- outer:width paren-width) <= x)
 		    (hash-cons (last-index) path))
 		   (else
@@ -721,7 +722,7 @@
 	  (painter (the-painter)))
       (painter:draw-box! outer:width outer:height context)
       (with-translation ((painter:paren-width) 0)
-	  (space:draw! (hash-cons 0 context)))))
+	  (space:draw! (hash-cons (as int 0) context)))))
 
   (define (print out::gnu.lists.Consumer)::void
     (out:append #\()

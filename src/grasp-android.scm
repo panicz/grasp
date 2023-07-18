@@ -1145,9 +1145,9 @@
     ::int
     (let* ((line-height font:size)
 	   (string-end (text:length)))
-      (let loop ((i 0)
-		 (left 0)
-		 (top 0))
+      (let loop ((i ::int 0)
+		 (left ::int 0)
+		 (top ::int 0))
 	(if (is i >= string-end)
 	    (max 0 (- i 1))
 	    (let ((c (text:charAt i)))
