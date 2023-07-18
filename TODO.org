@@ -1,3 +1,103 @@
+* 17.07.2023
+
+teoretycznie 'pierwsza rzecz' z czwartkowej listy
+juz rozwiazana - i w jakiejs mierze siodma tez.
+
+co do drugiej i czwartej, ich wspolnym mianownikiem
+jest system animacji, i to na nim bysmy sie dzis
+skupili
+
+konkretnie, w prototypie Javowym mielismy dwie
+klasy:
+- Animation
+- AnimationSystem
+
+pierwsza z nich reprezentuje postep pojedynczej
+animacji oraz tweening z funkcja sinus.
+
+druga natomiast posiada Timer - animate - oraz
+TimerTask, ktory co 40ms wola na obiekcie android.os.Handler
+metode 'post' z callbackiem, ktory - dla wszystkich
+animacji - wywoluje metode 'step', a na koncu
+robi screen.invalidate()
+
+Ale my wiemy, ze tym razem nie bedzie tak latwo,
+bo musimy obsligiwac (co najmniej) 3 srodowiska.
+
+Dodatkowo moze mamy tutaj tez jakas czesc wspolna
+z implementacjami Postponed i Cancellable.
+
+W kazdym razie powinnismy wyjsc od najwazniejszego
+pytania, mianowicie: jak chcemy z tego korzystac.
+
+Ach, bo tak: bo do tej pory Animation bylo klasa,
+po ktorej dziedziczyly inne klasy, a w szczegolnosci
+Transition (i tak naprawde chyba tylko ona)
+
+No ale dobra, co byśmy chcieli pisać w tym Edytorze?
+
+;; w Editor
+  (define (double-tap! finger::byte x::real y::real)::boolean
+    (center-around! x y))
+
+
+no swietnie, zesmy sie, kurwa, wysilili.
+
+ale co ma robic 'center-around!'?
+
+ma dodac nowy 'proces', czy tez nowa animacje,
+do listy animacji, i ta animacja ma w kazdym
+kroku wywolywac okreslona funkcje.
+
+mozna by powiedziec tak:
+
+(define-interface Animation ()
+  (step!)::void
+  (target)::Object
+  )
+
+no dobra. i teraz co?
+czy animacja powinna sie odbywac z innego watku?
+
+no raczej ze tak. z watku timera, odpalanego
+co 40 ms, i zatrzymywanego gdy nasza lista jest
+pusta.
+
+w kazdym razie bysmy chyba musieli miec
+
+(painter:animate!
+  (CenterAround x y (this)))
+
+a jeszcze raz, jak jest w starym prototypie?
+
+jest tak, ze tworzymy obiekt Transition,
+a potem wywolujemy na nim
+setTargetAngle(0.0)
+setTargetScale(1.0)
+fixPoint(x, y)
+start(duration)
+
+kolejne pytanie by brzmialo: jaka czesc funkcjonalnosci
+bedzie sie dawala przenosic pomiedzy klientami,
+a jaka bedzie specyficzna?
+
+czyli tak:
+
+do Paintera bysmy dodali
+
+(animate! animation::Animation)::void
+
+oraz
+
+(define-interface Animation ()
+  (step! progress::float)::void
+  (finished?)::boolean
+  )
+
+
+(define-object (Transition target::Isogonal)::Animation
+  ...)
+
 * 14.07.2023
 
 okazuje sie ze z tych wszystkich rzeczy zajalem
