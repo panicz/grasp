@@ -1,3 +1,64 @@
+* 18.07.2023
+
+dzis byloby dobrze zeby zaimplementowac:
+- tranzycje
+- system animacji
+
+na poczatku bysmy sie skupili na kliencie
+androidowym, bo aktualnie tylko w nim
+dziala obracanie widoku
+
+(define-type (Transition of: Isogonal
+                         from: Isogonal
+			 to: Isogonal
+			 around: Point)
+  implementing Animation
+  with
+  ((advance! timestep/ms::int)::boolean
+   ...))
+
+ale wowczas trzeba by bylo wywalic 1/scale
+oraz s i c z Isogonal (co pewnie nie robi
+wielkiej roznicy)
+
+(painter:play!
+  (Transition of: transform
+              from: (copy transform)
+	      to: (Isogonal scale: transform:scale
+	                    angle/rad: transform:angle/rad
+			    )
+	      around: ...))
+
+(define-interface Animation ()
+  (advance! timestep/ms::int)::boolean)
+
+(define-type (Transition of: Isogonal
+                         from: Isogonal
+			 to: Isogonal
+			 around: Point := #!null
+			 duration/ms: int
+			 progress/ms: int := 0)
+  implementing Animation
+  with
+  ((advance! timestep/ms::int)::boolean
+   (set! progress/ms (+ progress/ms timestep/ms))
+   (let ((progress ::float (/ progress/ms duration/ms)))
+     (cond
+      (around
+       (let*-values (((x0 y0) (of:unmap around:x around:y))
+                     ((scale) (tween from:scale to:scale
+		                     progress))
+		     ((angle) (tween from:angle/rad
+		                     to:angle/rad
+		                     progress))
+	             ((x1 y1) (begin
+		               (set! of:scale scale)
+			       (set! of:angle/rad angle)
+			       (of:unmap around:x around:y))))
+         (of:translate! (- x1 x0) (- y1 y0))))
+      (else
+       (set! of:scale ...))))))
+
 * 17.07.2023
 
 teoretycznie 'pierwsza rzecz' z czwartkowej listy
