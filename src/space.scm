@@ -292,7 +292,8 @@
 	     (comment:cursor-under* (- x t:left)
 				    (- y t:top)
 				    (hash-cons*
-				     (as int (+ total 1)) path))
+				     (as int (+ total 1))
+				     path))
 	     (begin
 	       (comment:expand! t)
 	       (skip rest (+ total 2)))))
@@ -315,9 +316,10 @@
 	    (or
 	     (and (is 0 <= (- y t:top) < t:max-line-height)
 		  (is x < (+ t:left (* space-width width)))
-		  (hash-cons (+ total
-				(quotient (- x t:left)
-					  space-width))
+		  (hash-cons (as int (+ total
+					(quotient
+					 (- x t:left)
+					 space-width)))
 			     path))
 	     (begin
 	       (t:expand-by! (* space-width width))
