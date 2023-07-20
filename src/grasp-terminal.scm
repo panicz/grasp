@@ -45,7 +45,6 @@
 
 
 (define-alias Thread java.lang.Thread)
-(define-alias TimerTask java.util.TimerTask)
 (define-alias BlockingQueue java.util.concurrent.BlockingQueue)
 (define-alias ThreadPool java.util.concurrent.ScheduledThreadPoolExecutor)
 (define-alias Scheduler java.util.concurrent.ScheduledExecutorService)
@@ -116,7 +115,7 @@
   ::Letter
   (Letter character color background style))
 
-(define (render io :: LanternaScreen)::void
+(define (render io ::LanternaScreen)::void
   (let loop ()
     (synchronized screen-up-to-date?
       (while (screen-up-to-date?)
@@ -165,11 +164,13 @@
     ::Cancellable
     (set! postponed-action action)
     (set! scheduled-task
-	  (thread-pool:schedule (this) time-ms TimeUnit:MILLISECONDS))
+	  (thread-pool:schedule (this) time-ms
+				TimeUnit:MILLISECONDS))
     (this))
 
   (define (run)::void
-    (queue:put postponed-action)))
+    (queue:put postponed-action)
+    ))
 
 (define (rewrite-events io::LanternaScreen queue::BlockingQueue)::void
   ;; although a thread rewriting stuff from one place
@@ -235,28 +236,39 @@
 	 (set! (screen-up-to-date?) #f)
 	 (invoke screen-up-to-date? 'notify))))))
 
-(define-object (TerminalPainter screen::LanternaScreen)::Painter
+(define-object (TerminalPainter terminal::LanternaScreen
+				queue::BlockingQueue)::Painter
   
-  (define io::LanternaScreen screen)
+  (define io ::LanternaScreen terminal)
 
   (define text-color-stack ::java.util.Stack (java.util.Stack))
   (define background-color-stack ::java.util.Stack (java.util.Stack))
   
   (define (put! c::char row::real col::real)::void
-    (let ((x (+ col shiftLeft))
+    (let ((screen ::Extent (screen:size))
+	  (x (+ col shiftLeft))
           (y (+ row shiftTop))
 	  (left (max 0 clipLeft))
 	  (top (max 0 clipTop)))
       (when (and (is left <= x < (+ left clipWidth))
-                 (is top <= y < (+ top clipHeight)))
+                 (is top <= y < (+ top clipHeight))
+		 (is 0 <= x < screen:width)
+		 (is 0 <= y < screen:height))		 
 	(io:setCharacter x y (letter c)))))
 
   (define (mark-cursor! +left::real +top::real)::void
     (invoke-special CharPainter (this)
 		    'mark-cursor! +left +top)
-    (io:setCursorPosition
-     (TerminalPosition markedCursorPosition:left
-		       markedCursorPosition:top)))
+    (let ((x markedCursorPosition:left)
+	  (y markedCursorPosition:top)
+	  (screen ::Extent (screen:size)))
+      (when (and (is 0 <= x < screen:width)
+		 (is 0 <= y < screen:height))
+	(let ((letter (io:getBackCharacter x y)))
+	  (letter:getCharacter))
+	
+	(io:setCursorPosition
+	 (TerminalPosition x y)))))
   
   (define (enter-selection-drawing-mode!)::void
     (invoke-special CharPainter (this)
@@ -273,9 +285,14 @@
 		    'exit-selection-drawing-mode!))
   
   (define (get row::real col::real)::char
-    (let ((letter (io:getBackCharacter (+ col shiftLeft)
-				       (+ row shiftTop))))
-      (letter:getCharacter)))
+    (let ((x (+ col shiftLeft))
+	  (y (+ row shiftTop))
+	  (screen ::Extent (screen:size)))
+      (if (and (is 0 <= x < screen:width)
+	       (is 0 <= y < screen:height))
+	  (let ((letter (io:getBackCharacter x y)))
+	    (letter:getCharacter))
+	  #\space)))
 
   (define (clear!)::void
     (io:clear))
@@ -323,10 +340,16 @@
 	   (foreground ::Color (if (is (+ red green blue) > 384)
 				   Color:ANSI:BLACK
 				   Color:ANSI:WHITE)))
-      (io:setCharacter left top
-		       (letter #\⦿
-			       color: foreground
-			       background: color))))
+      (put! #\⦿ left top)))
+
+  #;(define pending-animations
+    ::($bracket-apply$ Queue Animation)
+    ($bracket-apply$ ConcurrentLinkedQueue Animation))
+  
+  (define (play! animation::Animation)::void
+    (values)
+    #;(pending-animations:add animation))
+    
   (CharPainter))
 
 (define (run-in-terminal
@@ -345,20 +368,21 @@
 	  (set! (current-error-port) tcp-server)
 	  (WARN "Debug server started on port "port))))
    (else
-     (set! (current-display-procedure) nothing)
-     (set! (current-message-handler) (ignoring-message-handler))))
-  (initialize-keymap)     
-  (parameterize ((the-painter (TerminalPainter io)))
-    (safely
-     (load "assets/init.scm"))
-    (io:startScreen)
-    (let* ((event-queue ::BlockingQueue (ArrayBlockingQueue 16))
-	   (preprocessing (future (rewrite-events io event-queue)))
-	   (editing (future (edit io event-queue)))
-	   (rendering (future (render io))))
-      ;; we want the rendering thread to have a lower
-      ;; priority than the editing thread
-      (invoke rendering 'setPriority Thread:MIN_PRIORITY)
-      (force editing))))
+    (set! (current-display-procedure) nothing)
+    (set! (current-message-handler) (ignoring-message-handler))))
+  (initialize-keymap)
+  (let ((event-queue ::BlockingQueue (ArrayBlockingQueue 16)))
+    (parameterize ((the-painter (TerminalPainter
+				 io event-queue)))
+      (safely
+       (load "assets/init.scm"))
+      (io:startScreen)
+      (let* ((preprocessing (future (rewrite-events io event-queue)))
+	     (editing (future (edit io event-queue)))
+	     (rendering (future (render io))))
+	;; we want the rendering thread to have a lower
+	;; priority than the editing thread
+	(invoke rendering 'setPriority Thread:MIN_PRIORITY)
+	(force editing)))))
 
 (run-in-terminal)

@@ -19,6 +19,8 @@
 
 (define-object (CharPainter)::Painter
 
+  (define (play! animation::Animation)::void #!abstract)
+  
   (define shiftLeft ::real 0)
   (define shiftTop ::real 0)
 
@@ -139,10 +141,10 @@
     icon-size)
 
   (define (draw-directory-icon!)::void
-    (put! #\📁 0 0))
+    (put! #\D 0 0))
 
   (define (draw-file-icon!)::void
-    (put! #\📄 0 0))
+    (put! #\f 0 0))
 
   (define (draw-custom-box!
 	   top-left::gnu.text.Char
@@ -913,6 +915,11 @@
                (is 0 <= y < height))
           (data (+ (* width y) x))
           #\space)))
+
+  (define (play! animation::Animation)::void
+    (let loop ()
+      (unless (animation:advance! 40)
+	(loop))))
 
   (define (draw-string! text::CharSequence
 			context::Cursor)
