@@ -34,12 +34,17 @@
   (vertical-split-width)::real
   )
 
+(define-interface Animation ()
+  (advance! timestep/ms::int)::boolean)
+
 (define-interface Painter (Splittable
 			   Clippable
 			   Translatable
 			   Scalable
 			   Rotatable)
 
+  (play! animation::Animation)::void
+  
   (mark-cursor! +left::real +top::real)::void
   (cursor-position)::Position
   (cursor-height)::real
@@ -215,6 +220,8 @@
   )
 
 (define-object (NullPainter)::Painter
+  (define (play! animation::Animation)::void (values))
+  
   (define (space-width)::real 1)
 
   (define (paren-width)::real 1)

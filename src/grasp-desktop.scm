@@ -1212,6 +1212,9 @@ by the AWT framework."))
   (define (componentResized event::ComponentEvent)::void
     (screen:set-size! (invoke (this) 'getWidth)
 		      (invoke (this) 'getHeight)))
+  
+  (define (play! animation::Animation)::void
+    (values))
 
   (InputHandler)
   (rendering-hints:put RenderingHints:KEY_ANTIALIASING

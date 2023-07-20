@@ -184,7 +184,7 @@
     "Caption")
 
   (define (fields->string)::String
-    text)
+    content)
 
   (Magic))
 

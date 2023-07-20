@@ -222,7 +222,7 @@
   (define the-log-font ::($bracket-apply$ parameter Font)
     (make-parameter
      (Font face: Oswald-Regular
-	   size: 16)))
+	   size: 32)))
 
   (define the-cursor-offset ::($bracket-apply$ parameter Position)
     (make-parameter (Position left: 0 top: 32)))
@@ -1238,6 +1238,9 @@
     (screen:draw!)
     (invoke (current-message-handler)
 	    'display-messages canvas))
+
+  (define (play! animation::Animation)::void
+    (values))
 
   (AndroidView source)
   (setFocusable #t)
