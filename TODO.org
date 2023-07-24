@@ -1,3 +1,128 @@
+* 23.07.2023
+
+chcemy dodac animacje tranzycji do modulu (transform)
+
+
+* 22.07.2023
+
+dzis/jutro/pojutrze bysmy moze sprobowali zaimplementowac
+animacje tranzycji oraz tweening oparty na sinusie,
+i zintegrowali to z podwojnym kliknieciem (tak jak
+to wczoraj omawialismy)
+
+* 21.07.2023 (urodzinki corenki)
+
+wydaje sie ze juz mamy jakies systemy animacji dla
+klienta awt i terminalowego, i pozostaje nam
+andtoidowy
+
+stary system animacji byl oparty o zwykle javowe timery
+- a one maja taka drobna niedogodnosc, ze nie da sie
+ich zatrzymac. poza tym tego postpone'a jakos chyba
+zrobilismy bez timerow to moze teraz tez sie uda.
+
+tymczasem trzeba by bylo zajac sie tweeningiem.
+
+i trzeba to moze tak zrobic:
+- jezeli kat jest niezerowy, to dodajemy animacje,
+ktora go zeruje
+- jezeli przesuniecie pozione jest niezerowe albo pionowe
+  dodatnie, to zerujemy oba parametry
+- jezeli transformacja jest skalowalna i przesuniecie
+  w obu kierunkach jest zerowe, a tapnelismy na toplevelowej
+  spacji, to skalujemy tak, zeby wysokosc dokumentu
+  pokrywala sie z wysokoscia ekranu
+- w przeciwnym razie przesuwamy tak, zeby wysokosc klikniecia
+  znalazla sie na srodku ekranu
+
+
+* 20.07.2023
+
+tak naprawde dzis glownie sie zajelismy renderowaniem
+popupoq w kliencie terminalowym, co wynikalo
+z podejrzenia, ze moze cos jest nie tak z tymi
+ThreadedPoolExecutorService - okazalo sie jednak,
+ze problem bierze sie z pisania poza zakres
+w lanternowym buforze
+
+teraz zatem pozostaje nam teraz do zrobienia
+implementacja metodd play! we wszystkich nietrywialnych
+painterach, przy czym teraz jest pomysl, zeby
+uzyc ConcurrentLinkedQueue na interfejsie Collection
+
+
+* 19.07.2023
+
+tak jak i wczoraj, dzis byloby dobrze zaimplementowac
+tranzycje i system animacji, ale zeby tranzycje
+mogly dzialac na wszystkich transformacjach (a nie tylko
+na Isogonal), trzeba by bylo dodac get-scale, set-scale!,
+get-angle, set-angle! get-left, set-left!, get-top,
+set-top! do interfejsu Transform.
+
+(define-type (Transition of: Transform
+                         from: Transform
+			 to: Transform
+			 around: Point := #!null
+			 duration/ms: int
+			 progress/ms: int := 0)
+  implementing Animation
+  with
+  ((advance! timestep/ms::int)::boolean
+   (set! progress/ms (+ progress/ms timestep/ms))
+   (let ((progress ::float (/ progress/ms duration/ms)))
+     (cond
+      (around
+       (let*-values (((x0 y0) (of:unmap around:x around:y))
+                     ((scale) (tween (from:get-scale)
+		                     (to:get-scale)
+		                     progress))
+		     ((angle) (tween (from:get-angle)
+		                     (to:get-angle)
+		                     progress))
+	             ((x1 y1) (begin
+		               (of:set-scale! scale)
+			       (of:set-angle! angle)
+			       (of:unmap around:x around:y))))
+         (of:translate! (- x1 x0) (- y1 y0))))
+      (else
+       (of:set-scale! (tween (from:get-scale) (to:get-scale)
+			     progress))
+       (of:set-angle! (tween (from:get-angle) (to:get-angle)
+			     progress))
+       (of:set-left! (tween (from:get-left) (to:get-left)
+			    progress))
+       (of:set-top! (tween (from:get-top) (to:get-top)
+			   progress))
+       ))) ;<
+    (is progress/ms > duration/ms))
+
+  ((tween initial-value::real final-value::real progress::real)
+   ::real
+   (cond
+     ((is progress <= 0) initial-value)
+     ((is progress >= 1) final-value)
+     (else
+      (+ initial-value
+         (* (- final-value initial-value)
+	    (sin (* progress pi/2))))))))
+
+(painter:play!
+  (Transition of: transform
+              from: (copy transform)
+	      to: (Isogonal scale: (transform:get-scale)
+	                    angle/rad: 0.0
+			    left: (transform:get-left)
+			    top: (transform:get-top))
+	      around: (Point x y)
+	      duration/ms: 100))
+
+ok, to teraz jak zaimplementowac funkcje play! w poszczegolnych
+klientach?
+
+wydaje sie, ze w kazdym przypadku to bedzie z grubsza to samo.
+moze nawet nie bedziemy tego spinac z painterem?
+	      
 * 18.07.2023
 
 dzis byloby dobrze zeby zaimplementowac:
