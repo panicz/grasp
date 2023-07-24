@@ -422,7 +422,8 @@
 
   (WrappedPane content))
 
-(define-object (View source::AndroidActivity)::Painter
+(define-object (View source::AndroidActivity
+		     sync::android.os.Handler)::Painter
 
   (define canvas ::Canvas)
 
@@ -1239,8 +1240,31 @@
     (invoke (current-message-handler)
 	    'display-messages canvas))
 
+  (define pending-animations
+    ::java.util.Collection
+    (java.util.concurrent.ConcurrentLinkedQueue))
+
+  (define last-animation-event-time-ms ::long 0)
+  
+  (define (animate!)::void 
+    (unless (pending-animations:isEmpty)
+      (let* ((now ::long (current-time-ms))
+	     (delta-ms ::long (- now
+				 last-animation-event-time-ms)))
+	(for animation::Animation in pending-animations
+	  (unless (animation:advance! delta-ms)
+	    (pending-animations:remove animation)))
+	(set! last-animation-event-time-ms now)
+	(invalidate)
+	(unless (pending-animations:isEmpty)
+	  (sync:postDelayed (lambda () (animate!)) 40)))))
+  
   (define (play! animation::Animation)::void
-    (values))
+    (let ((was-empty? ::boolean (pending-animations:isEmpty)))
+      (pending-animations:add animation)
+      (when was-empty?
+	(set! last-animation-event-time-ms (current-time-ms))
+	(sync:postDelayed (lambda () (animate!)) 40))))
 
   (AndroidView source)
   (setFocusable #t)
@@ -1381,6 +1405,8 @@
 	      ))
 	 '())))))
 
+  (define sync::android.os.Handler (android.os.Handler))
+  
   (define (onCreate savedState::Bundle)::void
     (invoke-special AndroidActivity (this) 'onCreate
 		    savedState)
@@ -1409,7 +1435,7 @@
     (initialize-activity (this))
     (safely (initialize-keymap))
     (set! (the-keeper) (this))
-    (set! view (View (this)))
+    (set! view (View (this) sync))
     (set! the-view view)
 
     (let* ((resources ::AndroidResources (getResources))
@@ -1431,9 +1457,8 @@
        (eval expression)))
     (screen:set-content!
      (ShowKeyboardOnTap (screen:content) view))
-    (let ((postpone ::Postponed (EventRunner
-				 (android.os.Handler)
-				 view)))
+    
+    (let ((postpone ::Postponed (EventRunner sync view)))
       (for finger from 0 below 10
 	   (set! (process-finger finger)
 		 (TouchEventProcessor finger screen

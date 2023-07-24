@@ -236,11 +236,9 @@
 	 (set! (screen-up-to-date?) #f)
 	 (invoke screen-up-to-date? 'notify))))))
 
-(define-object (TerminalPainter terminal::LanternaScreen
+(define-object (TerminalPainter io::LanternaScreen
 				queue::BlockingQueue)::Painter
   
-  (define io ::LanternaScreen terminal)
-
   (define text-color-stack ::java.util.Stack (java.util.Stack))
   (define background-color-stack ::java.util.Stack (java.util.Stack))
   
@@ -332,7 +330,8 @@
     (invoke-special CharPainter (this)
 		    'exit-comment-drawing-mode!))
   
-  (define (draw-point! left::real top::real color-rgb::int)::void
+  (define (draw-point! left::real top::real color-rgb::int)
+    ::void
     (let* ((red ::int (byte-ref color-rgb 2))
 	   (green ::int (byte-ref color-rgb 1))
 	   (blue ::int (byte-ref color-rgb 0))
@@ -340,17 +339,39 @@
 	   (foreground ::Color (if (is (+ red green blue) > 384)
 				   Color:ANSI:BLACK
 				   Color:ANSI:WHITE)))
-      (put! #\⦿ left top)))
+      (parameterize ((the-text-color foreground)
+		     (the-background-color color))
+	(put! #\⦿ left top))))
 
-  #;(define pending-animations
-    ::($bracket-apply$ Queue Animation)
-    ($bracket-apply$ ConcurrentLinkedQueue Animation))
+  (define pending-animations
+    ::java.util.Collection
+    (java.util.concurrent.ConcurrentLinkedQueue))
   
   (define (play! animation::Animation)::void
-    (values)
-    #;(pending-animations:add animation))
+    (let ((then ::long (current-time-ms)))
+      (define (playing)
+	(let* ((now ::long (current-time-ms))
+	       (delta/ms ::long (- now then)))
+	  (unless (animation:advance! delta/ms)
+	    (pending-animations:remove playing))
+	  (set! then now)))
+      (pending-animations:add playing)))
+
+  (define thread-pool ::Scheduler (ThreadPool 1))
+
+  (define animating ::ScheduledTask #!null)
+  
+  (define (start-animating!)::void
+    (set! animating
+	  (thread-pool:scheduleAtFixedRate
+	   (lambda ()
+	     (for playing in pending-animations
+	       (queue:put playing)))
+	   40 40 TimeUnit:MILLISECONDS)))
     
-  (CharPainter))
+  (CharPainter)
+  (start-animating!)
+  )
 
 (define (run-in-terminal
 	 #!optional
@@ -372,12 +393,12 @@
     (set! (current-message-handler) (ignoring-message-handler))))
   (initialize-keymap)
   (let ((event-queue ::BlockingQueue (ArrayBlockingQueue 16)))
-    (parameterize ((the-painter (TerminalPainter
-				 io event-queue)))
+    (parameterize ((the-painter (TerminalPainter io event-queue)))
       (safely
        (load "assets/init.scm"))
       (io:startScreen)
-      (let* ((preprocessing (future (rewrite-events io event-queue)))
+      (let* ((preprocessing (future (rewrite-events
+				     io event-queue)))
 	     (editing (future (edit io event-queue)))
 	     (rendering (future (render io))))
 	;; we want the rendering thread to have a lower

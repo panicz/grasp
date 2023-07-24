@@ -345,7 +345,9 @@
    java.awt.event.MouseMotionListener
    java.awt.event.MouseListener))
 
-(define-interface Application (Painter InputListener))
+(define-interface Application (Painter
+			       InputListener
+			       java.awt.event.ActionListener))
 
 (define-object (InputHandler)::InputListener
   (define (mouseEntered event::MouseEvent)::void
@@ -1212,9 +1214,38 @@ by the AWT framework."))
   (define (componentResized event::ComponentEvent)::void
     (screen:set-size! (invoke (this) 'getWidth)
 		      (invoke (this) 'getHeight)))
+
+  (define pending-animations
+    ::java.util.Collection
+    (java.util.concurrent.ConcurrentLinkedQueue))
+
+  (define last-animation-event-time-ms ::long 0)
+  
+  (define (actionPerformed event::java.awt.event.ActionEvent)::void
+    (unless (pending-animations:isEmpty)
+      (let* ((now ::long (current-time-ms))
+	     (delta ::long (- now last-animation-event-time-ms)))
+	(for animation::Animation in pending-animations
+	  (unless (animation:advance! delta)
+	    (pending-animation:remove)))
+	(set! last-animation-event-time-ms now)
+	(repaint)
+	(when (pending-animations:isEmpty)
+	  (animator:stop)))))
+  
+  (define animator ::javax.swing.Timer
+    (let ((timer ::javax.swing.Timer
+		 (javax.swing.Timer 40 (this))))
+      (timer:stop)
+      (timer:setRepeats #t)
+      timer))
   
   (define (play! animation::Animation)::void
-    (values))
+    (let ((was-empty? ::boolean (pending-animation:isEmpty)))
+      (pending-animations:add animation)
+      (when was-empty?
+	(set! last-animation-event-time-ms (current-time-ms))
+	(animator:start))))
 
   (InputHandler)
   (rendering-hints:put RenderingHints:KEY_ANTIALIASING
