@@ -5,8 +5,8 @@
 (define-syntax property
   (syntax-rules (::)
     ((property (object::key-type)::value-type default)
-     (let* ((table (make-weak-key-hash-table[key-type
-						value-type]))
+     (let* ((table (($bracket-apply$ make-weak-key-hash-table
+				     key-type value-type)))
             (getter (lambda (object::key-type)
                       (hash-ref table object
 				(lambda () default)))))
@@ -34,8 +34,8 @@
 (define-syntax property+
   (syntax-rules (::)
     ((property+ (object::key-type)::value-type default)
-     (let* ((table (make-weak-key-hash-table[key-type
-						value-type]))
+     (let* ((table (($bracket-apply$ make-weak-key-hash-table
+				     key-type value-type)))
             (getter (lambda (object::key-type)
                       (hash-ref+ table object
 				 (lambda () default)))))

@@ -1,3 +1,72 @@
+* 25.07.2023 (komputer)
+
+Musimy przemyslec to i owo. Rozwazmy definicje z telefonu:
+
+(define (adjust-view!)
+  (let ((painter ::Painter (the-painter))
+        (editor ::Editor (the-editor)))
+    (unless (cursor-visible?)
+       (painter:play!
+          (Transition of: editor:transform
+                      from: (copy editor:transform)
+                      to: #| takie przesuniecie zeby kursor byl na srodku |#
+                      duration/ms: 500)))))
+
+I teraz tak: w Painterze jest metoda "mark-cursor!" oraz
+(cursor-position), przy czym pojawia sie takie pytanie, w jakim
+ukladzie wspolrzednych wyrazone sa te wartosci?
+
+Otoz: mark-cursor! pobiera wartosci wzgledem biezacego przesuniecia,
+natomiast cursor-position wyraza pozycje kursora na ekranie.
+
+I od razu mamy kilka uwag, zwiazanych z tym, jak rzecz mozemy w ogole
+zaimplementowac, tzn. jak zintegowac te kwestie z pojeciem edytora.
+
+Poza tym - niby to przy okazji - w gre wchodzi jeszcze taka kwestia,
+ze w kliencie terminalowym powinnismy oznaczac tylko kursor w aktywnym
+edytorze (co moze nie byc problemem dopoki mamy tylko jeden edytor)
+
+No ale dobra, pytanie numer 1: skad mozemy wiedziec, jaka pozycje ma kursor
+wewnatrz dokumentu?
+
+Bo jezeli wiemy to, to za pomoca transforma mozemy tez okreslic, jaka
+jest jego pozycja w edytorze. Natomiast kiedy mamy rowniez i to, to
+teoretycznie z pomoca (the-pane-extent) powinnismy byc w stanie okreslic,
+czy wspolrzedna kursora jest poza ekranem
+
+No to teraz wyobrazmy sobie, ze mamy do dyspozycji nastepujace parametry:
+
+(the-editor-left)
+(the-editor-top)
+(the-editor-width)
+(the-editor-height)
+
+przechowujace wspolrzedne ekranowe poszczegolnych edytorow.
+
+Ale jezeli mamy takie cos, to mozemy operowac na wspolrzednych ekranowych
+
+Warto tez przyjrzec sie, gdzie ow "mark-cursor!" jest wywolywany:
+
+w text-painter jest w:
+- draw-custom-box!
+- draw-quote-markers!
+- draw-quasiquote-markers!
+- draw-unquote-markers!
+- draw-unquote-splicing-markers!
+- draw-string!
+
+w spaces:
+- Space:draw!
+
+w grasp-android:
+- w draw-text!
+
+w grasp-desktop:
+- w draw-text!
+
+Mozemy sobie zmapowac wspolrzedne ekranowe na wspolrzedne w edytorze,
+a je z kolei na wspolrzedne w dokumencie
+
 * 24.07.2023
 
 dzisiaj plan jest taki: chcemy zrobic, ze jak bedzie podwojne

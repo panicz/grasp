@@ -95,7 +95,7 @@
   (invoke (current-message-handler) 'add-message args))
 
 (define-syntax-rule (DUMP expr ...)
-  (print 'expr ": "expr)
+  (WARN 'expr ": "expr)
   ...)
 
 (define-syntax-rule (truly actions ...)
