@@ -1,3 +1,17 @@
+* 24.07.2023
+
+dzisiaj plan jest taki: chcemy zrobic, ze jak bedzie podwojne
+klikniecie i niezerowy kat, to zeby byla dodawana tranzycja
+do zerowego kata
+
+od tego w kazdym razie zaczniemy
+
+no dobra, to juz mamy zrobione
+
+AAAA i trzeba jeszcze zrobic tak, zeby edytor pamietal
+transformacje dla poszczegolnych dokumentow
+
+
 * 23.07.2023
 
 chcemy dodac animacje tranzycji do modulu (transform)
@@ -33,7 +47,9 @@ ktora go zeruje
   spacji, to skalujemy tak, zeby wysokosc dokumentu
   pokrywala sie z wysokoscia ekranu
 - w przeciwnym razie przesuwamy tak, zeby wysokosc klikniecia
-  znalazla sie na srodku ekranu
+  znalazla sie na srodku ekranu, i ewentualnie dobieramy taka
+  skale (nie wieksza niz 1) zeby dokument miescil sie
+  na szerokosc
 
 
 * 20.07.2023
