@@ -147,14 +147,6 @@
 	(top:key-typed! key-code context)))
   )
 
-
-(define-object (Point x y)::Layer
-  (define (draw!)
-    (let ((painter ::Painter (the-painter)))
-      (painter:draw-point! x y #xff0000)))
-  
-  (IgnoreInput))
-
 (define-object (Stroke finger ::byte source-pane ::Pane)::Layer
   (define points ::List[Point] (ArrayList[Point]))
 
@@ -173,7 +165,7 @@
 (define-object (Drawing stroke::Stroke)::Drag
 
   (define (move! x::real y::real dx::real dy::real)::void
-    (stroke:add-point! (Point x y)))
+    (stroke:add-point! (Point x: x y: y)))
 
   (define (drop! x::real y::real vx::real vy::real)::void
     (screen:overlay:remove! stroke))
@@ -927,15 +919,24 @@
 	    first)
 	  document)))
 
+  (define document-transform
+    (property+ (document::Document)
+	       ::Transform
+	       ((default-transform))))
+  
   (define (switch-to! target::Document)::void
     (unless (eq? target document)
       (set! (previously-edited target) document)
-      (set! document target)))
+      (set! (document-transform document) transform)
+      (set! document target)
+      (set! transform (document-transform target))))
   
   (define (load-file file::java.io.File)::void
     (safely
      (let ((opened ::Document (open-document file)))
+       (set! (document-transform document) transform)
        (set! (previously-edited opened) document)
+       (set! transform (document-transform opened))
        (set! document opened))))
 
   (define (draw!)::void
@@ -943,9 +944,9 @@
 		   (the-cursor cursor)
 		   (the-selection-anchor selection-anchor))
       (let ((painter ::Painter (the-painter)))
-	(transform:apply! painter)
-	(document:draw! '())
-	(transform:unapply! painter))))
+	(transform:within painter
+			  (lambda ()
+			    (document:draw! '()))))))
 
   (define (tap! finger::byte #;at xe::real ye::real)::boolean
     (parameterize/update-sources ((the-document document))
@@ -992,13 +993,11 @@
 	    => (lambda (stroke::Stroke)
 		 (screen:overlay:remove! stroke)
 		 (unset! (screen:dragging stroke:finger))
-		 (let ((p0 ::Point (Point xe ye))
+		 (let ((p0 ::Point (Point x: xe y: ye))
 		       (p1 ::Point (stroke:points
 				    (- (length stroke:points)
 				       1)))
 		       (editor ::Editor (this)))
-		   (screen:overlay:add! p0)
-		   (screen:overlay:add! p1)
 		   (set! (screen:dragging stroke:finger)
 			 (object (Drag)
 			   ((move! x::real y::real
@@ -1014,7 +1013,7 @@
 			   ((drop! x::real y::real
 				   dx::real dy::real)
 			    ::void
-			    (screen:overlay:remove! p1))))
+			    (values))))
 
 		   (set! (screen:dragging finger)
 			 (object (Drag)
@@ -1031,7 +1030,7 @@
 			   ((drop! x::real y::real
 				   dx::real dy::real)
 			    ::void
-			    (screen:overlay:remove! p0)))))))
+			    (values)))))))
 
 	   
 	   ((is target Space?)
@@ -1105,9 +1104,33 @@
 	#t)))
 
   (define (double-tap! finger::byte x::real y::real)::boolean
-    (WARN "double-tap! "finger" "x" "y)
-    ;; centrowanie na dokumencie/maksymalizacja wyrazenia
-    #f)
+    (let ((painter ::Painter (the-painter)))
+      (cond
+       ((isnt (transform:get-angle) = 0.0)
+	(WARN "clearing angle")
+	(painter:play!
+	 (Transition of: transform
+		     from: (copy transform)
+		     to: (let ((target ::Transform (copy transform)))
+			   (target:set-angle! 0.0)
+			   target)
+		     around: (Point x: x y: y)
+		     duration/ms: 500))
+	#t)
+       ((or (isnt (transform:get-left) = 0)
+	    (is (transform:get-top) < 0))
+	(WARN "clearing shift")
+	(painter:play!
+	 (Transition of: transform
+		     from: (copy transform)
+		     to: (let ((target ::Transform (copy transform)))
+			   (target:set-left! 0.0)
+			   (target:set-top! 0.0)
+			   target)
+		     duration/ms: 500))
+	 #t)
+       (else
+	#f))))
 
   (define (long-press! finger::byte x::real y::real)::boolean
     (safely

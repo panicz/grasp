@@ -34,9 +34,6 @@
   (vertical-split-width)::real
   )
 
-(define-interface Animation ()
-  (advance! timestep/ms::int)::boolean)
-
 (define-interface Painter (Splittable
 			   Clippable
 			   Translatable
@@ -512,7 +509,7 @@
 
   (define (draw-point! left::real top::real
 		       color-rgba::int)::void
-    (void))
+    (values))
   )
 
 ;;(set! (default-value Painter) (NullPainter))
@@ -522,12 +519,12 @@
 
 (define-syntax-rule (with-translation (x y)
 		      . actions)
-  (let ((painter (the-painter))
-	(x! x)
-        (y! y))
-    (invoke painter 'translate! x! y!)
+  (let ((painter ::Painter (the-painter))
+	(x! ::real x)
+        (y! ::real y))
+    (painter:translate! x! y!)
     (begin . actions)
-    (invoke painter 'translate! (- x!) (- y!))))
+    (painter:translate! (- x!) (- y!))))
 
 (define-syntax-rule (with-clip (w h) . actions)
   (let ((painter ::Painter (the-painter)))

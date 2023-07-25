@@ -1227,7 +1227,7 @@ by the AWT framework."))
 	     (delta ::long (- now last-animation-event-time-ms)))
 	(for animation::Animation in pending-animations
 	  (unless (animation:advance! delta)
-	    (pending-animation:remove)))
+	    (pending-animations:remove animation)))
 	(set! last-animation-event-time-ms now)
 	(repaint)
 	(when (pending-animations:isEmpty)
@@ -1241,7 +1241,7 @@ by the AWT framework."))
       timer))
   
   (define (play! animation::Animation)::void
-    (let ((was-empty? ::boolean (pending-animation:isEmpty)))
+    (let ((was-empty? ::boolean (pending-animations:isEmpty)))
       (pending-animations:add animation)
       (when was-empty?
 	(set! last-animation-event-time-ms (current-time-ms))

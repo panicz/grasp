@@ -1,8 +1,12 @@
 (import (define-parameter))
+(import (define-interface))
 
 (define-alias EnumSet java.util.EnumSet)
 
 (define-alias CharSequence java.lang.CharSequence)
+
+(define-interface Animation ()
+  (advance! timestep/ms::int)::boolean)
 
 (define-alias Index java.lang.Object)
 
