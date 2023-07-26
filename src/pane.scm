@@ -1107,7 +1107,6 @@
     (let ((painter ::Painter (the-painter)))
       (cond
        ((isnt (transform:get-angle) = 0.0)
-	(WARN "clearing angle")
 	(painter:play!
 	 (Transition of: transform
 		     from: (copy transform)
@@ -1118,14 +1117,18 @@
 		     duration/ms: 500))
 	#t)
        ((or (isnt (transform:get-left) = 0)
-	    (is (transform:get-top) < 0))
-	(WARN "clearing shift")
+	    (is (transform:get-top) > 0))
 	(painter:play!
 	 (Transition of: transform
 		     from: (copy transform)
-		     to: (let ((target ::Transform (copy transform)))
+		     to: (let ((target ::Transform (copy transform))
+			       (document ::Extent (extent document))
+			       (screen ::Extent (screen:size)))
 			   (target:set-left! 0.0)
 			   (target:set-top! 0.0)
+			   (target:set-scale!
+			    (min (/ screen:width document:width)
+				 (/ screen:height document:height)))
 			   target)
 		     duration/ms: 500))
 	 #t)
