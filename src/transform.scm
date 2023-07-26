@@ -177,7 +177,7 @@
 (define-type (Transition of: Transform
                          from: Transform
 			 to: Transform
-			 around: Point := #!null
+			 around: Position := #!null
 			 duration/ms: int
 			 progress/ms: int := 0)
   implementing Animation
@@ -187,7 +187,7 @@
    (let ((progress ::float (/ progress/ms duration/ms)))
      (cond
       (around
-       (let*-values (((x0 y0) (of:unmap around:x around:y))
+       (let*-values (((x0 y0) (of:unmap around:left around:top))
                      ((scale) (tween (from:get-scale)
 		                     (to:get-scale)
 		                     progress))
@@ -197,7 +197,7 @@
 	             ((x1 y1) (begin
 				(of:set-scale! scale)
 				(of:set-angle! angle)
-				(of:unmap around:x around:y))))
+				(of:unmap around:left around:top))))
          (of:translate! (- x0 x1) (- y0 y1))))
       (else
        (of:set-scale! (tween (from:get-scale) (to:get-scale)

@@ -35,17 +35,26 @@
 (set-key! 'left (lambda ()
 		  (let ((cursor (the-cursor)))
 		    (move-cursor-left!)
+		    (adjust-view!)
 		    (WARN "moved cursor from "
 			  cursor" to "(the-cursor)))))
 
 (set-key! 'right (lambda ()
 		   (let ((cursor (the-cursor)))
 		     (move-cursor-right!)
+		     (adjust-view!)
 		     (WARN "moved cursor from "
 			  cursor" to "(the-cursor)))))
 
-(set-key! 'up move-cursor-up!)
-(set-key! 'down move-cursor-down!)
+(set-key! 'up
+	  (lambda ()
+	    (move-cursor-up!)
+	    (adjust-view!)))
+	    
+(set-key! 'down
+	  (lambda ()
+	    (move-cursor-down!)
+	    (adjust-view!)))
 
 (set-key! '(shift left) expand-selection-left!)
 (set-key! '(shift right) expand-selection-right!)

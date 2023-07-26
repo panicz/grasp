@@ -102,70 +102,88 @@
   (define (content)::Pane top)
 
   (define (draw!)::void
-    (top:draw!)
-    (overlay:draw!))
+    (parameterize ((the-pane-width extent:width)
+		   (the-pane-height extent:height))
+      (top:draw!)
+      (overlay:draw!)))
 
   (define (tap! finger::byte #;at x::real y::real)::boolean
-    (or (overlay:tap! finger x y)
-	(top:tap! finger x y)))
+    (parameterize ((the-pane-width extent:width)
+		   (the-pane-height extent:height))
+      (or (overlay:tap! finger x y)
+	  (top:tap! finger x y))))
 
   (define (press! finger::byte #;at x::real y::real)::boolean
-    (or (overlay:press! finger x y)
-	(top:press! finger x y)))
+    (parameterize ((the-pane-width extent:width)
+		   (the-pane-height extent:height))
+      (or (overlay:press! finger x y)
+	  (top:press! finger x y))))
 
   (define (release! finger::byte x::real y::real
 		    vx::real vy::real)
     ::boolean
-    (and-let* ((drag ::Drag (dragging finger)))
-      (drag:drop! x y vx vy)
-      (unset! (dragging finger))
-      #t))
+    (parameterize ((the-pane-width extent:width)
+		   (the-pane-height extent:height))
+      (and-let* ((drag ::Drag (dragging finger)))
+	(drag:drop! x y vx vy)
+	(unset! (dragging finger))
+	#t)))
 
   (define (move! finger::byte x::real y::real
 		 dx::real dy::real)
     ::boolean
-    (and-let* ((drag ::Drag (dragging finger)))
-      (drag:move! x y dx dy)
-      #t))
+    (parameterize ((the-pane-width extent:width)
+		   (the-pane-height extent:height))
+      (and-let* ((drag ::Drag (dragging finger)))
+	(drag:move! x y dx dy)
+	#t)))
 
   (define (second-press! finger::byte #;at x::real y::real)
     ::boolean
-    (or (overlay:second-press! finger x y)
-	(top:second-press! finger x y)))
+    (parameterize ((the-pane-width extent:width)
+		   (the-pane-height extent:height))
+      (or (overlay:second-press! finger x y)
+	  (top:second-press! finger x y))))
 
   (define (double-tap! finger::byte x::real y::real)::boolean
-    (or (overlay:double-tap! finger x y)
-	(top:double-tap! finger x y)))
+    (parameterize ((the-pane-width extent:width)
+		   (the-pane-height extent:height))
+      (or (overlay:double-tap! finger x y)
+	  (top:double-tap! finger x y))))
 
   (define (long-press! finger::byte x::real y::real)::boolean
-    (or (overlay:long-press! finger x y)
-	(top:long-press! finger x y)))
+    (parameterize ((the-pane-width extent:width)
+		   (the-pane-height extent:height))
+      (or (overlay:long-press! finger x y)
+	  (top:long-press! finger x y))))
 
   (define (key-typed! key-code::long context::Cursor)::boolean
     (assert (empty? context))
-    (or (overlay:key-typed! key-code context)
-	(top:key-typed! key-code context)))
+    (parameterize ((the-pane-width extent:width)
+		   (the-pane-height extent:height))
+      (or (overlay:key-typed! key-code context)
+	  (top:key-typed! key-code context))))
   )
 
 (define-object (Stroke finger ::byte source-pane ::Pane)::Layer
-  (define points ::List[Point] (ArrayList[Point]))
+  (define points ::List[Position] (ArrayList[Position]))
 
-  (define (add-point! p::Point)::void
+  (define (add-point! p::Position)::void
     (points:add p))
   
   (define (draw!)::void
     (let ((painter ::Painter (the-painter)))
       (for i from 1 below (points:size)
-        (let ((p0 ::Point (points (- i 1)))
-	      (p1 ::Point (points i)))
-          (painter:draw-line! p0:x p0:y p1:x p1:y)))))
+        (let ((p0 ::Position (points (- i 1)))
+	      (p1 ::Position (points i)))
+          (painter:draw-line! p0:left p0:top p1:left p1:top)))))
   
   (IgnoreInput))
 
 (define-object (Drawing stroke::Stroke)::Drag
 
   (define (move! x::real y::real dx::real dy::real)::void
-    (stroke:add-point! (Point x: x y: y)))
+    (stroke:add-point! (Position left: x top: y)))
 
   (define (drop! x::real y::real vx::real vy::real)::void
     (screen:overlay:remove! stroke))
@@ -365,34 +383,27 @@
   with
   ((draw!)::void
    (let* ((painter (the-painter))
-	  (extent (the-pane-extent))
-	  (line-width (invoke painter 'vertical-split-width))
-          (inner-width (- extent:width
-			  line-width))
+	  (pane-width (the-pane-width))
+	  (pane-height (the-pane-height))
+	  (line-width (painter:vertical-split-width))
+          (inner-width (- pane-width line-width))
           (left-width (* at inner-width))
           (right-width (- inner-width left-width)))
-     (with-clip (left-width extent:height)
-       (parameterize ((the-pane-extent
-		       (Extent
-			width: left-width
-			height: extent:height)))
+     (with-clip (left-width pane-height)
+       (parameterize ((the-pane-width left-width))
 	 (left:draw!)))
      (with-translation (left-width 0)
-       (invoke painter 'draw-vertical-split! 0)
+       (painter:draw-vertical-split! 0)
        (with-translation (line-width 0)
-	 (with-clip (right-width extent:height)
-	   (parameterize ((the-pane-extent
-			   (Extent
-			    width: right-width
-			    height: extent:height)))
+	 (with-clip (right-width pane-height)
+	   (parameterize ((the-pane-width right-width))
 	     (right:draw!)))))))
 
   ((pane-under x::real y::real)::Embeddable
     (let* ((painter (the-painter))
-	   (extent (the-pane-extent))
-	   (line-width (invoke painter 'vertical-split-width))
-           (inner-width (- extent:width
-			   line-width))
+	   (pane-width (the-pane-width))
+	   (line-width (painter:vertical-split-width))
+           (inner-width (- pane-width line-width))
            (left-width (* at inner-width))
            (right-width (- inner-width left-width)))
       (cond ((is x < left-width)
@@ -404,10 +415,9 @@
   
   ((map x::real y::real)::(Values real real)
     (let* ((painter (the-painter))
-	   (extent (the-pane-extent))
-	   (line-width (invoke painter 'vertical-split-width))
-           (inner-width (- extent:width
-			   line-width))
+	   (pane-width (the-pane-width))
+	   (line-width (painter:vertical-split-width))
+           (inner-width (- pane-width line-width))
            (left-width (* at inner-width))
            (right-width (- inner-width left-width)))
       (cond ((is x < left-width)
@@ -419,10 +429,9 @@
 
   ((unmap x::real y::real)::(Values real real)
     (let* ((painter (the-painter))
-	   (extent (the-pane-extent))
-	   (line-width (invoke painter 'vertical-split-width))
-           (inner-width (- extent:width
-			   line-width))
+	   (pane-width (the-pane-width))
+	   (line-width (painter:vertical-split-width))
+           (inner-width (- pane-width line-width))
            (left-width (* at inner-width))
            (right-width (- inner-width left-width)))
       (cond ((is x < left-width)
@@ -434,10 +443,9 @@
   
   ((tap! finger::byte #;at x::real y::real)::boolean
    (let* ((painter (the-painter))
-	  (extent (the-pane-extent))
-	  (line-width (invoke painter 'vertical-split-width))
-          (inner-width (- extent:width
-			  line-width))
+	  (pane-width (the-pane-width))
+	  (line-width (painter:vertical-split-width))
+          (inner-width (- pane-width line-width))
           (left-width (* at inner-width))
           (right-width (- inner-width left-width)))
      (cond ((is x < left-width)
@@ -445,15 +453,15 @@
 	    (left:tap! finger #;at x y))
 	   ((is (+ left-width line-width) < x)
 	    (set! focus HorizontalSplitFocus:Right)
-	    (right:tap! finger #;at (- x left-width line-width) y
-			)))))
+	    (right:tap! finger
+			#;at (- x left-width line-width)
+			     y)))))
 
   ((press! finger::byte #;at x::real y::real)::boolean
    (let* ((painter (the-painter))
-	  (extent (the-pane-extent))
-	  (line-width (invoke painter 'vertical-split-width))
-          (inner-width (- extent:width
-			  line-width))
+	  (pane-width (the-pane-width))
+	  (line-width (painter:vertical-split-width))
+          (inner-width (- pane-width line-width))
           (left-width (* at inner-width))
           (right-width (- inner-width left-width)))
      (cond ((is x < left-width)
@@ -461,15 +469,15 @@
 	    (left:press! finger #;at x y))
 	   ((is (+ left-width line-width) < x)
 	    (set! focus HorizontalSplitFocus:Right)
-	    (right:press! finger #;at (- x left-width line-width) y
-			  )))))
+	    (right:press! finger #;at
+			  (- x left-width line-width)
+			  y)))))
 
   ((second-press! finger::byte #;at x::real y::real)::boolean
    (let* ((painter (the-painter))
-	  (extent (the-pane-extent))
-	  (line-width (invoke painter 'vertical-split-width))
-          (inner-width (- extent:width
-			  line-width))
+	  (pane-width (the-pane-width))
+	  (line-width (painter:vertical-split-width))
+          (inner-width (- pane-width line-width))
           (left-width (* at inner-width))
           (right-width (- inner-width left-width)))
      (cond ((is x < left-width)
@@ -482,10 +490,9 @@
 
   ((double-tap! finger::byte x::real y::real)::boolean
    (let* ((painter (the-painter))
-	  (extent (the-pane-extent))
-	  (line-width (invoke painter 'vertical-split-width))
-          (inner-width (- extent:width
-			  line-width))
+	  (pane-width (the-pane-width))
+	  (line-width (painter:vertical-split-width))
+          (inner-width (- pane-width line-width))
           (left-width (* at inner-width))
           (right-width (- inner-width left-width)))
      (cond ((is x < left-width)
@@ -498,10 +505,9 @@
 
   ((long-press! finger::byte x::real y::real)::boolean
    (let* ((painter (the-painter))
-	  (extent (the-pane-extent))
-	  (line-width (invoke painter 'vertical-split-width))
-          (inner-width (- extent:width
-			  line-width))
+	  (pane-width (the-pane-width))
+	  (line-width (painter:vertical-split-width))
+          (inner-width (- pane-width line-width))
           (left-width (* at inner-width))
           (right-width (- inner-width left-width)))
      (cond ((is x < left-width)
@@ -965,6 +971,7 @@
   (define (press! finger::byte #;at xe::real ye::real)::boolean
     (parameterize/update-sources ((the-document document)
 				  (the-cursor cursor)
+				  (the-editor (this))
 				  (the-selection-anchor
 				   selection-anchor))
       (let-values (((selection-start selection-end)
@@ -993,23 +1000,23 @@
 	    => (lambda (stroke::Stroke)
 		 (screen:overlay:remove! stroke)
 		 (unset! (screen:dragging stroke:finger))
-		 (let ((p0 ::Point (Point x: xe y: ye))
-		       (p1 ::Point (stroke:points
-				    (- (length stroke:points)
-				       1)))
+		 (let ((p0 ::Position (Position left: xe top: ye))
+		       (p1 ::Position (stroke:points
+				       (- (length stroke:points)
+					  1)))
 		       (editor ::Editor (this)))
 		   (set! (screen:dragging stroke:finger)
 			 (object (Drag)
 			   ((move! x::real y::real
 				   dx::real dy::real)
 			    ::void
-			    (let ((p1x ::real (+ p1:x dx))
-				  (p1y ::real (+ p1:y dy)))
+			    (let ((p1x ::real (+ p1:left dx))
+				  (p1y ::real (+ p1:top dy)))
 			      (editor:transform:stretch!
-			       p0:x p0:y p1:x p1:y
-			       p0:x p0:y p1x  p1y)
-			      (set! p1:x p1x)
-			      (set! p1:y p1y)))
+			       p0:left p0:top p1:left p1:top
+			       p0:left p0:top p1x  p1y)
+			      (set! p1:left p1x)
+			      (set! p1:top p1y)))
 			   ((drop! x::real y::real
 				   dx::real dy::real)
 			    ::void
@@ -1020,13 +1027,13 @@
 			   ((move! x::real y::real
 				   dx::real dy::real)
 			    ::void
-			    (let ((p0x ::real (+ p0:x dx))
-				  (p0y ::real (+ p0:y dy)))
+			    (let ((p0x ::real (+ p0:left dx))
+				  (p0y ::real (+ p0:top dy)))
 			      (editor:transform:stretch!
-			       p0:x p0:y p1:x p1:y
-			       p0x  p0y  p1:x p1:y)
-			      (set! p0:x p0x)
-			      (set! p0:y p0y)))
+			       p0:left p0:top p1:left p1:top
+			       p0x  p0y  p1:left p1:top)
+			      (set! p0:left p0x)
+			      (set! p0:top p0y)))
 			   ((drop! x::real y::real
 				   dx::real dy::real)
 			    ::void
@@ -1078,6 +1085,7 @@
     ::boolean
     (parameterize/update-sources ((the-document document)
 				  (the-cursor cursor)
+				  (the-editor (this))
 				  (the-selection-anchor
 				   selection-anchor))
       (let-values (((selection-start selection-end)
@@ -1113,7 +1121,7 @@
 		     to: (let ((target ::Transform (copy transform)))
 			   (target:set-angle! 0.0)
 			   target)
-		     around: (Point x: x y: y)
+		     around: (Position left: x top: y)
 		     duration/ms: 500))
 	#t)
        ((or (isnt (transform:get-left) = 0)
@@ -1199,19 +1207,48 @@
   (define (key-typed! key-code::long context::Cursor)::boolean
     (parameterize/update-sources ((the-document document)
 				  (the-cursor cursor)
+				  (the-editor (this))
 				  (the-selection-anchor
 				   selection-anchor))
       ((keymap key-code))))
 
   )
 
-
 (define-early-constant screen ::Screen
   (Screen))
 
-;; At the top level, (the-pane-extent)
-;; must be bound to the same object
-;; as (screen:size)
-;;
-(define-parameter (the-pane-extent)::Extent
-  (screen:size))
+(define-parameter (the-pane-width)::real
+  (let ((screen ::Extent (screen:size)))
+    screen:width))
+
+(define-parameter (the-pane-height)::real
+  (let ((screen ::Extent (screen:size)))
+    screen:height))
+
+(define-parameter (the-pane-left)::real
+  0)
+
+(define-parameter (the-pane-top)::real
+  0)
+
+(define-parameter (the-editor)::Editor
+  #!null)
+
+(define (adjust-view!)
+  (let* ((painter ::Painter (the-painter))
+	 (editor ::Editor (the-editor))
+	 (cursor ::Position (painter:cursor-position))
+	 (editor-left ::real (the-pane-left))
+	 (editor-top ::real (the-pane-top))
+	 (editor-width ::real (the-pane-width))
+	 (editor-height ::real (the-pane-height))
+	 (xe ::real (- cursor:left editor-left))
+	 (ye ::real (- cursor:top editor-top)))
+    (unless (is 0 <= ye < editor-height)
+      (painter:play!
+       (Transition of: editor:transform
+		   from: (copy editor:transform)
+		   to: (let ((target ::Transform (copy editor:transform)))
+			 (target:translate! 0 (- (/ editor-height 2) ye))
+			 target)
+		   duration/ms: 500)))))

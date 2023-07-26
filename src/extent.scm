@@ -2,8 +2,6 @@
 (import (examples))
 (import (for))
 
-(define-type (Point x: real := 0 y: real := 0))
-
 (define-type (Extent width: real := 0
                      height: real := 0))
 
