@@ -27,7 +27,7 @@
   (set-top! t::real)::void
   )
   
-(define-interface Transform (Map2D TransformParameters)
+(define-interface Transform (Map2D TransformParameters Struct)
   (within painter::Painter action::procedure)::void
 
   (translate! dx::real dy::real)::void
@@ -155,8 +155,8 @@
 			    scale)
 			 (/ (- (* c* y01) (* s* x01))
 			    scale*))))
-      (set! left (- left dx))
-      (set! top (- top dy))
+      (set! left (as int (round (- left dx))))
+      (set! top (as int (round (- top dy))))
       (set! angle/rad angle*/rad)
       (set! scale scale*)))
   
@@ -165,7 +165,7 @@
    (set! angle/rad rad))
   ((get-scale)::real scale)
   ((set-scale! s::real)::void
-   (set! scale s))
+   (set! scale (as double s)))
   ((get-left)::real left)
   ((set-left! l::real)::void
    (set! left l))
