@@ -545,8 +545,10 @@
   (define (opening-parenthesis-color context::Cursor)::Color
     (match (the-cursor)
       (`(#\[ . ,,context)
+       (mark-cursor! 0 0)
        (focused-parenthesis-color))
       (`(#\] . ,,context)
+       (mark-cursor! 0 0)
        (matching-parenthesis-color))
       (_
        (parenthesis-color))))
@@ -554,8 +556,10 @@
   (define (closing-parenthesis-color context::Cursor)::Color
     (match (the-cursor)
       (`(#\] . ,,context)
+       (mark-cursor! 0 0)
        (focused-parenthesis-color))
       (`(#\[ . ,,context)
+       (mark-cursor! 0 0)
        (matching-parenthesis-color))
       (_
        (parenthesis-color))))
@@ -589,8 +593,10 @@
 		     context::Cursor)
     ::void
     (let ((cursor (the-cursor)))
+      
       (open-paren! height
 		   (opening-parenthesis-color context))
+      
       (with-translation ((- width (paren-width)) 0)
 	  (close-paren! height
 			(closing-parenthesis-color context)))))

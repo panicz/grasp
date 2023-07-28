@@ -924,7 +924,7 @@
 		     ((isnt first eq? document)))
 	    first)
 	  document)))
-
+  
   (define document-transform
     (property+ (document::Document)
 	       ::Transform
@@ -1238,17 +1238,20 @@
   (let* ((painter ::Painter (the-painter))
 	 (editor ::Editor (the-editor))
 	 (cursor ::Position (painter:cursor-position))
+	 (cursor-height ::real (painter:cursor-height))
 	 (editor-left ::real (the-pane-left))
 	 (editor-top ::real (the-pane-top))
 	 (editor-width ::real (the-pane-width))
 	 (editor-height ::real (the-pane-height))
 	 (xe ::real (- cursor:left editor-left))
 	 (ye ::real (- cursor:top editor-top)))
-    (unless (is 0 <= ye < editor-height)
+    (unless (is 0 <= ye < (- editor-height cursor-height))
       (painter:play!
        (Transition of: editor:transform
 		   from: (copy editor:transform)
 		   to: (let ((target ::Transform (copy editor:transform)))
-			 (target:translate! 0 (- (/ editor-height 2) ye))
+			 (target:translate! 0 (- (/ (- editor-height
+						       cursor-height)
+						    2) ye))
 			 target)
 		   duration/ms: 500)))))

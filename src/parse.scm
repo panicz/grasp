@@ -27,7 +27,7 @@
 (define (separator? c)::boolean
   (or (eof-object? c)
       (char-whitespace? c)
-      (memq c '(#\( #\) #\[ #\]))))
+      (memq c '(#\( #\) #\[ #\] #\"))))
 
 (define (read-atom-chars-into last-tail::pair)::void
   (let ((c (peek-char)))

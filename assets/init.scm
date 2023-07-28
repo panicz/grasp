@@ -33,18 +33,12 @@
 (import (button))
 
 (set-key! 'left (lambda ()
-		  (let ((cursor (the-cursor)))
-		    (move-cursor-left!)
-		    (adjust-view!)
-		    (WARN "moved cursor from "
-			  cursor" to "(the-cursor)))))
+		  (move-cursor-left!)
+		  (adjust-view!)))
 
 (set-key! 'right (lambda ()
-		   (let ((cursor (the-cursor)))
-		     (move-cursor-right!)
-		     (adjust-view!)
-		     (WARN "moved cursor from "
-			  cursor" to "(the-cursor)))))
+		   (move-cursor-right!)
+		   (adjust-view!)))
 
 (set-key! 'up
 	  (lambda ()
