@@ -1,3 +1,53 @@
+* 26.07.2023
+
+wiemy juz, ze:
+- cursor-position zwraca polozenie kursora we wspolrzednych
+  ekranowych
+- potrzebujemy mechanizmu do wyznaczenia wspolrzednych
+  i rozmiaru edytora, zeby zmapowac polozenie kursora
+  na wspolrzedne edytora
+- stad mozemy latwo zmapowac polozenie kursora
+  na wspolrzedne dokumentu
+
+  ;<
+  (define (screen->document xs::real ys::real)::(Values real real)
+    (let-values (((xe ye) (screen->editor xs ys))
+      (editor->document xe ye))
+
+no i teraz wszystko jest pieknie (bo nie mamy optymalizacji
+i "rysujemy" nawet rzeczy poza ekranem), ale co kiedy bedziemy
+chcieli zrobic optymalizacje?
+
+wowczas bysmy dodali metode cursor-marked? do interfejsu
+Painter, i bysmy rysowali tak dlugo, az 'cursor-marked'
+byloby oznaczone (to jednak wymaga tez wywolywania 'mark-cursor'
+podczas renderowania nawiasow w klientach graficznych)
+
+ewentualnie bysmy dodali nowa metode 'find-cursor'.
+Albo po prostu bysmy uzyli screen-position, zeby dobrac sie
+do rodzica, i pozniej bysmy wywolali jakas mwtode na spacji,
+ktora by nam pozwolila wyznaczyc pozycje kursora (czy cos)
+
+cos na pewno wymyslimy.
+
+ok, czyli dzisiaj zasadniczo chcielibysmy stworzyc mechanizm,
+ktory pozwolilby nam na okreslanie wspolrzednych ekranowych
+edytora, czyli rzeczone
+
+(the-pane-left)
+(the-pane-top)
+(the-pane-width)
+(the-pane-height)
+
+czy to ma sens?
+
+czy moze zamiast tego powinnismy zapamietywac
+(screen-position editor)?
+
+oczywiscie mozna by tak robic, ale wtedy co z rozmiarem?
+
+
+
 * 25.07.2023 (komputer)
 
 Musimy przemyslec to i owo. Rozwazmy definicje z telefonu:
@@ -66,6 +116,49 @@ w grasp-desktop:
 
 Mozemy sobie zmapowac wspolrzedne ekranowe na wspolrzedne w edytorze,
 a je z kolei na wspolrzedne w dokumencie
+
+* 25.07.2023 (telefon)
+
+mamy jako tako dzialajace animacje, moglibysmy jeszcze
+zrobic tak, zeby sie focusowac na danej linii i dopasowywac
+skale do szerokosci
+
+no ale dobrze. skupmy sie na sledzeniu kursora. chodzi o to,
+ze jezeli kursor wyjedzie poza ekran, to powinnismy
+odtworzyc tranzycje, ktora sprawi, ze ow kursor znajdzie sie
+w polowie wysokosci ekranu
+
+
+poniedzialek - system animacji
+wtorek - animacje przy podwojnym kliknieciu
+sroda - sledzinie kursora
+czwartek - rysowanie tla
+piatek - dzielenie ekranu
+
+
+ponadto dobrze byloby, zeby:
+- po lewej stronie edytora byl pasek scrollujacy
+- podczas scrollowania skala automatycznie by sie
+  dopasowywala tak, zeby wszystko miescilo sie
+  na szerokosc
+- nie dalo sie obracac ekranu
+
+no i swietnie, tylko co teraz?
+
+zdefiniujmy funkcje tak:
+
+(define (adjust-view!)
+  (let ((painter ::Painter (the-painter))
+        (editor ::Editor (the-editor)))
+    (unless (cursor-visible?)
+      (painter:play!
+        (Transition of: editor:transform
+	            from: (copy editor:transform)
+		    to: #|takie przesuniecie, zeby kursor
+byl na srodku|#
+                    duration/ms: 500)))))
+
+no dobra, to jak zdefiniowac cursor-visible?
 
 * 24.07.2023
 
