@@ -31,6 +31,7 @@
 (import (document))
 (import (cursor))
 (import (button))
+(import (recognizer))
 
 (set-key! 'left (lambda ()
 		  (move-cursor-left!)
@@ -75,6 +76,15 @@
 (set-key! 'F1 (lambda ()
 		(WARN "cursor: "(the-cursor)
 		      ", expression: "(the-expression))))
+
+(let ((recognizers ::(sequence-of Recognizer) (the-recognizers)))
+  (recognizers:add
+   (Recognizer name: "horizontal-line"
+	       recognizes: (lambda (points::(sequence-of Position))
+			     #f)
+	       action: (lambda ()
+			 ...))))
+			     
 
 #|
 

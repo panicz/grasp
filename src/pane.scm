@@ -37,6 +37,7 @@
 (import (document))
 (import (combinators))
 (import (transform))
+(import (recognizer))
 
 (define-alias Array java.util.Arrays)
 
@@ -186,6 +187,11 @@
     (stroke:add-point! (Position left: x top: y)))
 
   (define (drop! x::real y::real vx::real vy::real)::void
+    (and-let* ((recognized (find (lambda (recognizer::Recognizer)
+				   (recognizer:recognizes
+				    stroke:points))
+				 (the-recognizers))))
+      (recognized:action))
     (screen:overlay:remove! stroke))
 
   (screen:overlay:add! stroke))
