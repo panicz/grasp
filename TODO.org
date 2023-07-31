@@ -1,3 +1,20 @@
+* 30.07.2023
+
+mamy juz nowy modul recognizera,
+kolejnym krokiem bedzie [chyba] napisanie algorytmu
+RDP w taki sposob, zeby dzialal na ArrayListach
+[albo moze nawet na dowolnych Listach]
+
+* 27.07.2023
+
+plan na dzis:
+- dodac oznaczanie pozycji kursora przy renderowaniu
+  nawiasow w graficznych klientach
+- do klienta androidowego dodac uwzglednienie
+  rozmiaru klawiatury przy wyliczaniu rozmiaru ekranu
+- zaczac przygotowania do implementacji podzialow ekranu
+
+
 * 26.07.2023
 
 wiemy juz, ze:
