@@ -1,3 +1,99 @@
+* 01.08.2023
+
+(define (simplify points::java.util.List epsilon::real)
+  ::java.util.List
+  (let* ((n ::int (length points))
+         (n-1 ::int (- n 1)))
+    (if (is n <= 2) ;>
+        (let ((result ::java.util.List (java.util.ArrayList)))
+	  (result:addAll points)
+	  result)
+	(let* ((first ::Position (points 0))
+	       (last ::Position (points n-1))
+	       (interior (points:subList 1 n-1))
+	       (distance-to ::(maps (Position) to: real)
+	                    (distance-to-line-through first last))
+	       (furthest-distance ::real (distance-to (interior 0)))
+	       (index ::int 0))
+	  (for i::int from 1 below (length interior)
+	    (let* ((element ::Point (interior i))
+	           (distance ::real (distance-to element))) ;<
+               (when (is distance > furthest-distance)
+	         (set! index i)
+		 (set! furthest-distance distance)))) ;<
+	    (if (is distance > epsilon)
+	      (let* ((left (points:subList 0 (+ index 1)))
+	             (right (points:subList index n))
+		     (left* (simplify-stroke left epsilon))
+		     (right* (simplify-stroke right epsilon)))
+                (left*:addAll right*)
+		left*)
+	      (java.util.ArrayList first last))))))
+
+no dobra, mamy chyba dzialajacy RDP. Jutro bysmy sprobowali
+dodac dzielenie ekranu.
+	      
+* 31.07.2023
+
+Oto RDP ktoregosmy napisali 2 lata temu dla zabawy
+w (grand scheme):
+
+(define ((perpendicular-distance [x1 y1] [x2 y2]) [x y])
+  (let ((dx (- x2 x1))
+        (dy (- y2 y1)))
+    (/ (abs (+ (* dy x) (* -1 dx y) (* x2 y1) (* -1 y2 x1)))
+       (sqrt (+ (* dx dx) (* dy dy))))))
+
+(define (Ramer-Douglas-Peucker points epsilon)
+  (if (is (length points) <= 2)
+      points
+      (let* (([first middle ... last] points)
+             (furthest distance index-1
+		       (apply argmax
+                              (perpendicular-distance first last)
+                              middle))
+             (index (+ index-1 1)))
+        (if (is distance > epsilon)
+            (let* ((left right (split-at points (+ index 1)))
+                   ([_ ... pivot] left)
+                   (left* (Ramer-Douglas-Peucker left epsilon))
+                   ([pivot . right*] (Ramer-Douglas-Peucker
+				      `(,pivot . ,right) epsilon)))
+              `(,@left* ,@right*))
+            `(,first ,last)))))
+
+(e.g. ;; cf. https://rosettacode.org/wiki/Ramer-Douglas-Peucker_line_simplification
+ (Ramer-Douglas-Peucker
+ '((0 0) (1 0.1) (2 -0.1) (3 5) (4 6)
+    (5 7) (6 8.1) (7    9) (8 9) (9 9))
+  1.0) ===> ((0 0) (2 -0.1) (3 5) (7 9) (9 9)))
+
+I mamy kilka uwag. Przede wszystkim okreslenie
+'perpendicular-distance' mowi niewiele, podczas gdy
+tak naprawde chodzi o odleglosc pomiedzy prosta wyznaczana
+przez punkty [x1 y1], [x2 y2].
+
+Czyli de facto interesuje nas
+
+(define-type (Line direction: Position
+                   displacement: real))
+
+odleglosc punktu od plaszczyzny mozna wyznaczyc w taki sposob, ze:
+
+1. wyznaczamy rzut wektora na te linie (z iloczynu skalarnego)
+2. odejmujemy ten rzut od wektora
+3. liczymy dlugosc wektora, ktory nam pozostal
+
+(define (distance-to-line-through p1::Position p2::Position)
+  ::(maps (Position) to: real)
+  (let* ((dx ::real (- p2:left p1:left))
+         (dy ::real (- p2:top p1:top))
+         (1/d ::real (/ (hypotenuse dx dy)))
+	 (cross ::real (- (* p1:left p2:top)
+	                  (* p2:left p1:top))))
+     (lambda (p::Position)::real
+       (* (- (* dy p:left) (* dx p:top) cross) 1/d))))
+
 * 30.07.2023
 
 mamy juz nowy modul recognizera,
