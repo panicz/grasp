@@ -187,7 +187,8 @@
     (stroke:add-point! (Position left: x top: y)))
 
   (define (drop! x::real y::real vx::real vy::real)::void
-    (and-let* ((recognized (find (lambda (recognizer::Recognizer)
+    (and-let* ((recognized ::Recognizer
+			   (find (lambda (recognizer::Recognizer)
 				   (recognizer:recognizes
 				    stroke:points))
 				 (the-recognizers))))

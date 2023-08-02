@@ -6,6 +6,9 @@
 (define-alias CharSequence java.lang.CharSequence)
 
 (define-interface Animation ()
+  ;; if this method returns #f, it means
+  ;; that the animation has ended and can be
+  ;; discarded by the animation system
   (advance! timestep/ms::int)::boolean)
 
 (define-alias Index java.lang.Object)
