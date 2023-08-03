@@ -4,6 +4,7 @@
 (import (define-property))
 (import (keyword-arguments))
 (import (define-object))
+(import (match))
 
 (define-synonym cache property+)
 
@@ -13,31 +14,32 @@
 
       ((_ kw (key arg :: type := value . args) body)
        (keyword? (syntax->datum #'key))
-       #'(curried kw args (kw (arg::type) body)))
+       #'(kw (arg::type) (curried kw args body)))
+
 
       ((_ kw (key arg :: type . args) body)
        (keyword? (syntax->datum #'key))
-       #'(curried kw args (kw (arg::type) body)))
+       #'(kw (arg::type) (curried kw args body)))
 
       ((_ kw (key arg := value . args) body)
        (keyword? (syntax->datum #'key))
-       #'(curried kw args (kw (arg) body)))
+       #'(kw (arg) (curried kw args body)))
       
       ((_ kw (key arg . args) body)
        (keyword? (syntax->datum #'key))
-       #'(curried kw args (kw (arg) body)))
+       #'(kw (arg) (curried kw args body)))
 
       ((_ kw (arg :: type := value . args) body)
-       #'(curried kw args (kw (arg::type) body)))
+       #'(kw (arg::type) (curried kw args body)))
 
       ((_ kw (arg :: type . args) body)
-       #'(curried kw args (kw (arg::type) body)))
+       #'(kw (arg::type) (curried kw args body)))
 
       ((_ kw (arg := value . args) body)
-       #'(curried kw args (kw (arg) body)))
+       #'(kw (arg) (curried kw args body)))
       
       ((_ kw (arg . args) body)
-       #'(curried kw args (kw (arg) body)))
+       #'(kw (arg) (curried kw args body)))
       
       ((_ kw () body)
        #'body)
@@ -49,32 +51,32 @@
       ((_ procedure)
        #'procedure)
 
-      ((_ procedure args ... key arg :: type := value) 
+      ((_ procedure key arg :: type := value args ...)
        (keyword? (syntax->datum #'key))      
        #'(curried-application (procedure arg) args ...))
 
-      ((_ procedure args ... key arg :: type)
+      ((_ procedure key arg :: type args ...)
        (keyword? (syntax->datum #'key))
        #'(curried-application (procedure arg) args ...))
 
-      ((_ procedure args ... key arg := value)
+      ((_ procedure key arg := value args ...)
        (keyword? (syntax->datum #'key))
        #'(curried-application (procedure arg) args ...))
 
-      ((_ procedure args ... key arg)
+      ((_ procedure key arg args ...)
        (keyword? (syntax->datum #'key))
        #'(curried-application (procedure arg) args ...))
       
-      ((_ procedure args ... arg :: type := value)
+      ((_ procedure arg :: type := value args ...)
        #'(curried-application (procedure arg) args ...))
 
-      ((_ procedure args ... arg :: type)
+      ((_ procedure arg :: type args ...)
        #'(curried-application (procedure arg) args ...))
 
-      ((_ procedure args ... arg := value)
+      ((_ procedure arg := value args ...)
        #'(curried-application (procedure arg) args ...))
 
-      ((_ procedure args ... arg)
+      ((_ procedure arg args ...)
        #'(curried-application (procedure arg) args ...))
       )))
 
@@ -82,14 +84,31 @@
   (syntax-rules (::)
     ((define-cache (name . args)::type body)
      (define-early-constant name
-       (let ((cached (curried cache args body)))
-	 (lambda/kw args::type (curried-application cached . args)))))
+       (let* ((cached (curried cache args body))
+	      (invoker (lambda/kw args::type
+			 (curried-application cached . args))))
+	 (set-procedure-property! invoker 'cache cached)
+	 invoker)))
 
     ((define-cache (name . args) body)
      (define-early-constant name
-       (let ((cached (curried cache args body)))
-	 (lambda/kw args (curried-application cached . args)))))
+       (let* ((cached (curried cache args body))
+	      (invoker (lambda/kw args
+			 (curried-application cached . args))))
+	 (set-procedure-property! invoker 'cache cached)
+	 invoker)))
   ))
+
+(define (invalidate! cache . point)
+  (let ((table ::Map (procedure-property cache 'table)))
+    (match point
+      ('() (table:clear))
+      (`(,point) (table:remove point))
+      (`(,head . ,tail)
+       (apply invalidate! (cache head) tail)))))
+
+(define (invalidate-cache! invoker . point)
+  (apply invalidate! (procedure-property invoker 'cache) point))
 
 ;; the `hash-cons` definition presented here is only used
 ;; for bootstrapping. Prefer the analogous definition of
