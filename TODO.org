@@ -1,3 +1,76 @@
+* 02.08.2023
+
+trzeba by dodac do paintera parametr, line-simplification-resolution,
+ktory moze dla klienta terminalowrgo wynosilby 3, dla desktopu
+10, a dla androida 20.
+
+No dobra, jest, i co dalej?
+
+mozemy zaczac od tego zeby wyswietlac nazwe rozpoznanej rzeczy
+do loga
+
+(define-cache (f x y) ?)
+
+(define-early-constant f
+  (let ((cached (cache (x) (cache y) ?)))
+    (lambda/kw (x y) ((cached x) y))))
+
+problem mamy taki, ze chcielibysmy jakos
+zinwalidowac ten kesz
+
+czyli bysmy to jakos tak zrobili, ze by to wygladalo tak:
+
+(define-early-constant f
+  (let* ((cached (cache (x) (cache y) ?))
+         (invoker (lambda/kw (x y) ((cached x) y))))
+    (set-procedure-property! invoker 'cache cached)
+    invoker))
+
+(define (invalidate! cache . point)
+  (let ((table (procedute-property cache 'table)))
+    (match point
+      ('() (table:clear))
+      (`(,head . ,tail)
+       (apply invalidate! (cache head) tail)
+       (table:remove head)))))
+
+(define (invalidate-cache! invoker . point)
+  (apply invalidate! (procedure-property invoker 'cache) point))
+
+ok, jakos to wyglada. Wykrywanie linii poziomej tez wydaje
+sie dzialac.
+
+to teraz zerknijmy sobie jak to bylo robione kiedys
+(no bo przeciez 'kiedys to bylo')
+
+
+mielismy metody w panelu:
+canBeSplittedVertically(rect)
+splitVerticallyBy(rect)
+
+i teraz zrobimy to dokladnie tak samo!
+
+tylko zdefiniujemy sobie
+
+(define-type (Area left: real top: real
+                   right: real bottom: real))
+
+i znajdzmy sposob wyliczania
+
+(define (area points::(sequence-of Position))::Area
+  (let* ((result ::Area (Area left: +inf.0 top: +inf.0
+                              right: -inf.0 bottom: -inf.0)))
+    (for p::Position in points
+      (set! result:left (min result:left p:left))
+      (set! result:top (min result:top p:top))
+      (set! result:right (max result:right p:left))
+      (set! result:bottom (max result:right p:left)))
+    result))
+
+(pane:can-be-splitted-vertically-by? (area points))
+
+(set! pane (pane:split-vertically-by! (area points)))
+
 * 01.08.2023
 
 (define (simplify points::java.util.List epsilon::real)
