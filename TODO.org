@@ -1,3 +1,15 @@
+* 03.08.2023
+
+dzis chcemy zaimplementowac metody
+
+  (can-split-beside? line::Area)::boolean
+  (split-beside! line::Area)::Embeddable
+  
+  (can-split-below? line::Area)::boolean
+  (split-below! line::Area)::Embeddable
+
+
+
 * 02.08.2023
 
 trzeba by dodac do paintera parametr, line-simplification-resolution,
