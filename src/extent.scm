@@ -27,3 +27,16 @@ def") ===> [Extent width: 3 height: 2])
 
 (define-type (Position left: real := 0
 		       top: real := 0))
+
+(define-type (Area left: real top: real
+                   right: real bottom: real))
+
+(define (area points::(sequence-of Position))::Area
+  (let* ((result ::Area (Area left: +inf.0 top: +inf.0
+                              right: -inf.0 bottom: -inf.0)))
+    (for p::Position in points
+      (set! result:left (min result:left p:left))
+      (set! result:top (min result:top p:top))
+      (set! result:right (max result:right p:left))
+      (set! result:bottom (max result:right p:left)))
+    result))

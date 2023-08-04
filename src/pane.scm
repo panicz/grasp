@@ -51,16 +51,39 @@
 
 (define-interface Embeddable (Pane Map2D)
   (pane-under x::real y::real)::Embeddable
+
+  (can-split-beside? line::Area)::boolean
+  (split-beside! line::Area)::Embeddable
+  
+  (can-split-below? line::Area)::boolean
+  (split-below! line::Area)::Embeddable
+ 
   )
 
 (define-object (NullPane)::Embeddable
   (define (draw!)::void (values))
+  
   (define (pane-under x::real y::real)::Embeddable
     (this))
+  
   (define (map x::real y::real)::(Values real real)
     (values x y))
+  
   (define (unmap x::real y::real)::(Values real real)
     (values x y))
+  
+  (define (can-split-beside? line::Area)::boolean
+    #f)
+  
+  (define (split-beside! line::Area)::Embeddable
+   (this))
+   
+  (define (can-split-below? line::Area)::boolean
+   #f)
+
+  (define (split-below! line::Area)::Embeddable
+   (this))
+  
   (IgnoreInput))
 
 (define-interface Drag ()
@@ -192,7 +215,7 @@
 				   (recognizer:recognizes
 				    stroke:points))
 				 (the-recognizers))))
-      (recognized:action))
+      (recognized:action recognized stroke:points))
     (screen:overlay:remove! stroke))
 
   (screen:overlay:add! stroke))
@@ -377,15 +400,29 @@
 
   (define (key-typed! key-code::long context::Cursor)::boolean
     (content:key-typed! key-code context))
+
+  (define (can-split-beside? line::Area)::boolean
+    (content:can-split-beside? line))
+  
+  (define (split-beside! line::Area)::Embeddable
+    (set! content (content:split-beside! line))
+    (this))
+    
+  (define (can-split-below? line::Area)::boolean
+    (content:can-split-below? line))
+    
+  (define (split-below! line::Area)::Embeddable
+    (set! content (content:split-below! line))
+    (this))
   )
 
-(define-enum HorizontalSplitFocus (Left Right))
+(define-enum SplitBesideFocus (Left Right))
 
-(define-type (HorizontalSplit at: rational
-			      left: Embeddable
-			      right: Embeddable
-			      focus: HorizontalSplitFocus
-			      := HorizontalSplitFocus:Left)
+(define-type (SplitBeside at: rational
+			  left: Embeddable
+			  right: Embeddable
+			  focus: SplitBesideFocus
+			  := SplitBesideFocus:Left)
   implementing Embeddable
   with
   ((draw!)::void
@@ -456,10 +493,10 @@
           (left-width (* at inner-width))
           (right-width (- inner-width left-width)))
      (cond ((is x < left-width)
-	    (set! focus HorizontalSplitFocus:Left)
+	    (set! focus SplitBesideFocus:Left)
 	    (left:tap! finger #;at x y))
 	   ((is (+ left-width line-width) < x)
-	    (set! focus HorizontalSplitFocus:Right)
+	    (set! focus SplitBesideFocus:Right)
 	    (right:tap! finger
 			#;at (- x left-width line-width)
 			     y)))))
@@ -472,10 +509,10 @@
           (left-width (* at inner-width))
           (right-width (- inner-width left-width)))
      (cond ((is x < left-width)
-	    (set! focus HorizontalSplitFocus:Left)
+	    (set! focus SplitBesideFocus:Left)
 	    (left:press! finger #;at x y))
 	   ((is (+ left-width line-width) < x)
-	    (set! focus HorizontalSplitFocus:Right)
+	    (set! focus SplitBesideFocus:Right)
 	    (right:press! finger #;at
 			  (- x left-width line-width)
 			  y)))))
@@ -488,10 +525,10 @@
           (left-width (* at inner-width))
           (right-width (- inner-width left-width)))
      (cond ((is x < left-width)
-	    (set! focus HorizontalSplitFocus:Left)
+	    (set! focus SplitBesideFocus:Left)
 	    (left:second-press! finger #;at x y))
 	   ((is (+ left-width line-width) < x)
-	    (set! focus HorizontalSplitFocus:Right)
+	    (set! focus SplitBesideFocus:Right)
 	    (right:second-press! finger
 			 #;at (- x left-width line-width) y)))))
 
@@ -503,10 +540,10 @@
           (left-width (* at inner-width))
           (right-width (- inner-width left-width)))
      (cond ((is x < left-width)
-	    (set! focus HorizontalSplitFocus:Left)
+	    (set! focus SplitBesideFocus:Left)
 	    (left:double-tap! finger #;at x y))
 	   ((is (+ left-width line-width) < x)
-	    (set! focus HorizontalSplitFocus:Right)
+	    (set! focus SplitBesideFocus:Right)
 	    (right:double-tap! finger
 			 #;at (- x left-width line-width) y)))))
 
@@ -518,23 +555,37 @@
           (left-width (* at inner-width))
           (right-width (- inner-width left-width)))
      (cond ((is x < left-width)
-	    (set! focus HorizontalSplitFocus:Left)
+	    (set! focus SplitBesideFocus:Left)
 	    (left:long-press! finger #;at x y))
 	   ((is (+ left-width line-width) < x)
-	    (set! focus HorizontalSplitFocus:Right)
+	    (set! focus SplitBesideFocus:Right)
 	    (right:long-press! finger
 			 #;at (- x left-width line-width) y)))))
 
   ((key-typed! key-code::long context::Cursor)::boolean
    (match focus
-     (,HorizontalSplitFocus:Left
+     (,SplitBesideFocus:Left
       (left:key-typed! key-code
-		       (recons HorizontalSplitFocus:Left
+		       (recons SplitBesideFocus:Left
 			       context)))
-     (,HorizontalSplitFocus:Right
+     (,SplitBesideFocus:Right
       (right:key-typed! key-code
-			(recons HorizontalSplitFocus:Right
+			(recons SplitBesideFocus:Right
 				context)))))
+  
+  ((can-split-beside? line::Area)::boolean
+   (or (left:can-split-beside? line)
+       (right:can-split-beside? line)))
+  ((split-beside! line::Area)::Embeddable
+
+   (this))
+   
+  ((can-split-below? line::Area)::boolean
+   (or (left:can-split-below? line)
+       (right:can-split-below? line)))
+
+  ((split-below! line::Area)::Embeddable
+   (this))
   )
 
 
@@ -1219,6 +1270,17 @@
 				   selection-anchor))
       ((keymap key-code))))
 
+  (define (can-split-beside? line::Area)::boolean
+    #f)
+  
+  (define (split-beside! line::Area)::Embeddable
+   (this))
+   
+  (define (can-split-below? line::Area)::boolean
+   #f)
+
+  (define (split-below! line::Area)::Embeddable
+   (this))
   )
 
 (define-early-constant screen ::Screen

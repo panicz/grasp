@@ -100,6 +100,8 @@
 
   (define (paren-width)::real 2)
 
+  (define (line-simplification-resolution)::real 3)
+  
   (define (min-box-height)::real 3)
 
   (define (min-line-height)::real 1)

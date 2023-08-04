@@ -25,6 +25,7 @@
 (import (examples))
 (import (indexable))
 (import (extension))
+(import (painter))
 (import (editor-operations))
 (import (pane))
 (import (parse))
@@ -32,6 +33,13 @@
 (import (cursor))
 (import (button))
 (import (recognizer))
+
+(define-syntax $lookup$
+  (syntax-rules ()
+    (($lookup$ object method)
+     (lambda args
+       (apply invoke object method args)))))
+
 
 (set-key! 'left (lambda ()
 		  (move-cursor-left!)
@@ -77,14 +85,32 @@
 		(WARN "cursor: "(the-cursor)
 		      ", expression: "(the-expression))))
 
-(let ((recognizers ::(sequence-of Recognizer) (the-recognizers)))
-  (recognizers:add
-   (Recognizer name: "horizontal-line"
-	       recognizes: (lambda (points::(sequence-of Position))
-			     #f)
-	       action: (lambda ()
-			 ...))))
-			     
+(invoke
+ (the-recognizers) 'add
+ (Recognizer
+  name: "horizontal-line"
+  recognizes:
+  (lambda (points::(sequence-of Position))
+    (let* ((painter ::Painter (the-painter))
+	   (vicinity ::real
+		     (painter:line-simplification-resolution))
+	   (simplified ::java.util.List
+		       (simplify points vicinity)))
+      (and-let* (((is (length simplified) = 2))
+		 (p0 ::Position (simplified 0))
+		 (p1 ::Position (simplified 1))
+		 ((is (abs (- (slot-ref p0 'top)
+			      (slot-ref p1 'top)))
+		      <= (* vicinity 2)))
+		 (line ::Area (area simplified)))
+	(screen:can-split-below? line))))
+  action:
+  (lambda (own::Recognizer
+	   points::(sequence-of Position))
+    (let* ((line ::Area (area points)))
+      (slot-set! screen 'top (invoke (slot-ref screen 'top)
+				     'split-below! line)))
+    (WARN "recognized "(slot-ref own 'name)))))
 
 #|
 
@@ -96,12 +122,6 @@
 (set-key! 'mouse-wheel-up scroll-up!)
 (set-key! 'mouse-wheel-down scroll-down!)
 |#
-
-(define-syntax $lookup$
-  (syntax-rules ()
-    (($lookup$ object method)
-     (lambda args
-       (apply invoke object method args)))))
 
 (screen:set-content!
  (Editor document: (Document (car (with-input-from-string #;"

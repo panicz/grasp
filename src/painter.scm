@@ -46,6 +46,7 @@
   (cursor-position)::Position
   (cursor-height)::real
 
+  (line-simplification-resolution)::real
   (space-width)::real
 
   (paren-width)::real
@@ -228,6 +229,8 @@
   (define (min-box-height)::real 1)
 
   (define (min-line-height)::real 1)
+
+  (define (line-simplification-resolution)::real 1)
 
   (define (vertical-bar-width)::real 1)
 

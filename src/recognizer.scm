@@ -1,5 +1,7 @@
 (import (define-type))
 (import (define-parameter))
+(import (define-property))
+(import (define-cache))
 (import (extent))
 (import (examples))
 (import (for))
@@ -9,7 +11,9 @@
 (define-type (Recognizer name: string
 			 recognizes: (maps ((sequence-of Position))
 					   to: boolean)
-			 action: (maps () to: void)))
+			 action: (maps (Recognizer (sequence-of
+						    Position))
+				       to: void)))
 
 (define-parameter (the-recognizers)
   ::($bracket-apply$ java.util.List Recognizer)
@@ -30,7 +34,7 @@
 
 (define (simplify points::($bracket-apply$ java.util.List
 					   Position)
-		  epsilon::real)
+			epsilon::real)
   ::($bracket-apply$ java.util.List Position)
   (let* ((n ::int (length points))
          (n-1 ::int (- n 1)))

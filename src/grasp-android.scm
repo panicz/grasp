@@ -660,6 +660,8 @@
 
   (define (space-width)::real 16)
 
+  (define (line-simplification-resolution)::real 20)
+  
   (define (draw-rounded-rectangle! width::real height::real)
     ::void
     (paint:setColor #xffffffff)
