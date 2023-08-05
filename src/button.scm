@@ -418,15 +418,15 @@
 
   (define (key-typed! key-code::long context::Cursor)::boolean
     (let ((input ::gnu.text.Char (unicode-input))
-	        (key-name (key-code-name (java.lang.Integer key-code))))
+	  (key-name (key-code-name (java.lang.Integer key-code))))
       (cond
        ((eq? key-name 'backspace)
-	      (and-let* ((`(,index . ,stem) (the-cursor))
-		               ((integer? index))
-		               ((is (first-index) < index <= (last-index))))
-	        (delete (previous-index index) index)
-	        (set! (the-cursor) (recons (previous-index index) stem))
-	        #t))
+	(and-let* ((`(,index . ,stem) (the-cursor))
+		   ((integer? index))
+		   ((is (first-index) < index <= (last-index))))
+	  (delete (previous-index index) index)
+	  (set! (the-cursor) (recons (previous-index index) stem))
+	  #t))
 
        ((eq? key-name 'left)
         (and-let* ((`(,index . ,stem) (the-cursor)))
@@ -439,22 +439,22 @@
           #t))
 
        ((eq? key-name 'delete)
-	      (and-let* ((`(,index . ,_) (the-cursor))
-		               ((integer? index))
-		               ((is (first-index) <= index < (last-index))))
-	        (delete index (next-index index))
-	        #t))
+	(and-let* ((`(,index . ,_) (the-cursor))
+		   ((integer? index))
+		   ((is (first-index) <= index < (last-index))))
+	  (delete index (next-index index))
+	  #t))
 
        ((eq? key-name 'enter)
-	      #f)
+	#f)
 
        ((isnt input eq? #\null)
-	      (and-let* ((`(,index . ,stem) (the-cursor))
-		               ((integer? index))
-		               ((is (first-index) <= index <= (last-index))))
-	        (insert index (input:intValue) #t)
+	(and-let* ((`(,index . ,stem) (the-cursor))
+		   ((integer? index))
+		   ((is (first-index) <= index <= (last-index))))
+	  (insert index (input:intValue) #t)
           (set! (the-cursor) (recons (next-index index) stem))
-	         #t)))))
+	  #t)))))
 
   (define (as-expression)::cons
     (cons (Atom "text-input")

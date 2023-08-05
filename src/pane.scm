@@ -187,6 +187,19 @@
 		   (the-pane-height extent:height))
       (or (overlay:key-typed! key-code context)
 	  (top:key-typed! key-code context))))
+
+  (define (can-split-beside? line::Area)::boolean
+    (top:can-split-beside? line))
+  
+  (define (split-beside! line::Area)::void
+    (set! top (top:split-beside! line)))
+  
+  (define (can-split-below? line::Area)::boolean
+    (top:can-split-below? line))
+  
+  (define (split-below! line::Area)::void
+    (set! top (top:split-below! line)))
+
   )
 
 (define-object (Stroke finger ::byte source-pane ::Pane)::Layer
@@ -418,7 +431,7 @@
 
 (define-enum SplitBesideFocus (Left Right))
 
-(define-type (SplitBeside at: rational
+(define-type (SplitBeside at: real := 0.5
 			  left: Embeddable
 			  right: Embeddable
 			  focus: SplitBesideFocus
@@ -426,13 +439,13 @@
   implementing Embeddable
   with
   ((draw!)::void
-   (let* ((painter (the-painter))
-	  (pane-width (the-pane-width))
-	  (pane-height (the-pane-height))
-	  (line-width (painter:vertical-split-width))
-          (inner-width (- pane-width line-width))
-          (left-width (* at inner-width))
-          (right-width (- inner-width left-width)))
+   (let* ((painter ::Painter (the-painter))
+	  (pane-width ::real (the-pane-width))
+	  (pane-height ::real (the-pane-height))
+	  (line-width ::real (painter:vertical-split-width))
+          (inner-width ::real (- pane-width line-width))
+          (left-width ::real (as int (round (* at inner-width))))
+          (right-width ::real (- inner-width left-width)))
      (with-clip (left-width pane-height)
        (parameterize ((the-pane-width left-width))
 	 (left:draw!)))
@@ -442,150 +455,152 @@
 	 (with-clip (right-width pane-height)
 	   (parameterize ((the-pane-width right-width))
 	     (right:draw!)))))))
-
-  ((pane-under x::real y::real)::Embeddable
-    (let* ((painter (the-painter))
-	   (pane-width (the-pane-width))
-	   (line-width (painter:vertical-split-width))
-           (inner-width (- pane-width line-width))
-           (left-width (* at inner-width))
-           (right-width (- inner-width left-width)))
-      (cond ((is x < left-width)
-	     (left:pane-under x y))
-	    ((is (+ left-width line-width) < x)
-	     (right:pane-under (- x left-width line-width) y))
-	    (else
-	     (this)))))
   
+  ((propagate default::procedure action::procedure x::real y::real)
+   (let* ((painter ::Painter (the-painter))
+	  (pane-width ::real (the-pane-width))
+	  (line-width ::real (painter:vertical-split-width))
+          (inner-width ::real (- pane-width line-width))
+          (left-width ::real (as int (round (* at inner-width))))
+          (right-width ::real (- inner-width left-width)))
+     (cond ((is x < left-width)
+	    (parameterize ((the-pane-width left-width))
+	      (action left x y)))
+	   ((is (+ left-width line-width) < x)
+	    (parameterize ((the-pane-width right-width))
+	      (action right (- x left-width line-width) y)))
+	   (else
+	    (parameterize ((the-pane-width line-width))
+	      (default (- x left-width) y))))))
+  
+  ((pane-under x::real y::real)::Embeddable
+   (propagate (lambda _ (this))
+	      (lambda (target::Embeddable x::real y::real)
+		(target:pane-under x y))
+	      x y))
+
   ((map x::real y::real)::(Values real real)
-    (let* ((painter (the-painter))
-	   (pane-width (the-pane-width))
-	   (line-width (painter:vertical-split-width))
-           (inner-width (- pane-width line-width))
-           (left-width (* at inner-width))
-           (right-width (- inner-width left-width)))
-      (cond ((is x < left-width)
-	     (left:map x y))
-	    ((is (+ left-width line-width) < x)
-	     (right:map (- x left-width line-width) y))
-	    (else
-	     (values (- x left-width) y)))))
+   (propagate values
+	      (lambda (target::Embeddable x::real y::real)
+		(target:map x y))
+	      x y))
 
   ((unmap x::real y::real)::(Values real real)
-    (let* ((painter (the-painter))
-	   (pane-width (the-pane-width))
-	   (line-width (painter:vertical-split-width))
-           (inner-width (- pane-width line-width))
-           (left-width (* at inner-width))
-           (right-width (- inner-width left-width)))
-      (cond ((is x < left-width)
-	     (left:unmap x y))
-	    ((is (+ left-width line-width) < x)
-	     (right:unmap (+ x left-width line-width) y))
-	    (else
-	     (values (+ x left-width) y)))))
+   (error "unmap not implemented for Split"))
   
-  ((tap! finger::byte #;at x::real y::real)::boolean
-   (let* ((painter (the-painter))
-	  (pane-width (the-pane-width))
-	  (line-width (painter:vertical-split-width))
-          (inner-width (- pane-width line-width))
-          (left-width (* at inner-width))
-          (right-width (- inner-width left-width)))
-     (cond ((is x < left-width)
-	    (set! focus SplitBesideFocus:Left)
-	    (left:tap! finger #;at x y))
-	   ((is (+ left-width line-width) < x)
-	    (set! focus SplitBesideFocus:Right)
-	    (right:tap! finger
-			#;at (- x left-width line-width)
-			     y)))))
+  ((tap! finger::byte x::real y::real)::boolean
+   (propagate values (lambda (target::Embeddable x::real y::real)
+		       (target:tap! finger x y))
+	      x y))
 
   ((press! finger::byte #;at x::real y::real)::boolean
-   (let* ((painter (the-painter))
-	  (pane-width (the-pane-width))
-	  (line-width (painter:vertical-split-width))
-          (inner-width (- pane-width line-width))
-          (left-width (* at inner-width))
-          (right-width (- inner-width left-width)))
-     (cond ((is x < left-width)
-	    (set! focus SplitBesideFocus:Left)
-	    (left:press! finger #;at x y))
-	   ((is (+ left-width line-width) < x)
-	    (set! focus SplitBesideFocus:Right)
-	    (right:press! finger #;at
-			  (- x left-width line-width)
-			  y)))))
+   (propagate values (lambda (target::Embeddable x::real y::real)
+		       (target:press! finger x y))
+	      x y))
 
   ((second-press! finger::byte #;at x::real y::real)::boolean
-   (let* ((painter (the-painter))
-	  (pane-width (the-pane-width))
-	  (line-width (painter:vertical-split-width))
-          (inner-width (- pane-width line-width))
-          (left-width (* at inner-width))
-          (right-width (- inner-width left-width)))
-     (cond ((is x < left-width)
-	    (set! focus SplitBesideFocus:Left)
-	    (left:second-press! finger #;at x y))
-	   ((is (+ left-width line-width) < x)
-	    (set! focus SplitBesideFocus:Right)
-	    (right:second-press! finger
-			 #;at (- x left-width line-width) y)))))
+   (propagate never (lambda (target::Embeddable x::real y::real)
+		       (target:second-press! finger x y))
+	      x y))
 
   ((double-tap! finger::byte x::real y::real)::boolean
-   (let* ((painter (the-painter))
-	  (pane-width (the-pane-width))
-	  (line-width (painter:vertical-split-width))
-          (inner-width (- pane-width line-width))
-          (left-width (* at inner-width))
-          (right-width (- inner-width left-width)))
-     (cond ((is x < left-width)
-	    (set! focus SplitBesideFocus:Left)
-	    (left:double-tap! finger #;at x y))
-	   ((is (+ left-width line-width) < x)
-	    (set! focus SplitBesideFocus:Right)
-	    (right:double-tap! finger
-			 #;at (- x left-width line-width) y)))))
+   (propagate never (lambda (target::Embeddable x::real y::real)
+		       (target:double-tap! finger x y))
+	      x y))
 
   ((long-press! finger::byte x::real y::real)::boolean
-   (let* ((painter (the-painter))
-	  (pane-width (the-pane-width))
-	  (line-width (painter:vertical-split-width))
-          (inner-width (- pane-width line-width))
-          (left-width (* at inner-width))
-          (right-width (- inner-width left-width)))
-     (cond ((is x < left-width)
-	    (set! focus SplitBesideFocus:Left)
-	    (left:long-press! finger #;at x y))
-	   ((is (+ left-width line-width) < x)
-	    (set! focus SplitBesideFocus:Right)
-	    (right:long-press! finger
-			 #;at (- x left-width line-width) y)))))
+   (propagate never (lambda (target::Embeddable x::real y::real)
+		       (target:long-press! finger x y))
+	      x y))
 
   ((key-typed! key-code::long context::Cursor)::boolean
-   (match focus
-     (,SplitBesideFocus:Left
-      (left:key-typed! key-code
-		       (recons SplitBesideFocus:Left
-			       context)))
-     (,SplitBesideFocus:Right
-      (right:key-typed! key-code
-			(recons SplitBesideFocus:Right
-				context)))))
+   (let* ((painter ::Painter (the-painter))
+	  (pane-width ::real (the-pane-width))
+	  (line-width ::real (painter:vertical-split-width))
+          (inner-width ::real (- pane-width line-width))
+          (left-width ::real (as int (round (* at inner-width))))
+          (right-width ::real (- inner-width left-width)))
+     (match focus
+       (,SplitBesideFocus:Left
+	(parameterize ((the-pane-width left-width))
+	  (left:key-typed! key-code
+			   (recons SplitBesideFocus:Left
+				   context))))
+       (,SplitBesideFocus:Right
+	(parameterize ((the-pane-width right-width))
+	  (right:key-typed! key-code
+			    (recons SplitBesideFocus:Right
+				    context)))))))
   
   ((can-split-beside? line::Area)::boolean
-   (or (left:can-split-beside? line)
-       (right:can-split-beside? line)))
+   (let* ((painter ::Painter (the-painter))
+	  (pane-width ::real (the-pane-width))
+	  (line-width ::real (painter:vertical-split-width))
+          (inner-width ::real (- pane-width line-width))
+          (left-width ::real (as int (round (* at inner-width))))
+          (right-width ::real (- inner-width left-width)))
+     (or (parameterize ((the-pane-width left-width))
+	   (left:can-split-beside? line))
+	 (parameterize ((the-pane-width right-width))
+	   (right:can-split-beside?
+	    (Area left: (- line:left left-width line-width)
+		  top: line:top
+		  right: (- line:right left-width line-width)
+		  bottom: line:bottom))))))
+  
   ((split-beside! line::Area)::Embeddable
-
-   (this))
-   
+   (let* ((painter ::Painter (the-painter))
+	  (pane-width ::real (the-pane-width))
+	  (line-width ::real (painter:vertical-split-width))
+          (inner-width ::real (- pane-width line-width))
+          (left-width ::real (as int (round (* at inner-width))))
+          (right-width ::real (- inner-width left-width)))
+     (parameterize ((the-pane-width left-width))
+       (when (left:can-split-beside? line)
+	 (set! left (left:split-beside! line))))
+     (let ((line* (Area left: (- line:left left-width line-width)
+			top: line:top
+			right: (- line:right left-width line-width)
+			bottom: line:bottom)))
+       (parameterize ((the-pane-width right-width))
+	 (when (right:can-split-beside? line*)
+	   (set! right (right:split-beside! line*)))))
+     (this)))
+  
   ((can-split-below? line::Area)::boolean
-   (or (left:can-split-below? line)
-       (right:can-split-below? line)))
+   (let* ((painter ::Painter (the-painter))
+	  (pane-width ::real (the-pane-width))
+	  (line-width ::real (painter:vertical-split-width))
+          (inner-width ::real (- pane-width line-width))
+          (left-width ::real (as int (round (* at inner-width))))
+          (right-width ::real (- inner-width left-width)))
+     (or (parameterize ((the-pane-width left-width))
+	   (left:can-split-below? line))
+	 (parameterize ((the-pane-width right-width))
+	   (right:can-split-below?
+	    (Area left: (- line:left left-width line-width)
+		  top: line:top
+		  right: (- line:right left-width line-width)
+		  bottom: line:bottom))))))
 
   ((split-below! line::Area)::Embeddable
-   (this))
+   (let* ((painter ::Painter (the-painter))
+	  (pane-width ::real (the-pane-width))
+	  (line-width ::real (painter:vertical-split-width))
+          (inner-width ::real (- pane-width line-width))
+          (left-width ::real (as int (round  (* at inner-width))))
+          (right-width ::real (- inner-width left-width)))
+     (parameterize ((the-pane-width left-width))
+       (when (left:can-split-below? line)
+	 (set! left (left:split-below! line))))
+     (let ((line* (Area left: (- line:left left-width line-width)
+			top: line:top
+			right: (- line:right left-width line-width)
+			bottom: line:bottom)))
+       (parameterize ((the-pane-width right-width))
+	 (when (right:can-split-below? line*)
+	   (set! right (right:split-below! line*)))))
+     (this)))
   )
 
 
@@ -1271,16 +1286,39 @@
       ((keymap key-code))))
 
   (define (can-split-beside? line::Area)::boolean
-    #f)
+    (let* ((painter ::Painter (the-painter))
+	   (vicinity ::real
+		     (painter:line-simplification-resolution))
+	   (3vicinity (* vicinity 3)))
+      (and (is 0 < line:left <= line:right < (the-pane-width))
+	   (is line:top <= 3vicinity)
+	   (is (- (the-pane-height) line:bottom) <= 3vicinity))))
   
   (define (split-beside! line::Area)::Embeddable
-   (this))
+    (if (can-split-beside? line)
+	(let ((ratio ::real (/ (/ (+ line:left line:right)
+				  2)
+			       (the-pane-width))))
+	  (SplitBeside left: (this)
+		       right: (this)
+		       at: ratio))
+	(this)))
    
   (define (can-split-below? line::Area)::boolean
-   #f)
+    #f
+    #;(let* ((painter ::Painter (the-painter))
+	   (vicinity ::real
+		     (painter:line-simplification-resolution)))
+      (and (is 0 < line:top <= line:bottom < (the-pane-height))
+	   (is line:left <= vicinity)
+	   (is (- (the-pane-width) line:right) <= vicinity))))
 
   (define (split-below! line::Area)::Embeddable
-   (this))
+    (this)
+    #;(if (can-split-below? line)
+	(SplitBelow top: (this)
+		    bottom: (copy (this)))
+	(this)))
   )
 
 (define-early-constant screen ::Screen

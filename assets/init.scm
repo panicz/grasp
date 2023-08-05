@@ -33,6 +33,8 @@
 (import (cursor))
 (import (button))
 (import (recognizer))
+(import (extent))
+
 
 (define-syntax $lookup$
   (syntax-rules ()
@@ -108,9 +110,36 @@
   (lambda (own::Recognizer
 	   points::(sequence-of Position))
     (let* ((line ::Area (area points)))
-      (slot-set! screen 'top (invoke (slot-ref screen 'top)
-				     'split-below! line)))
+      (screen:split-below! line))
     (WARN "recognized "(slot-ref own 'name)))))
+
+(invoke
+ (the-recognizers) 'add
+ (Recognizer
+  name: "vertical-line"
+  recognizes:
+  (lambda (points::(sequence-of Position))
+    (let* ((painter ::Painter (the-painter))
+	   (vicinity ::real
+		     (painter:line-simplification-resolution))
+	   (simplified ::java.util.List
+		       (simplify points vicinity)))
+      (WARN simplified)
+      (and-let* (((is (length simplified) = 2))
+		 (p0 ::Position (simplified 0))
+		 (p1 ::Position (simplified 1))
+		 ((is (abs (- (slot-ref p0 'left)
+			      (slot-ref p1 'left)))
+		      <= (* vicinity 2)))
+		 (line ::Area (area simplified)))
+	(screen:can-split-beside? line))))
+  action:
+  (lambda (own::Recognizer
+	   points::(sequence-of Position))
+    (let* ((line ::Area (area points)))
+       (screen:split-beside! line))
+    (WARN "recognized "(slot-ref own 'name)))))
+
 
 #|
 
