@@ -1,3 +1,69 @@
+* 05.08.2023
+
+na pewno chcemy, zeby:
+
+- Editor zostal Cloneable
+- dalo sie klonowac 'propertiesy'
+
+trzeba tez sie zastanowic, bo jezeli ten sam dokument
+mozna otworzyc w wiecej niz jednym edytorze, to
+(screen-position expression) staje sie wieloznaczne
+- i zamiast niego raczej chcielibysmy uzywac
+(document-position expression), ktore z kolei bysmy
+mogli wzglednie latwo sobie konwertowac do
+polozenia wewnatrz edytora.
+
+(define-syntax property
+  (syntax-rules (::)
+    ((property (object::key-type)::value-type default)
+     (let* ((table (($bracket-apply$ make-weak-key-hash-table
+				     key-type value-type)))
+            (getter (lambda (object::key-type)
+                      (hash-ref table object
+				(lambda () default)))))
+       (set! (setter getter)
+	 (lambda (arg::key-type value::value-type)
+           (hash-set! table arg value)))
+       (set-procedure-property! getter 'table table)
+       getter))))
+
+
+(define-syntax property
+  (syntax-rules (::)
+    ((property (object::key-type)::value-type default)
+     (let ((table (($bracket-apply$ make-weak-key-hash-table
+				    key-type value-type))))
+       (define (create table)
+         (let ((getter (lambda (object::key-type)
+                         (hash-ref table object
+		            (lambda () default)))))
+            (set! (setter getter)
+	      (lambda (arg::key-type value::value-type)
+                (hash-set! table arg value)))
+	    (set-procedure-property! getter 'table table)
+	    (set-procedure-property! getter 'clone
+	      (lambda ()
+	        (create (table:clone))))
+	    getter))
+
+       (create table)))))
+
+* 04.08.2023
+
+na razie mamy wydmuszki metod. dzis/jutro bysmy zrobili tak:
+
+- zaimplementowali dobry detektor w Editor (mozemy troche
+  zmienic interfejs)
+
+- dobrze zaimplementowali detektor w SplitBeside
+
+i wowczas moze juz dzis udaloby sie miec ekran dzielony
+w pionie
+
+no ale dopsz, chcielibysmy zrefaktoryzowac SplitBeside
+na modle - czego? propagatora w ColumnGrid w (button)
+
+
 * 03.08.2023
 
 dzis chcemy zaimplementowac metody
@@ -7,7 +73,6 @@ dzis chcemy zaimplementowac metody
   
   (can-split-below? line::Area)::boolean
   (split-below! line::Area)::Embeddable
-
 
 
 * 02.08.2023
