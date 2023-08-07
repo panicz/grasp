@@ -1,20 +1,28 @@
 (import (srfi :17))
 (import (define-syntax-rule))
 (import (hash-table))
+(import (fundamental))
 
 (define-syntax property
   (syntax-rules (::)
     ((property (object::key-type)::value-type default)
-     (let* ((table (($bracket-apply$ make-weak-key-hash-table
-				     key-type value-type)))
-            (getter (lambda (object::key-type)
-                      (hash-ref table object
-				(lambda () default)))))
-       (set! (setter getter)
-	 (lambda (arg::key-type value::value-type)
-           (hash-set! table arg value)))
-       (set-procedure-property! getter 'table table)
-       getter))
+     (let ((table ::java.util.WeakHashMap
+		  (($bracket-apply$ make-weak-key-hash-table
+				    key-type value-type))))
+       (define (create table::java.util.WeakHashMap)
+         (let ((getter (lambda (object::key-type)
+                         (hash-ref table object
+				   (lambda () default)))))
+           (set! (setter getter)
+		 (lambda (arg::key-type value::value-type)
+                   (hash-set! table arg value)))
+	   (set-procedure-property! getter 'table table)
+	   (set-procedure-property! getter 'clone
+				    (lambda ()
+				      (create (copy table))))
+	   getter))
+
+       (create table)))
 
     ((property (object::key-type) default)
      (property (object::key-type)::java.lang.Object
@@ -34,16 +42,23 @@
 (define-syntax property+
   (syntax-rules (::)
     ((property+ (object::key-type)::value-type default)
-     (let* ((table (($bracket-apply$ make-weak-key-hash-table
-				     key-type value-type)))
-            (getter (lambda (object::key-type)
-                      (hash-ref+ table object
-				 (lambda () default)))))
-       (set! (setter getter)
-	 (lambda (arg::key-type value::value-type)
-           (hash-set! table arg value)))
-       (set-procedure-property! getter 'table table)
-       getter))
+     (let ((table ::java.util.WeakHashMap
+		  (($bracket-apply$ make-weak-key-hash-table
+				    key-type value-type))))
+       (define (create table::java.util.WeakHashMap)
+         (let ((getter (lambda (object::key-type)
+                         (hash-ref+ table object
+				    (lambda () default)))))
+           (set! (setter getter)
+		 (lambda (arg::key-type value::value-type)
+                   (hash-set! table arg value)))
+	   (set-procedure-property! getter 'table table)
+	   (set-procedure-property! getter 'clone
+				    (lambda ()
+				      (create (copy table))))
+	   getter))
+
+       (create table)))
 
     ((property+ (object::key-type) default)
      (property+ (object::key-type)::java.lang.Object

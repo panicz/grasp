@@ -7,7 +7,6 @@
 (import (define-cache))
 (import (define-parameter))
 (import (keyword-arguments))
-(import (default-value))
 (import (hash-table))
 (import (fundamental))
 (import (infix))

@@ -6,7 +6,6 @@
 (import (define-interface))
 (import (define-type))
 (import (define-object))
-(import (default-value))
 (import (define-parameter))
 (import (define-cache))
 (import (keyword-arguments))

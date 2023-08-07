@@ -7,7 +7,6 @@
 (import (define-type))
 (import (define-object))
 (import (define-cache))
-(import (default-value))
 (import (define-parameter))
 (import (server))
 (import (extent))

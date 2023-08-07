@@ -8,7 +8,6 @@
 (import (define-property))
 (import (define-parameter))
 (import (keyword-arguments))
-(import (default-value))
 (import (mapping))
 (import (fundamental))
 (import (infix))

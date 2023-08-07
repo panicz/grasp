@@ -6,7 +6,6 @@
 (import (define-object))
 (import (define-property))
 (import (define-cache))
-(import (default-value))
 (import (define-parameter))
 (import (keyword-arguments))
 (import (match))

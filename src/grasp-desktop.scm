@@ -10,7 +10,6 @@
 (import (define-property))
 (import (define-cache))
 (import (define-parameter))
-(import (default-value))
 (import (mapping))
 (import (fundamental))
 (import (infix))

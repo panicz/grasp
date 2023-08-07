@@ -3,7 +3,6 @@
 (import (define-type))
 (import (define-syntax-rule))
 (import (define-parameter))
-(import (default-value))
 (import (extent))
 (import (fundamental))
 
@@ -514,8 +513,6 @@
 		       color-rgba::int)::void
     (values))
   )
-
-;;(set! (default-value Painter) (NullPainter))
 
 (define-parameter (the-painter) ::Painter
   (NullPainter))

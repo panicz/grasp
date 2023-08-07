@@ -4,8 +4,7 @@
 (import (define-interface))
 (import (define-property))
 (import (match))
-
-;;(define-alias Cloneable java.lang.Cloneable)
+(import (fundamental))
 
 (define-syntax maps
   (syntax-rules (to:)
@@ -53,9 +52,6 @@
   (clone) :: Struct
   ;;(deep-copy)::Struct
   )
-
-(define (copy struct::Struct)::Struct
-  (struct:clone))
 
 (define-simple-class Base (Struct)
   ((typename)::String #!abstract)

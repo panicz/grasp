@@ -1,5 +1,3 @@
-(import (default-value))
-
 (define-syntax define-parameter
   (syntax-rules (::)
     
@@ -9,7 +7,7 @@
 
     ((_ (parameter-name) :: type)
      (define-early-constant parameter-name :: parameter[type]
-       (make-parameter (default-value type))))
+       (make-parameter #!null)))
     
     ((_ (parameter-name) initial-value)
      (define-early-constant parameter-name :: parameter
@@ -29,7 +27,7 @@
 
     ((_ (parameter-name) :: type)
      (define parameter-name :: parameter[type]
-       (make-parameter (default-value type))))
+       (make-parameter #!null)))
     
     ((_ (parameter-name) initial-value)
      (define parameter-name :: parameter

@@ -1,5 +1,6 @@
 (import (define-parameter))
 (import (define-interface))
+(import (for))
 
 (define-alias EnumSet java.util.EnumSet)
 
@@ -25,6 +26,27 @@
 
 (define-alias List java.util.List)
 (define-alias ArrayList java.util.ArrayList)
+
+
+(define (copy object)
+  (cond
+   ((instance? object java.lang.Cloneable)
+    (let ((clonable ::java.lang.Cloneable object))
+      (clonable:clone)))
+   ((procedure? object)
+    (let ((clone (procedure-property procedure 'clone)))
+      (if (procedure? clone)
+	  (clone)
+	  (error "Unable to clone procedure "object))))
+   ((instance? object java.util.WeakHashMap)
+    (let* ((hash-map ::java.util.WeakHashMap object)
+	   (cloned ::java.util.WeakHashMap
+		   (java.util.WeakHashMap)))
+      (for key in (hash-map:keySet)
+	(cloned:put key (hash-map:get key)))
+      cloned))
+   (else
+    (error "Unable to clone "object))))
 
 #|
 

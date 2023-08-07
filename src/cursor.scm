@@ -4,7 +4,6 @@
 (import (define-type))
 (import (define-cache))
 (import (define-property))
-(import (default-value))
 (import (define-parameter))
 (import (keyword-arguments))
 (import (infix))

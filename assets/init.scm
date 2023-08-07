@@ -12,7 +12,6 @@
 (import (define-property))
 (import (define-cache))
 (import (define-parameter))
-(import (default-value))
 (import (fundamental))
 (import (infix))
 (import (match))
