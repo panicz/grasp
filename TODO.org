@@ -1,3 +1,21 @@
+* 06.08.2023
+
+dzis bysmy sprobowali zaimplementowac te wczorajsze
+kopiowania tak, zeby sie dalo kopiowac propertisy
+
+a jutro bysmy uczynili Editor instancja Cloneable,
+i ewentualnie sprobowali rysowac czarna kreche
+(i do tego moze jeszcze robienie Drag jak sie zrobi
+press! na SplitBeside)
+
+no i pamietajmy, zeby zamiast screen-position
+sledzic sobie document-position
+
+moze w tym tygodniu sie uda mnuej wiecej te splity
+obsluzyc, to w kolejnym bysmy sprobowali dodac
+sledzenie predkosci do touch-event-processora
+
+
 * 05.08.2023
 
 na pewno chcemy, zeby:
@@ -30,7 +48,7 @@ polozenia wewnatrz edytora.
 
 (define-syntax property
   (syntax-rules (::)
-    ((property (object::key-type)::value-type default)
+  ((property (object::key-type)::value-type default)
      (let ((table (($bracket-apply$ make-weak-key-hash-table
 				    key-type value-type))))
        (define (create table)
