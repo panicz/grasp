@@ -542,7 +542,8 @@
   (define (draw-horizontal-split! top::real)::void
     (let* ((left ::float (max 0 (current-clip-left)))
 	   (bottom ::float (+ top (horizontal-split-height)))
-	   (right ::float (+ left (current-clip-width))))
+	   (right ::float (min screen:extent:width
+			       (+ left (current-clip-width)))))
       (paint:setColor text-color)
       (canvas:drawRect left (as float top) right bottom
 		       paint)))
@@ -550,7 +551,8 @@
   (define (draw-vertical-split! left::real)::void
     (let* ((top ::float (max 0 (current-clip-top)))
 	   (right ::float (+ left (vertical-split-width)))
-	   (bottom ::float (+ top (current-clip-height))))
+	   (bottom ::float (min screen:extent:height
+				(+ top (current-clip-height)))))
       (paint:setColor text-color)
       (canvas:drawRect (as float left) top right bottom
 		       paint)))

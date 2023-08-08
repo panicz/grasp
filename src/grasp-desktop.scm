@@ -605,7 +605,7 @@
   (define (paren-width)::real
     top-left-bounds:width)
 
-  (define (line-simplification-resolution)::real 10)
+  (define (line-simplification-resolution)::real 20)
   
   (define (open-quote-paren! height::real color::Color)::void
     (let ((line-height (max 0 (- height

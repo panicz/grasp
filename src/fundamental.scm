@@ -27,6 +27,10 @@
 (define-alias List java.util.List)
 (define-alias ArrayList java.util.ArrayList)
 
+(define (clonable? object)::boolean
+  (or (instance? object java.lang.Cloneable)
+      (and (procedure? object)
+	   (procedure? (procedure-property object 'clone)))))
 
 (define (copy object)
   (cond
@@ -34,7 +38,7 @@
     (let ((clonable ::java.lang.Cloneable object))
       (clonable:clone)))
    ((procedure? object)
-    (let ((clone (procedure-property procedure 'clone)))
+    (let ((clone (procedure-property object 'clone)))
       (if (procedure? clone)
 	  (clone)
 	  (error "Unable to clone procedure "object))))
@@ -43,7 +47,10 @@
 	   (cloned ::java.util.WeakHashMap
 		   (java.util.WeakHashMap)))
       (for key in (hash-map:keySet)
-	(cloned:put key (hash-map:get key)))
+	(let ((value (hash-map:get key)))
+	  (if (clonable? value)
+	      (cloned:put key (copy value))
+	      (cloned:put key value))))
       cloned))
    (else
     (error "Unable to clone "object))))

@@ -123,7 +123,6 @@
 		     (painter:line-simplification-resolution))
 	   (simplified ::java.util.List
 		       (simplify points vicinity)))
-      (WARN simplified)
       (and-let* (((is (length simplified) = 2))
 		 (p0 ::Position (simplified 0))
 		 (p1 ::Position (simplified 1))

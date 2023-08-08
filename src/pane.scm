@@ -445,17 +445,20 @@
           (inner-width ::real (- pane-width line-width))
           (left-width ::real (as int (round (* at inner-width))))
           (right-width ::real (- inner-width left-width)))
-     (with-clip (left-width pane-height)
-       (parameterize ((the-pane-width left-width))
-	 (left:draw!)))
+     
      (with-translation (left-width 0)
        (painter:draw-vertical-split! 0)
        (with-translation (line-width 0)
 	 (with-clip (right-width pane-height)
 	   (parameterize ((the-pane-width right-width))
-	     (right:draw!)))))))
+	     (right:draw!)))))
+     
+     (with-clip (left-width pane-height)
+       (parameterize ((the-pane-width left-width))
+	 (left:draw!)))
+     ))
   
-  ((propagate default::procedure action::procedure x::real y::real)
+  ((propagate action::procedure x::real y::real default::procedure)
    (let* ((painter ::Painter (the-painter))
 	  (pane-width ::real (the-pane-width))
 	  (line-width ::real (painter:vertical-split-width))
@@ -473,44 +476,51 @@
 	      (default (- x left-width) y))))))
   
   ((pane-under x::real y::real)::Embeddable
-   (propagate (lambda _ (this))
-	      (lambda (target::Embeddable x::real y::real)
+   (propagate (lambda (target::Embeddable x::real y::real)
 		(target:pane-under x y))
-	      x y))
+	      x y
+	      (lambda _ (this))))
 
   ((map x::real y::real)::(Values real real)
-   (propagate values
-	      (lambda (target::Embeddable x::real y::real)
+   (propagate (lambda (target::Embeddable x::real y::real)
 		(target:map x y))
-	      x y))
+	      x y
+	      values))
 
   ((unmap x::real y::real)::(Values real real)
    (error "unmap not implemented for Split"))
   
   ((tap! finger::byte x::real y::real)::boolean
-   (propagate values (lambda (target::Embeddable x::real y::real)
+   (propagate (lambda (target::Embeddable x::real y::real)
 		       (target:tap! finger x y))
-	      x y))
+	      x y
+	      values))
 
   ((press! finger::byte #;at x::real y::real)::boolean
-   (propagate values (lambda (target::Embeddable x::real y::real)
+   (propagate (lambda (target::Embeddable x::real y::real)
 		       (target:press! finger x y))
-	      x y))
+	      x y
+	      (lambda (self::Embeddable x::real y::real)
+		
+		#t)))
 
   ((second-press! finger::byte #;at x::real y::real)::boolean
-   (propagate never (lambda (target::Embeddable x::real y::real)
+   (propagate (lambda (target::Embeddable x::real y::real)
 		       (target:second-press! finger x y))
-	      x y))
+	      x y
+	      never))
 
   ((double-tap! finger::byte x::real y::real)::boolean
-   (propagate never (lambda (target::Embeddable x::real y::real)
+   (propagate (lambda (target::Embeddable x::real y::real)
 		       (target:double-tap! finger x y))
-	      x y))
+	      x y
+	      never))
 
   ((long-press! finger::byte x::real y::real)::boolean
-   (propagate never (lambda (target::Embeddable x::real y::real)
+   (propagate (lambda (target::Embeddable x::real y::real)
 		       (target:long-press! finger x y))
-	      x y))
+	      x y
+	      never))
 
   ((key-typed! key-code::long context::Cursor)::boolean
    (let* ((painter ::Painter (the-painter))
@@ -969,7 +979,9 @@
   (define (drop! x::real y::real vx::real vy::real)::void
     (values)))
 
-(define-object (Editor)::Embeddable
+(define-interface Embeddable+ (Embeddable java.lang.Cloneable))
+
+(define-object (Editor)::Embeddable+
 
   (define (pane-under x::real y::real)::Embeddable
     (this))
@@ -996,12 +1008,23 @@
 		     ((isnt first eq? document)))
 	    first)
 	  document)))
-  
+
   (define document-transform
     (property+ (document::Document)
 	       ::Transform
 	       ((default-transform))))
   
+  (define (clone)
+    (let* ((new-document-transform (copy document-transform))
+	   (new-transform ::Transform (new-document-transform
+				       document)))
+      (Editor document: document
+	      cursor: cursor
+	      selection-anchor: selection-anchor
+	      previously-edited: (copy previously-edited)
+	      transform: new-transform
+	      document-transform: new-document-transform)))
+    
   (define (switch-to! target::Document)::void
     (unless (eq? target document)
       (set! (previously-edited target) document)
@@ -1299,7 +1322,7 @@
 				  2)
 			       (the-pane-width))))
 	  (SplitBeside left: (this)
-		       right: (this)
+		       right: (copy (this))
 		       at: ratio))
 	(this)))
    
