@@ -1,3 +1,35 @@
+* 07.08.2023
+
+jako sie rzeklo, robimy tak, zeby Editor byl Cloneable.
+
+no to to juz mamy
+
+teraz chcemy miec gruba czarna kreche
+
+ona tez jest
+
+wiec moze sprobujmy ja teraz resize'owac
+
+bedziemy musieli zaimplementowac takie cos
+
+(define-object (ResizeSplitBeside target::SplitBeside)::Drag
+  (define (move! x::real y::real dx::real dy::real)::void
+    ...)
+
+  (define (drop! x::real y::real vx::real vy::real)::void
+    ...))
+
+co jednak rodzi pytanie: na jaka wartosc powinnismy
+ustawic 'at'?
+
+co wiemy: ze x i y sa we wspolrzednych ekranu
+
+zalozmy, ze px i py to wspolrzedne ekranowe rodzica
+nadzego SplitBeside'a, natomiast pw i ph to jego rozmiar.
+wowczas at musi wynosic (x - px)/pw
+
+no dobra, ale teraz skad wziac wspolrzedne rodzica?
+
 * 06.08.2023
 
 dzis bysmy sprobowali zaimplementowac te wczorajsze
