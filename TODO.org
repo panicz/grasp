@@ -1,3 +1,99 @@
+* 08.08.2023
+
+jest kilka aspektow
+po pierwsze, nie wiemy jaka jest 'sciezka' wiodaca do biezacego
+splitu. Nalezaloby to rozwiazac w taki sposob, ze tworzymy
+sobie parametr the-split-path, ktory obslugujemy wewnatrz
+'propagate' w taki sposob, ze reconsujemy okreslony focus
+
+(define (cursor-ref #!optional
+		    (tile (the-document))
+		    (cursor::Cursor (the-cursor)))
+  (match cursor
+    ('()
+     tile)
+    (`(,head . ,tail)
+     (let ((parent (cursor-ref tile tail)))
+       (part-at head parent)))
+    (_
+     (error "Unable to refer to cursor "cursor
+	    " in "tile))))
+
+analogicznie bysmy mieli
+
+(define/kw (screen-area at: path := (the-split-path)
+                        from: pane::Embeddable := screen
+                        into: area::Area
+                        := (Area left: 0 top: 0
+                                 width: screen:extent:width
+                                 height: screen:extent:height))
+  ::Area
+  (match path
+    ('()
+     area)
+    (`(,head . ,tail)
+     (match pane
+      ((SplitBeside left: left right: right)
+
+)))))
+
+moze opiszmy sobie jak powinien wygladac ten proces.
+
+iterujemy zaczynajac od ekranu
+
+tak naprawde najlepiej by bylo miec cos w rodzaju cursor-ref,
+tyle ze chcemy robic dwie rzeczy na raz: po pierwsze, poruszac
+sie po 'drzewie' podzialow, a po drugie, sledzic polozenia
+i rozmiary biezacego podzialu
+
+(define (pane-ref top::Embeddable path::list)::Embeddable
+  (match path
+    ('()
+     (top:final))
+    (`(,h . ,t)
+     (let ((parent (pane-ref top tail)))
+       (match pane
+         ((SplitBeside left: left right: right)
+	  (match head
+	    (,SplitBesideFocus:Left (left:final))
+	    (,SplitBesideFocus:Right (right:final))))
+	 ((SplitBelow top: top bottom: bottom)
+	  (match head
+	    (,SplitBelowFocus:Top (top:final))
+	    (,SplitBelowFocus:Bottom (bottom:final)))))))))
+
+no dobra, wydaje sie ze to mamy. A teraz bysmy chcieli
+dodac do tego wartosci polozen i rozmiarow
+
+(define (screen-area split-path::list pane::Embeddable := screen:top)
+  ::(Values Embeddable real real real real)
+  (match split-path
+    ('()
+     (values (pane:final)
+             0 0 screen:extent:width screen:extent:height))
+    (`(,h . ,t)
+     (let-values (((parent x y w h) (screen-area top tail)))
+       (match pane
+         ((SplitBeside left: left right: right at: at)
+	  (let* ((painter ::Painter (the-painter))
+	         (line-width ::real (painter:vertical-split-width))
+                 (inner-width ::real (- w line-width))
+                 (left-width ::real (as int (round (* at inner-width))))
+                 (right-width ::real (- inner-width left-width)))
+	    (match head
+	      (,SplitBesideFocus:Left
+	       (values (left:final) x y left-width h))
+	      (,SplitBesideFocus:Right
+	       (values (right:final) (+ x left-width line-width) y
+	                             right-width h)))))
+	 ((SplitBelow top: top bottom: bottom)
+	  (match head
+	    (,SplitBelowFocus:Top
+	     (values (top:final) x y w ...))
+	    (,SplitBelowFocus:Bottom
+	     (values (bottom:final) x ... w ...)))))))))
+
+
 * 07.08.2023
 
 jako sie rzeklo, robimy tak, zeby Editor byl Cloneable.
