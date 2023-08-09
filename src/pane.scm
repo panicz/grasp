@@ -56,7 +56,9 @@
   
   (can-split-below? line::Area)::boolean
   (split-below! line::Area)::Embeddable
- 
+
+  ;; this is needed to flatten WrappedPane to its content
+  (final)::Embeddable
   )
 
 (define-object (NullPane)::Embeddable
@@ -75,13 +77,16 @@
     #f)
   
   (define (split-beside! line::Area)::Embeddable
-   (this))
-   
+    (this))
+  
   (define (can-split-below? line::Area)::boolean
-   #f)
+    #f)
 
   (define (split-below! line::Area)::Embeddable
-   (this))
+    (this))
+
+  (define (final)::Embeddable
+    (this))
   
   (IgnoreInput))
 
@@ -426,9 +431,55 @@
   (define (split-below! line::Area)::Embeddable
     (set! content (content:split-below! line))
     (this))
+
+  (define (final)::Embeddable
+    (content:final))
   )
 
+(define-parameter (the-split-path)
+  ::(list-of (either SplitBesideFocus SplitBelowFocus))
+  '())
+
 (define-enum SplitBesideFocus (Left Right))
+
+(define/kw (screen-area split-path::list
+			pane::Embeddable := screen:top)
+  ::(Values Embeddable real real real real)
+  (match split-path
+    ('()
+     (values (pane:final)
+             0 0 screen:extent:width screen:extent:height))
+    (`(,h . ,t)
+     (let-values (((parent x y w h) (screen-area t pane)))
+       (match pane
+         ((SplitBeside left: left right: right at: at)
+	  (let* ((painter ::Painter (the-painter))
+	         (line-width ::real (painter:vertical-split-width))
+                 (inner-width ::real (- w line-width))
+                 (left-width ::real (nearby-int (* at inner-width)))
+                 (right-width ::real (- inner-width left-width)))
+	    (match head
+	      (,SplitBesideFocus:Left
+	       (values (left:final) x y left-width h))
+	      (,SplitBesideFocus:Right
+	       (values (right:final) (+ x left-width line-width) y
+	                             right-width h)))))
+	 #;((SplitBelow top: top bottom: bottom)
+	  (match head
+	    (,SplitBelowFocus:Top
+	     (values (top:final) x y w ...))
+	    (,SplitBelowFocus:Bottom
+	     (values (bottom:final) x ... w ...)))))))))
+
+
+#;(define-object (ResizeSplitBesideAt split-path::list)::Drag
+  (define (move! x::real y::real dx::real dy::real)::void
+    (let-values (((target left top width height)
+		  (screen-area split-path)))
+      ...))
+  
+  (define (drop! x::real y::real vx::real vy::real)::void
+    ...))
 
 (define-type (SplitBeside at: real := 0.5
 			  left: Embeddable
@@ -450,11 +501,17 @@
        (painter:draw-vertical-split! 0)
        (with-translation (line-width 0)
 	 (with-clip (right-width pane-height)
-	   (parameterize ((the-pane-width right-width))
+	   (parameterize ((the-pane-width right-width)
+			  (the-split-path (recons
+					   SplitBesideFocus:Right
+					   (the-split-path))))
 	     (right:draw!)))))
      
      (with-clip (left-width pane-height)
-       (parameterize ((the-pane-width left-width))
+       (parameterize ((the-pane-width left-width)
+		      (the-split-path (recons
+					   SplitBesideFocus:Left
+					   (the-split-path))))
 	 (left:draw!)))
      ))
   
@@ -466,10 +523,16 @@
           (left-width ::real (as int (round (* at inner-width))))
           (right-width ::real (- inner-width left-width)))
      (cond ((is x < left-width)
-	    (parameterize ((the-pane-width left-width))
+	    (parameterize ((the-pane-width left-width)
+			   (the-split-path (recons
+					    SplitBesideFocus:Left
+					   (the-split-path))))
 	      (action left x y)))
 	   ((is (+ left-width line-width) < x)
-	    (parameterize ((the-pane-width right-width))
+	    (parameterize ((the-pane-width right-width)
+			   (the-split-path (recons
+					   SplitBesideFocus:Right
+					   (the-split-path))))
 	      (action right (- x left-width line-width) y)))
 	   (else
 	    (parameterize ((the-pane-width line-width))
@@ -531,12 +594,18 @@
           (right-width ::real (- inner-width left-width)))
      (match focus
        (,SplitBesideFocus:Left
-	(parameterize ((the-pane-width left-width))
+	(parameterize ((the-pane-width left-width)
+		       (the-split-path (recons
+					   SplitBesideFocus:Left
+					   (the-split-path))))
 	  (left:key-typed! key-code
 			   (recons SplitBesideFocus:Left
 				   context))))
        (,SplitBesideFocus:Right
-	(parameterize ((the-pane-width right-width))
+	(parameterize ((the-pane-width right-width)
+		       (the-split-path (recons
+					   SplitBesideFocus:Right
+					   (the-split-path))))
 	  (right:key-typed! key-code
 			    (recons SplitBesideFocus:Right
 				    context)))))))
@@ -610,6 +679,9 @@
 	 (when (right:can-split-below? line*)
 	   (set! right (right:split-below! line*)))))
      (this)))
+
+  ((final)::Embeddable
+   (this))
   )
 
 
@@ -1340,7 +1412,10 @@
     #;(if (can-split-below? line)
 	(SplitBelow top: (this)
 		    bottom: (copy (this)))
-	(this)))
+    (this)))
+
+  (define (final)::Embeddable
+    (this))
   )
 
 (define-early-constant screen ::Screen

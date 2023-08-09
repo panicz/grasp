@@ -4,6 +4,9 @@
 (import (infix))
 (import (for))
 
+(define (nearby-int x::real)::int
+  (as int (round x)))
+
 (define (times n::int action . args)
   (when (is n > 0)
     (apply action args)
