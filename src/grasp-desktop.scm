@@ -18,6 +18,7 @@
 (import (for))
 (import (while))
 (import (indexable))
+(import (interactive))
 (import (painter))
 (import (print))
 (import (primitive))

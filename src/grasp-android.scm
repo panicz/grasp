@@ -15,6 +15,7 @@
 (import (for))
 (import (while))
 (import (transform))
+(import (interactive))
 (import (pane))
 (import (indexable))
 (import (painter))
@@ -412,12 +413,15 @@
   (logger size))
 
 (define-object (ShowKeyboardOnTap content::Embeddable
-				  view::View)
+				  view::View)::Embeddable
 
   (define (tap! finger::byte #;at x::real y::real)::boolean
     (and (invoke-special WrappedPane (this) 'tap! finger x y)
 	 ;;(is (the-expression) Textual?)
 	 (truly (view:showKeyboard))))
+
+  (define (final)::Embeddable
+    (content:final))
 
   (WrappedPane content))
 
@@ -1462,7 +1466,7 @@
       (safely
        (WARN "Evaluating "expression)
        (eval expression)))
-    (screen:set-content!
+    #;(screen:set-content!
      (ShowKeyboardOnTap (screen:content) view))
     
     (let ((postpone ::Postponed (EventRunner sync view)))

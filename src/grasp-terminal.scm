@@ -29,6 +29,7 @@
 (import (painter))
 (import (for))
 (import (while))
+(import (interactive))
 (import (document-operations))
 (import (editor-operations))
 (import (text-painter))
