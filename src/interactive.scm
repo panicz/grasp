@@ -55,9 +55,6 @@
   
   (can-split-below? line::Area)::boolean
   (split-below! line::Area)::Embeddable
-
-  ;; this is needed to flatten WrappedPane to its content
-  (final)::Embeddable
   )
 
 (define-object (NullPane)::Embeddable
@@ -84,9 +81,6 @@
   (define (split-below! line::Area)::Embeddable
     (this))
 
-  (define (final)::Embeddable
-    (this))
-  
   (IgnoreInput))
 
 (define-interface Drag ()

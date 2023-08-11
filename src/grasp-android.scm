@@ -412,19 +412,6 @@
 
   (logger size))
 
-(define-object (ShowKeyboardOnTap content::Embeddable
-				  view::View)::Embeddable
-
-  (define (tap! finger::byte #;at x::real y::real)::boolean
-    (and (invoke-special WrappedPane (this) 'tap! finger x y)
-	 ;;(is (the-expression) Textual?)
-	 (truly (view:showKeyboard))))
-
-  (define (final)::Embeddable
-    (content:final))
-
-  (WrappedPane content))
-
 (define-object (View source::AndroidActivity
 		     sync::android.os.Handler)::Painter
 
@@ -1464,10 +1451,7 @@
     (set! (the-painter) view)
     (for expression in init-script
       (safely
-       (WARN "Evaluating "expression)
        (eval expression)))
-    #;(screen:set-content!
-     (ShowKeyboardOnTap (screen:content) view))
     
     (let ((postpone ::Postponed (EventRunner sync view)))
       (for finger from 0 below 10
@@ -1475,7 +1459,6 @@
 		 (TouchEventProcessor finger screen
 				      postpone
 				      vicinity: 15))))
-    (WARN screen)
     )
 
   (AndroidActivity))

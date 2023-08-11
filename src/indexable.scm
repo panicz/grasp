@@ -188,11 +188,15 @@ operate on cursors.
 	   (not (cursor< b a document))))))
 
 (define (the-selection)
+  ;; temporary override:
+  (values (the-cursor) (the-cursor))
+  
   ;; implicitly parameterized with (the-document),
   ;; (the-cursor) and (the-selection-anchor),
   ;; because cursor< is parameterized with (the-document)
   ;; and the remaining parameters are used directly
-   (if (is (the-selection-anchor) cursor< (the-cursor))
+
+  #;(if (is (the-selection-anchor) cursor< (the-cursor))
        (values (the-selection-anchor) (the-cursor))
        (values (the-cursor) (the-selection-anchor))))
 

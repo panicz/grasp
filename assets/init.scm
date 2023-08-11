@@ -109,8 +109,7 @@
   (lambda (own::Recognizer
 	   points::(sequence-of Position))
     (let* ((line ::Area (area points)))
-      (screen:split-below! line))
-    (WARN "recognized "(slot-ref own 'name)))))
+      (screen:split-below! line)))))
 
 (invoke
  (the-recognizers) 'add
@@ -135,8 +134,7 @@
   (lambda (own::Recognizer
 	   points::(sequence-of Position))
     (let* ((line ::Area (area points)))
-       (screen:split-beside! line))
-    (WARN "recognized "(slot-ref own 'name)))))
+       (screen:split-beside! line)))))
 
 
 #|
