@@ -1,3 +1,11 @@
+* 10.08.2023
+
+dzis/jutro bysmy sprobowali zrobic SplitBelow
+
+ale w tym celu trzeba elegancko wyodrebnic Split
+ze SplitBeside
+
+
 * 09.08.2023
 
 mamy troche jakby dzialajaca zmiane rozmiaru splita.
