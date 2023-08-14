@@ -337,10 +337,13 @@
 		    focus: SplitFocus := SplitFocus:First)
   implementing Embeddable
   with
-
-  ((resize! left::real top::real width::real height::real)::void
+  
+  ((resize! pointer-left::real pointer-top::real
+	    pane-left::real pane-top::real
+	    pane-width::real pane-height::real)
+   ::void
    #!abstract)
-   
+     
   ((part-sizes)::(Values real real real)
     #!abstract)
 
@@ -534,7 +537,6 @@
 
   )
 
-
 (define/kw (screen-area split-path::(list-of SplitFocus)
 			pane::Embeddable := screen:top)
   ::(Values Embeddable real real real real)
@@ -546,31 +548,33 @@
      (let-values (((parent::Embeddable
 		    x::real y::real
 		    w::real h::real) (screen-area tail pane)))
-       (match pane
-         ((Split first: left last: right)
-	  (let*-values (((split::Split) pane)
-			((first-size line-size last-size)
-			 (split:part-sizes)))
-	    (match head
-	      (,SplitFocus:First
-	       (let-values (((w* h*) (split:varying-size
-				      w h first-size)))
-		 (values left x y w* h*)))
-	      (,SplitFocus:Last
-	       (let-values (((x* y*) (split:transformed-dimension
-				      x y (- 0 first-size
-					     line-size)))
-			    ((w* h*) (split:varying-size
-				      w h last-size)))
-		 (values right x* y* w* h*)))))))))))
+       (parameterize ((the-pane-width w)
+		      (the-pane-height h))
+	 (match parent
+	   ((Split first: left last: right)
+	    (let*-values (((split::Split) parent)
+			  ((first-size line-size last-size)
+			   (split:part-sizes)))
+	      (match head
+		(,SplitFocus:First
+		 (let-values (((w* h*) (split:varying-size
+					w h first-size)))
+		   (values left x y w* h*)))
+		(,SplitFocus:Last
+		 (let-values (((x* y*) (split:transformed-dimension
+					x y (- 0 first-size line-size)))
+			      ((w* h*) (split:varying-size
+					w h last-size)))
+		   (values right x* y* w* h*))))))))))))
 
 (define-object (ResizeSplitAt split-path::list)::Drag
   (define (move! x::real y::real dx::real dy::real)::void
     (let-values (((split::Split
 		   left::real top::real
 		   width::real height::real) (screen-area
-					      split-path)))
-      (split:resize! (- x left) (- y top) width height)))
+					      split-path
+					      screen:top)))
+      (split:resize! x y left top width height)))
   
   (define (drop! x::real y::real vx::real vy::real)::void
     (values)))
@@ -615,9 +619,11 @@
    ::(Values real real)
    (values (- x shift) y))
   
-  ((resize! left::real top::real width::real height::real)::void
-   (set! at (/ (max 0.0 (* 1.0 left)) width)))
-    
+  ((resize! pointer-left::real pointer-top::real
+	    pane-left::real pane-top::real
+	    pane-width::real pane-height::real)
+   ::void
+   (set! at (/ (max 0.0 (* 1.0 (- pointer-left pane-left))) pane-width)))  
   )
 
 
@@ -660,10 +666,13 @@
   ((transformed-dimension x::real y::real shift::real)
    ::(Values real real)
    (values x (- y shift)))
-  
-  ((resize! left::real top::real width::real height::real)::void
-   (set! at (/ (max 0.0 (* 1.0 top)) height)))
-    
+
+   
+  ((resize! pointer-left::real pointer-top::real
+	    pane-left::real pane-top::real
+	    pane-width::real pane-height::real)
+   ::void
+   (set! at (/ (max 0.0 (* 1.0 (- pointer-top pane-top))) pane-height)))
   )
 
 
