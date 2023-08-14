@@ -1,10 +1,26 @@
+* 13.08.2023
+
+moze bysmy sie zajeli sledzeniem predkosci w event processorze
+
+i od razu kilka uwag:
+
+pierwsza jest taka, ze byc moze chcielibysmy
+sobie reprezentowac punkty pomiarowe za pomoca
+tablicy pamietajacej wskazania historyczne
+z ostatnich 60-100 milisekund
+
+natomiast inny pomysl jest taki, zeby uzyc
+filtru Kalmana, gdzie nasz wektor stanu
+ma postac
+
+X = [x y vx vy]^T
+
 * 10.08.2023
 
 dzis/jutro bysmy sprobowali zrobic SplitBelow
 
 ale w tym celu trzeba elegancko wyodrebnic Split
 ze SplitBeside
-
 
 * 09.08.2023
 
