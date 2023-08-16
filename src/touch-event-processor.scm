@@ -7,6 +7,12 @@
 (import (postponed))
 (import (print))
 
+(define-interface VelocityTracker ()
+  (update! position::float time-step/ms::float)::void
+  (current-velocity)::float
+  (reset!)::void
+  )
+
 (define-object (TouchEventProcessor finger::byte
 				    target::Screen
 				    run::Postponed)
