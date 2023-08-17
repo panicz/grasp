@@ -1,4 +1,99 @@
-* 15.08.2023
+* 17-15.08.2023
+
+filtr Kakmana - kroki:
+
+1. estymacja stanu z modelu
+
+   ~x[k] = A*x[k-1]
+
+2. estymacja kowariancji
+
+   ~P[k] = A*P[k-1]*A^T + Q
+
+3. residuum pomiaru (innowacja)
+
+   y[k] = z[k] - H*~x[k]
+
+4. innowacja kowariancji:
+
+   S[k] = H*~P[k]*H^T + R
+
+5. wzmocnienie Kalmana:
+
+   K[k] = ~P[k]*H^T*S[k]^-1
+
+6. korekta stanu:
+
+   x[k] = ~x[k] + K[k]*y[k]
+
+7. korekta kowariancji:
+
+   P[k] = (I - K[k]*H)*~P[k]
+
+bardziej kompaktowo mamy:
+
+   ~x[k] = A*x[k-1]
+   ~P[k] = A*P[k-1]*A^T + Q
+   y[k] = z[k] - H*~x[k]
+   S[k] = H*~P[k]*H^T + R
+   K[k] = ~P[k]*H^T*S[k]^-1
+   x[k] = ~x[k] + K[k]*y[k]
+   P[k] = (I - K[k]*H)*~P[k]
+
+i teraz tak:
+
+x[k-1] = [position-estimate
+          velocity-estimate]
+
+P[k-1] = [position-variance cross-covariance
+          cross-covariance velocity-variance]
+
+H = [1 0]
+
+A = [1 time-step/ms
+     0            1]
+     
+Q = [position-update-uncertainty position-velocity-uncertainty
+     position-velocity-uncertainty velocity-update-uncertainty]
+
+R = [position-measurement-uncertainty]
+
+~x[k] = [predicted-position
+         velocity-estimate]
+
+y[k] = [prediction-error]
+
+A*P[k-1] =
+[position-variance+time-step/ms*cross-covariance  cross-covariance+time-step/ms*velocity-variance
+ cross-covariance                                 velocity-variance]
+
+A^T = [1            0
+       time-step/ms 1]
+
+A*P[k-1]*A^T =
+[position-variance+time-step/ms*cross-covariance+time-step/ms*(cross-covariance+time-step/ms*velocity-variance)   cross-covariance+time-step/ms*velocity-variance
+ cross-covariance+time-step/ms*velocity-variance                                                                  velocity-variance                               ]
+
+ ~P[k] = [predicted-position-variance predicted-cross-covariance
+          predicted-cross-covariance predicted-velocity-variance]
+
+H*~P[k]*H^T = [predicted-position-variance]
+
+~P[k]*H^T = [predicted-position-variance
+             predicted-cross-covariance]
+
+S[k] = [predicted-position-variance+position-measurement-uncertainty]
+
+K[k] = [position-gain
+        velocity-gain]
+
+(I-K[k]*H) = [1-position-gain 0
+              -velocity-gain  1]
+
+P[k] =
+[(1-position-gain)*predicted-position-variance (1-position-gain)*predicted-cross-covarianxe
+ predicted-cross-covariance:-:velocity-gain*predicted-position-variance predicted-velocity-variance:-:velocity-gain*predicted-cross-covariance]
+
 
 (define-interface VelocityTracker ()
   (update! position::float time-step/ms::float)::void
@@ -9,10 +104,16 @@
 (define-object (KalmanVelocityTracker)::VelocityTracker
   (define velocity-estimate ::float +nan.0)
   (define position-estimate ::float +nan.0)
-
+  
   (define position-variance ::float 10.0)
   (define velocity-variance ::float 25.0)
   (define cross-covariance ::float 0.0)
+
+  (define position-update-uncertainty ::float 5.0)
+  (define velocity-update-uncertainty ::float 1.0)
+  (define cross-update-uncertainty ::float 3.0)
+  
+  (define position-measurement-uncertainty ::float 1.0)
   
   (define (update! measured-position::float time-step/ms::float)::void
     (cond
@@ -30,9 +131,47 @@
 					        time-step/ms)))
 	      (prediction-error ::float (- predicted-position
 	                                   measured-position))
-              
-	      
-              
+	      (predicted-position-variance ::float
+                                           (+ position-variance
+                                              (* time-step/ms
+                                                 (+ (* 2 cross-covariance)
+                                                    (* time-step/ms
+				                        velocity-variance)))
+			                      position-update-uncertainty))
+	      (predicted-cross-covariance ::float
+	                                  (+ cross-covariance
+                                             (* time-step/ms
+                                                velocity-variance)
+					     cross-update-uncertainty))
+	      (predicted-velocity-variance ::float
+	                                   (+ velocity-variance
+					      velocity-update-uncertainty))
+	      (correction ::float
+	                  (/ (+ predicted-position-variance
+	                        position-measurement-uncertainty)))
+              (position-gain ::float (* predicted-position-variance
+	                                correction))
+	      (1-position-gain ::float (- 1.0 position-gain))
+	      (covariance-gain ::float (* predicted-cross-covariance
+	                                  correction)))
+          (set! velocity-estimate
+	        (+ velocity-estimate (* covariance-gain
+		                        prediction-error)))
+	  (set! position-estimate
+	        (+ predicted-position (* position-gain
+		                         prediction-error)))
+	  (set! position-variance
+	        (* 1-position-gain predicted-position-variance))
+
+          (set! cross-covariance
+                (* 1-position-gain
+		   predicted-cross-covariance))
+
+          (set! velocity-variance
+	        (- predicted-velocity-variance
+		   (* covariance-gain predicted-cross-covariance)))))))
+
+					  
   (define (current-velocity)::float
     velocity-estimate)
   
