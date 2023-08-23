@@ -337,7 +337,7 @@
 		    focus: SplitFocus := SplitFocus:First)
   implementing Embeddable
   with
-  
+
   ((resize! pointer-left::real pointer-top::real
 	    pane-left::real pane-top::real
 	    pane-width::real pane-height::real)
@@ -365,6 +365,11 @@
   ((transformed-dimension x::real y::real shift::real)
    ::(Values real real)
    #!abstract)
+
+  ((part focus::SplitFocus)::Embeddable
+   (match focus
+     (,SplitFocus:First first)
+     (,SplitFocus:Last last)))
 
   ((draw-line!)::void
    #!abstract)
@@ -537,6 +542,13 @@
 
   )
 
+(define (split-ref split-path)::Embeddable
+  (match split-path
+    ('() screen:top)
+    (`(,head . ,tail)
+     (let ((parent ::Split (split-ref tail)))
+       (parent:part head)))))
+
 (define/kw (screen-area split-path::(list-of SplitFocus)
 			pane::Embeddable := screen:top)
   ::(Values Embeddable real real real real)
@@ -567,6 +579,18 @@
 					w h last-size)))
 		   (values right x* y* w* h*))))))))))))
 
+(define/kw (merge-split! at: split-path with: focus::SplitFocus)
+  ::boolean
+  (if (null? split-path)
+    (and-let* ((split ::Split screen:top))
+      (set! screen:top (split:part focus)))
+    (and-let* ((`(,tip . ,root) split-path)
+               (parent ::Split (split-ref root))
+	       (split ::Split (parent:part tip)))
+      (match tip
+        (,SplitFocus:First (set! parent:first (split:part focus)))
+	(,SplitFocus:Last (set! parent:last (split:part focus)))))))
+
 (define-object (ResizeSplitAt split-path::list)::Drag
   (define (move! x::real y::real dx::real dy::real)::void
     (let-values (((split::Split
@@ -577,7 +601,19 @@
       (split:resize! x y left top width height)))
   
   (define (drop! x::real y::real vx::real vy::real)::void
-    (values)))
+    (and-let* ((target ::Split (split-ref split-path))
+               (first-size line-size last-size
+	                   (target:part-sizes))
+	       (velocity (target:varying-dimension vx vy)))
+      (cond
+       ((or (is first-size <= (* 3 line-size)) ;>
+            (is velocity < -1.5)) ;>
+	(merge-split! at: split-path with: SplitFocus:Last))
+       ((or (is last-size <= (* 3 line-size))
+            (is velocity > 1.5))
+	(merge-split! at: split-path with: SplitFocus:First)))))
+
+  )
 
 (define-type (SplitBeside)
   extending Split
@@ -1381,12 +1417,17 @@
   
   (define (split-beside! line::Area)::Embeddable
     (if (can-split-beside? line)
-	(let ((ratio ::real (/ (/ (+ line:left line:right)
-				  2)
-			       (the-pane-width))))
-	  (SplitBeside first: (this)
-		       last: (copy (this))
-		       at: ratio))
+	(let*-values (((ratio::real) (/ (/ (+ line:left line:right)
+					   2)
+					(the-pane-width)))
+		      ((new::Editor) (copy (this)))
+		      ((split::Split) (SplitBeside first: (this)
+						   last: new
+						   at: ratio))
+		      ((left line right) (split:part-sizes))
+		      ((shift) (+ left line)))
+	  (new:transform:translate! (- shift) 0)
+	  split)
 	(this)))
   
   (define (can-split-below? line::Area)::boolean
@@ -1400,12 +1441,17 @@
 
   (define (split-below! line::Area)::Embeddable
     (if (can-split-below? line)
-	(let ((ratio ::real (/ (/ (+ line:top line:bottom)
-				  2)
-			       (the-pane-height))))
-	  (SplitBelow first: (this)
-		      last: (copy (this))
-		      at: ratio))
+	(let*-values (((ratio::real) (/ (/ (+ line:top line:bottom)
+					  2)
+				       (the-pane-height)))
+		      ((new::Editor) (copy (this)))
+		      ((split::Split) (SplitBelow first: (this)
+						  last: new
+						  at: ratio))
+		      ((top line bottom) (split:part-sizes))
+		      ((shift) (+ top line)))
+	  (new:transform:translate! 0 (- shift))
+	  split)
 	(this)))
   )
 

@@ -7,92 +7,6 @@
 (import (postponed))
 (import (print))
 
-(define-interface VelocityTracker ()
-  (update! position::float time-step/ms::float)::void
-  (current-velocity)::float
-  (reset!)::void
-  )
-
-
-(define-object (KalmanVelocityTracker)::VelocityTracker
-  (define velocity-estimate ::float +nan.0)
-  (define position-estimate ::float +nan.0)
-  
-  (define position-variance ::float 10.0)
-  (define velocity-variance ::float 25.0)
-  (define cross-covariance ::float 0.0)
-
-  (define position-update-uncertainty ::float 5.0)
-  (define velocity-update-uncertainty ::float 1.0)
-  (define cross-update-uncertainty ::float 3.0)
-  
-  (define position-measurement-uncertainty ::float 1.0)
-  
-  (define (update! measured-position::float time-step/ms::float)::void
-    (cond
-      ((nan? position-estimate)
-       (set! position-estimate measured-position))
-      
-      ((nan? velocity-estimate)
-       (set! velocity-estimate
-             (/ (- measured-position
-	           position-estimate)
-		time-step/ms))
-       (set! position-estimate measured-position))
-      
-      (else
-       (let* ((predicted-position ::float (+ position-estimate
-					     (* velocity-estimate
-						time-step/ms)))
-	      (prediction-error ::float (- predicted-position
-					   measured-position))
-	      (predicted-position-variance
-	       ::float (+ position-variance
-			  (* time-step/ms
-			     (+ (* 2 cross-covariance)
-				(* time-step/ms
-				   velocity-variance)))
-			  position-update-uncertainty))
-	      (predicted-cross-covariance
-	       ::float (+ cross-covariance
-			  (* time-step/ms
-			     velocity-variance)
-			  cross-update-uncertainty))
-	      (predicted-velocity-variance
-	       ::float (+ velocity-variance
-			  velocity-update-uncertainty))
-	      (correction
-	       ::float (/ (+ predicted-position-variance
-			     position-measurement-uncertainty)))
-              (position-gain ::float (* predicted-position-variance
-					correction))
-	      (1-position-gain ::float (- 1.0 position-gain))
-	      (covariance-gain ::float (* predicted-cross-covariance
-	                                  correction)))
-         (set! velocity-estimate
-	       (+ velocity-estimate (* covariance-gain
-		                       prediction-error)))
-	 (set! position-estimate
-	       (+ predicted-position (* position-gain
-		                        prediction-error)))
-	 (set! position-variance
-	       (* 1-position-gain predicted-position-variance))
-
-         (set! cross-covariance
-               (* 1-position-gain
-		  predicted-cross-covariance))
-
-         (set! velocity-variance
-	       (- predicted-velocity-variance
-		  (* covariance-gain predicted-cross-covariance)))))))
-
-					  
-  (define (current-velocity)::float
-    velocity-estimate)
-  
-  (define (reset!)::void
-    (set! position-estimate +nan.0)
-    (set! velocity-estimate +nan.0)))
 
 
 (define-object (TouchEventProcessor finger::byte
@@ -162,6 +76,8 @@
     (set! timeout (timeout:cancel))
     (set! x- x)
     (set! y- y)
+    (set! vx 0)
+    (set! vy 0)
     (set! press-time-ms time-ms)
     (set! move-time-ms time-ms)
 
@@ -177,7 +93,7 @@
 		  ;; for some reason, the diagnostic message
 		  ;; here seems to solve the problem :/
 		  ;; (to be investigated)
-		  (WARN "invoking long press")
+		  ;;(WARN "invoking long press")
 		  (target:long-press! finger x0 y0))))
 	 #f)
       (1 (cond
@@ -193,6 +109,7 @@
 
   (define (release! x::real y::real time-ms::real)::boolean
     (set! timeout (timeout:cancel))
+    (WARN "vx: "vx", vy: "vy)
     (match suppressed-presses
       (0 (target:release! finger x y vx vy))
       (1 (set! timeout

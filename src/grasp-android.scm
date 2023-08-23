@@ -64,6 +64,9 @@
 (define-alias AndroidResources
   android.content.res.Resources)
 
+(define-alias AndroidConfiguration
+  android.content.res.Configuration)
+
 (define-alias AndroidWindow
   android.view.Window)
 
@@ -1282,6 +1285,20 @@
     (set! last-request-code (+ last-request-code 1))
     last-request-code)
 
+  (define (onConfigurationChanged config::AndroidConfiguration)::void
+    (invoke-special AndroidActivity (this)
+		    'onConfigurationChanged config)
+    (let* ((resources ::AndroidResources (getResources))
+	   (metrics ::DisplayMetrics
+		    (resources:getDisplayMetrics)))
+      (screen:set-size! metrics:widthPixels metrics:heightPixels))
+
+    (match config:orientation
+      (,AndroidConfiguration:ORIENTATION_LANDSCAPE
+       (WARN 'landscape))
+      (,AndroidConfiguration:ORIENTATION_PORTRAIT
+       (WARN 'portrait))))
+    
   (define (onRequestPermissionsResult requestCode::int
                                       permissions::($bracket-apply$
 						    String)
