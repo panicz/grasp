@@ -8,8 +8,20 @@ GRASP is still work in progress, and isn't yet mature
 enough to perform even the most basic editing tasks
 (but each day this moment is getting closer).
 
-It comes in three flavours: an Android client,
-a desktop client and a terminal client.
+If you'd like to see a more detailed explanation,
+you may want to watch [[https://www.youtube.com/watch?v=bedP4m9FV8k][a demo]].
+
+GRASP comes in three flavours: an Android client,
+
+[[./doc/img/grasp-android.png]]
+
+a desktop client
+
+[[./doc/img/grasp-desktop.png]]
+
+and a terminal client
+
+[[./doc/img/grasp-terminal.png]]
 
 ** Building the Android client
 
@@ -95,8 +107,8 @@ java -jar build/grasp-desktop.jar
 
 The ~.jar~ files generated this way contain all the required
 dependencies, which - in the case of the desktop client - means
-just the [[https://www.gnu.org/software/kawa/][Kawa]] compiler, and in the case of the terminal client
-- also the [[https://github.com/mabe02/lanterna][Lanterna]] library for terminal rendering.
+just the [[https://www.gnu.org/software/kawa/][Kawa]] compiler, and in the case of the terminal client - also
+the [[https://github.com/mabe02/lanterna][Lanterna]] library for terminal rendering.
 
 (Both dependencies are included in the ~libs~ directory.)
 
