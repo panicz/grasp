@@ -1,3 +1,259 @@
+* 22-21.08.2023
+
+teraz bedziemy mieli dluzsza przerwe, co oznacza nieco
+wiecej swobody w pracach
+
+za 3 tygodnie zajmiemy sie juz naprawianiem bugow
+(oraz moze tez implementacja metod do poruszania
+kursorem w pionie, i zalataniem mechanizmu selekcji,
+i cache'owaniem 'extent')
+
+ale do tego czasu mozemy nieco pomyslec o ewaluatorze
+wizualnym
+
+mamy miec funkcje
+
+beginning
+back
+play/pause
+next
+ending
+
+(define-type (Evaluation step: int
+                         expansions: sequence)
+  implementing Player
+  with
+  ...)
+
+ogolnie tak: musimy miec jakas implementacje Animation,
+czyli musi byc metoda (advance! time-step/ms::int)::boolean
+
+musi tez byc metoda draw!, ktora musi wiedziec,
+czy rysujemy finalna klatke, czy miedzyklaccie,
+dlatego tez musimy znac biezacy progres
+
+No ale dobrze, rozwazmy teraz kwestie samej ekspansji.
+Kpd dokonujacy podstawienia wyglada tak:
+
+  (define (substitute variables with: values in: expression)
+    (match expression
+      (`(quote ,_)
+       expression)
+      (`(,head . ,tail)
+       `(,(substitute variables with: values in: head)
+         . ,(substitute variables with: values in: tail)))
+      (_
+       (or (any (lambda (variable value)
+                  (and (equal? variable expression)
+		       value))
+	        variables values)
+	   expression))))
+	   
+i na jakis tam uzytek moze byc ok, ale my bysmy chcieli
+zrobic cos takiego, ze w momencie, gdy renderujemy
+klatke posrednia, wiemy, ktore wyrazenie odpowiada
+ktoremu
+
+(define (draw-between! source target progress::float)::void
+  (let* ((source-extent (extent source))
+         (target-extent (extent target))
+         (width (interpolate source-extent:width
+                             target-extent:width
+      	                     progress))
+	 (height (interpolate source-extent:height
+	                      target-extent:height
+			      progress)))
+    (cond
+      ((and (pair? source)
+            (pair? target))
+       (draw-sequence-between! source target progress))
+      ...)))
+
+no ale poczekajta! jak mamy takie cos:
+
+
+((lambda (x y)
+   (+ x y)) 2 3)
+
+
+   (+ 2 3)
+
+to chcielibysmy, zeby (+ 2 3) pojawilo sie w miejscu
+(+ x y)
+
+czy ogolniej, przesledzmy
+
+(define (! n)
+  (if (is n <= 1) ;>
+     1
+     (* n (! (- n 1)))))
+
+i redukujemy
+
+(! 5)
+
+to wzamian powinismy dostac
+						
+(if (is 5 <= 1) ;>
+     1
+     (* 5 (! (- 5 1))))
+
+i teraz w tym wyrazeniu powinnismy najpier zredukowac warunek
+
+(if #false
+     1
+     (* 5 (! (- 5 1))))
+
+i na tym etapie wyrazenia powinby byc traktowane jako rownorzedne.
+
+ale juz kolejna redukcja, do
+
+(* 5 (! (- 5 1)))
+
+powinna wskazac, ze drugie wyrazenie jest w kontekscie
+(7) pierwszego wyrazenia.
+
+na dalszym etapie redukujemy
+
+(* 5 (! 4))
+
+ponownie nie zmieniajac kontekstu. Tak samo bedzie w przypadku
+
+(* 5 (if (is 4 <= 1) ;>
+       1
+       (* 4 (! (- 4 1)))))
+
+(* 5 (if #false
+       1
+       (* 4 (! (- 4 1)))))
+
+natomiast przy kolejnej redukcji
+
+(* 5 (* 4 (! (- 4 1))))
+
+mamy wydobycie wyrazenia (7 5). Dalej bedziemy mieli:
+
+(* 5 (* 4 (if (is 3 <= 1) ;>
+             1
+            (* 3 (! (- 3 1))))))
+
+(* 5 (* 4 (if #false
+             1
+            (* 3 (! (- 3 1))))))
+
+i na (7 5 5) mamy
+	    
+(* 5 (* 4 (* 3 (! (- 3 1)))))
+
+(* 5 (* 4 (* 3 (! 2))))
+
+(* 5 (* 4 (* 3 (if (is 2 <= 1) ;>
+                  1
+                 (* 2 (! (- 2 1)))))))
+
+(* 5 (* 4 (* 3 (if #false
+                  1
+                 (* 2 (! (- 2 1)))))))
+
+na (7 5 5 5)
+
+(* 5 (* 4 (* 3 (* 2 (! (- 2 1))))))
+
+(* 5 (* 4 (* 3 (* 2 (! 1)))))
+
+(* 5 (* 4 (* 3 (* 2 (if (is 1 <= 1) ;>
+                        1
+                      (* 1 (! (- 1 1))))))))
+
+(* 5 (* 4 (* 3 (* 2 (if #true
+                        1
+                      (* 1 (! (- 1 1))))))))
+
+na (5 5 5 5 5):
+		      
+(* 5 (* 4 (* 3 (* 2 1))))
+
+
+czyli zasadniczo mamy takie opcje:
+
+1. oba wyrazenia sa rownorzedne
+2. drugie wyrazenie powstalo z podwyrazenia pierwszego
+3. drugie wyrazenie powstalo z owiniecia pierwszego
+
+ha ha, zeby to bylo takie proste.
+teoretycznie mamy jeszcze jedna mozliwosc: ze
+jedno wyrazenie pojawia sie w drugim kilka razy.
+
+Zalozmy zatem, ze mamy takie tablice:
+
+(define-property (source-cursor cursor::Cursor)::Cursor
+  cursor)
+
+(define-property (source-position cursor::Cursor)::Position
+  (error "Unknown position of source at "cursor))
+  
+(define-property (target-position cursor::Cursor)::Position
+  (error "Unknown position of target at "cursor))
+
+no ale troche tu mieszasz, co by nie mowic: bo czy my
+chcemy moc przesuwac wyrazenia na ekranie?
+
+moze chcemy, a moze nie chcemy. zalozmy jednak ze chcemy.
+
+wtedy nasze dzialanie musi tak wygladac:
+1. renderujemy dokument 'na pusto', zeby wypelnic tablice
+   source-position i target-position
+2. musimy zidentyfikowac czesci wspolne zrodla i celu
+  
+
+* 19.08.2023
+
+scalanie splitow juz zasadniczo dziala,
+wiec teraz bysmy chcieli zrobic jeszcze dwie rzeczy:
+1. dodawac odpowiednie przesuniecie do dolnego/prawego
+   splita
+2. utrzymywac dwa odrebne zestawy podzialow
+   dla orientacji pionowej i poziomej
+   (a przynajmiej aktualizowac rozmiar ekranu
+   po zmianie orientacji)
+
+* 18.08.2023
+
+zrobilismy pare zmian w implementacji filtru,
+ale teraz chcialoby sie je przetestowac, czyli zintegrowac
+z touch-event-processorem.
+
+w tym celu do procesora trzeba dodac dwie zmienne,
+x-tracker i y-tracker
+
+po podpieciu okazalo sie, ze rzecz nie dziala najlepiej,
+a najprostszy model pomiaru predkosci dziala w sumie
+nie najgorzej
+
+(define (drop! x y vx vy)
+  (and-let* ((target ::Split (split-ref split-path))
+             (first-size line-size last-size
+	                 (target:sizes))
+	     (velocity (target:varying-dimension vx vy)))
+    (cond
+     ((or (is first-size <= (* 3 line-size)) ;>
+          (is velocity < -1.5)) ;>
+      (merge-split! at: split-path with: SplitFocus:Last))
+     ((or (is last-size <= (* 3 line-size))
+          (is velocity > 1.5))
+      (merge-split! at: split-path with: SplitFocus:First)))))
+
+(define (merge-split! at: split-path with: focus::SplitFocus)::boolean
+  (if (null? split-path)
+    (and-let* ((split ::Split screen:top))
+      (set! screen:top (split:part focus)))
+    (and-let* ((`(,tip . ,root) split-path)
+               (parent ::Split (split-ref root))
+	       (split ::Split (parent:part tip)))
+      (match tip
+        (,SplitFocus:First (set! parent:first (split:part focus)))
+	(,SplitFocus:Last (set! parent:last (split:part focus)))))
+
 * 17-15.08.2023
 
 filtr Kakmana - kroki:
