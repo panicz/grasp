@@ -1,3 +1,596 @@
+* 05.09.2023
+
+to teraz mamy dwie rzeczy:
+- painter:with-intensity
+- painter:with-proportion
+
+zaczniemy od with-intensity, bo tak
+
+i teraz namy 3 klienty
+
+w kkientach graficznych zamysl jest taki, zeby przeanalizowac
+uzycia setColor
+
+* 04.09.2023
+
+zostaje nam jeszcze do przemyslenia kwestia implementacji
+render-foreground! w kontekscie implementacji 'draw-morph!'
+
+no to rzecz wyglada tak, ze chyba bysmy chcieli miec troche
+symetrii z render-background!
+
+no bo tak:
+- draw-morph! przeksztalca nam dwa wyrazenia
+- draw-background! rysuje wyrazenia tla, ktore
+  nie maja swoich odpowiednikow (w szczegolnosci
+  rysuje dla pudelek same nawiasy)
+- a draw-foreground! powinien
+  - dla wyrazen bez swoich odpowiednikow dzialac
+    analogicznie do 'draw-background!' (moze nawet
+    go wywolywac, choc to mogloby powodowac, ze to
+    samo wyrazenie byloby wywolywane wiecej niz raz)
+  - dla pozostalych wyrazen powinien rysowac morphy
+    pomiedzy nimi a odpowiednikami
+
+#+BEGIN_SRC scheme
+  (define (render-foreground! expression::Element
+			      counterparts::(maps (Element)
+						  to: (list-of
+						       Element))
+			      source-position::(maps (Element)
+						     to: Position)
+			      target-position::(maps (Element)
+						     to: Position)
+			      intensity::float)
+    ::void
+    (let ((links (counterparts item))
+	  (painter ::Painter (the-painter)))
+      (cond
+       ((empty? links)
+	(draw-emerging! expression
+			(source-position expression)
+			intensity)
+	(when (gnu.lists.LList? expression)
+	  (traverse
+	   expression
+	   doing:
+	   (lambda (sub::element t::Traversal)
+	     (render-foreground! sub counterparts
+				 source-position
+				 target-position
+				 intensity)))))
+
+       (else
+	(for x in links
+	  (draw-morph! item x counterparts
+		       source-position
+		       target-position
+		       intensity))))))
+#+END_SRC
+
+ok, wydaje sie ze mamy to.
+
+teraz pozostaja nam do zaimplementowania:
+
+- painter:with-intensity
+- painter:with-proportion
+
+we wszystkich 3 klientach, czyli w klientach graficznych
+trzeba zadbac o to, zeby wszystkie dotychczasowe renderowania
+uwzglednialy przezroczystosc
+
+* 03.09.2023
+
+a dzis z kolei bysmy sprobowali zaimplementowac draw-morph
+
+#+BEGIN_SRC scheme
+
+  (define (draw-morph! foreground::Element
+		       background::Element
+		       counterparts::(maps (Element)
+					   to: (list-of
+						Element))
+		       source-position::(maps (Element)
+					      to: Position)
+		       target-position::(maps (Element)
+					      to: Position)
+		       intensity::float)
+    ::void
+    (let* ((p0 ::Position (source-position foreground))
+	   (p1 ::Position (target-position background))
+	   (painter ::Painter (the-painter))
+	   (left ::real (linear-interpolation
+			 from: p0:left to: p1:left
+			 at: progress))
+	   (top ::real (linear-interpolation
+			from: p0:top to: p1:top
+			at: progress)))
+      (cond
+       ((equal? foreground background)
+	;; here we just draw the foreground
+	;; with full intensity
+	(with-translation (left top)
+	  (draw! foreground)))
+
+       ((or (isnt foreground Tile?)
+	    (isnt background Tile?))
+	;; at least one of the elements is (presumably)
+	;; a space, so the only way we can morph them
+	;; is by fading
+	(with-translation (left top)
+	  (painter:with-intensity (- 1.0 intensity)
+	    (lambda ()
+	      (draw! background)))
+	  (painter:with-intensity intensity
+	    (lambda ()
+	      (draw! foreground)))))
+
+       ((and (gnu.lists.LList? foreground)
+	     (gnu.lists.LList? background))
+	(let* ((e0 ::Extent (extent foreground))
+	       (e1 ::Extent (extent background))
+	       (width ::real (linear-interpolation
+			      from: e0:width to: e1:width
+			      at: progress))
+	       (height ::real (linear-interpolation
+			       from: e0:height to: e1:height
+			       at: progress)))
+	  (with-translation (left top)
+	    (painter:draw-box! width height))
+	  (traverse
+	   foreground
+	   doing:
+	   (lambda (item::Element t::Traversal)
+	     (render-foreground! item
+				 counterparts
+				 source-position
+				 target-position
+				 intensity)))))
+       ((and (Tile? foreground)
+	     (Tile? background))
+	(let* ((e0 ::Extent (extent foreground))
+	       (e1 ::Extent (extent background))
+	       (width ::real (linear-interpolation
+			      from: e0:width to: e1:width
+			      at: progress))
+	       (height ::real (linear-interpolation
+			       from: e0:height to: e1:height
+			       at: progress)))
+	  (with-translation (left top)
+	    (painter:with-intensity (- 1.0 intensity)
+	      (lambda ()
+		(painter:with-proportion
+		    (/ width e1:width)
+		    (/ height e1:height)
+		  (lambda ()
+		    (draw! background)))))
+	    (painter:with-intensity intensity
+	      (lambda ()
+		(painter:with-proportion
+		    (/ width e0:width)
+		    (/ height e0:height)
+		  (draw! foreground)))))))
+       )))
+#+END_SRC
+
+* 02.09.2023
+
+to teraz bysmy sie zajeli draw-background!
+
+#+BEGIN_SRC scheme
+  (define (draw-emerging! expression::Element p::Position
+			  intensity::float)
+    ::void
+    (let ((painter ::Painter (the-painter)))
+      (painter:with-intensity intensity
+	(lambda ()
+	  (with-translation (p:left p:top)
+	    (if (gnu.lists.LList? expression)
+		(let ((outer ::Extent (extent expression)))
+		  (painter:draw-box! outer:width outer:height))
+		(draw! expression)))))))
+
+  (define (render-background! expression::Element
+			      counterparts::(maps (Element)
+						  to: (list-of
+						       Element))
+			      position::(maps (Element)
+					      to: Position)
+			      intensity::float)
+    ::void
+    (when (empty? (counterparts expression))
+      (draw-emerging! expression (position expression) intensiy))
+    (when (gnu.lists.LList? expression)
+      (traverse
+       expression
+       doing:
+       (lambda (sub::element t::Traversal)
+	 (render-background! sub counterparts position
+			     intensity)))))
+#+END_SRC
+
+* 01.09.2023
+
+wydaje sie, ze juz jestesmy blisko
+
+trzeba jeszcze tylko zrobic draw-morph! oraz draw-background!.
+Zacznijmy zatem może od tego ostatniego.
+
+zasadniczo chodzi tutaj o to, ze po pierwsze rysujemy tylko
+elementy bez counterpartow, a po drugie to tak:
+- jak rysujemy atomy, to ze zmniejszona intensywnoscia
+- jak rysujemy pudelka, to tylko nawiasy, oraz rekurencyjnie
+  wszystkie elementy wewnatrz
+
+co do zasady nie musimy tez uzywac 'traverse', poniewaz pozycje
+obiektow sa 'uwolnione' (aczkolwiek wygodniej jest po prostu
+olac traversale)
+
+no dobra, czyli mozna powiedziec, ze chcemy miec
+painter:with-intensity, ustawiamy odpowiednia intensywnosc
+na poczatku, dla pudelka po prostu rysujemy nawiasy, i rekurencyjnie
+przemiatamy, a dla atomow, spacji i rozszerzen rysujemy je tylko
+wtedy, kiedy nie maja odpowiednikow, korzystajac z tabeli
+z pozycjami
+
+i tak ten draw-background powinien wygladac (a glowna trudnosc
+lezy w tym, zeby go dobrze obsluzyc w painterze)
+
+natomiast w przypadku draw-morph:
+- sami wyliczamy sobie pozycje, w ktorych morphy
+  maja sie znajdowac
+- jezeli dwa elementy sa eq?, to rysujemy je normalnie
+- jezeli mamy dwa atomy, to jakos je ze soba morfujemy
+  (mozemy zaczac od zwyklej zmiany intensywnosci,
+  ale pewnie najlepszy by byl Levenshtein)
+- jezeli mamy dwa pudelka, to morfujemy ich rozmiar,
+  a pozniej rekurencyjnie wywolujemy render-foreground!
+  na elementach pierwszego z nich
+- jezeli mamy atom/pudelko albo pudelko/atom, to sciagamy
+  rozmiary pudelka do rozmiarow atomu i renderujemy
+  z odpowiednia przezroczystoscia (w klientach graficznych
+  to zadziala, ale w terminalowym bedziemy mogli uzyc
+  randomizacji do skondensowania elementow)
+
+
+* 31.08.2023
+
+mamy destylat, ktory wyglada tak:
+
+#+BEGIN_SRC scheme
+  (define/kw (measure-positions!
+	      expression
+	      left::real := 0
+	      top::real := 0
+	      into:
+	      measurements::(!maps (Element) to: Position)
+	      := (property+ (element::Element)::Position
+			    (Position left: 0 top: 0)))
+    ::(maps (Element) to: Position)
+    (when (list? expression)
+      (traverse
+       expression
+       doing:
+       (lambda (item::Element t::Traversal)
+	 (let ((p ::Position (measurements item)))
+	   (set! p:left (+ t:left left))
+	   (set! p:top (+ t:top top))
+	   (when (list? item)
+	     (measure-positions! item p:left p:top
+				 into: measurements))))
+       returning:
+       (lambda (t::Traversal)
+	 measurements))))
+
+  (define-object (Morph initial::Tile
+			final::Tile
+			origin::(maps (Element) to: (list-of
+						     Element))
+			progeny::(maps (Element) to: (list-of
+						      Element)))
+    ::Enchanted
+    (define progress ::float 0.0)
+
+    (define initial-position ::(maps (Element) to: (list-of Element))
+      (measure-positions! initial))
+
+    (define initial-extent ::Extent
+      (extent original))
+
+    (define final-position ::(maps (Element) to: (list-of Element))
+      (measure-positions! final))
+
+    (define final-extent ::Extent
+      (extent final))
+
+    (define maximum-extent ::Extent
+      (Extent width: (max initial-extent:width
+			  final-extent:width)
+	      height: (max initial-extent:height
+			   final-extent:height)))
+
+    (define (extent) ::Extent maximum-extent)
+
+    (define shift ::(maps (Element) to: Position)
+      (property+ (element::Element)::Position
+		 (Position left: 0 top: 0)))
+
+    (define (draw! context::Cursor)::void
+      (cond ((is progress <= 0.5) ;>
+	     (render-background! final origin final-position
+				 progress)
+	     (render-foreground! initial
+				 progeny
+				 initial-position
+				 final-position
+				 (- 1.0 progress)))
+	    (else
+	     (render-background! initial progeny
+				 initial-position
+				 (- 1.0 progress))
+	     (render-foreground! final
+				 origin
+				 final-position
+				 initial-position
+				 progress))))    
+    (Magic))
+#+END_SRC
+
+I teraz moglibysmy zrobic cos takiego, ze napiszemy sobie
+funkcje podobna do draw-sequence!, tyle ze uwzgledniajaca
+shift - a moze nawet pare funkcji?
+
+tylko jak by to mialo dzialac?
+
+1. najpierw 'renderujemy' warstwe pod spodem (czyli te mniej widoczna)
+   w taki sposob, ze jezeli brakuje odpowiednikow danego obiektu,
+   to renderujemy rzecz normalnie (tylko z obnizona intensywnoscia),
+   natomiast w przeciwnym razie wyliczamy shift na podstawie progresu
+   
+2. nastepnie 'rendrujemy' warstwe na wierzchu, przy czym robimy
+   to w taki sposob, ze dla elementow bez odpowiednikow
+   renderujemy rzecz normalnie, zas dla pozostalych elementow
+   robimy tak, ze rysujemy morphy pomiedzy elementem
+   i jego odpowiednikiem w miejscu wynikajacym z ustalonego
+   przesuniecia
+   
+3. jeszcze pewna uwaga odnosnie rysowania morphow:
+   mamy 4 rodzaje morphow:
+   - atom-atom
+   - pudelko-pudelko
+   - pudelko-atom
+   - atom-pudelko
+
+   poniewaz jednak morfy powinny byc symetryczne, dwa ostatnie
+   rodzaje to tak naprawde jeden rodzaj
+
+   uwaga: rozszerzenia traktujemy tak jak atomy
+
+   i teraz tak:
+   - morfy 'pudelko pudelko' powinny sie odbywac w taki sposob,
+     ze morfujemy rozmiar pudelka i rysujemy nawiasy,
+     a nastepnie iterujemy po bazowym pudelku, rysujac
+     morfy jego elementow z przesunieciami   - morfy atom-atom moga
+     byc painter-specific, ale dla tekstu
+     moglibysmy zrobic cos bazujacego na odleglosci Levenshteina
+     natomiast w ogolnym przypadku bysmy zrobili zwykle
+     przenikanie
+   - morfy atom-pudelko zrobilibysmy jako zmiane rozmiaru pudelka
+     i ewentualna kondensacje jego elementow do punktu poczatkowego
+     przy jednoczesnym wylanianiu sie atomu
+
+
+* 30-29.08.2023
+
+#+BEGIN_SRC scheme
+  (define (morph-decaying! counterparts::(maps (Element)
+					       to: (list-of Element))
+			   step::int
+			   progress::float)
+    ::void
+    (assert (is 0.0 <= progress <= 1.0)) ;>>
+    (let ((next-step ::int (+ step 1))
+	  (painter ::Painter (the-painter)))
+      (for x::Element in (keys counterparts)
+	(when (and (empty? (counterparts x))
+		   (= (reduction-step x) next-step))
+	  (painter:with-intensity (- 1.0 progress)
+	    (lambda ()
+	      (x:draw! '())))))))
+
+  (define (morph-emerging! counterparts::(maps (Element)
+					       to: (list-of Element))
+			   step::int
+			   progress::float)
+    ::void
+    (morph-decaying! counterparts (- step 1) (- 1.0 progress)))
+
+  (define (morph-expressions! original
+			      derived
+			      counterparts::(maps (Element)
+						  to: (list-of Element))
+			      step::int
+			      progress::float)
+    ::void
+    ;; zamysl jest taki (niekoniecznie sluszny), zeby:
+    ;; - w pierwszej polowie progresu zaczynac renderowanie
+    ;; od 'derived' (poniewaz ma byc zaslaniane przez original),
+    ;; a w erugiej od 'original' (ktore ma byc zasloniete przez
+    ;; 'derived')
+    ;; - z tego samego powodu w pierwszej polowie chcemy
+    ;; najpierw rysowac te elementy 'derived', ktore
+    ;; wylaniaja sie z nicosci, a dopiero na nich wszystkie
+    ;; pozostale, zas w drugiej polowie chceny zaczynac od tych,
+    ;; ktore znikaja z 'original', i dopiero na nich rysowac
+    ;; rzeczy
+    (cond
+     ((is progress <= 0.5) ;>
+      (morph-emerging! counterparts step progress)
+      (morph-from! original #;to counterparts
+		   #;at progress))
+     (else
+      (morph-decaying! counterparts step progress)
+      (morph-from! derived #;to counterparts
+		   #;at (- 1.0 progress)))))
+
+  (define (morph-from! expression #;to counterparts
+		       #;with progress)
+    ::void
+    (assert (is progress <= 0.5)) ;>
+    ;; no dobra, to tutaj rzecz jest taka, ze musimy
+    ;; ze soba morfowac zwykle elementy, ale rowniez
+    ;; spacje.
+    ;; i teraz plan jest z grubsza taki, zeby zachowywac
+    ;; tozsamosc obiektow.
+    ;; to jednak oznacza, ze nie mozemy miec jednej tablicy
+    ;; counterparts, tylko dwie: origins i progenies
+    ;; - ale wtedy nie potrzebujemy parametru step
+
+    )
+
+
+  (define/kw (measure-positions!
+	      expression
+	      left::real := 0
+	      top::real := 0
+	      measurements::(maps (Element) to: Position)
+	      := (property+ (element::Element)::Position
+			    (Position left: 0 top: 0)))
+    ::(maps (Element) to: Position)
+    (when (list? expression)
+      (traverse
+       expression
+       doing:
+       (lambda (item::Element t::Traversal)
+	 (let ((p ::Position (measurements item)))
+	   (set! p:left (+ t:left left))
+	   (set! p:top (+ t:top top))
+	   (when (list? item)
+	     (measure-positions! item p:left p:top measurements))))
+       returning:
+       (lambda (t::Traversal)
+	 measurements))))
+
+  (define-object (Morph initial::Tile
+			final::Tile
+			origin::(maps (Element) to: (list-of Element))
+			progeny::(maps (Element) to: (list-of Element)))
+    ::Enchanted
+    (define progress ::float 0.0)
+
+    (define initial-position ::(maps (Element) to: (list-of Element))
+      (measure-positions! initial))
+
+    (define initial-extent ::Extent
+      (extent original))
+
+    (define final-position ::(maps (Element) to: (list-of Element))
+      (measure-positions! final))
+
+    (define final-extent ::Extent
+      (extent final))
+
+    (define maximum-extent ::Extent
+      (Extent width: (max initial-extent:width
+			  final-extent:width)
+	      height: (max initial-extent:height
+			   final-extent:height)))
+
+    (define (draw! context::Cursor)::void
+      (let ((painter ::Painter (the-painter)))
+	(cond
+	 ((is progress <= 0.5) ;>
+	  (for x::Element in (keys progeny)
+	    (when (is (progeny x) empty?)
+	      (let ((shift ::Position (final-position x)))
+		(with-translation (shift:left shift:top)
+		  (painter:with-intensity (- 1.0 progress)
+		    (draw! x))))))
+	  (draw-morph! initial progress))
+	 (else 
+	  ...))))
+
+
+    (Magic)
+    ;; zaczynamy od tego, ze sobie "renderujemy" original
+    ;; i "derived" do "niczego", tak zeby miec polozenia
+    ;; wszystkich elementow
+    )
+
+
+#+END_SRC
+
+
+* 25.08.2023
+
+(define (draw-tween! source target progress)
+  ;; rzecz jest taka, ze musimy rysowac zarazem
+  ;; zrodlo i cel, przy czym (draw-tween! source target 0.0)
+  ;; ma byc rownowazne (draw-tween! target source 1.0)
+  ;; ktore ma byc rownowazne po prostu (draw! source)
+  ;;
+  ;; no i super, ale jeszcze kilka rzeczy wchodzi w gre
+  ;; moze algorytm powinien dzialac tak, ze
+  ;; renderujemy tak dlugo, dopoki nie zostanie
+  ;; wyrenderowane wszystko z tablicy counterpart
+
+  ;; sztuczka polega chyba na tym, ze nie renderujemy
+  ;; source'a ani targeta, tylko morphy pomiedzy
+  ;; sourcem i jego counterpartami, oraz pomiedzy
+  ;; targetem a jego counterpartami. przy czym kolejnosc
+  ;; rysowania zalezy od progresu
+
+  ;; jest jakis taki pomysl zeby skakac po counterpartach
+  ;; do czasu osiagniecia punktu stalego, tzn wyczerpania
+  ;; wszystkich kluczy
+  (if (is progress < 0.5);>
+     (morph-from target progress)
+     (morph-from source (- 1.0 progress)));; albo na odwrot
+  
+  )
+
+(define (morph-from expression progress)
+  (let ((targets (counterparts expression)))
+    (if (null? targets)
+       (decay! expression progress)
+       (for target in targets
+         (morph! expression target progress)))))
+
+(define
+	 
+* 24.08.2023
+
+morph expression into expressions at progress
+
+for x in expressions
+  morph1 expression into x with progress
+
+gdzie
+
+morph1 original into derived at progress
+
+to cos w rodzaju
+
+(cond
+  ((and (list? original) (list? derived))
+   (morph-boxes original derived progress))
+  ((list? original)
+   (morph-box-to-atom original derived progress))
+  ((list? derived)
+   (morph-atom-to-box original derived progress))
+  (else
+   ;; domyslnie morfujemy dwa atomy, to znaczy:
+   ;; - polozenie atomu wynika z interpolacji
+   ;;   polozen original i derived
+   ;; - rozmiar atomu rowniez wynika z interpolacji
+
+
+tak by wygladal ten kejs, w ktorym jedno wyrazenie
+sie nam zwielokrotnia
+
+natomiast jest jeszcze kejs, w ktorym jedno
+pudelko zostaje przeksztalcone w inne pudelko
+
 * 22-21.08.2023
 
 teraz bedziemy mieli dluzsza przerwe, co oznacza nieco
