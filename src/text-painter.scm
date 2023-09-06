@@ -79,8 +79,9 @@
           (x shiftLeft)
 	  (y shiftTop))
       (clip! x y w h)
-      (action)
-      (clip! x0 y0 w0 h0)))
+      (try-finally
+       (action)
+       (clip! x0 y0 w0 h0))))
 
   (define markedCursorPosition ::Position
     (Position left: 0

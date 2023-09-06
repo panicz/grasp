@@ -177,6 +177,31 @@ son|#
 #;(e.g. #;(! #;5) ===> 120)
 (Button action: (lambda () (WARN \"button pressed!\"))
         label: \"Press me!\")
+
+(e.g.
+ (parameterize ((the-cursor (cursor 0 1 3 1 1))
+		(the-selection-anchor (cursor 0 1 3 1 1)))
+   (grasped \"\\
+(define (! n)
+  (if (<= n 0)
+      1
+      (* n (! (- n 1)))))
+\"))
+===>
+\"
+╭        ╭     ╮                      ╮
+│ define │ ! n │                      │
+│        ╰ ^   ╯                      │
+│   ╭    ╭        ╮                 ╮ │
+│   │ if │ <= n 0 │                 │ │
+│   │    ╰        ╯                 │ │
+│   │                               │ │
+│   │       1                       │ │
+│   │                               │ │
+│   │       ╭     ╭   ╭       ╮ ╮ ╮ │ │
+│   │       │ * n │ ! │ - n 1 │ │ │ │ │
+╰   ╰       ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
+\")
 " parse-document))
 			     #!null)))
 

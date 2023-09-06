@@ -109,7 +109,7 @@
 
   (define (release! x::real y::real time-ms::real)::boolean
     (set! timeout (timeout:cancel))
-    (WARN "vx: "vx", vy: "vy)
+    ;;(WARN "vx: "vx", vy: "vy)
     (match suppressed-presses
       (0 (target:release! finger x y vx vy))
       (1 (set! timeout

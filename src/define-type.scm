@@ -11,6 +11,11 @@
     ((_ input-types to: output-type + ...)
      procedure)))
 
+(define-syntax !maps
+  (syntax-rules (to:)
+    ((_ input-types to: output-type + ...)
+     procedure)))
+
 (define-syntax-rule (list-of type)
   list)
 

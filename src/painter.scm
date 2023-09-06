@@ -523,8 +523,9 @@
 	(x! ::real x)
         (y! ::real y))
     (painter:translate! x! y!)
-    (begin . actions)
-    (painter:translate! (- x!) (- y!))))
+    (try-finally
+     (begin . actions)
+     (painter:translate! (- x!) (- y!)))))
 
 (define-syntax-rule (with-clip (w h) . actions)
   (let ((painter ::Painter (the-painter)))

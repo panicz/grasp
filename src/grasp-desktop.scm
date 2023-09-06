@@ -140,8 +140,8 @@
     (Extent width: size:width
 	    height: size:height)))
 
-(define-constant FiraMono ::Font
-  (load-font "/assets/FiraMono-Medium.ttf" size: 16))
+(define-constant Iosevka ::Font
+  (load-font "/assets/iosevka-fixed-semibold.ttf" size: 16))
 
 (define-constant BarlowCondensed ::Font
   (load-font "/assets/BarlowCondensed-Medium.ttf" size: 28))
@@ -171,7 +171,7 @@
   BarlowCondensed)
 
 (define-parameter+ (the-string-font) ::Font
-  FiraMono)
+  Iosevka)
 
 (define-parameter+ (the-comment-font) ::Font
   GloriaHallelujah)
@@ -442,6 +442,27 @@
 (define-object (GRASP)::Application
   (define graphics ::Graphics2D)
 
+  (define intensity ::float 1.0)
+
+  (define (set-color! c::Color)::void
+    (let* ((A ::int (c:getAlpha))
+	   (a ::int (clamp 0 (nearby-int (- 255 (* intensity A)))
+			   255))
+	   (aRGB ::int (bitwise-ior
+			(bitwise-arithmetic-shift (c:getBlue) 0)
+			(bitwise-arithmetic-shift (c:getGreen) 8)
+			(bitwise-arithmetic-shift (c:getRed) 16)
+			(bitwise-arithmetic-shift a 24)))
+	   (c* ::Color (color aRGB)))
+      (graphics:setColor c*)))
+
+  (define (with-intensity i::float action::(maps () to: void/))
+    (let ((previous ::float intensity))
+      (set! intensity i)
+      (try-finally
+       (action)
+       (set! intensity previous))))
+  
   (define directory-box ::ViewBox
     (let* ((box ::FloatSize (directory-icon:size))
 	   (w/h ::float (/ box:width box:height))
@@ -480,8 +501,9 @@
            #;(x (transform:getTranslateX))
 	   #;(y (transform:getTranslateY)))
       (graphics:clipRect 0 0 w h)
-      (action)
-      (graphics:setClip previous-clip)))
+      (try-finally
+       (action)
+       (graphics:setClip previous-clip))))
 
   (define (clip! left::real  top::real
 		 width::real height::real)
@@ -568,7 +590,7 @@
     (let ((line-height (max 0 (- height
 				 top-left-bounds:height
 				 bottom-left-bounds:height))))
-      (graphics:setColor color)
+      (set-color! color)
       (graphics:fill top-left-paren)
       (graphics:fillRect 0 top-left-bounds:height
 			 5 line-height)
@@ -580,7 +602,7 @@
     (let ((line-height (max 0 (- height
 				 top-right-bounds:height
 				 bottom-right-bounds:height))))
-      (graphics:setColor color)
+      (set-color! color)
       (graphics:fill top-right-paren)
       (graphics:fillRect (- top-right-bounds:width 5)
 			 top-right-bounds:height 5 line-height)
@@ -612,7 +634,7 @@
     (let ((line-height (max 0 (- height
 				 top-left-bounds:height
 				 bottom-left-bounds:height))))
-      (graphics:setColor color)
+      (set-color! color)
       (graphics:fill top-left-quote-paren)
       (graphics:fillRect 0 top-left-quote-bounds:height
 		       5 line-height)
@@ -624,7 +646,7 @@
     (let ((line-height (max 0 (- height
 				 top-right-bounds:height
 				 bottom-right-bounds:height))))
-      (graphics:setColor color)
+      (set-color! color)
       (graphics:fill top-right-quote-paren)
       (graphics:fillRect (- top-right-quote-bounds:width 5)
 			 top-right-quote-bounds:height
@@ -651,7 +673,7 @@
 			       height::real
 			       context::Cursor)
     ::void
-    (graphics:setColor (opening-parenthesis-color context))
+    (set-color! (opening-parenthesis-color context))
     (graphics:fill quote-marker))
 
   (define (quote-marker-width)::real
@@ -659,14 +681,14 @@
 
   (define (open-quasiquote-paren! height::real color::Color)::void
     (let ((line-height (max 0 (- height top-left-bounds:height))))
-      (graphics:setColor color)
+      (set-color! color)
       (graphics:fill top-left-quote-paren)
       (graphics:fillRect 0 top-left-quote-bounds:height
 		       5 line-height)))
 
   (define (close-quasiquote-paren! height::real color::Color)::void
     (let ((line-height (max 0 (- height top-right-bounds:height))))
-      (graphics:setColor color)
+      (set-color! color)
       (graphics:fill top-right-quote-paren)
       (graphics:fillRect (- top-right-quote-bounds:width 5)
 			 top-right-quote-bounds:height
@@ -689,10 +711,10 @@
 				    height::real
 				    context::Cursor)
     ::void
-    (graphics:setColor (opening-parenthesis-color context))
+    (set-color! (opening-parenthesis-color context))
     (graphics:fill top-left-quote-paren)
     (with-translation ((+ width (quasiquote-marker-width)) 0)
-      (graphics:setColor (closing-parenthesis-color context))
+      (set-color! (closing-parenthesis-color context))
       (graphics:fill top-right-quote-paren)))
 
   (define (quasiquote-marker-width)::real
@@ -701,7 +723,7 @@
   (define (open-unquote-paren! height::real color::Color)::void
     (let ((line-height (max 0 (- height
 				 bottom-left-quote-bounds:height))))
-      (graphics:setColor color)
+      (set-color! color)
       (graphics:fillRect 0 0 5 line-height)
       (with-translation (0 line-height)
 	(graphics:fill bottom-left-quote-paren))
@@ -710,7 +732,7 @@
   (define (close-unquote-paren! height::real color::Color)::void
     (let ((line-height (max 0 (- height
 				 bottom-right-quote-bounds:height))))
-      (graphics:setColor color)
+      (set-color! color)
       (graphics:fillRect (- bottom-right-quote-bounds:width 5) 0
 			 5 line-height)
       (with-translation (0 line-height)
@@ -733,10 +755,10 @@
 				 context::Cursor)
     ::void
     (with-translation (0 (- height bottom-left-quote-bounds:height))
-      (graphics:setColor (opening-parenthesis-color context))
+      (set-color! (opening-parenthesis-color context))
       (graphics:fill bottom-left-quote-paren)
       (with-translation ((+ width (quasiquote-marker-width)) 0)
-	(graphics:setColor (closing-parenthesis-color context))
+	(set-color! (closing-parenthesis-color context))
 	(graphics:fill bottom-right-quote-paren))))
 
   (define (unquote-marker-width)::real
@@ -744,7 +766,7 @@
 
   (define (open-unquote-splicing-paren! height::real color::Color)
     ::void
-    (graphics:setColor color)
+    (set-color! color)
     (graphics:fillRect 0 5 1 5)
     (graphics:fillRect 3 5 3 5)
     (with-translation (5 0)
@@ -752,7 +774,7 @@
 
   (define (close-unquote-splicing-paren! height::real color::Color)
     ::void
-    (graphics:setColor color)
+    (set-color! color)
     (close-unquote-paren! height color)
     (graphics:fillRect 10 5 3 5)
     (graphics:fillRect 14 5 1 5))
@@ -777,13 +799,13 @@
 	   context::Cursor)
     ::void
     (with-translation (0 (- height bottom-left-quote-bounds:height))
-      (graphics:setColor (opening-parenthesis-color context))
+      (set-color! (opening-parenthesis-color context))
       (graphics:fillRect 0 5 1 10)
       (graphics:fillRect 3 5 5 10)
       (with-translation (5 0)
 	(graphics:fill bottom-left-quote-paren)
 	(with-translation ((+ width (quasiquote-marker-width)) 0)
-	  (graphics:setColor (closing-parenthesis-color context))
+	  (set-color! (closing-parenthesis-color context))
 	  (graphics:fill bottom-right-quote-paren)
 	  (graphics:fillRect 10 5 13 10)
 	  (graphics:fillRect 14 5 15 10)))))
@@ -800,7 +822,7 @@
     (invoke (the-atom-font) 'getSize2D))
 
   (define (fill-background! width::real height::real)::void
-    (graphics:setColor (color #xffffffff))
+    (set-color! (color #xffffffff))
     (graphics:fillRect 0 0 (as int width) (as int height)))
 
   (define (draw-popup! width::real height::real)::void
@@ -904,15 +926,15 @@
   (define (grid-border)::real 10)
 
   (define (draw-horizontal-grid! width::real)::void
-    (graphics:setColor text-color)
+    (set-color! text-color)
     (graphics:fillRect 4 4 (- width 8) 2))
 
   (define (draw-vertical-grid! height::real)::void
-    (graphics:setColor text-color)
+    (set-color! text-color)
     (graphics:fillRect 4 4 2 (- height 8)))
 
   (define (fill-grid-cell! width::real height::real)::void
-    (graphics:setColor Color:WHITE)
+    (set-color! Color:WHITE)
     (graphics:fillRect 5 5 (- width 10) (- height 10)))
 
   (define (draw-line! x0::real y0::real x1::real y1::real)
@@ -947,10 +969,10 @@
 	    (let* ((fragment (text:subSequence segment-start
 					       segment-end))
 		   (width (metrics:stringWidth fragment)))
-	      (graphics:setColor background-color)
+	      (set-color! background-color)
 	      (graphics:fillRect left (* (- lines 1) height)
 				 width height)
-	      (graphics:setColor text-color)
+	      (set-color! text-color)
 	      (graphics:drawString fragment left (* lines height))
 	      (set! left (+ left width))))
 
@@ -1088,7 +1110,7 @@
   (define (draw-atom! text::CharSequence context::Cursor)::void
     (let* ((extent (atom-extent text))
 	   (font (the-atom-font)))
-      (graphics:setColor atom-frame-color)
+      (set-color! atom-frame-color)
       (graphics:fillRoundRect 0 14
 			      extent:width (- extent:height 28)
 			      12 12)
@@ -1281,5 +1303,7 @@ by the AWT framework."))
        javax.swing.JFrame:EXIT_ON_CLOSE)
       (window:setFocusTraversalKeysEnabled #f)
       (window:setVisible #t))))
+
+(set! *print-base* 16)
 
 (run-in-AWT-window)

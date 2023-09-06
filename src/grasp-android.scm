@@ -156,9 +156,9 @@
 
 (define-initializer (initialize-activity
 		     activity::AndroidActivity)
-  (define FiraMono ::Typeface
-    (load-font "FiraMono-Medium.ttf" activity))
-
+  (define Iosevka ::Typeface
+    (load-font "iosevka-fixed-semibold.ttf" activity))
+    
   (define Basic-Regular
     (load-font "Basic-Regular.otf" activity))
   
@@ -196,7 +196,7 @@
 
   (define the-string-font ::($bracket-apply$ parameter Font)
     (make-parameter
-     (Font face: FiraMono
+     (Font face: Iosevka #;HackRegular #;PragmataProMonoRegular
 	   size: 32)))
 
   (define the-comment-font ::($bracket-apply$ parameter Font)
@@ -464,8 +464,9 @@
     (canvas:save)
     (canvas:clipRect (as float 0) (as float 0)
 		     (as float w) (as float h))
-    (action)
-    (canvas:restore))
+    (try-finally
+     (action)
+     (canvas:restore)))
 
 
   (define (clip! left::real  top::real
@@ -533,6 +534,29 @@
 
   (define background-color ::long transparent)
 
+  (define intensity ::float 1.0)
+
+  (define (with-intensity i::float action::(maps () to: void))
+    (let ((previous ::float intensity))
+      (set! intensity i)
+      (try-finally
+       (action)
+       (set! intensity previous))))
+  
+  (define (set-color! c::long)::void
+    (let* ((RGB ::long (bitwise-and c #xffffff))
+	   (a ::long (bitwise-and #xff
+				  (bitwise-arithmetic-shift
+				    c -24)))
+				  
+	   (a* ::long (clamp 0 (nearby-int (* intensity a)) 255))
+	   (c* ::long (bitwise-ior RGB
+				   (bitwise-arithmetic-shift
+				    a* 24))))
+      (unless (= c c*)
+	(WARN c " becomes "c*))
+      (paint:setColor c*)))
+  
   (define (draw-horizontal-split! top::real)::void
     (let* ((left ::float (max 0 (current-clip-left)))
 	   (bottom ::float (+ top (horizontal-split-height)))
@@ -554,20 +578,20 @@
   (define (grid-border)::real 20)
 
   (define (draw-horizontal-grid! width::real)::void
-    (paint:setColor text-color)
+    (set-color! text-color)
     (canvas:drawRect 8 8 (- width 8) 12 paint))
 
   (define (draw-vertical-grid! height::real)::void
-    (paint:setColor text-color)
+    (set-color! text-color)
     (canvas:drawRect 8 8 12 (- height 8) paint))
 
   (define (fill-grid-cell! width::real height::real)::void
-    (paint:setColor Color:WHITE)
+    (set-color! Color:WHITE)
     (canvas:drawRect 10 10 (- width 10) (- height 10) paint))
 
   (define (draw-line! x0::real y0::real x1::real y1::real)
     ::void
-    (paint:setColor Color:LTGRAY)
+    (set-color! Color:LTGRAY)
     (paint:setStrokeWidth 4)
     (canvas:drawLine x0 y0 x1 y1 paint)
     (paint:setStrokeWidth 1))
@@ -589,7 +613,7 @@
 	    (+ (current-translation-left) +left))
       (set! marked-cursor-position:top
 	    (+ (current-translation-top) +top))
-      (paint:setColor text-color)
+      (set-color! text-color)
       (canvas:drawRect left top
 		       (+ left cursor-extent:width)
 		       (+ top cursor-extent:height)
@@ -646,11 +670,11 @@
     10)
 
   (define (draw-horizontal-bar! width::real)::void
-    (paint:setColor text-color)
+    (set-color! text-color)
     (canvas:drawRect 0 0 width (horizontal-bar-height) paint))
 
   (define (draw-vertical-bar! height::real)::void
-    (paint:setColor text-color)
+    (set-color! text-color)
     (canvas:drawRect 0 0 (vertical-bar-width) height paint))
 
   (define (space-width)::real 16)
@@ -659,17 +683,17 @@
   
   (define (draw-rounded-rectangle! width::real height::real)
     ::void
-    (paint:setColor #xffffffff)
+    (set-color! #xffffffff)
     (canvas:drawRoundRect 0 0 (as int width) (as int height)
 			  10 10 paint)
-    (paint:setColor text-color)
+    (set-color! text-color)
     (paint:setStyle Paint:Style:STROKE)
     (canvas:drawRoundRect 0 0 (as int width) (as int height)
 			  10 10 paint)
     (paint:setStyle Paint:Style:FILL))
 
   (define (fill-background! width::real height::real)::void
-    (paint:setColor #xffffffff)
+    (set-color! #xffffffff)
     (canvas:drawRect 0 0 (as int width) (as int height) paint))
   
   (define (draw-popup! width::real height::real)::void
@@ -683,7 +707,7 @@
 
   (define (draw-rectangle! width::real height::real)::void
     (let ((b ::int 2))
-      (paint:setColor text-color)
+      (set-color! text-color)
       (canvas:drawRect 0 0 (as int width) (as int b) paint)
       (canvas:drawRect 0 (as int (- height b))
 		       (as int width) (as int height) paint)
@@ -712,7 +736,7 @@
     (let ((line-height (max 0 (- height
 				 top-left-extent:height
 				 bottom-left-extent:height))))
-      (paint:setColor color)
+      (set-color! color)
       (canvas:drawPath top-left-paren paint)
       (canvas:drawRect 0 top-left-extent:height
 		       10 (+ top-left-extent:height
@@ -726,7 +750,7 @@
     (let ((line-height (max 0 (- height
 				 top-right-extent:height
 				 bottom-right-extent:height))))
-      (paint:setColor color)
+      (set-color! color)
       (canvas:drawPath top-right-paren paint)
       (canvas:drawRect (- top-right-extent:width 10)
 		       top-right-extent:height
@@ -772,7 +796,7 @@
     (let ((line-height (max 0 (- height
 				 top-left-extent:height
 				 bottom-left-extent:height))))
-      (paint:setColor color)
+      (set-color! color)
       (canvas:drawPath top-left-quote-paren paint)
       (canvas:drawRect 0 top-left-quote-extent:height
 		       10 (+ top-left-quote-extent:height
@@ -786,7 +810,7 @@
     (let ((line-height (max 0 (- height
 				 top-right-extent:height
 				 bottom-right-extent:height))))
-      (paint:setColor color)
+      (set-color! color)
       (canvas:drawPath top-right-quote-paren paint)
       (canvas:drawRect (- top-right-quote-extent:width 10)
 		       top-right-quote-extent:height
@@ -815,7 +839,7 @@
 			       height::real
 			       context::Cursor)
     ::void
-    (paint:setColor (opening-parenthesis-color context))
+    (set-color! (opening-parenthesis-color context))
     (canvas:drawPath quote-marker paint))
 
   (define (quote-marker-width)::real
@@ -823,7 +847,7 @@
 
   (define (open-quasiquote-paren! height::real color::long)::void
     (let ((line-height (max 0 (- height top-left-extent:height))))
-      (paint:setColor color)
+      (set-color! color)
       (canvas:drawPath top-left-quote-paren paint)
       (canvas:drawRect 0 top-left-quote-extent:height
 		       10 (+ top-left-quote-extent:height
@@ -832,7 +856,7 @@
 
   (define (close-quasiquote-paren! height::real color::long)::void
     (let ((line-height (max 0 (- height top-right-extent:height))))
-      (paint:setColor color)
+      (set-color! color)
       (canvas:drawPath top-right-quote-paren paint)
       (canvas:drawRect (- top-right-quote-extent:width 10)
 		       top-right-quote-extent:height
@@ -857,10 +881,10 @@
 				    height::real
 				    context::Cursor)
     ::void
-    (paint:setColor (opening-parenthesis-color context))
+    (set-color! (opening-parenthesis-color context))
     (canvas:drawPath top-left-quote-paren paint)
     (with-translation ((+ width (quasiquote-marker-width)) 0)
-      (paint:setColor (closing-parenthesis-color context))
+      (set-color! (closing-parenthesis-color context))
       (canvas:drawPath top-right-quote-paren paint)))
 
   (define (quasiquote-marker-width)::real
@@ -869,7 +893,7 @@
   (define (open-unquote-paren! height::real color::long)::void
     (let ((line-height (max 0 (- height
 				 bottom-left-quote-extent:height))))
-      (paint:setColor color)
+      (set-color! color)
       (canvas:drawRect 0 0 10 line-height paint)
       (with-translation (0 line-height)
 	(canvas:drawPath bottom-left-quote-paren paint))
@@ -878,7 +902,7 @@
   (define (close-unquote-paren! height::real color::long)::void
     (let ((line-height (max 0 (- height
 				 bottom-right-quote-extent:height))))
-      (paint:setColor color)
+      (set-color! color)
       (canvas:drawRect (- bottom-right-quote-extent:width 10) 0
 		       bottom-right-quote-extent:width line-height
 		       paint)
@@ -902,10 +926,10 @@
 				 context::Cursor)
     ::void
     (with-translation (0 (- height bottom-left-quote-extent:height))
-      (paint:setColor (opening-parenthesis-color context))
+      (set-color! (opening-parenthesis-color context))
       (canvas:drawPath bottom-left-quote-paren paint)
       (with-translation ((+ width (quasiquote-marker-width)) 0)
-	(paint:setColor (closing-parenthesis-color context))
+	(set-color! (closing-parenthesis-color context))
 	(canvas:drawPath bottom-right-quote-paren paint))))
 
   (define (unquote-marker-width)::real
@@ -913,7 +937,7 @@
 
   (define (open-unquote-splicing-paren! height::real color::long)
     ::void
-    (paint:setColor color)
+    (set-color! color)
     (canvas:drawRect 0 10 2.5 20 paint)
     (canvas:drawRect 5 10 10 20 paint)
     (with-translation (10 0)
@@ -921,7 +945,7 @@
 
   (define (close-unquote-splicing-paren! height::real color::long)
     ::void
-    (paint:setColor color)
+    (set-color! color)
     (close-unquote-paren! height color)
     (canvas:drawRect 20 10 25 20 paint)
     (canvas:drawRect 27.5 10 30 20 paint))
@@ -946,14 +970,14 @@
 	   context::Cursor)
     ::void
     (with-translation (0 (- height bottom-left-quote-extent:height))
-      (paint:setColor (opening-parenthesis-color context))
+      (set-color! (opening-parenthesis-color context))
       (canvas:drawRect 0 10 2.5 20 paint)
       (canvas:drawRect 5 10 10 20
 		       paint)
       (with-translation (10 0)
 	(canvas:drawPath bottom-left-quote-paren paint)
 	(with-translation ((+ width (quasiquote-marker-width)) 0)
-	  (paint:setColor (closing-parenthesis-color context))
+	  (set-color! (closing-parenthesis-color context))
 	  (canvas:drawPath bottom-right-quote-paren paint)
 	  (canvas:drawRect 20 10 25 20 paint)
 	  (canvas:drawRect 27.5 10 30 20 paint)))))
@@ -988,11 +1012,11 @@
 	    (let* ((fragment (text:subSequence segment-start
 					       segment-end))
 		   (width (text-width fragment font)))
-	      (paint:setColor background-color)
+	      (set-color! background-color)
 	      (canvas:drawRect left (* (- lines 1) height)
 			       (+ left width) (* lines height)
 			       paint)
-	      (paint:setColor text-color)
+	      (set-color! text-color)
 	      (canvas:drawText fragment left (* lines height)
 			       paint)
 	      (set! left (+ left width))))
@@ -1131,7 +1155,7 @@
   (define (draw-atom! text::CharSequence context::Cursor)::void
     (let* ((font (the-atom-font))
 	   (extent ::Extent (text-extent text font)))
-      (paint:setColor atom-frame-color)
+      (set-color! atom-frame-color)
       (canvas:drawRoundRect (as int 0) (as int 28)
 			    (as int (+ extent:width 8))
 			    (as int (+ extent:height 16))
@@ -1478,4 +1502,5 @@
 				      vicinity: 15))))
     )
 
-  (AndroidActivity))
+  (AndroidActivity)
+  (set! *print-base* 16))
