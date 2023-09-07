@@ -75,45 +75,69 @@
 
 (define-box (screen-up-to-date?)::boolean #f)
 
+(define-cache (color red::int green::int blue::int)::Color
+  (Color:RGB red green blue))
+
 (define-parameter (the-text-style)::TextStyle
   (TextStyle:noneOf TextDecoration:class))
 
 (define-parameter (the-text-color)::Color
-  Color:ANSI:DEFAULT)
+  (color 255 255 255))
 
 (define-parameter (the-background-color)::Color
-  Color:ANSI:DEFAULT)
+  (color 0 0 0))
 
 (define-parameter (the-selected-text-color)::Color
-  Color:ANSI:BLACK)
+  (color 0 0 0))
 
 (define-parameter (the-selected-background-color)::Color
-  Color:ANSI:YELLOW)
+  (color 255 255 0))
 
 (define-parameter (the-comment-text-color)::Color
-  Color:ANSI:WHITE)
+  (color 255 255 255))
 
 (define-parameter (the-comment-background-color)::Color
-  Color:ANSI:DEFAULT)
+  (color 0 0 0))
 
 (define-parameter (the-selected-comment-text-color)::Color
-  Color:ANSI:BLACK)
+  (color 0 0 0))
 
 (define-parameter (the-selected-comment-background-color)::Color
-  Color:ANSI:WHITE)
+  (color 255 255 255))
 
 (define-parameter (the-odd-comment-color)::Color
-  (Color:RGB 76 76 76))
+  (color 76 76 76))
+
 (define-parameter (the-even-comment-color)::Color
-  (Color:RGB 127 127 127))
+  (color 127 127 127))
+
+(define-parameter (the-text-intensity)::float
+  1.0)
+
+(define-cache (blend fg::Color bg::Color intensity::float)::Color
+  (let* ((rf ::int (fg:getRed))
+	 (gf ::int (fg:getGreen))
+	 (bf ::int (fg:getBlue))
+	 (rb ::int (bg:getRed))
+	 (gb ::int (bg:getGreen))
+	 (bb ::int (bg:getBlue))
+	 (r ::int (nearby-int (linear-interpolation
+			       from: rb to: rf at: intensity)))
+	 (g ::int (nearby-int (linear-interpolation
+			       from: gb to: gf at: intensity)))
+	 (b ::int (nearby-int (linear-interpolation
+			       from: bb to: bf at: intensity))))
+    (Color:RGB rf gf bf)))
 
 (define-cache (letter character
-		      color: color::Color := (the-text-color)
+		      color: text-color::Color := (the-text-color)
 		      background: background::Color
 		      := (the-background-color)
 		      style: style::TextStyle := (the-text-style))
   ::Letter
-  (Letter character color background style))
+  (let ((color ::Color (blend text-color background
+			      (the-text-intensity))))
+    (Letter character color background style)))
 
 (define (render io ::LanternaScreen)::void
   (let loop ()
@@ -241,11 +265,27 @@
   
   (define text-color-stack ::java.util.Stack (java.util.Stack))
   (define background-color-stack ::java.util.Stack (java.util.Stack))
+
+  (define horizontal-stretch ::float 1.0)
+  (define vertical-stretch ::float 1.0)
+  
+  (define (with-stretch horizontal::float vertical::float
+			action::(maps () to: void))
+    ::void
+    (let ((previous-horizontal ::float horizontal-stretch)
+	  (previous-vertical ::float vertical-stretch))
+      (set! horizontal-stretch (* horizontal-stretch horizontal))
+      (set! vertical-stretch (* vertical-stretch vertical))
+      (try-finally
+       (action)
+       (begin
+	 (set! horizontal-stretch previous-horizontal)
+	 (set! vertical-stretch previous-vertical)))))
   
   (define (put! c::char row::real col::real)::void
     (let ((screen ::Extent (screen:size))
-	  (x (+ col shiftLeft))
-          (y (+ row shiftTop))
+	  (x (+ shiftLeft (nearby-int (* horizontal-stretch col))))
+          (y (+ shiftTop (nearby-int (* vertical-stretch row))))
 	  (left (max 0 clipLeft))
 	  (top (max 0 clipTop)))
       (when (and (is left <= x < (+ left clipWidth))
@@ -357,6 +397,10 @@
 	  (set! then now)))
       (pending-animations:add playing)))
 
+  (define (with-intensity i::float action::(maps () to: void))::void
+    (parameterize ((the-text-intensity i))
+      (action)))
+  
   (define thread-pool ::Scheduler (ThreadPool 1))
 
   (define animating ::ScheduledTask #!null)

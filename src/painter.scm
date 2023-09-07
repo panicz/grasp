@@ -40,6 +40,10 @@
 			   Rotatable)
 
   (play! animation::Animation)::void
+  (with-intensity i::float action::(maps () to: void))::void
+  (with-stretch horizontal::float vertical::float
+		action::(maps () to: void))
+  ::void
   
   (mark-cursor! +left::real +top::real)::void
   (cursor-position)::Position
@@ -271,6 +275,14 @@
   (define (with-clip w::real h::real action::(maps () to: void))::void
     (action))
 
+  (define (with-intensity i::float action::(maps () to: void))::void
+    (action))
+
+  (define (with-stretch horizontal::float vertical::float
+			action::(maps () to: void))
+    ::void
+    (action))
+  
   (define (draw-horizontal-split! top::real)::void
     (values))
 

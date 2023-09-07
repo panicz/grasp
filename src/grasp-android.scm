@@ -523,6 +523,14 @@
 
   (define (current-scale)::real
     scale)
+
+  (define (with-stretch horizontal::float vertical::float
+			action::(maps () to: void))
+    ::void
+    (canvas:scale horizontal vertical)
+    (try-finally
+     (action)
+     (canvas:scale (/ horizontal) (/ vertical))))
   
   (define (horizontal-split-height)::real
     30)
@@ -536,7 +544,7 @@
 
   (define intensity ::float 1.0)
 
-  (define (with-intensity i::float action::(maps () to: void))
+  (define (with-intensity i::float action::(maps () to: void))::void
     (let ((previous ::float intensity))
       (set! intensity i)
       (try-finally
@@ -553,8 +561,6 @@
 	   (c* ::long (bitwise-ior RGB
 				   (bitwise-arithmetic-shift
 				    a* 24))))
-      (unless (= c c*)
-	(WARN c " becomes "c*))
       (paint:setColor c*)))
   
   (define (draw-horizontal-split! top::real)::void
@@ -1163,8 +1169,8 @@
       (with-translation (4 16)
 	(parameterize ((the-cursor-offset
 			atom-cursor-offset))
-	    (draw-text! text font context)))))
-
+	  (draw-text! text font context)))))
+  
   (define (text-character-index-under x::real y::real
 				      text::CharSequence
 				      font::Font)

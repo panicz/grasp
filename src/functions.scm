@@ -641,3 +641,22 @@
 
 (e.g.
  (is (byte-ref #xAABBCCDD 3) = #xAA))
+
+(define (linear-interpolation #!key (from::real 0.0)
+			      (to::real 1.0)
+			      (at::real 0.5))
+  ::real
+  (cond ((is at <= 0)
+	 from)
+	((is at >= 1)
+	 to)
+	(else
+	 (+ from (* at (- to from))))))
+
+(define (clamp lo::real x::real hi::real)::real
+  (cond ((is x < lo)
+	 lo)
+	((is x > hi)
+	 hi)
+	(else
+	 x)))

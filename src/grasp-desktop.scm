@@ -456,12 +456,20 @@
 	   (c* ::Color (color aRGB)))
       (graphics:setColor c*)))
 
-  (define (with-intensity i::float action::(maps () to: void/))
+  (define (with-intensity i::float action::(maps () to: void))::void
     (let ((previous ::float intensity))
       (set! intensity i)
       (try-finally
        (action)
        (set! intensity previous))))
+
+  (define (with-stretch horizontal::float vertical::float
+			action::(maps () to: void))
+    ::void
+    (graphics:scale horizontal vertical)
+    (try-finally
+     (action)
+     (graphics:scale (/ horizontal) (/ vertical))))
   
   (define directory-box ::ViewBox
     (let* ((box ::FloatSize (directory-icon:size))
@@ -1115,8 +1123,8 @@
 			      extent:width (- extent:height 28)
 			      12 12)
       (with-translation (4 8)
-	  (parameterize ((the-cursor-offset atom-cursor-offset))
-	    (draw-text! text font context)))))
+	(parameterize ((the-cursor-offset atom-cursor-offset))
+	  (draw-text! text font context)))))
 
   (define (atom-character-index-under x::real y::real
 				      text::CharSequence)

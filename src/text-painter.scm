@@ -21,6 +21,9 @@
 
   (define (play! animation::Animation)::void #!abstract)
   
+  (define (with-intensity i::float action::(maps () to: void))::void
+    #!abstract)
+    
   (define shiftLeft ::real 0)
   (define shiftTop ::real 0)
 
@@ -725,7 +728,7 @@
 		      context::Cursor)
     ::void
     (with-translation (0 1)
-	(draw-string! text context)))
+      (draw-string! text context)))
 
   (define (atom-extent text::CharSequence)
     ::Extent
@@ -743,6 +746,11 @@
   (define (get row::real col::real)::char
     #!abstract)
 
+  (define (with-stretch horizontal::float vertical::float
+			action::(maps () to: void))
+    ::void
+    #!abstract)
+  
   (define (put! c::char row::real col::real)
     ::void
     #!abstract)
@@ -924,6 +932,9 @@
       (unless (animation:advance! 40)
 	(loop))))
 
+  (define (with-intensity i::float action::(maps () to: void))::void
+    (action))
+  
   (define (draw-string! text::CharSequence
 			context::Cursor)
     ::void
@@ -942,10 +953,28 @@
 		    'draw-string! text context)
     (set! current-modifier #!null))
 
+  (define horizontal-stretch ::float 1.0)
+  (define vertical-stretch ::float 1.0)
+  
+  (define (with-stretch horizontal::float vertical::float
+			action::(maps () to: void))
+    ::void
+    (let ((previous-horizontal ::float horizontal-stretch)
+	  (previous-vertical ::float vertical-stretch))
+      (set! horizontal-stretch (* horizontal-stretch horizontal))
+      (set! vertical-stretch (* vertical-stretch vertical))
+      (try-finally
+       (action)
+       (begin
+	 (set! horizontal-stretch previous-horizontal)
+	 (set! vertical-stretch previous-vertical)))))
+  
   (define (put! c::char row::real col::real)
     ::void
-    (let ((x (+ col shiftLeft))
-          (y (+ row shiftTop))
+    (let ((x (+ shiftLeft
+		(nearby-int (* horizontal-stretch col))))
+          (y (+ shiftTop
+		(nearby-int (* vertical-stretch row))))
 	  (left (max 0 clipLeft))
 	  (top (max 0 clipTop)))
       (when (and (is left <= x < (+ left
