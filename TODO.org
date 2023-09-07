@@ -1,8 +1,35 @@
+* 06.09.2023
+
+mamy with-intensity dla klientow graficznych, zostaje nam jeszcze
+wariant dla klienta terminalowego - i jak to zrobimy, to bysmy
+sie zajeli with-stretch
+
+No to w kliencie terminalowym rzecz wyglada tak, ze mamy jedna
+funkcje, letter, ktora przyjmuje argumenty domyslne
+(the-text-color) oraz (the-background-color).
+
+Mozemy ja teraz tak zmienic ze dodamy parametr
+(the-text-intensity), i ze ona sobie bedzie w srodku
+obliczac fakyyczny text-color jako interpolacje
+pomiedzy kolorem tekstu i tla
+
+oks, with-intensity juz mamy. teraz trzeba zrobic mala analize
+
+no to tak:
+- w przypadku klientow graficznych powinna wystarczyc
+  zmiana skali oraz takie przesuniecie, ktore skompensuje
+  zmiane skali na pozycji current-translation-left
+  oraz current-translation-top
+- w przypadku klientow tekstoeych nalezaloby odpowiednio
+  zmienic definicje put!, tak zeby mnozyl docelowa wspolrzedna
+  przez okreslona wartosc i ja zaokraglal
+
+
 * 05.09.2023
 
 to teraz mamy dwie rzeczy:
 - painter:with-intensity
-- painter:with-proportion
+- painter:with-stretch
 
 zaczniemy od with-intensity, bo tak
 
@@ -73,7 +100,7 @@ ok, wydaje sie ze mamy to.
 teraz pozostaja nam do zaimplementowania:
 
 - painter:with-intensity
-- painter:with-proportion
+- painter:with-stretch
 
 we wszystkich 3 klientach, czyli w klientach graficznych
 trzeba zadbac o to, zeby wszystkie dotychczasowe renderowania
@@ -159,14 +186,14 @@ a dzis z kolei bysmy sprobowali zaimplementowac draw-morph
 	  (with-translation (left top)
 	    (painter:with-intensity (- 1.0 intensity)
 	      (lambda ()
-		(painter:with-proportion
+		(painter:with-stretch
 		    (/ width e1:width)
 		    (/ height e1:height)
 		  (lambda ()
 		    (draw! background)))))
 	    (painter:with-intensity intensity
 	      (lambda ()
-		(painter:with-proportion
+		(painter:with-stretch
 		    (/ width e0:width)
 		    (/ height e0:height)
 		  (draw! foreground)))))))
