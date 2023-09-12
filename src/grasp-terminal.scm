@@ -87,29 +87,23 @@
 (define-parameter (the-background-color)::Color
   (color 0 0 0))
 
-(define-parameter (the-selected-text-color)::Color
-  (color 0 0 0))
-
-(define-parameter (the-selected-background-color)::Color
-  (color 255 255 0))
-
 (define-parameter (the-comment-text-color)::Color
-  (color 255 255 255))
+  (color 255 255 200))
 
 (define-parameter (the-comment-background-color)::Color
   (color 0 0 0))
-
-(define-parameter (the-selected-comment-text-color)::Color
-  (color 0 0 0))
-
-(define-parameter (the-selected-comment-background-color)::Color
-  (color 255 255 255))
 
 (define-parameter (the-odd-comment-color)::Color
   (color 76 76 76))
 
 (define-parameter (the-even-comment-color)::Color
   (color 127 127 127))
+
+(define-parameter (the-quoted-text-color)::Color
+  (color 200 255 255))
+
+(define-parameter (the-quoted-text-background-color)::Color
+  (color 0 0 0))
 
 (define-parameter (the-text-intensity)::float
   1.0)
@@ -127,7 +121,7 @@
 			       from: gb to: gf at: intensity)))
 	 (b ::int (nearby-int (linear-interpolation
 			       from: bb to: bf at: intensity))))
-    (Color:RGB rf gf bf)))
+    (Color:RGB r g b)))
 
 (define-cache (letter character
 		      color: text-color::Color := (the-text-color)
@@ -311,14 +305,14 @@
   (define (enter-selection-drawing-mode!)::void
     (invoke-special CharPainter (this)
 		    'enter-selection-drawing-mode!)
-    (text-color-stack:push (the-text-color))
-    (background-color-stack:push (the-background-color))
-    (set! (the-text-color) (the-selected-text-color))
-    (set! (the-background-color) (the-selected-background-color)))
+    (let ((text-color (the-text-color)))
+      (set! (the-text-color) (the-background-color))
+      (set! (the-background-color) text-color)))
 
   (define (exit-selection-drawing-mode!)::void
-    (set! (the-text-color) (text-color-stack:pop))
-    (set! (the-background-color) (background-color-stack:pop))
+    (let ((text-color (the-text-color)))    
+      (set! (the-text-color) (the-background-color))
+      (set! (the-background-color) text-color))
     (invoke-special CharPainter (this)
 		    'exit-selection-drawing-mode!))
   
@@ -343,17 +337,26 @@
     (let ((size (io:getTerminalSize)))
       (size:getRows)))
 
+  (define (draw-quoted-text! s::CharSequence
+			     context::Cursor)
+    ::void
+    (parameterize ((the-text-color (the-quoted-text-color))
+		   (the-background-color (the-quoted-text-background-color)))
+      (invoke-special CharPainter (this) 'draw-quoted-text!
+		      s context)))
+  
   (define (draw-line-comment! text::CharSequence context::Cursor)::void
     (parameterize ((the-text-color (the-comment-text-color))
-		   (the-background-color
-		    (the-comment-background-color))
-		   (the-selected-text-color
-		    (the-selected-comment-text-color))
-		   (the-selected-background-color
-		    (the-selected-comment-background-color)))
+		   (the-background-color (the-comment-background-color)))
       (invoke-special CharPainter (this) 'draw-line-comment!
 		      text context)))
 
+  (define (draw-block-comment! text::CharSequence context::Cursor)::void
+    (parameterize ((the-text-color (the-comment-text-color))
+		   (the-background-color (the-comment-background-color)))
+      (invoke-special CharPainter (this) 'draw-block-comment!
+		      text context)))
+  
   (define (enter-comment-drawing-mode!)::void
     (invoke-special CharPainter (this)
 		    'enter-comment-drawing-mode!)

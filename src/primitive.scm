@@ -155,8 +155,11 @@
 	     ))))
 
   (define (equals x)::boolean
-    (and-let* ((atom ::Atom x))
-      (string=? name atom:name)))
+    (or
+     (and-let* ((atom ::Atom x))
+       (string=? name atom:name))
+     (and-let* ((s ::gnu.mapping.Symbol x))
+       (string=? name (s:getName)))))
 
   (define (toString)::String
     name)

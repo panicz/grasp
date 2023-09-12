@@ -4,6 +4,8 @@
   (define-object)
   (conversions)
   (indexable)
+  (infix)
+  (match)
   (primitive)
   (space)
   (parse)
@@ -14,6 +16,22 @@
   (print)
   (cursor)
   )
+
+(e.g.
+ (let ((doc (string->document "(define (f x y) z)")))
+   ;; The pattern matcher is able to match against
+   ;; parsed atoms, in addition to regular symbols
+   (and-let* ((`(((define (f x y) z))) doc)))))
+
+
+;; Note that in the case of atoms and symbols,
+;; the order of comparison does matter.
+;; (This is unfortunate, but we can't fix that
+;; without patching Kawa)
+
+(e.g. (is (Atom "a") equal? 'a))
+
+(e.g. (isnt 'a equal? (Atom "a")))
 
 (e.g.
  (parameterize ((the-document
