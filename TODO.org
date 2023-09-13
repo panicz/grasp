@@ -1,3 +1,341 @@
+* 12.09.2023
+
+udalo sie nam sprawdzic to co chcemy, dopisujac testa.
+wiec na razie mozemy sie wstrzymac z implementacja
+ewaluacji (choc niewatpliwie dobrze by to bylo zrobic
+w niedlugim czasie)
+
+natomiast teraz trzeba wrocic do naszej ewaluacji
+
+na raxie problem jest taki, ze ten nasz interpreter
+nie zalezy od modulu primitive, a powinien, zebysmy
+mieli dostep do takich czarodziejstw, jak cons*
+
+wiec rzecz wyglada tak, ze:
+- mamy referencyjny interpreter o zminimalizowanych zaleznosciach
+- na jego bazie chcemy zbudowac docelowy interpreter, ktory
+  - bedzie uzywal 'cons' z (primitive)
+  - bedzie kopiowal cell-display-properties
+  - bedzie odpowiednio ustawial origins i progenies
+  - bedzie unikal kopiowania elementow, ktore sie nie zmieniaja
+  - bedzie kopiowal elementy wynikajace z substytucji
+
+i jak juz to sie nam uda napisac, to bedzie trzeba zrobic
+ten widget playera
+
+* 11.09.2023
+
+przed dalszymi pracami bysmy dodali mozliwosc
+ewaluacji wyrazen, co musi sie dziac w nastepujacych
+krokach
+1. wybieramy wyrazenie poprzedzajace kursor
+2. w trybie ewaluacji wywolujemy 'eval'
+3. wynik wyrazenia konwertujemy do postaci
+   graspo-strawnej
+4. wyrazenie wklejamy do terget-view (na razie
+   przyjmujemy po prostu biezacy edytor)
+   w okolicach aktualnego kursora
+
+
+#+BEGIN_SRC scheme
+  (define (focused-expression #;inside document #;at cursor)
+    (otherwise #!null
+      (and (is #;< (length cursor) > 1)
+      ...)))
+#+END_SRC
+
+* 10.09.2023
+
+mamy juz nawet przetestowany modul interpretera
+
+no i co tera?
+
+tera by my chcieli, zeby podczas redukcji 
+zachowywac informacje o tym, ktore wyrazenia
+stanowia odpowiedniki ktorych
+
+do tego dochodzi jeszcze taka kwestia, ze mamy
+te 'dwa swiaty': swiat ewaluacji i swiat edycji.
+
+i tak: patterny sa pisane w 'jezyku ewaluacji',
+ale moglibysmy sie postarac robic tak, zeby to nie mialo
+znaczenia
+
+z pewnoscia bedziemy potrzebowac zapewnienia, ze
+patterny dzialaja zarowno w trybie edycji, jak i
+ewaluacji
+
+kolejna rzecz jest taka:
+- jezeli wyrazenie zrodlowe i docelowe sa equal?
+  to robimy
+
+   (add! ((the-origin) result) source)
+   (add! ((the-progeny) source) result)
+
+   i w przypadku list iterujemy dodatkowo po
+   wsztstkich elementach
+
+- jezeli jeden element jest zawarty w drugim,
+  to zbajdujemy ten element i robimy
+
+  (add! ((the-origin) child) parent)
+  (add! ((the-progeny) parent) child)
+
+  i dodatkowo rekurencyjnie kojarzymy
+  ze sobą wssystkie elementy child
+  i podwyrazenia parent
+
+Natomiast w przypadku substytucji powinno byc tak,
+ze za kazdym razem, kiedy dokonujemy substytucji:
+- generujemy nowa kopie symbolu
+- jako origin tego symbolu dodajemy odpowiednia wartosc
+  z tablicy 'origin'
+
+#+BEGIN_SRC scheme
+  (property (item) (recons item '()))
+
+  (define-parameter (the-origins)::(!maps (Object) to: (list-of Object))
+    (lambda (x) (recons x '())))
+
+  (define-parameter (the-progenies)::(!maps (Object) to: (list-of Object))
+    (lambda (x) (recons x '())))
+
+  (define (tracking-relations source
+			      target
+			      origins := (the-origins)
+			      progenies := (the-progenies))
+    (cond
+      ((equal? source target)
+       ;; here we simply go with the default option
+       target)
+
+      ((and (pair? source)
+	    (any. (is _ equal? target) source))
+       (for x in source
+	 (cond
+	  ((equal? x target)
+	   (set! (progenies x) (recons source '()))
+	   (set! (origins target) (recons x '())))
+	  (else
+	   (set! (progenies x) '())
+	   target))))
+      ))
+
+#+END_SRC
+
+
+Ogolnie wydaje sie, ze najwygodniej bedzie dodac do edytora
+mozliwosc ewaluacji wyrazen
+
+* 09.09.2023
+
+wydaje sie, ze mamy juz napisany reduktor wyrazen ktory ma
+szanse zadzialac, ale trzeba go teraz przetestowac
+
+dlatego bysmy stworzyli modul interpreter, ktory by zawieral
+te nasze funkcje
+
+* 08.09.2023
+
+dotychczasowy progres chyba trzeba przepisac z komputera
+(albo wrzucic na brancha czy cos)
+
+natomiast warto sie zastanowic albo nad stworzeniem trackujacej
+wersji matcha, albo nad jakas owijka
+
+#+BEGIN_SRC scheme
+
+    (define (reduce expression context::EvaluationContext)
+      (match expression
+	(`(if #f ,then ,else)
+	 else)
+	(`(if ,test ,then ,else)
+	 (let ((test* (reduce test context)))
+	   (if (equal? test reduced-test)
+	       then
+	       `(if ,test* ,then ,else))))
+	(`(lambda ,args ,body)
+	 expression)
+	(`(quote ,_)
+	 expression)
+	(`(,operator . ,operands)
+	 (if (and (symbol? operator)
+		  (context:defines-macro? operator))
+	     (error "Macros not supported (yet)")
+	     (let ((operands* (reduce-operands operands context)))
+	       (if (isnt operands equal? operands*)
+		   `(,operator . ,operands*)
+		   (match operator
+		     (,@symbol
+		      (cond ((context:primitive? operator)
+			     (apply (context:value operator)
+				    operands))
+			    ((context:defines? operator)
+			     (reduce `(,(context:value operator)
+				       . ,operands)
+				     context))
+			    (else
+			     `(,operator . ,operands))))
+		     (`(lambda ,args ,body)
+		      (substitute args #;with operands
+				  #;in body))
+		     (`(,_ . ,_)
+		      (let ((operator* (reduce operator
+					       context)))
+			`(,operator* . ,operands)))
+		     (_
+		      `(,operator . ,operands)))))))
+	(_
+	 (if (and (symbol? expression)
+		  (context:defines? expression))
+	     (context:value expression)
+	     expression))))
+
+    (define (reduce-operators operators context::EvaluationContext)
+      (match operators
+	(`(,first . ,rest)
+	 (let ((first* (reduce first context)))
+	   (if (equal? first first*)
+	       `(,first . ,(reduce-operators rest context))
+	       `(,first* . ,rest))))
+	('()
+	 '())
+	(_
+	 (reduce operators context))))
+
+    (define (in. element collection)
+      (any. (is _ eq? element) collection))
+
+    (define (substitute variables #;with values #;in expression)
+      (match expression
+	(`(quote ,_)
+	 expression)
+	(`(lambda ,args ,body)
+	 (let-values (((variables* values*) (only. (isnt _ in. args)
+						   variables values)))
+	   `(lambda ,args
+	      ,(substitute variables* #;with values*
+			   #;in body))))
+	(`(,operator . ,operands)
+	 `(,(substitute variables #;with values #;in operator)
+	   . ,(substitute variables #;with values #;in operands)))
+	(_
+	 (if (symbol? expression)
+	     (counterpart #;of expression #;from variables
+			       #;in values)
+	     expression))))
+
+    (define (counterpart #;of variable #;from variables
+			      #;in values)
+      (match variables
+	(`(,,variable . ,_)
+	 (car values))
+	(,variable
+	 values)
+	(`(,_ . ,rest)
+	 (counterpart #;of variable #;from rest
+			   #;in (cdr values)))
+	(_
+	 variable)))
+
+  (define-object (EvaluationContext)
+    ;;(define macro-definitions ::)
+
+    (define definitions ::java.util.Map
+      (let ((table ::java.util.Map (java.util.HashMap)))
+	(table:put '+ +)
+	(table:put '- -)
+	(table:put '* *)
+	(table:put '/ /)
+	(table:put '< <)
+	(table:put '<= <=)
+	(table:put '> >)
+	(table:put '>= >=)
+	(table:put '= =)
+	(table:put 'eq? eq?)
+	(table:put 'eqv? eqv?)
+	(table:put 'cons cons)
+	(table:put 'car car)
+	(table:put 'cdr cdr)
+	table))
+
+    (define (value symbol)
+      (cond ((definitions:contains-key symbol)
+	     (definitions:get symbol))
+	    (else
+	     (error "undefined symbol: "symbol))))
+
+    (define (defines-macro? symbol)
+     #f)
+
+    (define (defines? symbol)
+      (definitions:contains-key symbol))
+
+    (define (define! name value)
+      (definitions:put name value))
+
+    (define (primitive? symbol)
+      (and (definitions:contains-key symbol)
+	   (let ((value (definitions:get symbol)))
+	     (procedure? value))))
+    )
+
+#+END_SRC
+
+* 07.09.2023
+
+wydaje sie ze mamy juz wszystkie polprodukty
+do zaimplementowania Morpha
+
+to teraz potrzebujemy planu co robic dalej
+
+no bo przeciez chcielibysmy miec tego morpha w naszej
+bazie kodu jak najszybciej?
+
+1. przenosimy kod z TODO do nowego modulu,
+   (visual-evaluator)
+2. piszemy kod odpowiedzialny za redukcje wyrazen,
+   ktory dodatkowo buduje tablice, origin i progeny
+3. piszemy sobie klase EvaluationPlayer, ktora
+   zawiera guziki i tworzy nowe wyrazenia na zadanie
+4. integrujemy EvaluationPlayer z interfejsem
+   za pomoca gestu zagla
+
+No dobra, to sprobujmy napisac sam ewaluator - przy czym
+dla kazdego zastepujacego wyrazenia musimy tworzyc
+nowa kopie!
+
+#+BEGIN_SRC scheme
+
+  (define (reduce expression context)
+    (match expression
+      (`(quote ,_)
+       (set! (context:origin expression)
+	     (union (context:origin) expression))
+       (set! (context:progeny expression)
+	     (union (context:progeny) expression))
+       expression)
+      (`(if #false ,then ,else)
+       else)
+      (`(if ,test ,then ,else)
+       (let ((reduced-test (reduce test context)))
+	 (if (equal? test reduced-test)
+	     then
+	     `(if ,reduced-test ,then ,else))))
+      (`(lambda ,args . ,body)
+       expression)
+      (`(,operator . ,operands)
+       (if (macro? operator context)
+	   ...
+	   (let ((reduced-operands (reduce-operands
+				    operands
+				    context)))
+	     (if (equal? operands reduced-operands)
+
+
+
+#+END_SRC
+
 * 06.09.2023
 
 mamy with-intensity dla klientow graficznych, zostaje nam jeszcze
