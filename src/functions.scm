@@ -111,6 +111,19 @@
 (e.g.
  (any even? '(1 2 3)))
 
+(define (any. satisfying? elements)
+  (match elements
+    (`(,h . ,t)
+     (or (satisfying? h)
+	 (any. satisfying? t)))
+    ('()
+     #f)
+    (x
+     (satisfying? x))))
+
+(e.g.
+ (any. zero? '(3 2 1 . 0)))
+
 (define (every satisfying? elements)::boolean
   (call/cc
    (lambda (return)
@@ -121,6 +134,19 @@
 
 (e.g.
  (every even? '(2 4 6)))
+
+(define (every. satisfying? elements)
+  (match elements
+    (`(,h . ,t)
+     (and (satisfying? h)
+	  (every. satisfying? t)))
+    ('()
+     #t)
+    (x
+     (satisfying? x))))
+
+(e.g.
+ (every. even? '(2 4 6 . 8)))
 
 (define (fold-left f x0 . xs*)
   (define (fold-left1 f x0 xs)
@@ -186,13 +212,21 @@
  ===> (a + (b + (c + (d + e)))))
 
 (define (only cool? stuff)
-  (match stuff
-    ('()
-     '())
-    (`(,first . ,rest)
-     (if (cool? first)
-	 `(,first . ,(only cool? rest))
-	 (only cool? rest)))))
+  (if (null? stuff)
+      '()
+      (let ((a (car stuff)))
+	(if (cool? a)
+	    (let* ((result (cons a '()))
+		   (tip result))
+	      (let loop ((stuff (cdr stuff)))
+		(if (null? stuff)
+		    result
+		    (let ((b (car stuff)))
+		      (when (cool? b)
+			(set! (cdr tip) (cons b '()))
+			(set! tip (cdr tip)))
+		      (loop (cdr stuff))))))
+	    (only cool? (cdr stuff))))))
 
 (e.g.
  (only even? '(1 2 3 4 5 6))
@@ -504,6 +538,19 @@
 (e.g.
  (find even? '(1 2 3)) ===> 2)
 
+(define (find. satisfying? elements)
+  (match elements
+    (`(,h . ,t)
+     (if (satisfying? h)
+	 h
+	 (any. satisfying? t)))
+    ('()
+     #f)
+    (x
+     (if (satisfying? x)
+	 x
+	 #f))))
+
 (define (first-cell+index satisfying?::predicate
 			  elements::list
 			  #!key (start-index 0))
@@ -570,12 +617,67 @@
 	       inout))))
    (else
     (let loop ((tip inout)
-		  (tips in*))
+	       (tips in*))
 	 (if (and (pair? tip) (every pair? tips))
 	     (begin
 	       (set! (car tip) (apply f (car tip) (map car tips)))
 	       (loop (cdr tip) (map! cdr tips)))
 	     inout)))))
+
+(define (only. satisfying? elements . moreso)
+  (cond ((null? elements)
+	 (apply values '() moreso))
+	((pair? elements)
+	 (let ((result (cons (car elements) (map car moreso))))
+	   (cond
+	    ((apply satisfying? result)
+	     (map! list result)
+	     (let ((tips (map values result)))
+	       (let loop ((elements (cdr elements))
+			  (moreso (map cdr moreso)))
+		 (cond
+		  ((null? elements)
+		   (apply values result))
+		  ((pair? elements)
+		   (when (apply satisfying? (car elements)
+				(map car moreso))
+		     (map! (lambda (tip elem)
+			     (set-cdr! tip (cons (car elem) '()))
+			     (cdr tip))
+			   tips (cons elements moreso)))
+		   (loop (cdr elements)
+			 (map cdr moreso)))
+		  ((apply satisfying? elements moreso)
+		   (map! (lambda (tip item)
+			   (set-cdr! tip item)
+			   tip)
+			 tips (cons elements moreso))
+		   (apply values result))
+		  (else
+		   (apply values result))))))
+	    (else
+	     (apply only. satisfying? (cdr elements)
+		    (map cdr moreso))))))
+	((apply satisfying? elements moreso)
+	 (apply values elements moreso))
+	(else
+	 (apply values '() (map (lambda _ '()) moreso)))))
+
+(e.g. (only. even? '(2 . 3)) ===> (2))
+
+(e.g. (only. even? '(3 . 2)) ===> 2)
+
+(e.g. (only. even? 2) ===> 2)
+
+(e.g. (only. even? 3) ===> ())
+
+(e.g. (only. (is (+ _ _) even?)
+	     '(1 2 3 4 . 5) '(2 4 6 8 . 9))
+      ===>    (  2   4 . 5)  (  4   8 . 9))
+
+(e.g. (only. (is (+ _ _) even?)
+	     '(1 2 3 4 . 5) '(2 4 6 8 . 9))
+      ===>    (  2   4 . 5)  (  4   8 . 9))
 
 (define (remove! satisfying?::predicate elements::list)
   ::list
@@ -660,3 +762,29 @@
 	 hi)
 	(else
 	 x)))
+
+(define (fix function argument)
+  (let next ((argument argument)
+	     (value (function argument)))
+    (if (equal? value argument)
+        value
+        (next value (function value)))))
+
+(e.g.
+ (fix (lambda (x) (min (+ x 1) 10)) 0)
+ ===> 10)
+
+(define (fix-list function argument)
+  (let ((result (cons argument '())))
+    (let next ((tip result)
+	       (argument argument)
+	       (value (function argument)))
+      (if (equal? value argument)
+	  result
+	  (begin
+	    (set! (cdr tip) (cons value '()))
+	    (next (cdr tip) value (function value)))))))
+
+(e.g.
+ (fix-list (lambda (x) (min (+ x 1) 10)) 0)
+ ===> (0 1 2 3 4 5 6 7 8 9 10))

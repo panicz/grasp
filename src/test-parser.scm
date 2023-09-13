@@ -17,12 +17,11 @@
   (cursor)
   )
 
-(e.g.
+
  (let ((doc (string->document "(define (f x y) z)")))
    ;; The pattern matcher is able to match against
    ;; parsed atoms, in addition to regular symbols
-   (and-let* ((`(((define (f x y) z))) doc)))))
-
+   (and-let* ((`(((define (f x y) z))) doc))))
 
 ;; Note that in the case of atoms and symbols,
 ;; the order of comparison does matter.
@@ -32,6 +31,18 @@
 (e.g. (is (Atom "a") equal? 'a))
 
 (e.g. (isnt 'a equal? (Atom "a")))
+
+
+;; eq? uses objects' identities, so that symbols
+;; can be told apart from atoms, and distinct same looking
+;; atoms can be as well
+
+(e.g. (isnt 'a eq? (Atom "a")))
+
+(e.g. (isnt (Atom "a") eq? 'a))
+
+(e.g. (isnt (Atom "a") eq? (Atom "a")))
+
 
 (e.g.
  (parameterize ((the-document
