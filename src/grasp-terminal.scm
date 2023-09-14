@@ -42,7 +42,7 @@
 (import (terminal-keymap))
 (import (postponed))
 (import (touch-event-processor))
-
+(import (stepper))
 
 (define-alias Thread java.lang.Thread)
 (define-alias BlockingQueue java.util.concurrent.BlockingQueue)

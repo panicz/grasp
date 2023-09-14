@@ -36,6 +36,7 @@
 (import (button))
 (import (postponed))
 (import (touch-event-processor))
+(import (stepper))
 
 (define-alias Font java.awt.Font)
 (define-alias FontMetrics java.awt.FontMetrics)

@@ -33,7 +33,7 @@
 (import (button))
 (import (recognizer))
 (import (extent))
-
+(import (stepper))
 
 (define-syntax $lookup$
   (syntax-rules ()

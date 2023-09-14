@@ -34,6 +34,7 @@
 ;;(import (primitive))
 (import (extension))
 (import (button))
+(import (stepper))
 
 
 (define-alias Bundle android.os.Bundle)
