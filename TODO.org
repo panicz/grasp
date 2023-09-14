@@ -1,3 +1,35 @@
+* 14.09.2023
+
+wydaje sie, ze spora czesc do tej pory napisanego kodu udalo sie
+inkorporowac do modulu (stepper).
+
+zasadniczo pozostaje nam jeszcze kopiowanie cell-display-properties
+oraz kwestia substytucji
+
+cell-display-properties jakos rozwiazemy, natomiast teraz musimy
+przemyslec pewne aspekty zwiazane z substytucja
+
+chodzi mianowicie o to, ze ilekroc dokonujemy substytucji,
+chcemy otrzymywac nie podstawiony element, tylko jego kopie
+(i to ja chcemy dodawac do dokumentu)
+
+oznacza to, ze kazdy Element, a w kazdym razie kazdy Tile,
+powinien byc Cloneable
+
+wiec na te chwile plan jest taki:
+1. sprawdzic, czy to, co mamy w tej chwili, nie robi
+   problemiw przy budowaniu (i ew. naprawic)
+2. zrobic commita
+
+3. zajac sie tym, zeby Element byl clonable
+
+ 
+* 13.09.2023
+
+no to dzosiaj co robimy?
+- modul stepper oraz funkcje do sledzenia "progenies"
+  
+
 * 12.09.2023
 
 udalo sie nam sprawdzic to co chcemy, dopisujac testa.
