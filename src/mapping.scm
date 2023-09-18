@@ -115,3 +115,21 @@
        ::java.lang.Object
        default))
     ))
+
+;; note that there's some sort of trickery going on here:
+;; we rely on Kawa's native equal?-like cons cells equality
+;; for handling the parameter list
+
+(define (memoize proc)
+  (let ((table ::Map (make-hash-table)))
+    (with-procedure-properties ((table table))
+      (lambda args
+	(if (table:contains-key args)
+	    (apply values (table:get args))
+	    (call-with-values (lambda () (apply proc args))
+	      (lambda result
+		(table:put args result)
+		(apply values result))))))))
+
+(define-syntax-rule (define/memoized (name . args) . body)
+  (define name (memoize (lambda args . body))))

@@ -68,6 +68,21 @@
 
 (set-key! '(ctrl q) exit)
 
+(set-key! '(ctrl e)
+	  (lambda _
+	    (and-let* ((`(,tip ,top . ,root) (the-cursor))
+		       (parent ::Indexable (the-expression at: root))
+		       (target ::Indexable (parent:part-at top))
+		       ((eq? target (target:part-at tip)))
+		       (target (if (Space? target)
+				   (let* ((first-index ::Index (target:first-index))
+					  (preceding-cursor (cursor-retreat (recons*
+									first-index
+									top root))))
+				     (the-expression at: preceding-cursor))
+				   target)))
+	      (WARN "parent: "target))))
+	  
 (set-key! 'F12 exit)
 
 (set-key! 'tab
@@ -136,7 +151,6 @@
     (let* ((line ::Area (area points)))
        (screen:split-beside! line)))))
 
-
 #|
 
 (set-key! '(ctrl enter) evaluate!)
@@ -174,6 +188,7 @@ mutations of an n-element set.\"
 is a serious
 business,
 son|#
+(Stepper (! 5))
 #;(e.g. #;(! #;5) ===> 120)
 (Button action: (lambda () (WARN \"button pressed!\"))
         label: \"Press me!\")

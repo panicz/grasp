@@ -53,7 +53,7 @@
 	      (cloned:put key value))))
       cloned))
    (else
-    (error "Unable to clone "object))))
+    (error "Unable to clone "object" "(object:getClass)))))
 
 #|
 

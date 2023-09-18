@@ -153,6 +153,9 @@
 (define-constant Oswald-Regular ::Font
   (load-font "/assets/Oswald-Regular.ttf" size: 22))
 
+(define-constant M+1p ::Font
+  (load-font "/assets/MPLUS1p-Medium.ttf" size: 22))
+
 (define-constant GloriaHallelujah ::Font
   (load-font "/assets/GloriaHallelujah.ttf" size: 16))
 
@@ -177,8 +180,11 @@
 (define-parameter+ (the-comment-font) ::Font
   GloriaHallelujah)
 
-(define-parameter+ (the-caption-font) ::Font
+(define-parameter+ (the-menu-font) ::Font
   Oswald-Regular)
+
+(define-parameter+ (the-caption-font) ::Font
+  M+1p)
 
 (define-parameter+ (the-text-input-font) ::Font
   NotoSerif-Regular)

@@ -124,7 +124,7 @@
 (define (cursor-core cursor::Cursor document)::Cursor
   (otherwise cursor
     (and-let* ((`(,tip . ,root) cursor)
-	       (parent ::Indexable (cursor-ref document cursor))
+	       (parent ::Indexable (cursor-ref document root))
 	       (target ::Indexable (parent:part-at tip)))
       (if (eq? parent target)
 	  (cursor-core root document)

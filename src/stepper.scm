@@ -22,6 +22,9 @@
 (import (extension))
 (import (parse))
 (import (mapping))
+(import (combinators))
+(import (print))
+(import (button))
 
 (define (render-foreground! expression::Element
 			    counterparts::(maps (Element)
@@ -140,9 +143,10 @@
 	  (painter:with-intensity progress
 	    (lambda ()
 	      (painter:with-stretch
-		  (/ width e0:width)
-		  (/ height e0:height)
-		(draw! foreground)))))))
+	       (/ width e0:width)
+	       (/ height e0:height)
+	       (lambda ()
+		 (draw! foreground))))))))
      )))
 
 (define (draw-emerging! expression::Element p::Position
@@ -184,20 +188,21 @@
 	    := (property+ (element::Element)::Position
 			  (Position left: 0 top: 0)))
   ::(maps (Element) to: Position)
-  (when (list? expression)
-    (traverse
-     expression
-     doing:
-     (lambda (item::Element t::Traversal)
-       (let ((p ::Position (measurements item)))
-	 (set! p:left (+ t:left left))
-	 (set! p:top (+ t:top top))
-	 (when (list? item)
-	   (measure-positions! item p:left p:top
-			       into: measurements))))
-     returning:
-     (lambda (t::Traversal)
-       measurements))))
+  (if (list? expression)
+      (traverse
+       expression
+       doing:
+       (lambda (item::Element t::Traversal)
+	 (let ((p ::Position (measurements item)))
+	   (set! p:left (+ t:left left))
+	   (set! p:top (+ t:top top))
+	   (when (list? item)
+	     (measure-positions! item p:left p:top
+				 into: measurements))))
+       returning:
+       (lambda (t::Traversal)
+	 measurements))
+      measurements))
 
 (define-object (Morph initial::Tile
 		      final::Tile
@@ -208,13 +213,13 @@
   ::Enchanted
   (define progress ::float 0.0)
 
-  (define initial-position ::(maps (Element) to: (list-of Element))
+  (define initial-position ::(maps (Element) to: Position)
     (measure-positions! initial))
 
   (define initial-extent ::Extent
     (initial:extent))
 
-  (define final-position ::(maps (Element) to: (list-of Element))
+  (define final-position ::(maps (Element) to: Position)
     (measure-positions! final))
 
   (define final-extent ::Extent
@@ -255,50 +260,57 @@
 (define (self-evaluating? x)
   (and (isnt x list?)
        (isnt x pair?)
-       (isnt x symbol?)))
+       (if (Atom? x)
+	   (isnt (x:value) symbol?)
+	   #t)))
 
 (define-object (EvaluationContext)
   ;;(define macro-definitions ::)
 
   (define definitions ::java.util.Map
     (let ((table ::java.util.Map (java.util.HashMap)))
-      (table:put '+ +)
-      (table:put '- -)
-      (table:put '* *)
-      (table:put '/ /)
-      (table:put '< <)
-      (table:put '<= <=)
-      (table:put '> >)
-      (table:put '>= >=)
-      (table:put '= =)
-      (table:put 'eq? eq?)		
-      (table:put 'eqv? eqv?)
-      (table:put 'cons (lambda args
-			 (match args
-			   (`(',a ',b)
-			    `',(cons a b))
-			   (`(,a ',b)
-			    `',(cons a b))
-			   (`(',a ,b)
-			    `',(cons a b))
-			   (`(,a ,b)
-			    `',(cons a b)))))
-      (table:put 'car (lambda (x)
-			(match x
-			  (`'(,a . ,b)
-			   (if (self-evaluating? a)
-			       a
-			       `',a)))))
-      (table:put 'cdr (lambda (x)
-			(match x
-			  (`'(,a . ,b)
-			   (if (self-evaluating? b)
-			       b
-			       `',b)))))
-      (table:put 'pair? (lambda (x)
-			  (and-let* ((`'(,_ . ,_) x)))))
-      (table:put 'null? (lambda (x)
-			  (and-let* ((`'() x)))))
+      (table:put (Atom "+") +)
+      (table:put (Atom "-") -)
+      (table:put (Atom "*") *)
+      (table:put (Atom "/") /)
+      (table:put (Atom "<") <)
+      (table:put (Atom "<=") <=)
+      (table:put (Atom ">") >)
+      (table:put (Atom ">=") >=)
+      (table:put (Atom "=") =)
+      (table:put (Atom "eq?") eq?)		
+      (table:put (Atom "eqv?") eqv?)
+      (table:put (Atom "cons")
+		 (lambda args
+		   (match args
+		     (`(',a ',b)
+		      (cons (Atom "quote") (cons a b)))
+		     (`(,a ',b)
+		      (cons (Atom "quote") (cons a b)))
+		     (`(',a ,b)
+		      (cons (Atom "quote") (cons a b)))
+		     (`(,a ,b)
+		      (cons (Atom "quote") (cons a b))))))
+      (table:put (Atom "car")
+		 (lambda (x)
+		   (match x
+		     (`'(,a . ,b)
+		      (if (self-evaluating? a)
+			  a
+			  (cons (Atom "quote") a))))))
+      (table:put (Atom "cdr")
+		 (lambda (x)
+		   (match x
+		     (`'(,a . ,b)
+		      (if (self-evaluating? b)
+			  b
+			  (cons (Atom "quote") b))))))
+      (table:put (Atom "pair?")
+		 (lambda (x)
+		   (and-let* ((`'(,_ . ,_) x)))))
+      (table:put (Atom "null?")
+		 (lambda (x)
+		   (and-let* ((`'() x)))))
       table))
 
   (define (value symbol)
@@ -325,19 +337,34 @@
 (define default-context ::EvaluationContext
   (EvaluationContext))
 
-(default-context:define! '!
-  (parse-string "\
+(default-context:define! (Atom "!")
+  (car (parse-string "\
 (lambda (n)
   (if (<= n 1)
      1 #| base case |#
-     (* n (! (- n 1)))))"))
+     (* n (! (- n 1)))))")))
 
-(default-context:define! 'append
-  (parse-string "\
+(default-context:define! (Atom "append")
+  (car (parse-string "\
 (lambda (a b)
   (if (null? a)
      b
-     (cons (car a) (append (cdr a) b))))"))
+     (cons (car a) (append (cdr a) b))))")))
+
+(define (grasp expression)
+  (cond ((pair? expression)
+	 (cons (grasp (car expression))
+	       (grasp (cdr expression))))
+	((null? expression)
+	 (empty))
+	((string? expression)
+	 (text expression))
+	((symbol? expression)
+	 (Atom (symbol->string expression)))
+	((number? expression)
+	 (Atom (number->string expression)))
+	(else
+	 (Atom (show->string expression)))))
 
 (define (reduce expression
 		#!optional
@@ -397,7 +424,7 @@
 	 (copy-properties cell-display-properties expression
 			  result)))
       (_
-       (if (symbol? expression)
+       (if (Atom? expression)
 	   (let* ((result (counterpart #;of expression #;from variables
 					    #;in values)))
 	     (if (eq? result expression)
@@ -414,9 +441,9 @@
        (let ((result (car values)))
 	 (if (self-evaluating? result)
 	     result
-	     `',result)))
+	     (cons (Atom "quote") result))))
       (,variable
-       `',values)
+       (cons (Atom "quote") values))
       (`(,_ . ,rest)
        (counterpart #;of variable #;from rest
 			 #;in (cdr values)))
@@ -428,25 +455,27 @@
       (`(,first . ,rest)
        (let ((first* (reduce first)))
 	 (if (equal? first first*)
-	     (let ((result (cons first (reduce-operands rest))))
+	     (let* ((result (cons first (reduce-operands rest))))
 	       (mark-origin! result operands)
 	       (copy-properties cell-display-properties operands result))
 	     (let ((result (cons first* rest)))
 	       (mark-origin! result operands)
 	       (mark-origin! first* first)
 	       (copy-properties cell-display-properties operands result)))))
-      ('()
+      (`()
        operands)
       (_
        (reduce operands))))
 
   (define (reduce expression)
+    (WARN "reducing "expression)
     (match expression
       (`(if #f ,then ,else)
        (dissolve! expression)
        (mark-origin! else expression)
        else)
       (`(if ,test ,then ,else)
+       (WARN "conditional: "expression)
        (let ((test* (reduce test))
 	     (if* (car expression)))
 	 (cond ((equal? test test*)
@@ -458,7 +487,7 @@
 		  (mark-origin! result expression)
 		  (mark-origin! test* test)
 		  (copy-properties cell-display-properties
-				   (car expression) (car result))
+				   (cdr expression) (cdr result))
 		  (copy-properties cell-display-properties
 				   expression result))))))
       (`(lambda ,args ,body)
@@ -466,7 +495,7 @@
       (`(quote ,_)
        expression)
       (`(,operator . ,operands)
-       (if (and (symbol? operator)
+       (if (and (Atom? operator)
 		(context:defines-macro? operator))
 	   (error "Macros not supported (yet)")
 	   (let ((operands* (reduce-operands operands)))
@@ -477,10 +506,16 @@
 		   (copy-properties cell-display-properties expression
 				    result))
 		 (match operator
-		   (,@symbol?
+		   (,@Atom?		    
 		    (cond ((context:primitive? operator)
-			   (let ((result (apply (context:value operator)
-						operands)))
+			   (let* ((result
+				   (grasp
+				    (parameterize ((cell-access-mode
+						    CellAccessMode:Evaluating))
+				      (WARN "applying "(context:value operator)
+					    " to "operands)
+				      (apply (context:value operator)
+					     (map (lambda (x) x) operands))))))
 			     (dissolve! expression)
 			     (mark-origin! result expression)
 			     result))
@@ -502,7 +537,7 @@
 		   (_
 		    expression))))))
       (_
-       (if (and (symbol? expression)
+       (if (and (Atom? expression)
 		(context:defines? expression))
 	   (let ((result (context:value expression)))
 	     (dissolve! expression)
@@ -518,11 +553,17 @@
   (any. (is _ equal? element) collection))
 
 (define-mapping (morph-to expression::Tile)::Morph
-  #!null)
+  (Morph expression expression
+	 (property (e::Element)::(list-of Element)
+		   (recons e '()))
+	 (property (e::Element)::(list-of Element)
+				    (recons e '()))))
 
-(define (morph-from expression::Tile)::Morph
+(define/memoized (morph-from expression::Tile)::Morph
+  (WARN "reducing "expression)
   (let*-values (((reduced origins progenies) (reduce expression))
-	       ((result) (Morph expression reduced origins progenies)))
+		((result) (Morph expression reduced origins progenies)))
+    (WARN " to "reduced)
     (set! (morph-to reduced) result)
     result))
 
@@ -550,8 +591,10 @@
   
   (define (advance! timestep/ms::int)::boolean
     (let ((change (/ timestep/ms duration/ms)))
+      (WARN "advance by "change)
       (if playing-backwards?
 	  (let ((new-progress (- current-morph:progress change)))
+	    (WARN "new progress "new-progress)
 	    (cond
 	     ((is new-progress <= 0.0)
 	      (let ((initial current-morph:initial))
@@ -564,6 +607,7 @@
 	      (set! current-morph:progress new-progress)
 	      #t)))
 	  (let ((new-progress (+ current-morph:progress change)))
+	    (WARN "new progress "new-progress)
 	    (cond
 	     ((is new-progress >= 1.0)
 	      (let ((final current-morph:final))
@@ -577,15 +621,18 @@
 	      #t))))))
   
   (define (rewind!)::void
-    (set! current-morph (morph-from initial-expression)))
+    (WARN "rewind!")
+    #;(set! current-morph (morph-from initial-expression)))
   
   (define (back!)::void
+    (WARN "back!")
     (set! playing-backwards? #t)
     (set! now-playing? #f)
     (let ((painter ::Painter (the-painter)))
       (painter:play! (this))))
 
   (define (play!)::void
+    (WARN "play!")
     (set! now-playing? #t)
     (set! playing-backwards? #f)
     (let ((painter ::Painter (the-painter)))
@@ -595,12 +642,14 @@
     (set! now-playing? #f))
   
   (define (next!)::void
+    (WARN "next!")
     (set! playing-backwards? #f)
     (set! now-playing? #f)
     (let ((painter ::Painter (the-painter)))
       (painter:play! (this))))
       
   (define (fast-forward!)::void
+    (WARN "fast-forward!")
     ;; to zasadniczo nie wiemy, jak zaimplementowac
     (values))
 
@@ -613,11 +662,50 @@
 
   (define (as-expression)::cons
     (cons (Atom "Stepper") (cons initial-expression '())))
+
+  (define max-extent ::Extent
+    (current-morph:extent))
   
   (define (extent)::Extent
-    (current-morph:extent))
+    (let ((current ::Extent (current-morph:extent)))
+      (set! max-extent:width (max max-extent:width current:width))
+      (set! max-extent:height (max max-extent:height current:height))
+      max-extent))
+      
 
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
     #!null)
   
   (Magic))
+
+(define (PlayerWithControls player::Player)::Enchanted
+  (Below
+   top: player
+   bottom:
+   (Beside
+    left:
+    (Beside left: (Button label: "▮◀◀"
+			  action: (lambda () (player:rewind!)))
+	    right: (Button label: "▮◀ "
+			   action: (lambda () (player:back!))))
+    right:
+    (Beside
+     left: (Button label: " ▶ "
+		   action: (lambda () (player:play!)))
+     right:
+     (Beside left: (Button label: " ▶▮"
+			   action: (lambda () (player:next!)))
+	     right: (Button label: "▶▶▮"
+			    action: (lambda ()
+				      (player:fast-forward!))))))))
+
+(set! (extension 'Stepper)
+      (object (Extension)
+	((enchant source::cons)::Enchanted
+	 (WARN "invoking stepper")
+	 (otherwise (begin
+		      (WARN "Unable to create Stepper from "source)
+		      #!null)
+	   (parameterize ((cell-access-mode CellAccessMode:Editing))
+	     (and-let* ((`(Stepper ,expression) source))
+	       (PlayerWithControls (Stepper expression))))))))

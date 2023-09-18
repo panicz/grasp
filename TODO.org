@@ -470,6 +470,59 @@ nowa kopie!
 
 #+END_SRC
 
+* 07.09.2023 (wieczorem, laptop)
+
+Teraz bysmy chcieli napisac sobie cos, co by nam przeprowadzalo
+redukcje
+
+#+BEGIN_src scheme
+(define (reduce expression context)
+  (match expression
+    (`(if #f ,then ,else)
+     else)
+    (`(if ,test ,then ,else)
+     (let ((test* (reduce test context)))
+       (if (equal? test test*)
+          then
+          `(if ,test* ,then ,else))))
+    (`(quote ,_)
+      expression)
+    (`(lambda ,args ,body)
+     expression)
+    (`(,operator . ,operands)
+     (if (context:defines-macro? operator)
+         (error "Macros not supported (yet)")
+         (let ((operands* (reduce-operands operands context)))
+	   (if (isnt operands equal? operands*)
+               `(,operator . ,operands*)
+               (match operator
+                 (,@symbol?
+                  (if (context:primitive? operator)
+                     (apply (context:value operator) operands)
+                     `(,operator . ,operands)))
+		 (`(lambda ,args ,body)
+                   (substitute args #;with operands #;in body))
+                 (`(,_ . ,_)
+                  (let ((operator* (reduce operator context))) 
+                    `(,operator* . ,operands)))
+                 (_
+                  `(,operator . ,operands)))))))
+    (_
+     (if (symbol? expression)
+        (context:value expression)
+        expression))))
+                    
+(define (substitute variables #;with values #;in expression)
+  (match expression
+    (`(quote ,_)
+     expression)
+    (`(lambda ,args ,body)
+     (let-values (((variables* values*) (remove args #;from variables #;& values)))
+       `(lambda ,args ,(substitute variables* #;with values* #;in body))))
+    
+    
+#+END_src
+
 * 06.09.2023
 
 mamy with-intensity dla klientow graficznych, zostaje nam jeszcze

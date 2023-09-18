@@ -32,7 +32,8 @@
   ((part-at index::Index)::Indexable*
    (match index
      (,(first-index) back)
-     (,(last-index) front)))
+     (,(last-index) front)
+     (_ (this))))
 
   ((first-index)::Index
    'back)
@@ -121,7 +122,8 @@
   ((part-at index::Index)::Indexable*
    (match index
      (,(first-index) top)
-     (,(last-index) bottom)))
+     (,(last-index) bottom)
+     (_ (this))))
 
   ((first-index)::Index
    'top)
@@ -222,7 +224,8 @@
   ((part-at index::Index)::Indexable*
    (match index
      (,(first-index) left)
-     (,(last-index) right)))
+     (,(last-index) right)
+     (_ (this))))
 
   ((first-index)::Index
    'left)

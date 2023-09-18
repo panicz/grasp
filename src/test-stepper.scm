@@ -1,0 +1,40 @@
+(import
+  (define-interface)
+  (define-type)
+  (define-object)
+  (conversions)
+  (indexable)
+  (infix)
+  (match)
+  (primitive)
+  (space)
+  (parse)
+  (examples)
+  (conversions)
+  (srfi :11)
+  (assert)
+  (print)
+  (cursor)
+  (parse)
+  (interactive)
+  (extension)
+  (stepper)
+  )
+
+(match (parse-string "a")
+  (`(a)
+   (WARN 'yes))
+  (else
+   (WARN 'no else (invoke (car else) 'getClass))))
+
+(match (cons (Atom "a") (empty))
+  (`(a) (WARN 'yup))
+  (_ (WARN 'nope)))
+
+(let ((empty (parse-string "")))
+  (WARN empty (empty:getClass) (match/equal? empty '())))
+
+(WARN (reduce (parse-string "! 5")))
+
+(let-values (((reduced or gy) (reduce (parse-string "! 5"))))
+  (WARN (reduce reduced)))
