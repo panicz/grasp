@@ -1,3 +1,20 @@
+* 18.09.2023
+
+wyglada na to, ze musimy dostosowac nasz stepper
+do wspolpracy z atomami.
+
+do tego celu bedziemy potrzebowac:
+- funkcji "grasp", ktora zmieni nam reprezentacje
+lispowa obiektu na reprezentacje graspowa (czyli pairy na consy,
+liste pusta na (empty), stringi na Text, a pozostale atomy
+na Atomy)
+
+ ;"▮◀◀"
+ ;"▮◀ "
+;;" ▶ "
+;" ▶▮"
+;"▶▶▮"
+
 * 17.09.2023
 
 potrzebujemy terax sobie zdefiniowac:
