@@ -1,3 +1,98 @@
+* 17.09.2023
+
+potrzebujemy terax sobie zdefiniowac:
+- morph-from
+- morph-to
+
+* 16.09.2023
+
+bysmy sie zajeli memoizacja:
+
+(memoize proc) musi dzialac tak, ze rekurencyjnie
+wydobywa cache, a w momencie, gdy
+
+
+* 15.09.2023
+
+wydaje sie, ze teraz nam pozostalo:
+- kopiowanie cell-display-properties
+- zbudowanie playera
+
+no, to teraz juz tylko zbudowanie playera xD
+
+
+▴
+▾
+▲
+▼
+
+▮◀◀  ▮◀  ▶/▮▮  ▶▮  ▶▶▮
+
+
+#+BEGIN_SRC scheme
+
+  (define (PlayerWithControls player::Playable)
+    (Below
+	 top: player
+	 bottom:
+	 (Beside
+	  left:
+	  (Beside left: (Button label: "|<<"
+				action: (lambda () (player:rewind!)))
+		  right: (Button label: " |<"
+				 action: (lambda () (player:back!))))
+	  right:
+	  (Beside
+	   left: (Button label: " > "
+			 action: (lambda () (player:play!)))
+	   right:
+	   (Beside left: (Button label: ">| "
+				 action: (lambda () (player:next!)))
+		   right: (Button label: ">>|"
+				  action: (lambda ()
+					    (player:fast-forward!))))))))
+#+END_SRC
+
+przy tej okazji mozemy zrefaktoryzowac Beside, Below i Over w taki
+sposob, zeby braly listy elementow (zamiast par)
+
+A moze na razie nie?
+
+ok, to robimy
+
+#+BEGIN_SRC scheme
+(define-interface Playable ()
+  (rewind!)::void
+  (back!)::void
+  (play!)::void
+  (pause!)::void
+  (next!)::void
+  (fast-forward!)::void
+  (playing?)::boolean)
+#+END_SRC
+
+
+#+BEGIN_SRC scheme
+  ;; potrzebujemy takiego czegos, co by nam reprezentowalo
+  ;; ewaluacje
+  ;; Na razie mamy sobie klase Morph, i instancje tej klasy
+  ;; i teraz tak:
+
+  ;; jak musi dzialac nastepny krok?
+
+  (define (next!)::void
+    (let-values (((reduced origins progenies) (reduce next-expression)))
+      (unless (equal? reduced next-expression)
+	(let ((morph ::Morph (morph-between next-expression reduced
+					    origins progenies)))
+	(set! next-expression reduced)))))
+
+
+
+#+END_SRC
+
+
+  
 * 14.09.2023
 
 wydaje sie, ze spora czesc do tej pory napisanego kodu udalo sie
@@ -22,6 +117,13 @@ wiec na te chwile plan jest taki:
 2. zrobic commita
 
 3. zajac sie tym, zeby Element byl clonable
+
+lista instancji Element:
+- Atom
+- cons
+- text
+- comment
+- quotation
 
  
 * 13.09.2023
