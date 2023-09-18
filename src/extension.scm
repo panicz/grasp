@@ -57,7 +57,7 @@
 	(and (is 0 <= x < size:width)
 	     (is 0 <= y < size:height)
 	     (recons (invoke (this) 'first-index) path)))))
-
+  
   (define (as-expression)::cons
     (cons (Atom "Magic") (empty)))
   

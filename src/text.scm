@@ -100,6 +100,11 @@
 	(invoke-special gnu.lists.FString (this)
 			'appendCharacter (char->integer c)))
       #t))
+
+  (define (clone)::Element
+    (let ((new ::Text (Text)))
+      (new:append (this))
+      new))
   
   (gnu.lists.FString))
 

@@ -2,6 +2,7 @@
 (import (infix))
 (import (define-object))
 (import (define-type))
+(import (define-interface))
 (import (define-property))
 (import (define-cache))
 (import (keyword-arguments))
@@ -19,6 +20,8 @@
 (import (comments))
 (import (interactive))
 (import (extension))
+(import (parse))
+(import (mapping))
 
 (define (render-foreground! expression::Element
 			    counterparts::(maps (Element)
@@ -323,29 +326,47 @@
   (EvaluationContext))
 
 (default-context:define! '!
-  '(lambda (n)
-     (if (<= n 1)
-	 1
-	 (* n (! (- n 1))))))
+  (parse-string "\
+(lambda (n)
+  (if (<= n 1)
+     1 #| base case |#
+     (* n (! (- n 1)))))"))
 
 (default-context:define! 'append
-  '(lambda (a b)
-     (if (null? a)
-	 b
-	 (cons (car a) (append (cdr a) b)))))
+  (parse-string "\
+(lambda (a b)
+  (if (null? a)
+     b
+     (cons (car a) (append (cdr a) b))))"))
 
 (define (reduce expression
-		origin::(maps (Element) to: (list-of Element))
-		progeny::(maps (Element) to: (list-of Element))
 		#!optional
+		(origin::(!maps (Element) to: (list-of Element))
+			 (property (e::Element)::(list-of Element)
+				   (recons e '())))
+		(progeny::(!maps (Element) to: (list-of Element))
+			  (property (e::Element)::(list-of Element)
+				    (recons e '())))
+		#!key
 		(context::EvaluationContext default-context))
+  
   (define (mark-origin! newborn parent)
     (set! (origin newborn) (recons parent '()))
     (set! (progeny parent) (recons newborn '())))
 
+  (define (add-origin! newborn parent)
+    (and-let* ((`(,default) (origin newborn))
+	       ((eq? newborn default)))
+      (set! (origin newborn) '()))
+    (and-let* ((`(,default) (progeny parent))
+	       ((eq? parent default)))
+      (set! (progeny parent) '()))
+    (set! (origin newborn) (recons parent (origin newborn)))
+    (set! (progeny parent) (cons newborn (progeny parent))))
+  
   (define (dissolve! item)
     (set! (origin item) '())
-    (when (gnu.mapping.LList? item)
+    (when (gnu.lists.LList? item)
       (traverse
        item
        doing:
@@ -357,20 +378,33 @@
       (`(quote ,_)
        expression)
       (`(lambda ,args ,body)
-       (let-values (((variables* values*) (only. (isnt _ in. args)
-						 variables values))
-		    ((lambda*) (car expression)))
-	 (recons* lambda* args
-		    (substitute variables* #;with values*
-				 #;in body))))
+       (let*-values (((variables* values*) (only. (isnt _ in. args)
+						  variables values))
+		     ((lambda*) (car expression))
+		     ((result) (cons* lambda* args
+				      (substitute variables* #;with values*
+						  #;in body))))
+	 (copy-properties cell-display-properties
+			  (cdr expression) (cdr result))
+	 (copy-properties cell-display-properties
+			  expression result)
+	 result))
       (`(,operator . ,operands)
-       `(,(substitute variables #;with values #;in operator)
-	 . ,(substitute variables #;with values #;in operands)))
+       (let ((result (cons (substitute variables #;with values
+				       #;in operator)
+			   (substitute variables #;with values
+				       #;in operands))))
+	 (copy-properties cell-display-properties expression
+			  result)))
       (_
        (if (symbol? expression)
 	   (let* ((result (counterpart #;of expression #;from variables
 					    #;in values)))
-	     result)
+	     (if (eq? result expression)
+		 result
+		 (let ((result (copy result)))
+		   (add-origin! result expression)
+		   result)))
 	   expression))))
 
   (define (counterpart #;of variable #;from variables
@@ -396,11 +430,11 @@
 	 (if (equal? first first*)
 	     (let ((result (cons first (reduce-operands rest))))
 	       (mark-origin! result operands)
-	       result)
+	       (copy-properties cell-display-properties operands result))
 	     (let ((result (cons first* rest)))
 	       (mark-origin! result operands)
 	       (mark-origin! first* first)
-	       result))))
+	       (copy-properties cell-display-properties operands result)))))
       ('()
        operands)
       (_
@@ -421,10 +455,12 @@
 		then)
 	       (else
 		(let ((result (cons* if* test* then else '())))
-		  ;; trzeba tez prxekopiowac cell-display-properties
 		  (mark-origin! result expression)
 		  (mark-origin! test* test)
-		  result)))))
+		  (copy-properties cell-display-properties
+				   (car expression) (car result))
+		  (copy-properties cell-display-properties
+				   expression result))))))
       (`(lambda ,args ,body)
        expression)
       (`(quote ,_)
@@ -438,7 +474,8 @@
 		 (let ((result (cons operator operands*)))
 		   (mark-origin! operands* operands)
 		   (mark-origin! result expression)
-		   result)
+		   (copy-properties cell-display-properties expression
+				    result))
 		 (match operator
 		   (,@symbol?
 		    (cond ((context:primitive? operator)
@@ -460,7 +497,8 @@
 			   (result (cons operator* operands)))
 		      (mark-origin! result expression)
 		      (mark-origin! operator* operator)
-		      result))
+		      (copy-properties cell-display-properties expression
+				       result)))
 		   (_
 		    expression))))))
       (_
@@ -472,9 +510,114 @@
 	     result)
 	   expression))))
 
-  (reduce expression))
-
+  (values (reduce expression)
+	  origin
+	  progeny))
 
 (define (in. element collection)
   (any. (is _ equal? element) collection))
 
+(define-mapping (morph-to expression::Tile)::Morph
+  #!null)
+
+(define (morph-from expression::Tile)::Morph
+  (let*-values (((reduced origins progenies) (reduce expression))
+	       ((result) (Morph expression reduced origins progenies)))
+    (set! (morph-to reduced) result)
+    result))
+
+(define-interface Playable ()
+  (rewind!)::void
+  (back!)::void
+  (play!)::void
+  (pause!)::void
+  (next!)::void
+  (fast-forward!)::void
+  (playing?)::boolean)
+
+(define-interface Player (Enchanted Playable Animation))
+
+(define-object (Stepper initial-expression::Tile)::Player
+
+  (define (typename)::String "Stepper")
+
+  (define duration/ms ::float 700.0)
+  
+  (define current-morph ::Morph
+    (morph-from initial-expression))
+
+  (define playing-backwards? ::boolean #f)
+  
+  (define (advance! timestep/ms::int)::boolean
+    (let ((change (/ timestep/ms duration/ms)))
+      (if playing-backwards?
+	  (let ((new-progress (- current-morph:progress change)))
+	    (cond
+	     ((is new-progress <= 0.0)
+	      (let ((initial current-morph:initial))
+		(set! current-morph (morph-to initial))
+		(set! current-morph:progress 1.0)
+		(when (equal? initial current-morph:initial)
+		  (set! now-playing? #f)))
+	      now-playing?)
+	     (else
+	      (set! current-morph:progress new-progress)
+	      #t)))
+	  (let ((new-progress (+ current-morph:progress change)))
+	    (cond
+	     ((is new-progress >= 1.0)
+	      (let ((final current-morph:final))
+		(set! current-morph (morph-from final))
+		(set! current-morph:progress 0.0)
+		(when (equal? final current-morph:final)
+		  (set! now-playing? #f)))
+	      now-playing?)
+	     (else
+	      (set! current-morph:progress new-progress)
+	      #t))))))
+  
+  (define (rewind!)::void
+    (set! current-morph (morph-from initial-expression)))
+  
+  (define (back!)::void
+    (set! playing-backwards? #t)
+    (set! now-playing? #f)
+    (let ((painter ::Painter (the-painter)))
+      (painter:play! (this))))
+
+  (define (play!)::void
+    (set! now-playing? #t)
+    (set! playing-backwards? #f)
+    (let ((painter ::Painter (the-painter)))
+      (painter:play! (this))))
+  
+  (define (pause!)::void
+    (set! now-playing? #f))
+  
+  (define (next!)::void
+    (set! playing-backwards? #f)
+    (set! now-playing? #f)
+    (let ((painter ::Painter (the-painter)))
+      (painter:play! (this))))
+      
+  (define (fast-forward!)::void
+    ;; to zasadniczo nie wiemy, jak zaimplementowac
+    (values))
+
+  (define now-playing? ::boolean #f)
+  
+  (define (playing?)::boolean now-playing?)
+
+  (define (draw! context::Cursor)::void
+    (current-morph:draw! context))
+
+  (define (as-expression)::cons
+    (cons (Atom "Stepper") (cons initial-expression '())))
+  
+  (define (extent)::Extent
+    (current-morph:extent))
+
+  (define (cursor-under* x::real y::real path::Cursor)::Cursor*
+    #!null)
+  
+  (Magic))

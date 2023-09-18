@@ -254,6 +254,22 @@
 	 (set! (screen-up-to-date?) #f)
 	 (invoke screen-up-to-date? 'notify))))))
 
+(define pending-animations
+  ::java.util.Collection
+  (java.util.concurrent.ConcurrentLinkedQueue))
+
+(define-object (Pending animation::Animation)
+  (define then ::long (current-time-ms))
+  
+  (define (apply0)
+    (let* ((now ::long (current-time-ms))
+	   (delta/ms ::long (- now then)))
+      (unless (animation:advance! delta/ms)
+	(pending-animations:remove (this)))
+      (set! then now)))
+  
+  (gnu.mapping.Procedure0))
+
 (define-object (TerminalPainter io::LanternaScreen
 				queue::BlockingQueue)::Painter
   
@@ -385,20 +401,12 @@
       (parameterize ((the-text-color foreground)
 		     (the-background-color color))
 	(put! #\⦿ left top))))
-
-  (define pending-animations
-    ::java.util.Collection
-    (java.util.concurrent.ConcurrentLinkedQueue))
   
   (define (play! animation::Animation)::void
-    (let ((then ::long (current-time-ms)))
-      (define (playing)
-	(let* ((now ::long (current-time-ms))
-	       (delta/ms ::long (- now then)))
-	  (unless (animation:advance! delta/ms)
-	    (pending-animations:remove playing))
-	  (set! then now)))
-      (pending-animations:add playing)))
+    (unless (any (lambda (pending::Pending)
+		   (eq? pending:animation animation))
+		 pending-animations)
+      (pending-animations:add (Pending animation))))
 
   (define (with-intensity i::float action::(maps () to: void))::void
     (parameterize ((the-text-intensity i))

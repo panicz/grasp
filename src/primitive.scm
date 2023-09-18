@@ -164,6 +164,9 @@
   (define (toString)::String
     name)
 
+  (define (clone)::Element
+    (Atom name))
+  
   (set! builder (java.lang.StringBuilder name)))
 
 (define-object (cons car cdr)::Tile
@@ -259,6 +262,9 @@
 	  (invoke (as Shadowed element) 'value)
 	  element)))
 
+  (define (clone)::Element
+    (cons car cdr))
+  
   (pair car cdr))
 
 (define-object (immutable-cons car cdr)::Tile

@@ -82,10 +82,10 @@
 (define-interface Shadowed ()
   (value)::Object)
 
-(define-interface Element (Indexable)
+(define-interface Element (Indexable java.lang.Cloneable)
   (draw! context::Cursor)::void
   (cursor-under* x::real y::real path::Cursor)::Cursor*
-
+  (clone)::Element
   #|
   (cursor-above* path::Cursor)::Cursor*
   (cursor-below* path::Cursor)::Cursor*

@@ -155,6 +155,9 @@
     ;; przemyslec obsluge klawiatury
     #f)
 
+  (define (clone)::Element
+    (ColumnGrid items))
+
   (define (as-expression)
     (cons (Atom "ColumnGrid")
 	  (cons (fold-left (lambda (l x)
@@ -186,6 +189,9 @@
   (define (fields->string)::String
     content)
 
+  (define (clone)::Element
+    (Caption content))
+  
   (Magic))
 
 (define-type (Link
@@ -362,7 +368,9 @@
     (if (not (other:target:isDirectory))
       -1
       (target:compareTo other:target)))
-
+  (define (clone)::Element
+    (DirectoryButton))
+  
   (FileButton))
 
 
@@ -370,6 +378,9 @@
   (define (typename)::String "ParentDirectoryButton")
   (define (label) "..")
   (define (compareTo other::FileButton)::int -1)
+  (define (clone)::Element
+    (ParentDirectoryButton))
+
   (DirectoryButton))
 
 (define-object (TextInput)::Enchanted
@@ -461,6 +472,11 @@
 	  (recons (text (this))
 		  (EmptyListProxy (EmptySpace)))))
 
+    (define (clone)::Element
+    (let ((new ::TextInput (TextInput)))
+      (new:append (this))
+      new))
+  
   (gnu.lists.FString))
 
 (define (text-input string::CharSequence)::TextInput

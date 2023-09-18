@@ -1292,11 +1292,12 @@
 	  (sync:postDelayed (lambda () (animate!)) 40)))))
   
   (define (play! animation::Animation)::void
-    (let ((was-empty? ::boolean (pending-animations:isEmpty)))
-      (pending-animations:add animation)
-      (when was-empty?
-	(set! last-animation-event-time-ms (current-time-ms))
-	(sync:postDelayed (lambda () (animate!)) 40))))
+    (unless (any (is _ eq? animation) pending-animations)
+      (let ((was-empty? ::boolean (pending-animations:isEmpty)))
+	(pending-animations:add animation)
+	(when was-empty?
+	  (set! last-animation-event-time-ms (current-time-ms))
+	  (sync:postDelayed (lambda () (animate!)) 40)))))
 
   (AndroidView source)
   (setFocusable #t)

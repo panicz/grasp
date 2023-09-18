@@ -1280,11 +1280,12 @@ by the AWT framework."))
       timer))
   
   (define (play! animation::Animation)::void
-    (let ((was-empty? ::boolean (pending-animations:isEmpty)))
-      (pending-animations:add animation)
-      (when was-empty?
-	(set! last-animation-event-time-ms (current-time-ms))
-	(animator:start))))
+    (unless (any (is _ eq? animation) pending-animations)
+      (let ((was-empty? ::boolean (pending-animations:isEmpty)))
+	(pending-animations:add animation)
+	(when was-empty?
+	  (set! last-animation-event-time-ms (current-time-ms))
+	  (animator:start)))))
 
   (InputHandler)
   (rendering-hints:put RenderingHints:KEY_ANTIALIASING
