@@ -25,6 +25,7 @@
 (import (combinators))
 (import (print))
 (import (button))
+(import (hash-table))
 
 (define (render-foreground! expression::Element
 			    counterparts::(maps (Element)
@@ -72,6 +73,7 @@
 					    to: Position)
 		     progress::float)
   ::void
+  ;;(WARN "drawing morph from "foreground" to "background)
   (let* ((p0 ::Position (source-position foreground))
 	 (p1 ::Position (target-position background))
 	 (painter ::Painter (the-painter))
@@ -128,10 +130,10 @@
 	     (e1 ::Extent (extent background))
 	     (width ::real (linear-interpolation
 			    from: e0:width to: e1:width
-			    at: progress))
+			    at: (- 1 progress)))
 	     (height ::real (linear-interpolation
 			     from: e0:height to: e1:height
-			     at: progress)))
+			     at: (- 1 progress))))
 	(with-translation (left top)
 	  (painter:with-intensity (- 1.0 progress)
 	    (lambda ()
@@ -153,13 +155,14 @@
 			intensity::float)
   ::void
   (let ((painter ::Painter (the-painter)))
-    (painter:with-intensity intensity
-      (lambda ()
-	(with-translation (p:left p:top)
-	  (if (gnu.lists.LList? expression)
-	      (let ((outer ::Extent (extent expression)))
-		(painter:draw-box! outer:width outer:height '()))
-	      (draw! expression)))))))
+    (painter:with-intensity
+     intensity
+     (lambda ()
+       (with-translation (p:left p:top)
+	 (if (gnu.lists.LList? expression)
+	     (let ((outer ::Extent (extent expression)))
+	       (painter:draw-box! outer:width outer:height '()))
+	     (draw! expression)))))))
 
 (define (render-background! expression::Element
 			    counterparts::(maps (Element)
@@ -188,21 +191,28 @@
 	    := (property+ (element::Element)::Position
 			  (Position left: 0 top: 0)))
   ::(maps (Element) to: Position)
-  (if (list? expression)
-      (traverse
-       expression
-       doing:
-       (lambda (item::Element t::Traversal)
-	 (let ((p ::Position (measurements item)))
-	   (set! p:left (+ t:left left))
-	   (set! p:top (+ t:top top))
-	   (when (list? item)
-	     (measure-positions! item p:left p:top
-				 into: measurements))))
-       returning:
-       (lambda (t::Traversal)
-	 measurements))
-      measurements))
+  (let* ((p ::Position (measurements expression))
+	 (painter ::Painter (the-painter))
+	 (paren-width ::real (painter:paren-width)))
+    (set! p:left left)
+    (set! p:top top)
+    (if (gnu.lists.LList? expression)
+	(traverse
+	 expression
+	 doing:
+	 (lambda (item::Element t::Traversal)
+	   (let ((p ::Position (measurements item)))
+	     (set! p:left (+ t:left left))
+	     (set! p:top (+ t:top top))
+	     (when (gnu.lists.LList? item)
+	       (measure-positions! item
+				   (+ p:left paren-width)
+				   p:top
+				   into: measurements))))
+	 returning:
+	 (lambda (t::Traversal)
+	   measurements))
+	measurements)))
 
 (define-object (Morph initial::Tile
 		      final::Tile
@@ -341,7 +351,7 @@
   (car (parse-string "\
 (lambda (n)
   (if (<= n 1)
-     1 #| base case |#
+     1
      (* n (! (- n 1)))))")))
 
 (default-context:define! (Atom "append")
@@ -378,6 +388,7 @@
 		(context::EvaluationContext default-context))
   
   (define (mark-origin! newborn parent)
+    ;;(WARN "marking the origin of "newborn" as "parent)
     (set! (origin newborn) (recons parent '()))
     (set! (progeny parent) (recons newborn '())))
 
@@ -392,7 +403,8 @@
     (set! (progeny parent) (cons newborn (progeny parent))))
   
   (define (dissolve! item)
-    (set! (origin item) '())
+    (WARN "dissolving "item)
+    (set! (progeny item) '())
     (when (gnu.lists.LList? item)
       (traverse
        item
@@ -421,6 +433,7 @@
 				       #;in operator)
 			   (substitute variables #;with values
 				       #;in operands))))
+	 (mark-origin! result expression)
 	 (copy-properties cell-display-properties expression
 			  result)))
       (_
@@ -468,14 +481,12 @@
        (reduce operands))))
 
   (define (reduce expression)
-    (WARN "reducing "expression)
     (match expression
       (`(if #f ,then ,else)
        (dissolve! expression)
        (mark-origin! else expression)
        else)
       (`(if ,test ,then ,else)
-       (WARN "conditional: "expression)
        (let ((test* (reduce test))
 	     (if* (car expression)))
 	 (cond ((equal? test test*)
@@ -512,16 +523,16 @@
 				   (grasp
 				    (parameterize ((cell-access-mode
 						    CellAccessMode:Evaluating))
-				      (WARN "applying "(context:value operator)
-					    " to "operands)
 				      (apply (context:value operator)
 					     (map (lambda (x) x) operands))))))
 			     (dissolve! expression)
-			     (mark-origin! result expression)
 			     result))
 			  ((context:defines? operator)
-			   (reduce (cons (context:value operator)
-					 operands)))
+			   (let ((result (reduce (cons (context:value operator)
+						       operands))))
+			     (dissolve! expression)
+			     (mark-origin! result operator)
+			     result))
 			  (else
 			   expression)))
 		   (`(lambda ,args ,body)
@@ -560,10 +571,8 @@
 				    (recons e '()))))
 
 (define/memoized (morph-from expression::Tile)::Morph
-  (WARN "reducing "expression)
   (let*-values (((reduced origins progenies) (reduce expression))
 		((result) (Morph expression reduced origins progenies)))
-    (WARN " to "reduced)
     (set! (morph-to reduced) result)
     result))
 
@@ -643,10 +652,26 @@
   
   (define (next!)::void
     (WARN "next!")
+    ;;(set! current-morph:origin (lambda _ '()))
+    ;;(set! current-morph:progeny (lambda _ '()))
+    ;;(WARN "origin: "(procedure-property current-morph:origin 'table))
+    ;;(WARN "progeny: "(procedure-property current-morph:progeny 'table))
+    (WARN (current-morph:progeny current-morph:initial))
+    
+    (set! current-morph:progress (+ current-morph:progress 0.1))
+    (WARN current-morph:progress)
+    (when (is current-morph:progress > 1.0)
+      (let ((final current-morph:final))
+	(set! current-morph (morph-from final))
+	(set! current-morph:progress 0.0)))
+    
+    #|
     (set! playing-backwards? #f)
     (set! now-playing? #f)
     (let ((painter ::Painter (the-painter)))
-      (painter:play! (this))))
+      (painter:play! (this)))
+|#
+    )
       
   (define (fast-forward!)::void
     (WARN "fast-forward!")

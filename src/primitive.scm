@@ -159,8 +159,19 @@
      (and-let* ((atom ::Atom x))
        (string=? name atom:name))
      (and-let* ((s ::gnu.mapping.Symbol x))
-       (string=? name (s:getName)))))
-
+       (string=? name (s:getName)))
+     (and (eq? x #f)
+	  (or (name:equalsIgnoreCase "#f")
+	      (name:equalsIgnoreCase "#false")))
+     (and (eq? x #t)
+	  (or (name:equalsIgnoreCase "#t")
+	      (name:equalsIgnoreCase "#true")))
+     (and (number? x)
+	  (name:equals (number->string x)))))
+     
+  (define (hashCode)::int
+    (name:hashCode))
+  
   (define (toString)::String
     name)
 
