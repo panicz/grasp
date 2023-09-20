@@ -69,5 +69,9 @@
     ctrl+c-behaviour)
   (defaultTerminalFactory:createTerminal))
 
-(define (make-terminal-screen)::LanternaScreen
-  (TerminalScreen (make-terminal)))
+(define (make-terminal-screen #!key (background ::Letter
+                                                (Letter #\space
+                                                        Color:ANSI:DEFAULT
+                                                        Color:ANSI:DEFAULT)))
+  ::LanternaScreen
+  (TerminalScreen (make-terminal) background))

@@ -20,10 +20,10 @@
 (define-object (CharPainter)::Painter
 
   (define (play! animation::Animation)::void #!abstract)
-  
+
   (define (with-intensity i::float action::(maps () to: void))::void
     #!abstract)
-    
+
   (define shiftLeft ::real 0)
   (define shiftTop ::real 0)
 
@@ -105,7 +105,7 @@
   (define (paren-width)::real 2)
 
   (define (line-simplification-resolution)::real 3)
-  
+
   (define (min-box-height)::real 3)
 
   (define (min-line-height)::real 1)
@@ -117,12 +117,12 @@
   (define (draw-horizontal-split! top::real)::void
     (for i from (max 0 (current-clip-left))
       below (min (current-width) clipWidth)
-      (put! #\─ top i)))
+      (put! #\█ top i)))
 
   (define (draw-vertical-split! left::real)::void
     (for i from (max 0 (current-clip-top))
       below (min (current-height) clipHeight)
-      (put! #\│ i left)))
+      (put! #\█ i left)))
 
   (define (horizontal-split-height)::real 1)
 
@@ -443,7 +443,7 @@
     (for j from 0 below height
 	 (for i from 0 below width
 	      (put! #\space j i))))
-  
+
   (define (draw-popup! width::real height::real)::void
     (draw-rounded-rectangle! width height))
 
@@ -702,7 +702,7 @@
 	   x::real y::real text::CharSequence)
     ::int
     (string-character-index-under x y text))
-  
+
   (define (caption-margin-top)::real 1)
 
   (define (caption-margin-bottom)::real 1)
@@ -750,7 +750,7 @@
 			action::(maps () to: void))
     ::void
     #!abstract)
-  
+
   (define (put! c::char row::real col::real)
     ::void
     #!abstract)
@@ -934,7 +934,7 @@
 
   (define (with-intensity i::float action::(maps () to: void))::void
     (action))
-  
+
   (define (draw-string! text::CharSequence
 			context::Cursor)
     ::void
@@ -955,7 +955,7 @@
 
   (define horizontal-stretch ::float 1.0)
   (define vertical-stretch ::float 1.0)
-  
+
   (define (with-stretch horizontal::float vertical::float
 			action::(maps () to: void))
     ::void
@@ -968,7 +968,7 @@
        (begin
 	 (set! horizontal-stretch previous-horizontal)
 	 (set! vertical-stretch previous-vertical)))))
-  
+
   (define (put! c::char row::real col::real)
     ::void
     (let ((x (+ shiftLeft

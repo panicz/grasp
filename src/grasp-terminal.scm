@@ -58,15 +58,15 @@
 (define-syntax define-box
   (syntax-rules (::)
     ((_ (name)::type initial-value)
-     (define-early-constant name 
+     (define-early-constant name
        (let* ((state ::type initial-value)
 	      (getter (lambda () state)))
 	 (set! (setter getter)
 	       (lambda (value::type) (set! state value)))
 	 getter)))
-       
+
     ((_ (name) initial-value)
-     (define-early-constant name 
+     (define-early-constant name
        (let* ((state initial-value)
 	      (getter (lambda () state)))
 	 (set! (setter getter) (lambda (value) (set! state value)))
@@ -168,16 +168,16 @@
   (define postponed-action ::(maps () to: boolean) never)
 
   (define thread-pool ::Scheduler (ThreadPool 1))
-  
+
   (define scheduled-task ::ScheduledTask #!null)
-  
+
   (define (cancel)::Cancellable
     (when scheduled-task
       (scheduled-task:cancel #f)
       (set! postponed-action never)
       (set! scheduled-task #!null))
     (this))
-  
+
   (define (after time-ms::long action::procedure)
     ::Cancellable
     (set! postponed-action action)
@@ -213,7 +213,7 @@
 		    (type ::KeyType (key:getKeyType))
 		    (caret ::TerminalPosition (io:getCursorPosition)))
 	       (match type
-		 #;(,KeyType:Character 
+		 #;(,KeyType:Character
 		 (parameterize ((unicode-input (input-character key)))
 		 (invoke (the-screen) 'key-typed! (scancode key))))
 
@@ -228,7 +228,7 @@
 		     ((action:isMouseMove)
 		      (values))
 		     ((action:isMouseDown)
-		      
+
 		      (match (action:getButton)
 			(,MouseButton:Left
 			 (pointer:press! left top
@@ -245,7 +245,7 @@
 		      (pointer:release! left top
 					(System:currentTimeMillis)))
 		     )))
-		 
+
 		 (_
 		  (parameterize ((unicode-input (input-character
 						 key)))
@@ -260,25 +260,25 @@
 
 (define-object (Pending animation::Animation)
   (define then ::long (current-time-ms))
-  
+
   (define (apply0)
     (let* ((now ::long (current-time-ms))
 	   (delta/ms ::long (- now then)))
       (unless (animation:advance! delta/ms)
-	(pending-animations:remove (this)))
+        (pending-animations:remove (this)))
       (set! then now)))
-  
+
   (gnu.mapping.Procedure0))
 
 (define-object (TerminalPainter io::LanternaScreen
 				queue::BlockingQueue)::Painter
-  
+
   (define text-color-stack ::java.util.Stack (java.util.Stack))
   (define background-color-stack ::java.util.Stack (java.util.Stack))
 
   (define horizontal-stretch ::float 1.0)
   (define vertical-stretch ::float 1.0)
-  
+
   (define (with-stretch horizontal::float vertical::float
 			action::(maps () to: void))
     ::void
@@ -291,7 +291,7 @@
        (begin
 	 (set! horizontal-stretch previous-horizontal)
 	 (set! vertical-stretch previous-vertical)))))
-  
+
   (define (put! c::char row::real col::real)::void
     (let ((screen ::Extent (screen:size))
 	  (x (+ shiftLeft (nearby-int (* horizontal-stretch col))))
@@ -301,7 +301,7 @@
       (when (and (is left <= x < (+ left clipWidth))
                  (is top <= y < (+ top clipHeight))
 		 (is 0 <= x < screen:width)
-		 (is 0 <= y < screen:height))		 
+		 (is 0 <= y < screen:height))
 	(io:setCharacter x y (letter c)))))
 
   (define (mark-cursor! +left::real +top::real)::void
@@ -314,10 +314,10 @@
 		 (is 0 <= y < screen:height))
 	(let ((letter (io:getBackCharacter x y)))
 	  (letter:getCharacter))
-	
+
 	(io:setCursorPosition
 	 (TerminalPosition x y)))))
-  
+
   (define (enter-selection-drawing-mode!)::void
     (invoke-special CharPainter (this)
 		    'enter-selection-drawing-mode!)
@@ -326,12 +326,12 @@
       (set! (the-background-color) text-color)))
 
   (define (exit-selection-drawing-mode!)::void
-    (let ((text-color (the-text-color)))    
+    (let ((text-color (the-text-color)))
       (set! (the-text-color) (the-background-color))
       (set! (the-background-color) text-color))
     (invoke-special CharPainter (this)
 		    'exit-selection-drawing-mode!))
-  
+
   (define (get row::real col::real)::char
     (let ((x (+ col shiftLeft))
 	  (y (+ row shiftTop))
@@ -360,7 +360,7 @@
 		   (the-background-color (the-quoted-text-background-color)))
       (invoke-special CharPainter (this) 'draw-quoted-text!
 		      s context)))
-  
+
   (define (draw-line-comment! text::CharSequence context::Cursor)::void
     (parameterize ((the-text-color (the-comment-text-color))
 		   (the-background-color (the-comment-background-color)))
@@ -372,7 +372,7 @@
 		   (the-background-color (the-comment-background-color)))
       (invoke-special CharPainter (this) 'draw-block-comment!
 		      text context)))
-  
+
   (define (enter-comment-drawing-mode!)::void
     (invoke-special CharPainter (this)
 		    'enter-comment-drawing-mode!)
@@ -383,12 +383,12 @@
 			      'current-comment-level)))
 	      (the-even-comment-color)
 	      (the-odd-comment-color))))
-  
+
   (define (exit-comment-drawing-mode!)::void
     (set! (the-text-color) (text-color-stack:pop))
     (invoke-special CharPainter (this)
 		    'exit-comment-drawing-mode!))
-  
+
   (define (draw-point! left::real top::real color-rgb::int)
     ::void
     (let* ((red ::int (byte-ref color-rgb 2))
@@ -401,7 +401,7 @@
       (parameterize ((the-text-color foreground)
 		     (the-background-color color))
 	(put! #\⦿ left top))))
-  
+
   (define (play! animation::Animation)::void
     (unless (any (lambda (pending::Pending)
 		   (eq? pending:animation animation))
@@ -411,26 +411,26 @@
   (define (with-intensity i::float action::(maps () to: void))::void
     (parameterize ((the-text-intensity i))
       (action)))
-  
+
   (define thread-pool ::Scheduler (ThreadPool 1))
 
   (define animating ::ScheduledTask #!null)
-  
+
   (define (start-animating!)::void
     (set! animating
 	  (thread-pool:scheduleAtFixedRate
 	   (lambda ()
 	     (for playing in pending-animations
-	       (queue:put playing)))
+	          (queue:put playing)))
 	   40 40 TimeUnit:MILLISECONDS)))
-    
+
   (CharPainter)
   (start-animating!)
   )
 
 (define (run-in-terminal
 	 #!optional
-	 (io :: LanternaScreen (make-terminal-screen)))
+	 (io :: LanternaScreen (make-terminal-screen background: (letter #\space))))
   ::void
   (cond
    ((and-let* ((`(,command "-p" ,port) (command-line))
@@ -452,6 +452,8 @@
       (safely
        (load "assets/init.scm"))
       (io:startScreen)
+      (io:clear)
+      (io:refresh)
       (let* ((preprocessing (future (rewrite-events
 				     io event-queue)))
 	     (editing (future (edit io event-queue)))
