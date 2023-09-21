@@ -28,6 +28,8 @@
 (import (hash-table))
 (import (text-painter))
 
+(define-alias id java.lang.System:identityHashCode)
+
 (define text-painter ::Painter (TextPainter))
 
 (define (render-foreground! expression::Element
@@ -86,12 +88,13 @@
 		      from: p0:top to: p1:top
 		      at: (- 1 progress))))
     (cond
-     ((equal? foreground background)
+     ((match/equal? foreground background)
       (WARN "drawing identical "foreground
 	    (java.lang.System:identityHashCode foreground)
 	    (java.lang.System:identityHashCode background)
 	    (counterparts foreground)
-	    (map java.lang.System:identityHashCode (counterparts foreground)))
+	    (map java.lang.System:identityHashCode (counterparts foreground))
+	    p0 p1 left top)
       ;; here we just draw the foreground
       ;; with full intensity
       (with-translation (left top)
@@ -191,7 +194,6 @@
 			    intensity::float)
   ::void
   (when (empty? (counterparts expression))
-    (WARN "emerging "expression)
     (draw-emerging! expression (position expression) intensity))
   (when (gnu.lists.LList? expression)
     (traverse
@@ -298,69 +300,72 @@
 
   (define definitions ::java.util.Map
     (let ((table ::java.util.Map (java.util.HashMap)))
-      (table:put (Atom "+") +)
-      (table:put (Atom "-") -)
-      (table:put (Atom "pred") (lambda (x) (- x 1)))
-      (table:put (Atom "*") *)
-      (table:put (Atom "/") /)
-      (table:put (Atom "<") <)
-      (table:put (Atom "<=") <=)
-      (table:put (Atom ">") >)
-      (table:put (Atom ">=") >=)
-      (table:put (Atom "=") =)
-      (table:put (Atom "eq?") eq?)		
-      (table:put (Atom "eqv?") eqv?)
-      (table:put (Atom "cons")
-		 (lambda args
-		   (match args
-		     (`(',a ',b)
-		      (cons (Atom "quote") (cons a b)))
-		     (`(,a ',b)
-		      (cons (Atom "quote") (cons a b)))
-		     (`(',a ,b)
-		      (cons (Atom "quote") (cons a b)))
-		     (`(,a ,b)
-		      (cons (Atom "quote") (cons a b))))))
-      (table:put (Atom "car")
-		 (lambda (x)
-		   (match x
-		     (`'(,a . ,b)
-		      (if (self-evaluating? a)
-			  a
-			  (cons (Atom "quote") a))))))
-      (table:put (Atom "cdr")
-		 (lambda (x)
-		   (match x
-		     (`'(,a . ,b)
-		      (if (self-evaluating? b)
-			  b
-			  (cons (Atom "quote") b))))))
-      (table:put (Atom "pair?")
-		 (lambda (x)
-		   (and-let* ((`'(,_ . ,_) x)))))
-      (table:put (Atom "null?")
-		 (lambda (x)
-		   (and-let* ((`'() x)))))
+      (define (add s::string v)
+	(table:put (invoke (s:toString) 'intern) v))
+      (add "+" +)
+      (add "-" -)
+      (add "pred" (lambda (x) (- x 1)))
+      (add "*" *)
+      (add "/" /)
+      (add "<" <)
+      (add "<=" <=)
+      (add ">" >)
+      (add ">=" >=)
+      (add "=" =)
+      (add "eq?" eq?)		
+      (add "eqv?" eqv?)
+      (add "cons"
+	   (lambda args
+	     (match args
+	       (`(',a ',b)
+		(cons (Atom "quote") (cons a b)))
+	       (`(,a ',b)
+		(cons (Atom "quote") (cons a b)))
+	       (`(',a ,b)
+		(cons (Atom "quote") (cons a b)))
+	       (`(,a ,b)
+		(cons (Atom "quote") (cons a b))))))
+      (add "car"
+	   (lambda (x)
+	     (match x
+	       (`'(,a . ,b)
+		(if (self-evaluating? a)
+		    a
+		    (cons (Atom "quote") a))))))
+      (add "cdr"
+	   (lambda (x)
+	     (match x
+	       (`'(,a . ,b)
+		(if (self-evaluating? b)
+		    b
+		    (cons (Atom "quote") b))))))
+      (add "pair?"
+	   (lambda (x)
+	     (and-let* ((`'(,_ . ,_) x)))))
+      (add "null?"
+	   (lambda (x)
+	     (and-let* ((`'() x)))))
       table))
 
-  (define (value symbol)
-    (cond ((definitions:contains-key symbol)
-	   (definitions:get symbol))
+  (define (value atom::Atom)
+    (cond ((definitions:contains-key atom:name)
+	   (definitions:get atom:name))
 	  (else
-	   (error "undefined symbol: "symbol))))
+	   (error "undefined symbol: "atom))))
 
   (define (defines-macro? symbol)
     #f)
 
-  (define (defines? symbol)
-    (definitions:contains-key symbol))
+  (define (defines? atom::Atom)
+    (WARN "LOOKING FOR "atom)
+    (definitions:contains-key atom:name))
 
-  (define (define! name value)
-    (definitions:put name value))
+  (define (define! atom::Atom value)
+    (definitions:put atom:name value))
 
-  (define (primitive? symbol)
-    (and (definitions:contains-key symbol)
-	 (let ((value (definitions:get symbol)))
+  (define (primitive? atom::Atom)
+    (and (definitions:contains-key atom:name)
+	 (let ((value (definitions:get atom:name)))
 	   (procedure? value))))
   )
 
@@ -370,9 +375,9 @@
 (default-context:define! (Atom "!")
   (car (parse-string "\
 (lambda (n)
-  (if (<= n 0)
-     1
-     (* n (! (pred n)))))")))
+  (if (<= n 1)
+     1 #| BASE CASE |#
+     (* n (! (- n 1)))))")))
 
 (default-context:define! (Atom "append")
   (car (parse-string "\
@@ -455,7 +460,6 @@
 				       #;in operator)
 			   (substitute variables #;with values
 				       #;in operands))))
-	 (WARN "by substitution")
 	 (mark-origin! result expression)
 	 (copy-properties cell-display-properties expression
 			  result)))
@@ -463,8 +467,10 @@
        (if (Atom? expression)
 	   (let* ((result (counterpart #;of expression #;from variables
 					    #;in values)))
-	     (let (#;(result (copy result)))
+	     (let ((result (copy result)))
 	       (add-origin! result expression)
+	       (WARN "ORIGIN of "result (id result)": "(origin result)
+		     (map id (origin result)))
 	       result))
 	   expression
 	   #;(let ((result (copy expression)))
@@ -491,11 +497,11 @@
     (match operands
       (`(,first . ,rest)
        (let ((first* (reduce first)))
-	 (if (equal? first first*)
-	     (let* ((first+ (if (eq? first first*)
+	 (if (match/equal? first first*)
+	     (let* (#;(first+ (if (eq? first first*)
 				(copy first)
 				first*))
-		    (result (cons first+ (reduce-operands rest))))
+		    (result (cons first (reduce-operands rest))))
 	       (WARN "by remaining operand reduction")
 	       (mark-origin! result operands)
 	       (copy-properties cell-display-properties operands result))
@@ -520,7 +526,7 @@
       (`(if ,test ,then ,else)
        (let ((test* (reduce test))
 	     (if* (car expression)))
-	 (cond ((equal? test test*)
+	 (cond ((match/equal? test test*)
 		(WARN "by if-true")
 		(dissolve! expression)
 		(let ((result (substitute '() '() then)))
@@ -542,10 +548,11 @@
 		(context:defines-macro? operator))
 	   (error "Macros not supported (yet)")
 	   (let ((operands* (reduce-operands operands)))
-	     (if (isnt operands equal? operands*)
+	     (if (isnt operands match/equal? operands*)
 		 (let* ((operator* (copy operator))
 			(result (cons operator* operands*)))
-		   (WARN "by operand reduction")
+		   (WARN "by operand reduction: "operands
+			 " are not equal to "operands*)
 		   (mark-origin! operator* operator)
 		   (mark-origin! operands* operands)
 		   (mark-origin! result expression)
@@ -590,8 +597,8 @@
       (_
        (if (and (Atom? expression)
 		(context:defines? expression))
-	   (let ((result (context:value expression)))
-	     (WARN "by substitution")
+	   (let ((result (copy (context:value expression))))
+	     (WARN "by dereference of "expression" as "result)
 	     (dissolve! expression)
 	     (mark-origin! result expression)
 	     result)
@@ -602,7 +609,7 @@
 	  progeny))
 
 (define (in. element collection)
-  (any. (is _ equal? element) collection))
+  (any. (is _ match/equal? element) collection))
 
 (define-mapping (morph-to expression::Tile)::Morph
   (Morph expression expression
@@ -663,7 +670,7 @@
 	      (let ((initial current-morph:initial))
 		(set! current-morph (morph-to initial))
 		(set! current-morph:progress 1.0)
-		(when (equal? initial current-morph:initial)
+		(when (match/equal? initial current-morph:initial)
 		  (set! now-playing? #f)))
 	      now-playing?)
 	     (else
@@ -676,7 +683,7 @@
 	      (let ((final current-morph:final))
 		(set! current-morph (morph-from final))
 		(set! current-morph:progress 0.0)
-		(when (equal? final current-morph:final)
+		(when (match/equal? final current-morph:final)
 		  (set! now-playing? #f)))
 	      now-playing?)
 	     (else

@@ -124,7 +124,9 @@
 			       from: bb to: bf at: intensity))))
     (Color:RGB r g b)))
 
-(define-cache (letter/cached character color background style)
+(define-cache (letter/cached character color::Color background::Color
+			     style::TextStyle)
+  ::Letter
   (Letter character color background style))
   
 (define/kw (letter character

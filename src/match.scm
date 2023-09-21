@@ -1,5 +1,9 @@
 (import (define-syntax-rule))
+(import (define-interface))
 (import (conversions))
+
+(define-interface Matchable ()
+  (matches? x)::boolean)
 
 (define-syntax-rule (match expression (pattern actions* ... value) ...)
   (let ((evaluated expression))
@@ -7,6 +11,12 @@
 
 (define (match/equal? a b)
   (or (equal? a b)
+      (and (Matchable? a)
+	   (let ((a ::Matchable a))
+	     (a:matches? b)))
+      (and (Matchable? b)
+	   (let ((b ::Matchable b))
+	     (b:matches? a)))
       ;; this extension is used so that the EmptyListProxy
       ;; objects (defined in the (space) module) are
       ;; indistinguishable from '() in the pattern context

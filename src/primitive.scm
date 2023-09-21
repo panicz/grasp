@@ -72,7 +72,9 @@
 ;; edited objects, even though the "value" of
 ;; those atoms can be a different kind of object
 ;; on every query.
-(define-object (Atom name::String)::ShadowedTextualTile
+(define-interface MatchableShadowedTextualTile (Matchable ShadowedTextualTile))
+
+(define-object (Atom name::String)::MatchableShadowedTextualTile
 
   (define builder :: java.lang.StringBuilder)
 
@@ -154,7 +156,7 @@
 		     path)
 	     ))))
 
-  (define (equals x)::boolean
+  (define (matches? x)::boolean
     (or
      (and-let* ((atom ::Atom x))
        (string=? name atom:name))
@@ -168,10 +170,7 @@
 	      (name:equalsIgnoreCase "#true")))
      (and (number? x)
 	  (name:equals (number->string x)))))
-     
-  (define (hashCode)::int
-    (name:hashCode))
-  
+
   (define (toString)::String
     name)
 
@@ -180,8 +179,16 @@
   
   (set! builder (java.lang.StringBuilder name)))
 
-(define-object (cons car cdr)::Tile
 
+(define-interface MatchableTile (Matchable Tile))
+
+(define-object (cons car cdr)::MatchableTile
+
+  (define (matches? x)::boolean
+    (and-let* ((`(,h . ,t) x)
+	       ((match/equal? car h))
+	       ((match/equal? cdr t)))))
+  
   (define (equals object)::boolean
    (eq? object (this)))
 
