@@ -8,6 +8,7 @@
 (import (define-object))
 (import (define-cache))
 (import (define-parameter))
+(import (keyword-arguments))
 (import (server))
 (import (extent))
 (import (fundamental))
@@ -123,15 +124,18 @@
 			       from: bb to: bf at: intensity))))
     (Color:RGB r g b)))
 
-(define-cache (letter character
-		      color: text-color::Color := (the-text-color)
-		      background: background::Color
-		      := (the-background-color)
-		      style: style::TextStyle := (the-text-style))
+(define-cache (letter/cached character color background style)
+  (Letter character color background style))
+  
+(define/kw (letter character
+		   color: text-color::Color := (the-text-color)
+		   background: background::Color
+		   := (the-background-color)
+		   style: style::TextStyle := (the-text-style))
   ::Letter
   (let ((color ::Color (blend text-color background
 			      (the-text-intensity))))
-    (Letter character color background style)))
+    (letter/cached character color background style)))
 
 (define (render io ::LanternaScreen)::void
   (let loop ()

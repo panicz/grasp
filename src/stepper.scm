@@ -26,6 +26,9 @@
 (import (print))
 (import (button))
 (import (hash-table))
+(import (text-painter))
+
+(define text-painter ::Painter (TextPainter))
 
 (define (render-foreground! expression::Element
 			    counterparts::(maps (Element)
@@ -53,7 +56,6 @@
 			       source-position
 			       target-position
 			       intensity)))))
-
      (else
       (for x in links
 	(draw-morph! expression x counterparts
@@ -79,12 +81,17 @@
 	 (painter ::Painter (the-painter))
 	 (left ::real (linear-interpolation
 		       from: p0:left to: p1:left
-		       at: progress))
+		       at: (- 1 progress)))
 	 (top ::real (linear-interpolation
 		      from: p0:top to: p1:top
-		      at: progress)))
+		      at: (- 1 progress))))
     (cond
      ((equal? foreground background)
+      (WARN "drawing identical "foreground
+	    (java.lang.System:identityHashCode foreground)
+	    (java.lang.System:identityHashCode background)
+	    (counterparts foreground)
+	    (map java.lang.System:identityHashCode (counterparts foreground)))
       ;; here we just draw the foreground
       ;; with full intensity
       (with-translation (left top)
@@ -92,6 +99,7 @@
 
      ((or (isnt foreground Tile?)
 	  (isnt background Tile?))
+      (WARN "drawing spaces "foreground" and "background)
       ;; at least one of the elements is (presumably)
       ;; a space, so the only way we can morph them
       ;; is by fading
@@ -105,14 +113,15 @@
 
      ((and (gnu.lists.LList? foreground)
 	   (gnu.lists.LList? background))
+      (WARN "drawing listst "foreground" and "background)
       (let* ((e0 ::Extent (extent foreground))
 	     (e1 ::Extent (extent background))
 	     (width ::real (linear-interpolation
 			    from: e0:width to: e1:width
-			    at: progress))
+			    at: (- 1 progress)))
 	     (height ::real (linear-interpolation
 			     from: e0:height to: e1:height
-			     at: progress)))
+			     at: (- 1 progress))))
 	(with-translation (left top)
 	  (painter:draw-box! width height '()))
 	(traverse
@@ -126,6 +135,15 @@
 			       progress)))))
      ((and (Tile? foreground)
 	   (Tile? background))
+      (WARN "drawing tiles "foreground" and "background)
+      (when (and (pair? foreground) (pair? (cdr foreground))
+		 (equal? (car foreground) 'pred))
+	(WARN (java.lang.System:identityHashCode (cadr foreground))
+	      (counterparts (cadr foreground))
+	      (map java.lang.System:identityHashCode (counterparts
+						      (cadr foreground)))))
+	  
+      
       (let* ((e0 ::Extent (extent foreground))
 	     (e1 ::Extent (extent background))
 	     (width ::real (linear-interpolation
@@ -173,6 +191,7 @@
 			    intensity::float)
   ::void
   (when (empty? (counterparts expression))
+    (WARN "emerging "expression)
     (draw-emerging! expression (position expression) intensity))
   (when (gnu.lists.LList? expression)
     (traverse
@@ -202,7 +221,7 @@
 	 doing:
 	 (lambda (item::Element t::Traversal)
 	   (let ((p ::Position (measurements item)))
-	     (set! p:left (+ t:left left))
+	     (set! p:left (+ t:left left paren-width))
 	     (set! p:top (+ t:top top))
 	     (when (gnu.lists.LList? item)
 	       (measure-positions! item
@@ -281,6 +300,7 @@
     (let ((table ::java.util.Map (java.util.HashMap)))
       (table:put (Atom "+") +)
       (table:put (Atom "-") -)
+      (table:put (Atom "pred") (lambda (x) (- x 1)))
       (table:put (Atom "*") *)
       (table:put (Atom "/") /)
       (table:put (Atom "<") <)
@@ -350,9 +370,9 @@
 (default-context:define! (Atom "!")
   (car (parse-string "\
 (lambda (n)
-  (if (<= n 1)
+  (if (<= n 0)
      1
-     (* n (! (- n 1)))))")))
+     (* n (! (pred n)))))")))
 
 (default-context:define! (Atom "append")
   (car (parse-string "\
@@ -369,6 +389,8 @@
 	 (empty))
 	((string? expression)
 	 (text expression))
+	((Atom? expression)
+	 (copy expression))
 	((symbol? expression)
 	 (Atom (symbol->string expression)))
 	((number? expression)
@@ -388,7 +410,7 @@
 		(context::EvaluationContext default-context))
   
   (define (mark-origin! newborn parent)
-    ;;(WARN "marking the origin of "newborn" as "parent)
+    (WARN "marking the origin of "newborn" as "parent)
     (set! (origin newborn) (recons parent '()))
     (set! (progeny parent) (recons newborn '())))
 
@@ -433,6 +455,7 @@
 				       #;in operator)
 			   (substitute variables #;with values
 				       #;in operands))))
+	 (WARN "by substitution")
 	 (mark-origin! result expression)
 	 (copy-properties cell-display-properties expression
 			  result)))
@@ -440,12 +463,13 @@
        (if (Atom? expression)
 	   (let* ((result (counterpart #;of expression #;from variables
 					    #;in values)))
-	     (if (eq? result expression)
-		 result
-		 (let ((result (copy result)))
-		   (add-origin! result expression)
-		   result)))
-	   expression))))
+	     (let (#;(result (copy result)))
+	       (add-origin! result expression)
+	       result))
+	   expression
+	   #;(let ((result (copy expression)))
+	       (add-origin! result expression)
+	       result)))))
 
   (define (counterpart #;of variable #;from variables
 			    #;in values)
@@ -468,10 +492,15 @@
       (`(,first . ,rest)
        (let ((first* (reduce first)))
 	 (if (equal? first first*)
-	     (let* ((result (cons first (reduce-operands rest))))
+	     (let* ((first+ (if (eq? first first*)
+				(copy first)
+				first*))
+		    (result (cons first+ (reduce-operands rest))))
+	       (WARN "by remaining operand reduction")
 	       (mark-origin! result operands)
 	       (copy-properties cell-display-properties operands result))
 	     (let ((result (cons first* rest)))
+	       (WARN "by first operand reduction")
 	       (mark-origin! result operands)
 	       (mark-origin! first* first)
 	       (copy-properties cell-display-properties operands result)))))
@@ -483,24 +512,27 @@
   (define (reduce expression)
     (match expression
       (`(if #f ,then ,else)
+       (WARN "by if-false")
        (dissolve! expression)
-       (mark-origin! else expression)
-       else)
+       (let ((result (substitute '() '() else)))
+	 (mark-origin! result else)
+	 result))
       (`(if ,test ,then ,else)
        (let ((test* (reduce test))
 	     (if* (car expression)))
 	 (cond ((equal? test test*)
+		(WARN "by if-true")
 		(dissolve! expression)
-		(mark-origin! then expression)
-		then)
+		(let ((result (substitute '() '() then)))
+		  (mark-origin! result then)
+		  result))
 	       (else
 		(let ((result (cons* if* test* then else '())))
+		  (WARN "by if-test")
 		  (mark-origin! result expression)
 		  (mark-origin! test* test)
-		  (copy-properties cell-display-properties
-				   (cdr expression) (cdr result))
-		  (copy-properties cell-display-properties
-				   expression result))))))
+		  (copy-properties* cell-display-properties expression result)
+		  result)))))
       (`(lambda ,args ,body)
        expression)
       (`(quote ,_)
@@ -511,7 +543,10 @@
 	   (error "Macros not supported (yet)")
 	   (let ((operands* (reduce-operands operands)))
 	     (if (isnt operands equal? operands*)
-		 (let ((result (cons operator operands*)))
+		 (let* ((operator* (copy operator))
+			(result (cons operator* operands*)))
+		   (WARN "by operand reduction")
+		   (mark-origin! operator* operator)
 		   (mark-origin! operands* operands)
 		   (mark-origin! result expression)
 		   (copy-properties cell-display-properties expression
@@ -525,13 +560,17 @@
 						    CellAccessMode:Evaluating))
 				      (apply (context:value operator)
 					     (map (lambda (x) x) operands))))))
-			     (dissolve! expression)
+			     (WARN "by apply")
+			     (mark-origin! result expression)
 			     result))
 			  ((context:defines? operator)
 			   (let ((result (reduce (cons (context:value operator)
 						       operands))))
+			     (WARN "by beta")
 			     (dissolve! expression)
-			     (mark-origin! result operator)
+			     (and-let* ((`(,,expression) (origin expression)))
+			       (WARN "siabadaba")
+			       (mark-origin! result operator))
 			     result))
 			  (else
 			   expression)))
@@ -541,6 +580,7 @@
 		   (`(,_ . ,_)
 		    (let* ((operator* (reduce operator))
 			   (result (cons operator* operands)))
+		      (WARN "by operator reduction")
 		      (mark-origin! result expression)
 		      (mark-origin! operator* operator)
 		      (copy-properties cell-display-properties expression
@@ -551,6 +591,7 @@
        (if (and (Atom? expression)
 		(context:defines? expression))
 	   (let ((result (context:value expression)))
+	     (WARN "by substitution")
 	     (dissolve! expression)
 	     (mark-origin! result expression)
 	     result)
@@ -573,6 +614,18 @@
 (define/memoized (morph-from expression::Tile)::Morph
   (let*-values (((reduced origins progenies) (reduce expression))
 		((result) (Morph expression reduced origins progenies)))
+    
+    (parameterize ((the-painter text-painter))
+      (text-painter:clear!)
+      (WARN "vvvvvv")
+      (draw! expression)
+      (WARN (text-painter:toString))
+      (text-painter:clear!)
+      (WARN "======")
+      (draw! reduced)
+      (WARN (text-painter:toString))
+      (WARN "^^^^^^"))
+
     (set! (morph-to reduced) result)
     result))
 
@@ -586,6 +639,7 @@
   (playing?)::boolean)
 
 (define-interface Player (Enchanted Playable Animation))
+
 
 (define-object (Stepper initial-expression::Tile)::Player
 
@@ -658,12 +712,14 @@
     ;;(WARN "progeny: "(procedure-property current-morph:progeny 'table))
     (WARN (current-morph:progeny current-morph:initial))
     
-    (set! current-morph:progress (+ current-morph:progress 0.1))
+    (set! current-morph:progress (+ current-morph:progress 0.2))
     (WARN current-morph:progress)
     (when (is current-morph:progress > 1.0)
       (let ((final current-morph:final))
 	(set! current-morph (morph-from final))
-	(set! current-morph:progress 0.0)))
+	(set! current-morph:progress 0.0)
+
+	))
     
     #|
     (set! playing-backwards? #f)

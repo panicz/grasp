@@ -726,6 +726,9 @@
       (with-translation ((painter:paren-width) 0)
 	  (space:draw! (hash-cons (as int 0) context)))))
 
+  (define (clone)::Element
+    (EmptyListProxy (space:clone)))
+  
   (define (print out::gnu.lists.Consumer)::void
     (out:append #\()
     (space:print out)
@@ -750,6 +753,12 @@
   (for property in properties
     (update! (property cell) (property original)))
   cell)
+
+(define (copy-properties* properties original cell)
+  (copy-properties properties original cell)
+  (when (and (pair? (cdr original))
+	     (pair? (cdr cell)))
+    (copy-properties* properties (cdr original) (cdr cell))))
 
 (define (tail-space-to-head original cell)
   (update! (pre-head-space cell)
