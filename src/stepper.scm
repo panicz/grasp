@@ -227,7 +227,7 @@
 	     (set! p:top (+ t:top top))
 	     (when (gnu.lists.LList? item)
 	       (measure-positions! item
-				   (+ p:left paren-width)
+				   p:left
 				   p:top
 				   into: measurements))))
 	 returning:
@@ -506,9 +506,9 @@
 	       (mark-origin! result operands)
 	       (copy-properties cell-display-properties operands result))
 	     (let ((result (cons first* rest)))
-	       (WARN "by first operand reduction")
+	       (WARN "by first operand reduction bc "first" differs from "first*)
 	       (mark-origin! result operands)
-	       (mark-origin! first* first)
+	       ;;(mark-origin! first* first)
 	       (copy-properties cell-display-properties operands result)))))
       (`()
        operands)
@@ -551,8 +551,7 @@
 	     (if (isnt operands match/equal? operands*)
 		 (let* ((operator* (copy operator))
 			(result (cons operator* operands*)))
-		   (WARN "by operand reduction: "operands
-			 " are not equal to "operands*)
+		   (WARN "by operand reduction")
 		   (mark-origin! operator* operator)
 		   (mark-origin! operands* operands)
 		   (mark-origin! result expression)
@@ -575,9 +574,7 @@
 						       operands))))
 			     (WARN "by beta")
 			     (dissolve! expression)
-			     (and-let* ((`(,,expression) (origin expression)))
-			       (WARN "siabadaba")
-			       (mark-origin! result operator))
+			     (mark-origin! result operator)
 			     result))
 			  (else
 			   expression)))
@@ -719,7 +716,7 @@
     ;;(WARN "progeny: "(procedure-property current-morph:progeny 'table))
     (WARN (current-morph:progeny current-morph:initial))
     
-    (set! current-morph:progress (+ current-morph:progress 0.2))
+    (set! current-morph:progress (+ current-morph:progress 0.34))
     (WARN current-morph:progress)
     (when (is current-morph:progress > 1.0)
       (let ((final current-morph:final))
