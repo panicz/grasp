@@ -48,6 +48,10 @@
   (let ((table ::Map (procedure-property mapping 'table)))
     (table:keySet)))
 
+(define (override-size mapping)::int
+  (let ((table ::Map (procedure-property mapping 'table)))
+    (table:size)))
+
 (define (overridden-at? mapping key)::boolean
     (let ((table ::Map (procedure-property mapping 'table)))
       (table:contains-key key)))

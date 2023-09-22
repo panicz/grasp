@@ -28,12 +28,13 @@
 (import (hash-table))
 (import (text-painter))
 
-(define-alias id java.lang.System:identityHashCode)
-
 (define text-painter ::Painter (TextPainter))
 
 (define (render-foreground! expression::Element
-			    counterparts::(maps (Element)
+			    progeny::(maps (Element)
+						to: (list-of
+						     Element))
+			    origin::(maps (Element)
 						to: (list-of
 						     Element))
 			    source-position::(maps (Element)
@@ -42,7 +43,7 @@
 						   to: Position)
 			    intensity::float)
   ::void
-  (let ((links (counterparts expression))
+  (let ((links (progeny expression))
 	(painter ::Painter (the-painter)))
     (cond
      ((empty? links)
@@ -54,21 +55,53 @@
 	 expression
 	 doing:
 	 (lambda (sub::Element t::Traversal)
-	   (render-foreground! sub counterparts
+	   (render-foreground! sub progeny origin
 			       source-position
 			       target-position
 			       intensity)))))
      (else
       (for x in links
-	(draw-morph! expression x counterparts
+	(WARN "drawing morph between "expression"("(id expression)")"
+	      "and "x"("(id x)")")
+	(draw-morph! expression x progeny origin
 		     source-position
 		     target-position
 		     intensity))))))
 
+(define (draw-orphans! item::Element
+		       counterparts::(maps (Element)
+					 to: (list-of
+					      Element)))
+  ::void
+  (define (orphan? element::Element)
+    (let ((relatives (counterparts element)))
+      (or (empty? relatives)
+	  (and-let* ((`(,item) (counterparts element)))
+	    (eq? item element)))))
+  
+  (cond
+   ((cons? item)
+    (let* ((painter ::Painter (the-painter))
+	   (paren-width ::real (painter:paren-width)))
+      (when (orphan? item)
+	(let ((inner ::Extent (sequence-extent item)))
+	  (painter:draw-box! (+ inner:width (* 2 paren-width))
+			     inner:height
+			     '())))
+      (with-translation (paren-width 0)
+	(traverse item doing: (lambda (child::Element traversal::Traversal)
+				(with-translation (traversal:left
+						   traversal:top)
+				  (draw-orphans! child counterparts)))))))
+   ((orphan? item)
+    (draw! item))))
 
 (define (draw-morph! foreground::Element
 		     background::Element
-		     counterparts::(maps (Element)
+		     progeny::(maps (Element)
+					 to: (list-of
+					      Element))
+		     origin::(maps (Element)
 					 to: (list-of
 					      Element))
 		     source-position::(maps (Element)
@@ -89,12 +122,6 @@
 		      at: (- 1 progress))))
     (cond
      ((match/equal? foreground background)
-      (WARN "drawing identical "foreground
-	    (java.lang.System:identityHashCode foreground)
-	    (java.lang.System:identityHashCode background)
-	    (counterparts foreground)
-	    (map java.lang.System:identityHashCode (counterparts foreground))
-	    p0 p1 left top)
       ;; here we just draw the foreground
       ;; with full intensity
       (with-translation (left top)
@@ -102,7 +129,6 @@
 
      ((or (isnt foreground Tile?)
 	  (isnt background Tile?))
-      (WARN "drawing spaces "foreground" and "background)
       ;; at least one of the elements is (presumably)
       ;; a space, so the only way we can morph them
       ;; is by fading
@@ -116,7 +142,6 @@
 
      ((and (gnu.lists.LList? foreground)
 	   (gnu.lists.LList? background))
-      (WARN "drawing listst "foreground" and "background)
       (let* ((e0 ::Extent (extent foreground))
 	     (e1 ::Extent (extent background))
 	     (width ::real (linear-interpolation
@@ -132,18 +157,18 @@
 	 doing:
 	 (lambda (item::Element t::Traversal)
 	   (render-foreground! item
-			       counterparts
+			       progeny
+			       origin
 			       source-position
 			       target-position
 			       progress)))))
      ((and (Tile? foreground)
 	   (Tile? background))
-      (WARN "drawing tiles "foreground" and "background)
       (when (and (pair? foreground) (pair? (cdr foreground))
 		 (equal? (car foreground) 'pred))
 	(WARN (java.lang.System:identityHashCode (cadr foreground))
-	      (counterparts (cadr foreground))
-	      (map java.lang.System:identityHashCode (counterparts
+	      (progeny (cadr foreground))
+	      (map java.lang.System:identityHashCode (progeny
 						      (cadr foreground)))))
 	  
       
@@ -162,7 +187,7 @@
 		  (/ width e1:width)
 		  (/ height e1:height)
 		(lambda ()
-		  (draw! background)))))
+		  (draw-orphans! background progeny)))))
 	  (painter:with-intensity progress
 	    (lambda ()
 	      (painter:with-stretch
@@ -274,6 +299,7 @@
 			       progress)
 	   (render-foreground! initial
 			       progeny
+			       origin
 			       initial-position
 			       final-position
 			       (- 1.0 progress)))
@@ -283,6 +309,7 @@
 			       (- 1.0 progress))
 	   (render-foreground! final
 			       origin
+			       progeny
 			       final-position
 			       initial-position
 			       progress))))
@@ -357,7 +384,6 @@
     #f)
 
   (define (defines? atom::Atom)
-    (WARN "LOOKING FOR "atom)
     (definitions:contains-key atom:name))
 
   (define (define! atom::Atom value)
@@ -415,23 +441,26 @@
 		(context::EvaluationContext default-context))
   
   (define (mark-origin! newborn parent)
-    (WARN "marking the origin of "newborn" as "parent)
+    (WARN "marking origin of "newborn" as "parent)
     (set! (origin newborn) (recons parent '()))
     (set! (progeny parent) (recons newborn '())))
 
   (define (add-origin! newborn parent)
+    (WARN "adding origin of "newborn" as "parent)
     (and-let* ((`(,default) (origin newborn))
 	       ((eq? newborn default)))
       (set! (origin newborn) '()))
     (and-let* ((`(,default) (progeny parent))
 	       ((eq? parent default)))
       (set! (progeny parent) '()))
-    (set! (origin newborn) (recons parent (origin newborn)))
+    (set! (origin newborn) (cons parent (origin newborn)))
     (set! (progeny parent) (cons newborn (progeny parent))))
   
   (define (dissolve! item)
-    (WARN "dissolving "item)
-    (set! (progeny item) '())
+    (and-let* ((`(,i) (progeny item))
+	       ((eq? i item)))
+      (WARN "dissolving "item)
+      (set! (progeny item) '()))
     (when (gnu.lists.LList? item)
       (traverse
        item
@@ -465,33 +494,31 @@
 			  result)))
       (_
        (if (Atom? expression)
-	   (let* ((result (counterpart #;of expression #;from variables
-					    #;in values)))
-	     (let ((result (copy result)))
-	       (add-origin! result expression)
-	       (WARN "ORIGIN of "result (id result)": "(origin result)
-		     (map id (origin result)))
-	       result))
-	   expression
-	   #;(let ((result (copy expression)))
-	       (add-origin! result expression)
-	       result)))))
+	   (counterpart #;of expression #;from variables
+					    #;in values)
+	   expression))))
 
   (define (counterpart #;of variable #;from variables
 			    #;in values)
     (match variables
       (`(,,variable . ,_)
-       (let ((result (car values)))
-	 (if (self-evaluating? result)
-	     result
-	     (cons (Atom "quote") result))))
+       (let* ((result (copy (car values)))
+	      (result (if (self-evaluating? result)
+			  result
+			  (cons (Atom "quote") result))))
+	 (add-origin! result (car variables))
+	 result))
       (,variable
-       (cons (Atom "quote") values))
+       (let ((result (cons (Atom "quote") (copy values))))
+	 (add-origin! result variable)
+	 result))
       (`(,_ . ,rest)
        (counterpart #;of variable #;from rest
 			 #;in (cdr values)))
       (_
-       variable)))
+       (let ((result (copy variable)))
+	 (add-origin! result variable)
+	 result))))
   
   (define (reduce-operands operands)
     (match operands
@@ -502,11 +529,9 @@
 				(copy first)
 				first*))
 		    (result (cons first (reduce-operands rest))))
-	       (WARN "by remaining operand reduction")
 	       (mark-origin! result operands)
 	       (copy-properties cell-display-properties operands result))
 	     (let ((result (cons first* rest)))
-	       (WARN "by first operand reduction bc "first" differs from "first*)
 	       (mark-origin! result operands)
 	       ;;(mark-origin! first* first)
 	       (copy-properties cell-display-properties operands result)))))
@@ -515,26 +540,54 @@
       (_
        (reduce operands))))
 
+  (define (deep-copy expression)
+    (match expression
+      (`(,h . ,t)
+       (let ((result (cons (deep-copy h) (deep-copy t))))
+	 (mark-origin! result expression)
+	 (copy-properties cell-display-properties expression result)
+	 result))
+      (_
+       (let ((result (copy expression)))
+	 (mark-origin! result expression)
+	 result))))
+
+  (define (transfer-heritage! args vals)
+    (WARN "transfering heritage of "args" to "vals)
+    (match args
+      (`(,arg . ,args*)
+       (let ((val (car vals))
+	     (vals* (cdr vals))
+	     (children (progeny arg)))
+	 (set! (progeny val) children)
+	 (for p in children
+	   (set! (car (origin p)) val))
+	 (transfer-heritage! args* vals*)))
+      ('()
+       (values))
+      (arg
+       (let ((children (progeny arg)))
+	 (set! (progeny vals) children)
+	 (for p in children
+	   (set! (car (origin p)) vals))))))
+	 
   (define (reduce expression)
     (match expression
       (`(if #f ,then ,else)
-       (WARN "by if-false")
        (dissolve! expression)
-       (let ((result (substitute '() '() else)))
+       (let ((result (deep-copy else)))
 	 (mark-origin! result else)
 	 result))
       (`(if ,test ,then ,else)
        (let ((test* (reduce test))
 	     (if* (car expression)))
 	 (cond ((match/equal? test test*)
-		(WARN "by if-true")
 		(dissolve! expression)
-		(let ((result (substitute '() '() then)))
+		(let ((result (deep-copy then)))
 		  (mark-origin! result then)
 		  result))
 	       (else
 		(let ((result (cons* if* test* then else '())))
-		  (WARN "by if-test")
 		  (mark-origin! result expression)
 		  (mark-origin! test* test)
 		  (copy-properties* cell-display-properties expression result)
@@ -551,7 +604,6 @@
 	     (if (isnt operands match/equal? operands*)
 		 (let* ((operator* (copy operator))
 			(result (cons operator* operands*)))
-		   (WARN "by operand reduction")
 		   (mark-origin! operator* operator)
 		   (mark-origin! operands* operands)
 		   (mark-origin! result expression)
@@ -566,25 +618,44 @@
 						    CellAccessMode:Evaluating))
 				      (apply (context:value operator)
 					     (map (lambda (x) x) operands))))))
-			     (WARN "by apply")
 			     (mark-origin! result expression)
 			     result))
 			  ((context:defines? operator)
 			   (let ((result (reduce (cons (context:value operator)
 						       operands))))
-			     (WARN "by beta")
 			     (dissolve! expression)
 			     (mark-origin! result operator)
 			     result))
 			  (else
 			   expression)))
 		   (`(lambda ,args ,body)
-		    (substitute args #;with operands
-				#;in body))
+		    (let ((result (substitute args #;with operands
+					      #;in body)))
+		      ;; no dobra, tutaj jeszcze powinnismy przeiterowac
+		      ;; sobie po argsach i operandsach
+
+		      ;; dla kazdej pary (arg, operand) z args, operands
+		      ;; robimy cos takiego, ze iterujemy p po
+		      ;; (progeny arg) i ustawiamy (origin P) = operand
+		      ;; i (progeny operand) += P.
+		      (transfer-heritage! args operands)
+		      (map! (lambda (x)
+			      (WARN "progeny of "x" ("(id x)"): "(progeny x)
+				    (map id (progeny x))
+				    (map origin (progeny x)))
+			      x)
+			    args)
+		      (map! (lambda (x)
+			      (WARN "origin of "x" ("(id x)"): "(origin x)
+				    (map id (origin x)))
+			      (WARN "progeny of "x" ("(id x)"): "(progeny x)
+				    (map id (progeny x)))
+			      x)
+			    operands)
+		      result))
 		   (`(,_ . ,_)
 		    (let* ((operator* (reduce operator))
 			   (result (cons operator* operands)))
-		      (WARN "by operator reduction")
 		      (mark-origin! result expression)
 		      (mark-origin! operator* operator)
 		      (copy-properties cell-display-properties expression
@@ -595,7 +666,6 @@
        (if (and (Atom? expression)
 		(context:defines? expression))
 	   (let ((result (copy (context:value expression))))
-	     (WARN "by dereference of "expression" as "result)
 	     (dissolve! expression)
 	     (mark-origin! result expression)
 	     result)
@@ -658,10 +728,8 @@
   
   (define (advance! timestep/ms::int)::boolean
     (let ((change (/ timestep/ms duration/ms)))
-      (WARN "advance by "change)
       (if playing-backwards?
 	  (let ((new-progress (- current-morph:progress change)))
-	    (WARN "new progress "new-progress)
 	    (cond
 	     ((is new-progress <= 0.0)
 	      (let ((initial current-morph:initial))
@@ -674,7 +742,6 @@
 	      (set! current-morph:progress new-progress)
 	      #t)))
 	  (let ((new-progress (+ current-morph:progress change)))
-	    (WARN "new progress "new-progress)
 	    (cond
 	     ((is new-progress >= 1.0)
 	      (let ((final current-morph:final))
@@ -716,7 +783,7 @@
     ;;(WARN "progeny: "(procedure-property current-morph:progeny 'table))
     (WARN (current-morph:progeny current-morph:initial))
     
-    (set! current-morph:progress (+ current-morph:progress 0.34))
+    (set! current-morph:progress (+ current-morph:progress 0.1))
     (WARN current-morph:progress)
     (when (is current-morph:progress > 1.0)
       (let ((final current-morph:final))

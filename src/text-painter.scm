@@ -28,8 +28,8 @@
   (define shiftTop ::real 0)
 
   (define (translate! x::real y::real)::void
-    (set! shiftLeft (+ shiftLeft x))
-    (set! shiftTop (+ shiftTop y)))
+    (set! shiftLeft (+ shiftLeft (nearby-int (* x horizontal-stretch))))
+    (set! shiftTop (+ shiftTop (nearby-int (* y vertical-stretch)))))
 
   (define (current-translation-left)::real
     shiftLeft)
@@ -80,8 +80,10 @@
 	  (w0 clipWidth)
           (h0 clipHeight)
           (x shiftLeft)
-	  (y shiftTop))
-      (clip! x y w h)
+	  (y shiftTop)
+	  (w* (nearby-int (* w horizontal-stretch)))
+	  (h* (nearby-int (* h vertical-stretch))))
+      (clip! x y w* h*)
       (try-finally
        (action)
        (clip! x0 y0 w0 h0))))
@@ -163,7 +165,10 @@
 	   context::Cursor)
     ::void
     (let-values (((selection-start selection-end)
-		  (the-selection)))
+		  (the-selection))
+		 ((width height) (values
+				  (nearby-int (* width horizontal-stretch))
+				  (nearby-int (* height vertical-stretch)))))
 	(when (and (pair? (the-cursor))
 		   (equal? context (cdr (the-cursor))))
 	  (match (head (the-cursor))
@@ -746,10 +751,21 @@
   (define (get row::real col::real)::char
     #!abstract)
 
+  (define horizontal-stretch ::float 1.0)
+  (define vertical-stretch ::float 1.0)
+  
   (define (with-stretch horizontal::float vertical::float
 			action::(maps () to: void))
     ::void
-    #!abstract)
+    (let ((previous-horizontal ::float horizontal-stretch)
+	  (previous-vertical ::float vertical-stretch))
+      (set! horizontal-stretch (* horizontal-stretch horizontal))
+      (set! vertical-stretch (* vertical-stretch vertical))
+      (try-finally
+       (action)
+       (begin
+	 (set! horizontal-stretch previous-horizontal)
+	 (set! vertical-stretch previous-vertical)))))
 
   (define (put! c::char row::real col::real)
     ::void
@@ -953,28 +969,12 @@
 		    'draw-string! text context)
     (set! current-modifier #!null))
 
-  (define horizontal-stretch ::float 1.0)
-  (define vertical-stretch ::float 1.0)
-
-  (define (with-stretch horizontal::float vertical::float
-			action::(maps () to: void))
-    ::void
-    (let ((previous-horizontal ::float horizontal-stretch)
-	  (previous-vertical ::float vertical-stretch))
-      (set! horizontal-stretch (* horizontal-stretch horizontal))
-      (set! vertical-stretch (* vertical-stretch vertical))
-      (try-finally
-       (action)
-       (begin
-	 (set! horizontal-stretch previous-horizontal)
-	 (set! vertical-stretch previous-vertical)))))
-
   (define (put! c::char row::real col::real)
     ::void
     (let ((x (+ shiftLeft
-		(nearby-int (* horizontal-stretch col))))
+		(nearby-int (* (slot-ref (this) 'horizontal-stretch) col))))
           (y (+ shiftTop
-		(nearby-int (* vertical-stretch row))))
+		(nearby-int (* (slot-ref (this) 'vertical-stretch) row))))
 	  (left (max 0 clipLeft))
 	  (top (max 0 clipTop)))
       (when (and (is left <= x < (+ left

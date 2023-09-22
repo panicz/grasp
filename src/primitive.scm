@@ -8,6 +8,7 @@
 (import (define-cache))
 (import (define-parameter))
 (import (keyword-arguments))
+(import (hash-table))
 (import (match))
 (import (examples))
 (import (infix))
@@ -22,6 +23,9 @@
 (import (print))
 (import (conversions))
 (import (text))
+
+(define-property+ (id x)::int
+  (override-size id))
 
 ;; we override Pair with Object's default equality and hash functions
 ;; (TODO: patch the Kawa implementation of Cons)
@@ -88,11 +92,16 @@
 
   (define (draw! context::Cursor)
     ::void
-    (invoke (the-painter) 'draw-atom! name
+    (invoke (the-painter) 'draw-atom!
+	    name
+	    ;;(string-append name "/" (number->string (id (this))))
 	    context))
 
   (define (extent)::Extent
-    (invoke (the-painter) 'atom-extent name))
+    (invoke (the-painter) 'atom-extent
+	    name
+	    ;;(string-append name "/" (number->string (id (this))))
+	    ))
 
   (define (part-at index::Index)::Indexable*
     (this))
