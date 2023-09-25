@@ -207,6 +207,16 @@
      #\╰                             #\╯
      width height context))
 
+  (define (draw-border! width::real height::real)::void
+    (draw-custom-rectangle!
+     #\╔ #\═ #\╗
+     #\║
+     #\╚     #\╝
+     width height))
+
+  (define (border-size)::real
+    1)
+  
   (define (draw-quote-box! width::real
 			   height::real
 			   context::Cursor)

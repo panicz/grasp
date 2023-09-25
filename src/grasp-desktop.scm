@@ -638,6 +638,14 @@
 	  (close-paren! height
 			(closing-parenthesis-color context)))))
 
+  (define (draw-border! width::real height::real)::void
+    (graphics:fillRect 3 3 (- width 6) 4)
+    (graphics:fillRect 3 3 4 (- height 6))
+    (graphics:fillRect (- width 7) 3 4 (- height 6))
+    (graphics:fillRect 3 (- height 7) (- width 6) 4))
+
+  (define (border-size)::real 10)
+  
   (define (space-width)::real 8)
 
   (define (paren-width)::real

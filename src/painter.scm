@@ -99,6 +99,10 @@
 	     context::Cursor)
   ::void
 
+  (draw-border! width::real height::real)::void
+
+  (border-size)::real
+  
   (draw-rounded-rectangle! width::real
 			   height::real)
   ::void
@@ -356,6 +360,13 @@
 		     context::Cursor)
     ::void
     (values))
+
+  (define (draw-border! width::real height::real)
+    ::void
+    (values))
+
+  (define (border-size)::real
+    1)
 
   (define (draw-rounded-rectangle! width::real
 				   height::real)

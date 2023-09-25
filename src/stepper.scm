@@ -31,19 +31,17 @@
 (define text-painter ::Painter (TextPainter))
 
 (define (render-foreground! expression::Element
-			    progeny::(maps (Element)
-						to: (list-of
-						     Element))
-			    origin::(maps (Element)
+			    counterparts::(maps (Element)
 						to: (list-of
 						     Element))
 			    source-position::(maps (Element)
 						   to: Position)
 			    target-position::(maps (Element)
 						   to: Position)
-			    intensity::float)
+			    intensity::float
+			    #!key (only-with-relatives? ::boolean #f))
   ::void
-  (let ((links (progeny expression))
+  (let ((links (counterparts expression))
 	(painter ::Painter (the-painter)))
     (cond
      ((empty? links)
@@ -55,62 +53,31 @@
 	 expression
 	 doing:
 	 (lambda (sub::Element t::Traversal)
-	   (render-foreground! sub progeny origin
+	   (render-foreground! sub counterparts
 			       source-position
 			       target-position
-			       intensity)))))
+			       intensity
+			       only-with-relatives?: only-with-relatives?)))))
      (else
       (for x in links
-	(WARN "drawing morph between "expression"("(id expression)")"
-	      "and "x"("(id x)")")
-	(draw-morph! expression x progeny origin
+	(draw-morph! expression x counterparts
 		     source-position
 		     target-position
-		     intensity))))))
-
-(define (draw-orphans! item::Element
-		       counterparts::(maps (Element)
-					 to: (list-of
-					      Element)))
-  ::void
-  (define (orphan? element::Element)
-    (let ((relatives (counterparts element)))
-      (or (empty? relatives)
-	  (and-let* ((`(,item) (counterparts element)))
-	    (eq? item element)))))
-  
-  (cond
-   ((cons? item)
-    (let* ((painter ::Painter (the-painter))
-	   (paren-width ::real (painter:paren-width)))
-      (when (orphan? item)
-	(let ((inner ::Extent (sequence-extent item)))
-	  (painter:draw-box! (+ inner:width (* 2 paren-width))
-			     inner:height
-			     '())))
-      (with-translation (paren-width 0)
-	(traverse item doing: (lambda (child::Element traversal::Traversal)
-				(with-translation (traversal:left
-						   traversal:top)
-				  (draw-orphans! child counterparts)))))))
-   ((orphan? item)
-    (draw! item))))
+		     intensity
+		     only-with-relatives?: only-with-relatives?))))))
 
 (define (draw-morph! foreground::Element
 		     background::Element
-		     progeny::(maps (Element)
-					 to: (list-of
-					      Element))
-		     origin::(maps (Element)
+		     counterparts::(maps (Element)
 					 to: (list-of
 					      Element))
 		     source-position::(maps (Element)
 					    to: Position)
 		     target-position::(maps (Element)
 					    to: Position)
-		     progress::float)
+		     progress::float
+		     #!key (only-with-relatives? ::boolean #f))
   ::void
-  ;;(WARN "drawing morph from "foreground" to "background)
   (let* ((p0 ::Position (source-position foreground))
 	 (p1 ::Position (target-position background))
 	 (painter ::Painter (the-painter))
@@ -124,8 +91,10 @@
      ((match/equal? foreground background)
       ;; here we just draw the foreground
       ;; with full intensity
-      (with-translation (left top)
-	(draw! foreground)))
+      (unless (and only-with-relatives?
+		   (eq? foreground background))
+	(with-translation (left top)
+	  (draw! foreground))))
 
      ((or (isnt foreground Tile?)
 	  (isnt background Tile?))
@@ -150,28 +119,21 @@
 	     (height ::real (linear-interpolation
 			     from: e0:height to: e1:height
 			     at: (- 1 progress))))
-	(with-translation (left top)
-	  (painter:draw-box! width height '()))
+	(unless only-with-relatives?
+	  (with-translation (left top)
+	    (painter:draw-box! width height '())))
 	(traverse
 	 foreground
 	 doing:
 	 (lambda (item::Element t::Traversal)
 	   (render-foreground! item
-			       progeny
-			       origin
+			       counterparts
 			       source-position
 			       target-position
-			       progress)))))
+			       progress
+			       only-with-relatives?: only-with-relatives?)))))
      ((and (Tile? foreground)
 	   (Tile? background))
-      (when (and (pair? foreground) (pair? (cdr foreground))
-		 (equal? (car foreground) 'pred))
-	(WARN (java.lang.System:identityHashCode (cadr foreground))
-	      (progeny (cadr foreground))
-	      (map java.lang.System:identityHashCode (progeny
-						      (cadr foreground)))))
-	  
-      
       (let* ((e0 ::Extent (extent foreground))
 	     (e1 ::Extent (extent background))
 	     (width ::real (linear-interpolation
@@ -180,21 +142,26 @@
 	     (height ::real (linear-interpolation
 			     from: e0:height to: e1:height
 			     at: (- 1 progress))))
-	(with-translation (left top)
-	  (painter:with-intensity (- 1.0 progress)
-	    (lambda ()
-	      (painter:with-stretch
-		  (/ width e1:width)
-		  (/ height e1:height)
-		(lambda ()
-		  (draw-orphans! background progeny)))))
-	  (painter:with-intensity progress
-	    (lambda ()
-	      (painter:with-stretch
-	       (/ width e0:width)
-	       (/ height e0:height)
-	       (lambda ()
-		 (draw! foreground))))))))
+	  (with-translation (left top)
+	    (painter:with-intensity (- 1.0 progress)
+	      (lambda ()
+		(painter:with-stretch (/ width e1:width) (/ height e1:height)
+		  (lambda ()
+		    (draw! background)))))
+	    (painter:with-intensity progress
+	      (lambda ()
+		(painter:with-stretch (/ width e0:width) (/ height e0:height)
+		  (lambda ()
+		    (draw! foreground)))))))
+      (when (gnu.lists.LList? foreground)
+	(traverse foreground
+		  doing:
+		  (lambda (element::Element traverse::Traversal)
+		    (render-foreground! element counterparts
+					source-position
+					target-position
+					progress
+					only-with-relatives?: #t)))))
      )))
 
 (define (draw-emerging! expression::Element p::Position
@@ -299,7 +266,6 @@
 			       progress)
 	   (render-foreground! initial
 			       progeny
-			       origin
 			       initial-position
 			       final-position
 			       (- 1.0 progress)))
@@ -309,7 +275,6 @@
 			       (- 1.0 progress))
 	   (render-foreground! final
 			       origin
-			       progeny
 			       final-position
 			       initial-position
 			       progress))))
@@ -441,12 +406,10 @@
 		(context::EvaluationContext default-context))
   
   (define (mark-origin! newborn parent)
-    (WARN "marking origin of "newborn" as "parent)
     (set! (origin newborn) (recons parent '()))
     (set! (progeny parent) (recons newborn '())))
 
   (define (add-origin! newborn parent)
-    (WARN "adding origin of "newborn" as "parent)
     (and-let* ((`(,default) (origin newborn))
 	       ((eq? newborn default)))
       (set! (origin newborn) '()))
@@ -459,7 +422,6 @@
   (define (dissolve! item)
     (and-let* ((`(,i) (progeny item))
 	       ((eq? i item)))
-      (WARN "dissolving "item)
       (set! (progeny item) '()))
     (when (gnu.lists.LList? item)
       (traverse
@@ -516,7 +478,8 @@
        (counterpart #;of variable #;from rest
 			 #;in (cdr values)))
       (_
-       (let ((result (copy variable)))
+       variable
+       #;(let ((result (copy variable)))
 	 (add-origin! result variable)
 	 result))))
   
@@ -553,7 +516,6 @@
 	 result))))
 
   (define (transfer-heritage! args vals)
-    (WARN "transfering heritage of "args" to "vals)
     (match args
       (`(,arg . ,args*)
        (let ((val (car vals))
@@ -631,27 +593,7 @@
 		   (`(lambda ,args ,body)
 		    (let ((result (substitute args #;with operands
 					      #;in body)))
-		      ;; no dobra, tutaj jeszcze powinnismy przeiterowac
-		      ;; sobie po argsach i operandsach
-
-		      ;; dla kazdej pary (arg, operand) z args, operands
-		      ;; robimy cos takiego, ze iterujemy p po
-		      ;; (progeny arg) i ustawiamy (origin P) = operand
-		      ;; i (progeny operand) += P.
 		      (transfer-heritage! args operands)
-		      (map! (lambda (x)
-			      (WARN "progeny of "x" ("(id x)"): "(progeny x)
-				    (map id (progeny x))
-				    (map origin (progeny x)))
-			      x)
-			    args)
-		      (map! (lambda (x)
-			      (WARN "origin of "x" ("(id x)"): "(origin x)
-				    (map id (origin x)))
-			      (WARN "progeny of "x" ("(id x)"): "(progeny x)
-				    (map id (progeny x)))
-			      x)
-			    operands)
 		      result))
 		   (`(,_ . ,_)
 		    (let* ((operator* (reduce operator))
@@ -689,7 +631,7 @@
   (let*-values (((reduced origins progenies) (reduce expression))
 		((result) (Morph expression reduced origins progenies)))
     
-    (parameterize ((the-painter text-painter))
+    #;(parameterize ((the-painter text-painter))
       (text-painter:clear!)
       (WARN "vvvvvv")
       (draw! expression)
@@ -699,8 +641,8 @@
       (draw! reduced)
       (WARN (text-painter:toString))
       (WARN "^^^^^^"))
-
-    (set! (morph-to reduced) result)
+    (unless (match/equal? expression reduced)
+      (set! (morph-to reduced) result))
     result))
 
 (define-interface Playable ()
@@ -756,7 +698,7 @@
   
   (define (rewind!)::void
     (WARN "rewind!")
-    #;(set! current-morph (morph-from initial-expression)))
+    (set! current-morph (morph-from initial-expression)))
   
   (define (back!)::void
     (WARN "back!")
@@ -777,27 +719,23 @@
   
   (define (next!)::void
     (WARN "next!")
-    ;;(set! current-morph:origin (lambda _ '()))
-    ;;(set! current-morph:progeny (lambda _ '()))
-    ;;(WARN "origin: "(procedure-property current-morph:origin 'table))
-    ;;(WARN "progeny: "(procedure-property current-morph:progeny 'table))
-    (WARN (current-morph:progeny current-morph:initial))
     
-    (set! current-morph:progress (+ current-morph:progress 0.1))
-    (WARN current-morph:progress)
-    (when (is current-morph:progress > 1.0)
-      (let ((final current-morph:final))
-	(set! current-morph (morph-from final))
-	(set! current-morph:progress 0.0)
+    (begin
+      (set! now-playing? #f)
+      (set! playing-backwards? #f)
+      (let ((painter ::Painter (the-painter)))
+	(painter:play! (this))))
 
-	))
-    
-    #|
-    (set! playing-backwards? #f)
-    (set! now-playing? #f)
-    (let ((painter ::Painter (the-painter)))
-      (painter:play! (this)))
-|#
+    #;(begin
+      (set! current-morph:progress (+ current-morph:progress 0.2))
+      (WARN current-morph:progress)
+      (when (is current-morph:progress > 1.0)
+	(let ((final current-morph:final))
+	  (set! current-morph (morph-from final))
+	  (set! current-morph:progress 0.0)
+
+	  ))
+      )
     )
       
   (define (fast-forward!)::void
@@ -831,25 +769,27 @@
   (Magic))
 
 (define (PlayerWithControls player::Player)::Enchanted
-  (Below
-   top: player
-   bottom:
-   (Beside
-    left:
-    (Beside left: (Button label: "▮◀◀"
-			  action: (lambda () (player:rewind!)))
-	    right: (Button label: "▮◀ "
-			   action: (lambda () (player:back!))))
-    right:
+  (Bordered
+   element:
+   (Below
+    top: player
+    bottom:
     (Beside
-     left: (Button label: " ▶ "
-		   action: (lambda () (player:play!)))
+     left:
+     (Beside left: (Button label: "▮◀◀"
+			   action: (lambda () (player:rewind!)))
+	     right: (Button label: "▮◀ "
+			    action: (lambda () (player:back!))))
      right:
-     (Beside left: (Button label: " ▶▮"
-			   action: (lambda () (player:next!)))
-	     right: (Button label: "▶▶▮"
-			    action: (lambda ()
-				      (player:fast-forward!))))))))
+     (Beside
+      left: (Button label: " ▶ "
+		    action: (lambda () (player:play!)))
+      right:
+      (Beside left: (Button label: " ▶▮"
+			    action: (lambda () (player:next!)))
+	      right: (Button label: "▶▶▮"
+			     action: (lambda ()
+				       (player:fast-forward!)))))))))
 
 (set! (extension 'Stepper)
       (object (Extension)

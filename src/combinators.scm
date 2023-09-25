@@ -12,6 +12,84 @@
 (import (interactive))
 (import (extension))
 
+(define-type (Bordered element: Enchanted)
+  implementing Enchanted
+  with
+  ((draw! context::Cursor)::void
+   (let* ((painter ::Painter (the-painter))
+	  (inner ::Extent (element:extent))
+	  (border ::real (painter:border-size)))
+     (painter:draw-border! (+ inner:width (* 2 border))
+			   (+ inner:height (* 2 border)))
+     (with-translation (border border)
+       (element:draw! (recons 'element context)))))
+
+  ((extent)::Extent
+   (let* ((painter ::Painter (the-painter))
+	  (inner ::Extent (element:extent))
+	  (border ::real (painter:border-size)))
+     (Extent width: (+ inner:width (* 2 border))
+	     height: (+ inner:height (* 2 border)))))
+
+  ((part-at index::Index)::Indexable*
+   (match index
+     ('element element)
+     (_ (this))))
+  
+  ((first-index)::Index
+   'element)
+
+  ((last-index)::Index
+   'element)
+
+  ((next-index index::Index)::Index 'element)
+
+  ((previous-index index::Index)::Index 'element)
+
+  ((index< a::Index b::Index)::boolean #f)
+
+  ((index< a::Index b::Index)::boolean
+   (and (is a eq? (first-index))
+	(isnt b eq? (first-index))))
+
+  ((cursor-under* x::real y::real path::Cursor)::Cursor*
+   (let* ((painter ::Painter (the-painter))
+	  (border ::real (painter:border-size)))
+     (element:cursor-under* (- x border) (- y border)
+			    (recons 'element path))))
+  
+  ((tap! finger::byte #;at x::real y::real)::boolean
+   (let* ((painter ::Painter (the-painter))
+	  (border ::real (painter:border-size)))
+     (element:tap! finger (- x border) (- y border))))
+  
+  ((press! finger::byte #;at x::real y::real)::boolean
+   (let* ((painter ::Painter (the-painter))
+	  (border ::real (painter:border-size)))
+     (element:press! finger (- x border) (- y border))))
+  
+  ((second-press! finger::byte #;at x::real y::real)::boolean
+   (let* ((painter ::Painter (the-painter))
+	  (border ::real (painter:border-size)))
+     (element:second-press! finger (- x border) (- y border))))
+  
+  ((double-tap! finger::byte x::real y::real)::boolean
+   (let* ((painter ::Painter (the-painter))
+	  (border ::real (painter:border-size)))
+     (element:double-tap! finger (- x border) (- y border))))
+
+  ((long-press! finger::byte x::real y::real)::boolean
+   (let* ((painter ::Painter (the-painter))
+	  (border ::real (painter:border-size)))
+     (element:long-press! finger (- x border) (- y border))))
+
+  ((key-typed! key-code::long context::Cursor)::boolean
+   (element:key-typed! key-code (recons 'element context)))
+
+  ((as-expression)::cons
+   (invoke-special Base 'to-list cons to-expression))
+  )
+
 (define-type (Over back: Enchanted front: Enchanted)
   implementing Enchanted
   with
@@ -246,7 +324,7 @@
 		(is 0 <= y < left-extent:height)
 		(left:cursor-under* x y (recons (first-index)
 						path)))
-	   (let ((x (- x left-extent:height))
+	   (let ((x (- x left-extent:width))
 		 (right-extent (right:extent)))
 	     (and (is 0 <= x < right-extent:width)
 		  (is 0 <= y < right-extent:height)
