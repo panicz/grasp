@@ -1,3 +1,163 @@
+* 23.09.2023
+
+dzisiaj bysmy sie zajeli tymi guzikami
+
+no dobra, to poszlo szybko
+
+to teraz nam jeszcze pozostaja takie rzeczy:
+- po pierwsze, cos sie brzydko te nawiasy renderuja
+- po drugie, musimy zrobic obwodkie wokol steppera
+- po trzecie, musimy naprawc to, ze jak dochodzimy
+do konca, to potem sie nie mozemy cofac
+
+* 22.09.2023
+
+bledy na dzis:
+1. to ze sie nam 5 nie roztraja
+2. jak dochodzimy do 120, to potem nie mozemy sie cofnac
+
+(jak to sie uda zrobic, to bedzie niezle, ale w naszym backlogu
+musi byc jeszcze zepsuta obsluga guzikow, i brak obwodki wokol
+steppera)
+
+To teraz zajmimy sie tym roztrajaniem piatek (bo sprawa wydaje sie
+powazna)
+
+Otoz chodzi o to, ze jak dokonujemy redukcji lambdy, to powinnismy
+wtedy rowniez aktualizowac argumenty
+
+OK, wydaje sie ze to juz jest robione, ale w dalszym ciagu cos
+jest nie tak.
+
+Mianowicie chodzi o to, ze:
+- jezeli zrodlowa piatka jest rysowana jako foreground, to
+wydaje sie OK (pomijajaca to, ze docelowa piatka jest rysowana
+na backgroundzie)
+- jezeli zas najpierw rysujemy destination, to zrodlowa piatka
+w ogole nie jest rysowana
+
+
+* 21.09.2023
+
+Musimy sie teraz dowiedziec dlaczego jak mamy transformacje z
+
+(* 5@1 (! (pred 5@2)))
+
+do
+
+(* 5@3 (! 4))
+
+to odpowiednikiem 5@2 jest 5@3
+
+bo to, ze 5@3 jest odpowiednikiem 5@1 nie jest w ogole
+zaskakujace i tak powinno byc
+
+No to przemyslmy.
+
+ORIGIN of 5 1991027336: (n) (1456412048)
+ORIGIN of 5 1319877582: (n n) (1456412048 1456412048)
+ORIGIN of 5 823397198: (n n n) (1456412048 1456412048 1456412048)
+drawing identical 5 1279377109 1991027336 (5) (1991027336)
+
+No dobra, to teraz plan jest taki:
+1. dodajemy interfejs "matchable" i warunek w pattern matcherze
+2. implementujemy ten interfejs w Atomie
+3. usuwamy implementacje hashCodei equals z Atomu
+4. robimy wyszukiwanie oparte o "name" atomu
+
+Wydaje sie, ze te rzeczy juz jako tako dzialaja.
+
+Teraz do zrobienia mamy znowuz:
+- wyjasnienie, dlaczego zamykajace nawiasy na siebie nachodza
+- wyjasnienie, dlaczego ! -> (if ...) dziala OK, ale jak rysujemy
+  w druga strone, tj. (if -> ...) -> !, to juz nie dziala
+  (i naprawienie tego)
+- sprawienie, zeby ta nieszczesna 5-tka sie roztrajala,
+  bo to bedzie bardzo fajne
+
+A jak to sie uda, to bysmy jeszcze sie zajeli naprawa guzikow
+i rysowaniem obwodki wokol steppera.
+
+* 20.09.2023
+
+problemy, ktore chcemy teraz rozwiazac:
+
+1. przy morfowaniu
+
+(if (<= 5 0)
+    1
+    (* 5 (! (pred 5))))
+
+do
+
+(if #f
+    1
+    (* 5 (! (pred 5))))
+
+nagle w tle pojawia sie <=, 0 oraz ostatnie 5
+
+2. przy morfowaniu
+
+(if #f
+    1
+    (* 5 (! (pred 5))))
+
+do
+
+(* 5 (! (pred 5)))
+
+pozycje wyrazen sa odwrocone.
+
+Byc moze jest tak, ze w "draw-morph!" zamieniamy
+ze soba role argumentow?
+
+3. jak mamy (* 5 (! (pred 5)))
+
+to sie nam to wyswietla jako
+
+(*   (! (pred 5)
+
+Wyglada na to, ze tutaj problemem jest to, ze symbole * i 5
+pojawiaja sie wiele razy
+
+4. chcielibysmy jeszcze, zeby 5 z (! 5) bylo utozsamiane
+z trzema wystapieniami 5 w definiensie
+(i na to trzeba wypracowac jakis mechanizm)
+
+Jednakowoz zajmijmy sie najpierw tym pierwszym problemem.
+
+
+
+
+* 19.09.2023 (wieczor, komp)
+
+na razie wyglada na to, ze mamy problem z tozsamoscia
+obiektow. zatem plan jest pokrotce taki:
+1. zmieniamy domyslne odwzorowanie pochodzenia/potomnosci
+z (recons element '()) na '()
+2. do reduce/substitute dodajemy kopiowanie atomow
++ sledzenie pochodzenia
+3. musimy jeszcze jako uwzglednic tranzytywnosc
+czegos takiego, ze mamy kilka n-ow, i one sa zastepowane
+przez 5-tke
+
+(! 5)
+
+(lambda (n)
+  (if (<= n 1)
+     1
+    (* n (! (- n 1)))))
+
+(if (<= 5 1)
+   1
+  (* 5 (! (- 5 1))))
+
+Na poziomie kodu odbywa sie to w taki sposob, ze wewnatrz
+reduce'a robimy (reduce (cons (context:value operator) operands)),
+i ten wewnetrzny reduce maczuje operator do `(lambda ,args ,body)
+i robi (substitute args #;with operands #;in body).
+
+
 * 18.09.2023
 
 wyglada na to, ze musimy dostosowac nasz stepper
