@@ -1,3 +1,21 @@
+* 25.09.2023
+
+dziaiaj nic nie musimy, bo jutro konferencja
+czyli male swieto
+
+natomiast dobrze by bylo zaimplementowac draw-border!
+oraz border-size na Androidzie (i to by byl srodowy commit)
+
+ale poza tym pizostaje nam w tym tygodniu:
+- czwartek, piatek, sobota
+
+i teraz bysmy wzieli na tapet, no, cos innego?
+
+pomyslow jest kilka:
+- wizualizacja grafow
+- naprawianie bugow?
+- obsluga rolki myszki
+
 * 23.09.2023
 
 dzisiaj bysmy sie zajeli tymi guzikami
@@ -78,6 +96,20 @@ Teraz do zrobienia mamy znowuz:
 A jak to sie uda, to bysmy jeszcze sie zajeli naprawa guzikow
 i rysowaniem obwodki wokol steppera.
 
+* 21.09.2023 (telefon)
+
+po pierwsze, z jakichs wzgledow "n" przy substytucji
+jest zawsze zamienialne
+
+
+no ale ale, wyglada na to, ze mamy naszego winowajce
+- a jest nim tozsamosc atomu, ktorej uzywamy do wydobywania
+  elementow ze srodowiska
+
+zatem teraz plan jest raki, zeby pozbyc sie tozsamosci atomu,
+i zeby uzywac nazwy tego atomu do wysxukiwania
+
+
 * 20.09.2023
 
 problemy, ktore chcemy teraz rozwiazac:
@@ -126,9 +158,6 @@ z trzema wystapieniami 5 w definiensie
 
 Jednakowoz zajmijmy sie najpierw tym pierwszym problemem.
 
-
-
-
 * 19.09.2023 (wieczor, komp)
 
 na razie wyglada na to, ze mamy problem z tozsamoscia
@@ -157,6 +186,36 @@ reduce'a robimy (reduce (cons (context:value operator) operands)),
 i ten wewnetrzny reduce maczuje operator do `(lambda ,args ,body)
 i robi (substitute args #;with operands #;in body).
 
+* 19.09.2023 (telefon)
+
+mamy stepper, ktory oglednie wydaje sie jakos dzialac,
+ale w ktorym roi sie od bugow
+
+wiec plan teraz jest taki:
+- zdiagnozowac i naprawic to co sie tam dzieje
+- zrobic obwodke wokol steppera
+- ponaprawiac guziki
+
+jezeli to wszystko sie uda, to dodalibysmy jeszcze
+mozliwosc ewaluacji wyrazen (ctrl+enter / klin)
+i bysmy mieli w zasadzie wszystko gotowe do wtorkowego
+dema (i wtedy jeszcze moze bysmy zrobili animacje
+wcisnietego guzika, i ewentualnie wciskanie guzikow
+z klawiatury)
+
+ale najpierw trzeba sie zajac tymi bledami w animacjach
+i przemyslec to, jak je najlepiej diagnozowac
+
+no to moze tak: bysmy zrobili, zeby guzik >| nie odpalal
+animacji, a tylko zwiekszal progress w biezacym morphie,
+a po dojsciu do 1.0 aktualizowal morpha - i wtedy bysmy sobie
+krok po kroku ogladali co sie dzieje, najpierw z tlem,
+a pozniej z foregroundem
+
+jezeli to sie uda jako tako spiac, to bysmy najpierw zrobili
+ramke wokol steppera, a nastepnie naprawili guziki,
+zmieniajac kombinatory w taki sposob, zeby mogly przyjmowac
+dowolnie wiele argumentow
 
 * 18.09.2023
 
