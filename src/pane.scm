@@ -74,12 +74,17 @@
       (top:draw!)
       (overlay:draw!)))
 
+  (define after-tap ::(list-of (maps (byte real real) to: void)) '())
+  
   (define (tap! finger::byte #;at x::real y::real)::boolean
     (parameterize ((the-pane-width extent:width)
 		   (the-pane-height extent:height))
-      (or (overlay:tap! finger x y)
-	  (top:tap! finger x y))))
-
+      (let ((result (or (overlay:tap! finger x y)
+			(top:tap! finger x y))))
+	(for hook::(maps (byte real real) to: void) in after-tap
+	     (hook finger x y))
+	result)))
+  
   (define (press! finger::byte #;at x::real y::real)::boolean
     (parameterize ((the-pane-width extent:width)
 		   (the-pane-height extent:height))

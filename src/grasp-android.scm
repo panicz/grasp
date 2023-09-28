@@ -175,6 +175,9 @@
   (define NotoSerif-Regular ::Typeface
     (load-font "NotoSerif-Regular.ttf" activity))
 
+  (define M+1p ::Typeface
+    (load-font "MPLUS1p-Medium.ttf" activity))
+  
   (define file-icon ::SVG
     (load-svg "file.svg" activity width: 48 height: 48))
 
@@ -207,7 +210,7 @@
 
   (define the-caption-font ::($bracket-apply$ parameter Font)
     (make-parameter
-     (Font face: Basic-Regular #;Oswald-Regular
+     (Font face: M+1p #;Oswald-Regular
 	   size: 42)))
 
   (define the-text-input-font ::($bracket-apply$ parameter Font)
@@ -723,6 +726,16 @@
 		       (as int width) (as int (- height b))
 		       paint)
       ))
+
+
+  (define (draw-border! width::real height::real)::void
+    (set-color! text-color)
+    (canvas:drawRect 6 6 (- width 6) 16 paint)
+    (canvas:drawRect 6 6 16 (- height 6) paint)
+    (canvas:drawRect (- width 14) 6 (- width 6) (- height 6) paint)
+    (canvas:drawRect 6 (- height 14) (- width 6) (- height 6) paint))
+
+  (define (border-size)::real 20)
 
   (define (paren-width)::real
     (+ 1 top-left-extent:width))
@@ -1299,8 +1312,14 @@
 	  (set! last-animation-event-time-ms (current-time-ms))
 	  (sync:postDelayed (lambda () (animate!)) 40)))))
 
+  (define window-position ::($bracket-apply$ int)
+    (($bracket-apply$ int) length: 2))
+  
   (AndroidView source)
   (setFocusable #t)
+  (invoke-special AndroidView (this)
+		  'getLocationInWindow window-position)
+  (WARN window-position)
   (setFocusableInTouchMode #t)
   ;;(setClickable #t)
   (paint:setFlags Paint:ANTI_ALIAS_FLAG))
@@ -1475,7 +1494,7 @@
 		  (bitwise-ior
 		   #;AndroidView:SYSTEM_UI_FLAG_HIDE_NAVIGATION
 		   AndroidView:SYSTEM_UI_FLAG_FULLSCREEN
-		   AndroidView:SYSTEM_UI_FLAG_IMMERSIVE
+		   #;AndroidView:SYSTEM_UI_FLAG_IMMERSIVE
 		   )))
       (decor:setSystemUiVisibility flags))
 
@@ -1493,7 +1512,7 @@
     (view:setSystemUiVisibility
      (bitwise-ior
       AndroidView:SYSTEM_UI_FLAG_FULLSCREEN
-      AndroidView:SYSTEM_UI_FLAG_IMMERSIVE))
+      #;AndroidView:SYSTEM_UI_FLAG_IMMERSIVE))
     (view:setFitsSystemWindows #t)
     (setContentView view)
 
@@ -1508,6 +1527,11 @@
 		 (TouchEventProcessor finger screen
 				      postpone
 				      vicinity: 15))))
+    (set! screen:after-tap
+	  (cons (lambda _
+		  (view:showKeyboard))
+		screen:after-tap))
+    
     )
 
   (AndroidActivity)

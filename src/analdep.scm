@@ -1,5 +1,6 @@
 (import (kawa regex))
 (import (define-syntax-rule))
+(import (define-interface))
 (import (io))
 (import (functions))
 (import (infix))
