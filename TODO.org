@@ -1,3 +1,10 @@
+* 27.09.2023
+
+przede wszystkim mamy do zrobienia renderowanie ramek w kliencie
+androidowym, oraz przywrocenie dzialania klawiatury
+
+na razie pomysl jest taki. zeby dodac haki
+
 * 25.09.2023
 
 dziaiaj nic nie musimy, bo jutro konferencja
