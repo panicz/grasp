@@ -13,9 +13,10 @@
 ;; with.
 
 (define (self-evaluating? x)
-  (and (isnt x list?)
-       (isnt x pair?)
-       (isnt x symbol?)))
+  (or (and-let* ((`(lambda ,args ,body) x)))
+      (and (isnt x list?)
+	   (isnt x pair?)
+	   (isnt x symbol?))))
 
 (define-object (EvaluationContext)
   ;;(define macro-definitions ::)

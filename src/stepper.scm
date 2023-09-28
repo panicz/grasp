@@ -281,11 +281,13 @@
   (Magic))
 
 (define (self-evaluating? x)
-  (and (isnt x list?)
-       (isnt x pair?)
-       (if (Atom? x)
-	   (isnt (x:value) symbol?)
-	   #t)))
+  (or (and (pair? x)
+	   (match/equal? (car x) 'lambda))
+      (and (isnt x list?)
+	   (isnt x pair?)
+	   (if (Atom? x)
+	       (isnt (x:value) symbol?)
+	       #t))))
 
 (define-object (EvaluationContext)
   ;;(define macro-definitions ::)
@@ -437,8 +439,7 @@
       (`(lambda ,args ,body)
        (let*-values (((variables* values*) (only. (isnt _ in. args)
 						  variables values))
-		     ((lambda*) (car expression))
-		     ((result) (cons* lambda* args
+		     ((result) (cons* (car expression) args
 				      (substitute variables* #;with values*
 						  #;in body))))
 	 (copy-properties cell-display-properties
@@ -464,7 +465,8 @@
 			    #;in values)
     (match variables
       (`(,,variable . ,_)
-       (let* ((result (copy (car values)))
+       (WARN "substituting "variable" with "(car values))
+       (let* ((result (deep-copy (car values)))
 	      (result (if (self-evaluating? result)
 			  result
 			  (cons (Atom "quote") result))))
@@ -583,17 +585,31 @@
 			     (mark-origin! result expression)
 			     result))
 			  ((context:defines? operator)
-			   (let ((result (reduce (cons (context:value operator)
-						       operands))))
-			     (dissolve! expression)
-			     (mark-origin! result operator)
-			     result))
+			   (let ((operator* (context:value operator)))
+			     (match operator*
+			       (`(lambda ,args ,body)
+				(let ((result (substitute args #;with operands
+							  #;in body)))
+				  (transfer-heritage! args operands)
+				  (dissolve! expression)
+				  (mark-origin! result operator)
+				  result))
+			       (_
+				`(,operator* . ,operands)))))
 			  (else
 			   expression)))
 		   (`(lambda ,args ,body)
 		    (let ((result (substitute args #;with operands
 					      #;in body)))
-		      (transfer-heritage! args operands)
+		      (dissolve! expression)
+		      (dissolve! operands)
+		      (add-origin! result body)
+		      #|
+		      (DUMP expression (progeny expression))
+		      (DUMP args (progeny args) )
+		      (DUMP body (progeny body))
+		      (DUMP operands (progeny operands))
+			|#	      
 		      result))
 		   (`(,_ . ,_)
 		    (let* ((operator* (reduce operator))
@@ -698,12 +714,17 @@
   
   (define (rewind!)::void
     (WARN "rewind!")
-    (set! current-morph (morph-from initial-expression)))
+    (set! current-morph (morph-from initial-expression))
+    (set! current-morph:progress 0.0))
   
   (define (back!)::void
     (WARN "back!")
     (set! playing-backwards? #t)
     (set! now-playing? #f)
+    (when (and (is current-morph:progress <= 0.0)
+	       (isnt current-morph:initial eq? initial-expression))
+      (set! current-morph (morph-to current-morph:initial))
+      (set! current-morph:progress 1.0))
     (let ((painter ::Painter (the-painter)))
       (painter:play! (this))))
 
@@ -720,14 +741,18 @@
   (define (next!)::void
     (WARN "next!")
     
-    (begin
+    #;(begin
       (set! now-playing? #f)
       (set! playing-backwards? #f)
+      (is current-morph:progress >= 1.0)
+      (when (is current-morph:progress >= 1.0)
+	(set! current-morph (morph-from current-morph:final))
+	(set! current-morph:progress 0.0))
       (let ((painter ::Painter (the-painter)))
 	(painter:play! (this))))
 
-    #;(begin
-      (set! current-morph:progress (+ current-morph:progress 0.2))
+    (begin
+      (set! current-morph:progress (+ current-morph:progress 0.1))
       (WARN current-morph:progress)
       (when (is current-morph:progress > 1.0)
 	(let ((final current-morph:final))
