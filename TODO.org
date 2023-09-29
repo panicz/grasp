@@ -1,3 +1,40 @@
+* 29.09.2023 (telefon)
+
+na kompie dalej procesujemy lambdy, i moze sie to uda jakos
+zrobic
+
+natomiast co chcemy robic dalej?
+
+jest sporo takich rzeczy, no powiedzmy, nieciekawych,
+ktorymi jednak warto by sie bylo zajac, takimi jak edycja,
+czy poruszanie sie kursorem po przyciskach, czy tez wiele
+innych tego rodzaju rzeczy, ktore zapewne by trzeba bylo
+skatalogowac
+
+jest tez kwestia uporzadkowania repo, i to chyba lepiej
+by bylo zrobic szybciej niz pozniej
+
+a, no i integracja ewaluatora, i ewentualnie kolorowanie
+wyrazen
+
+i scrollowanie, pg-up/pg-dn, zoomowanie etc.
+
+natomiast tym, co naprawde chcemy robic dalej, jest algorytm A*
+i wizualizacja grafow
+
+
+* 28.09.2023
+
+bysmy sie zajeli tym, zeby nienazwane lambdy redukowac inaczej,
+niz lambdy nazwane
+
+w przypadku lambd nazwanych:
+- wartosci argumentow rozszczepiaja sie do ciala
+
+natomiadt w przypadku lambd nienazwanych
+- wartosc argumentu znika, ale
+- argumenty z lambdy morfuja w kopie argumentow
+
 * 27.09.2023
 
 przede wszystkim mamy do zrobienia renderowanie ramek w kliencie
