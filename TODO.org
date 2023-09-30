@@ -1,3 +1,43 @@
+* 30.09.2023
+
+Wyglada na to, ze problem mamy taki, ze komponenty wyrazenia, 
+ktore powinny zostac dissolvowane, nie zostaja.
+
+x/19 MORPHS INTO ((lambda/58 (x/59) (x/60 x/61))
+                  (lambda/54 (x/55) (x/56 x/57)))
+
+(x/20 x/21) MORPHS INTO (((lambda/54 (x/55)
+                                 (x/56 x/57))
+                                (lambda/58 (x/59)
+                                 (x/60 x/61))
+                               ))
+(lambda/22 (x/23) (x/24 x/25)
+) MORPHS INTO ((lambda/58 (x/59)
+                                (x/60 x/61)))
+
+** > 0.6
+
+((lambda/54 (x/55) (x/56 x/57))
+ (lambda/58 (x/59) (x/60 x/61))) MORPHS INTO ((x/20 x/21))
+
+to jest OK
+
+(lambda/54 (x/55) (x/56 x/57)) MORPHS INTO (x/19
+                               (lambda/22 (x/23)
+                                (x/24 x/25)))
+to juz nam przeszkadza
+
+lambda/54 MORPHS INTO (lambda/22)
+(x/55) MORPHS INTO ((x/23))
+(x/56 x/57) MORPHS INTO ((x/24 x/25))
+(lambda/58 (x/59) (x/60 x/61)
+) MORPHS INTO (x/19
+                               (lambda/22 (x/23)
+                                (x/24 x/25)))
+lambda/58 MORPHS INTO (lambda/22)
+(x/59) MORPHS INTO ((x/23))
+(x/60 x/61) MORPHS INTO ((x/24 x/25))
+
 * 29.09.2023
 
 postanowienie jest takie, zeby sie zajac ((lambda (x) (x x)) (lambda (x) (x x)))
@@ -29,6 +69,160 @@ Teraz niejako wymusilismy na nich dissolvowanie sie
 OK, juz prawie to mamy, tylko jeszcze z jakichs wzgledow w drugiej
 polowie sie nam narysowywuja wyrazenia
 
+* 29.09.2023
+
+postanowienie jest takie, zeby sie zajac ((lambda (x) (x x)) (lambda (x) (x x)))
+ale zacznijmy od tego, ze sobie opiszemy, co jest nie tak z biezacym zachowaniem,
+albo w jaki sposob chcielibysmy, zeby to wygladalo.
+
+1(2(lambda1 3(x2) 4(x3 x4)) 5(lambda5 6(x6) 7(x7 x8)))
+
+W wyniku oczekujemy nowego wyrazenia
+
+A(B(lambdaA C(xB) D(xC xD)) E(lambdaE F(xF) G(xG xH)))
+
+i teraz tak:
+
+- wyrazenie 4(x3 x4) powinno przemorfowac w A(B E)
+- argument x2 powinien przemorfowac w B i E,
+  ktore sa kopiami 5
+- nawiasy 1 powinny zniknac
+- nawiasy 2 powinny zniknac
+- lambda1 i nawiasy 3 powinny zniknac
+- cale wyrazenie 5 i jego podwyrazenia powinny zniknac
+  (ale jego kopie, czyli B i E, powinny byc progeny
+  wyrazenia x2, i oczywiscie x2 powinno byc ich originem)
+
+Na razie wyglada tak, ze operandy sie nie dissolvuja
+
+Teraz niejako wymusilismy na nich dissolvowanie sie
+
+OK, juz prawie to mamy, tylko jeszcze z jakichs wzgledow w drugiej
+polowie sie nam narysowywuja wyrazenia
+
+
+1(2(lambda1 3(x2) 4(x3 x4)) 5(lambda5 6(x6) 7(x7 x8)))
+
+A(B(lambdaA C(xB) D(xC xD)) E(lambdaE F(xF) G(xG xH)))
+
+
+╭ ╭           ╭      ╮  ╮ ╮
+│ │ lambda/18 │ x/19 │  │ │
+│ │           ╰      ╯  │ │
+│ │ ╭      ╮            │ │
+│ │ │ x/20 │            │ │
+│ │ │      │            │ │
+│ │ │      │            │ │
+│ │ │ x/21 │            │ │
+│ ╰ ╰      ╯            ╯ │
+│ ╭ ~      ~  ╭      ╮ ╮  │
+│ │ lambda/22 │ x/23 │ │  │
+│ │           ╰      ╯ │  │
+│ │ ╭      ╮           │  │
+│ │ │ x/24 │           │  │
+│ │ │      │           │  │
+│ │ │      │           │  │
+│ │ │ x/25 │           │  │
+╰ ╰ ╰      ╯           ╯  ╯
+
+╭ ╭           ╭      ╮ ╮ ╮
+│ │ lambda/54 │ x/55 │ │ │
+│ │           ╰      ╯ │ │
+│ │ ╭      ╮           │ │
+│ │ │ x/56 │           │ │
+│ │ │      │           │ │
+│ │ │      │           │ │
+│ │ │ x/57 │           │ │
+│ ╰ ╰      ╯           ╯ │
+│ ╭ ~      ~  ╭      ╮ ╮ │
+│ │ lambda/58 │ x/59 │ │ │
+│ │           ╰      ╯ │ │
+│ │ ╭      ╮           │ │
+│ │ │ x/60 │           │ │
+│ │ │      │           │ │
+│ │ │      │           │ │
+│ │ │ x/61 │           │ │
+╰ ╰ ╰      ╯           ╯ ╯
+
+** najpierw
+
+x/19 morphs into ((lambda/58 (x/59) (x/60 x/61))
+                  (lambda/54 (x/55) (x/56 x/57)))
+
+(x/20 x/21) morphs into (((lambda/54 (x/55) (x/56 x/57))
+                          (lambda/58 (x/59) (x/60 x/61)))
+                         ((lambda/54 (x/55) (x/56 x/57))
+                          (lambda/58 (x/59) (x/60 x/61))))
+
+(lambda/22 (x/23) (x/24 x/25)) morphs into ((lambda/58 (x/59)
+                                (x/60 x/61)))
+
+** i w druga strone:
+
+((lambda/54 (x/55) (x/56 x/57))
+ (lambda/58 (x/59) (x/60 x/61))) morphs into ((x/20 x/21)(x/20 x/21))
+(lambda/54 (x/55) (x/56 x/57)) morphs into (x/19
+                               (lambda/22 (x/23)
+                                (x/24 x/25)))
+lambda/54 morphs into (lambda/22)
+(x/55) morphs into ((x/23))
+(x/56 x/57) morphs into ((x/24 x/25))
+(lambda/58 (x/59) (x/60 x/61)) morphs into (x/19
+                               (lambda/22 (x/23)
+                                (x/24 x/25)))
+lambda/58 morphs into (lambda/22)
+(x/59) morphs into ((x/23))
+(x/60 x/61) morphs into ((x/24 x/25))
+(lambda/54 (x/55) (x/56 x/57)
+ . #<not a pair>) morphs into (x/19
+                               (lambda/22 (x/23)
+                                (x/24 x/25)))
+lambda/54 morphs into (lambda/22)
+(x/55) morphs into ((x/23))
+(x/56 x/57) morphs into ((x/24 x/25))
+(lambda/58 (x/59) (x/60 x/61)) morphs into (x/19
+                               (lambda/22 (x/23)
+                                (x/24 x/25)))
+lambda/58 morphs into (lambda/22)
+(x/59) morphs into ((x/23))
+(x/60 x/61) morphs into ((x/24 x/25))
+
+** po zmianach
+
+*** najpierw
+
+x/19 morphs into ((lambda/58 (x/59) (x/60 x/61)
+                  )
+                  (lambda/54 (x/55) (x/56 x/57)
+                  ))
+(x/20 x/21
+) morphs into (((lambda/54 (x/55)
+                                 (x/56 x/57))
+                                (lambda/58 (x/59)
+                                 (x/60 x/61))
+                               ))
+(lambda/22 (x/23) (x/24 x/25)
+) morphs into ((lambda/58 (x/59)
+                                (x/60 x/61)))
+
+
+*** i w druga strone
+
+((lambda/54 (x/55) (x/56 x/57))
+ (lambda/58 (x/59) (x/60 x/61))) morphs into ((x/20 x/21))
+(lambda/54 (x/55) (x/56 x/57)) morphs into (x/19
+                               (lambda/22 (x/23)
+                                (x/24 x/25)))
+lambda/54 morphs into (lambda/22)
+(x/55) morphs into ((x/23))
+(x/56 x/57) morphs into ((x/24 x/25))
+(lambda/58 (x/59) (x/60 x/61)
+) morphs into (x/19
+                               (lambda/22 (x/23)
+                                (x/24 x/25)))
+lambda/58 morphs into (lambda/22)
+(x/59) morphs into ((x/23))
+(x/60 x/61) morphs into ((x/24 x/25))
 
 * 29.09.2023 (telefon)
 
