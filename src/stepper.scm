@@ -418,20 +418,43 @@
     (and-let* ((`(,default) (progeny parent))
 	       ((eq? parent default)))
       (set! (progeny parent) '()))
-    (set! (origin newborn) (cons parent (origin newborn)))
-    (set! (progeny parent) (cons newborn (progeny parent))))
+    (unless (any (is _ eq? parent) (origin newborn))
+      (set! (origin newborn) (cons parent (origin newborn))))
+    (unless (any (is _ eq? newborn) (progeny parent))
+      (set! (progeny parent) (cons newborn (progeny parent)))))
   
-  (define (dissolve! item)
-    (and-let* ((`(,i) (progeny item))
-	       ((eq? i item)))
+  (define (dissolve! item #!key (when? ::predicate
+				       (lambda (item)
+					 (and-let* ((`(,i) (progeny item))
+						    ((eq? i item)))))))
+    (when (when? item)
+      (for child in (progeny item)
+	(set! (origin child) (only (isnt _ eq? item) (origin child))))
       (set! (progeny item) '()))
+    
     (when (gnu.lists.LList? item)
       (traverse
        item
        doing:
        (lambda (e::Element t::Traversal)
-	 (dissolve! e)))))
+	 (dissolve! e when?: when?)))))
 
+  (define (eradicate! item #!key (when? ::predicate
+					(lambda (item)
+					  (and-let* ((`(,i) (origin item))
+						     ((eq? i item)))))))
+    (when (when? item)
+      (for child in (origin item)
+	(set! (progeny child) (only (isnt _ eq? item) (progeny child))))     
+      (set! (origin item) '()))
+    
+    (when (gnu.lists.LList? item)
+      (traverse
+       item
+       doing:
+       (lambda (e::Element t::Traversal)
+	 (eradicate! e when?: when?)))))
+  
   (define (substitute variables #;with values #;in expression)
     (match expression
       (`(quote ,_)
@@ -465,11 +488,11 @@
 			    #;in values)
     (match variables
       (`(,,variable . ,_)
-       (WARN "substituting "variable" with "(car values))
        (let* ((result (deep-copy (car values)))
 	      (result (if (self-evaluating? result)
 			  result
 			  (cons (Atom "quote") result))))
+	 (eradicate! result when?: always)
 	 (add-origin! result (car variables))
 	 result))
       (,variable
@@ -599,17 +622,9 @@
 			  (else
 			   expression)))
 		   (`(lambda ,args ,body)
+		    (dissolve! expression)
 		    (let ((result (substitute args #;with operands
 					      #;in body)))
-		      (dissolve! expression)
-		      (dissolve! operands)
-		      (add-origin! result body)
-		      #|
-		      (DUMP expression (progeny expression))
-		      (DUMP args (progeny args) )
-		      (DUMP body (progeny body))
-		      (DUMP operands (progeny operands))
-			|#	      
 		      result))
 		   (`(,_ . ,_)
 		    (let* ((operator* (reduce operator))
@@ -741,7 +756,7 @@
   (define (next!)::void
     (WARN "next!")
     
-    #;(begin
+    (begin
       (set! now-playing? #f)
       (set! playing-backwards? #f)
       (is current-morph:progress >= 1.0)
@@ -751,7 +766,7 @@
       (let ((painter ::Painter (the-painter)))
 	(painter:play! (this))))
 
-    (begin
+    #;(begin
       (set! current-morph:progress (+ current-morph:progress 0.1))
       (WARN current-morph:progress)
       (when (is current-morph:progress > 1.0)

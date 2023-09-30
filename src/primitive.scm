@@ -181,7 +181,9 @@
 	  (name:equals (number->string x)))))
 
   (define (toString)::String
-    name)
+    name
+    ;;(string-append name "/" (number->string (id (this))))
+    )
 
   (define (clone)::Element
     (Atom name))
