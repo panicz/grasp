@@ -20,7 +20,7 @@
 	   (let ((b ::Matchable b))
 	     (b:matches? a)))
       ;; this extension is used so that the EmptyListProxy
-      ;; objects (defined in the (space) module) are
+      ;; objects (defined in the (editor types space) module) are
       ;; indistinguishable from '() in the pattern context
       (and (gnu.lists.LList? a)
 	   (gnu.lists.LList? b)

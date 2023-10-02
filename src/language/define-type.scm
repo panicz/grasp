@@ -44,7 +44,7 @@
   (to-list kons::procedure transform::procedure)::list
   ;; cons here is passed as an argument, because
   ;; we want to use the variant of "cons" from
-  ;; the (primitive) module, rather than the built-in.
+  ;; the (editor types primitive) module, rather than the built-in.
   ;; (if we remove this duality by patching Kawa,
   ;; this argument can be removed)
   (fields->list kons::procedure transform::procedure)::list

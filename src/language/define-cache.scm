@@ -43,7 +43,7 @@
 
 ;; the `hash-cons` definition presented here is only used
 ;; for bootstrapping. Prefer the analogous definition of
-;; `recons` that is defined in the `(primitive)` module.
+;; `recons` that is defined in the `(editor types primitive)` module.
 
 (define-object (immutable-pair car cdr)
 

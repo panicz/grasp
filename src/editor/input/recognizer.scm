@@ -1,0 +1,92 @@
+(module-name (editor input recognizer))
+
+(import (language define-type))
+(import (language define-parameter))
+(import (language define-property))
+(import (language define-cache))
+(import (extent))
+(import (language examples))
+(import (language for))
+(import (language infix))
+(import (utils functions))
+
+(define-type (Recognizer name: string
+			 recognizes: (maps ((sequence-of Position))
+					   to: boolean)
+			 action: (maps (Recognizer (sequence-of
+						    Position))
+				       to: void)))
+
+(define-parameter (the-recognizers)
+  ::($bracket-apply$ java.util.List Recognizer)
+  (java.util.ArrayList))
+
+(define (distance-to-line-through p1::Position p2::Position)
+  ::(maps (Position) to: real)
+  (let* ((dx ::real (- p2:left p1:left))
+         (dy ::real (- p2:top p1:top))
+	 (1/d ::real (/ (hypotenuse dx dy)))
+	 (cross ::real (- (* p1:left p2:top)
+	                  (* p2:left p1:top))))
+    (lambda (p::Position)
+      ::real
+      (abs (* (- (* dy p:left) (* dx p:top)
+		 cross)
+	      1/d)))))
+
+(define (simplify points::($bracket-apply$ java.util.List
+					   Position)
+			epsilon::real)
+  ::($bracket-apply$ java.util.List Position)
+  (let* ((n ::int (length points))
+         (n-1 ::int (- n 1)))
+    (if (is n <= 2)
+	(let ((result ::($bracket-apply$ java.util.List Position)
+		      (java.util.ArrayList)))
+	  (result:addAll points)
+	  result)
+	(let* ((first ::Position (points 0))
+	       (last ::Position (points n-1))
+	       (interior (points:subList 1 n-1))
+	       (distance-to ::(maps (Position) to: real)
+	                    (distance-to-line-through first last))
+	       (furthest-distance ::real (distance-to (interior 0)))
+	       (index ::int 0))
+	  (for i::int from 1 below (length interior)
+	       (let* ((element ::Position (interior i))
+	              (distance ::real (distance-to element)))
+		 (when (is distance > furthest-distance)
+	           (set! index i)
+		   (set! furthest-distance distance))))
+	  (if (is furthest-distance > epsilon)
+	      (let* ((left (points:subList 0 (+ index 2)))
+	             (right (points:subList (+ index 1) n))
+		     (left* ::java.util.List
+			    (simplify left epsilon))
+		     (right* ::java.util.List
+			     (simplify right epsilon)))
+                (left*:addAll (right*:subList 1 (length right*)))
+		left*)
+	  (java.util.ArrayList first last))))))
+
+(e.g.
+ (equal?
+  (simplify
+   (java.util.ArrayList
+    (Position left: 0 top: 0)
+    (Position left: 1 top: 0.1)
+    (Position left: 2 top: -0.1)
+    (Position left: 3 top: 5)
+    (Position left: 4 top: 6)
+    (Position left: 5 top: 7)
+    (Position left: 6 top: 8.1)
+    (Position left: 7 top: 9)
+    (Position left: 8 top: 9)
+    (Position left: 9 top: 9))
+   1.0)
+  (java.util.ArrayList
+   (Position left: 0 top: 0)
+   (Position left: 2 top: -0.1)
+   (Position left: 3 top: 5)
+   (Position left: 7 top: 9)
+   (Position left: 9 top: 9))))

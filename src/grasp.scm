@@ -13,23 +13,23 @@
 (import (language infix))
 (import (language match))
 
-(import (painter))
+(import (editor interfaces painter))
 
 ;(import (utils functions))
 ;(import (language for))
 ;(import (language while))
 #|
-(import (pane))
-(import (indexable))
+(import (editor input pane))
+(import (editor interfaces indexable))
 
-(import (print))
-(import (primitive))
-(import (cursor))
-(import (input))
+(import (utils print))
+(import (editor types primitive))
+(import (editor document cursor))
+(import (editor input input))
 (import (extent))
 (import (utils conversions))
-(import (parse))
-(import (editor-operations))
+(import (editor document parse))
+(import (editor document editor-operations))
 |#
 
 (import (grasp-desktop))

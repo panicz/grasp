@@ -2,7 +2,7 @@
 (import (only (srfi :1) filter-map))
 (import (language define-syntax-rule))
 (import (language define-interface))
-(import (io))
+(import (utils shell))
 (import (utils functions))
 (import (language infix))
 (import (language match))

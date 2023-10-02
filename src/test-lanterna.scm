@@ -1,4 +1,4 @@
-(import (term))
+(import (editor term))
 (import (language for))
 
 (define io ::Terminal (make-terminal))
