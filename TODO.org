@@ -1,3 +1,109 @@
+* 02.10.2023
+
+zaczniemy od zmodyfikowania skryptu analdep.scm w taki sposob,
+zeby dzialal w podkatalogach
+
+* 01.10.2023
+
+na razie plan jest taki, zeby podzielic pliki na foldery o tak:
+(i ew. pozmieniac modulom nazwy)
+
+** lang/
+for.scm
+assert.scm
+while.scm
+examples.scm
+define-interface.scm
+infix.scm
+define-cache.scm
+define-syntax-rule.scm
+hash-table.scm
+parameterize-up.scm
+define-type.scm
+mapping.scm
+match.scm
+define-object.scm
+keyword-arguments.scm
+curry.scm
+define-parameter.scm
+define-property.scm
+
+** utils
+functions.scm
+server.scm
+conversions.scm
+string-building.scm
+print.scm
+io.scm
+
+** editor/
+*** types
+text.scm
+primitive.scm
+fundamental.scm
+space.scm
+comments.scm
+extent.scm
+
+**** extensions/
+combinators.scm
+quotations.scm
+button.scm
+extension.scm
+stepper.scm
+interactive.scm
+
+*** input/
+android-keymap.scm
+terminal-keymap.scm
+desktop-keymap.scm
+recognizer.scm
+input.scm
+pane.scm
+editor-operations.scm
+touch-event-processor.scm
+transform.scm
+
+*** interfaces/
+painter.scm
+postponed.scm
+indexable.scm
+
+*** document/
+parse.scm
+document-operations.scm
+document.scm
+cursor.scm
+history.scm
+
+** tests/
+test-stepper.scm
+test-document-operations.scm
+test-editor-operations.scm
+test-painter.scm
+test-lanterna.scm
+check-comments.scm
+test-parser.scm
+
+** tools/
+braille.scm
+analdep.scm
+run.scm
+reference-stepper.scm
+play-test.scm
+
+** clients
+grasp-android.scm
+grasp-terminal.scm
+grasp-desktop.scm
+grasp.scm
+term.scm
+text-painter.scm
+
+** trash
+primitive-terminal-client.scm
+test-writing-map.scm
+
 * 30.09.2023
 
 Wyglada na to, ze problem mamy taki, ze komponenty wyrazenia, 
