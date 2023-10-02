@@ -111,6 +111,12 @@
 (e.g.
  (any even? '(1 2 3)))
 
+(define (none satisfying? elements)
+  (not (any satisfying? elements)))
+
+(e.g.
+ (none odd? '(2 4 6)))
+
 (define (any. satisfying? elements)
   (match elements
     (`(,h . ,t)

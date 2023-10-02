@@ -1,4 +1,5 @@
 (import (kawa regex))
+(import (only (srfi :1) filter-map))
 (import (define-syntax-rule))
 (import (define-interface))
 (import (io))
@@ -30,12 +31,19 @@
 (define (all-scm-files-from-current-directory)
   (only (is _ matching "\\.scm$") (string-split (shell "ls") "\n")))
 
+(define (all-scm-files-from-subdirectories)
+  (filter-map (lambda (name)
+		(and (is (length name) > 2)
+		     (none (is _ eq? #\#) name)
+		     (string-drop name 2)))
+	      (string-split (shell "find ./ -name *.scm") "\n")))
+
 (define list?::boolean #f)
 
 (define files
   (match (command-line)
     (`(,command)
-     (all-scm-files-from-current-directory))
+     (all-scm-files-from-subdirectories))
 
     (`(,command "--" "--list" . ,args)
      (set! list? #t)
@@ -74,7 +82,7 @@
 
 (define files-dependency-graph
   (dependency-graph
-   (all-scm-files-from-current-directory)))
+   (all-scm-files-from-subdirectories)))
 
 (for module in (map module-name files)
   (let ((dependencies (reach files-dependency-graph module)))
@@ -84,6 +92,10 @@
 (define (system-module? x)
   (match x
     (`(srfi ,_)
+     #t)
+    (`(kawa _)
+     #t)
+    (`(tools ,_)
      #t)
     (_
      #f)))
