@@ -34,6 +34,8 @@
 (import (editor input recognizer))
 (import (extent))
 (import (editor types extensions stepper))
+(import (editor document history))
+(import (editor types space))
 
 (define-syntax $lookup$
   (syntax-rules ()

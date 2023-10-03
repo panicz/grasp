@@ -214,7 +214,7 @@
       (safely
        (let ((input (queue:take)))
 	 (if (procedure? input)
-	     (editor input input)
+	     (input)
 	     (let* ((key ::KeyStroke input)
 		    (type ::KeyType (key:getKeyType))
 		    (caret ::TerminalPosition (io:getCursorPosition)))
