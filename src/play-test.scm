@@ -2,12 +2,12 @@
 (import (only (srfi :1) partition span break first second))
 (import (srfi :11))
 (import (io))
-(import (functions))
-(import (infix))
-(import (match))
-(import (hash-table))
-(import (mapping))
-(import (for))
+(import (utils functions))
+(import (language infix))
+(import (language match))
+(import (utils hash-table))
+(import (language mapping))
+(import (language for))
 ;;(import (term))
 
 

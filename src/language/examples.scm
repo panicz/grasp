@@ -1,3 +1,4 @@
+(module-name (language examples))
 
 (define (bad-example form expected-value obtained-value)
   (call-with-output-string

@@ -1,6 +1,8 @@
-(import (define-parameter))
-(import (define-interface))
-(import (for))
+(module-name (language fundamental))
+
+(import (language define-parameter))
+(import (language define-interface))
+(import (language for))
 
 (define-alias EnumSet java.util.EnumSet)
 

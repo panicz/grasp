@@ -1,10 +1,12 @@
-(import (conversions))
-(import (define-syntax-rule))
-(import (assert))
-(import (define-interface))
-(import (define-property))
-(import (match))
-(import (fundamental))
+(module-name (language define-type))
+
+(import (utils conversions))
+(import (language define-syntax-rule))
+(import (language assert))
+(import (language define-interface))
+(import (language define-property))
+(import (language match))
+(import (language fundamental))
 
 (define-syntax maps
   (syntax-rules (to:)

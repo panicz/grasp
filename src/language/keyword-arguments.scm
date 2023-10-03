@@ -1,5 +1,7 @@
-(import (match))
-(import (conversions))
+(module-name (language keyword-arguments))
+
+(import (language match))
+(import (utils conversions))
 
 (define-syntax lambda/kw
   (lambda (stx)

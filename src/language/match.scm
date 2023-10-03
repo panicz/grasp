@@ -1,6 +1,8 @@
-(import (define-syntax-rule))
-(import (define-interface))
-(import (conversions))
+(module-name (language match))
+
+(import (language define-syntax-rule))
+(import (language define-interface))
+(import (utils conversions))
 
 (define-interface Matchable ()
   (matches? x)::boolean)

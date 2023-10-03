@@ -1,4 +1,6 @@
-(import (define-syntax-rule))
+(module-name (utils hash-table))
+
+(import (language define-syntax-rule))
 (define-alias make-weak-key-hash-table java.util.WeakHashMap)
 (define-alias make-hash-table java.util.HashMap)
 (define-alias Map java.util.Map)

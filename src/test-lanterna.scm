@@ -1,5 +1,5 @@
 (import (term))
-(import (for))
+(import (language for))
 
 (define io ::Terminal (make-terminal))
 ;;(define ui ::TerminalScreen (TerminalScreen io))

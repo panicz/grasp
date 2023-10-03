@@ -1,4 +1,5 @@
-(import (while))
+(module-name (language for))
+(import (language while))
 
 (define-syntax for
   (syntax-rules (in from to below by in-reverse ::)

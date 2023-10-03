@@ -1,4 +1,4 @@
-(import (for))
+(import (language for))
 
 
 (for i from 0 to #xff

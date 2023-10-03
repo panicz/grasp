@@ -1,10 +1,10 @@
-(import (define-syntax-rule))
-(import (define-interface))
-(import (define-object))
-(import (define-parameter))
-(import (for))
-(import (conversions))
-(import (functions))
+(import (language define-syntax-rule))
+(import (language define-interface))
+(import (language define-object))
+(import (language define-parameter))
+(import (language for))
+(import (utils conversions))
+(import (utils functions))
 
 (define-parameter (current-display-procedure)::procedure
   display)

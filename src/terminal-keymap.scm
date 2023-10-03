@@ -1,7 +1,7 @@
 (import (input))
 (import (term))
-(import (match))
-(import (infix))
+(import (language match))
+(import (language infix))
 
 (define (special-key-code key::KeyType)::long
   (bitwise-arithmetic-shift (as long (key:ordinal))

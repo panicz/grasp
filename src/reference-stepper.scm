@@ -1,10 +1,10 @@
-(import (assert))
-(import (infix))
-(import (define-object))
-(import (define-type))
-(import (match))
-(import (functions))
-(import (examples))
+(import (language assert))
+(import (language infix))
+(import (language define-object))
+(import (language define-type))
+(import (language match))
+(import (utils functions))
+(import (language examples))
 
 ;; This is a reference stepper module, from which
 ;; the actual stepper is derived. The difference

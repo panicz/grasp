@@ -1,3 +1,5 @@
+(module-name (language curry))
+
 (define-syntax curried
   (lambda (stx)
     (syntax-case stx (:: :=)

@@ -1,7 +1,9 @@
+(module-name (language mapping))
+
 (import (srfi :17))
-(import (define-syntax-rule))
-(import (hash-table))
-(import (conversions))
+(import (language define-syntax-rule))
+(import (utils hash-table))
+(import (utils conversions))
 
 (define-syntax mapping
   (syntax-rules (::)

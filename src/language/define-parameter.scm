@@ -1,3 +1,5 @@
+(module-name (language define-parameter))
+
 (define-syntax define-parameter
   (syntax-rules (::)
     

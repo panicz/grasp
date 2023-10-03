@@ -1,4 +1,6 @@
-(import (define-syntax-rule))
+(module-name (language infix))
+
+(import (language define-syntax-rule))
 
 (define-syntax infix/postfix
   (syntax-rules ()

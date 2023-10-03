@@ -1,4 +1,6 @@
-(import (define-syntax-rule))
+(module-name (language define-interface))
+
+(import (language define-syntax-rule))
 
 (define-syntax-rule (define-interface name supers prototypes ...)
   (interface-definition name supers (prototypes ...) ()))

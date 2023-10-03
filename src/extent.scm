@@ -1,6 +1,6 @@
-(import (define-type))
-(import (examples))
-(import (for))
+(import (language define-type))
+(import (language examples))
+(import (language for))
 
 (define-type (Extent width: real := 0
                      height: real := 0))

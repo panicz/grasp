@@ -1,4 +1,6 @@
-(import (define-syntax-rule))
+(module-name (language parameterize-up))
+
+(import (language define-syntax-rule))
 
 ;; like `parameterize`, but updates parameter sources
 ;; after the execution of the inner block

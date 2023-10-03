@@ -1,5 +1,5 @@
-(import (while))
-(import (for))
+(import (language while))
+(import (language for))
 
 (define (tcp-output-server port::short)::gnu.kawa.io.OutPort
   (let* ((server ::java.net.ServerSocket

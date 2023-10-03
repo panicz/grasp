@@ -1,11 +1,13 @@
+(module-name (language define-cache))
+
 (import (srfi :17))
-(import (define-syntax-rule))
-(import (hash-table))
-(import (define-property))
-(import (keyword-arguments))
-(import (define-object))
-(import (match))
-(import (curry))
+(import (language define-syntax-rule))
+(import (utils hash-table))
+(import (language define-property))
+(import (language keyword-arguments))
+(import (language define-object))
+(import (language match))
+(import (language curry))
 
 (define-synonym cache property+)
 

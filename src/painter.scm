@@ -1,10 +1,10 @@
-(import (define-interface))
-(import (define-object))
-(import (define-type))
-(import (define-syntax-rule))
-(import (define-parameter))
+(import (language define-interface))
+(import (language define-object))
+(import (language define-type))
+(import (language define-syntax-rule))
+(import (language define-parameter))
 (import (extent))
-(import (fundamental))
+(import (language fundamental))
 
 (define-interface Translatable ()
   (translate! x::real y::real)::void

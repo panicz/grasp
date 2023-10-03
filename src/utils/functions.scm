@@ -1,8 +1,10 @@
-(import (assert))
-(import (match))
-(import (examples))
-(import (infix))
-(import (for))
+(module-name (utils functions))
+
+(import (language assert))
+(import (language match))
+(import (language examples))
+(import (language infix))
+(import (language for))
 
 (define (nearby-int x::real)::int
   (as int (round x)))

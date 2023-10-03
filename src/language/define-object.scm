@@ -1,4 +1,6 @@
-(import (define-syntax-rule))
+(module-name (language define-object))
+
+(import (language define-syntax-rule))
 
 (define-syntax object-definition
   (lambda (stx)

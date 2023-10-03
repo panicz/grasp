@@ -1,5 +1,5 @@
-(import (define-interface))
-(import (define-object))
+(import (language define-interface))
+(import (language define-object))
 
 (define-interface Cancellable ()
   (cancel)::Cancellable)

@@ -1,7 +1,9 @@
+(module-name (language define-property))
+
 (import (srfi :17))
-(import (define-syntax-rule))
-(import (hash-table))
-(import (fundamental))
+(import (language define-syntax-rule))
+(import (utils hash-table))
+(import (language fundamental))
 
 (define-syntax property
   (syntax-rules (::)

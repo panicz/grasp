@@ -1,3 +1,5 @@
+(module-name (utils conversions))
+
 (define (list->symbol l)
   (string->symbol (list->string l)))
 

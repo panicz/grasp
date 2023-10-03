@@ -1,3 +1,5 @@
+(module-name (language define-syntax-rule))
+
 (define-syntax define-syntax-rule
   (syntax-rules ()
     

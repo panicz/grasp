@@ -1,7 +1,7 @@
-(import (infix))
-(import (match))
-(import (functions))
-(import (conversions))
+(import (language infix))
+(import (language match))
+(import (utils functions))
+(import (utils conversions))
 
 (define (run)
   (let* ((line (read-line))
