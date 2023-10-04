@@ -1,4 +1,0 @@
-#!/bin/sh
-# --debug-print-final-expr --debug-error-prints-stack-trace
-java -cp "libs/lanterna-3.1.1.jar:libs/kawa.jar" kawa.repl \
-     --no-warn-unreachable -f src/primitive-terminal-client.scm
