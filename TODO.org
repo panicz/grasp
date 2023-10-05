@@ -1,3 +1,46 @@
+* 05.10.2023
+
+jeszcze mamy prawdopodobnie 2 moduly (co powinnismy
+moc przetestowac kompilujac na zewnetrznym storage'u)
+
+dobra, wyglada na to ze jest ok
+
+czyli dalszy krok to bedzie:
+- przeniesienie kodu z TODO do wlasciwego kodu
+- zastapienie extent extent+
+- dodanie czyszczenia extent-cache'u przed rysowaniem
+- zastapienie wszystkich x:extent i (invoke x 'extent)
+  uzyciem (extent+ x)
+
+no dobra. ale skoro mamy troche czasu, moze warto by sie
+zastanowic, jak bysmy chcieli, zeby to wygladalo w GRASPie
+
+najpierw otwieramy plik project.grasp
+
+jest to plik zawierajacy anotacje dla poszczegolnych modulow.
+pobjego zaladowaniu otwiera sie przegladarka modulow - mozemy na moduly
+albo klikac, albo zoomowac
+
+No ale dobrze, teraz plan jest z grubsza taki, ze mamy sobie
+
+#+BEGIN_SRC scheme
+(define-property+ (last-known-pointer-position finger::byte)::Position
+  (Position left: 0 top: 0))
+#+END_SRC
+
+i chcemy, zeby:
+- pop-upy sie otwieraly wokol tej pozycji
+- zoomowanie za pomoca ctrl + rolki myszki bylo wokol tej pozycji
+- chcielibysmy tez pgup/pgdn
+- i zeby combinators przyjmowaly wariadyczne argumenty
+- i ewaluacje chcemy miec, a moze nawet kompilacje
+
+dobrze by tez bylo napisac skrypty do budowania takie, zeby
+z tych samych klas budowac wszystkie 3 klienty
+i zeby sledzic zaleznosci podczas kompilacji
+
+(i skrypty do budowania moglyby byc napisane w Kawie)
+
 * 04.10.2023
 
 wyglada na to, ze restrukturyzacja sie powiodla - poza modulem
@@ -16,7 +59,7 @@ i przy renderowaniu bysmy robili
 (define-property+ (cached-extent tile::Tile)::Extent
   (Extent width: 0 height: 0))
 
-(define (extent* tile::Tile)::Extent
+(define (extent+ tile::Tile)::Extent
   (let ((cached ::Extent (cached-extent tile)))
     (unless (is tile extent-cached?)
       (let ((fresh ::Extent (tile:extent)))
