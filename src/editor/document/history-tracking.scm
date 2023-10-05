@@ -1,4 +1,4 @@
-(module-name (editor document history))
+(module-name (editor document history-tracking))
 
 (import (language define-syntax-rule))
 (import (language assert))
@@ -17,20 +17,20 @@
 (import (utils functions))
 (import (language for))
 (import (language while))
-(import (editor interfaces painter))
-(import (extent))
+(import (editor interfaces painting))
+
 (import (editor interfaces indexable))
 (import (editor types primitive))
-(import (editor types space))
+(import (editor types spaces))
 (import (editor document cursor))
 (import (editor document document-operations))
 (import (utils print))
 (import (editor document parse))
 (import (utils string-building))
-(import (editor types text))
+(import (editor types texts))
 (import (editor types comments))
 (import (language examples))
-(import (editor types extensions extension))
+(import (editor types extensions extensions))
 
 (define-interface Edit ()
   (apply! document::pair)::Cursor

@@ -7,10 +7,10 @@
 (import (language define-property))
 (import (language fundamental))
 (import (editor interfaces indexable))
-(import (editor interfaces painter))
-(import (extent))
+(import (editor interfaces painting))
+
 (import (editor types primitive))
-(import (editor types space))
+(import (editor types spaces))
 (import (editor document cursor))
 (import (language assert))
 (import (language match))
@@ -20,10 +20,10 @@
 (import (language keyword-arguments))
 (import (utils print))
 (import (language for))
-(import (editor types text))
+(import (editor types texts))
 (import (editor types comments))
 (import (editor types extensions interactive))
-(import (editor types extensions extension))
+(import (editor types extensions extensions))
 
 ;; extract! returns either a cons-cell whose
 ;; car is the desired object, or a head/tail-separator

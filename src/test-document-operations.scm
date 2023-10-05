@@ -3,10 +3,9 @@
   (language define-type)
   (language define-object)
   (utils conversions)
-  (extent)
   (editor interfaces indexable)
-  (editor interfaces painter)
-  (editor types space)
+  (editor interfaces painting)
+  (editor types spaces)
   (editor document cursor)
   (editor types primitive)
   (editor types extensions combinators)
@@ -21,7 +20,7 @@
   (utils print)
   (editor input pane)
   (editor document document-operations)
-  (editor types text)
+  (editor types texts)
   )
 
 (e.g.

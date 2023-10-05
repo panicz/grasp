@@ -12,7 +12,7 @@
 (import (language fundamental))
 (import (editor interfaces indexable))
 (import (language match))
-(import (editor types space))
+(import (editor types spaces))
 (import (language assert))
 (import (utils functions))
 (import (utils print))

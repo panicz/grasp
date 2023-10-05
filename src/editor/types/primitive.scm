@@ -16,15 +16,15 @@
 (import (language infix))
 (import (language fundamental))
 (import (editor interfaces indexable))
-(import (extent))
-(import (editor types space))
+
+(import (editor types spaces))
 (import (editor document cursor))
 (import (language for))
-(import (editor interfaces painter))
+(import (editor interfaces painting))
 (import (utils functions))
 (import (utils print))
 (import (utils conversions))
-(import (editor types text))
+(import (editor types texts))
 
 (define-property+ (id x)::int
   (override-size id))

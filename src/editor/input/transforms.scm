@@ -1,4 +1,4 @@
-(module-name (editor input transform))
+(module-name (editor input transforms))
 
 (import (language define-type))
 (import (language define-interface))
@@ -9,8 +9,8 @@
 (import (language match))
 (import (language infix))
 (import (language fundamental))
-(import (editor interfaces painter))
-(import (extent))
+(import (editor interfaces painting))
+
 (import (utils print))
 
 (define-interface Map2D ()

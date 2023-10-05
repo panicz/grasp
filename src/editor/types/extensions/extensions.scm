@@ -1,4 +1,4 @@
-(module-name (editor types extensions extension))
+(module-name (editor types extensions extensions))
 
 (import (utils hash-table))
 (import (language define-interface))
@@ -16,8 +16,8 @@
 (import (editor document cursor))
 (import (utils print))
 (import (editor types extensions interactive))
-(import (editor types text))
-(import (editor types space))
+(import (editor types texts))
+(import (editor types spaces))
 
 (define-interface Enchanted (Interactive Tile)
   (as-expression)::cons)

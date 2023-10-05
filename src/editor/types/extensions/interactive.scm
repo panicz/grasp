@@ -4,9 +4,9 @@
 (import (language define-type))
 (import (language define-object))
 (import (language fundamental))
-(import (extent))
+(import  (editor interfaces painting))
 (import (editor interfaces indexable))
-(import (editor input transform))
+(import (editor input transforms))
 
 
 (define-interface Interactive ()

@@ -10,7 +10,7 @@
 (import (utils functions))
 (import (language fundamental))
 (import (editor interfaces indexable))
-(import (editor types space))
+(import (editor types spaces))
 (import (editor types primitive))
 (import (language define-cache))
 (import (utils conversions))

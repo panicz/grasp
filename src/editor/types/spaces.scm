@@ -1,4 +1,4 @@
-(module-name (editor types space))
+(module-name (editor types spaces))
 
 (import (srfi :11))
 (import (language define-type))
@@ -17,8 +17,8 @@
 (import (utils functions))
 (import (language assert))
 (import (utils conversions))
-(import (editor interfaces painter))
-(import (extent))
+(import (editor interfaces painting))
+
 (import (utils print))
 
 (define (fragment-size fragment)

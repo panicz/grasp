@@ -1,4 +1,4 @@
-(module-name (editor types text))
+(module-name (editor types texts))
 
 (import (language define-syntax-rule))
 (import (language assert))
@@ -10,12 +10,12 @@
 (import (language match))
 (import (language examples))
 (import (language infix))
-(import (extent))
+
 (import (language fundamental))
 (import (editor interfaces indexable))
 (import (editor document cursor))
 (import (language for))
-(import (editor interfaces painter))
+(import (editor interfaces painting))
 (import (utils functions))
 (import (utils print))
 

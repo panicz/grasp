@@ -1,10 +1,10 @@
-(module-name (editor input recognizer))
+(module-name (editor input gestures))
 
 (import (language define-type))
 (import (language define-parameter))
 (import (language define-property))
 (import (language define-cache))
-(import (extent))
+(import (editor interfaces painting))
 (import (language examples))
 (import (language for))
 (import (language infix))

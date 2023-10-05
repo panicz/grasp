@@ -5,14 +5,14 @@
 (import (utils functions))
 (import (editor types primitive))
 (import (editor interfaces indexable))
-(import (editor types space))
+(import (editor types spaces))
 (import (editor document cursor))
-(import (editor interfaces painter))
-(import (extent))
+(import (editor interfaces painting))
+
 (import (language match))
 (import (language infix))
 (import (editor types extensions interactive))
-(import (editor types extensions extension))
+(import (editor types extensions extensions))
 
 (define-type (Bordered element: Enchanted)
   implementing Enchanted

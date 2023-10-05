@@ -17,9 +17,9 @@
 (import (utils print))
 (import (utils string-building))
 (import (utils functions))
-(import (extent))
+
 (import (language fundamental))
-(import (editor interfaces painter))
+(import (editor interfaces painting))
 
 ;; the methods provided by these interfaces should be thought of as
 ;; implicitly parameterized with (the-painter), (the-cursor)

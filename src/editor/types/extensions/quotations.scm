@@ -7,15 +7,15 @@
 (import (language match))
 (import (utils functions))
 (import (language fundamental))
-(import (extent))
-(import (editor interfaces painter))
+
+(import (editor interfaces painting))
 (import (editor types primitive))
 (import (editor interfaces indexable))
-(import (editor types text))
-(import (editor types space))
+(import (editor types texts))
+(import (editor types spaces))
 (import (editor document cursor))
 (import (editor types extensions interactive))
-(import (editor types extensions extension))
+(import (editor types extensions extensions))
 (import (utils print))
 
 (define-object (Quotation expression ::Tile)::Enchanted

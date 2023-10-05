@@ -6,7 +6,7 @@
 (import (language infix))
 (import (editor input pane))
 (import (utils functions))
-(import (editor interfaces postponed))
+(import (editor interfaces delayed))
 (import (utils print))
 
 

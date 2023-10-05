@@ -16,14 +16,14 @@
 (import (language infix))
 (import (language examples))
 (import (editor interfaces indexable))
-(import (editor types space))
-(import (editor types text))
+(import (editor types spaces))
+(import (editor types texts))
 (import (language match))
 (import (editor types comments))
 (import (editor document cursor))
 (import (utils print))
 (import (editor types extensions interactive))
-(import (editor types extensions extension))
+(import (editor types extensions extensions))
 (import (editor types extensions quotations))
 
 (define (separator? c)::boolean

@@ -7,7 +7,7 @@
   (language infix)
   (language match)
   (editor types primitive)
-  (editor types space)
+  (editor types spaces)
   (editor document parse)
   (language examples)
   (utils conversions)

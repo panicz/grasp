@@ -1,4 +1,4 @@
-(module-name (editor interfaces postponed))
+(module-name (editor interfaces delayed))
 
 (import (language define-interface))
 (import (language define-object))

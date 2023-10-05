@@ -13,7 +13,7 @@
 (import (language infix))
 (import (language match))
 
-(import (editor interfaces painter))
+(import (editor interfaces painting))
 
 ;(import (utils functions))
 ;(import (language for))
@@ -26,7 +26,7 @@
 (import (editor types primitive))
 (import (editor document cursor))
 (import (editor input input))
-(import (extent))
+
 (import (utils conversions))
 (import (editor document parse))
 (import (editor document editor-operations))
