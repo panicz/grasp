@@ -1,3 +1,65 @@
+* 04.10.2023
+
+wyglada na to, ze restrukturyzacja sie powiodla - poza modulem
+(extent), ktorym musielibysmy sie zajac
+
+i przy okazji bysmy chcieli zrobic cache'owanie:
+
+#+BEGIN_SRC scheme
+(define-property (extent-cached? tile::Tile)::boolean
+  #f)
+#+END_SRC
+
+i przy renderowaniu bysmy robili
+
+#+BEGIN_SRC scheme
+(define-property+ (cached-extent tile::Tile)::Extent
+  (Extent width: 0 height: 0))
+
+(define (extent* tile::Tile)::Extent
+  (let ((cached ::Extent (cached-extent tile)))
+    (unless (is tile extent-cached?)
+      (let ((fresh ::Extent (tile:extent)))
+        (cached:assign fresh)
+	(set! (extent-cached? tile) #t)))
+    cached))
+#+END_SRC
+
+i na poczatku renderowania dokumentu bysmy robili
+
+#+BEGIN_SRC scheme
+(reset! extent-cached?)
+#+END_SRC
+
+tadam!
+
+poza tym trzeba w ramach restrukturyzacji zrobic jeszcze jedna zmiane,
+mianowicie pozmieniac nazwy modulow. Tak na szybko:
+
+#+BEGIN_SRC bash
+./rename-module.sh "(editor types space)" "(editor types spaces)"
+# ./rename-module.sh "(extent)" "(editor types measurements)"
+./rename-module.sh "(editor types text)" "(editor types texts)"
+./rename-module.sh "(editor types extensions extension)" "(editor types extensions extensions)"
+./rename-module.sh "(editor interfaces painter)" "(editor interfaces painting)"
+./rename-module.sh "(editor interfaces postponed)" "(editor interfaces delayed)"
+./rename-module.sh "(editor types extensions button)" "(editor types extensions widgets)"
+./rename-module.sh "(editor input recognizer)" "(editor input gestures)"
+./rename-module.sh "(editor input transform)" "(editor input transforms)"
+./rename-module.sh "(editor types extensions stepper)" "(editor types extensions visual-stepper)"
+./rename-module.sh "(editor document history)" "(editor document history-tracking)"
+#+END_SRC
+
+mozna rozwazyc napisanie skryptu
+
+no dobra, wydaje sie ze wiekszosc rzeczy juz tu mamy zalatwione,
+jeszcze pozostaje nam nieco problematyczny (extent).
+
+Na razie pomysl jest taki, zeby zawartosc tego modulu przeniesc do
+(editor interfaces painting), ale czy to sie uda?
+
+Sie udalo. To teraz jutro zrobimy to cache'owanie.
+
 * 02.10.2023
 
 zaczniemy od zmodyfikowania skryptu analdep.scm w taki sposob,
