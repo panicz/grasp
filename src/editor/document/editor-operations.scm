@@ -4,7 +4,7 @@
 (import (language keyword-arguments))
 (import (utils functions))
 (import (language fundamental))
-(import (editor interfaces indexable))
+(import (editor interfaces elements))
 (import (editor types spaces))
 (import (editor document cursor))
 (import (editor types primitive))

@@ -10,7 +10,7 @@
 (import (editor interfaces painting))
 (import (language define-object))
 (import (language define-type))
-(import (editor interfaces indexable))
+(import (editor interfaces elements))
 (import (editor document cursor))
 (import (language match))
 (import (editor types spaces))

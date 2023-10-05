@@ -15,7 +15,7 @@
 (import (language examples))
 (import (language infix))
 (import (language fundamental))
-(import (editor interfaces indexable))
+(import (editor interfaces elements))
 
 (import (editor types spaces))
 (import (editor document cursor))

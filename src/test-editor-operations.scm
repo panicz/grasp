@@ -6,12 +6,12 @@
  (language define-type)
  (language define-object)
  (utils conversions)
- (editor interfaces indexable)
+ (editor interfaces elements)
  (editor types spaces)
  (editor document cursor)
  (editor types primitive)
  (editor text-painter)
- (editor types extensions interactive)
+ (editor types extensions interactions)
  (editor types extensions extensions)
  (editor types extensions combinators)
  (editor document parse)
@@ -28,7 +28,7 @@
  (editor document history-tracking)
  (editor interfaces painting)
  (editor text-painter)
- (editor document document)
+ (editor document documents)
  )
 
 

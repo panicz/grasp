@@ -1,4 +1,4 @@
-(module-name (editor document document))
+(module-name (editor document documents))
 
 (import (language define-type))
 (import (language define-object))
@@ -9,7 +9,7 @@
 (import (srfi :11))
 (import (utils functions))
 (import (language fundamental))
-(import (editor interfaces indexable))
+(import (editor interfaces elements))
 (import (editor types spaces))
 (import (editor types primitive))
 (import (language define-cache))

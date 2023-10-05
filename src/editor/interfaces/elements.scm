@@ -1,4 +1,4 @@
-(module-name (editor interfaces indexable))
+(module-name (editor interfaces elements))
 
 (import (srfi :11))
 (import (srfi :17))

@@ -19,7 +19,7 @@
 (import (language while))
 (import (editor interfaces painting))
 
-(import (editor interfaces indexable))
+(import (editor interfaces elements))
 (import (editor types primitive))
 (import (editor types spaces))
 (import (editor document cursor))

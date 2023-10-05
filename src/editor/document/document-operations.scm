@@ -6,7 +6,7 @@
 (import (utils hash-table))
 (import (language define-property))
 (import (language fundamental))
-(import (editor interfaces indexable))
+(import (editor interfaces elements))
 (import (editor interfaces painting))
 
 (import (editor types primitive))
@@ -22,7 +22,7 @@
 (import (language for))
 (import (editor types texts))
 (import (editor types comments))
-(import (editor types extensions interactive))
+(import (editor types extensions interactions))
 (import (editor types extensions extensions))
 
 ;; extract! returns either a cons-cell whose

@@ -9,7 +9,7 @@
 (import (language define-cache))
 (import (language keyword-arguments))
 (import (language fundamental))
-(import (editor interfaces indexable))
+(import (editor interfaces elements))
 (import (language infix))
 (import (language examples))
 (import (language match))

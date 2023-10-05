@@ -23,7 +23,7 @@
 (define-alias Null java.lang.Object)
 
 ;; Tile* means a Tile or a #!null, but currently Kawa's
-;; type system doesn't let us express that (see (editor interfaces indexable)).
+;; type system doesn't let us express that (see (editor interfaces elements)).
 (define-alias Tile* java.lang.Object)
 
 (define-alias List java.util.List)

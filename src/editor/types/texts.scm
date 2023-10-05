@@ -12,7 +12,7 @@
 (import (language infix))
 
 (import (language fundamental))
-(import (editor interfaces indexable))
+(import (editor interfaces elements))
 (import (editor document cursor))
 (import (language for))
 (import (editor interfaces painting))

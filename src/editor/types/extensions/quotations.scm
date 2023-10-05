@@ -10,11 +10,11 @@
 
 (import (editor interfaces painting))
 (import (editor types primitive))
-(import (editor interfaces indexable))
+(import (editor interfaces elements))
 (import (editor types texts))
 (import (editor types spaces))
 (import (editor document cursor))
-(import (editor types extensions interactive))
+(import (editor types extensions interactions))
 (import (editor types extensions extensions))
 (import (utils print))
 

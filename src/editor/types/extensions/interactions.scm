@@ -1,11 +1,11 @@
-(module-name (editor types extensions interactive))
+(module-name (editor types extensions interactions))
 
 (import (language define-interface))
 (import (language define-type))
 (import (language define-object))
 (import (language fundamental))
 (import  (editor interfaces painting))
-(import (editor interfaces indexable))
+(import (editor interfaces elements))
 (import (editor input transforms))
 
 

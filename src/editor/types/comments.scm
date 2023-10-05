@@ -5,7 +5,7 @@
 (import (language define-type))
 (import (language define-interface))
 (import (language fundamental))
-(import (editor interfaces indexable))
+(import (editor interfaces elements))
 (import (editor types spaces))
 (import (editor types texts))
 (import (language match))

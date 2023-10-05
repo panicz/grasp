@@ -3,7 +3,7 @@
   (language define-type)
   (language define-object)
   (utils conversions)
-  (editor interfaces indexable)
+  (editor interfaces elements)
   (editor interfaces painting)
   (editor types spaces)
   (editor document cursor)

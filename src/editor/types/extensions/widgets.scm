@@ -1,4 +1,4 @@
-(module-name (editor types extensions button))
+(module-name (editor types extensions widgets))
 
 (import (language define-interface))
 (import (language define-type))
@@ -8,7 +8,7 @@
 (import (language infix))
 (import (utils functions))
 (import (language fundamental))
-(import (editor interfaces indexable))
+(import (editor interfaces elements))
 (import (editor interfaces painting))
 (import (editor document cursor))
 (import (editor types primitive))

@@ -10,7 +10,7 @@
 (import (language keyword-arguments))
 (import (language infix))
 (import (language fundamental))
-(import (editor interfaces indexable))
+(import (editor interfaces elements))
 (import (language match))
 (import (editor types spaces))
 (import (language assert))

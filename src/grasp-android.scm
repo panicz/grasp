@@ -15,9 +15,9 @@
 (import (language for))
 (import (language while))
 (import (editor input transforms))
-(import (editor types extensions interactive))
+(import (editor types extensions interactions))
 (import (editor input pane))
-(import (editor interfaces indexable))
+(import (editor interfaces elements))
 (import (editor interfaces painting))
 (import (utils print))
 
@@ -33,7 +33,7 @@
 (import (editor document history-tracking))
 ;;(import (editor types primitive))
 (import (editor types extensions extensions))
-(import (editor types extensions button))
+(import (editor types extensions widgets))
 (import (editor types extensions visual-stepper))
 
 

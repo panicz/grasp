@@ -20,7 +20,7 @@
 ;(import (language while))
 #|
 (import (editor input pane))
-(import (editor interfaces indexable))
+(import (editor interfaces elements))
 
 (import (utils print))
 (import (editor types primitive))

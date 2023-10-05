@@ -6,7 +6,7 @@
  (language define-type)
  (language define-object)
  (utils conversions)
- (editor interfaces indexable)
+ (editor interfaces elements)
  (editor types spaces)
  (editor document cursor)
  (editor types primitive)

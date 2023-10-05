@@ -3,7 +3,7 @@
   (language define-type)
   (language define-object)
   (utils conversions)
-  (editor interfaces indexable)
+  (editor interfaces elements)
   (language infix)
   (language match)
   (editor types primitive)
