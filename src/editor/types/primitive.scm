@@ -94,16 +94,18 @@
 
   (define (draw! context::Cursor)
     ::void
-    (invoke (the-painter) 'draw-atom!
-	    name
-	    ;;(string-append name "/" (number->string (id (this))))
-	    context))
+    (let ((painter ::Painter (the-painter)))
+      (painter:draw-atom!
+       name
+       ;;(string-append name "/" (number->string (id (this))))
+       context)))
 
   (define (extent)::Extent
-    (invoke (the-painter) 'atom-extent
-	    name
-	    ;;(string-append name "/" (number->string (id (this))))
-	    ))
+    (let ((painter ::Painter (the-painter)))
+      (painter:atom-extent
+       name
+       ;;(string-append name "/" (number->string (id (this))))
+       )))
 
   (define (part-at index::Index)::Indexable*
     (this))
@@ -127,13 +129,15 @@
   (define (insert-char! c::char index::int)::void
     (builder:insert index c)
     (set! cache #!null)
-    (set! name (invoke (builder:toString) 'intern)))
+    (let ((s ::String (builder:toString)))
+      (set! name (s:intern))))
 
   (define (delete-char! index::int)::char
     (let ((result (builder:charAt index)))
       (builder:deleteCharAt index)
       (set! cache #!null)
-      (set! name (invoke (builder:toString) 'intern))
+      (let ((s ::String (builder:toString)))
+	(set! name (s:intern)))
       result))
 
   (define (char-ref index::int)::char
@@ -143,14 +147,16 @@
     (let ((reminent ::Atom (Atom (name:substring position))))
       (builder:setLength position)
       (set! cache #!null)
-      (set! name (invoke (builder:toString) 'intern))
+      (let ((s ::String (builder:toString)))
+	(set! name (s:intern)))
       reminent))
 
   (define (merge! next::Textual)::boolean
     (and-let* ((next ::Atom next))
       (builder:append next:builder)
       (set! cache #!null)
-      (set! name (invoke (builder:toString) 'intern))
+      (let ((s ::String (builder:toString)))
+	(set! name (s:intern)))
       #t))
 
   (define (text-length)::int
@@ -221,26 +227,27 @@
 
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
     (otherwise #!null
-      (let ((inner (sequence-extent (this)))
-	    (paren-width (invoke (the-painter) 'paren-width)))
+      (let* ((inner (sequence-extent (this)))
+	     (painter ::Painter (the-painter))
+	     (paren-width (painter:paren-width)))
 
-	(and (is 0 <= y < inner:height)
-	     (or (and (is 0 <= x < paren-width)
-		      (recons (first-index) path))
+      (and (is 0 <= y < inner:height)
+	   (or (and (is 0 <= x < paren-width)
+		    (recons (first-index) path))
 
-		 (and (is 0 <= (- x paren-width) < inner:width)
-		      (cursor-under (- x paren-width) y
-				    (this) context: path))
-		 (and (is 0 <= (- x paren-width inner:width)
-			  < paren-width)
-		      (recons (last-index) path)))))))
+	       (and (is 0 <= (- x paren-width) < inner:width)
+		    (cursor-under (- x paren-width) y
+				  (this) context: path))
+	       (and (is 0 <= (- x paren-width inner:width)
+			< paren-width)
+		    (recons (last-index) path)))))))
 
   (define (extent)::Extent
     (let ((extent ::Extent (sequence-extent
-			    (this))))
+			    (this)))
+	  (painter ::Painter (the-painter)))
       (Extent width: (+ extent:width
-			(* 2 (invoke (the-painter)
-				     'paren-width)))
+			(* 2 (painter:paren-width)))
 	      height: extent:height)))
 
   (define (part-at index::Index)::Indexable*
@@ -283,14 +290,16 @@
     (let ((element (invoke-special pair (this) 'getCar)))
       (if (and (evaluating?)
 	       (is element Shadowed?))
-	  (invoke (as Shadowed element) 'value)
+	  (let ((shadowed ::Shadowed element))
+	    (shadowed:value))
 	  element)))
 
   (define (getCdr)
     (let ((element (invoke-special pair (this) 'getCdr)))
       (if (and (evaluating?)
 	       (is element Shadowed?))
-	  (invoke (as Shadowed element) 'value)
+	  (let ((shadowed ::Shadowed element))
+	    (shadowed:value))
 	  element)))
 
   (define (clone)::Element
@@ -335,9 +344,10 @@
 
 (define (empty-space-extent space::Space)
   ::Extent
-  (Extent width: (apply max space:fragments)
-	  height: (* (invoke (the-painter) 'min-box-height)
-		     (length space:fragments))))
+  (let ((painter ::Painter (the-painter)))
+    (Extent width: (apply max space:fragments)
+	    height: (* (painter:min-box-height)
+		       (length space:fragments)))))
 
 (define/kw (traverse sequence::list
 		     doing: action ::(maps (Element Traversal)
@@ -432,7 +442,7 @@
   ::void
   (let ((painter (the-painter)))
     (cond ((instance? object Element)
-	   (let ((element (as Element object)))
+	   (let ((element ::Element object))
 	     (element:draw! context)))
 
 	  ((null? object)
@@ -489,7 +499,7 @@
 	(number::integer
 	 (* number space-width))
 	(comment::Comment
-	 (let ((extent ::Extent (comment:extent)))
+	 (let ((extent ::Extent (extent+ comment)))
 	   extent:width))))
 
     (call/cc
@@ -576,24 +586,3 @@
 			  height: (+ traversal:top
 				     traversal:max-line-height))))))
 
-(define (extent object)
-  ::Extent
-  (cond ((instance? object Tile)
-	 (invoke (as Tile object) 'extent))
-
-	((null? object)
-	 (Extent width: 0 height: (invoke (the-painter)
-					  'min-box-height)))
-
-	((pair? object)
-	 (sequence-extent object))
-
-	((symbol? object)
-	 (invoke (the-painter) 'atom-extent
-		 (symbol->string object)))
-
-	(else
-	 (invoke (the-painter) 'atom-extent
-		 (with-output-to-string
-		   (lambda () (write object)))))
-	))

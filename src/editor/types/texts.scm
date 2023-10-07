@@ -22,12 +22,14 @@
 (define-object (Text)::TextualTile
 
   (define (draw! context::Cursor)
-    (invoke (the-painter) 'draw-quoted-text!
-	    (this)
-	    context))
+    (let ((painter ::Painter (the-painter)))
+      (painter:draw-quoted-text!
+       (this)
+       context)))
 
   (define (extent)::Extent
-    (invoke (the-painter) 'quoted-text-extent (this)))
+    (let ((painter ::Painter (the-painter)))
+      (painter:quoted-text-extent (this))))
 
   (define (part-at index::Index)::Indexable*
     (this))

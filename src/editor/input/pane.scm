@@ -71,6 +71,7 @@
   (define (content)::Pane top)
 
   (define (draw!)::void
+    (reset! extent-cached?)
     (parameterize ((the-pane-width extent:width)
 		   (the-pane-height extent:height))
       (top:draw!)
@@ -250,7 +251,7 @@
 
   (define position ::Position (screen-position box))
 
-  (define initial ::Extent (copy (extent box)))
+  (define initial ::Extent (copy (extent+ box)))
 
   (define ending ::LineEnding
     (line-ending-embracing anchor #;from box))
@@ -263,7 +264,7 @@
        (resize! box target-width target-height ending))))
 
   (define (drop! x::real y::real vx::real vy::real)::void
-    (let ((final ::Extent (extent box))
+    (let ((final ::Extent (extent+ box))
 	  (history ::History (history (the-document))))
       (when (isnt final equal? initial)
 	(history:record! (ResizeBox at: path
@@ -734,7 +735,7 @@
          (content ::Enchanted pop-up:content)
 	 (left ::real pop-up:left)
 	 (top ::real pop-up:top)
-         (inner ::Extent (content:extent))
+         (inner ::Extent (extent+ content))
 	 (horizontal ::real (painter:horizontal-popup-margin))
 	 (vertical ::real (painter:vertical-popup-margin))
 	 (inner-left ::real (+ left horizontal))
@@ -809,7 +810,7 @@
 
   ((draw! context::Cursor)::void
    (let* ((painter ::Painter (the-painter))
-	  (inner ::Extent (content:extent))
+	  (inner ::Extent (extent+ content))
 	  (horizontal ::real (painter:horizontal-popup-margin))
 	  (vertical ::real (painter:vertical-popup-margin)))
      (with-translation (left top)
@@ -854,7 +855,7 @@
 
   ((extent)::Extent
    (let ((painter ::Painter (the-painter))
-	 (inner ::Extent (content:extent)))
+	 (inner ::Extent (extent+ content)))
      (Extent width: (+ inner:width
 		       (* 2 (painter:horizontal-popup-margin)))
 	     height: (+ inner:height
@@ -884,7 +885,7 @@
   implementing Drag
   with
   ((move! x::real y::real dx::real dy::real)::void
-   (let ((inner ::Extent (content:extent)))
+   (let ((inner ::Extent (extent+ content)))
      (set! left (max 0 (min (- inner:width width) (- left dx))))
      (set! top (max 0 (min (- inner:height height) (- top dy))))))
 
@@ -942,7 +943,7 @@
 
 (define (text-field width::real content::CharSequence)::Scroll
   (let* ((input ::TextInput (text-input content))
-	 (inner ::Extent (input:extent))
+	 (inner ::Extent (extent+ input))
 	 (scroll ::Scroll (Scroll width: width
 				  height: inner:height
 				  content: input)))
@@ -950,12 +951,12 @@
 
 (define (popup-scroll content::Enchanted)::PopUp
   (let* ((content ::Enchanted content)
-	 (inner ::Extent (content:extent))
+	 (inner ::Extent (extent+ content))
 	 (scroll ::Scroll (Scroll width: inner:width
 				  height: inner:height
 				  content: content))
          (popup (PopUp content: scroll))
-	 (outer ::Extent (popup:extent))
+	 (outer ::Extent (extent+ popup))
 	 (available ::Extent (screen:size)))
     (set! scroll:width (- scroll:width
                           (max 0 (- outer:width
@@ -1034,18 +1035,18 @@
 				     dir
 			             text-field:content
                                      editor)))))
-	 (inner ::Extent (files:extent))
+	 (inner ::Extent (extent+ files))
 	 (browser ::Scroll (Scroll content: files
 				   width: inner:width
 				   height: inner:height))
 	 (top (Beside left: text-field right: button))
-	 (upper ::Extent (top:extent))
+	 (upper ::Extent (extent+ top))
 	 (content (Below top: top
                          bottom: browser))
          (popup (PopUp content: content))
-	 (outer ::Extent (popup:extent))
+	 (outer ::Extent (extent+ popup))
 	 (available ::Extent (screen:size))
-	 (button-size ::Extent (button:extent)))
+	 (button-size ::Extent (extent+ button)))
     (set! browser:width (- browser:width
                            (max 0 (- outer:width
 			             available:width))))
@@ -1272,7 +1273,7 @@
 
 	   ((and (is target cons?)
 		 (eqv? tip (target:last-index)))
-	    (let ((extent ::Extent (extent target)))
+	    (let ((extent ::Extent (extent+ target)))
 	      (screen:drag! finger
 			    (Resize target subpath
 				    (- ye position:top)))))
@@ -1331,7 +1332,7 @@
 	 (Transition of: transform
 		     from: (copy transform)
 		     to: (let ((target ::Transform (copy transform))
-			       (document ::Extent (extent document))
+			       (document ::Extent (extent+ document))
 			       (screen ::Extent (screen:size)))
 			   (target:set-left! 0.0)
 			   (target:set-top! 0.0)
@@ -1391,9 +1392,9 @@
 		,(Link content: (Caption "Close")
 		       on-tap: (lambda _ (WARN "Close") #t))
 		)))
-	    (inner ::Extent (content:extent))
+	    (inner ::Extent (extent+ content))
 	    (window ::PopUp (PopUp content: content))
-	    (inner ::Extent (window:extent))
+	    (inner ::Extent (extent+ window))
 	    (outer ::Extent (screen:size)))
        (set! window:left
 	     (max 0 (min (- outer:width inner:width)

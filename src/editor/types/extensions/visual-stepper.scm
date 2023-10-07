@@ -113,8 +113,8 @@
 
      ((and (gnu.lists.LList? foreground)
 	   (gnu.lists.LList? background))
-      (let* ((e0 ::Extent (extent foreground))
-	     (e1 ::Extent (extent background))
+      (let* ((e0 ::Extent (extent+ foreground))
+	     (e1 ::Extent (extent+ background))
 	     (width ::real (linear-interpolation
 			    from: e0:width to: e1:width
 			    at: (- 1 progress)))
@@ -136,8 +136,8 @@
 			       only-with-relatives?: only-with-relatives?)))))
      ((and (Tile? foreground)
 	   (Tile? background))
-      (let* ((e0 ::Extent (extent foreground))
-	     (e1 ::Extent (extent background))
+      (let* ((e0 ::Extent (extent+ foreground))
+	     (e1 ::Extent (extent+ background))
 	     (width ::real (linear-interpolation
 			    from: e0:width to: e1:width
 			    at: (- 1 progress)))
@@ -175,7 +175,7 @@
      (lambda ()
        (with-translation (p:left p:top)
 	 (if (gnu.lists.LList? expression)
-	     (let ((outer ::Extent (extent expression)))
+	     (let ((outer ::Extent (extent+ expression)))
 	       (painter:draw-box! outer:width outer:height '()))
 	     (draw! expression)))))))
 
@@ -242,13 +242,13 @@
     (measure-positions! initial))
 
   (define initial-extent ::Extent
-    (initial:extent))
+    (extent+ initial))
 
   (define final-position ::(maps (Element) to: Position)
     (measure-positions! final))
 
   (define final-extent ::Extent
-    (final:extent))
+    (extent+ final))
 
   (define maximum-extent ::Extent
     (Extent width: (max initial-extent:width
@@ -796,10 +796,10 @@
     (cons (Atom "Stepper") (cons initial-expression '())))
 
   (define max-extent ::Extent
-    (current-morph:extent))
+    (extent+ current-morph))
   
   (define (extent)::Extent
-    (let ((current ::Extent (current-morph:extent)))
+    (let ((current ::Extent (extent+ current-morph)))
       (set! max-extent:width (max max-extent:width current:width))
       (set! max-extent:height (max max-extent:height current:height))
       max-extent))

@@ -12,7 +12,8 @@
 		  (($bracket-apply$ make-weak-key-hash-table
 				    key-type value-type))))
        (define (create table::java.util.WeakHashMap)
-         (let ((getter (lambda (object::key-type)
+         (let ((getter ::procedure
+		       (lambda (object::key-type)
                          (hash-ref table object
 				   (lambda () default)))))
            (set! (setter getter)
@@ -48,8 +49,9 @@
 		  (($bracket-apply$ make-weak-key-hash-table
 				    key-type value-type))))
        (define (create table::java.util.WeakHashMap)
-         (let ((getter (lambda (object::key-type)
-                         (hash-ref+ table object
+         (let ((getter ::procedure
+		       (lambda (object::key-type)
+			 (hash-ref+ table object
 				    (lambda () default)))))
            (set! (setter getter)
 		 (lambda (arg::key-type value::value-type)

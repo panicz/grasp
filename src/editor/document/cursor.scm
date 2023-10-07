@@ -85,8 +85,8 @@
 
 (define (part-at index::Index object)::Indexable*
   (cond ((Indexable? object)
-	 (invoke (as Indexable object)
-		 'part-at index))
+	 (let ((x :: Indexable object))
+	   (x:part-at index)))
 
 	((pair? object)
 	 (if (or (eq? index #\[) (eq? index #\]))
@@ -167,8 +167,8 @@
 
 (define (first-index object)
   (cond ((Indexable? object)
-	 (invoke (as Indexable object)
-		 'first-index))
+ 	 (let ((x :: Indexable object))
+	   (x:first-index)))
 
 	((string? object)
 	 0)
@@ -182,7 +182,8 @@
 
 (define (last-index object)
   (cond ((Indexable? object)
-	 (invoke (as Indexable object) 'last-index))
+	 (let ((x :: Indexable object))
+	   (x:last-index)))
 
 	((string? object)
 	 (string-length (as string object)))
@@ -196,8 +197,8 @@
 
 (define (next-index index::Index object)::Index
   (cond ((Indexable? object)
-	 (invoke (as Indexable object)
-		 'next-index index))
+	 (let ((x :: Indexable object))
+	   (x:next-index index)))
 
 	((string? object)
 	 (min (last-index object) (+ index 1)))
@@ -217,8 +218,8 @@
 
 (define (previous-index index::Index object)::Index
   (cond ((Indexable? object)
-	 (invoke (as Indexable object)
-		 'previous-index index))
+	 (let ((x :: Indexable object))
+	   (x:previous-index index)))
 
 	((string? object)
 	 (max 0 (- index 1)))

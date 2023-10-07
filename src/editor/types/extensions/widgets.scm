@@ -28,7 +28,7 @@
            (max-width ::real 0)
            (total-height ::real grid-border))
       (for item::Enchanted in items
-        (let ((inner ::Extent (item:extent)))
+        (let ((inner ::Extent (extent+ item)))
           (set! max-width (max max-width inner:width))
 	  (set! total-height
 	        (+ total-height inner:height grid-border))))
@@ -43,7 +43,7 @@
            (x0 ::real (painter:current-translation-left))
 	   (y0 ::real (painter:current-translation-top)))
       (for item::Enchanted in items
-	(let ((inner ::Extent (item:extent)))
+	(let ((inner ::Extent (extent+ item)))
 	  (painter:fill-grid-cell! total:width (+ inner:height
 						  (* 2 grid-border)))
 	  (painter:draw-horizontal-grid! total:width)
@@ -73,7 +73,7 @@
       (call/cc
        (lambda (return)
          (for item::Enchanted in items
-	   (let ((inner ::Extent (item:extent)))
+	   (let ((inner ::Extent (extent+ item)))
 	     (when (is ceiling <= y < (+ ceiling inner:height))
 	       (return (action item finger
 			       (- x grid-border) (- y ceiling)
@@ -226,10 +226,11 @@
    (on-key-typed (this) key-code context))
 
   ((draw! context::Cursor)::void
-   (invoke content 'draw! (recons (first-index) context)))
+   (let ((tile ::Tile content))
+     (tile:draw! (recons (first-index) context))))
 
   ((extent)::Extent
-   (content:extent))
+   (extent+ content))
 
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
    (content:cursor-under* x y (recons (first-index) path)))
@@ -388,17 +389,18 @@
 (define-object (TextInput)::Enchanted
 
   (define (draw! context::Cursor)
-    (invoke (the-painter) 'draw-text-input!
-	    (this)
-	    context))
+    (let ((painter ::Painter (the-painter)))
+      (painter:draw-text-input! (this) context)))
 
   (define (extent)::Extent
-    (invoke (the-painter) 'text-input-extent (this)))
+    (let ((painter ::Painter (the-painter)))
+      (painter:text-input-extent (this))))
 
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
-    (recons path
-	    (invoke (the-painter) 'text-input-character-index-under
-	    x y (this))))
+    (let ((painter ::Painter (the-painter)))
+      (recons path
+	      (painter:text-input-character-index-under
+	       x y (this)))))
 
   (define (part-at index::Index)::Indexable* (this))
 

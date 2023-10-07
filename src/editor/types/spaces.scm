@@ -228,7 +228,8 @@
 		  (equal? (cdr selection-end) context)
 		  (integer? (car selection-end))))
 	    (space-width ::real (painter:space-width))
-	    (t ::Traversal (invoke (the-traversal) 'clone))
+	    (t0 ::Traversal (the-traversal))
+	    (t ::Traversal (t0:clone))
 	    (left ::real t:left)
 	    (top ::real t:top))
        (let skip ((input ::list fragments)
@@ -606,11 +607,12 @@
 
   (define width :: real 0)
   (define (draw! context::Cursor)::void
-   (invoke (the-painter) 'draw-horizontal-bar! width))
+    (let ((painter ::Painter (the-painter)))
+      (painter:draw-horizontal-bar! width)))
   (define (extent)::Extent
-    (Extent width: width
-	    height: (invoke (the-painter)
-			    'horizontal-bar-height)))
+    (let ((painter ::Painter (the-painter)))
+      (Extent width: width
+	      height: (painter:horizontal-bar-height))))
 
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
     (otherwise #!null
@@ -626,11 +628,13 @@
 
   (define height :: real 0)
   (define (draw! context::Cursor)::void
-    (invoke (the-painter) 'draw-vertical-bar! height))
+    (let ((painter ::Painter (the-painter)))
+      (painter:draw-vertical-bar! height)))
 
   (define (extent)::Extent
-    (Extent width: (invoke (the-painter) 'vertical-bar-width)
-	    height: height))
+    (let ((painter ::Painter (the-painter)))
+      (Extent width: (painter:vertical-bar-width)
+	      height: height)))
 
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
     (otherwise #!null

@@ -148,7 +148,7 @@
 	 (space-width ::real (painter:space-width))
 	 (paren-width ::real (painter:paren-width))
 	 (last-space ::Space (last-space box))
-	 (prior ::Extent (extent box)))
+	 (prior ::Extent (extent+ box)))
     (define (set-width!)
       (traverse
        box doing:

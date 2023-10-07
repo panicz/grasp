@@ -16,9 +16,6 @@
       (and (Matchable? a)
 	   (let ((a ::Matchable a))
 	     (a:matches? b)))
-      (and (Matchable? b)
-	   (let ((b ::Matchable b))
-	     (b:matches? a)))
       ;; this extension is used so that the EmptyListProxy
       ;; objects (defined in the (editor types spaces) module) are
       ;; indistinguishable from '() in the pattern context

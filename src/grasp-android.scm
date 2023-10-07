@@ -1282,7 +1282,7 @@
     (set! canvas c)
     (clear!)
     (screen:draw!)
-    (invoke (current-message-handler)
+    #;(invoke (current-message-handler)
 	    'display-messages canvas))
 
   (define pending-animations

@@ -25,6 +25,20 @@
 ;; implicitly parameterized with (the-painter), (the-cursor)
 ;; and (the-selection-anchor) parameters
 
+(define-property (extent-cached? tile::Tile)::boolean
+  #f)
+
+(define-property+ (cached-extent tile::Tile)::Extent
+  (Extent width: 0 height: 0))
+
+(define (extent+ tile::Tile)::Extent
+  (let ((cached ::Extent (cached-extent tile)))
+    (unless (is tile extent-cached?)
+      (let ((fresh ::Extent (tile:extent)))
+        (cached:assign fresh)
+	(set! (extent-cached? tile) #t)))
+    cached))
+
 (define-type (Traversal left: real := 0
 			top: real := 0
 			index: int := 0
@@ -34,9 +48,10 @@
   ((advance! element::Element)::void
    (cond
     ((Expandable? element)
-     (invoke (as Expandable element) 'expand! (this)))
+     (let ((x ::Expandable element))
+       (x:expand! (this))))
     ((Tile? element)
-     (expand! (invoke (as Tile element) 'extent)))
+     (expand! (extent+ (as Tile element))))
     (else
      (error "Unable to advance over "element)))
    (set! index (+ index 1)))
@@ -51,10 +66,10 @@
 			      max-line-height)))
 
   ((new-line!)::void
-   (set! top (+ top max-line-height))
-   (set! left 0)
-   (set! max-line-height (invoke (the-painter)
-				 'min-line-height)))
+   (let ((painter ::Painter (the-painter)))
+     (set! top (+ top max-line-height))
+     (set! left 0)
+     (set! max-line-height (painter:min-line-height))))
 
   )
 

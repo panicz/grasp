@@ -97,7 +97,7 @@
 		       context)
 	    (with-translation (paren-width 0)
 	      (draw-sequence! expression context: context)))
-	  (let* ((inner ::Extent (expression:extent))
+	  (let* ((inner ::Extent (extent+ expression))
 		 (marker-width (marker-width painter)))
 	    (draw-markers! painter
 			   inner:width
@@ -110,7 +110,7 @@
     (let* ((painter ::Painter (the-painter))
 	   (inner ::Extent (if (gnu.lists.LList? expression)
 			       (sequence-extent expression)
-			       (expression:extent)))
+			       (extent+ expression)))
 	   (lag-width ::real (if (gnu.lists.LList? expression)
 				 (paren-width painter)
 				 (marker-width painter)))
@@ -134,7 +134,7 @@
     (let* ((painter ::Painter (the-painter))
 	   (inner ::Extent (if (gnu.lists.LList? expression)
 			       (sequence-extent expression)
-			       (expression:extent)))
+			       (extent+ expression)))
 	   (lag-width ::real (if (gnu.lists.LList? expression)
 				 (paren-width painter)
 				 (marker-width painter))))
