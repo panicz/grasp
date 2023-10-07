@@ -1,3 +1,11 @@
+* 06.10.2023
+
+kilka idei:
+- wybieraczka do pliku na androidzie
+- wybieraczka do pliku na desktopie
+- 
+
+
 * 05.10.2023
 
 jeszcze mamy prawdopodobnie 2 moduly (co powinnismy
