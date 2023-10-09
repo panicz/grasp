@@ -1,10 +1,66 @@
+* 08.10.2023
+
+No dobra, to teraz plan jest taki, zeby:
+
+- zdarzenie od mouse-wheela bylo traktowane jako page-up/page-down
+- zaimplementowac funkcje scroll-up! i scroll-down! 
+  oraz scroll-left! i scroll-right!
+- zaimplementowac funkcje zoom-in! i zoom-out!
+- obsluzyc rolke myszki w kliencie terminalowym
+
+* 07.10.2023
+
+no dobra, to teraz plan chyba powinien byc jasny, mianowicie
+w najblizszym czasie chcemy miec zoomowanie i scrollowanie
+za pomoca rolki myszki, oraz mozliwosc ewaluacji (i to sie
+powinno wydarzac w nadchodzacym tygodniu)
+
+przy okazji chcemy tez obsluzyc page up/down oraz
+gest ewaluacji
+
+a jak to sie uda, to sie zajmiemy bugami w cursor-under
+oraz renderowaniem krawedzi dokumentu, i refaktoryzacja
+kombinatorow
+
+scrollowanie do gory:
+java.awt.event.MouseWheelEvent[MOUSE_WHEEL,(409,257),absolute(415,284),button=0,clickCount=1,scrollType=WHEEL_UNIT_SCROLL,scrollAmount=3,wheelRotation=1,preciseWheelRotation=1.0] on GRASP[,0,0,564x383,alignmentX=0.0,alignmentY=0.0,border=,flags=0,maximumSize=,minimumSize=,preferredSize=]
+
+scrollowanie w dol:
+java.awt.event.MouseWheelEvent[MOUSE_WHEEL,(238,156),absolute(244,183),button=0,clickCount=1,scrollType=WHEEL_UNIT_SCROLL,scrollAmount=3,wheelRotation=-1,preciseWheelRotation=-1.0] on GRASP[,0,0,564x383,alignmentX=0.0,alignmentY=0.0,border=,flags=0,maximumSize=,minimumSize=,preferredSize=]
+
+zoom in:
+java.awt.event.MouseWheelEvent[MOUSE_WHEEL,(213,176),absolute(219,203),button=0,modifiers=Ctrl,extModifiers=Ctrl,clickCount=1,scrollType=WHEEL_UNIT_SCROLL,scrollAmount=3,wheelRotation=-1,preciseWheelRotation=-1.0] on GRASP[,0,0,564x383,alignmentX=0.0,alignmentY=0.0,border=,flags=0,maximumSize=,minimumSize=,preferredSize=]
+
+zoom out:
+java.awt.event.MouseWheelEvent[MOUSE_WHEEL,(219,164),absolute(225,191),button=0,modifiers=Ctrl,extModifiers=Ctrl,clickCount=1,scrollType=WHEEL_UNIT_SCROLL,scrollAmount=3,wheelRotation=1,preciseWheelRotation=1.0] on GRASP[,0,0,564x383,alignmentX=0.0,alignmentY=0.0,border=,flags=0,maximumSize=,minimumSize=,preferredSize=]
+
+Plan jest taki, zeby:
+1. dodac last-known-pointer-position
+2. ...
+
+hmm, no wlasnie, i tutaj mamy problem.
+
+konkretnie problem jest taki, ze obsluge klawiszy mamy zrobiona inaczej,
+niz obsluge przycisku myszy.
+
+wiec to rodzi pytanie, czy nie powinnismy tego ujednolicic?
+(tak jak bylo w SLAYERze)
+
+rzecz jednak w tym, ze jest zasadniza roznica pomiedzy wciskaniem myszy,
+a wciskaniem klawiszy - w przypadku myszy mamy jeszcze obsluge upuszczania
+
+z kolei w przypadku rolki myszy, AWT daje nam takie rzeczy, jak:
+- scrollAmount
+- wheelRotation
+- preciseWheelRotation
+
+ale wyglada na to, ze one i tak zawsze maja takie same wartosci :/
+
 * 06.10.2023
 
 kilka idei:
 - wybieraczka do pliku na androidzie
 - wybieraczka do pliku na desktopie
-- 
-
 
 * 05.10.2023
 
