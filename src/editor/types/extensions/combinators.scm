@@ -102,8 +102,8 @@
      (front:draw! front-context)))
 
   ((extent)::Extent
-   (let ((front-extent (extent+ front))
-	 (back-extent (extent+ back)))
+   (let ((front-extent ::Extent (extent+ front))
+	 (back-extent ::Extent (extent+ back)))
      (Extent width: (max front-extent:width
 			 back-extent:width)
 	     height: (max front-extent:height
@@ -129,8 +129,8 @@
 
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
    (otherwise #!null
-   (let ((front-extent (extent+ front))
-	 (back-extent (extent+ back)))
+   (let ((front-extent ::Extent (extent+ front))
+	 (back-extent ::Extent (extent+ back)))
      (or (and (is 0 <= x < front-extent:width)
 	      (is 0 <= y < front-extent:height)
 	      (front:cursor-under*
@@ -186,14 +186,14 @@
   ((draw! context::Cursor)::void
    (let ((top-context (recons 'top context))
          (bottom-context (recons 'bottom context))
-	 (top-extent (extent+ top)))
+	 (top-extent ::Extent (extent+ top)))
      (top:draw! top-context)
      (with-translation (0 top-extent:height)
        (bottom:draw! bottom-context))))
 
   ((extent)::Extent
-   (let ((top-extent (extent+ top))
-	 (bottom-extent (extent+ bottom)))
+   (let ((top-extent ::Extent (extent+ top))
+	 (bottom-extent ::Extent (extent+ bottom)))
      (Extent width: (max top-extent:width
 			 bottom-extent:width)
 	     height: (+ top-extent:height
@@ -219,13 +219,13 @@
 
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
    (otherwise #!null
-     (let ((top-extent (extent+ top)))
+     (let ((top-extent ::Extent (extent+ top)))
        (or (and (is 0 <= x < top-extent:width)
 		(is 0 <= y < top-extent:height)
 		(top:cursor-under*
 		 x y (recons (first-index) path)))
 	   (let ((y (- y top-extent:height))
-		 (bottom-extent (extent+ bottom)))
+		 (bottom-extent ::Extent (extent+ bottom)))
 	     (and (is 0 <= x < bottom-extent:width)
 		  (is 0 <= y < bottom-extent:height)
 		  (bottom:cursor-under*
@@ -236,31 +236,31 @@
 	(isnt b eq? (first-index))))
 
   ((tap! finger::byte #;at x::real y::real)::boolean
-   (let ((top-extent (extent+ top)))
+   (let ((top-extent ::Extent (extent+ top)))
      (if (is y < top-extent:height)
 	 (top:tap! finger x y)
 	 (bottom:tap! finger x (- y top-extent:height)))))
   
   ((press! finger::byte #;at x::real y::real)::boolean
-   (let ((top-extent (extent+ top)))
+   (let ((top-extent ::Extent (extent+ top)))
      (if (is y < top-extent:height)
 	 (top:press! finger x y)
 	 (bottom:press! finger x (- y top-extent:height)))))
   
   ((second-press! finger::byte #;at x::real y::real)::boolean
-   (let ((top-extent (extent+ top)))
+   (let ((top-extent ::Extent (extent+ top)))
      (if (is y < top-extent:height)
 	 (top:second-press! finger x y)
 	 (bottom:second-press! finger x (- y top-extent:height)))))
 
   ((double-tap! finger::byte x::real y::real)::boolean
-   (let ((top-extent (extent+ top)))
+   (let ((top-extent ::Extent (extent+ top)))
      (if (is y < top-extent:height)
 	 (top:double-tap! finger x y)
 	 (bottom:double-tap! finger x (- y top-extent:height)))))
   
   ((long-press! finger::byte x::real y::real)::boolean
-   (let ((top-extent (extent+ top)))
+   (let ((top-extent ::Extent (extent+ top)))
      (if (is y < top-extent:height)
 	 (top:long-press! finger x y)
 	 (bottom:long-press! finger x (- y top-extent:height)))))
@@ -288,14 +288,14 @@
   ((draw! context::Cursor)::void
    (let ((left-context (recons 'left context))
          (right-context (recons 'right context))
-	 (left-extent (extent+ left)))
+	 (left-extent ::Extent (extent+ left)))
      (left:draw! left-context)
      (with-translation (left-extent:width 0)
        (right:draw! right-context))))
 
   ((extent)::Extent
-   (let ((left-extent (extent+ left))
-	 (right-extent (extent+ right)))
+   (let ((left-extent ::Extent (extent+ left))
+	 (right-extent ::Extent (extent+ right)))
      (Extent width: (+ left-extent:width
 		       right-extent:width)
 	     height: (max left-extent:height
@@ -321,13 +321,13 @@
 
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
    (otherwise #!null
-     (let ((left-extent (extent+ left)))
+     (let ((left-extent ::Extent (extent+ left)))
        (or (and (is 0 <= x < left-extent:width)
 		(is 0 <= y < left-extent:height)
 		(left:cursor-under* x y (recons (first-index)
 						path)))
 	   (let ((x (- x left-extent:width))
-		 (right-extent (extent+ right)))
+		 (right-extent ::Extent (extent+ right)))
 	     (and (is 0 <= x < right-extent:width)
 		  (is 0 <= y < right-extent:height)
 		  (right:cursor-under* x y (recons (last-index)
@@ -338,31 +338,31 @@
 	(isnt b eq? (first-index))))
 
   ((tap! finger::byte  x::real y::real)::boolean
-   (let ((left-extent (extent+ left)))
+   (let ((left-extent ::Extent (extent+ left)))
      (if (is x < left-extent:width)
 	 (left:tap! finger x y)
 	 (right:tap! finger (- x left-extent:width) y))))
 
   ((press! finger::byte x::real y::real)::boolean
-   (let ((left-extent (extent+ left)))
+   (let ((left-extent ::Extent (extent+ left)))
      (if (is x < left-extent:width)
 	 (left:press! finger x y)
 	 (right:press! finger (- x left-extent:width) y))))
    
   ((second-press! finger::byte #;at x::real y::real)::boolean
-   (let ((left-extent (extent+ left)))
+   (let ((left-extent ::Extent (extent+ left)))
      (if (is x < left-extent:width)
 	 (left:second-press! finger x y)
 	 (right:second-press! finger (- x left-extent:width) y))))
 
   ((double-tap! finger::byte x::real y::real)::boolean
-   (let ((left-extent (extent+ left)))
+   (let ((left-extent ::Extent (extent+ left)))
      (if (is x < left-extent:width)
 	 (left:double-tap! finger x y)
 	 (right:double-tap! finger (- x left-extent:width) y))))
    
   ((long-press! finger::byte x::real y::real)::boolean
-   (let ((left-extent (extent+ left)))
+   (let ((left-extent ::Extent (extent+ left)))
      (if (is x < left-extent:width)
 	 (left:long-press! finger x y)
 	 (right:long-press! finger (- x left-extent:width) y))))

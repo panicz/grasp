@@ -4,12 +4,12 @@
 (import (language define-object))
 (import (language match))
 (import (language infix))
+(import (language assert))
 (import (editor input pane))
+(import (editor input input))
 (import (utils functions))
 (import (editor interfaces delayed))
 (import (utils print))
-
-
 
 (define-object (TouchEventProcessor finger::byte
 				    target::Screen
@@ -17,12 +17,12 @@
   
   (define (distance x1::real y1::real x2::real y2::real)::real
     (hypotenuse (- x2 x1) (- y2 y1)))
+
+  (define last-known-position ::Position
+    (last-known-pointer-position finger))
   
   (define x0 ::real +nan.0)
   (define y0 ::real +nan.0)
-
-  (define x- ::real +nan.0)
-  (define y- ::real +nan.0)
 
   (define vx ::float 0.0)
   (define vy ::float 0.0)
@@ -51,12 +51,12 @@
      ((zero? suppressed-presses)
       (set! timeout (timeout:cancel))
       (let ((delta-ms ::real (- time-ms move-time-ms)))
-	(set! dx (- x x-))
-	(set! dy (- y y-))
+	(set! dx (- x last-known-position:left))
+	(set! dy (- y last-known-position:top))
 	(set! vx (/ dx delta-ms))
 	(set! vy (/ dy delta-ms))
-	(set! x- x)
-	(set! y- y)
+	(set! last-known-position:left x)
+	(set! last-known-position:top y)
 	(set! move-time-ms time-ms)
 	(target:move! finger x y dx dy)))
      
@@ -76,8 +76,8 @@
 
   (define (press! x::real y::real time-ms::real)::boolean
     (set! timeout (timeout:cancel))
-    (set! x- x)
-    (set! y- y)
+    (set! last-known-position:left x)
+    (set! last-known-position:top y)
     (set! vx 0)
     (set! vy 0)
     (set! press-time-ms time-ms)
@@ -123,4 +123,6 @@
 	 #f)
       (2 (set! suppressed-presses 0)
 	 (target:double-tap! finger x y))))
+
+  (assert (is finger < (length last-known-pointer-position)))
   )

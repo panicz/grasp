@@ -8,9 +8,11 @@
 (import (language define-parameter))
 (import (language match))
 (import (language infix))
+(import (language for))
 (import (utils functions))
 (import (utils conversions))
 (import (editor document editor-operations))
+(import (editor interfaces painting))
 
 ;(define-early-constant META_MASK      ::long #x8000000000000000)
 (define-early-constant CTRL_MASK      ::long #x4000000000000000)
@@ -24,6 +26,22 @@
   (bimapping (key-code::long)
     ;; this table should be populated by particular clients
     'unknown-key))
+
+(define-early-constant last-known-pointer-position
+  ;; here we initialize 10 values, because Android can support
+  ;; up to 10 pointers. That they'll be unused with other clients?
+  ;; We don't care! 
+  (($bracket-apply$ Position)
+   (Position left: 0 top: 0)
+   (Position left: 0 top: 0)
+   (Position left: 0 top: 0)
+   (Position left: 0 top: 0)
+   (Position left: 0 top: 0)
+   (Position left: 0 top: 0)
+   (Position left: 0 top: 0)
+   (Position left: 0 top: 0)
+   (Position left: 0 top: 0)
+   (Position left: 0 top: 0)))
 
 (define (char-code c::char)::long
   (as long (char->integer c)))

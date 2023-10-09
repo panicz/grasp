@@ -8,6 +8,7 @@
 		      define
 		      define-private
 		      set!
+		      assert
 		      invoke
 		      $lookup$
 		      let
@@ -213,6 +214,25 @@
 			    ()
 			    ()))
 
+      ((object-definition (object-name . args)
+			  ()
+			  (supers ...)
+			  slots
+			  (methods ...)
+			  (initializers ...)
+			  ((assert . condition) . init))
+       #'(object-definition (object-name)
+			    ()
+			    (supers ...)
+			    slots
+			    (methods
+			     ...
+			     ((*init* . args)
+			      initializers ...
+			      (assert . condition) . init))
+			    ()
+			    ()))
+      
       ((object-definition (object-name . args)
 			  ()
 			  (supers ...)

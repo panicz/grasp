@@ -875,7 +875,17 @@
   implementing Enchanted
   with
   ((as-expression)::cons
-   (invoke-special Base 'to-list cons to-expression)))
+   (invoke-special Base 'to-list cons to-expression))
+
+  ((center-around! x::real y::real)::void
+   (let ((inner ::Extent (extent))
+	 (outer ::Extent (screen:size)))
+     (set! left (max 0 (min (- outer:width inner:width)
+			    (- x (quotient inner:width 2)))))
+     (set! top
+	   (max 0 (min (- outer:height inner:height)
+		       (- y (quotient inner:height 2)))))))
+  )
 
 (define-type (Scroll width: real
                      height: real
@@ -1003,9 +1013,12 @@
 		      (lambda (directory::java.io.File)
 			::void
 			(screen:overlay:remove! window)
-			(screen:overlay:add!
-			 (open-file-browser directory
-					    editor))))))
+			(let ((new-window (open-file-browser directory
+							     editor))
+			      (position ::Position
+					(last-known-pointer-position 0)))
+			  (new-window:center-around! position:left position:top)
+			  (screen:overlay:add! new-window))))))
     window))
 
 (define (save-file-browser directory::java.io.File
@@ -1030,11 +1043,16 @@
 			   (lambda (dir::java.io.File)::void
 				   (screen:overlay:remove!
 				    window)
-				   (screen:overlay:add!
-				    (save-file-browser
-				     dir
-			             text-field:content
-                                     editor)))))
+				   (let ((new-window (save-file-browser
+						      dir
+						      text-field:content
+						      editor))
+					 (position ::Position
+						   (last-known-pointer-position
+						    0)))
+				     (new-window:center-around! position:left
+								position:top)
+				     (screen:overlay:add! new-window)))))
 	 (inner ::Extent (extent+ files))
 	 (browser ::Scroll (Scroll content: files
 				   width: inner:width
@@ -1360,10 +1378,14 @@
 				       (the-keeper)))
 			   (keeper:with-read-permission
 			    (lambda ()
-			      (screen:overlay:add!
-			       (open-file-browser
-				(keeper:initial-directory)
-				(this))))))))
+			      (let ((window ::PopUp (open-file-browser
+						     (keeper:initial-directory)
+						     (this)))
+				    (position ::Position
+					      (last-known-pointer-position
+					       finger)))
+				(window:center-around! position:left position:top)
+				(screen:overlay:add! window)))))))
 		,@(if (is (length (open-documents)) < 1)
 		      '()
 		      `(,(Link
@@ -1383,25 +1405,21 @@
 			   (keeper:with-write-permission
 			    (lambda ()
 			      (safely
-			       (screen:overlay:add!
-				(save-file-browser
-				 (keeper:initial-directory)
-				 "filename.scm"
-				 (this)))))))
+			       (let ((window ::PopUp (save-file-browser
+						      (keeper:initial-directory)
+						      "filename.scm"
+						      (this)))
+				     (position ::Position
+					      (last-known-pointer-position
+					       finger)))
+				 (window:center-around! position:left position:top)
+				 (screen:overlay:add! window))))))
 			 #t))
 		,(Link content: (Caption "Close")
 		       on-tap: (lambda _ (WARN "Close") #t))
 		)))
-	    (inner ::Extent (extent+ content))
-	    (window ::PopUp (PopUp content: content))
-	    (inner ::Extent (extent+ window))
-	    (outer ::Extent (screen:size)))
-       (set! window:left
-	     (max 0 (min (- outer:width inner:width)
-			 (- x (quotient inner:width 2)))))
-       (set! window:top
-	     (max 0 (min (- outer:height inner:height)
-			 (- y (quotient inner:height 2)))))
+	    (window ::PopUp (PopUp content: content)))
+       (window:center-around! x y)
        (screen:overlay:add! window)))
     ;; dodanie menu kontekstowego
     #t)

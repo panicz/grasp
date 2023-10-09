@@ -219,9 +219,6 @@
 		    (type ::KeyType (key:getKeyType))
 		    (caret ::TerminalPosition (io:getCursorPosition)))
 	       (match type
-		 #;(,KeyType:Character
-		 (parameterize ((unicode-input (input-character key)))
-		 (invoke (the-screen) 'key-typed! (scancode key))))
 
 		 (,KeyType:MouseEvent
 		  (let* ((action ::MouseAction
@@ -241,6 +238,14 @@
 					 (System:currentTimeMillis)))
 			(,MouseButton:Right
 			 (values))
+			(,MouseButton:WheelUp
+			 (screen:key-typed!
+			  (special-key-code KeyType:PageUp)
+			  '()))
+			(,MouseButton:WheelDown
+			 (screen:key-typed!
+			  (special-key-code KeyType:PageDown)
+			'()))
 			(_
 			 (values))))
 		     ((action:isMouseDrag)

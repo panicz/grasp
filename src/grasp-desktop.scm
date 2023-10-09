@@ -350,6 +350,7 @@
    java.awt.event.FocusListener
    java.awt.event.ComponentListener
    java.awt.event.MouseMotionListener
+   java.awt.event.MouseWheelListener
    java.awt.event.MouseListener))
 
 (define-interface Application (Painter
@@ -378,6 +379,9 @@
   (define (mouseMoved event::MouseEvent)::void
     (values))
 
+  (define (mouseWheelMoved event::MouseWheelEvent)::void
+    (values))
+  
   (define (focusGained event::FocusEvent)::void
     (values))
 
@@ -411,6 +415,7 @@
   (addComponentListener (this))
   (addMouseListener (this))
   (addMouseMotionListener (this))
+  (addMouseWheelListener (this))
   )
 
 (define-interface CancellableRunner
@@ -1239,6 +1244,23 @@ by the AWT framework."))
      (pointer:press! (event:getX) (event:getY)
 		     (System:currentTimeMillis))))
 
+  (define (mouseWheelMoved event::MouseWheelEvent)::void
+    (let ((direction ::int (event:getWheelRotation))
+	  (pointer ::Position (last-known-pointer-position 0)))
+      (set! pointer:left (event:getX))
+      (set! pointer:left (event:getY))
+      (screen:key-typed!
+       (as long
+	   (bitwise-ior
+	    (if (is direction < 0)
+		KeyEvent:VK_PAGE_UP
+		KeyEvent:VK_PAGE_DOWN)
+	    (if (event:control-down?) CTRL_MASK 0)
+	    (if (event:alt-down?) ALT_MASK 0)
+	    (if (event:shift-down?) SHIFT_MASK 0)))
+       '()))
+    (repaint))
+  
   (define (mouseDragged event::MouseEvent)::void
     (invalidating
      (pointer:move! (event:getX) (event:getY)
