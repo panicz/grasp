@@ -1,3 +1,27 @@
+* 09.10.2023
+
+tych wszystkich zoomow i tak raczej na telefonie nie przetestujemy
+wiec sie zajmijmy czym innym
+
+najlepiej ewaluacja
+
+czyli: wciskamy ctrl+e albo ctrl+enter albo jakis
+klawisz funkcyjny (np. F3), albo rysujemy dziubek,
+i w trybie ewaluacyjnym wolamy eval
+
+
+ale moze na androidzie skupmy sie na razie na tym bledzie
+z przesunietym y?
+
+albo wybieraczka?
+
+no dobra, wydaje sie ze przesuniete y juz jest naprawione
+
+to teraz wybieraczka
+
+Na pewno musimy zaimportowac Intent i Url
+
+
 * 08.10.2023
 
 No dobra, to teraz plan jest taki, zeby:
