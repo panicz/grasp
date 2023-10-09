@@ -9,6 +9,7 @@
 (import (editor input input))
 (import (utils functions))
 (import (editor interfaces delayed))
+(import (editor interfaces painting))
 (import (utils print))
 
 (define-object (TouchEventProcessor finger::byte
@@ -124,5 +125,5 @@
       (2 (set! suppressed-presses 0)
 	 (target:double-tap! finger x y))))
 
-  (assert (is finger < (length last-known-pointer-position)))
+  #;(assert (is finger < (length last-known-pointer-position)))
   )

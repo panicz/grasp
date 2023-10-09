@@ -50,6 +50,8 @@
   android.view.inputmethod.InputMethodManager)
 (define-alias Path2D android.graphics.Path)
 (define-alias RectF android.graphics.RectF)
+(define-alias Rect android.graphics.Rect)
+
 (define-alias AssetManager
   android.content.res.AssetManager)
 
@@ -1282,7 +1284,7 @@
     (set! canvas c)
     (clear!)
     (screen:draw!)
-    #;(invoke (current-message-handler)
+    (invoke (current-message-handler)
 	    'display-messages canvas))
 
   (define pending-animations
@@ -1417,22 +1419,23 @@
 	  (eq? event-action MotionEvent:ACTION_CANCEL)))
     (safely
      (invalidating
+      (let ((parent ::AndroidView (view:getParent)))
       (match (event:getActionMasked)
 	(,@pointer-down?
 	 (let* ((i ::int (event:getActionIndex))
 		(p ::int (event:getPointerId i))
 		(finger ::TouchEventProcessor
 			(process-finger p)))
-	   (finger:press! (- (event:getX i) (view:getX))
-			  (- (event:getY i) (view:getY))
+	   (finger:press! (- (event:getX i) (parent:getLeft))
+			  (- (event:getY i) (parent:getTop))
 			  (event:getEventTime))))
 	(,@pointer-up?
 	 (let* ((i ::int (event:getActionIndex))
 		(p ::int (event:getPointerId i))
 		(finger ::TouchEventProcessor
 			(process-finger p)))
-	   (finger:release! (- (event:getX i) (view:getLeft))
-			    (- (event:getY i) (view:getTop))
+	   (finger:release! (- (event:getX i) (parent:getLeft))
+			    (- (event:getY i) (parent:getTop))
 			    (event:getEventTime))))
 	(,MotionEvent:ACTION_MOVE
 	 (let ((n ::int (event:getPointerCount))
@@ -1444,13 +1447,13 @@
 			       (process-finger p)))
 		  (set! result
 			(or (finger:move!
-			     (- (event:getX i) (view:getLeft))
-			     (- (event:getY i) (view:getTop))
+			     (- (event:getX i) (parent:getLeft))
+			     (- (event:getY i) (parent:getTop))
 			     (event:getEventTime))
 			    result))))
 	   result))
 	(_
-	 #f))
+	 #f)))
       )))
 
   (define (onKeyUp keyCode::int event::KeyEvent)::boolean
