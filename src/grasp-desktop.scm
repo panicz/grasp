@@ -1248,7 +1248,7 @@ by the AWT framework."))
     (let ((direction ::int (event:getWheelRotation))
 	  (pointer ::Position (last-known-pointer-position 0)))
       (set! pointer:left (event:getX))
-      (set! pointer:left (event:getY))
+      (set! pointer:top (event:getY))
       (screen:key-typed!
        (as long
 	   (bitwise-ior
@@ -1339,7 +1339,15 @@ by the AWT framework."))
   (let ((application ::GRASP (GRASP)))
     (set! (the-painter) application)
     (initialize-keymap)
-    (safely (load "./assets/init.scm"))
+    
+    (safely
+     (let* ((input (gnu.kawa.io.InPort
+		   (java.io.InputStreamReader
+		    (load-resource "/assets/init.scm"))))
+	   (init-script (read-all input)))
+      (for expression in init-script
+	(eval expression))))
+
     (let ((window ::javax.swing.JFrame
 		  (javax.swing.JFrame title: "GRASP"
 				      content-pane: application)))

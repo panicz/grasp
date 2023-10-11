@@ -52,6 +52,10 @@
 (define-alias ScheduledTask java.util.concurrent.ScheduledFuture)
 (define-alias TimeUnit java.util.concurrent.TimeUnit)
 
+(define-alias InputStream java.io.InputStream)
+(define ClassLoader ::java.lang.ClassLoader
+  (java.lang.ClassLoader:getSystemClassLoader))
+
 (define-alias ArrayBlockingQueue
   java.util.concurrent.ArrayBlockingQueue)
 (define-alias System java.lang.System)
@@ -73,6 +77,11 @@
 	 (set! (setter getter) (lambda (value) (set! state value)))
 	 getter)))
     ))
+
+(define (load-resource path::String)::InputStream
+  (or
+   (ClassLoader:getResourceAsStream path)
+   (ClassLoader:getResourceAsStream (string-drop path 1))))
 
 (define-box (screen-up-to-date?)::boolean #f)
 
@@ -225,11 +234,13 @@
 				 (as MouseAction key))
 			 (position ::TerminalPosition
 				   (action:getPosition))
+			 (last-position ::Position (last-known-pointer-position 0))
 			 (left (position:getColumn))
 			 (top (position:getRow)))
 		    (cond
 		     ((action:isMouseMove)
-		      (values))
+		      (set! last-position:left left)
+		      (set! last-position:top top))
 		     ((action:isMouseDown)
 
 		      (match (action:getButton)
@@ -237,15 +248,20 @@
 			 (pointer:press! left top
 					 (System:currentTimeMillis)))
 			(,MouseButton:Right
-			 (values))
+ 			 (set! last-position:left left)
+			 (set! last-position:top top))
 			(,MouseButton:WheelUp
+			 (set! last-position:left left)
+			 (set! last-position:top top)
 			 (screen:key-typed!
 			  (special-key-code KeyType:PageUp)
 			  '()))
 			(,MouseButton:WheelDown
+			 (set! last-position:left left)
+			 (set! last-position:top top)
 			 (screen:key-typed!
 			  (special-key-code KeyType:PageDown)
-			'()))
+			  '()))
 			(_
 			 (values))))
 		     ((action:isMouseDrag)
@@ -444,10 +460,15 @@
     (set! (current-display-procedure) nothing)
     (set! (current-message-handler) (ignoring-message-handler))))
   (initialize-keymap)
+  (safely
+   (let* ((input (gnu.kawa.io.InPort
+		  (java.io.InputStreamReader
+		   (load-resource "/assets/init.scm"))))
+	  (init-script (read-all input)))
+     (for expression in init-script
+       (eval expression))))
   (let ((event-queue ::BlockingQueue (ArrayBlockingQueue 16)))
     (parameterize ((the-painter (TerminalPainter io event-queue)))
-      (safely
-       (load "assets/init.scm"))
       (io:startScreen)
       (io:clear)
       (io:refresh)

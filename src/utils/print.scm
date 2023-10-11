@@ -106,6 +106,9 @@
 (define-syntax-rule (falsely actions ...)
   (begin actions ... #f))
 
+(define-syntax-rule (nully actions ...)
+  (begin actions ... #!null))
+
 (define (stack-trace ex::java.lang.Throwable)
   (let* ((sw ::java.io.StringWriter (java.io.StringWriter))
 	 (pw ::java.io.PrintWriter (java.io.PrintWriter sw)))
