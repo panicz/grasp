@@ -1,4 +1,22 @@
-* 09.10.2023
+* 10.10.2023 (komputer)
+
+no to teraz rzecz tak wyglada, ze bysmy chcieli zrobic scrollowanie
+myszka. Ale zeby to mialo sens, nalezaloby zrobic prolongowanie animacji.
+
+Ale tego nie idzie zrobic ot tak, na szybko.
+
+* 09.10.2023 (komputer)
+
+bysmy zrobili zoomowanie i scrollowanie na myszce
+
+no dobra, ale jak to musi działać?
+
+to ciężki orzech do zgryzienia!
+
+powinno być tak, że kiedy obracamy walkiem w dol, to wywolujemy
+metode scroll-down! na obiekcie Screen
+
+* 09.10.2023 (telefon)
 
 tych wszystkich zoomow i tak raczej na telefonie nie przetestujemy
 wiec sie zajmijmy czym innym
@@ -20,7 +38,6 @@ no dobra, wydaje sie ze przesuniete y juz jest naprawione
 to teraz wybieraczka
 
 Na pewno musimy zaimportowac Intent i Url
-
 
 * 08.10.2023
 
