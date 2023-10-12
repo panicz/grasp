@@ -1080,6 +1080,46 @@
 	    (recons (text-field:content:last-index) root)))
     window))
 
+(define (builtin-open-file finger::byte editor::Editor)
+  (lambda _
+    (let ((keeper ::Keeper (the-keeper)))
+      (keeper:with-read-permission
+       (lambda _
+	 (let ((window ::PopUp (open-file-browser
+				(keeper:initial-directory)
+				editor))
+	       (position ::Position
+			 (last-known-pointer-position
+			  finger)))
+	   (window:center-around! position:left position:top)
+	   (screen:overlay:add! window)))))))
+  
+(define-parameter (open-file)::(maps (byte java.io.File Editor)
+				     to: (maps _ to: void))
+  builtin-open-file)
+
+(define (builtin-save-file finger::byte editor::Editor)
+  (lambda _
+      (let ((keeper ::Keeper
+		    (the-keeper)))
+	(keeper:with-write-permission
+	 (lambda _
+	   (safely
+	    (let ((window ::PopUp (save-file-browser
+				   (keeper:initial-directory)
+				   "filename.scm"
+				   editor))
+		  (position ::Position
+			    (last-known-pointer-position
+			     finger)))
+	      (window:center-around! position:left position:top)
+	      (screen:overlay:add! window))))))
+      #t))
+  
+(define-parameter (save-file)::(maps (byte java.io.File Editor)
+				     to: (maps _ to: void))
+  builtin-save-file)
+
 (define (document-switcher editor::Editor)::PopUp
   (let* ((choices (map (lambda (document::Document)
 			 (Link content:
@@ -1312,7 +1352,7 @@
 		    (the-selection))
 		   ((x y) (transform:map xe ye)))
 	(and-let* ((path (cursor-under x y))
-		   (`(,tip . ,subpath) path)
+	   (`(,tip . ,subpath) path)
 		   (parent ::Element (the-expression
 				      at: subpath))
 		   (target ::Element (parent:part-at tip))
@@ -1372,20 +1412,7 @@
 	      `(,(Link content: (Caption "New")
 		       on-tap: (lambda _ (WARN "New") #t))
 		,(Link content: (Caption "Open...")
-		       on-tap:
-		       (lambda _
-			 (let ((keeper ::Keeper
-				       (the-keeper)))
-			   (keeper:with-read-permission
-			    (lambda ()
-			      (let ((window ::PopUp (open-file-browser
-						     (keeper:initial-directory)
-						     (this)))
-				    (position ::Position
-					      (last-known-pointer-position
-					       finger)))
-				(window:center-around! position:left position:top)
-				(screen:overlay:add! window)))))))
+		       on-tap: ((open-file) finger (this)))
 		,@(if (is (length (open-documents)) < 1)
 		      '()
 		      `(,(Link
@@ -1398,23 +1425,7 @@
 			      (document-switcher (this))))
 			    #t))))
 		,(Link content: (Caption "Save as...")
-		       on-tap:
-		       (lambda _
-			 (let ((keeper ::Keeper
-				       (the-keeper)))
-			   (keeper:with-write-permission
-			    (lambda ()
-			      (safely
-			       (let ((window ::PopUp (save-file-browser
-						      (keeper:initial-directory)
-						      "filename.scm"
-						      (this)))
-				     (position ::Position
-					      (last-known-pointer-position
-					       finger)))
-				 (window:center-around! position:left position:top)
-				 (screen:overlay:add! window))))))
-			 #t))
+		       on-tap: ((save-file) finger (this)))
 		,(Link content: (Caption "Close")
 		       on-tap: (lambda _ (WARN "Close") #t))
 		)))

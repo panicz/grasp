@@ -60,6 +60,16 @@
 
 (define-alias Manifest android.Manifest)
 
+(define-alias Intent android.content.Intent)
+
+(define-alias Uri android.net.Uri)
+
+(define-alias ContentResolver
+  android.content.ContentResolver)
+
+(define-alias DbCursor android.database.Cursor)
+(define-alias DbColumn android.provider.OpenableColumns)
+
 (define-alias DisplayMetrics
   android.util.DisplayMetrics)
 (define-alias Color android.graphics.Color)
@@ -1328,8 +1338,8 @@
 
 (define-object (GRASP)::Keeper
 
-  (define permission-request
-    (property (request-code::int)::(maps () to: void)
+  (define reaction-to-request-response
+    (property (request-code::int)::(maps (Object) to: void)
       nothing))
 
   (define last-request-code ::int 0)
@@ -1341,6 +1351,7 @@
   (define (onConfigurationChanged config::AndroidConfiguration)::void
     (invoke-special AndroidActivity (this)
 		    'onConfigurationChanged config)
+
     (let* ((resources ::AndroidResources (getResources))
 	   (metrics ::DisplayMetrics
 		    (resources:getDisplayMetrics)))
@@ -1351,7 +1362,15 @@
        (WARN 'landscape))
       (,AndroidConfiguration:ORIENTATION_PORTRAIT
        (WARN 'portrait))))
-    
+
+  (define (onActivityResult requestCode::int
+			    resultCode::int
+			    data::Intent)
+    ::void
+    (when (= resultCode AndroidActivity:RESULT_OK)
+      ((reaction-to-request-response requestCode) data))
+    (unset! (reaction-to-request-response requestCode)))
+  
   (define (onRequestPermissionsResult requestCode::int
                                       permissions::($bracket-apply$
 						    String)
@@ -1367,12 +1386,12 @@
       ((and (is (length grantResults) > 0)
 	    (eq? (grantResults 0)
 		 PackageManager:PERMISSION_GRANTED))
-       ((permission-request requestCode))
-       (unset! (permission-request requestCode)))
+       ((reaction-to-request-response requestCode) grantResults)
+       (unset! (reaction-to-request-response requestCode)))
       (else
        (WARN "permission request "requestCode" for "
 	     permissions" has been denied: "grantResults)
-       (unset! (permission-request requestCode))))))
+       (unset! (reaction-to-request-response requestCode))))))
 
   (define (with-permission permission::String
 			   action::(maps () to: void))
@@ -1381,16 +1400,17 @@
      (if (eq? (checkSelfPermission permission)
 	      PackageManager:PERMISSION_DENIED)
 	 (let ((request-code ::int (new-request-code)))
-	   (set! (permission-request request-code) action)
+	   (set! (reaction-to-request-response
+		  request-code) action)
 	   (requestPermissions (($bracket-apply$ String)
 				permission) request-code))
-	 (action))))
+	 (action '(PackageManager:PERMISSION_GRANTED)))))
 
-  (define (with-read-permission action::(maps () to: void))::void
+  (define (with-read-permission action::(maps _ to: void))::void
     (with-permission Manifest:permission:WRITE_EXTERNAL_STORAGE
 		     action))
 
-  (define (with-write-permission action::(maps () to: void))::void
+  (define (with-write-permission action::(maps _ to: void))::void
     (with-permission Manifest:permission:READ_EXTERNAL_STORAGE
 		     action))
 
@@ -1504,6 +1524,35 @@
     (initialize-activity (this))
     (safely (initialize-keymap))
     (set! (the-keeper) (this))
+    (set! (open-file)
+	  (lambda (finger::byte editor::Editor)
+	    (lambda _
+	      (let* ((intent ::Intent
+			     (Intent Intent:ACTION_OPEN_DOCUMENT))
+		     (request (new-request-code)))
+		(intent:addCategory Intent:CATEGORY_OPENABLE)
+		(intent:setType "*/*")
+		(set! (reaction-to-request-response request)
+		      (lambda args
+			(safely
+			 (and-let* ((`(,intent::Intent) args)
+				    (uri ::Uri (intent:getData))
+				    (r ::ContentResolver
+				       (invoke-special
+					android.content.Context
+					(this) 'getContentResolver))
+				    (c ::DbCursor
+				       (r:query
+					uri (($bracket-apply$ String)
+					     DbColumn:DISPLAY_NAME
+					     DbColumn:SIZE)
+					#!null #!null #!null)))
+			   (try-finally
+			    (and (c:moveToNext)
+				 (let ((name (c:getString 0)))
+				   (WARN name)))
+			    (c:close))))))
+		(startActivityForResult intent request)))))
     (set! view (View (this) sync))
     (set! the-view view)
 
