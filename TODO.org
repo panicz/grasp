@@ -1,3 +1,75 @@
+* 10.10.2023 (telefon)
+
+#+BEGIN_SRC java
+  import android.content.Intent;
+  import android.net.Uri;
+  import android.content.Context;
+
+  private static final int OPEN_REQUEST_CODE = 1;
+  private void pickFile() {
+      Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+      intent.addCategory(Intent.CATEGORY_OPENABLE);
+      intent.setType("*/*");
+      startActivityForResult(intent, OPEN_REQUEST_CODE);
+  }
+
+  @Override
+  protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+      if (requestCode == OPEN_REQUEST_CODE
+	  && resultCode == RESULT_OK
+	  && data != null) {
+	  open(data.getData());
+      }
+  }
+#+END_SRC
+
+musimy teraz jakos zintegrowac wybieraczke z nasza architektura.
+
+konkretnie chcielibysmy miec mozliwosc wyboru, czy chcemy
+uzywac wbudowanej wybieraczki, czy systemowej (na androidzie
+i ew. desktopie)
+  
+nalezaloby to zrobic tak, ze aktualna funkcja bylaby
+parametrem
+
+#+BEGIN_SRC scheme
+  (define-parameter (open-file)::(maps (byte java.io.File Editor)
+				       to: (maps _ to: void))
+    (lambda (finger::byte editor::Editor)
+      (lambda _
+	(let ((keeper ::Keeper
+		      (the-keeper)))
+	  (keeper:with-read-permission
+	   (lambda ()
+	     (let ((window ::PopUp (open-file-browser
+				    (keeper:initial-directory)
+				    (this)))
+		   (position ::Position
+			     (last-known-pointer-position
+			      finger)))
+	       (window:center-around! position:left position:top)
+	       (screen:overlay:add! window))))))))
+
+  (define-parameter (save-file)::(maps (byte java.io.File Editor)
+				       to: (maps _ to: void))
+    (lambda _
+      (let ((keeper ::Keeper
+		    (the-keeper)))
+	(keeper:with-write-permission
+	 (lambda ()
+	   (safely
+	    (let ((window ::PopUp (save-file-browser
+				   (keeper:initial-directory)
+				   "filename.scm"
+				   (this)))
+		  (position ::Position
+			    (last-known-pointer-position
+			     finger)))
+	      (window:center-around! position:left position:top)
+	      (screen:overlay:add! window))))))
+      #t))
+#+END_SRC
+
 * 10.10.2023 (komputer)
 
 no to teraz rzecz tak wyglada, ze bysmy chcieli zrobic scrollowanie
