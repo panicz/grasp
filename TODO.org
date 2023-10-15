@@ -1,3 +1,25 @@
+* 14.10.2023 (komputer)
+
+plan jest taki:
+- jutro commitujemy zmiany z komputera
+- w poniedzialek zmiany z telefonu
+- do tego implementujemy (na komputorze) obracanie ekranu (sroda)
+- i moze jeszcze obsluge rolki myszki na Androidzie (czwartek)
+
+i wtedy w kolejnym tygodniu bysmy sie zajeli integracja ewaluatora
+(wlaczajac w to gest klinu), a kiedy to juz bedziemy mieli, to
+zrobimy poprawki 
+
+
+* 13.10.2023 (komputer)
+
+jezeli chcemy miec mozliwosc scrollowania zawartosci pop-upu,
+to prawdopodobnie powinnismy zrobic tak, zeby te metody do
+scrollowania byly albo w Interactive
+
+ok, scrollowanie popupu juz dziala. czyli w zasadzie
+zostalo nam zoomowanie i scrollowanie edytora
+
 * 10.10.2023 (telefon)
 
 #+BEGIN_SRC java
