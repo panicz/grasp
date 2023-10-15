@@ -1,3 +1,4 @@
+
 * 14.10.2023 (komputer)
 
 plan jest taki:
@@ -10,7 +11,6 @@ i wtedy w kolejnym tygodniu bysmy sie zajeli integracja ewaluatora
 (wlaczajac w to gest klinu), a kiedy to juz bedziemy mieli, to
 zrobimy poprawki 
 
-
 * 13.10.2023 (komputer)
 
 jezeli chcemy miec mozliwosc scrollowania zawartosci pop-upu,
@@ -19,6 +19,19 @@ scrollowania byly albo w Interactive
 
 ok, scrollowanie popupu juz dziala. czyli w zasadzie
 zostalo nam zoomowanie i scrollowanie edytora
+
+* 13.10.2023 (telefon)
+
+zidentyfikowalismy kilka problemow zwiazanyvh z wybieraczka,
+i trzeba troche zrefaktoryzowac kod
+
+- zmienilibysmy nazwe z open-document na open-document-file!
+- musimy tez dodac opcje wczytania dokumentu z portu/strumienia
+
+i jak to zrobimy, zintegrujemy wybieraczke
+a po niej takze zapisywaczke
+
+a na kompie bysmy zrobili te zoomy i scrolle
 
 * 10.10.2023 (telefon)
 
