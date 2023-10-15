@@ -64,6 +64,10 @@
 
 (define-alias Uri android.net.Uri)
 
+(define-type (Named thing: Object name: string)
+  extending Base with
+  ((getName)::String name))
+
 (define-alias ContentResolver
   android.content.ContentResolver)
 
@@ -131,20 +135,6 @@
       (svg:setDocumentHeight (as float height)))
     svg))
 
-(define-syntax define-initializer
-  (syntax-rules (::)
-    ((define-initializer (initializer-name
-			  object-name::object-type)
-       (definition name etc ... initialization)
-       ...)
-     (begin
-       (definition name etc ... #!null)
-       ...
-       (define (initializer-name object-name::object-type)
-	 ::void
-	 (set! name initialization)
-	 ...)))))
-
 (define the-view ::AndroidView #!null)
 
 (define-object (EventCanceller action::java.lang.Runnable
@@ -167,8 +157,22 @@
       (sync:postDelayed action* time-ms)
       (EventCanceller action* sync))))
 
+(define-syntax define-initializer
+  (syntax-rules (::)
+    ((define-initializer (initializer-name
+			  object-name::object-type)
+       (definition name etc ... initialization)
+       ...)
+     (begin
+       (definition name etc ... #!null)
+       ...
+       (define (initializer-name object-name::object-type)
+	 ::void
+	 (set! name initialization)
+	 ...)))))
+
 (define-initializer (initialize-activity
-		     activity::AndroidActivity)
+		     activity::GRASP)
   (define Iosevka ::Typeface
     (load-font "iosevka-fixed-semibold.ttf" activity))
     
@@ -390,6 +394,12 @@
   (define single-quote-extent ::Extent
     (path-extent single-quote))
 
+  (define external-open-file ::(maps (byte Editor) to: (maps _ to: void))
+    #!null)
+  
+  (define external-save-file ::(maps (byte Editor) to: (maps _ to: void))
+    #!null)
+  
   )
 
 (define (INFO . messages)
@@ -1524,7 +1534,7 @@
     (initialize-activity (this))
     (safely (initialize-keymap))
     (set! (the-keeper) (this))
-    (set! (open-file)
+    (set! external-open-file
 	  (lambda (finger::byte editor::Editor)
 	    (lambda _
 	      (let* ((intent ::Intent
@@ -1546,13 +1556,52 @@
 					uri (($bracket-apply$ String)
 					     DbColumn:DISPLAY_NAME
 					     DbColumn:SIZE)
-					#!null #!null #!null)))
+					#!null #!null #!null))
+				    (s ::java.io.InputStream
+				       (r:openInputStream uri))
+				    (p ::gnu.kawa.io.InPort
+				       (gnu.kawa.io.InPort
+					(java.io.InputStreamReader s))))
 			   (try-finally
 			    (and (c:moveToNext)
 				 (let ((name (c:getString 0)))
-				   (WARN name)))
+				   (screen:overlay:clear!)
+				   (editor:load-from-port
+				    p (Named thing: uri name: name))))
 			    (c:close))))))
 		(startActivityForResult intent request)))))
+    (set! (open-file) external-open-file)
+    (set! external-save-file
+	  (lambda (finger::byte editor::Editor)
+	    (lambda _
+	      (let* ((intent ::Intent
+			     (Intent Intent:ACTION_CREATE_DOCUMENT))
+		     (request (new-request-code)))
+		(intent:addCategory Intent:CATEGORY_OPENABLE)
+		(intent:setType "text/scm")
+		(set! (reaction-to-request-response request)
+		      (lambda args
+			(safely
+			 (and-let* ((`(,intent::Intent) args)
+				    (uri ::Uri (intent:getData))
+				    (r ::ContentResolver
+				       (invoke-special
+					android.content.Context
+					(this) 'getContentResolver))
+				    (s ::java.io.
+				       OutputStream
+				       (r:openOutputStream uri))
+				    (p ::gnu.kawa.io.OutPort.8
+				       (gnu.kawa.io.OutPort
+					(java.io.OutputStreamWriter s))))
+			   (parameterize ((current-output-port p))
+			     (show-document editor:document)
+			     (flush-output-port))
+			   (p:close)
+			   (s:flush)
+			   (s:close)))))
+		(startActivityForResult intent request)))))
+    (set! (save-file) external-save-file)
     (set! view (View (this) sync))
     (set! the-view view)
 

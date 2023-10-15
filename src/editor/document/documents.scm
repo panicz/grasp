@@ -17,7 +17,7 @@
 (import (editor document parse))
 (import (utils print))
 
-(define-object (Document car ::Object source ::java.io.File)::Tile
+(define-object (Document car source)::Tile
   ;; TODO: cursor-under* etc.
 
   (define (draw! context::Cursor)::void
@@ -33,7 +33,18 @@
 (define-parameter (open-documents)::(list-of Document)
   '())
 
-(define (open-document source::java.io.File)::Document
+(define (load-document-from-port port::gnu.kawa.io.InPort
+				 source)::Document
+  (or (find (lambda (document::Document)
+	      ::boolean
+	      (eq? document:source source))
+	    (open-documents))
+      (let ((document (Document (parse port) source)))
+	(set! (open-documents)
+	      (cons document (open-documents)))
+	document)))
+
+(define (open-document-file source::java.io.File)::Document
   (or (find (lambda (document::Document)
 	      ::boolean
 	      (eq? document:source source))

@@ -1345,12 +1345,18 @@
   
   (define (load-file file::java.io.File)::void
     (safely
-     (let ((opened ::Document (open-document file)))
-       (set! (document-transform document) transform)
-       (set! (previously-edited opened) document)
-       (set! transform (document-transform opened))
-       (set! document opened))))
+     (select-document! (open-document-file file))))
 
+  (define (load-from-port port::gnu.kawa.io.InPort source)::void
+    (safely
+     (select-document! (load-document-from-port port source))))
+    
+  (define (select-document! doc::Document)::void
+    (set! (document-transform document) transform)
+    (set! (previously-edited doc) document)
+    (set! transform (document-transform doc))
+    (set! document doc))
+    
   (define (draw!)::void
     (parameterize ((the-document document)
 		   (the-cursor cursor)
