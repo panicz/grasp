@@ -938,9 +938,9 @@
   (define (draw-vertical-bar! height::real)::void
     (graphics:fillRect 0 0 (vertical-bar-width) height))
 
-  (define (horizontal-split-height)::real 20)
+  (define (horizontal-split-height)::real 10)
 
-  (define (vertical-split-width)::real 20)
+  (define (vertical-split-width)::real 10)
 
   (define (draw-horizontal-split! top::real)::void
     (graphics:fillRect (max 0 (current-clip-left)) top

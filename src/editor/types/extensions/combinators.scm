@@ -90,6 +90,36 @@
 
   ((as-expression)::cons
    (invoke-special Base 'to-list cons to-expression))
+
+  ((scroll-up! x::real y::real)::boolean
+   (let* ((painter ::Painter (the-painter))
+	  (border ::real (painter:border-size)))
+     (element:scroll-up! (- x border) (- y border))))
+  
+  ((scroll-down! x::real y::real)::boolean
+   (let* ((painter ::Painter (the-painter))
+	  (border ::real (painter:border-size)))
+     (element:scroll-down! (- x border) (- y border))))
+  
+  ((scroll-left! x::real y::real)::boolean
+   (let* ((painter ::Painter (the-painter))
+	  (border ::real (painter:border-size)))
+     (element:scroll-left! (- x border) (- y border))))
+  
+  ((scroll-right! x::real y::real)::boolean
+   (let* ((painter ::Painter (the-painter))
+	  (border ::real (painter:border-size)))
+     (element:scroll-right! (- x border) (- y border))))
+
+  ((zoom-in! x::real y::real)::boolean
+   (let* ((painter ::Painter (the-painter))
+	  (border ::real (painter:border-size)))
+     (element:zoom-in! (- x border) (- y border))))
+  
+  ((zoom-out! x::real y::real)::boolean
+   (let* ((painter ::Painter (the-painter))
+	  (border ::real (painter:border-size)))
+     (element:zoom-out! (- x border) (- y border))))
   )
 
 (define-type (Over back: Enchanted front: Enchanted)
@@ -163,6 +193,31 @@
   ((long-press! finger::byte x::real y::real)::boolean
    (or (front:long-press! finger x y)
        (back:long-press! finger x y)))
+
+  ((scroll-up! x::real y::real)::boolean
+   (or (front:scroll-up! x y)
+       (back:scroll-up! x y)))
+  
+  ((scroll-down! x::real y::real)::boolean
+   (or (front:scroll-down! x y)
+       (back:scroll-down! x y)))
+  
+  ((scroll-left! x::real y::real)::boolean
+   (or (front:scroll-left! x y)
+       (back:scroll-left! x y)))
+  
+  ((scroll-right! x::real y::real)::boolean
+   (or (front:scroll-right! x y)
+       (back:scroll-right! x y)))
+
+  ((zoom-in! x::real y::real)::boolean
+   (or (front:zoom-in! x y)
+       (back:zoom-in! x y)))
+  
+  ((zoom-out! x::real y::real)::boolean
+   (or (front:zoom-out! x y)
+       (back:zoom-out! x y)))
+
   
   ((key-typed! key-code::long context::Cursor)::boolean
    (let* ((cursor (the-cursor))
@@ -265,6 +320,42 @@
 	 (top:long-press! finger x y)
 	 (bottom:long-press! finger x (- y top-extent:height)))))
 
+  ((scroll-up! x::real y::real)::boolean
+   (let ((top-extent ::Extent (extent+ top)))
+     (if (is y < top-extent:height)
+	 (top:scroll-up! x y)
+	 (bottom:scroll-up! x (- y top-extent:height)))))
+  
+  ((scroll-down! x::real y::real)::boolean
+   (let ((top-extent ::Extent (extent+ top)))
+     (if (is y < top-extent:height)
+	 (top:scroll-down! x y)
+	 (bottom:scroll-down! x (- y top-extent:height)))))
+  
+  ((scroll-left! x::real y::real)::boolean
+   (let ((top-extent ::Extent (extent+ top)))
+     (if (is y < top-extent:height)
+	 (top:scroll-left! x y)
+	 (bottom:scroll-left! x (- y top-extent:height)))))
+  
+  ((scroll-right! x::real y::real)::boolean
+   (let ((top-extent ::Extent (extent+ top)))
+     (if (is y < top-extent:height)
+	 (top:scroll-right! x y)
+	 (bottom:scroll-right! x (- y top-extent:height)))))
+
+  ((zoom-in! x::real y::real)::boolean
+   (let ((top-extent ::Extent (extent+ top)))
+     (if (is y < top-extent:height)
+	 (top:zoom-in! x y)
+	 (bottom:zoom-in! x (- y top-extent:height)))))
+  
+  ((zoom-out! x::real y::real)::boolean
+   (let ((top-extent ::Extent (extent+ top)))
+     (if (is y < top-extent:height)
+	 (top:zoom-out! x y)
+	 (bottom:zoom-out! x (- y top-extent:height)))))
+  
   ((key-typed! key-code::long context::Cursor)::boolean
    (let* ((cursor (the-cursor))
 	  (first-context (recons (first-index) context))
@@ -367,6 +458,42 @@
 	 (left:long-press! finger x y)
 	 (right:long-press! finger (- x left-extent:width) y))))
 
+  ((scroll-up! x::real y::real)::boolean
+   (let ((left-extent ::Extent (extent+ left)))
+     (if (is x < left-extent:width)
+	 (left:scroll-up! x y)
+	 (right:scroll-up! (- x left-extent:width) y))))
+  
+  ((scroll-down! x::real y::real)::boolean
+   (let ((left-extent ::Extent (extent+ left)))
+     (if (is x < left-extent:width)
+	 (left:scroll-down! x y)
+	 (right:scroll-down! (- x left-extent:width) y))))
+  
+  ((scroll-left! x::real y::real)::boolean
+   (let ((left-extent ::Extent (extent+ left)))
+     (if (is x < left-extent:width)
+	 (left:scroll-left! x y)
+	 (right:scroll-left! (- x left-extent:width) y))))
+  
+  ((scroll-right! x::real y::real)::boolean
+   (let ((left-extent ::Extent (extent+ left)))
+     (if (is x < left-extent:width)
+	 (left:scroll-right! x y)
+	 (right:scroll-right! (- x left-extent:width) y))))
+
+  ((zoom-in! x::real y::real)::boolean
+   (let ((left-extent ::Extent (extent+ left)))
+     (if (is x < left-extent:width)
+	 (left:zoom-in! x y)
+	 (right:zoom-in! (- x left-extent:width) y))))
+  
+  ((zoom-out! x::real y::real)::boolean
+   (let ((left-extent ::Extent (extent+ left)))
+     (if (is x < left-extent:width)
+	 (left:zoom-out! x y)
+	 (right:zoom-out! (- x left-extent:width) y))))
+  
   ((key-typed! key-code::long context::Cursor)::boolean
    (let* ((cursor (the-cursor))
 	  (first-context (recons (first-index) context))

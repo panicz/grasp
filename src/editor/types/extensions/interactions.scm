@@ -16,6 +16,13 @@
   (double-tap! finger::byte x::real y::real)::boolean
   (long-press! finger::byte x::real y::real)::boolean
   (key-typed! key-code::long context::Cursor)::boolean
+
+  (scroll-up! left::real top::real)::boolean
+  (scroll-down! left::real top::real)::boolean
+  (scroll-left! left::real top::real)::boolean
+  (scroll-right! left::real top::real)::boolean
+  (zoom-in! left::real top::real)::boolean
+  (zoom-out! left::real top::real)::boolean
   )
 
 (define-object (IgnoreInput)::Interactive
@@ -28,6 +35,14 @@
   
   (define (key-typed! key-code::long context::Cursor)::boolean #f)
 
+  (define (scroll-up! left::real top::real)::boolean #f)
+  (define (scroll-down! left::real top::real)::boolean #f)
+  (define (scroll-left! left::real top::real)::boolean #f)
+  (define (scroll-right! left::real top::real)::boolean #f)
+
+  (define (zoom-in! left::real top::real)::boolean #f)
+  (define (zoom-out! left::real top::real)::boolean #f)
+  
   (Simple))
 
 (define-object (ConsumeInput)::Interactive
@@ -39,11 +54,20 @@
   (define (long-press! finger::byte x::real y::real)::boolean #t)
   (define (key-typed! key-code::long context::Cursor)::boolean #t)
 
+  (define (scroll-up! left::real top::real)::boolean #t)
+  (define (scroll-down! left::real top::real)::boolean #t)
+  (define (scroll-left! left::real top::real)::boolean #t)
+  (define (scroll-right! left::real top::real)::boolean #t)
+
+  (define (zoom-in! left::real top::real)::boolean #t)
+  (define (zoom-out! left::real top::real)::boolean #t)
+  
   (Simple))
 
 (define-interface Drawable ()
   (draw!)::void
   )
+
 
 (define-interface Pane (Drawable Interactive))
 
@@ -83,6 +107,24 @@
   (define (split-below! line::Area)::Embeddable
     (this))
 
+  (define (scroll-up! left::real top::real)::boolean
+    #f)
+  
+  (define (scroll-down! left::real top::real)::boolean
+    #f)
+  
+  (define (scroll-left! left::real top::real)::boolean
+    #f)
+  
+  (define (scroll-right! left::real top::real)::boolean
+    #f)
+
+  (define (zoom-in! left::real top::real)::boolean
+    #f)
+  
+  (define (zoom-out! left::real top::real)::boolean
+    #f)
+  
   (IgnoreInput))
 
 (define-interface Drag ()

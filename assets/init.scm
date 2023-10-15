@@ -32,6 +32,7 @@
 (import (editor document cursor))
 (import (editor types extensions widgets))
 (import (editor input gestures))
+(import (editor types primitive))
 
 (import (editor types extensions visual-stepper))
 (import (editor document history-tracking))
@@ -43,6 +44,15 @@
      (lambda args
        (apply invoke object method args)))))
 
+
+(default-context:define! (Atom "ack")
+  (car (parse-string "\
+(lambda (m n)
+  (if (<= m 0)
+  (+ n 1)
+  (if (= n 0)
+  (ack (- m 1) 1)
+  (ack (- m 1) (ack m (- n 1))))))")))
 
 (set-key! 'left (lambda ()
 		  (move-cursor-left!)
@@ -69,6 +79,56 @@
 (set-key! '(ctrl y) redo!)
 
 (set-key! '(ctrl q) exit)
+
+(set-key! 'page-up
+	  (lambda ()
+	    (let* ((pivot ::Position (last-known-pointer-position 0))
+		   (left ::real (slot-ref pivot 'left))
+		   (top ::real (slot-ref pivot 'top)))
+	      (screen:scroll-up! left top))))
+
+(set-key! 'page-down
+	  (lambda ()
+	    (let* ((pivot ::Position (last-known-pointer-position 0))
+		   (left ::real (slot-ref pivot 'left))
+		   (top ::real (slot-ref pivot 'top)))
+	      (screen:scroll-down! left top))))
+
+(set-key! '(ctrl page-up)
+	  (lambda ()
+	    (let* ((pivot ::Position (last-known-pointer-position 0))
+		   (left ::real (slot-ref pivot 'left))
+		   (top ::real (slot-ref pivot 'top)))
+	      (screen:zoom-in! left top))))
+
+(set-key! '(ctrl page-down)
+	  (lambda ()
+	    (let* ((pivot ::Position (last-known-pointer-position 0))
+		   (left ::real (slot-ref pivot 'left))
+		   (top ::real (slot-ref pivot 'top)))
+	      (screen:zoom-out! left top))))
+
+(set-key! '(shift page-up)
+	  (lambda ()
+	    (let* ((pivot ::Position (last-known-pointer-position 0))
+		   (left ::real (slot-ref pivot 'left))
+		   (top ::real (slot-ref pivot 'top)))
+	      (screen:scroll-left! left top))))
+
+(set-key! '(shift page-down)
+	  (lambda ()
+	    (let* ((pivot ::Position (last-known-pointer-position 0))
+		   (left ::real (slot-ref pivot 'left))
+		   (top ::real (slot-ref pivot 'top)))
+	      (screen:scroll-right! left top))))
+
+(set-key! '(alt page-up)
+	  (lambda ()
+	    (WARN "rotate left")))
+
+(set-key! '(alt page-down)
+	  (lambda ()
+	    (WARN "rotate right")))
 
 (set-key! '(ctrl e)
 	  (lambda _

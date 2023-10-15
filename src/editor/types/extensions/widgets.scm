@@ -168,7 +168,8 @@
 			   (cons (Atom "list") (empty))
 			   items)
 		(empty))))
-  )
+
+  (Magic))
 
 (define-object (Caption content::string)::Enchanted
   (define (draw! context::Cursor)::void
@@ -244,6 +245,8 @@
 
   ((index< a::Index b::Index)::boolean #f)
 
+  extending Magic
+  with
   ((as-expression)
    (origin (this)))
   )
@@ -476,10 +479,18 @@
 	  (recons (text (this))
 		  (EmptyListProxy (EmptySpace)))))
 
-    (define (clone)::Element
+  (define (clone)::Element
     (let ((new ::TextInput (TextInput)))
       (new:append (this))
       new))
+
+  (define (scroll-up! left::real top::real)::boolean #f)
+  (define (scroll-down! left::real top::real)::boolean #f)
+  (define (scroll-left! left::real top::real)::boolean #f)
+  (define (scroll-right! left::real top::real)::boolean #f)
+
+  (define (zoom-in! left::real top::real)::boolean #f)
+  (define (zoom-out! left::real top::real)::boolean #f)
   
   (gnu.lists.FString))
 

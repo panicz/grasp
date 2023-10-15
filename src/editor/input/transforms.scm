@@ -37,6 +37,8 @@
   (stretch! x00::real y00::real x10::real y10::real
             x01::real y01::real x11::real y11::real)
   ::void
+  
+  (scale! factor::real x::real y::real)::void
 
   )
 
@@ -71,6 +73,9 @@
     ::void
     (WARN "Translation does not support stretching"))
 
+  ((scale! factor::real x::real y::real)::void
+   (values))
+  
   ((get-angle)::real 0)
   ((set-angle! rad::real)::void (values))
   ((get-scale)::real 1.0)
@@ -161,6 +166,13 @@
       (set! top (as int (round (- top dy))))
       (set! angle/rad angle*/rad)
       (set! scale scale*)))
+  
+  ((scale! factor::real x::real y::real)::void
+   (let-values (((x0 y0) (map x y)))
+     (set! scale (* scale factor))
+     (let-values (((x1 y1) (map x y)))
+       (set! left (as int (round (+ left (- x1 x0)))))
+       (set! top (as int (round (+ top (- y1 y0))))))))
   
   ((get-angle)::real angle/rad)
   ((set-angle! rad::real)::void

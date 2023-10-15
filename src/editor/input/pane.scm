@@ -151,6 +151,29 @@
   (define (split-below! line::Area)::void
     (set! top (top:split-below! line)))
 
+  (define (scroll-up! x::real y::real)::boolean
+    (or (overlay:scroll-up! x y)
+	(top:scroll-up! x y)))
+  
+  (define (scroll-down! x::real y::real)::boolean
+    (or (overlay:scroll-down! x y)
+	(top:scroll-down! x y)))
+  
+  (define (scroll-left! x::real y::real)::boolean
+    (or (overlay:scroll-left! x y)
+	(top:scroll-left! x y)))
+  
+  (define (scroll-right! x::real y::real)::boolean
+    (or (overlay:scroll-right! x y)
+	(top:scroll-right! x y)))
+
+  (define (zoom-in! x::real y::real)::boolean
+    (or (overlay:zoom-in! x y)
+	(top:zoom-in! x y)))
+  
+  (define (zoom-out! x::real y::real)::boolean
+    (or (overlay:zoom-out! x y)
+	(top:zoom-out! x y)))
   )
 
 (define-object (Stroke finger ::byte source-pane ::Pane)::Layer
@@ -194,7 +217,7 @@
 	  (set! items-position:top 0)))
       (with-translation (position:left position:top)
 	(draw-sequence! items))))
-  
+    
   (IgnoreInput))
 
 (define-object (DragAround selected::Selected)::Drag
@@ -331,6 +354,38 @@
 	       (return #t))
 	   (set! n (- n 2))))
 	 #f))))
+
+  (define (scroll-up! left::real top::real)::boolean
+    (any (lambda (layer::Layer)
+	   (layer:scroll-up! left top))
+	 layers))
+  
+  (define (scroll-down! left::real top::real)::boolean
+    (any (lambda (layer::Layer)
+	   (layer:scroll-down! left top))
+	 layers))
+  
+  (define (scroll-left! left::real top::real)::boolean
+    (any (lambda (layer::Layer)
+	   (layer:scroll-left! left top))
+	 layers))
+  
+  (define (scroll-right! left::real top::real)::boolean
+    (any (lambda (layer::Layer)
+	   (layer:scroll-right! left top))
+	 layers))
+
+  (define (zoom-in! left::real top::real)::boolean
+    (any (lambda (layer::Layer)
+	   (layer:zoom-in! left top))
+	 layers))
+  
+  (define (zoom-out! left::real top::real)::boolean
+    (any (lambda (layer::Layer)
+	   (layer:zoom-out! left top))
+	 layers))
+
+  
   )
 
 (define-enum SplitFocus (First Last))
@@ -502,6 +557,42 @@
 	      x y
 	      never))
 
+  ((scroll-up! left::real top::real)::boolean
+   (propagate (lambda (target::Embeddable x::real y::real)
+		(target:scroll-up! x y))
+	      left top
+	      never))
+  
+  ((scroll-down! left::real top::real)::boolean
+   (propagate (lambda (target::Embeddable x::real y::real)
+		(target:scroll-down! x y))
+	      left top
+	      never))
+  
+  ((scroll-left! left::real top::real)::boolean
+   (propagate (lambda (target::Embeddable x::real y::real)
+		(target:scroll-left! x y))
+	      left top
+	      never))
+  
+  ((scroll-right! left::real top::real)::boolean
+   (propagate (lambda (target::Embeddable x::real y::real)
+		(target:scroll-right! x y))
+	      left top
+	      never))
+
+  ((zoom-in! left::real top::real)::boolean
+   (propagate (lambda (target::Embeddable x::real y::real)
+		(target:zoom-in! x y))
+	      left top
+	      never))
+  
+  ((zoom-out! left::real top::real)::boolean
+   (propagate (lambda (target::Embeddable x::real y::real)
+		(target:zoom-out! x y))
+	      left top
+	      never))
+  
   ((can-split-beside? line::Area)::boolean
    (let-values (((first-size line-size last-size) (part-sizes)))
      (or (with-pane-size first-size
@@ -885,6 +976,24 @@
      (set! top
 	   (max 0 (min (- outer:height inner:height)
 		       (- y (quotient inner:height 2)))))))
+  
+  ((scroll-up! left::real top::real)::boolean
+   (content:scroll-up! left top))
+  
+  ((scroll-down! left::real top::real)::boolean
+   (content:scroll-down! left top))
+  
+  ((scroll-left! left::real top::real)::boolean
+   (content:scroll-left! left top))
+  
+  ((scroll-right! left::real top::real)::boolean
+   (content:scroll-rigt! left top))
+
+  ((zoom-in! left::real top::real)::boolean
+    #f)
+  
+  ((zoom-out! left::real top::real)::boolean
+    #f)
   )
 
 (define-type (Scroll width: real
@@ -948,6 +1057,43 @@
 
   ((index< a::Index b::Index)::boolean #f)
 
+  ((scroll-up! x::real y::real)::boolean
+   (and (is top > 0)
+	(let* ((painter ::Painter (the-painter))
+	       (h ::real (painter:min-line-height)))
+	  (set! top (max 0 (- top h)))
+	  #t)))	     
+  
+  ((scroll-down! x::real y::real)::boolean
+   (let ((inner ::Extent (extent+ content)))
+     (and (is top < (- inner:height height))
+	(let* ((painter ::Painter (the-painter))
+	       (h ::real (painter:min-line-height)))
+	  (set! top (min (- inner:height height) (+ top h)))
+	  #t))))
+  
+  ((scroll-left! x::real y::real)::boolean
+   (and (is left > 0)
+	(let* ((painter ::Painter (the-painter))
+	       (w ::real (painter:space-width)))
+	  (set! left (max 0 (- left w)))
+	  #t)))
+  
+  ((scroll-right! x::real y::real)::boolean
+   (let ((inner ::Extent (extent+ content)))
+     (and (is left < (- inner:width width))
+	(let* ((painter ::Painter (the-painter))
+	       (w ::real (painter:space-width)))
+	  (set! left (min (- inner:width width) (+ left w)))
+	  #t))))
+
+  ((zoom-in! x::real y::real)::boolean
+   #f)
+  
+  ((zoom-out! x::real y::real)::boolean
+   #f)
+
+  
   ((as-expression)::cons
    (invoke-special Base 'to-list cons to-expression)))
 
@@ -1435,6 +1581,38 @@
     ;; dodanie menu kontekstowego
     #t)
 
+  (define (scroll-up! x::real y::real)::boolean
+    (let* ((painter ::Painter (the-painter))
+	   (h ::real (painter:min-line-height)))
+      (transform:translate! 0 h)
+      #t))
+  
+  (define (scroll-down! x::real y::real)::boolean
+    (let* ((painter ::Painter (the-painter))
+	   (h ::real (painter:min-line-height)))
+      (transform:translate! 0 (- h))
+      #t))
+  
+  (define (scroll-left! x::real y::real)::boolean
+    (let* ((painter ::Painter (the-painter))
+	   (w ::real (painter:space-width)))
+      (transform:translate! w 0)
+      #t))
+  
+  (define (scroll-right! x::real y::real)::boolean
+    (let* ((painter ::Painter (the-painter))
+	   (w ::real (painter:space-width)))
+      (transform:translate! (- w) 0))
+    #t)
+
+  (define (zoom-in! x::real y::real)::boolean
+    (transform:scale! 1.25 x y)
+    #t)
+  
+  (define (zoom-out! x::real y::real)::boolean
+    (transform:scale! 0.8 x y)
+    #t)
+  
   (define (key-typed! key-code::long context::Cursor)::boolean
     (parameterize/update-sources ((the-document document)
 				  (the-cursor cursor)

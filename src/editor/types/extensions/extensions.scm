@@ -48,6 +48,14 @@
   (define (double-tap! finger::byte x::real y::real)::boolean #f)
   (define (long-press! finger::byte x::real y::real)::boolean #f)
   (define (key-typed! key-code::long context::Cursor)::boolean #f)
+
+  (define (scroll-up! left::real top::real)::boolean #f)
+  (define (scroll-down! left::real top::real)::boolean #f)
+  (define (scroll-left! left::real top::real)::boolean #f)
+  (define (scroll-right! left::real top::real)::boolean #f)
+
+  (define (zoom-in! left::real top::real)::boolean #f)
+  (define (zoom-out! left::real top::real)::boolean #f)
   
   (define (draw! context::Cursor)::void #!abstract)
 
