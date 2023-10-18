@@ -452,7 +452,7 @@
       port) =>
       (lambda (port::integer)
 	(WARN "Starting debug server on port "port)
-	(let ((tcp-server (tcp-output-server 12345)))
+	(let ((tcp-server (tcp-output-server port)))
 	  (set! (current-output-port) tcp-server)
 	  (set! (current-error-port) tcp-server)
 	  (WARN "Debug server started on port "port))))

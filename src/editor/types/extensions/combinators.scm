@@ -120,6 +120,17 @@
    (let* ((painter ::Painter (the-painter))
 	  (border ::real (painter:border-size)))
      (element:zoom-out! (- x border) (- y border))))
+
+  ((rotate-left! x::real y::real)::boolean
+   (let* ((painter ::Painter (the-painter))
+	  (border ::real (painter:border-size)))
+     (element:rotate-left! (- x border) (- y border))))
+  
+  ((rotate-right! x::real y::real)::boolean
+   (let* ((painter ::Painter (the-painter))
+	  (border ::real (painter:border-size)))
+     (element:rotate-right! (- x border) (- y border))))
+
   )
 
 (define-type (Over back: Enchanted front: Enchanted)
@@ -218,7 +229,14 @@
    (or (front:zoom-out! x y)
        (back:zoom-out! x y)))
 
+  ((rotate-left! x::real y::real)::boolean
+   (or (front:rotate-left! x y)
+       (back:rotate-left! x y)))
   
+  ((rotate-right! x::real y::real)::boolean
+   (or (front:rotate-right! x y)
+       (back:rotate-right! x y)))
+
   ((key-typed! key-code::long context::Cursor)::boolean
    (let* ((cursor (the-cursor))
 	  (first-context (recons (first-index) context))
@@ -355,6 +373,18 @@
      (if (is y < top-extent:height)
 	 (top:zoom-out! x y)
 	 (bottom:zoom-out! x (- y top-extent:height)))))
+
+  ((rotate-left! x::real y::real)::boolean
+   (let ((top-extent ::Extent (extent+ top)))
+     (if (is y < top-extent:height)
+	 (top:rotate-left! x y)
+	 (bottom:rotate-left! x (- y top-extent:height)))))
+  
+  ((rotate-right! x::real y::real)::boolean
+   (let ((top-extent ::Extent (extent+ top)))
+     (if (is y < top-extent:height)
+	 (top:rotate-right! x y)
+	 (bottom:rotate-right! x (- y top-extent:height)))))
   
   ((key-typed! key-code::long context::Cursor)::boolean
    (let* ((cursor (the-cursor))
@@ -493,6 +523,18 @@
      (if (is x < left-extent:width)
 	 (left:zoom-out! x y)
 	 (right:zoom-out! (- x left-extent:width) y))))
+
+  ((rotate-left! x::real y::real)::boolean
+   (let ((left-extent ::Extent (extent+ left)))
+     (if (is x < left-extent:width)
+	 (left:rotate-left! x y)
+	 (right:rotate-left! (- x left-extent:width) y))))
+  
+  ((rotate-right! x::real y::real)::boolean
+   (let ((left-extent ::Extent (extent+ left)))
+     (if (is x < left-extent:width)
+	 (left:rotate-right! x y)
+	 (right:rotate-right! (- x left-extent:width) y))))
   
   ((key-typed! key-code::long context::Cursor)::boolean
    (let* ((cursor (the-cursor))

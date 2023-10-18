@@ -56,6 +56,8 @@
 
   (define (zoom-in! left::real top::real)::boolean #f)
   (define (zoom-out! left::real top::real)::boolean #f)
+  (define (rotate-left! left::real top::real)::boolean #f)
+  (define (rotate-right! left::real top::real)::boolean #f)
   
   (define (draw! context::Cursor)::void #!abstract)
 

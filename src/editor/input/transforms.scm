@@ -40,6 +40,8 @@
   
   (scale! factor::real x::real y::real)::void
 
+  (rotate! factor::real x::real y::real)::void
+
   )
 
 (define-type (Translation left: real := 0
@@ -74,6 +76,9 @@
     (WARN "Translation does not support stretching"))
 
   ((scale! factor::real x::real y::real)::void
+   (values))
+
+  ((rotate! factor::real x::real y::real)::void
    (values))
   
   ((get-angle)::real 0)
@@ -170,6 +175,13 @@
   ((scale! factor::real x::real y::real)::void
    (let-values (((x0 y0) (map x y)))
      (set! scale (* scale factor))
+     (let-values (((x1 y1) (map x y)))
+       (set! left (as int (round (+ left (- x1 x0)))))
+       (set! top (as int (round (+ top (- y1 y0))))))))
+
+  ((rotate! angle/deg::real x::real y::real)::void
+   (let-values (((x0 y0) (map x y)))
+     (set! angle/rad (+ angle/rad (* angle/deg pi 1/180)))
      (let-values (((x1 y1) (map x y)))
        (set! left (as int (round (+ left (- x1 x0)))))
        (set! top (as int (round (+ top (- y1 y0))))))))

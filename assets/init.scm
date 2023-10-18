@@ -124,11 +124,17 @@
 
 (set-key! '(alt page-up)
 	  (lambda ()
-	    (WARN "rotate left")))
+	    (let* ((pivot ::Position (last-known-pointer-position 0))
+		   (left ::real (slot-ref pivot 'left))
+		   (top ::real (slot-ref pivot 'top)))
+	      (screen:rotate-left! left top))))
 
 (set-key! '(alt page-down)
 	  (lambda ()
-	    (WARN "rotate right")))
+	      (let* ((pivot ::Position (last-known-pointer-position 0))
+		     (left ::real (slot-ref pivot 'left))
+		     (top ::real (slot-ref pivot 'top)))
+		(screen:rotate-right! left top))))
 
 (set-key! '(ctrl e)
 	  (lambda _

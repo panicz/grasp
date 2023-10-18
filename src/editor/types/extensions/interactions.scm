@@ -23,6 +23,8 @@
   (scroll-right! left::real top::real)::boolean
   (zoom-in! left::real top::real)::boolean
   (zoom-out! left::real top::real)::boolean
+  (rotate-left! left::real top::real)::boolean
+  (rotate-right! left::real top::real)::boolean
   )
 
 (define-object (IgnoreInput)::Interactive
@@ -42,6 +44,9 @@
 
   (define (zoom-in! left::real top::real)::boolean #f)
   (define (zoom-out! left::real top::real)::boolean #f)
+
+  (define (rotate-left! left::real top::real)::boolean #f)
+  (define (rotate-right! left::real top::real)::boolean #f)
   
   (Simple))
 
@@ -61,6 +66,9 @@
 
   (define (zoom-in! left::real top::real)::boolean #t)
   (define (zoom-out! left::real top::real)::boolean #t)
+
+  (define (rotate-left! left::real top::real)::boolean #t)
+  (define (rotate-right! left::real top::real)::boolean #t)
   
   (Simple))
 

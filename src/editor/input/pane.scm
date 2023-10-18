@@ -174,6 +174,14 @@
   (define (zoom-out! x::real y::real)::boolean
     (or (overlay:zoom-out! x y)
 	(top:zoom-out! x y)))
+
+  (define (rotate-left! x::real y::real)::boolean
+    (or (overlay:rotate-left! x y)
+	(top:rotate-left! x y)))
+  
+  (define (rotate-right! x::real y::real)::boolean
+    (or (overlay:rotate-right! x y)
+	(top:rotate-right! x y)))
   )
 
 (define-object (Stroke finger ::byte source-pane ::Pane)::Layer
@@ -385,6 +393,15 @@
 	   (layer:zoom-out! left top))
 	 layers))
 
+  (define (rotate-left! left::real top::real)::boolean
+    (any (lambda (layer::Layer)
+	   (layer:rotate-left! left top))
+	 layers))
+  
+  (define (rotate-right! left::real top::real)::boolean
+    (any (lambda (layer::Layer)
+	   (layer:rotate-right! left top))
+	 layers))
   
   )
 
@@ -590,6 +607,18 @@
   ((zoom-out! left::real top::real)::boolean
    (propagate (lambda (target::Embeddable x::real y::real)
 		(target:zoom-out! x y))
+	      left top
+	      never))
+
+  ((rotate-left! left::real top::real)::boolean
+   (propagate (lambda (target::Embeddable x::real y::real)
+		(target:rotate-left! x y))
+	      left top
+	      never))
+  
+  ((rotate-right! left::real top::real)::boolean
+   (propagate (lambda (target::Embeddable x::real y::real)
+		(target:rotate-right! x y))
 	      left top
 	      never))
   
@@ -987,13 +1016,19 @@
    (content:scroll-left! left top))
   
   ((scroll-right! left::real top::real)::boolean
-   (content:scroll-rigt! left top))
+   (content:scroll-right! left top))
+
+  ((rotate-left! left::real top::real)::boolean
+   (content:rotate-left! left top))
+  
+  ((rotate-right! left::real top::real)::boolean
+   (content:rotate-right! left top))
 
   ((zoom-in! left::real top::real)::boolean
-    #f)
+    (content:zoom-in! left top))
   
   ((zoom-out! left::real top::real)::boolean
-    #f)
+   (content:zoom-out! left top))
   )
 
 (define-type (Scroll width: real
@@ -1093,6 +1128,11 @@
   ((zoom-out! x::real y::real)::boolean
    #f)
 
+  ((rotate-left! x::real y::real)::boolean
+   #f)
+  
+  ((rotate-right! x::real y::real)::boolean
+   #f)
   
   ((as-expression)::cons
    (invoke-special Base 'to-list cons to-expression)))
@@ -1611,6 +1651,14 @@
   
   (define (zoom-out! x::real y::real)::boolean
     (transform:scale! 0.8 x y)
+    #t)
+
+  (define (rotate-left! x::real y::real)::boolean
+    (transform:rotate! -5.0 x y)
+    #t)
+  
+  (define (rotate-right! x::real y::real)::boolean
+    (transform:rotate! 5.0 x y)
     #t)
   
   (define (key-typed! key-code::long context::Cursor)::boolean
