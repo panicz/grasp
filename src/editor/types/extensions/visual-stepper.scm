@@ -6,6 +6,7 @@
 (import (language define-type))
 (import (language define-interface))
 (import (language define-property))
+(import (language define-parameter))
 (import (language define-cache))
 (import (language keyword-arguments))
 
@@ -364,17 +365,17 @@
 	   (procedure? value))))
   )
 
-(define default-context ::EvaluationContext
+(define-parameter (default-context) ::EvaluationContext
   (EvaluationContext))
 
-(default-context:define! (Atom "!")
+(invoke (default-context) 'define! (Atom "!")
   (car (parse-string "\
 (lambda (n)
   (if (<= n 1)
      1 #| BASE CASE |#
      (* n (! (- n 1)))))")))
 
-(default-context:define! (Atom "append")
+(invoke (default-context) 'define! (Atom "append")
   (car (parse-string "\
 (lambda (a b)
   (if (null? a)
@@ -407,7 +408,7 @@
 			  (property (e::Element)::(list-of Element)
 				    (recons e '())))
 		#!key
-		(context::EvaluationContext default-context))
+		(context::EvaluationContext (default-context)))
   
   (define (mark-origin! newborn parent)
     (set! (origin newborn) (recons parent '()))

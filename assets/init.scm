@@ -45,7 +45,8 @@
        (apply invoke object method args)))))
 
 
-(default-context:define! (Atom "ack")
+(invoke
+ (default-context) 'define! (Atom "ack")
   (car (parse-string "\
 (lambda (m n)
   (if (<= m 0)
