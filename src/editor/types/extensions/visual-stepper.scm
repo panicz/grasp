@@ -20,6 +20,7 @@
 (import (editor interfaces painting))
 (import (editor types spaces))
 (import (editor types texts))
+(import (editor input evaluation))
 (import (editor types comments))
 (import (editor types extensions interactions))
 (import (editor types extensions extensions))
@@ -292,112 +293,6 @@
 	       (isnt (x:value) symbol?)
 	       #t))))
 
-(define-object (EvaluationContext)
-  ;;(define macro-definitions ::)
-
-  (define definitions ::java.util.Map
-    (let ((table ::java.util.Map (java.util.HashMap)))
-      (define (add s::string v)
-	(table:put (invoke (s:toString) 'intern) v))
-      (add "+" +)
-      (add "-" -)
-      (add "pred" (lambda (x) (- x 1)))
-      (add "*" *)
-      (add "/" /)
-      (add "<" <)
-      (add "<=" <=)
-      (add ">" >)
-      (add ">=" >=)
-      (add "=" =)
-      (add "eq?" eq?)		
-      (add "eqv?" eqv?)
-      (add "cons"
-	   (lambda args
-	     (match args
-	       (`(',a ',b)
-		(cons (Atom "quote") (cons a b)))
-	       (`(,a ',b)
-		(cons (Atom "quote") (cons a b)))
-	       (`(',a ,b)
-		(cons (Atom "quote") (cons a b)))
-	       (`(,a ,b)
-		(cons (Atom "quote") (cons a b))))))
-      (add "car"
-	   (lambda (x)
-	     (match x
-	       (`'(,a . ,b)
-		(if (self-evaluating? a)
-		    a
-		    (cons (Atom "quote") a))))))
-      (add "cdr"
-	   (lambda (x)
-	     (match x
-	       (`'(,a . ,b)
-		(if (self-evaluating? b)
-		    b
-		    (cons (Atom "quote") b))))))
-      (add "pair?"
-	   (lambda (x)
-	     (and-let* ((`'(,_ . ,_) x)))))
-      (add "null?"
-	   (lambda (x)
-	     (and-let* ((`'() x)))))
-      table))
-
-  (define (value atom::Atom)
-    (cond ((definitions:contains-key atom:name)
-	   (definitions:get atom:name))
-	  (else
-	   (error "undefined symbol: "atom))))
-
-  (define (defines-macro? symbol)
-    #f)
-
-  (define (defines? atom::Atom)
-    (definitions:contains-key atom:name))
-
-  (define (define! atom::Atom value)
-    (definitions:put atom:name value))
-
-  (define (primitive? atom::Atom)
-    (and (definitions:contains-key atom:name)
-	 (let ((value (definitions:get atom:name)))
-	   (procedure? value))))
-  )
-
-(define-parameter (default-context) ::EvaluationContext
-  (EvaluationContext))
-
-(invoke (default-context) 'define! (Atom "!")
-  (car (parse-string "\
-(lambda (n)
-  (if (<= n 1)
-     1 #| BASE CASE |#
-     (* n (! (- n 1)))))")))
-
-(invoke (default-context) 'define! (Atom "append")
-  (car (parse-string "\
-(lambda (a b)
-  (if (null? a)
-     b
-     (cons (car a) (append (cdr a) b))))")))
-
-(define (grasp expression)
-  (cond ((pair? expression)
-	 (cons (grasp (car expression))
-	       (grasp (cdr expression))))
-	((null? expression)
-	 (empty))
-	((string? expression)
-	 (text expression))
-	((Atom? expression)
-	 (copy expression))
-	((symbol? expression)
-	 (Atom (symbol->string expression)))
-	((number? expression)
-	 (Atom (number->string expression)))
-	(else
-	 (Atom (show->string expression)))))
 
 (define (reduce expression
 		#!optional

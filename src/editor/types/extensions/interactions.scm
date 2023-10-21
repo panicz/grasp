@@ -4,7 +4,7 @@
 (import (language define-type))
 (import (language define-object))
 (import (language fundamental))
-(import  (editor interfaces painting))
+(import (editor interfaces painting))
 (import (editor interfaces elements))
 (import (editor input transforms))
 

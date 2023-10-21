@@ -33,7 +33,7 @@
 (import (editor types extensions widgets))
 (import (editor input gestures))
 (import (editor types primitive))
-
+(import (editor input evaluation))
 (import (editor types extensions visual-stepper))
 (import (editor document history-tracking))
 (import (editor types spaces))
@@ -43,17 +43,6 @@
     (($lookup$ object method)
      (lambda args
        (apply invoke object method args)))))
-
-
-(invoke
- (default-context) 'define! (Atom "ack")
-  (car (parse-string "\
-(lambda (m n)
-  (if (<= m 0)
-  (+ n 1)
-  (if (= n 0)
-  (ack (- m 1) 1)
-  (ack (- m 1) (ack m (- n 1))))))")))
 
 (set-key! 'left (lambda ()
 		  (move-cursor-left!)
