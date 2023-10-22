@@ -1,3 +1,41 @@
+* 19.10.2023
+
+stworzylibysmy modul (editor input evaluation) do ktorego
+bysmy przeniesli niektore metody zwiazane z ewaluacja
+
+* 18.10.2023
+
+na razie proby zaktualizowania sdk spalily na panewce - byc moze
+to kwestia odpowiedniego pliku android.jar (ale zmiana na szybko
+nie sprawila, ze zaczelo dzialac, a i byc moze konieczne byloby
+przebudowanie Kawy)
+
+jutro zrobimy commit ze slajdow na JUG, natomiast w miedzyczasie
+bysmy sie zajeli ewaluacja w edytorze
+
+(i moze jeszcze zbudowaniem GRASP w oparciu o CheerpJ)
+
+przy czym tutaj jest taka kwestia, ze:
+- docelowo bysmy pewnie chcieli robic ekspansje makr po naszej stronie
+- teraz mamy dwa interpretery: Kawe oraz stepper. Kiedy sie bedzie
+  dalo, bedziemy wysylac definicje do obu z nich. Jak sie
+  nie bedzie dalo do steppera, to powinnismy przynajmniej wypluc
+  warning
+
+wiec poczatkowo przyjmiemy sobie, ze rzeczy typu
+`(define (,name . ,args) . ,value) oraz `(define ,name ,value)
+wysylamy do steppera.
+
+No dobra, ale ogolnie od czegos trzeba zaczac.
+
+To zaczniemy od tego, zeby ctrl+enter oraz ctrl+e powodowaly
+ewaluacje biezacego/poprzedniego wyrazenia
+
+* 16.10.2023 (telefon)
+
+sprobowalibysmy teraz obsluzyc zmiany w skrypcie do budowania
+na Androidzie (tak zeby dalo sie budowac dla SDK>=30)
+
 
 * 14.10.2023 (komputer)
 
