@@ -61,7 +61,10 @@
 
   (define (set-size! width::real height::real)::void
     (set! extent:width width)
-    (set! extent:height height))
+    (set! extent:height height)
+    (set! (the-pane-width) width)
+    (set! (the-pane-height) height)
+    )
 
   (define (size)::Extent extent)
 
@@ -152,36 +155,52 @@
     (set! top (top:split-below! line)))
 
   (define (scroll-up! x::real y::real)::boolean
-    (or (overlay:scroll-up! x y)
-	(top:scroll-up! x y)))
+    (parameterize ((the-pane-width extent:width)
+		   (the-pane-height extent:height))
+      (or (overlay:scroll-up! x y)
+	  (top:scroll-up! x y))))
   
   (define (scroll-down! x::real y::real)::boolean
-    (or (overlay:scroll-down! x y)
-	(top:scroll-down! x y)))
+    (parameterize ((the-pane-width extent:width)
+		   (the-pane-height extent:height))
+      (or (overlay:scroll-down! x y)
+	  (top:scroll-down! x y))))
   
   (define (scroll-left! x::real y::real)::boolean
-    (or (overlay:scroll-left! x y)
-	(top:scroll-left! x y)))
+    (parameterize ((the-pane-width extent:width)
+		   (the-pane-height extent:height))
+      (or (overlay:scroll-left! x y)
+	  (top:scroll-left! x y))))
   
   (define (scroll-right! x::real y::real)::boolean
-    (or (overlay:scroll-right! x y)
-	(top:scroll-right! x y)))
+    (parameterize ((the-pane-width extent:width)
+		   (the-pane-height extent:height))
+      (or (overlay:scroll-right! x y)
+	  (top:scroll-right! x y))))
 
   (define (zoom-in! x::real y::real)::boolean
-    (or (overlay:zoom-in! x y)
-	(top:zoom-in! x y)))
+    (parameterize ((the-pane-width extent:width)
+		   (the-pane-height extent:height))
+      (or (overlay:zoom-in! x y)
+	  (top:zoom-in! x y))))
   
   (define (zoom-out! x::real y::real)::boolean
-    (or (overlay:zoom-out! x y)
-	(top:zoom-out! x y)))
+    (parameterize ((the-pane-width extent:width)
+		   (the-pane-height extent:height))
+      (or (overlay:zoom-out! x y)
+	  (top:zoom-out! x y))))
 
   (define (rotate-left! x::real y::real)::boolean
-    (or (overlay:rotate-left! x y)
-	(top:rotate-left! x y)))
+    (parameterize ((the-pane-width extent:width)
+		   (the-pane-height extent:height))
+      (or (overlay:rotate-left! x y)
+	  (top:rotate-left! x y))))
   
   (define (rotate-right! x::real y::real)::boolean
-    (or (overlay:rotate-right! x y)
-	(top:rotate-right! x y)))
+    (parameterize ((the-pane-width extent:width)
+		   (the-pane-height extent:height))
+      (or (overlay:rotate-right! x y)
+	  (top:rotate-right! x y))))
   )
 
 (define-object (Stroke finger ::byte source-pane ::Pane)::Layer
@@ -478,6 +497,7 @@
 	 ))))
   
   ((propagate action::procedure x::real y::real default::procedure)
+   (DUMP (the-pane-width))
    (let-values (((first-size line-size last-size) (part-sizes))
 		((pos) (varying-dimension x y)))
      (cond ((is pos < first-size)
@@ -750,9 +770,8 @@
    (let* ((painter ::Painter (the-painter))
 	  (pane-width ::real (the-pane-width))
 	  (line-width ::real (painter:vertical-split-width))
-          (inner-width ::real (- pane-width line-width))
-          (left-width ::real (as int (round (* at inner-width))))
-          (right-width ::real (- inner-width left-width)))
+          (left-width ::real (as int (round (* at pane-width))))
+          (right-width ::real (- pane-width left-width line-width)))
      (values left-width line-width right-width)))
 
   ((draw-line!)::void
