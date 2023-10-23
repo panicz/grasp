@@ -1,5 +1,6 @@
 (module-name (editor input evaluation))
 
+(import (srfi :11))
 (import (language assert))
 (import (language infix))
 (import (language define-object))
@@ -25,6 +26,15 @@
 (import (language mapping))
 (import (utils print))
 (import (utils hash-table))
+
+(define (self-evaluating? x)
+  (or (and (pair? x)
+	   (match/equal? (car x) 'lambda))
+      (and (isnt x list?)
+	   (isnt x pair?)
+	   (if (Atom? x)
+	       (isnt (x:value) symbol?)
+	       #t))))
 
 (define-object (EvaluationContext)
   ;;(define macro-definitions ::)
@@ -143,7 +153,24 @@
 	(else
 	 (Atom (show->string expression)))))
 
-#|
-(define/kw (evaluate-expression! at: cursor ::Cursor := (the-cursor)
+  
+(define/kw (evaluate-expression! at: source ::Cursor := (the-cursor)
 				 in: document ::Document := (the-document))
-|#
+  (let*-values (((terminal stem) (cursor-terminal+stem source document))
+		((cursor next) (if (Space? terminal)
+				   (values (cursor-climb-back (cursor-back stem document) document) stem)
+				   (values stem (cursor-climb-front (cursor-next stem document) document)))))
+	      
+    (safely
+     (with-eval-access
+      (let* ((expression (the-expression at: cursor in: document))
+	     (value (eval expression))
+	     (value+ (grasp value))
+	     (operation ::Insert (Insert element: value+ at: next))
+	     (history ::History (history document)))
+	(history:record! operation)
+	(set! (the-cursor) (operation:apply! document))
+	(set! (the-selection-anchor) (the-cursor)))))))
+	
+	
+  

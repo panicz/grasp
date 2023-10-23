@@ -497,7 +497,6 @@
 	 ))))
   
   ((propagate action::procedure x::real y::real default::procedure)
-   (DUMP (the-pane-width))
    (let-values (((first-size line-size last-size) (part-sizes))
 		((pos) (varying-dimension x y)))
      (cond ((is pos < first-size)
@@ -1419,6 +1418,7 @@
   (define (draw!)::void
     (parameterize ((the-document document)
 		   (the-cursor cursor)
+		   (the-editor (this))
 		   (the-selection-anchor selection-anchor))
       (let ((painter ::Painter (the-painter)))
 	(transform:within painter
@@ -1583,108 +1583,159 @@
 	#t)))
 
   (define (double-tap! finger::byte x::real y::real)::boolean
-    (let ((painter ::Painter (the-painter)))
-      (cond
-       ((isnt (transform:get-angle) = 0.0)
-	(painter:play!
-	 (Transition of: transform
-		     from: (copy transform)
-		     to: (let ((target ::Transform (copy transform)))
-			   (target:set-angle! 0.0)
-			   target)
-		     around: (Position left: x top: y)
-		     duration/ms: 500))
-	#t)
-       ((or (isnt (transform:get-left) = 0)
-	    (is (transform:get-top) > 0))
-	(painter:play!
-	 (Transition of: transform
-		     from: (copy transform)
-		     to: (let ((target ::Transform (copy transform))
-			       (document ::Extent (extent+ document))
-			       (screen ::Extent (screen:size)))
-			   (target:set-left! 0.0)
-			   (target:set-top! 0.0)
-			   (target:set-scale!
-			    (min (/ screen:width document:width)
-				 (/ screen:height document:height)))
-			   target)
-		     duration/ms: 500))
-	 #t)
-       (else
-	#f))))
+    (parameterize/update-sources ((the-document document)
+				  (the-cursor cursor)
+				  (the-editor (this))
+				  (the-selection-anchor
+				   selection-anchor))
+      (let ((painter ::Painter (the-painter)))
+	(cond
+	 ((isnt (transform:get-angle) = 0.0)
+	  (painter:play!
+	   (Transition of: transform
+		       from: (copy transform)
+		       to: (let ((target ::Transform (copy transform)))
+			     (target:set-angle! 0.0)
+			     target)
+		       around: (Position left: x top: y)
+		       duration/ms: 500))
+	  #t)
+	 ((or (isnt (transform:get-left) = 0)
+	      (is (transform:get-top) > 0))
+	  (painter:play!
+	   (Transition of: transform
+		       from: (copy transform)
+		       to: (let ((target ::Transform (copy transform))
+				 (document ::Extent (extent+ document))
+				 (screen ::Extent (screen:size)))
+			     (target:set-left! 0.0)
+			     (target:set-top! 0.0)
+			     (target:set-scale!
+			      (min (/ screen:width document:width)
+				   (/ screen:height document:height)))
+			     target)
+		       duration/ms: 500))
+	  #t)
+	 (else
+	  #f)))))
 
   (define (long-press! finger::byte x::real y::real)::boolean
-    (safely
-     (invoke (current-message-handler) 'clear-messages!)
-     (let* ((content
-	     ::Enchanted
-	     (ColumnGrid
-	      `(,(Link content: (Caption "New")
-		       on-tap: (lambda _ (WARN "New") #t))
-		,(Link content: (Caption "Open...")
-		       on-tap: ((open-file) finger (this)))
-		,@(if (is (length (open-documents)) < 1)
-		      '()
-		      `(,(Link
-			  content:
-			  (Caption "Switch to...")
-			  on-tap:
-			  (lambda _
-			    (safely
-			     (screen:overlay:add!
-			      (document-switcher (this))))
-			    #t))))
-		,(Link content: (Caption "Save as...")
-		       on-tap: ((save-file) finger (this)))
-		,(Link content: (Caption "Close")
-		       on-tap: (lambda _ (WARN "Close") #t))
-		)))
-	    (window ::PopUp (PopUp content: content)))
-       (window:center-around! x y)
-       (screen:overlay:add! window)))
+    (parameterize/update-sources ((the-document document)
+				  (the-cursor cursor)
+				  (the-editor (this))
+				  (the-selection-anchor
+				   selection-anchor))
+      (safely
+       (invoke (current-message-handler) 'clear-messages!)
+       (let* ((content
+	       ::Enchanted
+	       (ColumnGrid
+		`(,(Link content: (Caption "New")
+			 on-tap: (lambda _ (WARN "New") #t))
+		  ,(Link content: (Caption "Open...")
+			 on-tap: ((open-file) finger (this)))
+		  ,@(if (is (length (open-documents)) < 1)
+			'()
+			`(,(Link
+			    content:
+			    (Caption "Switch to...")
+			    on-tap:
+			    (lambda _
+			      (safely
+			       (screen:overlay:add!
+				(document-switcher (this))))
+			      #t))))
+		  ,(Link content: (Caption "Save as...")
+			 on-tap: ((save-file) finger (this)))
+		  ,(Link content: (Caption "Close")
+			 on-tap: (lambda _ (WARN "Close") #t))
+		  )))
+	      (window ::PopUp (PopUp content: content)))
+	 (window:center-around! x y)
+	 (screen:overlay:add! window))))
     ;; dodanie menu kontekstowego
     #t)
 
   (define (scroll-up! x::real y::real)::boolean
-    (let* ((painter ::Painter (the-painter))
-	   (h ::real (painter:min-line-height)))
-      (transform:translate! 0 h)
-      #t))
+    (parameterize/update-sources ((the-document document)
+				  (the-cursor cursor)
+				  (the-editor (this))
+				  (the-selection-anchor
+				   selection-anchor))
+      (let* ((painter ::Painter (the-painter))
+	     (h ::real (painter:min-line-height)))
+	(WARN transform)
+	(transform:translate! 0 h)
+	#t)))
   
   (define (scroll-down! x::real y::real)::boolean
-    (let* ((painter ::Painter (the-painter))
-	   (h ::real (painter:min-line-height)))
-      (transform:translate! 0 (- h))
-      #t))
+    (parameterize/update-sources ((the-document document)
+				  (the-cursor cursor)
+				  (the-editor (this))
+				  (the-selection-anchor
+				   selection-anchor))
+      (let* ((painter ::Painter (the-painter))
+	     (h ::real (painter:min-line-height)))
+	(transform:translate! 0 (- h))
+	#t)))
   
   (define (scroll-left! x::real y::real)::boolean
-    (let* ((painter ::Painter (the-painter))
-	   (w ::real (painter:space-width)))
-      (transform:translate! w 0)
-      #t))
+    (parameterize/update-sources ((the-document document)
+				  (the-cursor cursor)
+				  (the-editor (this))
+				  (the-selection-anchor
+				   selection-anchor))
+      (let* ((painter ::Painter (the-painter))
+	     (w ::real (painter:space-width)))
+	(transform:translate! w 0)
+	#t)))
   
   (define (scroll-right! x::real y::real)::boolean
-    (let* ((painter ::Painter (the-painter))
-	   (w ::real (painter:space-width)))
-      (transform:translate! (- w) 0))
-    #t)
+    (parameterize/update-sources ((the-document document)
+				  (the-cursor cursor)
+				  (the-editor (this))
+				  (the-selection-anchor
+				   selection-anchor))
+      (let* ((painter ::Painter (the-painter))
+	     (w ::real (painter:space-width)))
+	(transform:translate! (- w) 0))
+      #t))
 
   (define (zoom-in! x::real y::real)::boolean
-    (transform:scale! 1.25 x y)
-    #t)
+    (parameterize/update-sources ((the-document document)
+				  (the-cursor cursor)
+				  (the-editor (this))
+				  (the-selection-anchor
+				   selection-anchor))
+      (transform:scale! 1.25 x y)
+      #t))
   
   (define (zoom-out! x::real y::real)::boolean
-    (transform:scale! 0.8 x y)
-    #t)
+    (parameterize/update-sources ((the-document document)
+				  (the-cursor cursor)
+				  (the-editor (this))
+				  (the-selection-anchor
+				   selection-anchor))
+      (transform:scale! 0.8 x y)
+      #t))
 
   (define (rotate-left! x::real y::real)::boolean
-    (transform:rotate! -5.0 x y)
-    #t)
+    (parameterize/update-sources ((the-document document)
+				  (the-cursor cursor)
+				  (the-editor (this))
+				  (the-selection-anchor
+				   selection-anchor))
+      (transform:rotate! -5.0 x y)
+      #t))
   
   (define (rotate-right! x::real y::real)::boolean
-    (transform:rotate! 5.0 x y)
-    #t)
+    (parameterize/update-sources ((the-document document)
+				  (the-cursor cursor)
+				  (the-editor (this))
+				  (the-selection-anchor
+				   selection-anchor))
+      (transform:rotate! 5.0 x y)
+      #t))
   
   (define (key-typed! key-code::long context::Cursor)::boolean
     (parameterize/update-sources ((the-document document)

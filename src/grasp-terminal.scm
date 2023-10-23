@@ -44,6 +44,7 @@
 (import (editor interfaces delayed))
 (import (editor input touch-event-processor))
 (import (editor types extensions visual-stepper))
+(import (editor input transforms))
 
 (define-alias Thread java.lang.Thread)
 (define-alias BlockingQueue java.util.concurrent.BlockingQueue)

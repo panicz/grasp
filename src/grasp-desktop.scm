@@ -1324,6 +1324,11 @@ by the AWT framework."))
 	  (animator:start)))))
 
   (InputHandler)
+  
+  (java.awt.EventQueue:invokeAndWait
+   (lambda ()
+     (set! (default-transform) (lambda () (Isogonal)))))
+
   (rendering-hints:put RenderingHints:KEY_ANTIALIASING
 		       RenderingHints:VALUE_ANTIALIAS_ON)
   (rendering-hints:put RenderingHints:KEY_RENDERING
@@ -1334,8 +1339,9 @@ by the AWT framework."))
 (define-parameter (alt-pressed?) ::boolean #f)
 (define-parameter (meta-pressed?) ::boolean #f)
 
+(set! (default-transform) (lambda () (Isogonal)))
+
 (define (run-in-AWT-window)::void
-  (set! (default-transform) (lambda () (Isogonal)))
   (let ((application ::GRASP (GRASP)))
     (set! (the-painter) application)
     (initialize-keymap)

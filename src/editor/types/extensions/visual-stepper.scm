@@ -284,16 +284,6 @@
 			       progress))))
   (Magic))
 
-(define (self-evaluating? x)
-  (or (and (pair? x)
-	   (match/equal? (car x) 'lambda))
-      (and (isnt x list?)
-	   (isnt x pair?)
-	   (if (Atom? x)
-	       (isnt (x:value) symbol?)
-	       #t))))
-
-
 (define (reduce expression
 		#!optional
 		(origin::(!maps (Element) to: (list-of Element))
