@@ -126,21 +126,10 @@
 		     (top ::real (slot-ref pivot 'top)))
 		(screen:rotate-right! left top))))
 
-(set-key! '(ctrl e)
-	  (lambda _
-	    (and-let* ((`(,tip ,top . ,root) (the-cursor))
-		       (parent ::Indexable (the-expression at: root))
-		       (target ::Indexable (parent:part-at top))
-		       ((eq? target (target:part-at tip)))
-		       (target (if (Space? target)
-				   (let* ((first-index ::Index (target:first-index))
-					  (preceding-cursor (cursor-retreat (recons*
-									first-index
-									top root))))
-				     (the-expression at: preceding-cursor))
-				   target)))
-	      (WARN "parent: "target))))
-	  
+(set-key! '(ctrl e) evaluate-expression!)
+
+(set-key! '(ctrl enter) evaluate-expression!)
+
 (set-key! 'F12 exit)
 
 (set-key! 'tab
@@ -210,8 +199,6 @@
        (screen:split-beside! line)))))
 
 #|
-
-(set-key! '(ctrl enter) evaluate!)
 
 (set-key! '(ctrl mouse-wheel-up) zoom-in!)
 (set-key! '(ctrl mouse-wheel-down) zoom-out!)

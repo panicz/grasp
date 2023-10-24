@@ -60,6 +60,10 @@
   (parameterize ((cell-access-mode CellAccessMode:Evaluating))
     actions ...))
 
+(define-syntax-rule (with-edit-access actions ...)
+  (parameterize ((cell-access-mode CellAccessMode:Editing))
+    actions ...))
+
 (define (evaluating?) ::boolean
   (eq? (cell-access-mode) CellAccessMode:Evaluating))
 

@@ -23,6 +23,7 @@
 (import (editor document parse))
 (import (editor document documents))
 (import (editor document cursor))
+(import (editor document history-tracking))
 (import (language mapping))
 (import (utils print))
 (import (utils hash-table))
@@ -112,30 +113,6 @@
 (define-parameter (default-context) ::EvaluationContext
   (EvaluationContext))
 
-(invoke (default-context) 'define! (Atom "!")
-  (car (parse-string "\
-(lambda (n)
-  (if (<= n 1)
-     1 #| BASE CASE |#
-     (* n (! (- n 1)))))")))
-
-(invoke (default-context) 'define! (Atom "append")
-  (car (parse-string "\
-(lambda (a b)
-  (if (null? a)
-     b
-     (cons (car a) (append (cdr a) b))))")))
-
-(invoke
- (default-context) 'define! (Atom "ack")
-  (car (parse-string "\
-(lambda (m n)
-  (if (<= m 0)
-  (+ n 1)
-  (if (= n 0)
-  (ack (- m 1) 1)
-  (ack (- m 1) (ack m (- n 1))))))")))
-
 (define (grasp expression)
   (cond ((pair? expression)
 	 (cons (grasp (car expression))
@@ -159,18 +136,29 @@
   (let*-values (((terminal stem) (cursor-terminal+stem source document))
 		((cursor next) (if (Space? terminal)
 				   (values (cursor-climb-back (cursor-back stem document) document) stem)
-				   (values stem (cursor-climb-front (cursor-next stem document) document)))))
-	      
+				   (values stem (cursor-climb-front (cursor-next stem document) document)))))	      
+    (safely
+     (match (the-expression at: cursor in: document)
+       (`(define (,name . ,args) . ,value)
+	(invoke (default-context) 'define! name (cons (Atom "lambda") (cons args value))))
+       
+       (`(define ,name ,value)
+	(invoke (default-context) 'define! name value))
+       
+       (expression
+	(WARN "not a definition: "expression))))
     (safely
      (with-eval-access
-      (let* ((expression (the-expression at: cursor in: document))
-	     (value (eval expression))
-	     (value+ (grasp value))
-	     (operation ::Insert (Insert element: value+ at: next))
-	     (history ::History (history document)))
-	(history:record! operation)
-	(set! (the-cursor) (operation:apply! document))
-	(set! (the-selection-anchor) (the-cursor)))))))
-	
-	
-  
+      (let ((expression (the-expression at: cursor in: document)))
+	(call-with-values (lambda ()
+			    (WARN "evaluating "expression)
+			    (eval expression))
+	  (lambda result
+	    (unless (null? result)
+	      (with-edit-access
+	       (let* ((result+ (grasp result))
+		      (operation ::Insert (Insert element: result+ at: next))
+		      (history ::History (history document)))
+		 (history:record! operation)
+		 (set! (the-cursor) (operation:apply! document))
+		 (set! (the-selection-anchor) (the-cursor))))))))))))

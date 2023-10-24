@@ -132,6 +132,29 @@
 	  (cursor-core root document)
 	  cursor))))
 
+(define (cursor-terminal+stem #!optional
+		     (cursor ::Cursor (the-cursor))
+		     (document (the-document)))
+  ::(Values Tile Cursor)
+  (match cursor
+    (`(,h . ,t)
+     (let-values (((parent stem) (cursor-terminal+stem t document)))
+       (if (Space? parent)
+	   (values parent stem)
+	   (let ((target (part-at h parent)))
+	     (if (eq? parent target)
+		 (values parent t)
+		 (values target cursor))))))
+    (_
+     (values document cursor))))
+
+(define (cursor-stem #!optional
+		     (cursor ::Cursor (the-cursor))
+		     (document (the-document)))
+  ::Cursor
+  (let-values (((terminal stem) (cursor-terminal+stem cursor document)))
+    stem))
+
 #;(assert
    (forall (document cursor)
      (isnt (cursor-core cursor document) fully-expanded? document)))
