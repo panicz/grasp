@@ -135,8 +135,10 @@
 				 in: document ::Document := (the-document))
   (let*-values (((terminal stem) (cursor-terminal+stem source document))
 		((cursor next) (if (Space? terminal)
-				   (values (cursor-climb-back (cursor-back stem document) document) stem)
-				   (values stem (cursor-climb-front (cursor-next stem document) document)))))	      
+				   (let-values (((previous stem) (cursor-terminal+stem (cursor-retreat stem document)
+										       document)))
+				     (values stem (cursor-advance stem document)))
+				   (values stem (cursor-advance stem document)))))
     (safely
      (match (the-expression at: cursor in: document)
        (`(define (,name . ,args) . ,value)

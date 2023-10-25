@@ -1664,7 +1664,6 @@
 				   selection-anchor))
       (let* ((painter ::Painter (the-painter))
 	     (h ::real (painter:min-line-height)))
-	(WARN transform)
 	(transform:translate! 0 h)
 	#t)))
   
