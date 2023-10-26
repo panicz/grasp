@@ -20,6 +20,7 @@
 (import (editor types spaces))
 (import (editor document cursor))
 (import (language for))
+(import (language while))
 (import (editor interfaces painting))
 (import (utils functions))
 (import (utils print))
@@ -467,19 +468,18 @@
 		      (elems::list (head (the-document)))
 		      #!key (context::Cursor (recons 1 '())))
   ::Cursor
-  (call/cc
-   (lambda (return)
-     (traverse
-      elems
-      doing:
-      (lambda (item::Element t::Traversal)
-	(and-let* ((cursor (item:cursor-under*
-			    (- left t:left)
-			    (- top t:top)
-			    (recons t:index context))))
-	  (return cursor)))
-      returning: (lambda (t::Traversal)
-		   context)))))
+  (escape-with return
+    (traverse
+     elems
+     doing:
+     (lambda (item::Element t::Traversal)
+       (and-let* ((cursor (item:cursor-under*
+			   (- left t:left)
+			   (- top t:top)
+			   (recons t:index context))))
+	 (return cursor)))
+     returning: (lambda (t::Traversal)
+		  context))))
 
 (define-type (LineEnding reach: real
 			 space: Space
@@ -506,48 +506,47 @@
 	 (let ((extent ::Extent (extent+ comment)))
 	   extent:width))))
 
-    (call/cc
-     (lambda (return)
-       (traverse
-	box
-	doing:
-	(lambda (item::Element current::Traversal)
-	  (and-let* ((space ::Space item))
-	    (set! last-space space)
-	    (next:assign current)
-	    (let skip ((input ::list space:fragments)
-		       (fragment-index ::int 0))
-	      (match input
-		(`(,,@breaking? ,,@integer? . ,_)
-		 (cond
-		  ((is next:top <= position
-		       < (+ next:top
-			    next:max-line-height))
-		   (return
-		    (LineEnding
-		     space: space
-		     reach: current:left
-		     index: fragment-index)))
-		  (else
-		   (next:expand-by! (width (car input)))
-		   (next:new-line!)
-		   (skip (cdr input) (+ fragment-index 1)))))
+    (escape-with return
+      (traverse
+       box
+       doing:
+       (lambda (item::Element current::Traversal)
+	 (and-let* ((space ::Space item))
+	   (set! last-space space)
+	   (next:assign current)
+	   (let skip ((input ::list space:fragments)
+		      (fragment-index ::int 0))
+	     (match input
+	       (`(,,@breaking? ,,@integer? . ,_)
+		(cond
+		 ((is next:top <= position
+		      < (+ next:top
+			   next:max-line-height))
+		  (return
+		   (LineEnding
+		    space: space
+		    reach: current:left
+		    index: fragment-index)))
+		 (else
+		  (next:expand-by! (width (car input)))
+		  (next:new-line!)
+		  (skip (cdr input) (+ fragment-index 1)))))
 
-		(`(,,@(lambda (x)
-			(or (integer? x)
-			    (and-let* ((c ::Comment x))
-			      (not (c:breaks-line?)))))
-		   . ,rest)
-		 (next:expand-by! (width (car input)))
-		 (skip rest (+ fragment-index 1)))
-		('()
-		 (values))))
-	      (set! previous-left current:left)))
-	returning:
-	(lambda (t::Traversal)
-	  (LineEnding reach: previous-left
-		      space: last-space
-		      index: (last-space:last-index))))))))
+	       (`(,,@(lambda (x)
+		       (or (integer? x)
+			   (and-let* ((c ::Comment x))
+			     (not (c:breaks-line?)))))
+		  . ,rest)
+		(next:expand-by! (width (car input)))
+		(skip rest (+ fragment-index 1)))
+	       ('()
+		(values))))
+	   (set! previous-left current:left)))
+       returning:
+       (lambda (t::Traversal)
+	 (LineEnding reach: previous-left
+		     space: last-space
+		     index: (last-space:last-index)))))))
 
 #|
 (define (cursor-above cursor::Cursor

@@ -70,17 +70,16 @@
            (grid-border ::real (painter:grid-border))
 	   (ceiling ::real grid-border)
 	   (n ::real 0))
-      (call/cc
-       (lambda (return)
-         (for item::Enchanted in items
-	   (let ((inner ::Extent (extent+ item)))
-	     (when (is ceiling <= y < (+ ceiling inner:height))
-	       (return (action item finger
-			       (- x grid-border) (- y ceiling)
-			       n)))
-	     (set! ceiling (+ ceiling inner:height grid-border))
-	     (set! n (+ n 1))))
-	 #f))))
+      (escape-with return
+	(for item::Enchanted in items
+	  (let ((inner ::Extent (extent+ item)))
+	    (when (is ceiling <= y < (+ ceiling inner:height))
+	      (return (action item finger
+			      (- x grid-border) (- y ceiling)
+			      n)))
+	    (set! ceiling (+ ceiling inner:height grid-border))
+	    (set! n (+ n 1))))
+	#f)))
 
   (define (part-at index::Index)::Indexable*
     (items index))

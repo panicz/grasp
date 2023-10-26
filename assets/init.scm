@@ -166,12 +166,13 @@
 			      (slot-ref p1 'top)))
 		      <= (* vicinity 2)))
 		 (line ::Area (area simplified)))
-	(screen:can-split-below? line))))
+	(and (screen:can-split-below? line)
+	     line))))
   action:
   (lambda (own::Recognizer
-	   points::(sequence-of Position))
-    (let* ((line ::Area (area points)))
-      (screen:split-below! line)))))
+	   points::(sequence-of Position)
+	   line::Area)
+    (screen:split-below! line))))
 
 (invoke
  (the-recognizers) 'add
@@ -191,12 +192,40 @@
 			      (slot-ref p1 'left)))
 		      <= (* vicinity 2)))
 		 (line ::Area (area simplified)))
-	(screen:can-split-beside? line))))
+	(and (screen:can-split-beside? line)
+	     line))))
   action:
   (lambda (own::Recognizer
-	   points::(sequence-of Position))
-    (let* ((line ::Area (area points)))
-       (screen:split-beside! line)))))
+	   points::(sequence-of Position)
+	   line::Area)
+    (screen:split-beside! line))))
+
+#;(invoke
+ (the-recognizers) 'add
+ (Recognizer
+  name: "eval"
+  recognizes:
+  (lambda (points::(sequence-of Position))
+    (let* ((painter ::Painter (the-painter))
+	   (vicinity ::real
+		     (painter:line-simplification-resolution))
+	   (simplified ::java.util.List
+		       (simplify points vicinity))
+	   (top (slot-ref screen 'top))
+	   (p0 ::Position (points 0))
+	   (p1 ::Position (points 1))
+	   (p2 ::Position (points 3))
+	   (pane0 ::Embeddable (top:pane-under (slot-ref p0 'left) (slot-ref p0 'top)))
+	   (pane1 ::Embeddable (top:pane-under (slot-ref p1 'left) (slot-ref p1 'top)))
+	   (pane2 ::Embeddable (top:pane-under (slot-ref p2 'left) (slot-ref p2 'top))))
+      (and (eq? pane0 pane1 pane2)
+	   (is (slot-ref p0 'left) < (slot-ref p1 'left) < (slot-ref p2 'left))
+	   (is (slot-ref p1 'top) < (slot-ref p0 'top))
+	   (is (slot-ref p1 'top) < (slot-ref p2 'top))
+	   (and-let* ((editor ::Editor pane0)
+		      (document ::Document (slot-ref editor 'document))
+		      (target ::Tile (document:top-level-expression-at x y)))
+	     ...))))))
 
 #|
 

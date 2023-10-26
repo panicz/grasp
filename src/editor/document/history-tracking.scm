@@ -183,30 +183,29 @@
 			  tip)))
 	    (let ((lines ::int (quotient (- increment)
 					 min-line-height)))
-	      (call/cc
-	       (lambda (return)
-		 (traverse
-		  box doing:
-		  (lambda (item::Element t::Traversal)
-		    (and-let* ((space ::Space item))
-		      (let remove-line ((fragments space:fragments))
-			(if (is lines <= 0)
-			    (return)
-			    (match fragments
-			      (`(,,@integer? ,,@integer? ,,@integer?
-					     . ,_)
-			       (set-cdr! fragments (cddr fragments))
-			       (set! lines (- lines 1))
-			       (remove-line fragments))
-			      (`(,,@integer? ,,@integer?)
-			       (if (eq? space last-space)
-				   (set-cdr! fragments '())
-				   (values)))
-			      (`(,head . ,tail)
-			       (remove-line tail))
-			      (_
-			       (values))
-			      ))))))))))))
+	      (escape-with return
+		(traverse
+		 box doing:
+		 (lambda (item::Element t::Traversal)
+		   (and-let* ((space ::Space item))
+		     (let remove-line ((fragments space:fragments))
+		       (if (is lines <= 0)
+			   (return)
+			   (match fragments
+			     (`(,,@integer? ,,@integer? ,,@integer?
+					    . ,_)
+			      (set-cdr! fragments (cddr fragments))
+			      (set! lines (- lines 1))
+			      (remove-line fragments))
+			     (`(,,@integer? ,,@integer?)
+			      (if (eq? space last-space)
+				  (set-cdr! fragments '())
+				  (values)))
+			     (`(,head . ,tail)
+			      (remove-line tail))
+			     (_
+			      (values))
+			     )))))))))))
     (set-width!)
     (set-height!)))
 

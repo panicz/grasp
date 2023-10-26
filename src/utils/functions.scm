@@ -5,6 +5,7 @@
 (import (language examples))
 (import (language infix))
 (import (language for))
+(import (language while))
 
 (define (nearby-int x::real)::int
   (as int (round x)))
@@ -102,13 +103,12 @@
 (define predicate procedure)
 
 (define (any satisfying? elements)
-  (call/cc
-   (lambda (return)
-     (for x in elements
-       (let ((result (satisfying? x)))
-	 (when result
-	   (return result))))
-     #f)))
+  (escape-with return
+    (for x in elements
+      (let ((result (satisfying? x)))
+	(when result
+	  (return result))))
+    #f))
 
 (e.g.
  (any even? '(1 2 3)))
@@ -133,12 +133,11 @@
  (any. zero? '(3 2 1 . 0)))
 
 (define (every satisfying? elements)::boolean
-  (call/cc
-   (lambda (return)
-     (for x in elements
-	 (unless (satisfying? x)
-	   (return #f)))
-     #t)))
+  (escape-with return
+    (for x in elements
+      (unless (satisfying? x)
+	(return #f)))
+    #t))
 
 (e.g.
  (every even? '(2 4 6)))
@@ -535,13 +534,12 @@
  ===> (4 5))
 
 (define (find satisfying-element?::predicate in::sequence)
-  (call/cc
-   (lambda (return)
-     (for-each (lambda (x)
-		 (when (satisfying-element? x)
-		   (return x)))
-	       in)
-     #f)))
+  (escape-with return
+    (for-each (lambda (x)
+		(when (satisfying-element? x)
+		  (return x)))
+	      in)
+    #f))
 
 (e.g.
  (find even? '(1 2 3)) ===> 2)

@@ -224,12 +224,12 @@
     (stroke:add-point! (Position left: x top: y)))
 
   (define (drop! x::real y::real vx::real vy::real)::void
-    (and-let* ((recognized ::Recognizer
-			   (find (lambda (recognizer::Recognizer)
-				   (recognizer:recognizes
-				    stroke:points))
-				 (the-recognizers))))
-      (recognized:action recognized stroke:points))
+    (escape-with break
+      (for recognizer::Recognizer in (the-recognizers)
+	(let ((result (recognizer:recognizes stroke:points)))
+	  (when result
+	    (recognizer:action recognizer stroke:points result)
+	    (break)))))
     (screen:overlay:remove! stroke))
 
   (screen:overlay:add! stroke))
@@ -372,15 +372,14 @@
 
   (define (key-typed! key-code::long context::Cursor)::boolean
     (let ((n ::int (+ 1 (* 2 (length layers)))))
-      (call/cc
-       (lambda (return)
-	 (for layer::Layer in layers
-	   (parameterize/update-sources ((the-cursor (cursor
-						      layer)))
-	     (when (layer:key-typed! key-code context)
-	       (return #t))
-	   (set! n (- n 2))))
-	 #f))))
+      (escape-with return
+	(for layer::Layer in layers
+	  (parameterize/update-sources ((the-cursor (cursor
+						     layer)))
+	    (when (layer:key-typed! key-code context)
+	      (return #t))
+	    (set! n (- n 2))))
+	#f)))
 
   (define (scroll-up! left::real top::real)::boolean
     (any (lambda (layer::Layer)
@@ -972,24 +971,24 @@
    (and (eq? a 'edge) (eq? b 'content)))
 
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
-   (call/cc
-    (lambda (return)
-     (pop-up-action (this) 0 x y
+   (escape-with return
+     (pop-up-action
+      (this) 0 x y
       inside:
       (lambda (content::Tile finger::byte x::real y::real)::boolean
-        (return
-	 (otherwise #!null
-	   (and path
-	     (content:cursor-under*
-	      x y (recons 'content path))))))
+	      (return
+	       (otherwise #!null
+		 (and path
+		      (content:cursor-under*
+		       x y (recons 'content path))))))
       outside:
       (lambda (pop-up::PopUp finger::byte x::real y::real)::boolean
-        (return #!null))
+	      (return #!null))
       on-the-edge:
       (lambda (pop-up::PopUp finger::byte x::real y::real)::boolean
-        (return
-	  (otherwise #!null
-	    (and path (recons 'edge path)))))))))
+	      (return
+	       (otherwise #!null
+		 (and path (recons 'edge path))))))))
 
   ((extent)::Extent
    (let ((painter ::Painter (the-painter))

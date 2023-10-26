@@ -12,9 +12,9 @@
 
 (define-type (Recognizer name: string
 			 recognizes: (maps ((sequence-of Position))
-					   to: boolean)
+					   to: Object)
 			 action: (maps (Recognizer (sequence-of
-						    Position))
+						    Position) Object)
 				       to: void)))
 
 (define-parameter (the-recognizers)
