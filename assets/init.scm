@@ -200,41 +200,49 @@
 	   line::Area)
     (screen:split-beside! line))))
 
-#;(invoke
+(invoke
  (the-recognizers) 'add
  (Recognizer
   name: "eval"
   recognizes:
   (lambda (points::(sequence-of Position))
-    (let* ((painter ::Painter (the-painter))
-	   (vicinity ::real
-		     (painter:line-simplification-resolution))
-	   (simplified ::java.util.List
-		       (simplify points vicinity))
-	   (top (slot-ref screen 'top))
-	   (p0 ::Position (points 0))
-	   (p1 ::Position (points 1))
-	   (p2 ::Position (points 3))
-	   (pane0 ::Embeddable (top:pane-under (slot-ref p0 'left) (slot-ref p0 'top)))
-	   (pane1 ::Embeddable (top:pane-under (slot-ref p1 'left) (slot-ref p1 'top)))
-	   (pane2 ::Embeddable (top:pane-under (slot-ref p2 'left) (slot-ref p2 'top))))
-      (and (eq? pane0 pane1 pane2)
-	   (is (slot-ref p0 'left) < (slot-ref p1 'left) < (slot-ref p2 'left))
-	   (is (slot-ref p1 'top) < (slot-ref p0 'top))
-	   (is (slot-ref p1 'top) < (slot-ref p2 'top))
-	   (and-let* ((editor ::Editor pane0)
-		      (document ::Document (slot-ref editor 'document))
-		      (target ::Tile (document:top-level-expression-at x y)))
-	     ...))))))
-
-#|
-
-(set-key! '(ctrl mouse-wheel-up) zoom-in!)
-(set-key! '(ctrl mouse-wheel-down) zoom-out!)
-
-(set-key! 'mouse-wheel-up scroll-up!)
-(set-key! 'mouse-wheel-down scroll-down!)
-|#
+    (and-let* ((painter ::Painter (the-painter))
+	       (vicinity ::real
+			 (painter:line-simplification-resolution))
+	       (simplified ::java.util.List
+			   (simplify points vicinity))
+	       ((is (length simplified) = 3))
+	       (top ::Embeddable (slot-ref screen 'top))
+	       ((Position left: p0-left top: p0-top) (simplified 0))
+	       ((Position left: p1-left top: p1-top) (simplified 1))
+	       ((Position left: p2-left top: p2-top) (simplified 2))
+	       ((is p0-left < p1-left < p2-left))
+	       ((is p1-top < p0-top))
+	       ((is p1-top < p2-top))
+	       (editor0 ::Editor (top:pane-under p0-left p0-top))
+	       (editor1 ::Editor (top:pane-under p1-left p1-top))
+	       (editor2 ::Editor (top:pane-under p2-left p2-top))
+	       ((eq? editor0 editor1))
+	       ((eq? editor1 editor2))
+	       (document ::Document (slot-ref editor1 'document))
+	       (x0 y0 (top:map p0-left p0-top))
+	       (x1 y1 (top:map p1-left p1-top))
+	       (x2 y2 (top:map p2-left p2-top))
+	       (_ (truly (DUMP x1 y1)))
+	       (c0 ::Cursor (cursor-under x0 y0 (head document)))
+	       (c1 ::Cursor (cursor-under x1 y1 (head document)))
+	       (c2 ::Cursor (cursor-under x2 y2 (head document)))
+	       ((eq? (cdr c0) (cdr c2)))
+	       (n ::integer (length c0))
+	       (m ::integer (length c1))
+	       ((is m >= n))
+	       (cursor (drop (- m n) c1))
+	       ((pair? cursor)))
+      (cons (cdr cursor) document)))
+  action:
+  (lambda (self::Recognizer points::(sequence-of Position) result)
+    (and-let* ((`(,cursor . ,document) result))
+      (evaluate-expression! at: cursor in: document)))))
 
 (screen:set-content!
  (Editor document: (Document (car (with-input-from-string #;"

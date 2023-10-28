@@ -1353,15 +1353,17 @@
 
   (define (pane-under x::real y::real)::Embeddable
     (this))
-  (define (map x::real y::real)::(Values real real)
-    (values x y))
-  (define (unmap x::real y::real)::(Values real real)
-    (values x y))
-
+  
   (define document ::Document (Document (empty) #!null))
   (define cursor ::Cursor '())
   
   (define transform ::Transform ((default-transform)))
+
+  (define (map x::real y::real)::(Values real real)
+    (transform:map x y))
+  
+  (define (unmap x::real y::real)::(Values real real)
+    (transform:unmap x y))
   
   (define selection-anchor ::Cursor '())
 

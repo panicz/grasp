@@ -117,7 +117,7 @@
   (cond ((pair? expression)
 	 (cons (grasp (car expression))
 	       (grasp (cdr expression))))
-	((null? expression)
+	((empty? expression)
 	 (empty))
 	((string? expression)
 	 (text expression))
@@ -128,6 +128,7 @@
 	((number? expression)
 	 (Atom (number->string expression)))
 	(else
+	 (WARN "dont know what to do with "expression)
 	 (Atom (show->string expression)))))
 
   
