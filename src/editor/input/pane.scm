@@ -1468,7 +1468,7 @@
 		   (and-let* (((Stroke source-pane: ,(this))
 			       layer))
 		     layer))
-		 screen:overlay:layers) ;<=
+		 screen:overlay:layers)
 	    => (lambda (stroke::Stroke)
 		 (screen:overlay:remove! stroke)
 		 (unset! (screen:dragging stroke:finger))
@@ -1548,8 +1548,10 @@
 			    (Resize target subpath
 				    (- ye position:top)))))
 	   (else
-	    (set! (the-cursor) path)
-	    (set! (the-selection-anchor) path)
+	    (screen:drag! finger
+			  (Drawing (Stroke finger (this))))
+	    ;;(set! (the-cursor) path)
+	    ;;(set! (the-selection-anchor) path)
 	     )))
 	#t)))
 
@@ -1743,7 +1745,8 @@
 				  (the-editor (this))
 				  (the-selection-anchor
 				   selection-anchor))
-      ((keymap key-code))))
+      ((keymap key-code))
+      #t))
 
   (define (can-split-beside? line::Area)::boolean
     (let* ((painter ::Painter (the-painter))
