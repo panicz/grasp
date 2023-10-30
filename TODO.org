@@ -1,3 +1,33 @@
+* 29.10.2023
+
+No to teraz plan jest taki, zeby:
+- dodac metody "cursor-above*" oraz "cursor-below*" do interfejsu Element
+- za ich pomoca wyrazic "move-cursor-up!" oraz "move-cursor-down!"
+
+Ale moze najpierw sprobujmy moze rozwiazac ten blad z rysowaniem linii.
+
+* 27.10.2023
+
+no dobra, mamy napisany juz fragment "rozpoznawaczki" dla gestu ewaluacji,
+ale zeby to skonczyc, musimy zbudowac takie oto zdanie:
+
+- pierwszy punkt i ostatni punkt sa na tym samym poziomie
+ (daja ten sam kursor)
+- srodkowy punkt jest na glebszym poziomie
+- ewaluujemy wyrazenie na poziomie "stemu", i za nim umieszczamy wynik
+
+[Docelowo pewnie bedziemy chcieli moc sobie definiowac target danego
+edytora jako jakis inny edytor, i wtedy bedzie to trzeba pozmieniac,
+ale na razie jeszcze nie]
+
+
+* 26.10.2023
+
+trzeba tak zrefaktoryzowac Recognizera, zeby przybieral dodatkowy argument
+- zwracany przez funkcje "recognizes" ktora powinna zwracac Object
+zamiast boolean, i jezeli ta wartosci jest rozna od #f i #!null,
+to wtedy powinnismy wywolywac "action"
+
 * 24.10.2023
 
 musimy na pewno naprawic zachowanie (ctrl enter) w sytuacji, gdy jestesmy
