@@ -208,27 +208,34 @@
               (values result initial-space))
 
              ((eq? c #\.)
-              (let* ((post-dot-spaces (read-space))
-                     (c (read-char)))
-		(cond
-		 ((eq? c #\()
-		  (let-values (((result* spaces*)
-				(read-list)))
-                    (set-cdr! growth-cone
-			      (if (empty? result*)
-				  (empty spaces*)
-				  result*))))
-		 (else ;;an atom
-		  (let ((output (cons c '())))
-                    (read-atom-chars-into output)
-                    (set-cdr! growth-cone
-			  (Atom (list->string output))))))
-		(update! (dotted? growth-cone) #t)
-		(update! (pre-tail-space growth-cone)
-			 post-dot-spaces)
-		(update! (post-tail-space growth-cone)
-			 (read-space))
-		(read-next)))
+	      (let ((d (peek-char)))
+		(if (separator? d)
+		    (let* ((post-dot-spaces (read-space))
+			   (c (read-char)))
+		      (cond
+		       ((eq? c #\()
+			(let-values (((result* spaces*)
+				      (read-list)))
+			  (set-cdr! growth-cone
+				    (if (empty? result*)
+					(empty spaces*)
+					result*))))
+		       (else ;;an atom
+			(let ((output (cons c '())))
+			  (read-atom-chars-into output)
+			  (set-cdr! growth-cone
+				    (Atom (list->string output))))))
+		      (update! (dotted? growth-cone) #t)
+		      (update! (pre-tail-space growth-cone)
+			       post-dot-spaces)
+		      (update! (post-tail-space growth-cone)
+			       (read-space))
+		      (read-next))
+		    (let ((output (cons c '())))
+		      (read-atom-chars-into output)
+		      (add-element! (Atom (list->string output))
+				    (read-space))
+		      (read-next)))))		    
 
              ((eq? c #\()
               (let-values (((result* spaces*) (read-list)))

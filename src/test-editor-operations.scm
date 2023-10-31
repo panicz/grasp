@@ -39,7 +39,7 @@
    (values (document->string document)
 	   (pair->string taken)))
    ===>
-   "1   5"
+   "1  5"
    "3")
 
 (e.g.
@@ -50,7 +50,7 @@
    (values (document->string document)
 	   (pair->string taken)))
    ===>
-   "1 3  "
+   "1 3 "
    "5")
 
 (e.g.
@@ -60,7 +60,7 @@
    (values (document->string document)
 	   (pair->string taken)))
    ===>
-   "(  3 5)"
+   "( 3 5)"
    "1")
 
 (e.g.
@@ -69,7 +69,7 @@
 	(taken (extract! at: '(3 1 1) from: document)))
    (assert (head/tail-separator? taken))
    (document->string document))
- ===> "(1   5)")
+ ===> "(1  5)")
 
 (e.g.
  (let* ((document (call-with-input-string "(1 . 5)"
@@ -78,7 +78,7 @@
    (values (document->string document)
 	   (pair->string taken)))
  ===>
- "(    5)"
+ "(  5)"
  "1")
 
 (e.g.
@@ -88,7 +88,7 @@
    (values (document->string document)
 	   (pair->string taken)))
  ===>
- "(1    )"
+ "(1 )"
  "5")
 
 (e.g.
