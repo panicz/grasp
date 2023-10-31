@@ -169,8 +169,10 @@
     (let-values (((selection-start selection-end)
 		  (the-selection))
 		 ((width height) (values
-				  (nearby-int (* width horizontal-stretch))
-				  (nearby-int (* height vertical-stretch)))))
+				  (nearby-int (* width
+						 horizontal-stretch))
+				  (nearby-int (* height
+						 vertical-stretch)))))
 	(when (and (pair? (the-cursor))
 		   (equal? context (cdr (the-cursor))))
 	  (match (head (the-cursor))
@@ -659,6 +661,9 @@
           (cond ((eq? c #\newline)
 		 (set! row (+ row 1))
 		 (set! col 0))
+		((eq? c #\return)
+		 ;; this seems to solve a bug on Windows/WSL1
+		 (set! n (- n 1)))
 		(else
 		 (put! c row col)
 		 (set! col (+ col 1))))
@@ -948,8 +953,12 @@
   (define current-modifier #!null)
 
   (define (get row::real col::real)::char
-    (let ((x (+ col shiftLeft))
-          (y (+ row shiftTop)))
+    (let ((x (+ shiftLeft
+		(nearby-int (* (slot-ref (this)
+					 'horizontal-stretch) col))))
+          (y (+ shiftTop
+		(nearby-int (* (slot-ref (this)
+					 'vertical-stretch) row)))))
       (if (and (is 0 <= x < width)
                (is 0 <= y < height))
           (data (+ (* width y) x))
@@ -984,9 +993,11 @@
   (define (put! c::char row::real col::real)
     ::void
     (let ((x (+ shiftLeft
-		(nearby-int (* (slot-ref (this) 'horizontal-stretch) col))))
+		(nearby-int (* (slot-ref (this)
+					 'horizontal-stretch) col))))
           (y (+ shiftTop
-		(nearby-int (* (slot-ref (this) 'vertical-stretch) row))))
+		(nearby-int (* (slot-ref (this)
+					 'vertical-stretch) row))))
 	  (left (max 0 clipLeft))
 	  (top (max 0 clipTop)))
       (when (and (is left <= x < (+ left

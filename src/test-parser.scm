@@ -28,9 +28,9 @@
 ;; (This is unfortunate, but we can't fix that
 ;; without patching Kawa)
 
-(e.g. (is (Atom "a") equal? 'a))
+(e.g. (is (Atom "a") match/equal? 'a))
 
-(e.g. (isnt 'a equal? (Atom "a")))
+(e.g. (isnt 'a match/equal? (Atom "a")))
 
 
 ;; eq? uses objects' identities, so that symbols

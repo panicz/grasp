@@ -21,6 +21,7 @@
  (language match)
  (utils functions)
  (utils print)
+ (utils hash-table)
  (editor interfaces painting)
  (language for)
  (editor document document-operations)
@@ -152,6 +153,7 @@
 
 (define (snapshot)::String
   (parameterize ((the-painter (TextPainter)))
+    (reset! extent-cached?)
     (draw-document! (the-document))
     (let ((result ::String (invoke (the-painter) 'toString)))
       (when verbose

@@ -306,10 +306,12 @@
 
   (define (put! c::char row::real col::real)::void
     (let ((screen ::Extent (screen:size))
-	  (x (+ shiftLeft (nearby-int (* (slot-ref (this) 'horizontal-stretch)
-					 col))))
-          (y (+ shiftTop (nearby-int (* (slot-ref (this) 'vertical-stretch)
-					row))))
+	  (x (+ shiftLeft (nearby-int
+			   (* (slot-ref (this) 'horizontal-stretch)
+			      col))))
+          (y (+ shiftTop (nearby-int
+			  (* (slot-ref (this) 'vertical-stretch)
+			     row))))
 	  (left (max 0 clipLeft))
 	  (top (max 0 clipTop)))
       (when (and (is left <= x < (+ left clipWidth))
@@ -347,8 +349,12 @@
 		    'exit-selection-drawing-mode!))
 
   (define (get row::real col::real)::char
-    (let ((x (+ col shiftLeft))
-	  (y (+ row shiftTop))
+    (let ((x (+ shiftLeft
+		(nearby-int (* (slot-ref (this)
+					 'horizontal-stretch) col))))
+	  (y (+ shiftTop
+		(nearby-int (* (slot-ref (this)
+					 'vertical-stretch) row))))
 	  (screen ::Extent (screen:size)))
       (if (and (is 0 <= x < screen:width)
 	       (is 0 <= y < screen:height))
