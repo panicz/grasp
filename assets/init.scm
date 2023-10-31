@@ -24,6 +24,7 @@
 (import (language examples))
 (import (editor interfaces elements))
 (import (editor types extensions extensions))
+(import (editor types extensions interactions))
 (import (editor interfaces painting))
 (import (editor document editor-operations))
 (import (editor input pane))
@@ -48,7 +49,7 @@
 		  (move-cursor-left!)
 		  (adjust-view!)))
 
-(set-key! 'right (lambda ()
++(set-key! 'right (lambda ()
 		   (move-cursor-right!)
 		   (adjust-view!)))
 
@@ -150,99 +151,15 @@
 
 (invoke
  (the-recognizers) 'add
- (Recognizer
-  name: "horizontal-line"
-  recognizes:
-  (lambda (points::(sequence-of Position))
-    (let* ((painter ::Painter (the-painter))
-	   (vicinity ::real
-		     (painter:line-simplification-resolution))
-	   (simplified ::java.util.List
-		       (simplify points vicinity)))
-      (and-let* (((is (length simplified) = 2))
-		 (p0 ::Position (simplified 0))
-		 (p1 ::Position (simplified 1))
-		 ((is (abs (- (slot-ref p0 'top)
-			      (slot-ref p1 'top)))
-		      <= (* vicinity 2)))
-		 (line ::Area (area simplified)))
-	(and (screen:can-split-below? line)
-	     line))))
-  action:
-  (lambda (own::Recognizer
-	   points::(sequence-of Position)
-	   line::Area)
-    (screen:split-below! line))))
+ split-pane-by-horizontal-line)
 
 (invoke
  (the-recognizers) 'add
- (Recognizer
-  name: "vertical-line"
-  recognizes:
-  (lambda (points::(sequence-of Position))
-    (let* ((painter ::Painter (the-painter))
-	   (vicinity ::real
-		     (painter:line-simplification-resolution))
-	   (simplified ::java.util.List
-		       (simplify points vicinity)))
-      (and-let* (((is (length simplified) = 2))
-		 (p0 ::Position (simplified 0))
-		 (p1 ::Position (simplified 1))
-		 ((is (abs (- (slot-ref p0 'left)
-			      (slot-ref p1 'left)))
-		      <= (* vicinity 2)))
-		 (line ::Area (area simplified)))
-	(and (screen:can-split-beside? line)
-	     line))))
-  action:
-  (lambda (own::Recognizer
-	   points::(sequence-of Position)
-	   line::Area)
-    (screen:split-beside! line))))
+ split-pane-by-vertical-line)
 
 (invoke
  (the-recognizers) 'add
- (Recognizer
-  name: "eval"
-  recognizes:
-  (lambda (points::(sequence-of Position))
-    (and-let* ((painter ::Painter (the-painter))
-	       (vicinity ::real
-			 (painter:line-simplification-resolution))
-	       (simplified ::java.util.List
-			   (simplify points vicinity))
-	       ((is (length simplified) = 3))
-	       (top ::Embeddable (slot-ref screen 'top))
-	       ((Position left: p0-left top: p0-top) (simplified 0))
-	       ((Position left: p1-left top: p1-top) (simplified 1))
-	       ((Position left: p2-left top: p2-top) (simplified 2))
-	       ((is p0-left < p1-left < p2-left))
-	       ((is p1-top < p0-top))
-	       ((is p1-top < p2-top))
-	       (editor0 ::Editor (top:pane-under p0-left p0-top))
-	       (editor1 ::Editor (top:pane-under p1-left p1-top))
-	       (editor2 ::Editor (top:pane-under p2-left p2-top))
-	       ((eq? editor0 editor1))
-	       ((eq? editor1 editor2))
-	       (document ::Document (slot-ref editor1 'document))
-	       (x0 y0 (top:map p0-left p0-top))
-	       (x1 y1 (top:map p1-left p1-top))
-	       (x2 y2 (top:map p2-left p2-top))
-	       (_ (truly (DUMP x1 y1)))
-	       (c0 ::Cursor (cursor-under x0 y0 (head document)))
-	       (c1 ::Cursor (cursor-under x1 y1 (head document)))
-	       (c2 ::Cursor (cursor-under x2 y2 (head document)))
-	       ((eq? (cdr c0) (cdr c2)))
-	       (n ::integer (length c0))
-	       (m ::integer (length c1))
-	       ((is m >= n))
-	       (cursor (drop (- m n) c1))
-	       ((pair? cursor)))
-      (cons (cdr cursor) document)))
-  action:
-  (lambda (self::Recognizer points::(sequence-of Position) result)
-    (and-let* ((`(,cursor . ,document) result))
-      (evaluate-expression! at: cursor in: document)))))
+ evaluate-expression-by-wedge)
 
 (screen:set-content!
  (Editor document: (Document (car (with-input-from-string #;"

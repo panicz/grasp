@@ -224,12 +224,18 @@
     (stroke:add-point! (Position left: x top: y)))
 
   (define (drop! x::real y::real vx::real vy::real)::void
-    (escape-with break
-      (for recognizer::Recognizer in (the-recognizers)
-	(let ((result (recognizer:recognizes stroke:points)))
-	  (when result
-	    (recognizer:action recognizer stroke:points result)
-	    (break)))))
+    (safely
+     (escape-with break
+       (for recognizer::Recognizer in (the-recognizers)
+	 (call-with-values
+	     (lambda ()
+	       (recognizer:recognizes stroke:points))
+	   (lambda result
+	     (and-let* ((`(,value . ,rest) result)
+			(value))
+	       (apply recognizer:action recognizer
+		      stroke:points result)
+	       (break)))))))
     (screen:overlay:remove! stroke))
 
   (screen:overlay:add! stroke))
