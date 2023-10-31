@@ -1,3 +1,25 @@
+* 30.10.2023
+
+no dobra, to musimy znow zgromadzic nieco wiedzy odnosnie tego:
+- jak dzialaja teraz move-cursor-up! oraz move-cursor-down!
+- jakie mamy implementacje interfejsu Element w naszej bazie
+  kodu
+- jak powinny wygladac implementacje cursor-above* oraz
+  cursor-below* dla poszczegolnych implementacji
+
+No to tak: mamy sobie oczywiscie
+Space
+oraz
+wiele implementacji Tile, takich jak:
+- Atom
+- cons
+- Text
+- BlockComment
+- LineComment
+- ExpressionComment
+- HorizontalBar
+- VerticalBar  
+
 * 29.10.2023
 
 No to teraz plan jest taki, zeby:
@@ -20,7 +42,6 @@ ale zeby to skonczyc, musimy zbudowac takie oto zdanie:
 edytora jako jakis inny edytor, i wtedy bedzie to trzeba pozmieniac,
 ale na razie jeszcze nie]
 
-
 * 26.10.2023
 
 trzeba tak zrefaktoryzowac Recognizera, zeby przybieral dodatkowy argument
@@ -36,6 +57,12 @@ na spacji
 do tego dochodzi kwestia tego, czy moze bysmy chcieli kolorowac definicje
 
 (i ewentualnie przyklady)
+
+* 23.10.2023
+
+mamy juz ten modul. teraz chcemy napisac funkcje, ktora dokona
+ewaluacji wyrazenia pod kursorem, i wpisze wynik tej ewaluacji
+na nastepna pozycje
 
 * 19.10.2023
 
