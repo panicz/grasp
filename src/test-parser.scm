@@ -119,3 +119,52 @@ hey!
 ( #|this is the aforementioned empty list|#
   #|and it seems to work|# )
 ")
+
+(check-parser-correctness "
+(first rest ...)
+")
+
+(check-parser-correctness "
+(first . rest)
+")
+
+(check-parser-correctness "
+(first . ...)
+")
+
+(check-parser-correctness "
+(first . (rest))
+")
+
+(check-parser-correctness "
+(first . #|and|# #;then rest) ;over
+")
+
+(check-parser-correctness "
+(first #||# .  #|and|# #;then ;finally
+ rest)
+")
+
+(check-parser-correctness "
+(first . #|and|# (#;then rest))
+")
+
+(check-parser-correctness "
+(first . #|and|# (#;the-end))
+")
+
+(check-parser-correctness "
+(first . ,rest)
+")
+
+(check-parser-correctness "
+(first . ,@rest)
+")
+
+(check-parser-correctness "
+(first . 'rest)
+")
+
+(check-parser-correctness "
+(first . `rest)
+")
