@@ -1,3 +1,34 @@
+* 01.11.2023
+
+trzeba zrobic tak, zeby parser po kropce obsugiwal wszystkie
+quote'y
+
+ale w tym celu bedzie tez trzeba najpierw dopisac testy!
+
+No dobra, wydaje sie, ze Mamy To.
+
+W takim razie jutro bysmy sie zajely dalszymi testami,
+tzn. test-editor-operations, bo je trzeba robic na telefonie
+
+
+* 31.10.2023
+
+No dobra, to teraz kwestia tego, w jaki sposob chcemy obsluzyc
+cursor-above* oraz cursor-below*.
+
+Zaczniemy od spacji.
+
+Ale mozemy tez zajac sie innymi rzeczami, takimi jak:
+- obsluga entera kiedy jestesmy na spacjach
+- kasowanie rozszerzen
+- rysowanie szarego tla wokol dokumentu
+- albo chociaz tym, zeby podwojne klikniecie na atom albo lewy nawias
+robilo nam kopie danego elementu
+- oraz jeszcze chcemy miec pulling-the-rug-splicing
+- (i moze tez zechcemy wrocic do naszego filtru Kalmana)
+- a no i tez trzeba by bylo przywrocic dzialanie testow
+- i "normalne" kopiowanie za pomoca podwojnego tapniecia
+
 * 30.10.2023
 
 no dobra, to musimy znow zgromadzic nieco wiedzy odnosnie tego:
