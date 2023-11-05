@@ -58,34 +58,34 @@
     (cond
      ((eof-object? c) result)
      ((eq? c #\|)
-       (let ((d (read-char)))
-	 (cond ((or (eof-object? d)
-		    (eq? d #\#))
-		result)
-	       (else
-		(add! c)
-		(add! d)
-		(read-block-comment result)))))
+      (let ((d (read-char)))
+	(cond ((or (eof-object? d)
+		   (eq? d #\#))
+	       result)
+	      (else
+	       (add! c)
+	       (add! d)
+	       (read-block-comment result)))))
      ((eq? c #\#)
-       (let ((d (read-char)))
-	 (cond ((eof-object? d)
-		(add! c)
-		result)
-	       ((eq? d #\|)
-		(add! c)
-		(add! d)
-		;; we make two revursive calls here:
-		;; one to read the nested block comment
-		(read-block-comment result)
-		(add! #\|)
-		(add! #\#)
-		;; and another one to read the rest
-		;; at the current level of nesting
-		(read-block-comment result))
-	       (else
-		(add! c)
-		(add! d)
-		(read-block-comment result)))))
+      (let ((d (read-char))) 
+	(cond ((eof-object? d)
+	       (add! c)
+	       result)
+	      ((eq? d #\|)
+	       (add! c)
+	       (add! d)
+	       ;; we make two revursive calls here:
+	       ;; one to read the nested block comment
+	       (read-block-comment result)
+	       (add! #\|)
+	       (add! #\#)
+	       ;; and another one to read the rest
+	       ;; at the current level of nesting
+	       (read-block-comment result))
+	      (else
+	       (add! c)
+	       (add! d)
+	       (read-block-comment result)))))
      (else
       (add! c)
       (read-block-comment result)))))
@@ -162,11 +162,11 @@
 	       (read-spaces-into (tail (tail pair)))))
 	    (#\newline
 	     (set-cdr! pair
-		   (cons 0 (tail pair)))
+		       (cons 0 (tail pair)))
 	     (read-spaces-into (tail pair)))
 	    (#\space
 	     (set-car! pair
-		   (+ (head pair) 1))
+		       (+ (head pair) 1))
 	     (read-spaces-into pair))
 	    (_
 	     (read-spaces-into pair))))))
@@ -291,10 +291,16 @@
 				last-space:fragments))
 			 (next-space (read-spaces)))
 		    (set-cdr! coda
-		      (cons
-		       (BlockComment content: comment)
-		       next-space:fragments))
+			      (cons
+			       (BlockComment content: comment)
+			       next-space:fragments))
 		    (read-next)))
+
+		 ((and (eq? d #\\) (memq (peek-char) '(#\( #\) #\[ #\] #\")))
+		  (add-element! (Atom (list->string (cons* c d (read-char) '())))
+				(read-space))
+		  (read-next))
+		 
 		 (else
 		  (let ((output (cons* c d '())))
 		    (read-atom-chars-into (tail output))

@@ -825,6 +825,15 @@
    ((EmptyListProxy? p)
     (invoke (as EmptyListProxy p) 'print (current-output-port)))
 
+   ((string? p)
+    (write-char #\")
+    (for c in p
+      (when (or (eq? c #\")
+		(eq? c #\\))
+	(write-char #\\))
+      (write-char c))
+    (write-char #\"))
+   
    (else
     (write p))))
 
