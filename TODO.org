@@ -1,3 +1,15 @@
+* 03.11.2023
+
+aktualnie mamy na kompie poprawki w parserze, a na telefonie
+podswietlanie "paleczki" pomiedzy glowa a ogonem
+
+jeszcze bysmy chcieli w kliencie desktopowym poprawic wyswietlanie
+quote'ow, ograniczyc scrollowanie i zoomowanie dokumentu,
+wyswietlac pop-upy wewnatrz edytorow, a nie ponad nimi,
+oraz zaimplementowac mechanizm wyszukiwania wyrazen
+(wlaczajac w to slowa kluczowe oraz wyrazenia regularne,
+a takze zagniezdzone struktury)
+
 * 01.11.2023
 
 trzeba zrobic tak, zeby parser po kropce obsugiwal wszystkie
