@@ -1,3 +1,32 @@
+* 05.11.2023
+
+no to plan na najblizszy czas jest taki:
+1. wprowadzic ograniczenia na najwiekszego i najmniejszego
+   zooma oraz na pozycje scrolla (i ewentualnie usunac
+   mozliwosc obracania)
+2. zrobic tak, zeby obiekty, ktore nie sa widoczne na ekranie
+   - nie mialy inwalidowanego extent cache'u
+   - nie byly w ogole rysowane
+3. rysowac ramki wokol dokumentu
+
+dobrze byloby tez:
+- wprowadzic kolorowanie wyewaluowanych wyrazen
+- zaimplementowac gest steppera
+- rysowanie guzikow
+
+
+No dobra, ale co ma nam szanse przyblizyc najszybciej
+samoedytowalnosc GRASPa?
+
+Ogolnie to bysmy chcieli raczej operowac na projektach, niz
+na pojedynczych plikach. Projekt bysmy utozsamiali z gitowym
+repozytorium, zas jego zaleznosci to by byly gitowe
+submoduly. I wowczas owe submoduly by sie miescily
+w internal storage'u.
+
+Od razu tez chcemy oczywiscie miec nawigacje po kodzie
+zrodlowym.
+
 * 03.11.2023
 
 aktualnie mamy na kompie poprawki w parserze, a na telefonie
@@ -9,6 +38,83 @@ wyswietlac pop-upy wewnatrz edytorow, a nie ponad nimi,
 oraz zaimplementowac mechanizm wyszukiwania wyrazen
 (wlaczajac w to slowa kluczowe oraz wyrazenia regularne,
 a takze zagniezdzone struktury)
+
+* 03.11.2023 (telefon)
+
+no dobra, to w sumie teraz naszym celem jest wypolerowanie
+doswiadczenia uzytkownika
+
+- pierwsza brakujaca funkcjonalnosc to search&replace
+- chcielibysmy tez wyswietlac informacje o tym, czy byly
+  w pliku jakies zmiany (oraz nazwe pliku)
+- i tak w sumie to bysmy chcieli, zeby scratch byl zawsze
+  domyslnie otwierany, i automatycznie zapisywany
+- ach no i oczywiscie chcemy
+  - podswietlac HeadTailSeparator
+  - miec mozliwosc drag&dropowania HeadTailSeparatora
+  - kasowania go backspacem i deletem
+- no i bardziej wybiorcza inwalidacja cache'u +
+  renderowanie tylko tych rzeczy, ktore sa widoczne na ekranie
+
+zaczniemy od kolorowania paleczki
+
+to teraz jest tak, ze metoday draw! implementacji
+HeadTailSeparator olewaja kontekst i wywoluja
+draw-horizontal-bar! albo draw-vertical-bar! malarza
+i teraz propozycja jest taka, zeby te metody dostaly
+dodatkowy argument - boolean - ktory by decydowal o tym,
+czy jest "highlighted".
+
+
+* 02.11.2023
+
+no dobra, to teraz trzy duze tematy, ktore bysmy chcieli miec
+rozwiazane w listopadzie:
+- poruszanie strzalkami w gore i w dol
+- poruszanie kursorem po rozszerzeniach (w szczegolnosci
+  po stepperze, no ale wiadomka)
+- selekcja i integracja ze schowkiem
+
+w sumie to tez spoko by bylo miec mozliwosc wyszukiwania rzeczy,
+bo to daloby nam szanse na uzycie GRASPa do faktycznej edycji
+kodu
+
+no ale zacznijmy od ttch strzalek nieszczesnych
+
+z grubsza rzecz powinna przebiegac w taki sposob, ze:
+- w przypadku tekstu i komentarzy blokowych sprawa jest jasna
+  (o ile pominiemy warunki brzegowe)
+  
+- w przypadku spacji/komentarzy liniowych sprawa jest
+  dosc tajemnicza
+
+- w przypadku atomow jest tak jak w przypadku tekstu
+
+wiec teraz fundamentalny problem to owa tajemniczosc
+
+czyli tak:
+- jezeli jestesmy na tekscie, wiemy co robic
+- w przeciwnym razie to lista, na ktorej jestesmy,
+  powinna wiedziec
+
+No ale jakze to?!
+
+#+BEGIN_SRC scheme
+  (define (move-cursor-up!)::void
+    (let ((cursor ::Cursor (the-cursor))
+	  (document ::Document (the-document)))
+      (set! (the-cursor) (document:cursor-above* cursor))))
+
+  (define (move-cursor-down!)::void
+    (let ((cursor ::Cursor (the-cursor))
+	  (document ::Document (the-document)))
+      (set! (the-cursor) (document:cursor-below* cursor))))
+
+  (define (cons:cursor-below* cursor::Cursor context::Cursor)::Cursor*
+    )
+ #+END_SRC
+
+Czy jest jakis sposob zeby wykorzystac traverse?
 
 * 01.11.2023
 
