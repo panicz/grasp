@@ -134,8 +134,8 @@ def") ===> [Extent width: 3 height: 2])
 
   (atom-extent text::CharSequence)::Extent
 
-  (draw-horizontal-bar! width::real)::void
-  (draw-vertical-bar! height::real)::void
+  (draw-horizontal-bar! width::real highlighted?::boolean)::void
+  (draw-vertical-bar! height::real highlighted?::boolean)::void
 
   (vertical-bar-width)::real
   (horizontal-bar-height)::real
@@ -332,10 +332,12 @@ def") ===> [Extent width: 3 height: 2])
     ::void
     (action))
   
-  (define (draw-horizontal-split! top::real)::void
+  (define (draw-horizontal-split! top::real)
+    ::void
     (values))
 
-  (define (draw-vertical-split! left::real)::void
+  (define (draw-vertical-split! left::real)
+    ::void
     (values))
 
   (define (draw-line! x0::real y0::real
@@ -395,10 +397,14 @@ def") ===> [Extent width: 3 height: 2])
   (define (atom-extent text::CharSequence)::Extent
     (Extent width: 1 height: 1))
 
-  (define (draw-horizontal-bar! width::real)::void
+  (define (draw-horizontal-bar! width::real
+				highlighted?::boolean)
+    ::void
    (values))
 
-  (define (draw-vertical-bar! height::real)::void
+  (define (draw-vertical-bar! height::real
+			      highlighted?::boolean)
+    ::void
    (values))
 
   (define (draw-box! width::real height::real

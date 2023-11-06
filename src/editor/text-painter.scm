@@ -132,17 +132,35 @@
 
   (define (vertical-split-width)::real 1)
 
-  (define (draw-horizontal-bar! width::real)::void
-    (for i from 0 below width
-         (when (eq? (get -1 i) #\space)
-           (put! #\_ -1 i))))
+  (define (draw-horizontal-bar! width::real
+				highlighted?::boolean)
+    ::void
+    (let ((width (nearby-int (* width
+				horizontal-stretch))))
+      (when highlighted?
+	(mark-cursor! 0 1)
+	(enter-selection-drawing-mode!))
+      (for i from 0 below width
+           (when (eq? (get -1 i) #\space)
+             (put! #\_ -1 i)))
+      (when highlighted?
+	(exit-selection-drawing-mode!))))
 
-  (define (draw-vertical-bar! height::real)::void
-    (put! #\╷ 0 0)
-    (for i from 1 below (- height 1)
-         (put! #\│ i 0))
-    (put! #\╵ (- height 1) 0))
-
+  (define (draw-vertical-bar! height::real
+			      highlighted?::boolean)
+    ::void
+    (let ((height (nearby-int (* height
+				 horizontal-stretch))))
+      (when highlighted?
+	(mark-cursor! 0 1)
+	(enter-selection-drawing-mode!))
+      (put! #\╷ 0 0)
+      (for i from 1 below (- height 1)
+	   (put! #\│ i 0))
+      (put! #\╵ (- height 1) 0)
+      (when highlighted?
+	(exit-selection-drawing-mode!))))
+ 
   (define icon-size ::Extent
     (Extent width: 2
 	    height: 1))
@@ -664,6 +682,8 @@
 		((eq? c #\return)
 		 ;; this seems to solve a bug on Windows/WSL1
 		 (set! n (- n 1)))
+		;; jeszcze chcemy combining-character
+		;; po prostu dopisac do biezacego znaku
 		(else
 		 (put! c row col)
 		 (set! col (+ col 1))))

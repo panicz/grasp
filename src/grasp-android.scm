@@ -701,12 +701,20 @@
   (define (horizontal-bar-height)::real
     10)
 
-  (define (draw-horizontal-bar! width::real)::void
-    (set-color! text-color)
+  (define (draw-horizontal-bar! width::real
+				highlighted?::boolean)
+    ::void
+    (if highlighted?
+	(set-color! (focused-parenthesis-color))
+	(set-color! (parenthesis-color)))
     (canvas:drawRect 0 0 width (horizontal-bar-height) paint))
 
-  (define (draw-vertical-bar! height::real)::void
-    (set-color! text-color)
+  (define (draw-vertical-bar! height::real
+			      highlighted?::boolean)
+    ::void
+    (if highlighted?
+	(set-color! (focused-parenthesis-color))
+	(set-color! (parenthesis-color)))
     (canvas:drawRect 0 0 (vertical-bar-width) height paint))
 
   (define (space-width)::real 16)

@@ -932,10 +932,19 @@
 
   (define (horizontal-bar-height)::real 5)
 
-  (define (draw-horizontal-bar! width::real)::void
+  (define (draw-horizontal-bar! width::real
+				highlighted?::boolean)
+    ::void
+    (if highlighted?
+	(set-color! (focused-parenthesis-color))
+	(set-color! (parenthesis-color)))
     (graphics:fillRect 0 0 width (horizontal-bar-height)))
 
-  (define (draw-vertical-bar! height::real)::void
+  (define (draw-vertical-bar! height::real
+			      highlighted?::boolean)::void
+    (if highlighted?
+	(set-color! (focused-parenthesis-color))
+	(set-color! (parenthesis-color)))
     (graphics:fillRect 0 0 (vertical-bar-width) height))
 
   (define (horizontal-split-height)::real 10)

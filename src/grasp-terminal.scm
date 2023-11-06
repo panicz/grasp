@@ -235,7 +235,9 @@
 				 (as MouseAction key))
 			 (position ::TerminalPosition
 				   (action:getPosition))
-			 (last-position ::Position (last-known-pointer-position 0))
+			 (last-position ::Position
+					(last-known-pointer-position
+					 0))
 			 (left (position:getColumn))
 			 (top (position:getRow)))
 		    (cond

@@ -606,9 +606,13 @@
 (define-object (HorizontalBar width0::real)::Tile
 
   (define width :: real 0)
+  
   (define (draw! context::Cursor)::void
     (let ((painter ::Painter (the-painter)))
-      (painter:draw-horizontal-bar! width)))
+      (painter:draw-horizontal-bar!
+       width
+       (and-let* ((`(#\| . ,,context) (the-cursor)))))))
+  
   (define (extent)::Extent
     (let ((painter ::Painter (the-painter)))
       (Extent width: width
@@ -627,9 +631,12 @@
 (define-object (VerticalBar height0::real)::Tile
 
   (define height :: real 0)
+  
   (define (draw! context::Cursor)::void
     (let ((painter ::Painter (the-painter)))
-      (painter:draw-vertical-bar! height)))
+      (painter:draw-vertical-bar!
+       height
+       (and-let* ((`(#\| . ,,context) (the-cursor)))))))
 
   (define (extent)::Extent
     (let ((painter ::Painter (the-painter)))
