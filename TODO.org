@@ -1,3 +1,75 @@
+* 07.11.2023
+
+wydaje sie, ze jestesmy w takim punkcie, z ktorego trudno
+sie ruszyc.
+
+ogolnie chcielibysmy naprawic bledy zwiazane z drag&dropem
+i moze w konkretniejszy sposob uzupelnic dotykowa edycje,
+a takze unormowac kwestie zoomowania i scrollowania
+(i najlepiej zeby scrollowanie odbywalo sie na zasadach
+Super Mario)
+
+poniewaz jednak teraz korzystamy ze 'screen-position',
+to nam sie wszystko krzaczy
+
+wiec pomysl jest taki, zeby:
+- zmienic screen-positiion na document-position
+- wszystkie odniesienia do screen-position zaposredniczyc
+  przez transformacje
+
+albo drugi pomysl:
+- zamienic screen-position na editor-position
+
+wydaje sie, ze opcja 2 jest ontyle lepsza, ze potrzeba
+mniej transformacji
+
+tyke ze screen-position powinno byc parametrem
+
+
+* 06.11.2023
+
+no dobra, to teraz robimy ograniczenia na zoomowanie i scrollowanie
+
+i przy okazji dobrze by bylo naprawic:
+- resize
+- drag&drop
+
+to tak:
+- jezeli idzie o zoom, to musimy sobie wyswietlac aktualna wartosc
+- jezeli idzie o scrolla, to
+
+getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE|WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+
+ok, trzeba chyba bedzie delikatnie przebudowac architekture
+
+chodzi o to, ze transformacje musza w jakis sposob miec dostep
+do rozmiaru dokumentu
+
+zatem bedziemy chcieli stworzyc nowe transformacje, bo bysmy
+chcieli zmienic dzialanie funkcji "stretch" tak, zeby nie zmieniala
+przesuniecia dokumentu (tzn zeby lewy gorny piksel pozostawal
+bez zmian)
+
+ogolnie tez nie chcemy teraz za bardzo szalec. tzn idealnie byloby
+wprowadzic minimalna ilosc zmian do tego, zeby:
+- moc przeprowadzac w GRASP normalna edycje (w szczegolnosci
+  chodzi o edycje samego GRASPa)
+- rozwijac Androidowego GRASPa w nim samym
+- zaimplementowac "komiksowy" algorytm A*
+
+no ok, ale co jest potrzebne do rozwijania androidowej wersji
+w niej samej?
+
+No mniejsza z tym wszystkim na razie.
+
+Moze poprawimy pozycje paleczki podczas rysowania komentarzy?
+
+Pomysly:
+- podwojne klikniecie w lewy nawias: minimalizacja wyrazenia
+- w prawy nawias - maksymalizacja wyrazenia
+
+
+
 * 05.11.2023
 
 no to plan na najblizszy czas jest taki:
@@ -10,7 +82,7 @@ no to plan na najblizszy czas jest taki:
 3. rysowac ramki wokol dokumentu
 
 dobrze byloby tez:
-- wprowadzic kolorowanie wyewaluowanych wyrazen
+ - wprowadzic kolorowanie wyewaluowanych wyrazen
 - zaimplementowac gest steppera
 - rysowanie guzikow
 
