@@ -303,7 +303,8 @@
 
   (screen:overlay:add! selected))
 
-(define-object (Resize box::cons path::Cursor anchor::real)::Drag
+(define-object (Resize box::cons path::Cursor anchor::real
+		       editor::Editor)::Drag
 
   (define position ::Position (screen-position box))
 
@@ -314,9 +315,11 @@
 
   (define (move! x::real y::real dx::real dy::real)::void
     (safely
-     (let* ((target-width ::real (- x position:left))
-	    (target-height ::real (+ initial:height
-				     (- y position:top anchor))))
+     (let*-values (((x y) (editor:transform:map x y))
+		   ((target-width target-height)
+		    (values (- x position:left)
+			    (+ initial:height
+			       (- y position:top anchor)))))
        (resize! box target-width target-height ending))))
 
   (define (drop! x::real y::real vx::real vy::real)::void
@@ -764,7 +767,6 @@
        ((or (is last-size <= (* 3 line-size))
             (is velocity > 1.5))
 	(merge-split! at: split-path with: SplitFocus:First)))))
-
   )
 
 (define-type (SplitBeside)
@@ -810,7 +812,8 @@
 	    pane-left::real pane-top::real
 	    pane-width::real pane-height::real)
    ::void
-   (set! at (/ (max 0.0 (* 1.0 (- pointer-left pane-left))) pane-width)))  
+   (set! at (/ (max 0.0 (* 1.0 (- pointer-left pane-left)))
+	       pane-width)))
   )
 
 
@@ -844,8 +847,7 @@
 	 right: line:right
 	 bottom: (- line:bottom earlier-size)))
 
-  ((varying-dimension x::real y::real)::real
-   y)
+  ((varying-dimension x::real y::real)::real y)
 
   ((varying-size w::real h::real size::real)::(Values real real)
    (values w size))
@@ -859,7 +861,8 @@
 	    pane-left::real pane-top::real
 	    pane-width::real pane-height::real)
    ::void
-   (set! at (/ (max 0.0 (* 1.0 (- pointer-top pane-top))) pane-height)))
+   (set! at (/ (max 0.0 (* 1.0 (- pointer-top pane-top)))
+	       pane-height)))
   )
 
 
@@ -1549,16 +1552,20 @@
 
 	   ((and (is target cons?)
 		 (eqv? tip (target:last-index)))
-	    (let ((extent ::Extent (extent+ target)))
-	      (screen:drag! finger
-			    (Resize target subpath
-				    (- ye position:top)))))
+	    (let-values (;((x y) (transform:map xe ye))
+			 ((left top) (transform:unmap position:left
+						      position:top)))
+	      (let ((extent ::Extent (extent+ target)))
+		(screen:drag! finger
+			      (Resize target subpath
+				      (- ye top)
+				      (this))))))
 	   (else
 	    (screen:drag! finger
 			  (Drawing (Stroke finger (this))))
 	    ;;(set! (the-cursor) path)
 	    ;;(set! (the-selection-anchor) path)
-	     )))
+	    )))
 	#t)))
 
   (define (second-press! finger::byte #;at xe::real ye::real)
@@ -1838,7 +1845,8 @@
       (painter:play!
        (Transition of: editor:transform
 		   from: (copy editor:transform)
-		   to: (let ((target ::Transform (copy editor:transform)))
+		   to: (let ((target ::Transform
+				     (copy editor:transform)))
 			 (target:translate! 0 (- (/ (- editor-height
 						       cursor-height)
 						    2) ye))

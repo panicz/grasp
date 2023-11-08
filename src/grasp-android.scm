@@ -55,6 +55,9 @@
 (define-alias AssetManager
   android.content.res.AssetManager)
 
+(define-alias WindowManager
+   android.view.WindowManager)
+
 (define-alias PackageManager
   android.content.pm.PackageManager)
 
@@ -1537,6 +1540,10 @@
 		   AndroidView:SYSTEM_UI_FLAG_FULLSCREEN
 		   #;AndroidView:SYSTEM_UI_FLAG_IMMERSIVE
 		   )))
+      (window:setSoftInputMode
+       (logior
+	WindowManager:LayoutParams:SOFT_INPUT_STATE_VISIBLE
+	WindowManager:LayoutParams:SOFT_INPUT_ADJUST_RESIZE))
       (decor:setSystemUiVisibility flags))
 
     (initialize-activity (this))
