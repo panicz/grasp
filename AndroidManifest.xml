@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-	  package="grasp.android"
+	  package="io.github.grasp"
 	  android:versionCode="1"
 	  android:versionName="1.0">
 
@@ -20,8 +20,9 @@
   <application
       android:label="GRASP"
       android:icon="@drawable/grasp">
+    <profileable android:shell="true" />
     <activity
-	android:name="GRASP"
+	android:name=".GRASP"
         android:label="GRASP"
 	android:theme="@android:style/Theme.NoTitleBar"
 	android:configChanges="keyboard|keyboardHidden|orientation">

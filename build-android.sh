@@ -47,15 +47,21 @@ cd build/android/bin
 aapt add -f "$PKGNAME.apk" classes.dex || exit
 
 zipalign -p 4 "$PKGNAME.apk" "aligned-$PKGNAME.apk" || exit
-mv "aligned-$PKGNAME.apk" "$PKGNAME.apk"
+
 
 if [ ! -s ~/pland.keystore ]; then
     keytool -genkey -v -keystore ~/pland.keystore \
 	    -alias pland -keyalg RSA -keysize 2048 -validity 10000
 fi
 
-jarsigner -storepass quack01 -verbose -sigalg SHA1withRSA \
-	  -digestalg SHA1 -keystore ~/pland.keystore "$PKGNAME.apk" pland
+apksigner sign --ks ~/pland.keystore \
+	  --ks-key-alias pland --ks-pass pass:quack01 \
+     "aligned-$PKGNAME.apk"
+
+mv "aligned-$PKGNAME.apk" "$PKGNAME.apk"
+
+# jarsigner -storepass quack01 -verbose -sigalg SHA1withRSA \
+# 	  -digestalg SHA1 -keystore ~/pland.keystore "$PKGNAME.apk" pland
 
 mv "$PKGNAME.apk" ..
 
