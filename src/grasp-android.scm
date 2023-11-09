@@ -44,6 +44,8 @@
 (define-alias AndroidActivity android.app.Activity)
 (define-alias AndroidView android.view.View)
 (define-alias Paint android.graphics.Paint)
+(define-alias ViewTreeObserver
+  android.view.ViewTreeObserver)
 
 (define-alias Typeface android.graphics.Typeface)
 (define-alias InputMethodManager
@@ -248,7 +250,7 @@
   (define the-log-font ::($bracket-apply$ parameter Font)
     (make-parameter
      (Font face: Oswald-Regular
-	   size: 32)))
+	   size: 16)))
 
   (define the-cursor-offset ::($bracket-apply$ parameter Position)
     (make-parameter (Position left: 0 top: 32)))
@@ -1632,6 +1634,15 @@
     (view:setFitsSystemWindows #t)
     (setContentView view)
 
+    (let* ((parent ::AndroidView (view:getParent))
+	   (span ::Rect (Rect))
+	   (observer ::ViewTreeObserver (parent:getViewTreeObserver)))
+      (observer:addOnGlobalLayoutListener
+       (lambda ()
+	 (parent:getWindowVisibleDisplayFrame span)
+	 (set! screen:extent:width (span:width))
+	 (set! screen:extent:height (span:height)))))
+    
     (set! (the-painter) view)
     (for expression in init-script
       (safely
