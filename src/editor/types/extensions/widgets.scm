@@ -159,7 +159,7 @@
   (define (clone)::Element
     (ColumnGrid items))
 
-  (define (as-expression)
+  (define (value)::Object
     (cons (Atom "ColumnGrid")
 	  (cons (fold-left (lambda (l x)
 			     (set-cdr! l (cons (to-expression x) '()))
@@ -179,7 +179,7 @@
     (let ((painter ::Painter (the-painter)))
       (painter:caption-extent content)))
 
-  (define (as-expression)::cons
+  (define (value)::Object
     (cons (Atom "Caption") (cons (if (Text? content)
 				     content
 				     (text content))
@@ -246,7 +246,7 @@
 
   extending Magic
   with
-  ((as-expression)
+  ((value)::Object
    (origin (this)))
   )
 
@@ -270,7 +270,7 @@
     (with-translation (horizontal-margin top-margin)
       (painter:draw-caption! label))))
 
-  ((as-expression)::cons
+  ((value)::Object
    (origin (this)))
 
   ((extent)::Extent
@@ -323,7 +323,7 @@
      (with-translation (icon:width 0)
        (painter:draw-caption! caption))))
 
-  ((as-expression)::cons
+  ((value)::Object
    (origin (this)))
 
   ((extent)::Extent
@@ -473,7 +473,7 @@
           (set! (the-cursor) (recons (next-index index) stem))
 	  #t)))))
 
-  (define (as-expression)::cons
+  (define (value)::Object
     (cons (Atom "text-input")
 	  (recons (text (this))
 		  (EmptyListProxy (EmptySpace)))))

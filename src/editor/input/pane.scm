@@ -1020,7 +1020,7 @@
 
   implementing Enchanted
   with
-  ((as-expression)::cons
+  ((value)::Object
    (invoke-special Base 'to-list cons to-expression))
 
   ((center-around! x::real y::real)::void
@@ -1160,7 +1160,7 @@
   ((rotate-right! x::real y::real)::boolean
    #f)
   
-  ((as-expression)::cons
+  ((value)::Object
    (invoke-special Base 'to-list cons to-expression)))
 
 (define (text-field width::real content::CharSequence)::Scroll

@@ -40,7 +40,7 @@
     ::void
     #!abstract)
 
-  (define (as-expression)::cons
+  (define (value)::Object
     (cons (Atom (typename))
 	  (cons expression (empty))))
 

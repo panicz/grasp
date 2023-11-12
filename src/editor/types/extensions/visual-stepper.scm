@@ -678,7 +678,7 @@
   (define (draw! context::Cursor)::void
     (current-morph:draw! context))
 
-  (define (as-expression)::cons
+  (define (value)::Object
     (cons (Atom "Stepper") (cons initial-expression '())))
 
   (define max-extent ::Extent

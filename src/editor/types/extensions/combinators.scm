@@ -88,7 +88,7 @@
   ((key-typed! key-code::long context::Cursor)::boolean
    (element:key-typed! key-code (recons 'element context)))
 
-  ((as-expression)::cons
+  ((value)::Object
    (invoke-special Base 'to-list cons to-expression))
 
   ((scroll-up! x::real y::real)::boolean
@@ -249,7 +249,7 @@
       (else
        #f))))
 
-  ((as-expression)::cons
+  ((value)::Object
    (invoke-special Base 'to-list cons to-expression))
   )
 
@@ -398,7 +398,7 @@
       (else
        #f))))
 
-  ((as-expression)::cons
+  ((value)::Object
    (invoke-special Base 'to-list cons to-expression))
   )
 
@@ -548,6 +548,6 @@
       (else
        #f))))
   
-  ((as-expression)::cons
+  ((value)::Object
    (invoke-special Base 'to-list cons to-expression))
   )

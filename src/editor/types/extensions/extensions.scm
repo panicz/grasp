@@ -19,8 +19,10 @@
 (import (editor types texts))
 (import (editor types spaces))
 
-(define-interface Enchanted (Interactive Tile)
-  (as-expression)::cons)
+(define-interface Enchanted (Interactive ShadowedTile)
+  ;; in the case of extension, the "value" method
+  ;; of the Shadowed interface should return a cons-cell
+  )
 
 (define-object (Magic)::Enchanted
   (define (typename)::String "Magic")
@@ -70,7 +72,7 @@
 	     (is 0 <= y < size:height)
 	     (recons (invoke (this) 'first-index) path)))))
   
-  (define (as-expression)::cons
+  (define (value)::Object
     (cons (Atom "Magic") (empty)))
   
   (Simple))
@@ -83,7 +85,7 @@
 (define (to-expression object)
   (match object
     (magic::Enchanted
-     (magic:as-expression))
+     (magic:value))
     (struct::ListSerializable
      (struct:to-list (lambda (a d) (cons a d))
 		     to-expression))
