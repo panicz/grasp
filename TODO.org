@@ -1,3 +1,249 @@
+* 10.11.2023
+
+#+BEGIN_SRC scheme
+  (define-syntax with
+    (lambda (stx)
+      (syntax-case stx ()
+	((with ((variable value) ...) . actions)
+	 (with-syntax (((previous-value ...)
+			(generate-temporaties #'(variable ...))))
+		      #'(let ((previous-value variable) ...)
+			  (set! variable value)
+			  ...
+			  (try-finally
+			   (begin . actions)
+			   (begin
+			     (set! variable previous-value)
+			     ...))))))))
+#+END_SRC
+
+takie cos bysmy chcieli miec
+
+i zamiast parametru "the-painter" bysmy chcieli miec
+po prostu zmienna globalna "painter", zeby uniknac narzutu
+i ewentualnie nieco uproscic kod
+
+a tymczasem mamy sobie slynne A*:
+
+
+#+BEGIN_SRC scheme
+(define (optimial-path #;on weighted-graph #;from initial-state 
+			    #;until success?
+				    #;guided-by remaining-cost-estimate)
+  (define (probably-shorter? `(,estimate-a . ,_)
+			     `(,estimate-b . ,_))
+    (is estimate-a < estimate-b))
+
+  (define (walk paths visited-nodes)
+    (and-let* ((`((,_ ,cost-so-far ,path) . ,paths) paths)
+	       (`(,current-node . ,_) path))
+      (define (estimate-total-cost `(,node ,weight))
+	(let* ((total-cost (+ cost-so-far weight))
+	       (estimate (+ total-cost
+			    (remaining-cost-estimate node))))
+	  `(,estimate ,total-cost ,node)))
+
+      (define (update-paths paths `(,estimate
+				    ,alternative-cost
+				    ,node))
+	(let ((new-path `(,estimate
+			  ,alternative-cost
+			  (,node . ,path))))
+
+	  (match (find (lambda (`(,_ ,_ (,end . ,_)))
+			 (equal? end node))
+		       paths)
+	    (`(,previous-estimate ,established-cost ,_)
+	     (if (is established-cost <= alternative-cost)
+		 paths
+		 (let ((paths (only (lambda (`(,_ ,_ (,end . ,_)))
+				      (isnt end equal? node))
+				    paths)))
+		   (merge `(,new-path) paths probably-shorter?))))
+	    (_
+	     (merge `(,new-path) paths probably-shorter?)))))
+
+      (if (success? current-node)
+	  (values (reverse path) cost-so-far)
+	  (let* ((neighbors (weighted-graph current-node))
+		 (new-neighbors (only (lambda (`(,node ,weight))
+					(isnt node member visited-nodes))
+				      neighbors))
+		 (judged-neighbors (map estimate-total-cost new-neighbors))
+		 (paths (fold-left update-paths paths judged-neighbors)))
+	    (walk paths (union `(,current-node)
+			       visited-nodes))))))
+
+  (walk `((+inf.0 0 (,initial-state))) '()))
+#+END_SRC
+
+Najgoretsze wyrazenie w algorytmie to (po zwinieciu):
+
+#+BEGIN_SRC scheme
+  (walk (fold-left update-paths paths
+		    (map estimate-total-cost
+			 (only (lambda (`(,node ,weight))
+				 (isnt node member visited-nodes))
+			       (weighted-graph current-node))))
+      (union `(,current-node) visited-nodes))
+#+END_SRC
+
+chodzi o to, ze:
+- mamy sobie liste sciezek
+- zawsze rozpoczynamy od pierwszej sciezki na liscie (bo ona jest
+  naszym zdaniem najkorzystniejsza)
+- 
+
+#+BEGIN_SRC scheme
+#+END_SRC
+#+BEGIN_SRC scheme
+#+END_SRC
+#+BEGIN_SRC scheme
+#+END_SRC
+
+* 09.11.2023
+
+dalsze poprawki w edycji
+
+teraz bysmy moze zrobili tak, ze jak jestesmy w trybie
+'evaluating', i mamy do czynienia z Extension, to zwracamy
+jego 'as-expression'
+
+to z grubsza chodzi o to, zeby Extension bylo Shadowed, i zeby
+"value" robilo to, co robi as-expression
+
+ok
+
+a teraz pomysl jest taki, zeby sie pozbyc tych propertisow w spacjach
+
+A to by wygladalo tak mniej wiecej:
+
+#+BEGIN_SRC scheme
+
+  (define-syntax-rule (define-accessor (name object::type)::result)
+    (define-early-constant name
+      (let ((getter (lambda (object::type)
+		      ::result
+		      (slot-ref object 'name))))
+	(set! (setter getter)
+	      (lambda (object::type value::result)
+		::void
+		(slot-set! object 'name value)))
+	getter)))
+
+  (define-accessor (dotted? cell::cons)::boolean)
+  (define-accessor (pre-head-space cell::cons)::Space)
+  (define-accessor (post-head-space cell::cons)::Space)
+  (define-accessor (pre-tail-space cell::cons)::Space)
+  (define-accessor (post-tail-space cell::cons)::Space)
+
+  (define-object (cons car cdr)::MatchableTile
+    ...
+    (define pre-head-space ::Space (Space fragments: (cons 0 '())))
+
+    (define dotted? ::boolean
+      (not (or (empty? cdr)
+	       (pair? cdr))))
+
+    (define post-head-space ::Space
+      (if (and (not dotted?)
+	       (empty? cdr))
+	  (Space fragments: (cons 0 '()))
+	  (Space fragments: (cons 1 '()))))
+
+    (define pre-tail-space ::Space
+      (Space fragments: (cons 1 '())))
+
+    (define post-tail-space ::Space
+      (Space fragments: (cons 0 '())))
+
+    ...
+    (pair car cdr))
+
+#+END_SRC
+
+* 08.11.2023
+
+jestesmy w *jakims punkcie* naprawiania zmiany rozmiaru
+pudelek - ale wyglada na to, ze bedziemy musieli to sobie
+jakos rozrysowac
+
+no bo chodzi o to, ze mamy:
+
+- wspolrzedne ekranu
+- wspolrzedne edytora
+- wspolrzedne dokumentu
+
+i latwo sie w tym zapultac
+
+a druga sprawa to wyszukiwanie
+
+no bo pomysl jest taki, ze jak ciskamy (ctrl f)
+to sie nam powinien biezacy edytor dzielic w pionie
+na 2, i focus powinien isc do tego dolnego
+
+tam rowniez powinien byc tworzony tymczasowy dokument.
+
+i kiedy bedziemy wpisywac tekst, to w gornym widoku
+powinno sie odbywac wyszukiwanie pasujacych elementow
+(a jak nie znajdziemy, to powinnismy robic zoom-out
+na caly dokument, a w kazdym razie do dopuszczalnej
+skali)
+
+no ale na razie zajmijmy sie czyms bardziej przyziemnym,
+tzn. tym, zeby software'owa klawiatura na Androidzie
+zmieniala rozmiar ekranu
+
+#+BEGIN_SRC java
+  void setKeyboardVisibilityListener(OnKeyboardVisibilityListener
+				     onKeyboardVisibilityListener) {
+      View parentView = ((ViewGroup) findViewById(android.R.id
+						  .content))
+	  .getChildAt(0);
+      parentView.getViewTreeObserver()
+	  .addOnGlobalLayoutListener(new
+				     ViewTreeObserver
+				     .OnGlobalLayoutListener() {
+
+		  private boolean alreadyOpen;
+		  private final int defaultKeyboardHeightDP = 100;
+		  private final int EstimatedKeyboardDP =
+		      defaultKeyboardHeightDP
+		      + (Build.VERSION.SDK_INT
+			 >= Build.VERSION_CODES.LOLLIPOP
+			 ? 48 : 0);
+		  private final Rect rect = new Rect();
+
+		  @Override
+		  public void onGlobalLayout() {
+		      int estimatedKeyboardHeight = (int)
+			  TypedValue.applyDimension(TypedValue
+						    .COMPLEX_UNIT_DIP,
+						    EstimatedKeyboardDP,
+						    parentView
+						    .getResources()
+						    .getDisplayMetrics());
+		      parentView.getWindowVisibleDisplayFrame(rect);
+		      int heightDiff = parentView.getRootView()
+			  .getHeight() - (rect.bottom - rect.top);
+		      boolean isShown =
+			  heightDiff >= estimatedKeyboardHeight;
+
+		      if (isShown == alreadyOpen) {
+			  Log.i("Keyboard state",
+				"Ignoring global layout change...");
+			  return;
+		      }
+		      alreadyOpen = isShown;
+		      onKeyboardVisibilityListener
+			  .onVisibilityChanged(isShown);
+		  }
+	      });
+  }
+
+
+#+END_SRC
+
 * 07.11.2023
 
 wydaje sie, ze jestesmy w takim punkcie, z ktorego trudno
@@ -24,7 +270,6 @@ wydaje sie, ze opcja 2 jest ontyle lepsza, ze potrzeba
 mniej transformacji
 
 tyke ze screen-position powinno byc parametrem
-
 
 * 06.11.2023
 
