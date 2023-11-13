@@ -5,13 +5,13 @@
     
     ((define-syntax-rule (name . args) substitution)
      (define-syntax name
-       (syntax-rules ()
+       (syntax-rules (::)
 	 ((name . args)
 	  substitution))))
 
     ((define-syntax-rule (name . args) . substitution)
      (define-syntax name
-       (syntax-rules ()
+       (syntax-rules (::)
 	 ((name . args)
 	  (begin . substitution)))))
     ))
