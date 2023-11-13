@@ -21,74 +21,13 @@
 ;; See the `fundamental.scm` file for a detailed explanation
 ;; how cursors are represented
 
-(define (cell-index cell::pair index::int)::Indexable*
-  (assert (is index >= 0))
-  (cond ((= index 0)
-         (pre-head-space cell))
-        ((= index 1)
-	 (car cell))
-        ((= index 2)
-         (post-head-space cell))
-        ((dotted? cell)
-         (cond ((= index 3)
-                (head-tail-separator cell))
-               ((= index 4)
-                (pre-tail-space cell))
-               ((= index 5)
-		(cdr cell))
-               ((= index 6)
-                (post-tail-space cell))))
-        (else
-         (cell-index (cdr cell) (- index 2)))))
-
-(define (set-cell-index! cell::pair index::int value)
-  (assert (is index >= 0))
-  (cond ((= index 0)
-         (set! (pre-head-space cell) value))
-        ((= index 1)
-	 (if (is value empty?)
-	     (set! (car cell) '())
-	     (set! (car cell) value)))
-        ((= index 2)
-         (set! (post-head-space cell) value))
-        ((dotted? cell)
-         (cond ((= index 3)
-                (set! (head-tail-separator cell) value))
-               ((= index 4)
-                (set! (pre-tail-space cell) value))
-               ((= index 5)
-		(if (is value instance? EmptyListProxy)
-		    (set! (car cell) '())
-		    (set! (cdr cell) value)))
-               ((= index 6)
-                (set! (post-tail-space cell) value))))
-        (else
-         (set-cell-index! (cdr cell) (- index 2) value))))
-
-(set! (setter cell-index) set-cell-index!)
-
-(define (last-cell-index cell::list
-			 #!optional
-			 (initial::int 2))
-  ::int
-  (cond
-   ((null? cell) 0)
-   
-   ((dotted? cell)
-    (+ initial 4))
-   ((pair? (tail cell))
-    (last-cell-index (tail cell)
-		     (+ initial 2)))
-   
-   (else
-    initial)))
 
 (define (part-at index::Index object)::Indexable*
   (cond ((Indexable? object)
 	 (let ((x :: Indexable object))
 	   (x:part-at index)))
 
-	((pair? object)
+	#;((pair? object)
 	 (if (or (eq? index #\[) (eq? index #\]))
 	     object
 	     (cell-index object (as int index))))
@@ -226,7 +165,7 @@
 	((string? object)
 	 (min (last-index object) (+ index 1)))
 
-	((or (pair? object) (null? object))
+	#;((or (pair? object) (null? object))
 	 (match index
 	   (#\[ 0)
 	   (#\] #\])
@@ -247,7 +186,7 @@
 	((string? object)
 	 (max 0 (- index 1)))
 	
-	((or (pair? object) (null? object))
+	#;((or (pair? object) (null? object))
 	 (match index
 	   (0 #\[)
 	   (#\] (last-cell-index object))

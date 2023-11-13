@@ -279,6 +279,7 @@
 	      (set! (cell-index parent index) replacement)
 	      document))))))
 
+#|
 (e.g.
  (let ((document `((,1 ,2 . ,3))))
    (replace-expression! at: '(1 1)
@@ -313,6 +314,8 @@
 			with: head/tail-separator
 			in: document)
    document) ===> ((1 . 3)))
+|#
+
 
 (define/kw (enchant-expression! at: cursor::Cursor := (the-cursor)
 				in: document := (the-document))

@@ -532,6 +532,8 @@
     (_
      (Space fragments: '(0)))))
 
+#|
+
 ;; In the following property definitions, we'd like
 ;; the input to be of type "cons", rather than "pair",
 ;; but at this point it isn't yet defined.
@@ -581,11 +583,7 @@
 (define-property+ (post-tail-space cell::pair)::Space
   (Space fragments: (cons 0 '())))
 
-(define (last-space sequence::pair)::Space
-  (let ((cell ::pair (last-pair sequence)))
-    (if (dotted? cell)
-	(post-tail-space cell)
-	(post-head-space cell))))
+|#
 
 (define-object (HeadTailSeparator)::Indexable
   (define (part-at index::Index)::Indexable* (this))
@@ -658,14 +656,6 @@
 
 (define-cache (vertical-bar height)
   (VerticalBar (as real height)))
-
-(define (should-the-bar-be-horizontal? dotted-pair)
-  ::boolean
-  (assert (dotted? dotted-pair))
-  (and-let* (((Space fragments: `(,_ ,_ . ,_))
-	      (post-head-space dotted-pair))
-	     ((Space fragments: `(,_ ,_ . ,_))
-	      (pre-tail-space dotted-pair)))))
 
 (define-property (head-tail-separator cell)
   head/tail-separator)
@@ -753,110 +743,3 @@
   (EmptyListProxy space))
 
 (define-early-constant Empty ::EmptyListProxy (empty))
-
-(define cell-display-properties
-  (list
-   dotted?
-   pre-head-space
-   post-head-space
-   pre-tail-space
-   post-tail-space))
-
-(define (copy-properties properties original cell)
-  (for property in properties
-    (update! (property cell) (property original)))
-  cell)
-
-(define (copy-properties* properties original cell)
-  (copy-properties properties original cell)
-  (when (and (pair? (cdr original))
-	     (pair? (cdr cell)))
-    (copy-properties* properties (cdr original) (cdr cell))))
-
-(define (tail-space-to-head original cell)
-  (update! (pre-head-space cell)
-	   (pre-tail-space original))
-  (update! (post-head-space cell)
-	   (post-tail-space original))
-  cell)
-
-(define (head-space-to-tail original cell)
-  (update! (pre-tail-space cell)
-	   (pre-head-space original))
-  (update! (post-tail-space cell)
-	   (post-head-space original))
-  cell)
-
-(define (tree-map/preserve properties f l)
-  (if (pair? l)
-      (copy-properties
-       properties
-       l
-       (cons
-	(tree-map/preserve properties f (car l))
-	(tree-map/preserve properties f (cdr l))))
-      (f l)))
-
-(define (print-space space::Space
-		     #!optional (port (current-output-port)))
-  #;(write space:fragments port)
-  (space:print port))
-
-(define (show-empty-list space)::void
-  (write-char #\()
-  (print-space space)
-  (write-char #\)))
-
-(define (show-dotted-tail p::pair)::void
-  (write-char #\.)
-  (print-space (pre-tail-space p))
-  (show (cdr p))
-  (print-space (post-tail-space p)))
-
-(define (show-pair p::pair)::void
-  (show (car p))
-  (print-space (post-head-space p))
-  (cond ((dotted? p)
-	 (show-dotted-tail p))
-	((pair? (cdr p))
-	 (show-pair (cdr p)))))
-
-(define (show p)::void
-  (cond
-   ((pair? p)
-    (write-char #\()
-    (print-space (pre-head-space p))
-    (show-pair p)
-    (write-char #\)))
-
-   ((EmptyListProxy? p)
-    (invoke (as EmptyListProxy p) 'print (current-output-port)))
-
-   ((string? p)
-    (write-char #\")
-    (for c in p
-      (when (or (eq? c #\")
-		(eq? c #\\))
-	(write-char #\\))
-      (write-char c))
-    (write-char #\"))
-   
-   (else
-    (write p))))
-
-(define (show-document d::pair)
-  (cond
-   ((empty? (car d))
-    (let ((proxy (as EmptyListProxy (car d))))
-      (proxy:space:print (current-output-port))))
-   ((pair? (car d))
-    (print-space (pre-head-space (car d)))
-    (show-pair (car d)))
-
-   (else
-    (display (car d)))))
-
-(define (show->string p)::string
-  (with-output-to-string
-    (lambda ()
-      (show p))))

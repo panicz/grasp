@@ -32,7 +32,7 @@
  (editor document documents)
  )
 
-
+#|
 (e.g.
  (let* ((document (string->document "1 3 5"))
 	(taken (extract! at: '(3 1) from: document)))
@@ -147,7 +147,7 @@
    (insert! head/tail-separator
 	    into: document at: '(1 2 1))
    (document->string document)) ===> "1 . 5")
-
+|#
 
 (define verbose ::boolean #false)
 

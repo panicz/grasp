@@ -12,6 +12,7 @@
 (import (language for))
 (import (language infix))
 (import (editor interfaces painting))
+(import (editor types primitive))
 
 (import (language examples))
 (import (utils print))
