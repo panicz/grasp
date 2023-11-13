@@ -21,10 +21,9 @@
   implementing Comment
   with
   ((draw! context::Cursor)::void
-   (let ((painter ::Painter (the-painter)))
-     (painter:enter-comment-drawing-mode!)
-     (expression:draw! (hash-cons #\; context))
-     (painter:exit-comment-drawing-mode!)))
+   (painter:enter-comment-drawing-mode!)
+   (expression:draw! (hash-cons #\; context))
+   (painter:exit-comment-drawing-mode!))
   
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
    (expression:cursor-under* x y (hash-cons #\; path)))
@@ -63,13 +62,11 @@
   implementing TextualComment
   with
   ((draw! context::Cursor)::void
-   (let ((painter ::Painter (the-painter)))
-     (painter:draw-block-comment! content context)))
+   (painter:draw-block-comment! content context))
   
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
    (otherwise #!null
-     (let ((painter ::Painter (the-painter))
-	   (inner ::Extent (extent)))
+     (let ((inner ::Extent (extent)))
        (and (is 0 <= x < inner:width)
 	    (is 0 <= y < inner:height)
 	    (let ((index (painter:block-comment-character-index-under
@@ -77,8 +74,7 @@
 	      (hash-cons index path))))))
   
   ((extent)::Extent
-   (let ((painter ::Painter (the-painter)))
-     (painter:block-comment-extent content)))
+   (painter:block-comment-extent content))
 
   ((expand! traversal::Traversal)::void
    (traversal:expand! (extent)))
@@ -157,12 +153,10 @@
   implementing TextualComment
   with
   ((draw! context::Cursor)::void
-   (let ((painter ::Painter (the-painter)))
-     (painter:draw-line-comment! content context)))
+   (painter:draw-line-comment! content context))
 
   ((extent)::Extent
-   (let ((painter ::Painter (the-painter)))
-     (painter:line-comment-extent content)))
+   (painter:line-comment-extent content))
 
   ((expand! traversal::Traversal)::void
    (traversal:expand! (extent))
@@ -170,8 +164,7 @@
 
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
    (otherwise #!null
-     (let ((painter ::Painter (the-painter))
-	   (inner ::Extent (extent)))
+     (let ((inner ::Extent (extent)))
        (and (is 0 <= x < inner:width)
 	    (is 0 <= y < inner:height)
 	    (hash-cons (painter:line-comment-character-index-under

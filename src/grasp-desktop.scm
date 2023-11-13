@@ -1235,7 +1235,7 @@ by the AWT framework."))
   (define (paint g::Graphics)::void
     (invoke-special javax.swing.JComponent (this) 'paint g)
     (set! graphics (as Graphics2D g))
-    (set! (the-painter) (this))
+    (set! painter (this))
     ;; cf. https://docs.oracle.com/javase/tutorial/2d/advanced/quality.html
     (graphics:setRenderingHints rendering-hints)
     (screen:draw!))
@@ -1352,7 +1352,7 @@ by the AWT framework."))
 
 (define (run-in-AWT-window)::void
   (let ((application ::GRASP (GRASP)))
-    (set! (the-painter) application)
+    (set! painter application)
     (initialize-keymap)
     
     (safely

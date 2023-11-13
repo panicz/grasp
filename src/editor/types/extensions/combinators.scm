@@ -18,8 +18,7 @@
   implementing Enchanted
   with
   ((draw! context::Cursor)::void
-   (let* ((painter ::Painter (the-painter))
-	  (inner ::Extent (extent+ element))
+   (let* ((inner ::Extent (extent+ element))
 	  (border ::real (painter:border-size)))
      (painter:draw-border! (+ inner:width (* 2 border))
 			   (+ inner:height (* 2 border)))
@@ -27,8 +26,7 @@
        (element:draw! (recons 'element context)))))
 
   ((extent)::Extent
-   (let* ((painter ::Painter (the-painter))
-	  (inner ::Extent (extent+ element))
+   (let* ((inner ::Extent (extent+ element))
 	  (border ::real (painter:border-size)))
      (Extent width: (+ inner:width (* 2 border))
 	     height: (+ inner:height (* 2 border)))))
@@ -55,34 +53,28 @@
 	(isnt b eq? (first-index))))
 
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
-   (let* ((painter ::Painter (the-painter))
-	  (border ::real (painter:border-size)))
+   (let* ((border ::real (painter:border-size)))
      (element:cursor-under* (- x border) (- y border)
 			    (recons 'element path))))
   
   ((tap! finger::byte #;at x::real y::real)::boolean
-   (let* ((painter ::Painter (the-painter))
-	  (border ::real (painter:border-size)))
+   (let* ((border ::real (painter:border-size)))
      (element:tap! finger (- x border) (- y border))))
   
   ((press! finger::byte #;at x::real y::real)::boolean
-   (let* ((painter ::Painter (the-painter))
-	  (border ::real (painter:border-size)))
+   (let* ((border ::real (painter:border-size)))
      (element:press! finger (- x border) (- y border))))
   
   ((second-press! finger::byte #;at x::real y::real)::boolean
-   (let* ((painter ::Painter (the-painter))
-	  (border ::real (painter:border-size)))
+   (let* ((border ::real (painter:border-size)))
      (element:second-press! finger (- x border) (- y border))))
   
   ((double-tap! finger::byte x::real y::real)::boolean
-   (let* ((painter ::Painter (the-painter))
-	  (border ::real (painter:border-size)))
+   (let* ((border ::real (painter:border-size)))
      (element:double-tap! finger (- x border) (- y border))))
 
   ((long-press! finger::byte x::real y::real)::boolean
-   (let* ((painter ::Painter (the-painter))
-	  (border ::real (painter:border-size)))
+   (let* ((border ::real (painter:border-size)))
      (element:long-press! finger (- x border) (- y border))))
 
   ((key-typed! key-code::long context::Cursor)::boolean
@@ -92,43 +84,35 @@
    (invoke-special Base 'to-list cons to-expression))
 
   ((scroll-up! x::real y::real)::boolean
-   (let* ((painter ::Painter (the-painter))
-	  (border ::real (painter:border-size)))
+   (let* ((border ::real (painter:border-size)))
      (element:scroll-up! (- x border) (- y border))))
   
   ((scroll-down! x::real y::real)::boolean
-   (let* ((painter ::Painter (the-painter))
-	  (border ::real (painter:border-size)))
+   (let* ((border ::real (painter:border-size)))
      (element:scroll-down! (- x border) (- y border))))
   
   ((scroll-left! x::real y::real)::boolean
-   (let* ((painter ::Painter (the-painter))
-	  (border ::real (painter:border-size)))
+   (let* ((border ::real (painter:border-size)))
      (element:scroll-left! (- x border) (- y border))))
   
   ((scroll-right! x::real y::real)::boolean
-   (let* ((painter ::Painter (the-painter))
-	  (border ::real (painter:border-size)))
+   (let* ((border ::real (painter:border-size)))
      (element:scroll-right! (- x border) (- y border))))
 
   ((zoom-in! x::real y::real)::boolean
-   (let* ((painter ::Painter (the-painter))
-	  (border ::real (painter:border-size)))
+   (let* ((border ::real (painter:border-size)))
      (element:zoom-in! (- x border) (- y border))))
   
   ((zoom-out! x::real y::real)::boolean
-   (let* ((painter ::Painter (the-painter))
-	  (border ::real (painter:border-size)))
+   (let* ((border ::real (painter:border-size)))
      (element:zoom-out! (- x border) (- y border))))
 
   ((rotate-left! x::real y::real)::boolean
-   (let* ((painter ::Painter (the-painter))
-	  (border ::real (painter:border-size)))
+   (let* ((border ::real (painter:border-size)))
      (element:rotate-left! (- x border) (- y border))))
   
   ((rotate-right! x::real y::real)::boolean
-   (let* ((painter ::Painter (the-painter))
-	  (border ::real (painter:border-size)))
+   (let* ((border ::real (painter:border-size)))
      (element:rotate-right! (- x border) (- y border))))
 
   )

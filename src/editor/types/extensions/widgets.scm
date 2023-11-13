@@ -23,8 +23,7 @@
 (define-object (ColumnGrid items::(sequence-of Enchanted))
   ::Enchanted
   (define (extent)::Extent
-    (let* ((painter ::Painter (the-painter))
-           (grid-border ::real (painter:grid-border))
+    (let* ((grid-border ::real (painter:grid-border))
            (max-width ::real 0)
            (total-height ::real grid-border))
       (for item::Enchanted in items
@@ -36,8 +35,7 @@
               height: total-height)))
 
   (define (draw! context::Cursor)::void
-    (let* ((painter ::Painter (the-painter))
-           (grid-border ::real (painter:grid-border))
+    (let* ((grid-border ::real (painter:grid-border))
 	   (total ::Extent (extent))
            (n ::int 0)
            (x0 ::real (painter:current-translation-left))
@@ -66,8 +64,7 @@
   (define (propagate finger::byte x::real y::real
                      action::(maps (Enchanted byte real real int)
 				   to: Object))
-    (let* ((painter ::Painter (the-painter))
-           (grid-border ::real (painter:grid-border))
+    (let* ((grid-border ::real (painter:grid-border))
 	   (ceiling ::real grid-border)
 	   (n ::real 0))
       (escape-with return
@@ -172,12 +169,10 @@
 
 (define-object (Caption content::string)::Enchanted
   (define (draw! context::Cursor)::void
-    (let ((painter ::Painter (the-painter)))
-      (painter:draw-caption! content)))
+    (painter:draw-caption! content))
 
   (define (extent)::Extent
-    (let ((painter ::Painter (the-painter)))
-      (painter:caption-extent content)))
+    (painter:caption-extent content))
 
   (define (value)::Object
     (cons (Atom "Caption") (cons (if (Text? content)
@@ -256,8 +251,7 @@
   extending Magic
   with
   ((draw! context::Cursor)::void
-   (let* ((painter ::Painter (the-painter))
-	  (inner ::Extent (painter:caption-extent label))
+   (let* ((inner ::Extent (painter:caption-extent label))
 	  (horizontal-margin
 	   ::real (painter:caption-horizontal-margin))
 	  (top-margin ::real
@@ -274,8 +268,7 @@
    (origin (this)))
 
   ((extent)::Extent
-   (let* ((painter ::Painter (the-painter))
-	  (inner ::Extent (painter:caption-extent label))
+   (let* ((inner ::Extent (painter:caption-extent label))
 	  (horizontal-margin
 	   ::real (painter:caption-horizontal-margin))
 	  (top-margin ::real
@@ -316,8 +309,7 @@
   extending Magic
   with
   ((draw! context::Cursor)::void
-   (let* ((painter ::Painter (the-painter))
-          (icon ::Extent (painter:icon-extent))
+   (let* ((icon ::Extent (painter:icon-extent))
 	  (caption ::String (label)))
      (draw-icon!)
      (with-translation (icon:width 0)
@@ -327,8 +319,7 @@
    (origin (this)))
 
   ((extent)::Extent
-   (let* ((painter ::Painter (the-painter))
-          (icon ::Extent (painter:icon-extent))
+   (let* ((icon ::Extent (painter:icon-extent))
 	  (label ::String (label))
 	  (caption ::Extent (painter:caption-extent label)))
      (Extent width: (+ icon:width caption:width)
@@ -345,8 +336,7 @@
    (target:getName))
 
   ((draw-icon!)::void
-   (let ((painter ::Painter (the-painter)))
-     (painter:draw-file-icon!)))
+   (painter:draw-file-icon!))
 
   ((press! finger::byte x::real y::real)::boolean
    #t)
@@ -366,8 +356,7 @@
 (define-object (DirectoryButton)::Enchanted
   (define (typename)::String "DirectoryButton")
   (define (draw-icon!)::void
-    (let ((painter ::Painter (the-painter)))
-      (painter:draw-directory-icon!)))
+    (painter:draw-directory-icon!))
 
   (define (compareTo other::FileButton)::int
     (if (not (other:target:isDirectory))
@@ -391,18 +380,15 @@
 (define-object (TextInput)::Enchanted
 
   (define (draw! context::Cursor)
-    (let ((painter ::Painter (the-painter)))
-      (painter:draw-text-input! (this) context)))
+    (painter:draw-text-input! (this) context))
 
   (define (extent)::Extent
-    (let ((painter ::Painter (the-painter)))
-      (painter:text-input-extent (this))))
+    (painter:text-input-extent (this)))
 
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
-    (let ((painter ::Painter (the-painter)))
-      (recons path
-	      (painter:text-input-character-index-under
-	       x y (this)))))
+    (recons path
+	    (painter:text-input-character-index-under
+	     x y (this))))
 
   (define (part-at index::Index)::Indexable* (this))
 

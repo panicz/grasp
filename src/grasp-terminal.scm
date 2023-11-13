@@ -165,8 +165,7 @@
       ;; "The Display Processor")
       (set! (screen-up-to-date?) #t))
     (let* ((resize ::TerminalSize (io:doResizeIfNecessary))
-	   (size (or resize (io:getTerminalSize)))
-	   (painter (the-painter)))
+	   (size (or resize (io:getTerminalSize))))
       (screen:set-size! (size:getColumns) (size:getRows))
       (painter:clear!)
       (screen:draw!)
@@ -477,7 +476,7 @@
      (for expression in init-script
        (eval expression))))
   (let ((event-queue ::BlockingQueue (ArrayBlockingQueue 16)))
-    (parameterize ((the-painter (TerminalPainter io event-queue)))
+    (with ((painter (TerminalPainter io event-queue)))
       (io:startScreen)
       (io:clear)
       (io:refresh)

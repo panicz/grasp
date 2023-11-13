@@ -22,7 +22,7 @@
   (editor document document-operations)
   )
 
-(set! (the-painter) (TextPainter))
+(set! painter (TextPainter))
 
 (display "====================================")
 
@@ -50,6 +50,6 @@ mutations of an n-element set.\"
 
 (invoke (the-screen) 'draw! '())
 
-(display (the-painter))
+(display painter)
 
 (display (the-expression at: '(#\[ 11 0 1)))

@@ -34,8 +34,7 @@
 (define (cell-width taken)::int
   (let* ((extent ::Extent (if (pair? taken)
 			      (sequence-extent taken)
-			      (extent+ taken)))
-	 (painter ::Painter (the-painter)))
+			      (extent+ taken))))
     (as int (round (/ extent:width (painter:space-width))))))
 
 (define/kw (extract! at: cursor::Cursor := (the-cursor)

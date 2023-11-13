@@ -22,7 +22,7 @@
 (import (editor interfaces painting))
 
 ;; the methods provided by these interfaces should be thought of as
-;; implicitly parameterized with (the-painter), (the-cursor)
+;; implicitly parameterized with painter, (the-cursor)
 ;; and (the-selection-anchor) parameters
 
 (define-property (extent-cached? tile::Tile)::boolean
@@ -66,10 +66,9 @@
 			      max-line-height)))
 
   ((new-line!)::void
-   (let ((painter ::Painter (the-painter)))
-     (set! top (+ top max-line-height))
-     (set! left 0)
-     (set! max-line-height (painter:min-line-height))))
+   (set! top (+ top max-line-height))
+   (set! left 0)
+   (set! max-line-height (painter:min-line-height)))
 
   )
 

@@ -87,28 +87,26 @@
 		  (expression:index< a b)))))
 
   (define (draw! context::Cursor)::void
-    (let ((painter ::Painter (the-painter)))
-      (if (gnu.lists.LList? expression)
-	  (let* ((inner ::Extent (sequence-extent expression))
-		 (paren-width ::real (paren-width painter)))
-	    (draw-box! painter
-		       (+ inner:width (* 2 paren-width))
-		       inner:height
-		       context)
-	    (with-translation (paren-width 0)
-	      (draw-sequence! expression context: context)))
-	  (let* ((inner ::Extent (extent+ expression))
-		 (marker-width (marker-width painter)))
-	    (draw-markers! painter
-			   inner:width
-			   inner:height
-			   context)
-	    (with-translation (marker-width 0)
-	      (expression:draw! (recons 0 context)))))))
+    (if (gnu.lists.LList? expression)
+	(let* ((inner ::Extent (sequence-extent expression))
+	       (paren-width ::real (paren-width painter)))
+	  (draw-box! painter
+		     (+ inner:width (* 2 paren-width))
+		     inner:height
+		     context)
+	  (with-translation (paren-width 0)
+	    (draw-sequence! expression context: context)))
+	(let* ((inner ::Extent (extent+ expression))
+	       (marker-width (marker-width painter)))
+	  (draw-markers! painter
+			 inner:width
+			 inner:height
+			 context)
+	  (with-translation (marker-width 0)
+	    (expression:draw! (recons 0 context))))))
 
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
-    (let* ((painter ::Painter (the-painter))
-	   (inner ::Extent (if (gnu.lists.LList? expression)
+    (let* ((inner ::Extent (if (gnu.lists.LList? expression)
 			       (sequence-extent expression)
 			       (extent+ expression)))
 	   (lag-width ::real (if (gnu.lists.LList? expression)
@@ -131,8 +129,7 @@
 		      (recons (last-index) path)))))))
 
   (define (extent)::Extent
-    (let* ((painter ::Painter (the-painter))
-	   (inner ::Extent (if (gnu.lists.LList? expression)
+    (let* ((inner ::Extent (if (gnu.lists.LList? expression)
 			       (sequence-extent expression)
 			       (extent+ expression)))
 	   (lag-width ::real (if (gnu.lists.LList? expression)

@@ -28,9 +28,8 @@
 (define (rendered-with-cursor #!optional
 			      (document (the-document))
 			      (cursor (the-cursor)))
-  (parameterize ((the-painter (TextPainter)))
+  (with ((painter (TextPainter)))
     (let* ((target (cursor-ref document cursor))
-	   (painter ::TextPainter (the-painter))
 	   (cursor-position (painter:cursor-position)))
       (draw-sequence! (head document) cursor)
       	  

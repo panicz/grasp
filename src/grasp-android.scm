@@ -1314,6 +1314,7 @@
       (canvas:drawCircle left top 10.0 paint)))
 
   (define (onDraw c::Canvas)::void
+    (screen:set-painter! (this))
     (set! canvas c)
     (clear!)
     (screen:draw!)
@@ -1643,7 +1644,8 @@
 	 (set! screen:extent:width (span:width))
 	 (set! screen:extent:height (span:height)))))
     
-    (set! (the-painter) view)
+    (set-painter! view)
+    
     (for expression in init-script
       (safely
        (eval expression)))
