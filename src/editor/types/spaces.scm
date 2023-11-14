@@ -218,8 +218,7 @@
 
   ((draw! context::Cursor)::void
    (let-values (((selection-start selection-end) (the-selection)))
-     (let* ((painter ::Painter (the-painter))
-	    (enters-selection-drawing-mode?::boolean
+     (let* ((enters-selection-drawing-mode?::boolean
 	     (and (pair? selection-start)
 		  (equal? (cdr selection-start) context)
 		  (integer? (car selection-start))))
@@ -279,8 +278,7 @@
 
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
    (otherwise #!null
-     (and-let* ((painter ::Painter (the-painter))
-		(space-width ::real (painter:space-width))
+     (and-let* ((space-width ::real (painter:space-width))
 		(traversal ::Traversal (the-traversal))
 		(t ::Traversal (traversal:clone))
 		;; we need to restore the coordinates to
@@ -354,8 +352,7 @@
   implementing Expandable
   with
   ((expand! t::Traversal)::void
-   (let* ((painter ::Painter (the-painter))
-	  (space-width ::real (painter:space-width)))
+   (let* ((space-width ::real (painter:space-width)))
      (let skip ((input ::list fragments)
 		(total ::int 0))
        (match input
@@ -608,15 +605,13 @@
   (define width :: real 0)
   
   (define (draw! context::Cursor)::void
-    (let ((painter ::Painter (the-painter)))
-      (painter:draw-horizontal-bar!
-       width
-       (and-let* ((`(#\| . ,,context) (the-cursor)))))))
+    (painter:draw-horizontal-bar!
+     width
+     (and-let* ((`(#\| . ,,context) (the-cursor))))))
   
   (define (extent)::Extent
-    (let ((painter ::Painter (the-painter)))
-      (Extent width: width
-	      height: (painter:horizontal-bar-height))))
+    (Extent width: width
+	    height: (painter:horizontal-bar-height)))
 
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
     (otherwise #!null
@@ -633,15 +628,13 @@
   (define height :: real 0)
   
   (define (draw! context::Cursor)::void
-    (let ((painter ::Painter (the-painter)))
-      (painter:draw-vertical-bar!
-       height
-       (and-let* ((`(#\| . ,,context) (the-cursor)))))))
+    (painter:draw-vertical-bar!
+     height
+     (and-let* ((`(#\| . ,,context) (the-cursor))))))
 
   (define (extent)::Extent
-    (let ((painter ::Painter (the-painter)))
-      (Extent width: (painter:vertical-bar-width)
-	      height: height)))
+    (Extent width: (painter:vertical-bar-width)
+	    height: height))
 
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
     (otherwise #!null
@@ -703,7 +696,6 @@
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
     (otherwise #!null
       (let* ((outer (extent))
-	     (painter (the-painter))
 	     (paren-width (painter:paren-width)))
 	(and (is 0 <= x < outer:width)
 	     (is 0 <= y < outer:height)
@@ -723,8 +715,7 @@
 	(and (eqv? a 0) (eqv? b #\]))))
 
   (define (extent)::Extent
-    (let* ((painter (the-painter))
-	   (traversal (Traversal
+    (let* ((traversal (Traversal
 		       max-line-height:
 		       (painter:min-box-height))))
       (space:expand! traversal)
@@ -733,8 +724,7 @@
 	      height: (+ traversal:top traversal:max-line-height))))
 
   (define (draw! context::Cursor)::void
-    (let ((outer (extent))
-	  (painter (the-painter)))
+    (let ((outer (extent)))
       (painter:draw-box! outer:width outer:height context)
       (with-translation ((painter:paren-width) 0)
 	  (space:draw! (hash-cons (as int 0) context)))))

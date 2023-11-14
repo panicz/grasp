@@ -22,8 +22,7 @@
 
 (define (move-cursor-right!)
   (set! (the-cursor) (cursor-advance))
-  (let* ((painter (the-painter))
-	 (cursor-position ::Position (painter:cursor-position)))
+  (let* ((cursor-position ::Position (painter:cursor-position)))
     (set! (cursor-column) cursor-position:left))
   (set! (the-selection-anchor) (the-cursor))
   ;;(DUMP (the-cursor))
@@ -31,8 +30,7 @@
 
 (define (move-cursor-left!)
   (set! (the-cursor) (cursor-retreat))
-  (let* ((painter (the-painter))
-	 (cursor-position ::Position (painter:cursor-position)))
+  (let* ((cursor-position ::Position (painter:cursor-position)))
     (set! (cursor-column) cursor-position:left))
   (set! (the-selection-anchor) (the-cursor))
   ;;(DUMP (the-cursor))
@@ -56,19 +54,16 @@
 
 (define (expand-selection-right!)
   (set! (the-cursor) (cursor-advance))
-  (let* ((painter (the-painter))
-	 (cursor-position ::Position (painter:cursor-position)))
+  (let* ((cursor-position ::Position (painter:cursor-position)))
     (set! (cursor-column) cursor-position:left)))
 
 (define (expand-selection-left!)
   (set! (the-cursor) (cursor-retreat))
-  (let* ((painter (the-painter))
-	 (cursor-position ::Position (painter:cursor-position)))
+  (let* ((cursor-position ::Position (painter:cursor-position)))
     (set! (cursor-column) cursor-position:left)))
 
 (define (move-cursor-up!)
-  (let* ((painter (the-painter))
-	 (target (the-expression))
+  (let* ((target (the-expression))
 	 (initial-position ::Position (painter:cursor-position))
 	 (cursor-height (painter:cursor-height))
 	 (initial-cursor (the-cursor)))
@@ -84,8 +79,7 @@
 	       (probe (+ attempt 1))))))))
 
 (define (move-cursor-down!)
-  (let* ((painter (the-painter))
-	 (target (the-expression))
+  (let* ((target (the-expression))
 	 (initial-position ::Position (painter:cursor-position))
 	 (cursor-height (painter:cursor-height))
 	 (document-extent ::Extent (sequence-extent))

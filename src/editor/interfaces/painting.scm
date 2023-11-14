@@ -588,13 +588,16 @@ def") ===> [Extent width: 3 height: 2])
     (values))
   )
 
-(define-parameter (the-painter) ::Painter
+
+(define painter ::Painter
   (NullPainter))
+
+(define (set-painter! p::Painter)::void
+  (set! painter p))
 
 (define-syntax-rule (with-translation (x y)
 		      . actions)
-  (let ((painter ::Painter (the-painter))
-	(x! ::real x)
+  (let ((x! ::real x)
         (y! ::real y))
     (painter:translate! x! y!)
     (try-finally
@@ -602,5 +605,4 @@ def") ===> [Extent width: 3 height: 2])
      (painter:translate! (- x!) (- y!)))))
 
 (define-syntax-rule (with-clip (w h) . actions)
-  (let ((painter ::Painter (the-painter)))
-    (painter:with-clip w h (lambda () (begin . actions)))))
+  (painter:with-clip w h (lambda () (begin . actions))))

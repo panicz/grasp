@@ -45,8 +45,7 @@
 			    intensity::float
 			    #!key (only-with-relatives? ::boolean #f))
   ::void
-  (let ((links (counterparts expression))
-	(painter ::Painter (the-painter)))
+  (let ((links (counterparts expression)))
     (cond
      ((empty? links)
       (draw-emerging! expression
@@ -84,7 +83,6 @@
   ::void
   (let* ((p0 ::Position (source-position foreground))
 	 (p1 ::Position (target-position background))
-	 (painter ::Painter (the-painter))
 	 (left ::real (linear-interpolation
 		       from: p0:left to: p1:left
 		       at: (- 1 progress)))
@@ -171,15 +169,13 @@
 (define (draw-emerging! expression::Element p::Position
 			intensity::float)
   ::void
-  (let ((painter ::Painter (the-painter)))
-    (painter:with-intensity
-     intensity
-     (lambda ()
-       (with-translation (p:left p:top)
-	 (if (gnu.lists.LList? expression)
-	     (let ((outer ::Extent (extent+ expression)))
-	       (painter:draw-box! outer:width outer:height '()))
-	     (draw! expression)))))))
+  (painter:with-intensity intensity
+    (lambda ()
+      (with-translation (p:left p:top)
+	(if (gnu.lists.LList? expression)
+	    (let ((outer ::Extent (extent+ expression)))
+	      (painter:draw-box! outer:width outer:height '()))
+	    (draw! expression))))))
 
 (define (render-background! expression::Element
 			    counterparts::(maps (Element)
@@ -209,7 +205,6 @@
 			  (Position left: 0 top: 0)))
   ::(maps (Element) to: Position)
   (let* ((p ::Position (measurements expression))
-	 (painter ::Painter (the-painter))
 	 (paren-width ::real (painter:paren-width)))
     (set! p:left left)
     (set! p:top top)
@@ -550,7 +545,7 @@
   (let*-values (((reduced origins progenies) (reduce expression))
 		((result) (Morph expression reduced origins progenies)))
     
-    #;(parameterize ((the-painter text-painter))
+    #;(with ((painter text-painter))
       (text-painter:clear!)
       (WARN "vvvvvv")
       (draw! expression)
@@ -628,15 +623,13 @@
 	       (isnt current-morph:initial eq? initial-expression))
       (set! current-morph (morph-to current-morph:initial))
       (set! current-morph:progress 1.0))
-    (let ((painter ::Painter (the-painter)))
-      (painter:play! (this))))
+    (painter:play! (this)))
 
   (define (play!)::void
     (WARN "play!")
     (set! now-playing? #t)
     (set! playing-backwards? #f)
-    (let ((painter ::Painter (the-painter)))
-      (painter:play! (this))))
+    (painter:play! (this)))
   
   (define (pause!)::void
     (set! now-playing? #f))
@@ -651,8 +644,7 @@
       (when (is current-morph:progress >= 1.0)
 	(set! current-morph (morph-from current-morph:final))
 	(set! current-morph:progress 0.0))
-      (let ((painter ::Painter (the-painter)))
-	(painter:play! (this))))
+      (painter:play! (this)))
 
     #;(begin
       (set! current-morph:progress (+ current-morph:progress 0.1))

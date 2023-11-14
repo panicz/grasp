@@ -108,8 +108,7 @@
    name: "horizontal-line"
    recognizes:
    (lambda (points::(sequence-of Position))
-     (let* ((painter ::Painter (the-painter))
-	    (vicinity ::real
+     (let* ((vicinity ::real
 		      (painter:line-simplification-resolution))
 	    (simplified ::java.util.List
 			(simplify points vicinity)))
@@ -133,8 +132,7 @@
    name: "vertical-line"
    recognizes:
    (lambda (points::(sequence-of Position))
-     (let* ((painter ::Painter (the-painter))
-	    (vicinity ::real
+     (let* ((vicinity ::real
 		      (painter:line-simplification-resolution))
 	    (simplified ::java.util.List
 			(simplify points vicinity)))
@@ -158,8 +156,7 @@
    name: "eval"
    recognizes:
    (lambda (points ::(sequence-of Position))
-     (and-let* ((painter ::Painter (the-painter))
-		(vicinity ::real
+     (and-let* ((vicinity ::real
 			  (painter:line-simplification-resolution))
 		(simplified ::java.util.List
 			    (simplify points vicinity))

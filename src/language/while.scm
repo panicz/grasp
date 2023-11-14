@@ -10,3 +10,18 @@
       (when condition
 	actions ... (loop)))
     (loop)))
+
+(define-syntax with
+  (lambda (stx)
+    (syntax-case stx ()
+      ((with ((variable type* ... value) ...) . actions)
+       (with-syntax (((previous-value ...)
+		      (generate-temporaries #'(variable ...))))
+		    #'(let ((previous-value variable) ...)
+			(set! variable value)
+			...
+			(try-finally
+			 (begin . actions)
+			 (begin
+			   (set! variable previous-value)
+			   ...))))))))

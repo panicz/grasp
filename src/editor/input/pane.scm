@@ -56,6 +56,9 @@
   ;; window is resized
   (define extent ::Extent (Extent width: 0 height: 0))
 
+  (define (set-painter! p::Painter)::void
+    (set! painter p))
+  
   (define (drag! finger::byte action::Drag)::void
     (set! (dragging finger) action))
 
@@ -210,11 +213,10 @@
     (points:add p))
   
   (define (draw!)::void
-    (let ((painter ::Painter (the-painter)))
-      (for i from 1 below (points:size)
+    (for i from 1 below (points:size)
         (let ((p0 ::Position (points (- i 1)))
 	      (p1 ::Position (points i)))
-          (painter:draw-line! p0:left p0:top p1:left p1:top)))))
+          (painter:draw-line! p0:left p0:top p1:left p1:top))))
   
   (IgnoreInput))
 
@@ -773,16 +775,14 @@
   extending Split
   with
   ((part-sizes)::(Values real real real)
-   (let* ((painter ::Painter (the-painter))
-	  (pane-width ::real (the-pane-width))
+   (let* ((pane-width ::real (the-pane-width))
 	  (line-width ::real (painter:vertical-split-width))
           (left-width ::real (as int (round (* at pane-width))))
           (right-width ::real (- pane-width left-width line-width)))
      (values left-width line-width right-width)))
 
   ((draw-line!)::void
-   (let ((painter ::Painter (the-painter)))
-     (painter:draw-vertical-split! 0)))
+   (painter:draw-vertical-split! 0))
   
   ((with-pane-size size::real action::procedure)::Object
    (parameterize ((the-pane-width size))
@@ -821,8 +821,7 @@
   extending Split
   with
   ((part-sizes)::(Values real real real)
-   (let* ((painter ::Painter (the-painter))
-	  (pane-height ::real (the-pane-height))
+   (let* ((pane-height ::real (the-pane-height))
 	  (line-height ::real (painter:horizontal-split-height))
           (inner-height ::real (- pane-height line-height))
           (left-height ::real (as int (round (* at inner-height))))
@@ -830,8 +829,7 @@
      (values left-height line-height right-height)))
 
   ((draw-line!)::void
-   (let ((painter ::Painter (the-painter)))
-     (painter:draw-horizontal-split! 0)))
+   (painter:draw-horizontal-split! 0))
   
   ((with-pane-size size::real action::procedure)::Object
    (parameterize ((the-pane-height size))
@@ -877,8 +875,7 @@
 			  on-the-edge: boundary-action
 			  ::(maps (PopUp byte real real) to: boolean)
 			  := always)
-  (let* ((painter ::Painter (the-painter))
-         (content ::Enchanted pop-up:content)
+  (let* ((content ::Enchanted pop-up:content)
 	 (left ::real pop-up:left)
 	 (top ::real pop-up:top)
          (inner ::Extent (extent+ content))
@@ -955,8 +952,7 @@
    (content:key-typed! key-code (recons (first-index) context)))
 
   ((draw! context::Cursor)::void
-   (let* ((painter ::Painter (the-painter))
-	  (inner ::Extent (extent+ content))
+   (let* ((inner ::Extent (extent+ content))
 	  (horizontal ::real (painter:horizontal-popup-margin))
 	  (vertical ::real (painter:vertical-popup-margin)))
      (with-translation (left top)
@@ -1000,8 +996,7 @@
 		 (and path (recons 'edge path))))))))
 
   ((extent)::Extent
-   (let ((painter ::Painter (the-painter))
-	 (inner ::Extent (extent+ content)))
+   (let ((inner ::Extent (extent+ content)))
      (Extent width: (+ inner:width
 		       (* 2 (painter:horizontal-popup-margin)))
 	     height: (+ inner:height
@@ -1075,11 +1070,10 @@
   implementing Enchanted
   with
   ((draw! context::Cursor)::void
-   (let ((painter ::Painter (the-painter)))
-     (painter:fill-background! width height)
-     (with-clip (width height)
+   (painter:fill-background! width height)
+   (with-clip (width height)
        (with-translation ((- left) (- top))
-	 (content:draw! (recons 0 context))))))
+	 (content:draw! (recons 0 context)))))
 
   ((tap! finger::byte  x::real y::real)::boolean
    (content:tap! finger (+ x left) (+ y top)))
@@ -1120,31 +1114,27 @@
 
   ((scroll-up! x::real y::real)::boolean
    (and (is top > 0)
-	(let* ((painter ::Painter (the-painter))
-	       (h ::real (painter:min-line-height)))
+	(let* ((h ::real (painter:min-line-height)))
 	  (set! top (max 0 (- top h)))
 	  #t)))	     
   
   ((scroll-down! x::real y::real)::boolean
    (let ((inner ::Extent (extent+ content)))
      (and (is top < (- inner:height height))
-	(let* ((painter ::Painter (the-painter))
-	       (h ::real (painter:min-line-height)))
+	(let* ((h ::real (painter:min-line-height)))
 	  (set! top (min (- inner:height height) (+ top h)))
 	  #t))))
   
   ((scroll-left! x::real y::real)::boolean
    (and (is left > 0)
-	(let* ((painter ::Painter (the-painter))
-	       (w ::real (painter:space-width)))
+	(let* ((w ::real (painter:space-width)))
 	  (set! left (max 0 (- left w)))
 	  #t)))
   
   ((scroll-right! x::real y::real)::boolean
    (let ((inner ::Extent (extent+ content)))
      (and (is left < (- inner:width width))
-	(let* ((painter ::Painter (the-painter))
-	       (w ::real (painter:space-width)))
+	(let* ((w ::real (painter:space-width)))
 	  (set! left (min (- inner:width width) (+ left w)))
 	  #t))))
 
@@ -1430,10 +1420,9 @@
 		   (the-cursor cursor)
 		   (the-editor (this))
 		   (the-selection-anchor selection-anchor))
-      (let ((painter ::Painter (the-painter)))
-	(transform:within painter
+      (transform:within painter
 			  (lambda ()
-			    (document:draw! '()))))))
+			    (document:draw! '())))))
 
   (define (tap! finger::byte #;at xe::real ye::real)::boolean
     (parameterize/update-sources ((the-document document))
@@ -1604,36 +1593,35 @@
 				  (the-editor (this))
 				  (the-selection-anchor
 				   selection-anchor))
-      (let ((painter ::Painter (the-painter)))
-	(cond
-	 ((isnt (transform:get-angle) = 0.0)
-	  (painter:play!
-	   (Transition of: transform
-		       from: (copy transform)
-		       to: (let ((target ::Transform (copy transform)))
-			     (target:set-angle! 0.0)
-			     target)
-		       around: (Position left: x top: y)
-		       duration/ms: 500))
-	  #t)
-	 ((or (isnt (transform:get-left) = 0)
-	      (is (transform:get-top) > 0))
-	  (painter:play!
-	   (Transition of: transform
-		       from: (copy transform)
-		       to: (let ((target ::Transform (copy transform))
-				 (document ::Extent (extent+ document))
-				 (screen ::Extent (screen:size)))
-			     (target:set-left! 0.0)
-			     (target:set-top! 0.0)
-			     (target:set-scale!
-			      (min (/ screen:width document:width)
-				   (/ screen:height document:height)))
-			     target)
-		       duration/ms: 500))
-	  #t)
-	 (else
-	  #f)))))
+      (cond
+       ((isnt (transform:get-angle) = 0.0)
+	(painter:play!
+	 (Transition of: transform
+		     from: (copy transform)
+		     to: (let ((target ::Transform (copy transform)))
+			   (target:set-angle! 0.0)
+			   target)
+		     around: (Position left: x top: y)
+		     duration/ms: 500))
+	#t)
+       ((or (isnt (transform:get-left) = 0)
+	    (is (transform:get-top) > 0))
+	(painter:play!
+	 (Transition of: transform
+		     from: (copy transform)
+		     to: (let ((target ::Transform (copy transform))
+			       (document ::Extent (extent+ document))
+			       (screen ::Extent (screen:size)))
+			   (target:set-left! 0.0)
+			   (target:set-top! 0.0)
+			   (target:set-scale!
+			    (min (/ screen:width document:width)
+				 (/ screen:height document:height)))
+			   target)
+		     duration/ms: 500))
+	#t)
+       (else
+	#f))))
 
   (define (long-press! finger::byte x::real y::real)::boolean
     (parameterize/update-sources ((the-document document)
@@ -1678,8 +1666,7 @@
 				  (the-editor (this))
 				  (the-selection-anchor
 				   selection-anchor))
-      (let* ((painter ::Painter (the-painter))
-	     (h ::real (painter:min-line-height)))
+      (let* ((h ::real (painter:min-line-height)))
 	(transform:translate! 0 h)
 	#t)))
   
@@ -1689,8 +1676,7 @@
 				  (the-editor (this))
 				  (the-selection-anchor
 				   selection-anchor))
-      (let* ((painter ::Painter (the-painter))
-	     (h ::real (painter:min-line-height)))
+      (let* ((h ::real (painter:min-line-height)))
 	(transform:translate! 0 (- h))
 	#t)))
   
@@ -1700,8 +1686,7 @@
 				  (the-editor (this))
 				  (the-selection-anchor
 				   selection-anchor))
-      (let* ((painter ::Painter (the-painter))
-	     (w ::real (painter:space-width)))
+      (let* ((w ::real (painter:space-width)))
 	(transform:translate! w 0)
 	#t)))
   
@@ -1711,8 +1696,7 @@
 				  (the-editor (this))
 				  (the-selection-anchor
 				   selection-anchor))
-      (let* ((painter ::Painter (the-painter))
-	     (w ::real (painter:space-width)))
+      (let* ((w ::real (painter:space-width)))
 	(transform:translate! (- w) 0))
       #t))
 
@@ -1762,8 +1746,7 @@
       #t))
 
   (define (can-split-beside? line::Area)::boolean
-    (let* ((painter ::Painter (the-painter))
-	   (vicinity ::real
+    (let* ((vicinity ::real
 		     (painter:line-simplification-resolution))
 	   (3vicinity (* vicinity 3)))
       (and (is 0 < line:left <= line:right < (the-pane-width))
@@ -1786,8 +1769,7 @@
 	(this)))
   
   (define (can-split-below? line::Area)::boolean
-    (let* ((painter ::Painter (the-painter))
-	   (vicinity ::real
+    (let* ((vicinity ::real
 		     (painter:line-simplification-resolution))
 	   (3vicinity (* vicinity 3)))
       (and (is 0 < line:top <= line:bottom < (the-pane-height))
@@ -1831,8 +1813,7 @@
   #!null)
 
 (define (adjust-view!)
-  (let* ((painter ::Painter (the-painter))
-	 (editor ::Editor (the-editor))
+  (let* ((editor ::Editor (the-editor))
 	 (cursor ::Position (painter:cursor-position))
 	 (cursor-height ::real (painter:cursor-height))
 	 (editor-left ::real (the-pane-left))

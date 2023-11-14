@@ -19,6 +19,7 @@
  (language assert)
  (language infix)
  (language match)
+ (language while)
  (utils functions)
  (utils print)
  (utils hash-table)
@@ -152,10 +153,10 @@
 (define verbose ::boolean #false)
 
 (define (snapshot)::String
-  (parameterize ((the-painter (TextPainter)))
+  (with ((painter (TextPainter)))
     (reset! extent-cached?)
     (draw-document! (the-document))
-    (let ((result ::String (invoke (the-painter) 'toString)))
+    (let ((result ::String (painter:toString)))
       (when verbose
 	(display result))
       ;;(display (history (the-document)))

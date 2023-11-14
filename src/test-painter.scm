@@ -5,6 +5,7 @@
   (language define-interface)
   (language define-type)
   (language define-object)
+  (language while)
   (utils conversions)
   (editor interfaces elements)
   (editor interfaces painting)
@@ -84,21 +85,20 @@
 (define (grasped program-text::string)::String
   (let ((document (call-with-input-string program-text
 					  parse-document)))
-    (parameterize ((the-painter (TextPainter))
-		   (the-document document))
+    (with ((painter (TextPainter)))
+      (parameterize ((the-document document))
       (draw-document! document)
-      (invoke (the-painter) 'toString))))
+      (painter:toString)))))
 
-(set! (the-painter) (TextPainter))
+(set! painter (TextPainter))
 
 (e.g.
-(let ((painter ::TextPainter (TextPainter)))
-  (parameterize ((the-painter painter))
+(with ((painter ::TextPainter (TextPainter)))
     (painter:draw-line! 0 0 30 3)
     (painter:draw-line! 3 2 30 15)
     (painter:draw-line! 32 15 34 0)
     (painter:draw-line! 5 15 34 7)
-    (painter:toString))) ===> "
+    (painter:toString)) ===> "
 ▀▀▀▄▄▄▄▖                          ▌
        ▝▀▀▀▀▀▄▄▄▄▖                ▌
    ▀▄            ▝▀▀▀▀▀▄▄▄▄▖     ▐ 

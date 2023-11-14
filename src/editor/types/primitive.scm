@@ -99,18 +99,16 @@
 
   (define (draw! context::Cursor)
     ::void
-    (let ((painter ::Painter (the-painter)))
-      (painter:draw-atom!
+    (painter:draw-atom!
        name
        ;;(string-append name "/" (number->string (id (this))))
-       context)))
+       context))
 
   (define (extent)::Extent
-    (let ((painter ::Painter (the-painter)))
-      (painter:atom-extent
-       name
-       ;;(string-append name "/" (number->string (id (this))))
-       )))
+    (painter:atom-extent
+     name
+     ;;(string-append name "/" (number->string (id (this))))
+     ))
 
   (define (part-at index::Index)::Indexable*
     (this))
@@ -169,8 +167,7 @@
 
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
     (otherwise #!null
-      (let ((inner (extent))
-	    (painter (the-painter)))
+      (let ((inner (extent)))
 	(and (is 0 <= x < inner:width)
 	     (is 0 <= y < inner:height)
 	     (recons (painter:atom-character-index-under x y
@@ -222,7 +219,6 @@
   (define (draw! context::Cursor)
     ::void
     (let* ((inner (sequence-extent (this)))
-	   (painter (the-painter))
 	   (paren-width (painter:paren-width)))
       (painter:draw-box! (+ inner:width (* 2 paren-width))
 			 inner:height
@@ -233,7 +229,6 @@
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
     (otherwise #!null
       (let* ((inner (sequence-extent (this)))
-	     (painter ::Painter (the-painter))
 	     (paren-width (painter:paren-width)))
 
       (and (is 0 <= y < inner:height)
@@ -249,8 +244,7 @@
 
   (define (extent)::Extent
     (let ((extent ::Extent (sequence-extent
-			    (this)))
-	  (painter ::Painter (the-painter)))
+			    (this))))
       (Extent width: (+ extent:width
 			(* 2 (painter:paren-width)))
 	      height: extent:height)))
@@ -349,10 +343,9 @@
 
 (define (empty-space-extent space::Space)
   ::Extent
-  (let ((painter ::Painter (the-painter)))
-    (Extent width: (apply max space:fragments)
-	    height: (* (painter:min-box-height)
-		       (length space:fragments)))))
+  (Extent width: (apply max space:fragments)
+	  height: (* (painter:min-box-height)
+		     (length space:fragments))))
 
 (define/kw (traverse sequence::list
 		     doing: action ::(maps (Element Traversal)
@@ -361,8 +354,7 @@
 		     returning: result ::(maps (Traversal) to: ,a)
 		     := nothing)
   ;; ::,a
-  (let* ((painter (the-painter))
-         (traversal (Traversal
+  (let* ((traversal (Traversal
 		     max-line-height:
 		     (painter:min-line-height))))
 
@@ -420,8 +412,7 @@
 			#!key (context::Cursor (recons 1 '())))
   ::void
   (let-values (((selection-start selection-end) (the-selection)))
-    (let ((painter ::Painter (the-painter)))
-      (traverse
+    (traverse
        elems
        doing:
        (lambda (item::Element traversal::Traversal)
@@ -439,29 +430,27 @@
 		 (painter:enter-selection-drawing-mode!))
 	       (item:draw! context)
 	       (when (equal? context selection-end)
-		 (painter:exit-selection-drawing-mode!)))))))))
-
+		 (painter:exit-selection-drawing-mode!))))))))
 
 (define (draw! object #!key
 	      (context::Cursor '()))
   ::void
-  (let ((painter (the-painter)))
-    (cond ((instance? object Element)
-	   (let ((element ::Element object))
-	     (element:draw! context)))
+  (cond ((instance? object Element)
+	 (let ((element ::Element object))
+	   (element:draw! context)))
 
-	  ((null? object)
-	   (values))
+	((null? object)
+	 (values))
 
-	  (else
-	   (with-translation (0 1)
-	       (painter:draw-string!
-		(with-output-to-string
-		  (lambda () (write object)))
-		(otherwise #!null
-		  (and (pair? (the-cursor))
-		       (equal? (cdr (the-cursor)) context)
-		       (car (the-cursor))))))))))
+	(else
+	 (with-translation (0 1)
+	   (painter:draw-string!
+	    (with-output-to-string
+	      (lambda () (write object)))
+	    (otherwise #!null
+	      (and (pair? (the-cursor))
+		   (equal? (cdr (the-cursor)) context)
+		   (car (the-cursor)))))))))
 
 (define (cursor-under left::real top::real
 		      #!optional
@@ -491,7 +480,6 @@
   (let* ((last-space ::Space (pre-head-space box))
 	 (previous-left ::real 0)
 	 (next ::Traversal (Traversal))
-	 (painter ::Painter (the-painter))
 	 (space-width ::real (painter:space-width)))
     (define (breaking? element)::boolean
       (or (integer? element)
@@ -574,8 +562,7 @@
 			 (elems::list (head (the-document))))
   ::Extent
   (if (empty? elems)
-      (let* ((painter ::Painter (the-painter))
-	     (traversal ::Traversal (Traversal
+      (let* ((traversal ::Traversal (Traversal
 				     max-line-height:
 				     (painter:min-box-height)))
 	     (empty ::EmptyListProxy elems))

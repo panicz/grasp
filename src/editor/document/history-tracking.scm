@@ -143,8 +143,7 @@
 		 width::real
 		 height::real
 		 ending::LineEnding)::void
-  (let* ((painter ::Painter (the-painter))
-	 (min-line-height ::real (painter:min-line-height))
+  (let* ((min-line-height ::real (painter:min-line-height))
 	 (space-width ::real (painter:space-width))
 	 (paren-width ::real (painter:paren-width))
 	 (last-space ::Space (last-space box))

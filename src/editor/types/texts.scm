@@ -22,14 +22,12 @@
 (define-object (Text)::TextualTile
 
   (define (draw! context::Cursor)
-    (let ((painter ::Painter (the-painter)))
-      (painter:draw-quoted-text!
-       (this)
-       context)))
+    (painter:draw-quoted-text!
+     (this)
+     context))
 
   (define (extent)::Extent
-    (let ((painter ::Painter (the-painter)))
-      (painter:quoted-text-extent (this))))
+    (painter:quoted-text-extent (this)))
 
   (define (part-at index::Index)::Indexable*
     (this))
@@ -66,8 +64,7 @@
 
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
     (otherwise #!null
-      (let ((inner (extent))
-	    (painter (the-painter)))
+      (let ((inner (extent)))
 	(and (is 0 <= x < inner:width)
 	     (is 0 <= y < inner:height)
 	     (hash-cons (painter:quoted-text-character-index-under
