@@ -1,3 +1,55 @@
+* 13.11.2023
+
+wydaje sie, ze zmiany z properties na membery nie przyniosly
+duzej poprawy wydajnosci - choc zapewne nalezaloby to zmierzyc
+profilerem. (ale w sumie wydaje sie ze jest nieco szybciej)
+
+byc moze tez jakies inne propertiesy psuja nam
+charakterystyki wydajnosciowe, i moze np. extent powinnismy rowniez
+cache'owac w memberach
+
+inny pomysl na optymalizacje jest wszak taki, zeby:
+1. edytor pamietal pierwsze wyrazenie, ktore jest widoczne, i to
+   od niego rozpoczynal rysowanie
+2. albo nawet prosciej: jezeli dany fragment dokumentu nie jest
+   widoczny, to po prostu robmy return z funkcji rysujacej
+
+zacznijmy od tego drugiego. moglubysmy tez robic tak, zeby
+inwalidacja cache'u dotyczyla tylko elementow widocznych
+na ekranie
+
+no to mamy tak:
+
+(0,0),         (szerokosc, 0)
+
+(0, wysokosc), (szerokosc, wysokosc)
+
+i teraz tak:
+- dokonujemy transformacji wspolrzednych podczas rysowania
+ (wspolrzedna bazowa i z dodanym extentem)
+- jezeli wszystkie punkty sa:
+  - po lewej od 0
+  - po prawej od szerokosc
+  - powyzej 0
+  - ponizej wysokosc
+
+    to robimy return z draw-sequence
+
+no dobra, to mozna zrobic, ale najpierw bysmy sie pozbyli
+the-painter
+
+pierwej jednak trzeba owo makro with gdzies umiescic
+
+no dobra, to nie ma the-painter
+
+i to chyba wcale duzo nie pomoglo
+
+(co mogloby pomoc to port do chez scheme)
+
+natomiast moze byc tak, ze nierysowanie niewidocznych
+rzeczy pomoze?
+
+
 * 10.11.2023
 
 #+BEGIN_SRC scheme
@@ -93,13 +145,6 @@ chodzi o to, ze:
 - zawsze rozpoczynamy od pierwszej sciezki na liscie (bo ona jest
   naszym zdaniem najkorzystniejsza)
 - 
-
-#+BEGIN_SRC scheme
-#+END_SRC
-#+BEGIN_SRC scheme
-#+END_SRC
-#+BEGIN_SRC scheme
-#+END_SRC
 
 * 09.11.2023
 
