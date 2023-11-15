@@ -1,3 +1,68 @@
+* 14.11.2023
+
+teraz plan jest skromny, taki, zeby nie rysowac niewidocznych
+elementow, tzn:
+- jezeli dany element nie jest widoczny, to go przeskakujemy
+- jezeli dany element jest na takuej wysokosci, ze juz wiecej
+  nie bedzie widoczny, to go w ogole przeskakujemy
+
+no ale dobra, teraz mamy taki problem, zeby ustalic,
+czy dany prostokat znajduje sie na ekranie, co wiaze sie
+z takim problemem, zeby w ogole ustalic, jakie ow prostokat
+ma wspolrzedne
+
+i teraz: mamy 3 sposoby okreslania wspolrzednych:
+- na ekranie
+- w dokumencie
+- w edytorze
+
+aktualnie zapisujemy sobie wspolrzedne ekranowe, ale
+chyba najlepiej byloby zapisywac wspolrzedne dokumentu
+i je przeksztalcac do wspolrzednych edytora i ekranu
+
+na razie to jest tak zapisywane (w draw-sequence!):
+
+#+BEGIN_SRC scheme
+  (let ((position ::Position (screen-position item)))
+    (set! position:left
+	  (painter:current-translation-left))
+    (set! position:top
+	  (painter:current-translation-top)))
+#+END_SRC
+
+
+oki, no to zalozmy ze wymyslimy sposob jak wyliczac wspolrzedne
+dokumentu (zapewne poprzez rekurencyjne odwolywanie sie
+do traversali)
+
+to postawi przed nami dwa pytania:
+1. co z dotychczasowym kodem?
+2. jak tego uzyc do implementacji nowej funkcjonalnosci?
+
+No to tak: screen-position jest uzywane w
+(editor input pane) przez Resize oraz w okolicach DragAround,
+czyli w sumie to zasadniczo tam, gdzie teraz mamy bugi
+
+Tymczasem mamy taka idee, zeby zamiast tego miec
+document-position. Do tego dochodzi jeszcze taka kwestia,
+ze fajnie by bylo, zeby tych pozycji nie trzymac
+w haszu, tylko bezposrednio w obiektach (podobnie
+jak extentow), no ale oczywiscie nie wszystko na raz
+
+no dobra, czyli wiemy na razie, ze:
+- chcemy sie przelaczyc ze screen-position na document-position
+- musimy mapowac wspolzedne ekranowe dotyku w dokument
+
+i w takim razie renderowanie musi wygladac tak, ze:
+- bierzemy sobie wspolrzedne dokumentu (wyliczamy je z traverse'a
+  podczas renderowania)
+- musimy uwzglednic dwie rzeczy: wspolrzedne biezacego
+  edytora (wzgledem splitu) oraz aktualna transformacje
+- na tej podstawie okreslamy, czy prostokat biezacego
+  elementu znajduje sie w swietle ekranu
+
+
+
 * 13.11.2023
 
 wydaje sie, ze zmiany z properties na membery nie przyniosly
@@ -5,8 +70,8 @@ duzej poprawy wydajnosci - choc zapewne nalezaloby to zmierzyc
 profilerem. (ale w sumie wydaje sie ze jest nieco szybciej)
 
 byc moze tez jakies inne propertiesy psuja nam
-charakterystyki wydajnosciowe, i moze np. extent powinnismy rowniez
-cache'owac w memberach
+charakterystyki wydajnosciowe, i moze np. extent powinnismy
+rowniez cache'owac w memberach
 
 inny pomysl na optymalizacje jest wszak taki, zeby:
 1. edytor pamietal pierwsze wyrazenie, ktore jest widoczne, i to
