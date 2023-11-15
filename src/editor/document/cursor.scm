@@ -21,16 +21,10 @@
 ;; See the `fundamental.scm` file for a detailed explanation
 ;; how cursors are represented
 
-
 (define (part-at index::Index object)::Indexable*
   (cond ((Indexable? object)
 	 (let ((x :: Indexable object))
 	   (x:part-at index)))
-
-	#;((pair? object)
-	 (if (or (eq? index #\[) (eq? index #\]))
-	     object
-	     (cell-index object (as int index))))
 	
 	(else
 	 object
@@ -165,15 +159,6 @@
 	((string? object)
 	 (min (last-index object) (+ index 1)))
 
-	#;((or (pair? object) (null? object))
-	 (match index
-	   (#\[ 0)
-	   (#\] #\])
-	   (,@(is _ < (last-cell-index object))
-	    (+ index 1))
-	   (_
-	    #\])))
-	
 	(else
 	 (error "Don't know how to obtain next index to "
 		index" in "object))))
@@ -185,13 +170,6 @@
 
 	((string? object)
 	 (max 0 (- index 1)))
-	
-	#;((or (pair? object) (null? object))
-	 (match index
-	   (0 #\[)
-	   (#\] (last-cell-index object))
-	   (#\[ #\[)
-	   (_ (- index 1))))
 	
 	(else
 	 (error "Don't know how to obtain previous index to "

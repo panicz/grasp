@@ -532,59 +532,6 @@
     (_
      (Space fragments: '(0)))))
 
-#|
-
-;; In the following property definitions, we'd like
-;; the input to be of type "cons", rather than "pair",
-;; but at this point it isn't yet defined.
-
-;; a cell is "dotted?" naturally when it is
-;; a pair whose "tail" isn't a list (so for example,
-;; if it's a symbol or a number).
-
-;; But every cell can be stipulated to be "dotted?".
-;; However, it is an error (currently unhandled)
-;; to stipulate a cell whose tail isn't a list
-;; to be not dotted, i.e. it is an error to invoke
-;;
-;; (set! (dotted? pair) #f)
-;;
-;; Instead, (unset! (dotted? pair)) should be used.
-
-(define-property (dotted? cell::pair)::boolean
-  (not (or (empty? (cdr cell))
-	   (pair? (cdr cell)))))
-
-;; `pre-head-space` appears before the first element
-;; of a list, after the opening paren (therefore
-;; it should be considered sparse).
-
-(define-property+ (pre-head-space cell::pair)::Space
-  (Space fragments: (cons 0 '())))
-
-;; `post-head-space` appears after each element
-;; in a list (and should therefore be considered
-;; dense: expect as many `post-head-space`s as there
-;; are cells visible in the document).
-
-(define-property+ (post-head-space cell::pair)::Space
-  (if (and (not (dotted? cell))
-	   (empty? (cdr cell)))
-      (Space fragments: (cons 0 '()))
-      (Space fragments: (cons 1 '()))))
-
-;; `pre-` and `post-tail-space` only appear
-;; in the pairs that are `dotted?` (so they
-;; can both be considered sparse)
-
-(define-property+ (pre-tail-space cell::pair)::Space
-  (Space fragments: (cons 1 '())))
-
-(define-property+ (post-tail-space cell::pair)::Space
-  (Space fragments: (cons 0 '())))
-
-|#
-
 (define-object (HeadTailSeparator)::Indexable
   (define (part-at index::Index)::Indexable* (this))
   (define (first-index)::Index #\|)

@@ -10,5 +10,6 @@ else
 java -jar libs/kawa.jar $FLAGS -f src/test-parser.scm
 java -jar libs/kawa.jar $FLAGS -f src/test-painter.scm
 java -jar libs/kawa.jar $FLAGS -f src/test-editor-operations.scm
+java -jar libs/kawa.jar $FLAGS -f src/test-document-operations.scm
 java -jar libs/kawa.jar $FLAGS -f src/test-stepper.scm
 fi
