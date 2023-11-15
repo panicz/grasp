@@ -30,8 +30,9 @@
 	    value))))
 
 (define-syntax-rule (unset! (mapping object))
-  (let ((table ::Map (procedure-property mapping 'table)))
-    (hash-remove! table object)))
+  (let ((table (procedure-property mapping 'table)))
+    (when (Map? table)
+      (hash-remove! table object))))
 
 (define-syntax-rule (update! (mapping object) expression)
   (let ((value expression))

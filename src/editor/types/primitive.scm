@@ -303,8 +303,119 @@
 
   (define (clone)::Element
     (cons car cdr))
+
+  (define pre-head-space ::Space (Space fragments: (pair 0 '())))
+
+  (define dotted? ::boolean
+    (not (or (empty? cdr)
+	     (pair? cdr))))
+
+  (define post-head-space ::Space
+    (if (and (not dotted?)
+	     (empty? cdr))
+	(Space fragments: (pair 0 '()))
+	(Space fragments: (pair 1 '()))))
+
+  (define pre-tail-space ::Space
+    (Space fragments: (pair 1 '())))
+
+  (define post-tail-space ::Space
+    (Space fragments: (pair 0 '())))
   
   (pair car cdr))
+
+(define (cell-index cell::pair index::int)::Indexable*
+  (assert (is index >= 0))
+  (cond ((= index 0)
+         (pre-head-space cell))
+        ((= index 1)
+	 (car cell))
+        ((= index 2)
+         (post-head-space cell))
+        ((dotted? cell)
+         (cond ((= index 3)
+                (head-tail-separator cell))
+               ((= index 4)
+                (pre-tail-space cell))
+               ((= index 5)
+		(cdr cell))
+               ((= index 6)
+                (post-tail-space cell))))
+        (else
+         (cell-index (cdr cell) (- index 2)))))
+
+(define (set-cell-index! cell::pair index::int value)
+  (assert (is index >= 0))
+  (cond ((= index 0)
+         (set! (pre-head-space cell) value))
+        ((= index 1)
+	 (if (is value empty?)
+	     (set! (car cell) '())
+	     (set! (car cell) value)))
+        ((= index 2)
+         (set! (post-head-space cell) value))
+        ((dotted? cell)
+         (cond ((= index 3)
+                (set! (head-tail-separator cell) value))
+               ((= index 4)
+                (set! (pre-tail-space cell) value))
+               ((= index 5)
+		(if (is value instance? EmptyListProxy)
+		    (set! (car cell) '())
+		    (set! (cdr cell) value)))
+               ((= index 6)
+                (set! (post-tail-space cell) value))))
+        (else
+         (set-cell-index! (cdr cell) (- index 2) value))))
+
+(set! (setter cell-index) set-cell-index!)
+
+(define (last-cell-index cell::list
+			 #!optional
+			 (initial::int 2))
+  ::int
+  (cond
+   ((null? cell) 0)
+   
+   ((dotted? cell)
+    (+ initial 4))
+   ((pair? (tail cell))
+    (last-cell-index (tail cell)
+		     (+ initial 2)))
+   
+   (else
+    initial)))
+
+(define-syntax-rule (define-accessor (name object::type)::result)
+  (define-early-constant name
+    (let ((getter (lambda (object::type)
+		    ::result
+		    (slot-ref object 'name))))
+      (set! (setter getter)
+	    (lambda (object::type value::result)
+	      ::void
+	      (slot-set! object 'name value)))
+      getter)))
+
+(define-accessor (dotted? cell::cons)::boolean)
+(define-accessor (pre-head-space cell::cons)::Space)
+(define-accessor (post-head-space cell::cons)::Space)
+(define-accessor (pre-tail-space cell::cons)::Space)
+(define-accessor (post-tail-space cell::cons)::Space)
+
+(define (last-space sequence::pair)::Space
+  (let ((cell ::pair (last-pair sequence)))
+    (if (dotted? cell)
+	(post-tail-space cell)
+	(post-head-space cell))))
+
+(define (should-the-bar-be-horizontal? dotted-pair)
+  ::boolean
+  (assert (dotted? dotted-pair))
+  (and-let* (((Space fragments: `(,_ ,_ . ,_))
+	      (post-head-space dotted-pair))
+	     ((Space fragments: `(,_ ,_ . ,_))
+	      (pre-tail-space dotted-pair)))))
 
 (define-object (immutable-cons car cdr)::Tile
 
@@ -576,3 +687,109 @@
 			  height: (+ traversal:top
 				     traversal:max-line-height))))))
 
+(define cell-display-properties
+  (list
+   dotted?
+   pre-head-space
+   post-head-space
+   pre-tail-space
+   post-tail-space))
+
+(define (copy-properties properties original cell)
+  (for property in properties
+    (set! (property cell) (property original)))
+  cell)
+
+(define (copy-properties* properties original cell)
+  (copy-properties properties original cell)
+  (when (and (pair? (cdr original))
+	     (pair? (cdr cell)))
+    (copy-properties* properties (cdr original) (cdr cell))))
+
+(define (tail-space-to-head original cell)
+  (set! (pre-head-space cell)
+	   (pre-tail-space original))
+  (set! (post-head-space cell)
+	   (post-tail-space original))
+  cell)
+
+(define (head-space-to-tail original cell)
+  (set! (pre-tail-space cell)
+	   (pre-head-space original))
+  (set! (post-tail-space cell)
+	   (post-head-space original))
+  cell)
+
+(define (tree-map/preserve properties f l)
+  (if (pair? l)
+      (copy-properties
+       properties
+       l
+       (cons
+	(tree-map/preserve properties f (car l))
+	(tree-map/preserve properties f (cdr l))))
+      (f l)))
+
+(define (print-space space::Space
+		     #!optional (port (current-output-port)))
+  #;(write space:fragments port)
+  (space:print port))
+
+(define (show-empty-list space)::void
+  (write-char #\()
+  (print-space space)
+  (write-char #\)))
+
+(define (show-dotted-tail p::pair)::void
+  (write-char #\.)
+  (print-space (pre-tail-space p))
+  (show (cdr p))
+  (print-space (post-tail-space p)))
+
+(define (show-pair p::pair)::void
+  (show (car p))
+  (print-space (post-head-space p))
+  (cond ((dotted? p)
+	 (show-dotted-tail p))
+	((pair? (cdr p))
+	 (show-pair (cdr p)))))
+
+(define (show p)::void
+  (cond
+   ((pair? p)
+    (write-char #\()
+    (print-space (pre-head-space p))
+    (show-pair p)
+    (write-char #\)))
+
+   ((EmptyListProxy? p)
+    (invoke (as EmptyListProxy p) 'print (current-output-port)))
+
+   ((string? p)
+    (write-char #\")
+    (for c in p
+      (when (or (eq? c #\")
+		(eq? c #\\))
+	(write-char #\\))
+      (write-char c))
+    (write-char #\"))
+   
+   (else
+    (write p))))
+
+(define (show-document d::pair)
+  (cond
+   ((empty? (car d))
+    (let ((proxy (as EmptyListProxy (car d))))
+      (proxy:space:print (current-output-port))))
+   ((pair? (car d))
+    (print-space (pre-head-space (car d)))
+    (show-pair (car d)))
+
+   (else
+    (display (car d)))))
+
+(define (show->string p)::string
+  (with-output-to-string
+    (lambda ()
+      (show p))))
