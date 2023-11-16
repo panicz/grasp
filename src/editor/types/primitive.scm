@@ -458,6 +458,67 @@
 	  height: (* (painter:min-box-height)
 		     (length space:fragments))))
 
+(define-syntax traverse*
+  (syntax-rules (doing: returning:)
+    ((_ sequence doing: action returning: result)
+     (let* ((traversal (Traversal
+			max-line-height:
+			(painter:min-line-height))))
+
+       (parameterize ((the-traversal traversal))
+
+	 (define (step-over-dotted-tail! pair::pair)::void
+	   (let* ((horizontal? (should-the-bar-be-horizontal? pair))
+		  (bar ::Element (if horizontal?
+				     (horizontal-bar
+				      traversal:max-width)
+				     (vertical-bar
+				      traversal:max-line-height)))
+		  (pre-tail ::Space (if horizontal?
+					(skip-first-line
+					 (pre-tail-space pair))
+					(pre-tail-space pair)))
+		  (item ::Element (tail pair))
+		  (post-tail ::Space (post-tail-space pair)))
+             (action bar traversal)
+             (traversal:advance! bar)
+	     (when horizontal?
+	       (set! traversal:left 0))
+	     (action pre-tail traversal)
+             (traversal:advance! pre-tail)
+             (action item traversal)
+             (traversal:advance! item)
+             (action post-tail traversal)
+             (traversal:advance! post-tail)))
+
+	 (define (step! pair::pair)
+	   (let ((item ::Element (head pair))
+		 (post-head ::Space (post-head-space pair)))
+             (action item traversal)
+             (traversal:advance! item)
+             (action post-head traversal)
+             (traversal:advance! post-head)
+             (cond ((dotted? pair)
+		    (step-over-dotted-tail! pair)
+		    (result traversal))
+		   ((pair? (tail pair))
+		    (step! (tail pair)))
+		   (else
+		    (result traversal)))))
+
+	 (if (pair? sequence)
+	     (let ((pre-head ::Space (pre-head-space sequence)))
+               (action pre-head traversal)
+               (traversal:advance! pre-head)
+               (step! sequence))
+	     (result traversal))
+	 )))
+    ((_ sequence doing: action)
+     (traverse* sequence doing: action returning: nothing))
+
+    ((_ sequence returning: result)
+     (traverse* sequence doing: nothing returning: result))))
+
 (define/kw (traverse sequence::list
 		     doing: action ::(maps (Element Traversal)
 					   to: void)
@@ -465,83 +526,30 @@
 		     returning: result ::(maps (Traversal) to: ,a)
 		     := nothing)
   ;; ::,a
-  (let* ((traversal (Traversal
-		     max-line-height:
-		     (painter:min-line-height))))
-
-    (parameterize ((the-traversal traversal))
-
-      (define (step-over-dotted-tail! pair::pair)::void
-	(let* ((horizontal? (should-the-bar-be-horizontal? pair))
-               (bar ::Element (if horizontal?
-				  (horizontal-bar
-				   traversal:max-width)
-				  (vertical-bar
-				   traversal:max-line-height)))
-               (pre-tail ::Space (if horizontal?
-				     (skip-first-line
-				      (pre-tail-space pair))
-				     (pre-tail-space pair)))
-               (item ::Element (tail pair))
-	       (post-tail ::Space (post-tail-space pair)))
-          (action bar traversal)
-          (traversal:advance! bar)
-	  (when horizontal?
-	    (set! traversal:left 0))
-	  (action pre-tail traversal)
-          (traversal:advance! pre-tail)
-          (action item traversal)
-          (traversal:advance! item)
-          (action post-tail traversal)
-          (traversal:advance! post-tail)))
-
-      (define (step! pair::pair)
-	(let ((item ::Element (head pair))
-              (post-head ::Space (post-head-space pair)))
-          (action item traversal)
-          (traversal:advance! item)
-          (action post-head traversal)
-          (traversal:advance! post-head)
-          (cond ((dotted? pair)
-		 (step-over-dotted-tail! pair)
-		 (result traversal))
-		((pair? (tail pair))
-		 (step! (tail pair)))
-		(else
-		 (result traversal)))))
-
-      (if (pair? sequence)
-	  (let ((pre-head ::Space (pre-head-space sequence)))
-            (action pre-head traversal)
-            (traversal:advance! pre-head)
-            (step! sequence))
-	  (result traversal))
-      )))
+  (traverse* sequence doing: action returning: result))
 
 (define (draw-sequence! #!optional
 			(elems::list (head (the-document)))
 			#!key (context::Cursor (recons 1 '())))
   ::void
   (let-values (((selection-start selection-end) (the-selection)))
-    (traverse
-       elems
-       doing:
-       (lambda (item::Element traversal::Traversal)
-	 (with-translation (traversal:left
-			    traversal:top)
-	     (unless (is item instance? Space)
-	       (let ((position ::Position (screen-position item)))
-		 (set! position:left
-		       (painter:current-translation-left))
-		 (set! position:top
-		       (painter:current-translation-top))))
-	     (let ((context (recons traversal:index
-				    context)))
-	       (when (equal? context selection-start)
-		 (painter:enter-selection-drawing-mode!))
-	       (item:draw! context)
-	       (when (equal? context selection-end)
-		 (painter:exit-selection-drawing-mode!))))))))
+    (define-syntax-rule (action item #|::Element|# traversal #|::Traversal|#)
+      (with-translation (traversal:left
+			 traversal:top)
+	(unless (is item instance? Space)
+	  (let ((position ::Position (screen-position item)))
+	    (set! position:left
+		  (painter:current-translation-left))
+	    (set! position:top
+		  (painter:current-translation-top))))
+	(let ((context (recons traversal:index
+			       context)))
+	  (when (equal? context selection-start)
+	    (painter:enter-selection-drawing-mode!))
+	  (item:draw! context)
+	  (when (equal? context selection-end)
+	    (painter:exit-selection-drawing-mode!)))))    
+    (traverse* elems doing: action)))
 
 (define (draw! object #!key
 	      (context::Cursor '()))
@@ -569,17 +577,15 @@
 		      #!key (context::Cursor (recons 1 '())))
   ::Cursor
   (escape-with return
-    (traverse
-     elems
-     doing:
-     (lambda (item::Element t::Traversal)
-       (and-let* ((cursor (item:cursor-under*
-			   (- left t:left)
-			   (- top t:top)
-			   (recons t:index context))))
-	 (return cursor)))
-     returning: (lambda (t::Traversal)
-		  context))))
+    (define (action item ::Element t::Traversal)
+      (and-let* ((cursor (item:cursor-under*
+			  (- left t:left)
+			  (- top t:top)
+			  (recons t:index context))))
+	(return cursor)))
+    (define (result t ::Traversal) context)
+    
+    (traverse elems doing: action returning: result)))
 
 (define-type (LineEnding reach: real
 			 space: Space
@@ -606,10 +612,8 @@
 	   extent:width))))
 
     (escape-with return
-      (traverse
-       box
-       doing:
-       (lambda (item::Element current::Traversal)
+
+      (define-syntax-rule (action item #|::Element|# current #|::Traversal|#)
 	 (and-let* ((space ::Space item))
 	   (set! last-space space)
 	   (next:assign current)
@@ -641,11 +645,13 @@
 	       ('()
 		(values))))
 	   (set! previous-left current:left)))
-       returning:
-       (lambda (t::Traversal)
-	 (LineEnding reach: previous-left
-		     space: last-space
-		     index: (last-space:last-index)))))))
+
+      (define-syntax-rule (result t #|::Traversal|#)
+	(LineEnding reach: previous-left
+		    space: last-space
+		    index: (last-space:last-index)))
+      
+      (traverse* box doing: action returning: result))))
 
 #|
 (define (cursor-above cursor::Cursor
@@ -672,20 +678,21 @@
 (define (sequence-extent #!optional
 			 (elems::list (head (the-document))))
   ::Extent
-  (if (empty? elems)
-      (let* ((traversal ::Traversal (Traversal
-				     max-line-height:
-				     (painter:min-box-height)))
-	     (empty ::EmptyListProxy elems))
-	(empty:space:expand! traversal)
-	(Extent width: traversal:max-width
-		height: (+ traversal:top traversal:max-line-height)))
-      (traverse elems
-		returning:
-		(lambda (traversal::Traversal)
-		  (Extent width: traversal:max-width
-			  height: (+ traversal:top
-				     traversal:max-line-height))))))
+  (cond
+   ((empty? elems)
+    (let* ((traversal ::Traversal (Traversal
+				   max-line-height:
+				   (painter:min-box-height)))
+	   (empty ::EmptyListProxy elems))
+      (empty:space:expand! traversal)
+      (Extent width: traversal:max-width
+	      height: (+ traversal:top traversal:max-line-height))))
+   (else
+    (define-syntax-rule (result traversal #|::Traversal|#)
+		(Extent width: traversal:max-width
+			height: (+ traversal:top
+				   traversal:max-line-height)))
+    (traverse* elems returning: result))))
 
 (define cell-display-properties
   (list
