@@ -1,3 +1,25 @@
+* 15.11.2023
+
+powstal nowy pomysl na optymalizacje:
+zrobic makro traverse/inline, ktore by mialo taka sama
+definicje, jak traverse, i tego makra uzyc do zdefiniowania
+funkcji aktualnie definiowanych za pomoca traverse.
+
+Dodatkowo mozna sprobowac zrobic cos, zeby lambdy byly
+inline'owane w ciele twgo makra
+
+bo jak to zrobimy, i jak zoptymalizujemy wyswietlanie,
+to bysmy sie zajeli Usability, czyli tym, zeby:
+- ograniczyc scrollowanie i usunac rotacje
+- zrobic poprawna nawigacje kursorem
+- naprawic edycje dotykowa
+
+
+no dobra, nie wydaje sie, zeby inline'owanie makra duzo
+zmienilo (aczkolwiek warto podejrzec wynikowe asemblery)
+
+mozemy jeszcze sprobowac hardware'owa akceleracje
+
 * 14.11.2023
 
 teraz plan jest skromny, taki, zeby nie rysowac niewidocznych
@@ -60,8 +82,6 @@ i w takim razie renderowanie musi wygladac tak, ze:
   edytora (wzgledem splitu) oraz aktualna transformacje
 - na tej podstawie okreslamy, czy prostokat biezacego
   elementu znajduje sie w swietle ekranu
-
-
 
 * 13.11.2023
 
