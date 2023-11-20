@@ -528,28 +528,46 @@
   ;; ::,a
   (traverse* sequence doing: action returning: result))
 
+(define (overlap? A-left ::real A-right ::real B-left ::real B-right ::real)::boolean
+  (and (is A-left <= B-right)
+       (is A-right >= B-left)))
+
 (define (draw-sequence! #!optional
 			(elems::list (head (the-document)))
 			#!key (context::Cursor (recons 1 '())))
   ::void
-  (let-values (((selection-start selection-end) (the-selection)))
-    (define-syntax-rule (action item #|::Element|# traversal #|::Traversal|#)
-      (with-translation (traversal:left
-			 traversal:top)
-	(unless (is item instance? Space)
-	  (let ((position ::Position (screen-position item)))
-	    (set! position:left
-		  (painter:current-translation-left))
-	    (set! position:top
-		  (painter:current-translation-top))))
-	(let ((context (recons traversal:index
-			       context)))
-	  (when (equal? context selection-start)
-	    (painter:enter-selection-drawing-mode!))
-	  (item:draw! context)
-	  (when (equal? context selection-end)
-	    (painter:exit-selection-drawing-mode!)))))    
-    (traverse* elems doing: action)))
+  (escape-with end-drawing
+    (let*-values (((selection-start selection-end) (the-selection))
+		  ((pane-left pane-top) (values (the-pane-left) (the-pane-top)))
+		  ((pane-right pane-bottom) (values (+ pane-left (the-pane-width))
+						    (+ pane-top (the-pane-height)))))
+
+      (define-syntax-rule (action item #|::Element|# traversal #|::Traversal|#)
+	(escape-with skip-element
+	  (with-translation (traversal:left
+			     traversal:top)
+	    (unless (is item instance? Space)
+	      (let* ((position ::Position (screen-position item))
+		     (extent ::Extent (extent+ item)))
+		(set! position:left
+		      (painter:current-translation-left))
+		(set! position:top
+		      (painter:current-translation-top))
+		(unless (and (overlap? position:left (+ position:left extent:width) pane-left pane-right)
+			     (overlap? position:top (+ position:top extent:height) pane-left pane-right))
+		  #;(when ...
+		  (end-drawing))
+		  (skip-element))
+		))
+	  
+	    (let ((context (recons traversal:index
+				   context)))
+	      (when (equal? context selection-start)
+		(painter:enter-selection-drawing-mode!))
+	      (item:draw! context)
+	      (when (equal? context selection-end)
+		(painter:exit-selection-drawing-mode!))))))
+      (traverse* elems doing: action))))
 
 (define (draw! object #!key
 	      (context::Cursor '()))
@@ -800,3 +818,15 @@
   (with-output-to-string
     (lambda ()
       (show p))))
+
+(define-parameter (the-pane-width)::real
+  0)
+
+(define-parameter (the-pane-height)::real
+  0)
+
+(define-parameter (the-pane-left)::real
+  0)
+
+(define-parameter (the-pane-top)::real
+  0)

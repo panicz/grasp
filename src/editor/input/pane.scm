@@ -1795,20 +1795,6 @@
 (define-early-constant screen ::Screen
   (Screen))
 
-(define-parameter (the-pane-width)::real
-  (let ((screen ::Extent (screen:size)))
-    screen:width))
-
-(define-parameter (the-pane-height)::real
-  (let ((screen ::Extent (screen:size)))
-    screen:height))
-
-(define-parameter (the-pane-left)::real
-  0)
-
-(define-parameter (the-pane-top)::real
-  0)
-
 (define-parameter (the-editor)::Editor
   #!null)
 
