@@ -1,3 +1,16 @@
+* 17.11.2023 (komputer)
+
+mamy takie oto problemy:
+1. draw-sequence! zapamietuje "screen-position" (a nie "document-position")
+2. to mogloby zadzialac od reki, gdybysmy mieli dostepne wartosci "the-pane-left"
+oraz "the-pane-top"
+3. ale modul (editor types primitive) nic nie wie o parametrach
+the-pane-width i the-pane-height, ktore sa zdefiniowane w (editor input pane)
+dla ktorego (editor types primitve) jest zaleznoscia
+
+Byc moze moglibysmy przeniesc definicje (the-pane-width) i (the-pane-height)
+do (editor types primitive)
+
 * 15.11.2023
 
 powstal nowy pomysl na optymalizacje:
