@@ -538,27 +538,37 @@
   ::void
   (escape-with end-drawing
     (let*-values (((selection-start selection-end) (the-selection))
-		  ((pane-left pane-top) (values (the-pane-left) (the-pane-top)))
-		  ((pane-right pane-bottom) (values (+ pane-left (the-pane-width))
-						    (+ pane-top (the-pane-height)))))
+		  ((pane-left pane-top) (values (the-pane-left)
+						(the-pane-top)))
+		  ((pane-right pane-bottom)
+		   (values (+ pane-left (the-pane-width))
+			   (+ pane-top (the-pane-height)))))
 
-      (define-syntax-rule (action item #|::Element|# traversal #|::Traversal|#)
+      (define-syntax-rule (action item #|::Element|#
+				  traversal #|::Traversal|#)
 	(escape-with skip-element
 	  (with-translation (traversal:left
 			     traversal:top)
 	    (unless (is item instance? Space)
 	      (let* ((position ::Position (screen-position item))
-		     (extent ::Extent (extent+ item)))
+		     (e ::Extent (extent+ item)))
 		(set! position:left
 		      (painter:current-translation-left))
 		(set! position:top
 		      (painter:current-translation-top))
-		(unless (and (overlap? position:left (+ position:left extent:width) pane-left pane-right)
-			     (overlap? position:top (+ position:top extent:height) pane-left pane-right))
+		(let-values (((right bottom)
+			      (with-translation (e:width e:height)
+				(values
+				 (painter:current-translation-left)
+				 (painter:current-translation-top)))))
+		(unless (and (overlap? position:left right
+				       pane-left pane-right)
+			     (overlap? position:top bottom
+				       pane-top pane-bottom))
 		  #;(when ...
 		  (end-drawing))
 		  (skip-element))
-		))
+		)))
 	  
 	    (let ((context (recons traversal:index
 				   context)))
