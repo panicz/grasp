@@ -1,3 +1,12 @@
+* 20.11.2023
+
+no dobra, to mamy pare bugow w naszym mechanizmie optymalizujacym
+
+natomiast kluczowe kwestie to:
+- zaczac uzywac GRASP do edycji jego samego
+- wydac wersje 1.0.0 edytora do sklepu Play
+
+  
 * 17.11.2023 (komputer)
 
 mamy takie oto problemy:
@@ -10,6 +19,76 @@ dla ktorego (editor types primitve) jest zaleznoscia
 
 Byc moze moglibysmy przeniesc definicje (the-pane-width) i (the-pane-height)
 do (editor types primitive)
+
+* 17.11.2023
+
+#+BEGIN_SRC scheme
+  (define (overlap? Amin Amax Bmin Bmax)
+    (assert (is Amin <= Amax))
+    (assert (is Bmin <= Bmax))
+    (and (is Amin <= Bmax) (is Amax >= Bmin)))
+
+  ;; 0    1    2    3
+  ;; Amin Amax Bmin Bmax
+  (e.g. (not (overlap? 0 1 2 3)))
+
+  ;; Amin Bmin Amax Bmax
+  (e.g. (overlap? 0 2 1 3))
+
+  ;; Amin Bmin Bmax Amax
+  (e.g. (overlap? 0 3 1 2))
+
+  ;; Bmin Bmax Amin Amax
+  (e.g. (not (overlap? 2 3 0 1)))
+
+  ;; Bmin Amin Bmax Amax
+  (e.g. (overlap? 1 3 0 2))
+
+  ;; Bmin Amin Amax Bmax
+  (e.g. (overlap? 1 2 0 3))
+
+  (define (rectangles-overlap? Axmin ::real Aymin ::real
+			       Axmax ::real Aymax ::real
+
+			       Bxmin ::real Bymin ::real
+			       Bxmax ::real Bymax ::real)
+    ::boolean
+    (and (overlap? Axmin Axmax Bxmin Bxmax)
+	 (overlap? Aymin Aymax Bymin Bymax)
+    ))
+#+END_SRC
+
+
+* 16.11.2023
+
+no to jak?
+
+zalozmy, ze podczas renderowania mamy dostep do
+wspolrzednych wyrazenia wewnatrz dokumentu.
+
+za pomoca transformacji edytora mozemy je
+sobie przetransformowac do wspolrzednych edytora
+
+i to zasadniczo nam wystarczy do tego, zeby
+okreslic, czy dany obiekt jest widoczny
+
+co wiecej mozemy zrobic tak, ze nie bedziemy
+transformowac wspolrzednych dokumentu, tylko
+sobie przetransformujemy wspolrzedne edytora
+do wspolrzednych dokumentu
+
+#+BEGIN_SRC scheme
+  (define (overlap? Axmin ::real Aymin ::real
+		    Axmax ::real Aymax ::real
+
+		    Bxmin ::real Bymin ::real
+		    Bxmax ::real Bymax ::real)
+    ::boolean
+
+   
+    )
+
+#+END_SRC
 
 * 15.11.2023
 
