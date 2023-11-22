@@ -1,3 +1,98 @@
+* 21.11.2023
+
+no i jeszcze zgloszenie na BOBKonf!
+
+no ale zeby to wszystko moglo zadzialac, oto co musimy zrobic:
+- prawidlowa optymalizacja wyswietlania
+  (z uwzglednieniem przeskakiwania elementow w dokumencie
+  oraz wyskakiwania)
+- uzycie wspolrzednych dokumentu i poprawa bugow edycji dotykowej
+- pulling-the-rug splicing
+- ograniczenia na zoomowanie i scrollowanie
+
+zacznuemy dzis od tego, zeby przemianowac map i unmap
+na outside-in oraz inside-out
+
+ok to sie chyba udalo
+
+to teraz bysmy sie zajeli tym, zeby zamiast screen-position
+miec document-position, przy czym screen-position jest uzywany
+w dwoch modulach:
+- (editor types primitive), gdzie jest ustawiany (i od niedawna
+  uzywany do optymalizacji)
+- (editor input pane), gdzie jest uzywany przy Resize i przy
+  Drag&Drop
+
+i teraz tak: nie bedzie niczym zlym, jezeli sprobujemy teraz uporac
+sie z bugiem, bo nawet jesli pozniej zmienimy architekture, wydaje sie,
+ze mozemy osiagnac cel w postaci rozumienia tego, co sie tutaj
+dzieje
+
+no to plan jest mniej wiecej taki, ze bysmy chcieli miec
+parametr (the-transform), ktory pozwalalby nam przechodzic od
+wspolrzednych edytora do wspolrzednych dokumentu i z powrotem
+
+moglibysmy stworzyc sobie takie cos:
+
+#+BEGIN_SRC scheme
+  (define-object (TransformStack)::Map2D
+    (define transforms ::($bracket-apply$ List Map2D)
+      (($bracket-apply$ ArrayList Map2D)))
+
+    (define (outside-in x::real y::real)::(Values real real)
+      (for transform::Map2D in transforms
+	(let-values (((x* y*) (transform:outside-in x y)))
+	  (set! x x*)
+	  (set! y y*)))
+      (values x y))
+
+    (define (inside-out x::real y::real)::(Values real real)
+      (for transform::Map2D in-reverse transforms
+	(let-values (((x* y*) (transform:inside-out x y)))
+	  (set! x x*)
+	  (set! y y*)))
+      (values x y))
+
+    (define (addLast transform::Map2D)::void
+      (transforms:addLast transform))
+
+    (define (addFirst transform::Map2D)::void
+      (transforms:addFirst transform))
+
+    (define (getLast transform::Map2D)::Map2D
+      (transforms:getLast))
+
+    (define (getFirst transform::Map2D)::Map2D
+      (transforms:getFirst))
+    )
+
+  (define the-transform-stack ::TransformStack (TransformStack))
+
+  (define-syntax-rule (with-post-transform t . actions)
+    (transform-stack:addLast t)
+    (try-finally
+     (begin . actions)
+     (transform-stack:getLast)))
+
+  (define-syntax-rule (with-pre-transform t . actions)
+    (transform-stack:addFirst t)
+    (try-finally
+     (begin . actions)
+     (transform-stack:getFirst)))
+#+END_SRC
+
+No dobra, ale teraz jak bysmy tego uzywali?
+
+I jak to sie ma do tego, co mamy teraz?
+
+Po pierwsze, Embeddable jest zdefiniowane jako Map2D - co
+w pewnym sensie jest dosc klopotliwe, bo Split - ktory jest
+Embeddable, ma metode inside-out, ktora nie ma swojej
+implementacji.
+
+Ponysl zatem jest taki, zeby Embeddable nie bylo Map2D.
+
+
 * 20.11.2023
 
 no dobra, to mamy pare bugow w naszym mechanizmie optymalizujacym
