@@ -81,7 +81,7 @@
 
 (define-interface Layer (Indexable Pane))
 
-(define-interface Embeddable (Pane Map2D)
+(define-interface Embeddable (Pane)
   (pane-under x::real y::real)::Embeddable
 
   (can-split-beside? line::Area)::boolean

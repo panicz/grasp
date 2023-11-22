@@ -265,8 +265,12 @@
   (define (drop! x::real y::real vx::real vy::real)::void
     ;; musimy sobie przetransformowac wspolrzedne
     ;; do wspolrzednych edytora oraz wybrac dokument
+    #|
+    (screen:overlay:remove! selected)
+    (screen:top:insert-at! x y selected)
+    |#
     (and-let* ((editor ::Editor (screen:top:pane-under x y))
-	       (xe ye (screen:top:outside-in x y))
+	       (xe ye (values x y) #;(screen:top:outside-in x y))
 	       (xd yd (editor:transform:outside-in xe ye))
 	       (cursor (cursor-under xd yd editor:document context: '()))
 	       (`(,tip . ,precursor) cursor)
@@ -561,15 +565,6 @@
 	      x y
 	      (lambda _ (this))))
 
-  ((outside-in x::real y::real)::(Values real real)
-   (propagate (lambda (target::Embeddable x::real y::real)
-		(target:outside-in x y))
-	      x y
-	      values))
-
-  ((inside-out x::real y::real)::(Values real real)
-   (error "inside-out not implemented for Split"))
-  
   ((tap! finger::byte x::real y::real)::boolean
    (propagate (lambda (target::Embeddable x::real y::real)
 		       (target:tap! finger x y))
@@ -1358,12 +1353,6 @@
   
   (define transform ::Transform ((default-transform)))
 
-  (define (outside-in x::real y::real)::(Values real real)
-    (transform:outside-in x y))
-  
-  (define (inside-out x::real y::real)::(Values real real)
-    (transform:inside-out x y))
-  
   (define selection-anchor ::Cursor '())
 
   (define previously-edited
