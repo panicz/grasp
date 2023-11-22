@@ -1,3 +1,54 @@
+* 22.11.2023
+
+Ok, czyli planem na dzis jest sprawienie, zeby
+Embeddable nie bylo Map2D.
+
+Ale zeby tego dokonac, najpierw trzeba sie dowiedziec
+dlaczego Embeddable jest Map2D.
+
+Otoz mamy zasadniczo dwie instancje Embeddable: Splity
+oraz Editory.
+
+W przypadku Splitow mapowanie outside-in jest zaimplementowane
+w taki sposob, ze w zaleznosci od wspolrzednych wejsciowych
+wybieramy odpowiednia transformacje - i wlasnie ze wzgledu na ow
+nieliniowy wybor nie mozemy odwrocic tej operacji
+
+A raczej powinnismy robic tak, ze dodajemy odpowiednia operacje
+na dno stosu transformacji (w zaleznosci od wspolrzednych)
+
+
+No dobra: zasadniczo wywalilismy Map2D z Embedded i swiat sie
+nie zawalil. Trzeba bylo tylko w metodzie DragAround:drop!
+wywalic odniesienie do screen:top:outside-in i zastapic
+je funkcja values. To nie jest do konca tak jak powinno byc
+- jakos trzeba bedzie moc zmapowac wspolrzedne dokumentu
+  na wspolrzedne edytora, i wlasnie teraz chcemy to wymyslic
+
+Dodatkowo musimy miec gdzies z tylu glowy, ze chcemy sie pozbyc
+screen-position, i albo zastapic ja document-position, albo nawet
+po prostu metoda traverse
+
+Musimy zatem wyobrazic sobie, co sie powinno dziac, kiedy
+robimy DragAround albo Resize.
+
+No to tak:
+
+1. naciskamy na ekran
+2. ekran tlumaczy wspolrzedne ekranu na wspolrzedne edytora
+   (rekurencyjnie wglab, az docieramy do dokumentu)
+3. wywolana zostaje metoda, ktora wyodrebnia element
+   z dokumentu i zwraca obiekt Drag
+4. przy kazdym ruchu palca jest wywolywana metoda move!
+5. po podniesieniu palca zostaje wywolana metoda drop
+
+I to wlasnie tutaj pojawia sie problem.
+
+Zarowno Editor jak i Split powinny miec jakas metode,
+ktora wywolujemy, np.
+
+(insert-at! x::real y::real expression)::boolean
+
 * 21.11.2023
 
 no i jeszcze zgloszenie na BOBKonf!
