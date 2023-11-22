@@ -13,11 +13,6 @@
 
 (import (utils print))
 
-(define-interface Map2D ()
-  (map x::real y::real)::(Values real real)
-  (unmap x::real y::real)::(Values real real)
-  )
-
 (define-interface TransformParameters ()
   (get-angle)::real
   (set-angle! rad::real)::void
@@ -56,12 +51,12 @@
      (action)
      (painter:translate! (- l) (- t))))
 
-  ((map x::real y::real)::(Values real real)
+  ((outside-in x::real y::real)::(Values real real)
    (values
     (- x left)
     (- y top)))
   
-  ((unmap x::real y::real)::(Values real real)
+  ((inside-out x::real y::real)::(Values real real)
    (values
     (+ x left)
     (+ y top)))
@@ -116,7 +111,7 @@
      (painter:scale! (/ 1.0 s))))
 
   ;; document to editor
-  ((unmap x::real y::real)::(Values real real)
+  ((inside-out x::real y::real)::(Values real real)
     (let ((dx (+ x left))
 	  (dy (+ y top))
 	  (s (sin angle/rad))
@@ -126,7 +121,7 @@
        (as int (round (* scale (+ (* s dx) (* c dy))))))))
 
   ;; edit or to document
-  ((map x::real y::real)::(Values real real)
+  ((outside-in x::real y::real)::(Values real real)
     (let ((s (sin angle/rad))
 	  (c (cos angle/rad)))
       (values
@@ -173,16 +168,16 @@
       (set! scale scale*)))
   
   ((scale! factor::real x::real y::real)::void
-   (let-values (((x0 y0) (map x y)))
+   (let-values (((x0 y0) (outside-in x y)))
      (set! scale (* scale factor))
-     (let-values (((x1 y1) (map x y)))
+     (let-values (((x1 y1) (outside-in x y)))
        (set! left (as int (round (+ left (- x1 x0)))))
        (set! top (as int (round (+ top (- y1 y0))))))))
 
   ((rotate! angle/deg::real x::real y::real)::void
-   (let-values (((x0 y0) (map x y)))
+   (let-values (((x0 y0) (outside-in x y)))
      (set! angle/rad (+ angle/rad (* angle/deg pi 1/180)))
-     (let-values (((x1 y1) (map x y)))
+     (let-values (((x1 y1) (outside-in x y)))
        (set! left (as int (round (+ left (- x1 x0)))))
        (set! top (as int (round (+ top (- y1 y0))))))))
   
@@ -213,7 +208,7 @@
    (let ((progress ::float (/ progress/ms duration/ms)))
      (cond
       (around
-       (let*-values (((x0 y0) (of:unmap around:left around:top))
+       (let*-values (((x0 y0) (of:inside-out around:left around:top))
                      ((scale) (tween (from:get-scale)
 		                     (to:get-scale)
 		                     progress))
@@ -223,7 +218,7 @@
 	             ((x1 y1) (begin
 				(of:set-scale! scale)
 				(of:set-angle! angle)
-				(of:unmap around:left around:top))))
+				(of:inside-out around:left around:top))))
          (of:translate! (- x0 x1) (- y0 y1))))
       (else
        (of:set-scale! (tween (from:get-scale) (to:get-scale)

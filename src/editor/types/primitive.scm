@@ -830,10 +830,10 @@
       (show p))))
 
 (define-parameter (the-pane-width)::real
-  0)
+  +inf.0)
 
 (define-parameter (the-pane-height)::real
-  0)
+  +inf.0)
 
 (define-parameter (the-pane-left)::real
   0)

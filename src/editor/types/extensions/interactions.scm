@@ -97,10 +97,10 @@
   (define (pane-under x::real y::real)::Embeddable
     (this))
   
-  (define (map x::real y::real)::(Values real real)
+  (define (outside-in x::real y::real)::(Values real real)
     (values x y))
   
-  (define (unmap x::real y::real)::(Values real real)
+  (define (inside-out x::real y::real)::(Values real real)
     (values x y))
   
   (define (can-split-beside? line::Area)::boolean

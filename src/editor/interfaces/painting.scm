@@ -51,6 +51,11 @@ def") ===> [Extent width: 3 height: 2])
     result))
 
 
+(define-interface Map2D ()
+  (outside-in x::real y::real)::(Values real real)
+  (inside-out x::real y::real)::(Values real real)
+  )
+
 (define-interface Translatable ()
   (translate! x::real y::real)::void
   (current-translation-left)::real

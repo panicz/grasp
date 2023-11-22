@@ -266,8 +266,8 @@
     ;; musimy sobie przetransformowac wspolrzedne
     ;; do wspolrzednych edytora oraz wybrac dokument
     (and-let* ((editor ::Editor (screen:top:pane-under x y))
-	       (xe ye (screen:top:map x y))
-	       (xd yd (editor:transform:map xe ye))
+	       (xe ye (screen:top:outside-in x y))
+	       (xd yd (editor:transform:outside-in xe ye))
 	       (cursor (cursor-under xd yd editor:document context: '()))
 	       (`(,tip . ,precursor) cursor)
 	       (parent ::Element (the-expression
@@ -317,7 +317,7 @@
 
   (define (move! x::real y::real dx::real dy::real)::void
     (safely
-     (let*-values (((x y) (editor:transform:map x y))
+     (let*-values (((x y) (editor:transform:outside-in x y))
 		   ((target-width target-height)
 		    (values (- x position:left)
 			    (+ initial:height
@@ -561,14 +561,14 @@
 	      x y
 	      (lambda _ (this))))
 
-  ((map x::real y::real)::(Values real real)
+  ((outside-in x::real y::real)::(Values real real)
    (propagate (lambda (target::Embeddable x::real y::real)
-		(target:map x y))
+		(target:outside-in x y))
 	      x y
 	      values))
 
-  ((unmap x::real y::real)::(Values real real)
-   (error "unmap not implemented for Split"))
+  ((inside-out x::real y::real)::(Values real real)
+   (error "inside-out not implemented for Split"))
   
   ((tap! finger::byte x::real y::real)::boolean
    (propagate (lambda (target::Embeddable x::real y::real)
@@ -1358,11 +1358,11 @@
   
   (define transform ::Transform ((default-transform)))
 
-  (define (map x::real y::real)::(Values real real)
-    (transform:map x y))
+  (define (outside-in x::real y::real)::(Values real real)
+    (transform:outside-in x y))
   
-  (define (unmap x::real y::real)::(Values real real)
-    (transform:unmap x y))
+  (define (inside-out x::real y::real)::(Values real real)
+    (transform:inside-out x y))
   
   (define selection-anchor ::Cursor '())
 
@@ -1426,7 +1426,7 @@
 
   (define (tap! finger::byte #;at xe::real ye::real)::boolean
     (parameterize/update-sources ((the-document document))
-      (let-values (((x y) (transform:map xe ye)))
+      (let-values (((x y) (transform:outside-in xe ye)))
 	(let* ((target-cursor (cursor-under x y))
 	       (target (the-expression at: target-cursor)))
 	  (match target
@@ -1446,7 +1446,7 @@
 				   selection-anchor))
       (let-values (((selection-start selection-end)
 		    (the-selection))
-		   ((x y) (transform:map xe ye)))
+		   ((x y) (transform:outside-in xe ye)))
 	(and-let* ((path (cursor-under x y))
 		   (`(,tip . ,subpath) path)
 		   (parent ::Element (the-expression
@@ -1541,9 +1541,9 @@
 
 	   ((and (is target cons?)
 		 (eqv? tip (target:last-index)))
-	    (let-values (;((x y) (transform:map xe ye))
-			 ((left top) (transform:unmap position:left
-						      position:top)))
+	    (let-values (;((x y) (transform:outside-in xe ye))
+			 ((left top) (transform:inside-out position:left
+							   position:top)))
 	      (let ((extent ::Extent (extent+ target)))
 		(screen:drag! finger
 			      (Resize target subpath
@@ -1566,7 +1566,7 @@
 				   selection-anchor))
       (let-values (((selection-start selection-end)
 		    (the-selection))
-		   ((x y) (transform:map xe ye)))
+		   ((x y) (transform:outside-in xe ye)))
 	(and-let* ((path (cursor-under x y))
 	   (`(,tip . ,subpath) path)
 		   (parent ::Element (the-expression
