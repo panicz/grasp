@@ -1,3 +1,30 @@
+* 23.11.2023
+
+no to dzis bysmy zaczeli od dodania 'insert-at!' do
+Embeddable i przywrocenia funkcjonowania drag&dropa
+
+co wydaje sie dosc proste
+
+a nastepnie bysmy sie zajeli tym screen-position
+(przy czym najpierw chyba poprawa buga, a pozniej
+zamiana na document-position)
+
+ale do tego jeszcze dochodzi to, ze 
+gest evaluate-expression-by-wedge wciaz zaklada, ze
+Embeddable posiada metode outside-in
+
+wiec musimy wymyslic:
+- jak naprawic bledy spowodowane "wycinajaca" optymalizacja
+- jak naprawic gest ewaluacji
+- jak przemigrowac ze screen-position do document-position
+
+Do tego jeszcze zrobilismy zmiane z wyciaganiem elementu
+- i tutaj tez dobrze by bylo miec jakis sposob
+  na przeksztalcanie wspolrzednych dokumentu w ekranowe
+
+Wycinajaca optymalizacja wydaje sie (w Androidzie)
+przynajmniej w czesci naprawiona
+
 * 22.11.2023
 
 Ok, czyli planem na dzis jest sprawienie, zeby
