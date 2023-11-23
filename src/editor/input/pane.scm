@@ -36,7 +36,6 @@
 (import (editor input input))
 (import (editor document history-tracking))
 (import (editor types extensions widgets))
-(import (editor document documents))
 (import (editor types extensions combinators))
 (import (editor input transforms))
 (import (editor input gestures))
@@ -265,47 +264,9 @@
   (define (drop! x::real y::real vx::real vy::real)::void
     ;; musimy sobie przetransformowac wspolrzedne
     ;; do wspolrzednych edytora oraz wybrac dokument
-    #|
     (screen:overlay:remove! selected)
-    (screen:top:insert-at! x y selected)
-    |#
-    (and-let* ((editor ::Editor (screen:top:pane-under x y))
-	       (xe ye (values x y) #;(screen:top:outside-in x y))
-	       (xd yd (editor:transform:outside-in xe ye))
-	       (cursor (cursor-under xd yd editor:document context: '()))
-	       (`(,tip . ,precursor) cursor)
-	       (parent ::Element (the-expression
-				  at: precursor in: editor:document))
-	       (location ::Element (parent:part-at tip)))
-      (parameterize/update-sources ((the-document editor:document)
-				    (the-cursor editor:cursor))
-	(cond
-	 ((isnt parent eq? location)
-	  (WARN "reached "location" in "parent" at "cursor))
-
-	 ((is parent Space?)
-	  (let* ((action ::Insert (Insert element: selected:items
-					  at: cursor))
-		 (history ::History (history editor:document)))
-	    (history:record! action)
-	    (set! (the-cursor) (action:apply! editor:document))
-	    (set! (the-selection-anchor) (the-cursor))))
-
-	 ((is parent cons?)
-	  (cond
-	   ((eqv? tip (parent:first-index))
-	    (insert! selected:items
-		     at: (recons (parent:next-index tip)
-				 cursor)))
-	   ((eqv? tip (parent:last-index))
-	    (insert! selected:items
-		     at: (recons
-			  (parent:previous-index tip)
-			  cursor)))
-	   (else
-	    (WARN "unhandled "tip" in "parent)))))
-
-	(screen:overlay:remove! selected))))
+    (screen:top:drop-at! x y selected:items)
+    )
 
   (screen:overlay:add! selected))
 
@@ -558,6 +519,12 @@
 	      (last:key-typed! key-code
 			       (recons SplitFocus:Last
 				       context)))))))))
+
+  ((drop-at! x::real y::real object::pair)::boolean
+   (propagate (lambda (target::Embeddable x::real y::real)
+		(target:drop-at! x y object))
+	      x y
+	      never))
   
   ((pane-under x::real y::real)::Embeddable
    (propagate (lambda (target::Embeddable x::real y::real)
@@ -1355,6 +1322,42 @@
 
   (define selection-anchor ::Cursor '())
 
+  (define (drop-at! x::real y::real object::pair)::boolean
+    (and-let* ((items ::cons object)
+	       (xd yd (transform:outside-in x y))
+	       (cursor (cursor-under xd yd document context: '()))
+	       (`(,tip . ,precursor) cursor)
+	       (parent ::Element (the-expression
+				  at: precursor in: document))
+	       (location ::Element (parent:part-at tip)))
+      (parameterize/update-sources ((the-document document)
+				    (the-cursor cursor))
+	(cond
+	 ((isnt parent eq? location)
+	  (WARN "reached "location" in "parent" at "cursor))
+
+	 ((is parent Space?)
+	  (let* ((action ::Insert (Insert element: items
+					  at: cursor))
+		 (history ::History (history document)))
+	    (history:record! action)
+	    (set! (the-cursor) (action:apply! document))
+	    (set! (the-selection-anchor) (the-cursor))))
+
+	 ((is parent cons?)
+	  (cond
+	   ((eqv? tip (parent:first-index))
+	    (insert! items
+		     at: (recons (parent:next-index tip)
+				 cursor)))
+	   ((eqv? tip (parent:last-index))
+	    (insert! items
+		     at: (recons
+			  (parent:previous-index tip)
+			  cursor)))
+	   (else
+	    (WARN "unhandled "tip" in "parent))))))))
+  
   (define previously-edited
     (property (document::Document)
       ::Document
@@ -1519,19 +1522,15 @@
 	    (set! (the-selection-anchor) (the-cursor))
 	    (let* ((removed ::Remove (remove-element!
 				      at: subpath))
-		   (position (screen-position
-			      (head removed:element)))
-		  
 		   (selection (Selected removed:element
-					(copy position))))
-	      (unset! (screen-position removed:element))
-	      (unset! (screen-position (head removed:element)))
+					(copy
+					 (last-known-pointer-position
+					  finger)))))
 	      (screen:drag! finger (DragAround selection))))
 
 	   ((and (is target cons?)
 		 (eqv? tip (target:last-index)))
-	    (let-values (;((x y) (transform:outside-in xe ye))
-			 ((left top) (transform:inside-out position:left
+	    (let-values (((left top) (transform:inside-out position:left
 							   position:top)))
 	      (let ((extent ::Extent (extent+ target)))
 		(screen:drag! finger

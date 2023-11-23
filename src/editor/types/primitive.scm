@@ -528,7 +528,9 @@
   ;; ::,a
   (traverse* sequence doing: action returning: result))
 
-(define (overlap? A-left ::real A-right ::real B-left ::real B-right ::real)::boolean
+(define (overlap? A-left ::real A-right ::real
+		  B-left ::real B-right ::real)
+  ::boolean
   (and (is A-left <= B-right)
        (is A-right >= B-left)))
 

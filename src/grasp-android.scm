@@ -523,19 +523,21 @@
   (define (current-clip-top)::real
     clipTop)
 
-  (define shiftLeft ::real 0)
-  (define shiftTop ::real 0)
-
+  (define matrix-points ::($bracket-apply$ float)
+    (($bracket-apply$ float) length: 9))
+  
   (define (translate! x ::real y ::real)::void
-    (canvas:translate x y)
-    (set! shiftLeft (+ shiftLeft x))
-    (set! shiftTop (+ shiftTop y)))
+    (canvas:translate x y))
 
   (define (current-translation-left)::real
-    shiftLeft)
+    (let ((m ::android.graphics.Matrix (canvas:getMatrix)))
+      (m:getValues matrix-points)
+      (matrix-points 2)))
 
   (define (current-translation-top)::real
-    shiftTop)
+    (let ((m ::android.graphics.Matrix (canvas:getMatrix)))
+      (m:getValues matrix-points)
+      (matrix-points 5)))
 
   (define rotation ::real 0.0)
 

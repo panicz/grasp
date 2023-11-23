@@ -82,6 +82,8 @@
 (define-interface Layer (Indexable Pane))
 
 (define-interface Embeddable (Pane)
+  (drop-at! x::real y::real expression::pair)::boolean
+  
   (pane-under x::real y::real)::Embeddable
 
   (can-split-beside? line::Area)::boolean
@@ -92,6 +94,9 @@
   )
 
 (define-object (NullPane)::Embeddable
+  (define (drop-at! x::real y::real expression::pair)::boolean
+    #f)
+  
   (define (draw!)::void (values))
   
   (define (pane-under x::real y::real)::Embeddable
