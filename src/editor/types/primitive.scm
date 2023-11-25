@@ -461,9 +461,15 @@
 (define-syntax traverse*
   (syntax-rules (doing: returning:)
     ((_ sequence doing: action returning: result)
-     (let* ((traversal (Traversal
+     (let* ((parent ::Traversal (the-traversal))
+	    (traversal ::Traversal
+		       (Traversal
 			max-line-height:
-			(painter:min-line-height))))
+			(painter:min-line-height)
+			parent-left: (+ parent:parent-left
+					parent:left)
+			parent-top: (+ parent:parent-top
+				       parent:top))))
 
        (parameterize ((the-traversal traversal))
 
@@ -549,15 +555,19 @@
       (define-syntax-rule (action item #|::Element|#
 				  traversal #|::Traversal|#)
 	(escape-with skip-element
+
+	  
 	  (with-translation (traversal:left
 			     traversal:top)
-	    (unless (is item instance? Space)
+	    (when (is item instance? Tile)
 	      (let* ((position ::Position (screen-position item))
 		     (e ::Extent (extent+ item)))
+		
 		(set! position:left
 		      (painter:current-translation-left))
 		(set! position:top
 		      (painter:current-translation-top))
+		
 		(let-values (((right bottom)
 			      (with-translation (e:width e:height)
 				(values
@@ -567,8 +577,9 @@
 				       pane-left pane-right)
 			     (overlap? position:top bottom
 				       pane-top pane-bottom))
-		  #;(when ...
-		  (end-drawing))
+		  #;(when #f
+		    (WARN "ending drawing at "item)
+		    (end-drawing))
 		  (skip-element))
 		)))
 	  

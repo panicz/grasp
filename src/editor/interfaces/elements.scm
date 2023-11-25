@@ -43,7 +43,9 @@
 			top: real := 0
 			index: int := 0
 			max-width: real := 0
-			max-line-height: real := 0)
+			max-line-height: real := 0
+			parent-left: real := 0
+			parent-top: real := 0)
   extending Base with
   ((advance! element::Element)::void
    (cond
