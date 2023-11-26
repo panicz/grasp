@@ -87,11 +87,17 @@
 
 (set-key! '(ctrl page-up)
 	  (lambda ()
-	    (screen:zoom-in! 0 0)))
+	    (let* ((pivot ::Position (last-known-pointer-position 0))
+		   (left ::real (slot-ref pivot 'left))
+		   (top ::real (slot-ref pivot 'top)))
+	      (screen:zoom-in! left top))))
 
 (set-key! '(ctrl page-down)
 	  (lambda ()
-	    (screen:zoom-out! 0 0)))
+	    (let* ((pivot ::Position (last-known-pointer-position 0))
+		   (left ::real (slot-ref pivot 'left))
+		   (top ::real (slot-ref pivot 'top)))
+	    (screen:zoom-out! left top))))
 
 (set-key! '(shift page-up)
 	  (lambda ()
