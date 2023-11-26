@@ -1,3 +1,16 @@
+* 25.11.2023
+
+chcemy:
+- dodac translacje do splitow
+- zrobic tak, zeby aktualizowac translacje przy zmianie rozmiaru splitu
+- propagowac transformacje w metodach "propagate", "key-typed" oraz "draw!"
+  obiektow "embeddable"
+
+OK, wydaje sie, ze to juz mamy. I co dalej?
+
+Chyba bysmy sprobowali uzyc tego nowego mechanizmu do mapowania wspolrzednych
+dokumentu na wspolrzedne ekranu
+
 * 23.11.2023
 
 no to dzis bysmy zaczeli od dodania 'insert-at!' do
@@ -137,11 +150,11 @@ moglibysmy stworzyc sobie takie cos:
     (define (addFirst transform::Map2D)::void
       (transforms:addFirst transform))
 
-    (define (getLast transform::Map2D)::Map2D
-      (transforms:getLast))
+    (define (removeLast transform::Map2D)::Map2D
+      (transforms:removeLast))
 
-    (define (getFirst transform::Map2D)::Map2D
-      (transforms:getFirst))
+    (define (removeFirst transform::Map2D)::Map2D
+      (transforms:removeFirst))
     )
 
   (define the-transform-stack ::TransformStack (TransformStack))
@@ -150,13 +163,13 @@ moglibysmy stworzyc sobie takie cos:
     (transform-stack:addLast t)
     (try-finally
      (begin . actions)
-     (transform-stack:getLast)))
+     (transform-stack:removeLast)))
 
   (define-syntax-rule (with-pre-transform t . actions)
     (transform-stack:addFirst t)
     (try-finally
      (begin . actions)
-     (transform-stack:getFirst)))
+     (transform-stack:removeFirst)))
 #+END_SRC
 
 No dobra, ale teraz jak bysmy tego uzywali?
