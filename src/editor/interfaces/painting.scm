@@ -56,6 +56,52 @@ def") ===> [Extent width: 3 height: 2])
   (inside-out x::real y::real)::(Values real real)
   )
 
+(define-object (TransformStack)::Map2D
+  (define transforms ::($bracket-apply$ java.util.Deque Map2D)
+    (($bracket-apply$ java.util.ArrayDeque Map2D)))
+
+  (define (outside-in x::real y::real)::(Values real real)
+    (for transform::Map2D in transforms
+      (let-values (((x* y*) (transform:outside-in x y)))
+	(set! x x*)
+	(set! y y*)))
+    (values x y))
+
+  (define (inside-out x::real y::real)::(Values real real)
+    (for transform::Map2D in-reverse transforms
+      (let-values (((x* y*) (transform:inside-out x y)))
+	(set! x x*)
+	(set! y y*)))
+    (values x y))
+
+  (define (addLast transform::Map2D)::void
+    (invoke transforms 'addLast transform))
+
+  (define (addFirst transform::Map2D)::void
+    (invoke transforms 'addFirst transform))
+
+  (define (removeLast)::Map2D
+    (invoke transforms 'removeLast))
+
+  (define (removeFirst)::Map2D
+    (invoke transforms 'removeFirst))
+  )
+
+(define the-transform-stack ::TransformStack (TransformStack))
+
+(define-syntax-rule (with-post-transform t . actions)
+  (the-transform-stack:addLast t)
+  (try-finally
+   (begin . actions)
+   (the-transform-stack:removeLast)))
+
+(define-syntax-rule (with-pre-transform t . actions)
+  (the-transform-stack:addFirst t)
+  (try-finally
+   (begin . actions)
+   (the-transform-stack:removeFirst)))
+
+
 (define-interface Translatable ()
   (translate! x::real y::real)::void
   (current-translation-left)::real

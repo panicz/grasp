@@ -461,9 +461,15 @@
 (define-syntax traverse*
   (syntax-rules (doing: returning:)
     ((_ sequence doing: action returning: result)
-     (let* ((traversal (Traversal
+     (let* ((parent ::Traversal (the-traversal))
+	    (traversal ::Traversal
+		       (Traversal
 			max-line-height:
-			(painter:min-line-height))))
+			(painter:min-line-height)
+			parent-left: (+ parent:parent-left
+					parent:left)
+			parent-top: (+ parent:parent-top
+				       parent:top))))
 
        (parameterize ((the-traversal traversal))
 
@@ -538,48 +544,46 @@
 			(elems::list (head (the-document)))
 			#!key (context::Cursor (recons 1 '())))
   ::void
-  (escape-with end-drawing
-    (let*-values (((selection-start selection-end) (the-selection))
-		  ((pane-left pane-top) (values (the-pane-left)
-						(the-pane-top)))
-		  ((pane-right pane-bottom)
-		   (values (+ pane-left (the-pane-width))
-			   (+ pane-top (the-pane-height)))))
+  (let*-values (((selection-start selection-end) (the-selection))
+		((pane-left pane-top) (values (the-pane-left)
+					      (the-pane-top)))
+		((pane-right pane-bottom)
+		 (values (+ pane-left (the-pane-width))
+			 (+ pane-top (the-pane-height)))))
 
-      (define-syntax-rule (action item #|::Element|#
-				  traversal #|::Traversal|#)
-	(escape-with skip-element
-	  (with-translation (traversal:left
-			     traversal:top)
-	    (unless (is item instance? Space)
-	      (let* ((position ::Position (screen-position item))
-		     (e ::Extent (extent+ item)))
-		(set! position:left
-		      (painter:current-translation-left))
-		(set! position:top
-		      (painter:current-translation-top))
-		(let-values (((right bottom)
-			      (with-translation (e:width e:height)
-				(values
-				 (painter:current-translation-left)
-				 (painter:current-translation-top)))))
+    (define-syntax-rule (action item #|::Element|#
+				traversal #|::Traversal|#)
+      (escape-with skip-element
+	(with-translation (traversal:left
+			   traversal:top)
+	  (when (is item instance? Tile)
+	    (let* ((position ::Position (screen-position item))
+		   (e ::Extent (extent+ item)))
+	      
+	      (set! position:left
+		    (painter:current-translation-left))
+	      (set! position:top
+		    (painter:current-translation-top))
+	      
+	      (let-values (((right bottom)
+			    (with-translation (e:width e:height)
+			      (values
+			       (painter:current-translation-left)
+			       (painter:current-translation-top)))))
 		(unless (and (overlap? position:left right
 				       pane-left pane-right)
 			     (overlap? position:top bottom
 				       pane-top pane-bottom))
-		  #;(when ...
-		  (end-drawing))
-		  (skip-element))
-		)))
+		  (skip-element)))))
 	  
-	    (let ((context (recons traversal:index
-				   context)))
-	      (when (equal? context selection-start)
-		(painter:enter-selection-drawing-mode!))
-	      (item:draw! context)
-	      (when (equal? context selection-end)
-		(painter:exit-selection-drawing-mode!))))))
-      (traverse* elems doing: action))))
+	  (let ((context (recons traversal:index
+				 context)))
+	    (when (equal? context selection-start)
+	      (painter:enter-selection-drawing-mode!))
+	    (item:draw! context)
+	    (when (equal? context selection-end)
+	      (painter:exit-selection-drawing-mode!))))))
+    (traverse* elems doing: action)))
 
 (define (draw! object #!key
 	      (context::Cursor '()))
