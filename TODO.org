@@ -1,5 +1,6 @@
 * 25.11.2023
 
+
 chcemy:
 - dodac translacje do splitow
 - zrobic tak, zeby aktualizowac translacje przy zmianie rozmiaru splitu
@@ -10,6 +11,70 @@ OK, wydaje sie, ze to juz mamy. I co dalej?
 
 Chyba bysmy sprobowali uzyc tego nowego mechanizmu do mapowania wspolrzednych
 dokumentu na wspolrzedne ekranu
+
+* 24.11.2023
+
+teraz plan jest taki, zeby sie pozby tablicy
+'screen-positiin' i ja zastapic 'document-position',
+co byc moze bedzie sie wiazalo ze zmianami w Traversalu
+
+chcemy tez znalezc warunki dla 'early-returna'
+z funkcji rysujacej (i ew pozostalych, ale to
+pozniej)
+
+(jednak wydaje sie, ze zrobienie tego jest
+na razie zbyt trudne, zeby sie tym zajmowac)
+
+No dobra, to zobaczmy, co nam daja API Javy
+i Androida do mierzenia sie z takimi rzeczami
+czyli android.graphics.Matrix
+oraz java.awt.geom.AffineTransform
+
+i otoz ta pierwsza ma metode nap, ale nie ma unmap,
+zas ta druga nie ma zadnej
+
+No dobra. To bysmy dodali:
+- the-transform-stack
+- with-post-transform do metod splitu:
+  - propagate
+  - draw!
+  - key-typed
+
+I to zapewne zrobimy przez weekend.
+Ale na razie pomyslmy co chcemy zrobic dalej
+
+mamy 3 cele: 
+- wystapienie na bobconf (a moze i lambda-days)
+- uzywanie GRASPa do edycji jego samego
+- wydanie GRASPa
+
+te dwa ostatnie cele wiele ze soba laczy.
+ten pierwszy za to jest ciekawy
+
+mozna je ze soba laczyc
+
+jezeli idzie o doprowadzenie do uzytecznosci, to mamy:
+- uzupelnienie funkcji edytujacych
+- naprawa bugow w edycji i historii
+- ewentualne optymalizacje
+- poprawa czcionki, rozmiaru, nawiasow
+- pionowy ruch kursorem
+- wyszukiwanie i zamiana
+- filtr zapisu i odczytu (do zmian w indentacji)
+- nawigacja kursorem po rozszerzeniach
+
+jezeli zas idzie o bobkonf, to wiadomka: chcemy sobie
+zdefiniowac algorytm A* w sposob mozliwie maksymalnie
+wizualny, a nastepnie chcemy zeby nasz wizualny ewaluator
+pozwolil nam sobie zwizualizowac jego prace jako animacje
+
+#+BEGIN_SRC scheme
+(define (RankedPath path::Path ranking: real estimate: real)
+  (Beside
+    left: path right: (Below top: (Bordered element: ranking)
+			  bottom: (Clouded element: estimate)))
+
+#+END_SRC
 
 * 23.11.2023
 
