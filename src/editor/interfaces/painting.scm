@@ -57,8 +57,8 @@ def") ===> [Extent width: 3 height: 2])
   )
 
 (define-object (TransformStack)::Map2D
-  (define transforms ::($bracket-apply$ java.util.Deque Map2D)
-    (($bracket-apply$ java.util.ArrayDeque Map2D)))
+  (define transforms ::($bracket-apply$ java.util.ArrayList Map2D)
+    (($bracket-apply$ java.util.ArrayList Map2D)))
 
   (define (outside-in x::real y::real)::(Values real real)
     (for transform::Map2D in transforms
@@ -75,16 +75,22 @@ def") ===> [Extent width: 3 height: 2])
     (values x y))
 
   (define (addLast transform::Map2D)::void
-    (invoke transforms 'addLast transform))
+    (transforms:add (transforms:size) transform))
 
   (define (addFirst transform::Map2D)::void
-    (invoke transforms 'addFirst transform))
+    (transforms:add 0 transform))
 
   (define (removeLast)::Map2D
-    (invoke transforms 'removeLast))
+    (let* ((index ::int (- (transforms:size) 1))
+	   (result ::Map2D (transforms index)))
+      (transforms:remove index)
+      result))
 
   (define (removeFirst)::Map2D
-    (invoke transforms 'removeFirst))
+    (let* ((index ::int 0)
+	   (result ::Map2D (transforms index)))
+      (transforms:remove index)
+      result))
   )
 
 (define the-transform-stack ::TransformStack (TransformStack))

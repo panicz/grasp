@@ -218,26 +218,34 @@
 
   (define (draw! context::Cursor)
     ::void
-    (let* ((inner (sequence-extent (this)))
-	   (paren-width (painter:paren-width)))
+    (let* ((inner ::Extent (sequence-extent (this)))
+	   (t ::Traversal (the-traversal))
+	   (paren-width ::real (painter:paren-width)))
       (painter:draw-box! (+ inner:width (* 2 paren-width))
 			 inner:height
 			 context)
       (with-translation (paren-width 0)
-	  (draw-sequence! (this) context: context))))
+	(set! t:parent-left (+ t:parent-left paren-width))
+	(try-finally
+	 (draw-sequence! (this) context: context)
+	 (set! t:parent-left (- t:parent-left paren-width))))))
 
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
     (otherwise #!null
-      (let* ((inner (sequence-extent (this)))
-	     (paren-width (painter:paren-width)))
+      (let* ((inner ::Extent (sequence-extent (this)))
+	     (t ::Traversal (the-traversal))
+	     (paren-width ::real (painter:paren-width)))
 
       (and (is 0 <= y < inner:height)
 	   (or (and (is 0 <= x < paren-width)
 		    (recons (first-index) path))
 
 	       (and (is 0 <= (- x paren-width) < inner:width)
-		    (cursor-under (- x paren-width) y
-				  (this) context: path))
+		    (set! t:parent-left (+ t:parent-left paren-width))
+		    (try-finally
+		     (cursor-under (- x paren-width) y
+				   (this) context: path)
+		     (set! t:parent-left (- t:parent-left paren-width))))
 	       (and (is 0 <= (- x paren-width inner:width)
 			< paren-width)
 		    (recons (last-index) path)))))))
@@ -537,6 +545,8 @@
 (define (overlap? A-left ::real A-right ::real
 		  B-left ::real B-right ::real)
   ::boolean
+  (assert (is A-left <= A-right))
+  (assert (is B-left <= B-right))
   (and (is A-left <= B-right)
        (is A-right >= B-left)))
 
@@ -549,8 +559,19 @@
 					      (the-pane-top)))
 		((pane-right pane-bottom)
 		 (values (+ pane-left (the-pane-width))
-			 (+ pane-top (the-pane-height)))))
+			 (+ pane-top (the-pane-height))))
 
+		((visible-left visible-top) (the-transform-stack:outside-in
+					     pane-left pane-top))
+		((visible-right visible-bottom) (the-transform-stack:outside-in
+						 pane-right pane-bottom))
+		((visible-left visible-right) (if (is visible-left < visible-right)
+						  (values visible-left visible-right)
+						  (values visible-right visible-left)))
+		((visible-top visible-bottom) (if (is visible-top < visible-bottom)
+						  (values visible-top visible-bottom)
+						  (values visible-bottom visible-top))))
+    
     (define-syntax-rule (action item #|::Element|#
 				traversal #|::Traversal|#)
       (escape-with skip-element
@@ -558,23 +579,22 @@
 			   traversal:top)
 	  (when (is item instance? Tile)
 	    (let* ((position ::Position (screen-position item))
-		   (e ::Extent (extent+ item)))
+		   (document-left ::real (+ traversal:left traversal:parent-left))
+		   (document-top ::real (+ traversal:top traversal:parent-top))
+		   (e ::Extent (extent+ item))
+		   (document-right ::real (+ document-left e:width))
+		   (document-bottom ::real (+ document-top e:height)))
 	      
 	      (set! position:left
 		    (painter:current-translation-left))
 	      (set! position:top
 		    (painter:current-translation-top))
-	      
-	      (let-values (((right bottom)
-			    (with-translation (e:width e:height)
-			      (values
-			       (painter:current-translation-left)
-			       (painter:current-translation-top)))))
-		(unless (and (overlap? position:left right
-				       pane-left pane-right)
-			     (overlap? position:top bottom
-				       pane-top pane-bottom))
-		  (skip-element)))))
+
+	      (unless (and (overlap? visible-left visible-right
+				     document-left document-right)
+			   (overlap? visible-top visible-bottom
+				     document-top document-bottom))
+		(skip-element))))
 	  
 	  (let ((context (recons traversal:index
 				 context)))
