@@ -1,5 +1,35 @@
-* 25.11.2023
+* 29.11.2023
 
+mapowanie zrobilismy, ale chyba cos przy okazji zepsulismy w tescie
+widocznosci.
+
+i chyba chcemy tez miec mozliwosc badania gestu ewaluacji
+
+to jezeli idzie o te pierwsza kweste, musimy mapowac wszystkie
+4 rogi edytora do wspolrzednych dokumentu (i to najlepiej to robic
+w funkcji rysujacej panel)
+
+to wydaje sie dzialac znakomicie!
+
+Co nam zatem pozostaje?
+
+- chcielibysmy sie pozbyc zaleznosci od "screen-position" w module "pane"
+- byc moze jednak zdecydujemy sie usunac tego transform-stacka
+
+
+#+BEGIN_SRC scheme
+(define (document-position document cursor #!key (context::Cursor (recons 1 '())))::(Values real real)
+  (escape-with return
+    (define (action item ::Element traversal ::Traversal)
+      ...)
+    
+    (define (fallback t::Traversal)
+      (values (+ t:left t:parent-left) (+ t:top t:parent-top)))
+
+  (traverse document doing: action returning: fallback)))
+#+END_SRC
+
+* 25.11.2023
 
 chcemy:
 - dodac translacje do splitow
