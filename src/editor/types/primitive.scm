@@ -550,61 +550,48 @@
   (and (is A-left <= B-right)
        (is A-right >= B-left)))
 
+(define (visible? left ::real top ::real right ::real bottom ::real)::boolean
+  (and (overlap? left right (view-edge-left) (view-edge-right))
+       (overlap? top bottom (view-edge-top) (view-edge-bottom))))
+
 (define (draw-sequence! #!optional
 			(elems::list (head (the-document)))
 			#!key (context::Cursor (recons 1 '())))
   ::void
-  (let*-values (((selection-start selection-end) (the-selection))
-		((pane-left pane-top) (values (the-pane-left)
-					      (the-pane-top)))
-		((pane-right pane-bottom)
-		 (values (+ pane-left (the-pane-width))
-			 (+ pane-top (the-pane-height))))
+  (escape-with end-drawing
+    (let*-values (((selection-start selection-end) (the-selection)))      
+      (define (action item ::Element traversal ::Traversal)
+	(escape-with skip-element
+	  (with-translation (traversal:left
+			     traversal:top)
+	    (when (is item instance? Tile)
+	      (let* ((position ::Position (screen-position item))
+		     (document-left ::real (+ traversal:left traversal:parent-left))
+		     (document-top ::real (+ traversal:top traversal:parent-top))
+		     (e ::Extent (extent+ item))
+		     (document-right ::real (+ document-left e:width))
+		     (document-bottom ::real (+ document-top e:height)))
 
-		((visible-left visible-top) (the-transform-stack:outside-in
-					     pane-left pane-top))
-		((visible-right visible-bottom) (the-transform-stack:outside-in
-						 pane-right pane-bottom))
-		((visible-left visible-right) (if (is visible-left < visible-right)
-						  (values visible-left visible-right)
-						  (values visible-right visible-left)))
-		((visible-top visible-bottom) (if (is visible-top < visible-bottom)
-						  (values visible-top visible-bottom)
-						  (values visible-bottom visible-top))))
-    
-    (define-syntax-rule (action item #|::Element|#
-				traversal #|::Traversal|#)
-      (escape-with skip-element
-	(with-translation (traversal:left
-			   traversal:top)
-	  (when (is item instance? Tile)
-	    (let* ((position ::Position (screen-position item))
-		   (document-left ::real (+ traversal:left traversal:parent-left))
-		   (document-top ::real (+ traversal:top traversal:parent-top))
-		   (e ::Extent (extent+ item))
-		   (document-right ::real (+ document-left e:width))
-		   (document-bottom ::real (+ document-top e:height)))
-	      
-	      (set! position:left
-		    (painter:current-translation-left))
-	      (set! position:top
-		    (painter:current-translation-top))
+		(set! position:left
+		      (painter:current-translation-left))
+		(set! position:top
+		      (painter:current-translation-top))
 
-	      (unless (and (overlap? visible-left visible-right
-				     document-left document-right)
-			   (overlap? visible-top visible-bottom
-				     document-top document-bottom))
-		(skip-element))))
-	  
-	  (let ((context (recons traversal:index
-				 context)))
-	    (when (equal? context selection-start)
-	      (painter:enter-selection-drawing-mode!))
-	    (item:draw! context)
-	    (when (equal? context selection-end)
-	      (painter:exit-selection-drawing-mode!))))))
-    (traverse* elems doing: action)))
-
+		(unless (visible? document-left document-top
+				  document-right document-bottom)
+		  (when (is document-top > (view-edge-bottom))
+		    (end-drawing))
+		  (skip-element))))
+	    
+	    (let ((context (recons traversal:index
+				   context)))
+	      (when (equal? context selection-start)
+		(painter:enter-selection-drawing-mode!))
+	      (item:draw! context)
+	      (when (equal? context selection-end)
+		(painter:exit-selection-drawing-mode!))))))
+      (traverse elems doing: action))))
+  
 (define (draw! object #!key
 	      (context::Cursor '()))
   ::void
@@ -866,3 +853,42 @@
 
 (define-parameter (the-pane-top)::real
   0)
+
+
+;; The following are expressed in the document
+;; coordinates, and actually set in the Editor's
+;; "draw!" method.
+
+(define-parameter (view-edge-left)::real
+  -inf.0)
+
+(define-parameter (view-edge-right)::real
+  +inf.0)
+
+(define-parameter (view-edge-top)::real
+  -inf.0)
+
+(define-parameter (view-edge-bottom)::real
+  +inf.0)
+
+
+(define-syntax-rule (with-view-edges-transformed transform . actions)
+  (let*-values (((pane-left pane-top) (values (the-pane-left)
+					      (the-pane-top)))
+		((pane-right pane-bottom)
+		 (values (+ pane-left (the-pane-width))
+			 (+ pane-top (the-pane-height))))
+
+		((left-top top-left) (transform:outside-in pane-left pane-top))
+		((right-bottom bottom-right) (transform:outside-in pane-right
+								   pane-bottom))
+		((left-bottom bottom-left) (transform:outside-in pane-left
+								 pane-bottom))
+		((right-top top-right) (transform:outside-in pane-right pane-top))
+		((left right) (min+max left-top right-bottom left-bottom right-top))
+		((top bottom) (min+max top-left bottom-right bottom-left top-right)))
+    (parameterize ((view-edge-left left)
+		   (view-edge-right right)
+		   (view-edge-top top)
+		   (view-edge-bottom bottom))
+      . actions)))

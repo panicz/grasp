@@ -96,9 +96,16 @@
 (define (WARN . args)
   (invoke (current-message-handler) 'add-message args))
 
+(define-syntax dumping-variables
+  (syntax-rules ()
+    ((_ finally () output)
+     (finally . output))
+
+    ((_ finally (var . vars) (output ...))
+     (dumping-variables finally vars (output ... 'var ": "var)))))
+
 (define-syntax-rule (DUMP expr ...)
-  (WARN 'expr ": "expr)
-  ...)
+  (dumping-variables WARN (expr ...) ()))
 
 (define-syntax-rule (truly actions ...)
   (begin actions ... #t))

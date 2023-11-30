@@ -245,10 +245,6 @@
 
   (define (draw!)::void
     (parameterize ((the-document items))
-      #;(when (pair? (car items))
-	(let ((items-position (screen-position (car items))))
-	  (set! items-position:left 0)
-	  (set! items-position:top 0)))
       (with-translation (position:left position:top)
 	(draw-sequence! items))))
     
@@ -1431,340 +1427,355 @@
 		   (the-editor (this))
 		   (the-selection-anchor selection-anchor))
       (with-post-transform transform
-	(transform:within painter
-			  (lambda ()
-			    (document:draw! '()))))))
-
+	(with-view-edges-transformed transform
+	  (transform:within painter
+			    (lambda ()
+			      (document:draw! '())))))))
+  
   (define (tap! finger::byte #;at xe::real ye::real)::boolean
     (with-post-transform transform
-      (parameterize/update-sources ((the-document document))
-	(let-values (((x y) (transform:outside-in xe ye)))
-	  (let* ((target-cursor (cursor-under x y))
-		 (target (the-expression at: target-cursor)))
-	    (match target
-	      (enchanted::Interactive
-	       (enchanted:tap! finger x y))
-	      (else
-	       (set! cursor target-cursor)
-	       (set! selection-anchor cursor)
+      (with-view-edges-transformed transform
+       (parameterize/update-sources ((the-document document))
+	 (let-values (((x y) (transform:outside-in xe ye)))
+	   (let* ((target-cursor (cursor-under x y))
+		  (target (the-expression at: target-cursor)))
+	     (match target
+	       (enchanted::Interactive
+		(enchanted:tap! finger x y))
+	       (else
+		(set! cursor target-cursor)
+		(set! selection-anchor cursor)
 
-	       #t)))))))
-
+		#t))))))))
+  
   (define (press! finger::byte #;at xe::real ye::real)::boolean
     (with-post-transform transform
-      (parameterize/update-sources ((the-document document)
-				    (the-cursor cursor)
-				    (the-editor (this))
-				    (the-selection-anchor
-				     selection-anchor))
-	(let-values (((selection-start selection-end)
-		      (the-selection))
-		     ((x y) (transform:outside-in xe ye)))
-	  (and-let* ((path (cursor-under x y))
-		     (`(,tip . ,subpath) path)
-		     (parent ::Element (the-expression
-					at: subpath))
-		     (target ::Element (parent:part-at tip))
-		     (position ::Position (screen-position
-					   target)))
-	    (cond
-	     #;((isnt parent eq? target)
-	     (WARN "reached non-final item on press"))
+      (with-view-edges-transformed transform
+       (parameterize/update-sources ((the-document document)
+				     (the-cursor cursor)
+				     (the-editor (this))
+				     (the-selection-anchor
+				      selection-anchor))
+	 (let-values (((selection-start selection-end)
+		       (the-selection))
+		      ((x y) (transform:outside-in xe ye)))
+	   (and-let* ((path (cursor-under x y))
+		      (`(,tip . ,subpath) path)
+		      (parent ::Element (the-expression
+					 at: subpath))
+		      (target ::Element (parent:part-at tip))
+		      (position ::Position (screen-position
+					    target)))
+	     (cond
+	      #;((isnt parent eq? target)
+	      (WARN "reached non-final item on press"))
 
-	     #;((isnt dragging clean?)
-	     (WARN "should start scrolling or zooming "
-	     (keys dragging)))
+	      #;((isnt dragging clean?)
+	      (WARN "should start scrolling or zooming "
+	      (keys dragging)))
 
-	     ((any (lambda (layer::Layer)
-		     (and-let* (((Stroke source-pane: ,(this))
-				 layer))
-		       layer))
-		   screen:overlay:layers)
-	      => (lambda (stroke::Stroke)
-		   (screen:overlay:remove! stroke)
-		   (unset! (screen:dragging stroke:finger))
-		   (let ((p0 ::Position (Position left: xe top: ye))
-			 (p1 ::Position (stroke:points
-					 (- (length stroke:points)
-					    1)))
-			 (editor ::Editor (this)))
-		     (set! (screen:dragging stroke:finger)
-			   (object (Drag)
-			     ((move! x::real y::real
-				     dx::real dy::real)
-			      ::void
-			      (let ((p1x ::real (+ p1:left dx))
-				    (p1y ::real (+ p1:top dy)))
-				(editor:transform:stretch!
-				 p0:left p0:top p1:left p1:top
-				 p0:left p0:top p1x  p1y)
-				(set! p1:left p1x)
-				(set! p1:top p1y)))
-			     ((drop! x::real y::real
-				     dx::real dy::real)
-			      ::void
-			      (values))))
+	      ((any (lambda (layer::Layer)
+		      (and-let* (((Stroke source-pane: ,(this))
+				  layer))
+			layer))
+		    screen:overlay:layers)
+	       => (lambda (stroke::Stroke)
+		    (screen:overlay:remove! stroke)
+		    (unset! (screen:dragging stroke:finger))
+		    (let ((p0 ::Position (Position left: xe top: ye))
+			  (p1 ::Position (stroke:points
+					  (- (length stroke:points)
+					     1)))
+			  (editor ::Editor (this)))
+		      (set! (screen:dragging stroke:finger)
+			    (object (Drag)
+			      ((move! x::real y::real
+				      dx::real dy::real)
+			       ::void
+			       (let ((p1x ::real (+ p1:left dx))
+				     (p1y ::real (+ p1:top dy)))
+				 (editor:transform:stretch!
+				  p0:left p0:top p1:left p1:top
+				  p0:left p0:top p1x  p1y)
+				 (set! p1:left p1x)
+				 (set! p1:top p1y)))
+			      ((drop! x::real y::real
+				      dx::real dy::real)
+			       ::void
+			       (values))))
 
-		     (set! (screen:dragging finger)
-			   (object (Drag)
-			     ((move! x::real y::real
-				     dx::real dy::real)
-			      ::void
-			      (let ((p0x ::real (+ p0:left dx))
-				    (p0y ::real (+ p0:top dy)))
-				(editor:transform:stretch!
-				 p0:left p0:top p1:left p1:top
-				 p0x  p0y  p1:left p1:top)
-				(set! p0:left p0x)
-				(set! p0:top p0y)))
-			     ((drop! x::real y::real
-				     dx::real dy::real)
-			      ::void
-			      (values)))))))
+		      (set! (screen:dragging finger)
+			    (object (Drag)
+			      ((move! x::real y::real
+				      dx::real dy::real)
+			       ::void
+			       (let ((p0x ::real (+ p0:left dx))
+				     (p0y ::real (+ p0:top dy)))
+				 (editor:transform:stretch!
+				  p0:left p0:top p1:left p1:top
+				  p0x  p0y  p1:left p1:top)
+				 (set! p0:left p0x)
+				 (set! p0:top p0y)))
+			      ((drop! x::real y::real
+				      dx::real dy::real)
+			       ::void
+			       (values)))))))
 
-	     
-	     ((is target Space?)
-	      (screen:drag! finger
-			    (Drawing (Stroke finger (this)))))
+	      
+	      ((is target Space?)
+	       (screen:drag! finger
+			     (Drawing (Stroke finger (this)))))
 
-	     ((is selection-start cursor< path
-		  cursor< selection-end)
-	      (WARN "should move selection"))
+	      ((is selection-start cursor< path
+		   cursor< selection-end)
+	       (WARN "should move selection"))
 
-	     ((or (is target Atom?)
-		  (and (is target cons?)
-		       (eqv? tip (target:first-index)))
-		  (is target EmptyListProxy?))
-	      ;; powinnismy powiekszyc spacje poprzedzajaca
-	      ;; wydobywany element o szerokosc tego elementu
-	      ;; podzielona przez (painter:space-width)
-	      (set! (the-cursor) (cursor-climb-back
-				  (cursor-retreat (tail path))))
-	      (set! (the-selection-anchor) (the-cursor))
-	      (let* ((removed ::Remove (remove-element!
-					at: subpath))
-		     (selection (Selected removed:element
-					  (copy
-					   (last-known-pointer-position
-					    finger)))))
-		(screen:drag! finger (DragAround selection))))
+	      ((or (is target Atom?)
+		   (and (is target cons?)
+			(eqv? tip (target:first-index)))
+		   (is target EmptyListProxy?))
+	       ;; powinnismy powiekszyc spacje poprzedzajaca
+	       ;; wydobywany element o szerokosc tego elementu
+	       ;; podzielona przez (painter:space-width)
+	       (set! (the-cursor) (cursor-climb-back
+				   (cursor-retreat (tail path))))
+	       (set! (the-selection-anchor) (the-cursor))
+	       (let* ((removed ::Remove (remove-element!
+					 at: subpath))
+		      (selection (Selected removed:element
+					   (copy
+					    (last-known-pointer-position
+					     finger)))))
+		 (screen:drag! finger (DragAround selection))))
 
-	     ((and (is target cons?)
-		   (eqv? tip (target:last-index)))
-	      (let-values (((left top) (transform:inside-out position:left
-							     position:top)))
-		(let ((extent ::Extent (extent+ target)))
-		  (screen:drag! finger
-				(Resize target subpath
-					(- ye top)
-					(this))))))
-	     (else
-	      (screen:drag! finger
-			    (Drawing (Stroke finger (this))))
-	      ;;(set! (the-cursor) path)
-	      ;;(set! (the-selection-anchor) path)
-	      )))
-	  #t))))
+	      ((and (is target cons?)
+		    (eqv? tip (target:last-index)))
+	       (let-values (((left top) (transform:inside-out position:left
+							      position:top)))
+		 (let ((extent ::Extent (extent+ target)))
+		   (screen:drag! finger
+				 (Resize target subpath
+					 (- ye top)
+					 (this))))))
+	      (else
+	       (screen:drag! finger
+			     (Drawing (Stroke finger (this))))
+	       ;;(set! (the-cursor) path)
+	       ;;(set! (the-selection-anchor) path)
+	       )))
+	   #t)))))
 
   (define (second-press! finger::byte #;at xe::real ye::real)
     ::boolean
     (with-post-transform transform
-      (parameterize/update-sources ((the-document document)
-				    (the-cursor cursor)
-				    (the-editor (this))
-				    (the-selection-anchor
-				     selection-anchor))
-	(let-values (((selection-start selection-end)
-		      (the-selection))
-		     ((x y) (transform:outside-in xe ye)))
-	  (and-let* ((path (cursor-under x y))
-		     (`(,tip . ,subpath) path)
-		     (parent ::Element (the-expression
-					at: subpath))
-		     (target ::Element (parent:part-at tip))
-		     (position ::Position (screen-position
-					   target)))
-	    (cond
-	     #;((isnt parent eq? target)
-	     (WARN "reached non-final item on press"))
+      (with-view-edges-transformed transform
+       (parameterize/update-sources ((the-document document)
+				     (the-cursor cursor)
+				     (the-editor (this))
+				     (the-selection-anchor
+				      selection-anchor))
+	 (let-values (((selection-start selection-end)
+		       (the-selection))
+		      ((x y) (transform:outside-in xe ye)))
+	   (and-let* ((path (cursor-under x y))
+		      (`(,tip . ,subpath) path)
+		      (parent ::Element (the-expression
+					 at: subpath))
+		      (target ::Element (parent:part-at tip))
+		      (position ::Position (screen-position
+					    target)))
+	     (cond
+	      #;((isnt parent eq? target)
+	      (WARN "reached non-final item on press"))
 
-	     #;((isnt dragging clean?)
-	     (WARN "should start scrolling or zooming "
-	     (keys dragging)))
+	      #;((isnt dragging clean?)
+	      (WARN "should start scrolling or zooming "
+	      (keys dragging)))
 
-	     ((is target Space?)
-	      (screen:drag! finger
-			    (Translate transform)))))
-	  #t))))
+	      ((is target Space?)
+	       (screen:drag! finger
+			     (Translate transform)))))
+	   #t)))))
 
   (define (double-tap! finger::byte x::real y::real)::boolean
     (with-post-transform transform
-      (parameterize/update-sources ((the-document document)
-				    (the-cursor cursor)
-				    (the-editor (this))
-				    (the-selection-anchor
-				     selection-anchor))
-	(cond
-	 ((isnt (transform:get-angle) = 0.0)
-	  (painter:play!
-	   (Transition of: transform
-		       from: (copy transform)
-		       to: (let ((target ::Transform (copy transform)))
-			     (target:set-angle! 0.0)
-			     target)
-		       around: (Position left: x top: y)
-		       duration/ms: 500))
-	  #t)
-	 ((or (isnt (transform:get-left) = 0)
-	      (is (transform:get-top) > 0))
-	  (painter:play!
-	   (Transition of: transform
-		       from: (copy transform)
-		       to: (let ((target ::Transform (copy transform))
-				 (document ::Extent (extent+ document))
-				 (screen ::Extent (screen:size)))
-			     (target:set-left! 0.0)
-			     (target:set-top! 0.0)
-			     (target:set-scale!
-			      (min (/ screen:width document:width)
-				   (/ screen:height document:height)))
-			     target)
-		       duration/ms: 500))
-	  #t)
-	 (else
-	  #f)))))
+      (with-view-edges-transformed transform
+       (parameterize/update-sources ((the-document document)
+				     (the-cursor cursor)
+				     (the-editor (this))
+				     (the-selection-anchor
+				      selection-anchor))
+	 (cond
+	  ((isnt (transform:get-angle) = 0.0)
+	   (painter:play!
+	    (Transition of: transform
+			from: (copy transform)
+			to: (let ((target ::Transform (copy transform)))
+			      (target:set-angle! 0.0)
+			      target)
+			around: (Position left: x top: y)
+			duration/ms: 500))
+	   #t)
+	  ((or (isnt (transform:get-left) = 0)
+	       (is (transform:get-top) > 0))
+	   (painter:play!
+	    (Transition of: transform
+			from: (copy transform)
+			to: (let ((target ::Transform (copy transform))
+				  (document ::Extent (extent+ document))
+				  (screen ::Extent (screen:size)))
+			      (target:set-left! 0.0)
+			      (target:set-top! 0.0)
+			      (target:set-scale!
+			       (min (/ screen:width document:width)
+				    (/ screen:height document:height)))
+			      target)
+			duration/ms: 500))
+	   #t)
+	  (else
+	   #f))))))
 
   (define (long-press! finger::byte x::real y::real)::boolean
     (with-post-transform transform
-      (parameterize/update-sources ((the-document document)
-				    (the-cursor cursor)
-				    (the-editor (this))
-				    (the-selection-anchor
-				     selection-anchor))
-	(safely
-	 (invoke (current-message-handler) 'clear-messages!)
-	 (let* ((content
-		 ::Enchanted
-		 (ColumnGrid
-		  `(,(Link content: (Caption "New")
-			   on-tap: (lambda _ (WARN "New") #t))
-		    ,(Link content: (Caption "Open...")
-			   on-tap: ((open-file) finger (this)))
-		    ,@(if (is (length (open-documents)) < 1)
-			  '()
-			  `(,(Link
-			      content:
-			      (Caption "Switch to...")
-			      on-tap:
-			      (lambda _
-				(safely
-				 (screen:overlay:add!
-				  (document-switcher (this))))
-				#t))))
-		    ,(Link content: (Caption "Save as...")
-			   on-tap: ((save-file) finger (this)))
-		    ,(Link content: (Caption "Close")
-			   on-tap: (lambda _ (WARN "Close") #t))
-		    )))
-		(window ::PopUp (PopUp content: content)))
-	   (window:center-around! x y)
-	   (screen:overlay:add! window))))
-      ;; dodanie menu kontekstowego
-      #t))
+      (with-view-edges-transformed transform
+       (parameterize/update-sources ((the-document document)
+				     (the-cursor cursor)
+				     (the-editor (this))
+				     (the-selection-anchor
+				      selection-anchor))
+	 (safely
+	  (invoke (current-message-handler) 'clear-messages!)
+	  (let* ((content
+		  ::Enchanted
+		  (ColumnGrid
+		   `(,(Link content: (Caption "New")
+			    on-tap: (lambda _ (WARN "New") #t))
+		     ,(Link content: (Caption "Open...")
+			    on-tap: ((open-file) finger (this)))
+		     ,@(if (is (length (open-documents)) < 1)
+			   '()
+			   `(,(Link
+			       content:
+			       (Caption "Switch to...")
+			       on-tap:
+			       (lambda _
+				 (safely
+				  (screen:overlay:add!
+				   (document-switcher (this))))
+				 #t))))
+		     ,(Link content: (Caption "Save as...")
+			    on-tap: ((save-file) finger (this)))
+		     ,(Link content: (Caption "Close")
+			    on-tap: (lambda _ (WARN "Close") #t))
+		     )))
+		 (window ::PopUp (PopUp content: content)))
+	    (window:center-around! x y)
+	    (screen:overlay:add! window))))
+       ;; dodanie menu kontekstowego
+       #t)))
 
   (define (scroll-up! x::real y::real)::boolean
     (with-post-transform transform
-      (parameterize/update-sources ((the-document document)
-				    (the-cursor cursor)
-				    (the-editor (this))
-				    (the-selection-anchor
-				     selection-anchor))
-	(let* ((h ::real (painter:min-line-height)))
-	  (transform:translate! 0 h)
-	  #t))))
+      (with-view-edges-transformed transform
+       (parameterize/update-sources ((the-document document)
+				     (the-cursor cursor)
+				     (the-editor (this))
+				     (the-selection-anchor
+				      selection-anchor))
+	 (let* ((h ::real (painter:min-line-height)))
+	   (transform:translate! 0 h)
+	   #t)))))
   
   (define (scroll-down! x::real y::real)::boolean
     (with-post-transform transform
-      (parameterize/update-sources ((the-document document)
-				    (the-cursor cursor)
-				    (the-editor (this))
-				    (the-selection-anchor
-				     selection-anchor))
-	(let* ((h ::real (painter:min-line-height)))
-	  (transform:translate! 0 (- h))
-	  #t))))
+      (with-view-edges-transformed transform
+       (parameterize/update-sources ((the-document document)
+				     (the-cursor cursor)
+				     (the-editor (this))
+				     (the-selection-anchor
+				      selection-anchor))
+	 (let* ((h ::real (painter:min-line-height)))
+	   (transform:translate! 0 (- h))
+	   #t)))))
   
   (define (scroll-left! x::real y::real)::boolean
     (with-post-transform transform
-      (parameterize/update-sources ((the-document document)
-				    (the-cursor cursor)
-				    (the-editor (this))
-				    (the-selection-anchor
-				     selection-anchor))
-	(let* ((w ::real (painter:space-width)))
-	  (transform:translate! w 0)
-	  #t))))
+      (with-view-edges-transformed transform
+       (parameterize/update-sources ((the-document document)
+				     (the-cursor cursor)
+				     (the-editor (this))
+				     (the-selection-anchor
+				      selection-anchor))
+	 (let* ((w ::real (painter:space-width)))
+	   (transform:translate! w 0)
+	   #t)))))
 
   (define (scroll-right! x::real y::real)::boolean
     (with-post-transform transform
-      (parameterize/update-sources ((the-document document)
-				    (the-cursor cursor)
-				    (the-editor (this))
-				    (the-selection-anchor
-				     selection-anchor))
-	(let* ((w ::real (painter:space-width)))
+      (with-view-edges-transformed transform
+       (parameterize/update-sources ((the-document document)
+				     (the-cursor cursor)
+				     (the-editor (this))
+				     (the-selection-anchor
+				      selection-anchor))
+	 (let* ((w ::real (painter:space-width)))
 	  (transform:translate! (- w) 0))
-	#t)))
+	 #t))))
 
   (define (zoom-in! x::real y::real)::boolean
     (with-post-transform transform
-      (parameterize/update-sources ((the-document document)
-				    (the-cursor cursor)
-				    (the-editor (this))
-				    (the-selection-anchor
-				     selection-anchor))
-	(transform:scale! 1.25 0 0)
-	#t)))
-  
+      (with-view-edges-transformed transform
+       (parameterize/update-sources ((the-document document)
+				     (the-cursor cursor)
+				     (the-editor (this))
+				     (the-selection-anchor
+				      selection-anchor))
+	 (transform:scale! 1.25 0 0)
+	 #t))))
+
   (define (zoom-out! x::real y::real)::boolean
     (with-post-transform transform
-      (parameterize/update-sources ((the-document document)
-				    (the-cursor cursor)
-				    (the-editor (this))
-				    (the-selection-anchor
-				     selection-anchor))
-	(transform:scale! 0.8 0 0)
-	#t)))
+      (with-view-edges-transformed transform
+       (parameterize/update-sources ((the-document document)
+				     (the-cursor cursor)
+				     (the-editor (this))
+				     (the-selection-anchor
+				      selection-anchor))
+	 (transform:scale! 0.8 0 0)
+	 #t))))
 
   (define (rotate-left! x::real y::real)::boolean
     (with-post-transform transform
-      (parameterize/update-sources ((the-document document)
-				    (the-cursor cursor)
-				    (the-editor (this))
-				    (the-selection-anchor
-				     selection-anchor))
-	(transform:rotate! -5.0 x y)
-	#t)))
+      (with-view-edges-transformed transform
+       (parameterize/update-sources ((the-document document)
+				     (the-cursor cursor)
+				     (the-editor (this))
+				     (the-selection-anchor
+				      selection-anchor))
+	 (transform:rotate! -5.0 x y)
+	 #t))))
   
   (define (rotate-right! x::real y::real)::boolean
     (with-post-transform transform
-      (parameterize/update-sources ((the-document document)
-				    (the-cursor cursor)
-				    (the-editor (this))
-				    (the-selection-anchor
-				     selection-anchor))
-	(transform:rotate! 5.0 x y)
-	#t)))
+      (with-view-edges-transformed transform
+       (parameterize/update-sources ((the-document document)
+				     (the-cursor cursor)
+				     (the-editor (this))
+				     (the-selection-anchor
+				      selection-anchor))
+	 (transform:rotate! 5.0 x y)
+	 #t))))
   
   (define (key-typed! key-code::long context::Cursor)::boolean
     (with-post-transform transform
-      (parameterize/update-sources ((the-document document)
-				    (the-cursor cursor)
-				    (the-editor (this))
-				    (the-selection-anchor
-				     selection-anchor))
-	((keymap key-code))
-	#t)))
+      (with-view-edges-transformed transform
+       (parameterize/update-sources ((the-document document)
+				     (the-cursor cursor)
+				     (the-editor (this))
+				     (the-selection-anchor
+				      selection-anchor))
+	 ((keymap key-code))
+	 #t))))
 
   (define (can-split-beside? line::Area)::boolean
     (let* ((vicinity ::real
