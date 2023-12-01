@@ -1,3 +1,31 @@
+* 30.11.2023
+
+- naprawic Resize
+- naprawic Drag
+- naprawic gest ewaluacji
+
+idealnie byloby zrobic te 3 rzeczy do konca tygodnia
+
+#+BEGIN_SRC scheme
+(define (document-position-of-element-pointed-by cursor document 
+                                                 #!key (context::Cursor (recons 1 '())))
+  ::(Values real real)
+  (escape-with return
+    (define (action item ::Element traversal ::Traversal)
+      (let ((c (recons traversal:index context)))
+        (cond ((equal? c cursor)
+               (return (+ traversal:left traversal:parent-left)
+                       (+ traversal:top traversal:parent-top)))
+	      ((is c suffix? cursor)
+               (document-position-of-element-pointed-by cursor document c)))))
+    
+    (define (fallback t::Traversal)
+      (values (+ t:left t:parent-left) (+ t:top t:parent-top)))
+
+  (traverse document doing: action returning: fallback)))
+#+END_SRC
+
+
 * 29.11.2023
 
 mapowanie zrobilismy, ale chyba cos przy okazji zepsulismy w tescie

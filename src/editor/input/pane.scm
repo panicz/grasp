@@ -267,9 +267,8 @@
   (screen:overlay:add! selected))
 
 (define-object (Resize box::cons path::Cursor anchor::real
+		       left::real top::real
 		       editor::Editor)::Drag
-
-  (define position ::Position (screen-position box))
 
   (define initial ::Extent (copy (extent+ box)))
 
@@ -280,9 +279,9 @@
     (safely
      (let*-values (((x y) (editor:transform:outside-in x y))
 		   ((target-width target-height)
-		    (values (- x position:left)
+		    (values (- x left)
 			    (+ initial:height
-			       (- y position:top anchor)))))
+			       (- y top anchor)))))
        (resize! box target-width target-height ending))))
 
   (define (drop! x::real y::real vx::real vy::real)::void
@@ -1435,18 +1434,22 @@
   (define (tap! finger::byte #;at xe::real ye::real)::boolean
     (with-post-transform transform
       (with-view-edges-transformed transform
-       (parameterize/update-sources ((the-document document))
-	 (let-values (((x y) (transform:outside-in xe ye)))
-	   (let* ((target-cursor (cursor-under x y))
-		  (target (the-expression at: target-cursor)))
-	     (match target
-	       (enchanted::Interactive
-		(enchanted:tap! finger x y))
-	       (else
-		(set! cursor target-cursor)
-		(set! selection-anchor cursor)
+	(parameterize/update-sources ((the-document document))
+	  (let-values (((x y) (transform:outside-in xe ye)))
+	    (let* ((target-cursor (cursor-under x y))
+		   (target (the-expression at: target-cursor)))
+	      (let*-values (((x0 y0) (document-position-of-element-pointed-by
+				      target-cursor
+				      (car document)))
+			    ((x* y*) (transform:inside-out x0 y0)))
+		(match target
+		  (enchanted::Interactive
+		   (enchanted:tap! finger x y))
+		  (else
+		   (set! cursor target-cursor)
+		   (set! selection-anchor cursor)
 
-		#t))))))))
+		   #t)))))))))
   
   (define (press! finger::byte #;at xe::real ye::real)::boolean
     (with-post-transform transform
@@ -1460,12 +1463,12 @@
 		       (the-selection))
 		      ((x y) (transform:outside-in xe ye)))
 	   (and-let* ((path (cursor-under x y))
+		      (xd yd (document-position-of-element-pointed-by
+			      path (car document)))
 		      (`(,tip . ,subpath) path)
 		      (parent ::Element (the-expression
 					 at: subpath))
-		      (target ::Element (parent:part-at tip))
-		      (position ::Position (screen-position
-					    target)))
+		      (target ::Element (parent:part-at tip)))
 	     (cond
 	      #;((isnt parent eq? target)
 	      (WARN "reached non-final item on press"))
@@ -1550,12 +1553,12 @@
 
 	      ((and (is target cons?)
 		    (eqv? tip (target:last-index)))
-	       (let-values (((left top) (transform:inside-out position:left
-							      position:top)))
+	       (let-values (((left top) (document-position-of-element-pointed-by
+					 path (car document))))
 		 (let ((extent ::Extent (extent+ target)))
 		   (screen:drag! finger
 				 (Resize target subpath
-					 (- ye top)
+					 (- yd top) left top
 					 (this))))))
 	      (else
 	       (screen:drag! finger
@@ -1581,9 +1584,7 @@
 		      (`(,tip . ,subpath) path)
 		      (parent ::Element (the-expression
 					 at: subpath))
-		      (target ::Element (parent:part-at tip))
-		      (position ::Position (screen-position
-					    target)))
+		      (target ::Element (parent:part-at tip)))
 	     (cond
 	      #;((isnt parent eq? target)
 	      (WARN "reached non-final item on press"))

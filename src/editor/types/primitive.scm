@@ -71,9 +71,6 @@
 (define (editing?) ::boolean
   (eq? (cell-access-mode) CellAccessMode:Editing))
 
-(define-property+ (screen-position element #|::Element|#)::Position
-  (Position))
-
 ;; The purpose of Atoms is to solve the problem that
 ;; the actual atomic Scheme values have different
 ;; types (e.g. the result of reading "1" is a number,
@@ -565,17 +562,11 @@
 	  (with-translation (traversal:left
 			     traversal:top)
 	    (when (is item instance? Tile)
-	      (let* ((position ::Position (screen-position item))
-		     (document-left ::real (+ traversal:left traversal:parent-left))
+	      (let* ((document-left ::real (+ traversal:left traversal:parent-left))
 		     (document-top ::real (+ traversal:top traversal:parent-top))
 		     (e ::Extent (extent+ item))
 		     (document-right ::real (+ document-left e:width))
 		     (document-bottom ::real (+ document-top e:height)))
-
-		(set! position:left
-		      (painter:current-translation-left))
-		(set! position:top
-		      (painter:current-translation-top))
 
 		(unless (visible? document-left document-top
 				  document-right document-bottom)
@@ -715,6 +706,32 @@
 	...)))))
 
 |#
+
+
+(define (document-position-of-element-pointed-by cursor document 
+                                                 #!key (context::Cursor (recons 1 '())))
+  ::(Values real real)
+  (escape-with return
+    (define (action item ::Element traversal ::Traversal)
+      (let ((c (recons traversal:index context)))
+        (cond ((or (equal? c cursor)
+		   (and (pair? cursor)
+			(equal? c (cdr cursor))))
+               (return (+ traversal:left traversal:parent-left)
+                       (+ traversal:top traversal:parent-top)))
+	      ((is c suffix? cursor)
+	       (cond ((pair? item)
+		      (let-values (((x y) (document-position-of-element-pointed-by
+					   cursor item context: c)))
+			(return (+ x (painter:paren-width)) y)))
+		     (else
+		      (return (+ traversal:left traversal:parent-left)
+			      (+ traversal:top traversal:parent-top))))))))
+   
+    (define (fallback t::Traversal)
+      (values (+ t:left t:parent-left) (+ t:top t:parent-top)))
+
+    (traverse document doing: action returning: fallback)))
 
 (define (sequence-extent #!optional
 			 (elems::list (head (the-document))))
