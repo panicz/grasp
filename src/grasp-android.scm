@@ -1385,9 +1385,9 @@
 
     (match config:orientation
       (,AndroidConfiguration:ORIENTATION_LANDSCAPE
-       (WARN 'landscape))
+       (WARN 'landscape (screen:size)))
       (,AndroidConfiguration:ORIENTATION_PORTRAIT
-       (WARN 'portrait))))
+       (WARN 'portrait (screen:size)))))
 
   (define (onActivityResult requestCode::int
 			    resultCode::int
@@ -1643,8 +1643,7 @@
       (observer:addOnGlobalLayoutListener
        (lambda ()
 	 (parent:getWindowVisibleDisplayFrame span)
-	 (set! screen:extent:width (span:width))
-	 (set! screen:extent:height (span:height)))))
+	 (screen:set-size! (span:width) (span:height)))))
     
     (set-painter! view)
     
@@ -1662,7 +1661,6 @@
 	  (cons (lambda _
 		  (view:showKeyboard))
 		screen:after-tap))
-    
     )
 
   (AndroidActivity)
