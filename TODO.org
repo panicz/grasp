@@ -1,3 +1,16 @@
+* 01.12.2023
+
+Czesc problemow z Resize udalo sie rozwiazac (i usunac screen-position w zamian wprowadzajac document-position),
+
+Ale nadal jest problem jezeli probujemy zmienic rozmiar z innego miejsca, niz
+lewy gorny edytor, to cos jeszcze nie dziala, i chyba to bysmy chcieli dzis
+naprawic
+
+Tosmy naprawili.
+
+To teraz pozostaje nam gest ewaluacji chiba.
+
+
 * 30.11.2023
 
 - naprawic Resize
