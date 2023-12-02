@@ -272,18 +272,20 @@
 
   (define initial ::Extent (copy (extent+ box)))
 
+  (define width ::real initial:width)
+  (define height ::real initial:height)
+  
   (define ending ::LineEnding
     (line-ending-embracing anchor #;from box))
 
   (define (move! x::real y::real dx::real dy::real)::void
     (safely
-     (let*-values (((x y) (editor:transform:outside-in x y))
-		   ((target-width target-height)
-		    (values (- x left)
-			    (+ initial:height
-			       (- y top anchor)))))
-       (resize! box target-width target-height ending))))
-
+     (let*-values (((zx zy) (editor:transform:outside-in 0 0))
+		   ((dx* dy*) (editor:transform:outside-in dx dy)))
+       (set! width (+ width (- dx* zx)))
+       (set! height (+ height (- dy* zy)))
+       (resize! box width height ending))))
+  
   (define (drop! x::real y::real vx::real vy::real)::void
     (let ((final ::Extent (extent+ box))
 	  (history ::History (history (the-document))))
