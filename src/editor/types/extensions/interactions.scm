@@ -81,7 +81,7 @@
 
 (define-interface Layer (Indexable Pane))
 
-(define-interface Embeddable (Pane)
+(define-interface Embeddable (Pane Map2D)
   (drop-at! x::real y::real expression::pair)::boolean
   
   (pane-under x::real y::real)::Embeddable

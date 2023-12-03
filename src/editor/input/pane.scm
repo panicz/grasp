@@ -534,6 +534,12 @@
 		(target:drop-at! x y object))
 	      x y
 	      never))
+
+  ((outside-in x::real y::real)::(Values real real)
+   (propagate (lambda (target::Embeddable x::real y::real)
+		(target:outside-in x y))
+              x y
+              values))
   
   ((pane-under x::real y::real)::Embeddable
    (propagate (lambda (target::Embeddable x::real y::real)
@@ -1372,6 +1378,9 @@
 			  cursor)))
 	   (else
 	    (WARN "unhandled "tip" in "parent))))))))
+
+  (define (outside-in x::real y::real)::(Values real real)
+    (transform:outside-in x y))
   
   (define previously-edited
     (property (document::Document)

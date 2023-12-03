@@ -50,45 +50,47 @@ def") ===> [Extent width: 3 height: 2])
       (set! result:bottom (max result:bottom p:top)))
     result))
 
-
 (define-interface Map2D ()
-  (outside-in x::real y::real)::(Values real real)
-  (inside-out x::real y::real)::(Values real real)
-  )
+  (outside-in x::real y::real)::(Values real real))
 
-(define-object (TransformStack)::Map2D
-  (define transforms ::($bracket-apply$ java.util.ArrayList Map2D)
-    (($bracket-apply$ java.util.ArrayList Map2D)))
+(define-interface UnMap2D ()
+  (inside-out x::real y::real)::(Values real real))
+
+(define-interface BiMap2D (Map2D UnMap2D))
+
+(define-object (TransformStack)::BiMap2D
+  (define transforms ::($bracket-apply$ java.util.ArrayList BiMap2D)
+    (($bracket-apply$ java.util.ArrayList BiMap2D)))
 
   (define (outside-in x::real y::real)::(Values real real)
-    (for transform::Map2D in transforms
+    (for transform::BiMap2D in transforms
       (let-values (((x* y*) (transform:outside-in x y)))
 	(set! x x*)
 	(set! y y*)))
     (values x y))
 
   (define (inside-out x::real y::real)::(Values real real)
-    (for transform::Map2D in-reverse transforms
+    (for transform::BiMap2D in-reverse transforms
       (let-values (((x* y*) (transform:inside-out x y)))
 	(set! x x*)
 	(set! y y*)))
     (values x y))
 
-  (define (addLast transform::Map2D)::void
+  (define (addLast transform::BiMap2D)::void
     (transforms:add (transforms:size) transform))
 
-  (define (addFirst transform::Map2D)::void
+  (define (addFirst transform::BiMap2D)::void
     (transforms:add 0 transform))
 
-  (define (removeLast)::Map2D
+  (define (removeLast)::BiMap2D
     (let* ((index ::int (- (transforms:size) 1))
-	   (result ::Map2D (transforms index)))
+	   (result ::BiMap2D (transforms index)))
       (transforms:remove index)
       result))
 
-  (define (removeFirst)::Map2D
+  (define (removeFirst)::BiMap2D
     (let* ((index ::int 0)
-	   (result ::Map2D (transforms index)))
+	   (result ::BiMap2D (transforms index)))
       (transforms:remove index)
       result))
   )

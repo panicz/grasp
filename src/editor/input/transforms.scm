@@ -24,7 +24,7 @@
   (set-top! t::real)::void
   )
   
-(define-interface Transform (Map2D TransformParameters Struct)
+(define-interface Transform (BiMap2D TransformParameters Struct)
   (within painter::Painter action::procedure)::void
 
   (translate! dx::real dy::real)::void
