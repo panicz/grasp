@@ -1,6 +1,15 @@
+* 02.12.2023 (telefon)
+
+1. zmieniamy Map2D na BiMap2D
+2. tworzymynnowe Map2D z metoda outside-in
+3. tworzymy UnMap2d z metoda inside-out
+
+i teraz chcemy, zeby Embeddable bylo Map2D
+
 * 01.12.2023
 
-Czesc problemow z Resize udalo sie rozwiazac (i usunac screen-position w zamian wprowadzajac document-position),
+Czesc problemow z Resize udalo sie rozwiazac (i usunac screen-position
+w zamian wprowadzajac document-position),
 
 Ale nadal jest problem jezeli probujemy zmienic rozmiar z innego miejsca, niz
 lewy gorny edytor, to cos jeszcze nie dziala, i chyba to bysmy chcieli dzis
