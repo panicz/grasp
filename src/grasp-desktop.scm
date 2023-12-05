@@ -142,10 +142,10 @@
 	    height: size:height)))
 
 (define-constant Iosevka ::Font
-  (load-font "/assets/iosevka-fixed-semibold.ttf" size: 16))
+  (load-font "/assets/iosevka-fixed-semibold.ttf" size: 14))
 
-(define-constant BarlowCondensed ::Font
-  (load-font "/assets/BarlowCondensed-Medium.ttf" size: 28))
+(define-constant Roboto-Medium ::Font
+  (load-font "/assets/Roboto-Medium.ttf" size: 16))
 
 (define-constant Basic-Regular ::Font
   (load-font "/assets/Basic-Regular.otf" size: 20))
@@ -163,7 +163,7 @@
   (load-font "/assets/Basic-Regular.otf" size: 21))
 
 (define-constant NotoSerif-Regular ::Font
-  (load-font "/assets/NotoSerif-Regular.ttf" size: 16))
+  (load-font "/assets/NotoSerif-Regular.ttf" size: 12))
 
 (define-constant directory-icon ::SVGDocument
   (load-svg "/assets/directory.svg"))
@@ -172,7 +172,7 @@
   (load-svg "/assets/file.svg"))
 
 (define-parameter+ (the-atom-font) ::Font
-  BarlowCondensed)
+  Roboto-Medium)
 
 (define-parameter+ (the-string-font) ::Font
   Iosevka)
@@ -209,12 +209,10 @@
 
 (define-constant top-left-paren ::Path2D
   (Path
-   (moveTo 0 25)
-   (lineTo 0 10)
+   (moveTo 0 10)
    (quadTo 0 0 10 0)
    (lineTo 10 5)
    (quadTo 5 5 5 10)
-   (lineTo 5 25)
    (closePath)))
 
 (define-constant top-left-bounds ::Rectangle
@@ -223,11 +221,9 @@
 (define-constant bottom-left-paren ::Path2D
   (Path
    (moveTo 0 0)
-   (lineTo 0 15)
-   (quadTo 0 25 10 25)
-   (lineTo 10 20)
-   (quadTo 5 20 5 15)
-   (lineTo 5 0)
+   (quadTo 0 10 10 10)
+   (lineTo 10 5)
+   (quadTo 5 5 5 0)
    (closePath)))
 
 (define-constant bottom-left-bounds ::Rectangle
@@ -237,8 +233,6 @@
   (Path
    (moveTo 0 0)
    (quadTo 10 0 10 10)
-   (lineTo 10 25)
-   (lineTo 5 25)
    (lineTo 5 10)
    (quadTo 5 5 0 5)
    (closePath)))
@@ -249,11 +243,9 @@
 (define-constant bottom-right-paren ::Path2D
   (Path
    (moveTo 10 0)
-   (lineTo 10 15)
-   (quadTo 10 25 0 25)
-   (lineTo 0 20)
-   (quadTo 5 20 5 15)
-   (lineTo 5 0)
+   (quadTo 10 10 0 10)
+   (lineTo 0 5)
+   (quadTo 5 5 5 0)
    (closePath)))
 
 (define-constant bottom-right-bounds ::Rectangle
@@ -325,17 +317,17 @@
 
 (define-constant single-quote ::Path2D
   (Path
-   (moveTo 3.75 0)
-   (quadTo 7.5 0 7.5 3.75)
-   (quadTo 7.5 7.5 3.75 7.5)
-   (quadTo 0 7.5 0 3.75)
-   (quadTo 0 0 3.75 0)
+   (moveTo 2.5 0)
+   (quadTo 5 0 5 2.5)
+   (quadTo 5 5 2.5 5)
+   (quadTo 0 5 0 2.5)
+   (quadTo 0 0 2.5 0)
    (closePath)
 
-   (moveTo (+ 3.75 (* 0.5 3.75 (sqrt 2)))
-	   (- 3.75 (* 0.5 3.75 (sqrt 2))))
-   (quadTo 11.25 11.25 0 15)
-   (quadTo 3.75 15 3.75 7.5)
+   (moveTo (+ 2.5 (* 0.5 2.5 (sqrt 2)))
+	   (- 2.5 (* 0.5 2.5 (sqrt 2))))
+   (quadTo 7.5 7.5 0 10)
+   (quadTo 2.5 10 2.5 5)
    (closePath)
    ))
 
@@ -1148,8 +1140,8 @@
     (let* ((extent (atom-extent text))
 	   (font (the-atom-font)))
       (set-color! atom-frame-color)
-      (graphics:fillRoundRect 0 14
-			      extent:width (- extent:height 28)
+      (graphics:fillRoundRect 0 10
+			      extent:width (- extent:height 20)
 			      12 12)
       (with-translation (4 8)
 	(parameterize ((the-cursor-offset atom-cursor-offset))

@@ -184,9 +184,9 @@
   (define Basic-Regular
     (load-font "Basic-Regular.otf" activity))
   
-  (define BarlowCondensed
-    (load-font "BarlowCondensed-Medium.ttf" activity))
-
+  (define Roboto-Medium
+    (load-font "Roboto-Medium.ttf" activity))
+  
   (define Oswald-Regular ::Typeface
     (load-font "Oswald-Regular.ttf" activity))
 
@@ -216,8 +216,8 @@
 
   (define the-atom-font ::($bracket-apply$ parameter Font)
     (make-parameter
-     (Font face: BarlowCondensed
-	   size: 56)))
+     (Font face: Roboto-Medium
+	   size: 36)))
 
   (define the-string-font ::($bracket-apply$ parameter Font)
     (make-parameter
@@ -270,12 +270,10 @@
 
   (define top-left-paren ::Path2D
     (Path
-     (moveTo 0 50)
-     (lineTo 0 20)
+     (moveTo 0 20)
      (quadTo 0 0 20 0)
      (lineTo 20 10)
      (quadTo 10 10 10 20)
-     (lineTo 10 50)
      (close)))
 
   (define top-left-extent ::Extent
@@ -284,11 +282,9 @@
   (define bottom-left-paren ::Path2D
     (Path
      (moveTo 0 0)
-     (lineTo 0 30)
-     (quadTo 0 50 20 50)
-     (lineTo 20 40)
-     (quadTo 10 40 10 30)
-     (lineTo 10 0)
+     (quadTo 0 20 20 20)
+     (lineTo 20 10)
+     (quadTo 10 10 10 0)
      (close)))
 
   (define bottom-left-extent ::Extent
@@ -298,8 +294,6 @@
     (Path
      (moveTo 0 0)
      (quadTo 20 0 20 20)
-     (lineTo 20 50)
-     (lineTo 10 50)
      (lineTo 10 20)
      (quadTo 10 10 0 10)
      (close)))
@@ -310,11 +304,9 @@
   (define bottom-right-paren ::Path2D
     (Path
      (moveTo 20 0)
-     (lineTo 20 30)
-     (quadTo 20 50 0 50)
-     (lineTo 0 40)
-     (quadTo 10 40 10 30)
-     (lineTo 10 0)
+     (quadTo 20 20 0 20)
+     (lineTo 0 10)
+     (quadTo 10 10 10 0)
      (close)))
 
   (define bottom-right-extent ::Extent
@@ -1213,11 +1205,11 @@
     (let* ((font (the-atom-font))
 	   (extent ::Extent (text-extent text font)))
       (set-color! atom-frame-color)
-      (canvas:drawRoundRect (as int 0) (as int 28)
-			    (as int (+ extent:width 8))
-			    (as int (+ extent:height 16))
+      (canvas:drawRoundRect (as int 0) (as int 20)
+			    (as int (+ extent:width 4))
+			    (as int (+ extent:height 8))
 			    12 12 paint)
-      (with-translation (4 16)
+      (with-translation (4 8)
 	(parameterize ((the-cursor-offset
 			atom-cursor-offset))
 	  (draw-text! text font context)))))
