@@ -10,7 +10,7 @@ PKGNAME="$(grep -o "package=.*" AndroidManifest.xml | cut -d\" -f2)"
 
 JARS="../libs/kawa.jar:../libs/android.jar:../libs/androidsvg-1.4.jar"
 
-aapt package -f -m \
+aapt package -I tools/android.jar -f -m \
      -M "AndroidManifest.xml" \
      -J "build/android/gen" \
      -S "res" || exit
@@ -30,13 +30,14 @@ java -cp "$JARS:../build/android/obj" \
      -C grasp-android.scm || exit
 cd ..
 
-d8 --min-api 23 --lib libs/android.jar \
+java -cp tools/d8.jar com.android.tools.r8.D8 \
+     --min-api 23 --lib libs/android.jar \
    `find build/android/obj -name '*.class'` libs/kawa.dex \
     libs/androidsvg-1.4.dex || exit
 
 mv classes.dex build/android/bin/
 
-aapt package -f \
+aapt package -I tools/android.jar -f \
        	-M AndroidManifest.xml \
        	-S res \
        	-A assets \
@@ -54,7 +55,7 @@ if [ ! -s ~/pland.keystore ]; then
 	    -alias pland -keyalg RSA -keysize 2048 -validity 10000
 fi
 
-apksigner sign --ks ~/pland.keystore \
+java -jar ../../../tools/apksigner.jar sign --ks ~/pland.keystore \
 	  --ks-key-alias pland --ks-pass pass:quack01 \
      "aligned-$PKGNAME.apk"
 

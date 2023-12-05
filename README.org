@@ -25,9 +25,8 @@ and a terminal client
 
 ** Building the Android client
 
-I only have experience building the Android client
-in a Termux app on Android devices. It requires
-the tools that are installed for the
+The Android client can be built in the Termux app on Android 
+devices. It requires the tools that are installed for the
 [[https://github.com/BuildAPKs/buildAPKs][buildAPKs]] project (you can review the ~build-android.sh~
 script for the details).
 
@@ -43,7 +42,12 @@ to type in the terminal:
 
 On the first run, it generates and stores a key for signing
 the package - if you want to be serious about it, you'd
-probably need to update the credentials.
+probably need to update the credentials (or something).
+
+The script should also work on most other systems, but
+- in addition to JVM runtime - it requires tools such as
+~aapt~ and ~zipalign~ (other, JVM-based tools such as
+~d8~ or ~apksigner~ are included in the ~tools~ directory).
 
 ** Running and/or building the desktop/terminal client
 
