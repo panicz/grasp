@@ -1,3 +1,53 @@
+* 05.12.2023
+
+Przeanalizujmy sobie "mark-cursor!".
+
+Na pewno jest uzywany w (editor types spaces).
+
+Poza tym w:
+
+text-painter:
+- draw-horizontal-bar!
+- draw-vertical-bar!
+- draw-custom-box!
+- draw-quote-markers!
+- draw-quasiquote-markers!
+- draw-unquote-markers!
+- draw-unquote-splicing-markers!
+- draw-string!
+
+grasp-android:
+- operning-parenthesis-color
+- closing-parenthesis-color
+- draw-text!
+
+grasp-desktop:
+- opening-parenthesis-color
+- closing-parenthesis-color
+- draw-text!
+
+
+#+BEGIN_SRC
+  0  5 10 15 20 25
+ 0X  X
+ 5    
+10
+15X  X
+20      X
+25      X
+
+  0  5 10 15 20 25
+ 0X  X
+ 5
+10      X
+15      X
+
+
+
+#+END_SRC
+
+
+
 * 03.12.2023
 
 no to teraz mamy plan taki, zeby zrobic pionowy ruch kursora - ale zeby zrobic go dobrze
