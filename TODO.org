@@ -1,3 +1,47 @@
+* 03.12.2023
+
+no to teraz mamy plan taki, zeby zrobic pionowy ruch kursora - ale zeby zrobic go dobrze
+
+i jak zwykle w takich okolicznosciach dobrze jest zaczac od tego, zeby zapytac,
+w jaki sposob jest to aktualnie zrobione
+
+#+BEGIN_SRC scheme
+(define (move-cursor-up!)
+  (let* ((target (the-expression))
+	 (initial-position ::Position (painter:cursor-position))
+	 (cursor-height (painter:cursor-height))
+	 (initial-cursor (the-cursor)))
+    (let probe ((attempt 1))
+      (let* ((shift (* attempt cursor-height))
+	     (cursor (cursor-under (cursor-column)
+				  (- initial-position:top
+				     shift))))
+	(cond ((isnt cursor equal? initial-cursor)
+	       (set! (the-cursor) cursor)
+	       (set! (the-selection-anchor) cursor))
+	      ((is 0 < shift < initial-position:top)
+	       (probe (+ attempt 1))))))))
+
+(define (move-cursor-down!)
+  (let* ((target (the-expression))
+	 (initial-position ::Position (painter:cursor-position))
+	 (cursor-height (painter:cursor-height))
+	 (document-extent ::Extent (sequence-extent))
+	 (initial-cursor (the-cursor)))
+    (let probe ((attempt 1))
+      (let* ((shift (* attempt cursor-height))
+	     (cursor (cursor-under (cursor-column)
+				  (+ initial-position:top
+				     shift))))
+	(cond ((isnt cursor equal? initial-cursor)
+	       (set! (the-cursor) cursor)
+	       (set! (the-selection-anchor) cursor))
+	      ((is 0 < shift < (+ initial-position:top shift)
+		   < document-extent:height)
+	       (probe (+ attempt 1)))
+	      )))))
+#+END_SRC
+
 * 02.12.2023 (telefon)
 
 1. zmieniamy Map2D na BiMap2D
@@ -5,6 +49,25 @@
 3. tworzymy UnMap2d z metoda inside-out
 
 i teraz chcemy, zeby Embeddable bylo Map2D
+
+* 02.12.2023
+
+jak juz przywrocimy ten gest ewaluacji (zeby dzialal tak jak dzialal wczesniej), to bysmy sie zajeli
+moze ruchem strzalek w gore i w dol?
+
+To brzmi OK.
+
+A po tym bysmy sie zajeli z powrotem edycja, tak zeby:
+- dzialal drag&drop na komentarzach i stringach
+- nie bylo bledow przy edycji z klawiatury
+- dalo sie wprowadzac znaki #\[, #\] itd.
+
+Ale poki co jednak rzeczywiscie - ruch strzalek.
+
+I tutaj mamy tak:
+
+- ruch strzalek wewnatrz tekstu/komentarza blokowego
+- ruch strzalek wewnatrz listy (spacji, atomow)
 
 * 01.12.2023
 
