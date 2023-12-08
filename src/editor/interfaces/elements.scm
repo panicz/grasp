@@ -45,7 +45,11 @@
 			max-width: real := 0
 			max-line-height: real := 0
 			parent-left: real := 0
-			parent-top: real := 0)
+			parent-top: real := 0
+			parent: Traversal := #!null
+			previous-line-height: real := 0
+			on-end-line: (maps () to: void)
+			:= nothing)
   extending Base with
   ((advance! element::Element)::void
    (cond
@@ -67,12 +71,20 @@
    (set! max-line-height (max extent:height
 			      max-line-height)))
 
+  ((preceding-line-height)
+   (if (and (zero? previous-line-height) parent)
+       (parent:preceding-line-height)
+       previous-line-height))
+  
   ((new-line!)::void
+   (on-end-line)
    (set! top (+ top max-line-height))
    (set! left 0)
+   (set! previous-line-height max-line-height)
    (set! max-line-height (painter:min-line-height)))
 
   )
+
 
 (define-interface Expandable ()
   (expand! t::Traversal)::void)

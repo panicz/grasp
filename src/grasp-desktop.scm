@@ -865,11 +865,20 @@
 
   (define (mark-cursor! +left::real +top::real)::void
     (let ((cursor-extent (the-cursor-extent))
-	  (cursor-offset (the-cursor-offset)))
-      (set! marked-cursor-position:left (+ (current-translation-left)
-					   +left))
-      (set! marked-cursor-position:top (+ (current-translation-top)
-					  +top))
+	  (cursor-offset (the-cursor-offset))
+	  (traversal ::Traversal (the-traversal)))
+      (set! traversal:on-end-line
+	    (lambda ()
+	      (DUMP (traversal:preceding-line-height)
+		    traversal:max-line-height)
+	      (set! traversal:on-end-line nothing)))
+	      
+      (set! marked-cursor-position:left
+	    (+ (current-translation-left) +left))
+      
+      (set! marked-cursor-position:top
+	    (+ (current-translation-top) +top))
+      
       (graphics:fillRect (+ +left cursor-offset:left)
 			 (+ +top cursor-offset:top)
 			 cursor-extent:width

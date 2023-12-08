@@ -69,8 +69,8 @@
   (eq? (cell-access-mode) CellAccessMode:Evaluating))
 
 (define (editing?) ::boolean
-  (eq? (cell-access-mode) CellAccessMode:Editing))
-
+  (eq? (cell-access-mode) CellAccessMode:Editing)
+)
 ;; The purpose of Atoms is to solve the problem that
 ;; the actual atomic Scheme values have different
 ;; types (e.g. the result of reading "1" is a number,
@@ -474,7 +474,8 @@
 			parent-left: (+ parent:parent-left
 					parent:left)
 			parent-top: (+ parent:parent-top
-				       parent:top))))
+				       parent:top)
+			parent: parent)))
 
        (parameterize ((the-traversal traversal))
 
@@ -511,10 +512,12 @@
              (traversal:advance! post-head)
              (cond ((dotted? pair)
 		    (step-over-dotted-tail! pair)
+		    (traversal:on-end-line)
 		    (result traversal))
 		   ((pair? (tail pair))
 		    (step! (tail pair)))
 		   (else
+		    (traversal:on-end-line)
 		    (result traversal)))))
 
 	 (if (pair? sequence)
@@ -522,7 +525,9 @@
                (action pre-head traversal)
                (traversal:advance! pre-head)
                (step! sequence))
-	     (result traversal))
+	     (begin
+	       (traversal:on-end-line)
+	       (result traversal)))
 	 )))
     ((_ sequence doing: action)
      (traverse* sequence doing: action returning: nothing))
