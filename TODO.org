@@ -64,6 +64,76 @@ grasp-desktop:
 
 #+END_SRC
 
+* 05.12.2023 (telefon)
+
+Plan jest taki, zeby pozostac przy aktualnym rozwiazaniu
+w kwestii pionowego ruchu kursora, ale z jednym malym twistem:
+- chcemy zapamietac polozenie linii poprzedzajacej kursor,
+  oraz polozenie linii nastepujacej po kursorze
+
+Aktualnie mamy w painterze:
+
+  (mark-cursor! +left::real +top::real)::void
+  (cursor-position)::Position
+  (cursor-height)::real
+
+  pierwsza rzecz jest taka, ze one nie powinny byc
+  w painterze, tylko w Editorze [oczywiscie rysowanie
+  kursora moze byc]
+
+  To bysmy robili tak, ze bysmy wywolywali "mark-cursor!"
+  na elemencie (the-editor) - ktory by musial implementowac
+  odpowiedni interfejs
+
+
+* 04.12.2023
+
+dzis bysmy sie zajeli tymi klawiszami w gore i w dol.
+wyobrazam sobie, ze to powinno dzialac tak:
+1. najpierw wywolujemy 'index-above' albo 'index-below'
+   na docelowym elemencie. Jezeli indeks sie zmieni,
+   to konczymy. Jezeli nie, to
+2. wywolujemy odpowiednia funkcje na rodzicu danego
+   elementu
+
+...
+
+n. i tak dalej, az trafimy na indeks, ktory sie zmieni, albo
+   dojdziemy do korzenia kursora
+
+
+#+BEGIN_SRC scheme
+  (define (cursor-above #!optional
+			(cursor::Cursor (the-cursor))
+			(document (the-document)))
+    (and-let* ((`(,tip . ,root)  cursor)
+	       (parent ::Element (cursor-ref document root))
+	       (target ::Element (parent:part-at tip))
+	       (above (target:index-above tip)))
+      (cond ((isnt above equal? tip)
+	     (recons above root))
+	    ((eq? parent target)
+	     (and-let* ((`(,leaf . ,stem) root))
+	       (cursor-above stem document)))
+	    (else
+	     (cursor-above root document)))))
+
+  (define (cursor-below #!optional
+			(cursor::Cursor (the-cursor))
+			(document (the-document)))
+    (and-let* ((`(,tip . ,root)  cursor)
+	       (parent ::Element (cursor-ref document root))
+	       (target ::Element (parent:part-at tip))
+	       (below (target:index-below tip)))
+      (cond ((isnt below equal? tip)
+	     (recons below root))
+	    ((eq? parent target)
+	     (and-let* ((`(,leaf . ,stem) root))
+	       (cursor-below stem document)))
+	    (else
+	     (cursor-below root document)))))
+  
+#+END_SRC
 
 
 * 03.12.2023

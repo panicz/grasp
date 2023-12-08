@@ -232,7 +232,7 @@
   (define the-caption-font ::($bracket-apply$ parameter Font)
     (make-parameter
      (Font face: M+1p #;Oswald-Regular
-	   size: 42)))
+	   size: 34)))
 
   (define the-text-input-font ::($bracket-apply$ parameter Font)
     (make-parameter
@@ -242,10 +242,10 @@
   (define the-block-comment-font ::($bracket-apply$ parameter Font)
     (make-parameter
      (Font face: NotoSerif-Regular
-	   size: 36)))
+	   size: 28)))
 
   (define the-block-comment-margin ::($bracket-apply$ parameter real)
-    (make-parameter 10))
+    (make-parameter 6))
 
   (define the-log-font ::($bracket-apply$ parameter Font)
     (make-parameter
@@ -374,17 +374,17 @@
 
   (define single-quote ::Path2D
     (Path
-     (moveTo 7.5 0)
-     (quadTo 15 0 15 7.5)
-     (quadTo 15 15 7.5 15)
-     (quadTo 0 15 0 7.5)
-     (quadTo 0 0 7.5 0)
+     (moveTo 5 0)
+     (quadTo 10 0 10 5)
+     (quadTo 10 10 5 10)
+     (quadTo 0 10 0 5)
+     (quadTo 0 0 5 0)
      (close)
 
-     (moveTo (+ 7.5 (* 0.5 7.5 (sqrt 2)))
-	     (- 7.5 (* 0.5 7.5 (sqrt 2))))
-     (quadTo 22.5 22.5 0 30)
-     (quadTo 7.5 30 7.5 15)
+     (moveTo (+ 5 (* 0.5 5 (sqrt 2)))
+	     (- 5 (* 0.5 5 (sqrt 2))))
+     (quadTo 15 15 0 20)
+     (quadTo 5 20 5 10)
      (close)
      ))
 
@@ -1205,11 +1205,11 @@
     (let* ((font (the-atom-font))
 	   (extent ::Extent (text-extent text font)))
       (set-color! atom-frame-color)
-      (canvas:drawRoundRect (as int 0) (as int 20)
-			    (as int (+ extent:width 4))
-			    (as int (+ extent:height 8))
+      (canvas:drawRoundRect (as int 2) (as int 12)
+			    (as int (+ extent:width 10))
+			    (as int (+ extent:height 6))
 			    12 12 paint)
-      (with-translation (4 8)
+      (with-translation (6 4)
 	(parameterize ((the-cursor-offset
 			atom-cursor-offset))
 	  (draw-text! text font context)))))
@@ -1522,7 +1522,6 @@
     (let ((scheme ::gnu.expr.Language
 		  (or kawa.standard.Scheme:instance
 		      (kawa.standard.Scheme))))
-
       (kawa.standard.Scheme:registerEnvironment)
       (gnu.mapping.Environment:setCurrent
        (scheme:getEnvironment)))
