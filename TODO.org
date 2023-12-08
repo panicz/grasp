@@ -1,3 +1,21 @@
+* 07.12.2023
+
+No to teraz musimy sobie wyobrazic jak bysmy chcieli, zeby to bylo
+wszystko zrobione.
+
+Otóż byśmy chcieli, żeby wywoływać ((the-editor):mark-cursor!),
+
+* 06.12.2023
+
+No dobra, to mamy kilka zagwozdek.
+
+Jezeli idzie o poruszanie kursorem w gore i w dol,
+to sprawy maja sie tak, ze:
+- jak robimy traverse, to licza sie tylko listy i atomy
+
+Wydaje sie, ze w tej dziedzinie nasza nowa metoda mialaby
+nawet szanse zadzialac
+
 * 05.12.2023
 
 Przeanalizujmy sobie "mark-cursor!".
