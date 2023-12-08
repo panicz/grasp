@@ -18,7 +18,7 @@
 (import (language for))
 (import (language while))
 (import (editor interfaces elements))
-(import (editor types extensions interactions))
+
 (import (editor interfaces painting))
 (import (utils print))
 (import (editor types primitive))

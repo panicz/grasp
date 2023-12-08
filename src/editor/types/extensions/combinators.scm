@@ -11,7 +11,7 @@
 
 (import (language match))
 (import (language infix))
-(import (editor types extensions interactions))
+
 (import (editor types extensions extensions))
 
 (define-type (Bordered element: Enchanted)

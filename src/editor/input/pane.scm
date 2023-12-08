@@ -21,7 +21,7 @@
 (import (language fundamental))
 (import (editor interfaces elements))
 (import (editor document cursor))
-(import (editor types extensions interactions))
+
 (import (editor types primitive))
 (import (editor document documents))
 (import (editor types extensions extensions))

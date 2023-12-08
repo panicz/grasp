@@ -22,7 +22,7 @@
 (import (language for))
 (import (editor types texts))
 (import (editor types comments))
-(import (editor types extensions interactions))
+
 (import (editor types extensions extensions))
 
 ;; extract! returns either a cons-cell whose

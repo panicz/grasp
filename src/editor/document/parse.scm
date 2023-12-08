@@ -22,7 +22,7 @@
 (import (editor types comments))
 (import (editor document cursor))
 (import (utils print))
-(import (editor types extensions interactions))
+
 (import (editor types extensions extensions))
 (import (editor types extensions quotations))
 

@@ -15,7 +15,7 @@
 (import (language for))
 (import (language while))
 (import (editor input transforms))
-(import (editor types extensions interactions))
+
 (import (editor input pane))
 (import (editor interfaces elements))
 (import (editor interfaces painting))

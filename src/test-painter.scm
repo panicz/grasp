@@ -12,7 +12,7 @@
   (editor types spaces)
   (editor document cursor)
   (editor types primitive)
-  (editor types extensions interactions)
+  
   (editor types extensions extensions)
   (editor types extensions combinators)
   (editor text-painter)

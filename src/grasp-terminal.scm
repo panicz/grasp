@@ -30,7 +30,7 @@
 (import (editor interfaces painting))
 (import (language for))
 (import (language while))
-(import (editor types extensions interactions))
+
 (import (editor document document-operations))
 (import (editor document editor-operations))
 (import (editor text-painter))
