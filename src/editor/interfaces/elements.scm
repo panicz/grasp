@@ -349,6 +349,12 @@ operate on cursors.
   (split-below! line::Area)::Embeddable
   )
 
+(define-interface Editor (Embeddable java.lang.Cloneable)
+  )
+
+(define-parameter (the-editor)::Editor
+  #!null)
+
 (define-object (NullPane)::Embeddable
   (define (drop-at! x::real y::real expression::pair)::boolean
     #f)
