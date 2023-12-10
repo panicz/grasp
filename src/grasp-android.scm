@@ -35,7 +35,7 @@
 (import (editor types extensions extensions))
 (import (editor types extensions widgets))
 (import (editor types extensions visual-stepper))
-
+(import (editor input gestures))
 
 (define-alias Bundle android.os.Bundle)
 ;;(define-alias KeyEvent android.view.KeyEvent)
@@ -1518,7 +1518,7 @@
     (invoke-special AndroidActivity (this) 'onCreate
 		    savedState)
     (set! (default-transform) (lambda () (Isogonal)))
-    (set! (current-message-handler) (ScreenLogger 10))
+    (set! (current-message-handler) (ScreenLogger 100))
     (let ((scheme ::gnu.expr.Language
 		  (or kawa.standard.Scheme:instance
 		      (kawa.standard.Scheme))))

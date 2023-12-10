@@ -150,19 +150,19 @@
 		      ", expression: "(the-expression))))
 
 (invoke
- (the-recognizers) 'add
+ the-recognizers 'add
  split-pane-by-horizontal-line)
 
 (invoke
- (the-recognizers) 'add
+ the-recognizers 'add
  split-pane-by-vertical-line)
 
 (invoke
- (the-recognizers) 'add
+ the-recognizers 'add
  evaluate-expression-by-wedge)
 
 (screen:set-content!
- (Editor document: (Document (car (with-input-from-string #;"
+ (DocumentEditor document: (Document (car (with-input-from-string #;"
           #|FAC|# #|
 TOR
   |# #|

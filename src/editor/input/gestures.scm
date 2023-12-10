@@ -29,8 +29,8 @@
 						    Position) Object)
 				       to: void)))
 
-(define-parameter (the-recognizers)
-  ::($bracket-apply$ java.util.List Recognizer)
+(define-early-constant the-recognizers
+  ::java.util.List
   (java.util.ArrayList))
 
 (define (distance-to-line-through p1::Position p2::Position)
@@ -168,9 +168,9 @@
 		((is p0-left < p1-left < p2-left))
 		((is p1-top < p0-top))
 		((is p1-top < p2-top))
-		(editor0 ::Editor (top:pane-under p0-left p0-top))
-		(editor1 ::Editor (top:pane-under p1-left p1-top))
-		(editor2 ::Editor (top:pane-under p2-left p2-top))
+		(editor0 ::DocumentEditor (top:pane-under p0-left p0-top))
+		(editor1 ::DocumentEditor (top:pane-under p1-left p1-top))
+		(editor2 ::DocumentEditor (top:pane-under p2-left p2-top))
 		((eq? editor0 editor1))
 		((eq? editor1 editor2))
 		(document ::Document (slot-ref editor1 'document))
