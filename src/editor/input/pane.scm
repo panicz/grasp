@@ -1832,7 +1832,8 @@
 	  (new:transform:translate! 0 (- shift))
 	  split)
 	(this)))
-  )
+
+  (CursorMarker))
 
 (define-early-constant screen ::Screen
   (Screen))

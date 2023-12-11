@@ -859,27 +859,20 @@
   (define (draw-rectangle! width::real height::real)::void
     (graphics:drawRect 0 0 (as int width) (as int height)))
 
-  (define marked-cursor-position ::Position
-    (Position left: 0
-	      top: 0))
-
   (define (mark-editor-cursor! +left::real +top::real
 			       editor::WithCursor)
     ::void
     (let ((cursor-extent (the-cursor-extent))
 	  (cursor-offset (the-cursor-offset))
 	  (traversal ::Traversal (the-traversal)))
-      (set! traversal:on-end-line
+      #;(set! traversal:on-end-line
 	    (lambda ()
 	      (DUMP (traversal:preceding-line-height)
 		    traversal:max-line-height)
 	      (set! traversal:on-end-line nothing)))
-	      
-      (set! marked-cursor-position:left
-	    (+ (current-translation-left) +left))
-      
-      (set! marked-cursor-position:top
-	    (+ (current-translation-top) +top))
+
+      (editor:mark-cursor! (+ (current-translation-left) +left)
+			   (+ (current-translation-top) +top))
       
       (graphics:fillRect (+ +left cursor-offset:left)
 			 (+ +top cursor-offset:top)
@@ -890,7 +883,7 @@
     (mark-editor-cursor! +left +top (the-editor)))
   
   (define (editor-cursor-position editor::WithCursor)::Position
-    marked-cursor-position)
+    (editor:cursor-position))
 
   (define (cursor-position)::Position
     (editor-cursor-position (the-editor)))

@@ -12,9 +12,21 @@
 (import (language for))
 
 (define-interface WithCursor ()
-
+  (mark-cursor! left::real top::real)::void
+  (cursor-position)::Position
   )
 
+(define-object (CursorMarker)::WithCursor
+  (define marked ::Position
+    (Position left: 0
+	      top: 0))
+  
+  (define (mark-cursor! left::real top::real)::void
+    (set! marked:left left)
+    (set! marked:top top))
+
+  (define (cursor-position)::Position
+    marked))
 
 (define-type (Extent width: real := 0
                      height: real := 0))

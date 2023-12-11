@@ -631,10 +631,6 @@
     ::void
     (draw-line! x0 y0 x1 y1))
 
-  (define marked-cursor-position ::Position
-    (Position left: 0
-	      top: 0))
-
   (define (mark-editor-cursor! +left::real +top::real
 			       editor::WithCursor)
     ::void
@@ -642,10 +638,8 @@
 	   (cursor-offset (the-cursor-offset))
 	   (left (+ +left cursor-offset:left))
 	   (top (+ +top cursor-offset:top)))
-      (set! marked-cursor-position:left
-	    (+ (current-translation-left) +left))
-      (set! marked-cursor-position:top
-	    (+ (current-translation-top) +top))
+      (editor:mark-cursor! (+ (current-translation-left) +left)
+			   (+ (current-translation-top) +top))
       (set-color! text-color)
       (canvas:drawRect left top
 		       (+ left cursor-extent:width)
@@ -656,7 +650,7 @@
     (mark-editor-cursor! +left +top (the-editor)))
   
   (define (editor-cursor-position editor::WithCursor)::Position
-    marked-cursor-position)
+    (editor:cursor-position))
 
   (define (cursor-position)::Position
     (editor-cursor-position (the-editor)))

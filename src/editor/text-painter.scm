@@ -90,19 +90,14 @@
        (action)
        (clip! x0 y0 w0 h0))))
 
-  (define markedCursorPosition ::Position
-    (Position left: 0
-	      top: 0))
-
   (define (mark-editor-cursor! +left::real +top::real
 			       editor::WithCursor)
     ::void
-    (set! markedCursorPosition:left (+ shiftLeft +left))
-    (set! markedCursorPosition:top (+ shiftTop +top))
-    )
+    (editor:mark-cursor! (+ shiftLeft +left)
+			 (+ shiftTop +top)))
 
   (define (editor-cursor-position editor::WithCursor)::Position
-    markedCursorPosition)
+    (editor:cursor-position))
 
   (define (mark-cursor! +left::real +top::real)::void
     (mark-editor-cursor! +left +top (the-editor)))
