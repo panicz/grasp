@@ -321,7 +321,7 @@
 		 (is 0 <= y < screen:height))
 	(io:setCharacter x y (letter c)))))
 
-  (define (mark-cursor! +left::real +top::real)::void
+  (define (mark-cursor! +left::real +top::real editor::WithCursor)::void
     (invoke-special CharPainter (this)
 		    'mark-cursor! +left +top)
     (let ((x markedCursorPosition:left)

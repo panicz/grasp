@@ -349,7 +349,7 @@ operate on cursors.
   (split-below! line::Area)::Embeddable
   )
 
-(define-interface Editor (Embeddable java.lang.Cloneable)
+(define-interface Editor (Embeddable java.lang.Cloneable WithCursor)
   )
 
 (define-parameter (the-editor)::Editor

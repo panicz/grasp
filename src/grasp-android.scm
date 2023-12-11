@@ -635,7 +635,9 @@
     (Position left: 0
 	      top: 0))
 
-  (define (mark-cursor! +left::real +top::real)::void
+  (define (mark-editor-cursor! +left::real +top::real
+			       editor::WithCursor)
+    ::void
     (let* ((cursor-extent (the-cursor-extent))
 	   (cursor-offset (the-cursor-offset))
 	   (left (+ +left cursor-offset:left))
@@ -650,9 +652,15 @@
 		       (+ top cursor-extent:height)
 		       paint)))
 
-  (define (cursor-position)::Position
+  (define (mark-cursor! +left::real +top::real)::void
+    (mark-editor-cursor! +left +top (the-editor)))
+  
+  (define (editor-cursor-position editor::WithCursor)::Position
     marked-cursor-position)
 
+  (define (cursor-position)::Position
+    (editor-cursor-position (the-editor)))
+  
   (define (cursor-height)::real
     (let ((offset ::Position (the-cursor-offset))
 	  (extent ::Extent (the-cursor-extent)))
@@ -1556,7 +1564,8 @@
 		(set! (reaction-to-request-response request)
 		      (lambda args
 			(safely
-			 (and-let* ((`(,intent::Intent) args)
+			 (and-let* ((editor ::DocumentEditor editor)
+				    (`(,intent::Intent) args)
 				    (uri ::Uri (intent:getData))
 				    (r ::ContentResolver
 				       (invoke-special
@@ -1593,7 +1602,8 @@
 		(set! (reaction-to-request-response request)
 		      (lambda args
 			(safely
-			 (and-let* ((`(,intent::Intent) args)
+			 (and-let* ((editor ::DocumentEditor editor)
+				    (`(,intent::Intent) args)
 				    (uri ::Uri (intent:getData))
 				    (r ::ContentResolver
 				       (invoke-special
