@@ -21,7 +21,7 @@
 (import (language fundamental))
 (import (editor interfaces elements))
 (import (editor document cursor))
-(import (editor types extensions interactions))
+
 (import (editor types primitive))
 (import (editor document documents))
 (import (editor types extensions extensions))
@@ -227,7 +227,7 @@
   (define (drop! x::real y::real vx::real vy::real)::void
     (safely
      (escape-with break
-       (for recognizer::Recognizer in (the-recognizers)
+       (for recognizer::Recognizer in the-recognizers
 	 (call-with-values
 	     (lambda ()
 	       (recognizer:recognizes stroke:points))
@@ -280,8 +280,8 @@
 
   (define (move! x::real y::real dx::real dy::real)::void
     (safely
-     (let*-values (((zx zy) (editor:transform:outside-in 0 0))
-		   ((dx* dy*) (editor:transform:outside-in dx dy)))
+     (let*-values (((zx zy) (editor:outside-in 0 0))
+		   ((dx* dy*) (editor:outside-in dx dy)))
        (set! width (+ width (- dx* zx)))
        (set! height (+ height (- dy* zy)))
        (resize! box width height ending))))
@@ -1185,7 +1185,7 @@
     (Array:sort buttons)
     (ColumnGrid buttons)))
 
-(define (open-file-browser directory::java.io.File editor::Editor)
+(define (open-file-browser directory::java.io.File editor::DocumentEditor)
   ::PopUp
   (let ((window ::PopUp #!null))
     (set! window
@@ -1208,7 +1208,7 @@
 
 (define (save-file-browser directory::java.io.File
                            name-hint::string
-			   editor::Editor)
+			   editor::DocumentEditor)
   ::PopUp
   (let* ((window ::PopUp #!null)
          (text-field ::Scroll (text-field 0 name-hint))
@@ -1329,9 +1329,7 @@
   (define (drop! x::real y::real vx::real vy::real)::void
     (values)))
 
-(define-interface Embeddable+ (Embeddable java.lang.Cloneable))
-
-(define-object (Editor)::Embeddable+
+(define-object (DocumentEditor)::Editor
 
   (define (pane-under x::real y::real)::Embeddable
     (this))
@@ -1403,13 +1401,13 @@
     (let* ((new-document-transform (copy document-transform))
 	   (new-transform ::Transform (new-document-transform
 				       document)))
-      (Editor document: document
-	      cursor: cursor
-	      selection-anchor: selection-anchor
-	      previously-edited: (copy previously-edited)
-	      transform: new-transform
-	      document-transform: new-document-transform)))
-    
+      (DocumentEditor document: document
+		      cursor: cursor
+		      selection-anchor: selection-anchor
+		      previously-edited: (copy previously-edited)
+		      transform: new-transform
+		      document-transform: new-document-transform)))
+  
   (define (switch-to! target::Document)::void
     (unless (eq? target document)
       (set! (previously-edited target) document)
@@ -1500,7 +1498,7 @@
 			  (p1 ::Position (stroke:points
 					  (- (length stroke:points)
 					     1)))
-			  (editor ::Editor (this)))
+			  (editor ::DocumentEditor (this)))
 		      (set! (screen:dragging stroke:finger)
 			    (object (Drag)
 			      ((move! x::real y::real
@@ -1802,7 +1800,7 @@
 	(let*-values (((ratio::real) (/ (/ (+ line:left line:right)
 					   2)
 					(the-pane-width)))
-		      ((new::Editor) (copy (this)))
+		      ((new::DocumentEditor) (copy (this)))
 		      ((split::Split) (SplitBeside first: (this)
 						   last: new
 						   at: ratio))
@@ -1825,7 +1823,7 @@
 	(let*-values (((ratio::real) (/ (/ (+ line:top line:bottom)
 					  2)
 				       (the-pane-height)))
-		      ((new::Editor) (copy (this)))
+		      ((new::DocumentEditor) (copy (this)))
 		      ((split::Split) (SplitBelow first: (this)
 						  last: new
 						  at: ratio))
@@ -1834,24 +1832,22 @@
 	  (new:transform:translate! 0 (- shift))
 	  split)
 	(this)))
-  )
+
+  (CursorMarker))
 
 (define-early-constant screen ::Screen
   (Screen))
 
-(define-parameter (the-editor)::Editor
-  #!null)
-
 (define (adjust-view!)
-  (let* ((editor ::Editor (the-editor))
-	 (cursor ::Position (painter:cursor-position))
-	 (cursor-height ::real (painter:cursor-height))
-	 (editor-left ::real (the-pane-left))
-	 (editor-top ::real (the-pane-top))
-	 (editor-width ::real (the-pane-width))
-	 (editor-height ::real (the-pane-height))
-	 (xe ::real (- cursor:left editor-left))
-	 (ye ::real (- cursor:top editor-top)))
+  (and-let* ((editor ::DocumentEditor (the-editor))
+	     (cursor ::Position (painter:cursor-position))
+	     (cursor-height ::real (painter:cursor-height))
+	     (editor-left ::real (the-pane-left))
+	     (editor-top ::real (the-pane-top))
+	     (editor-width ::real (the-pane-width))
+	     (editor-height ::real (the-pane-height))
+	     (xe ::real (- cursor:left editor-left))
+	     (ye ::real (- cursor:top editor-top)))
     (unless (is 0 <= ye < (- editor-height cursor-height))
       (painter:play!
        (Transition of: editor:transform

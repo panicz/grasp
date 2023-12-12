@@ -15,7 +15,7 @@
 (import (utils functions))
 (import (editor document cursor))
 (import (utils print))
-(import (editor types extensions interactions))
+
 (import (editor types texts))
 (import (editor types spaces))
 

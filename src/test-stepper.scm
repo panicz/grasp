@@ -16,7 +16,7 @@
   (utils print)
   (editor document cursor)
   (editor document parse)
-  (editor types extensions interactions)
+  
   (editor types extensions extensions)
   (editor types extensions visual-stepper)
   )

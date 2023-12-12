@@ -14,7 +14,7 @@
 (import (editor types texts))
 (import (editor types spaces))
 (import (editor document cursor))
-(import (editor types extensions interactions))
+
 (import (editor types extensions extensions))
 (import (utils print))
 

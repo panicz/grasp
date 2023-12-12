@@ -90,17 +90,20 @@
        (action)
        (clip! x0 y0 w0 h0))))
 
-  (define markedCursorPosition ::Position
-    (Position left: 0
-	      top: 0))
+  (define (mark-editor-cursor! +left::real +top::real
+			       editor::WithCursor)
+    ::void
+    (editor:mark-cursor! (+ shiftLeft +left)
+			 (+ shiftTop +top)))
+
+  (define (editor-cursor-position editor::WithCursor)::Position
+    (editor:cursor-position))
 
   (define (mark-cursor! +left::real +top::real)::void
-    (set! markedCursorPosition:left (+ shiftLeft +left))
-    (set! markedCursorPosition:top (+ shiftTop +top))
-    )
+    (mark-editor-cursor! +left +top (the-editor)))
 
   (define (cursor-position)::Position
-    markedCursorPosition)
+    (editor-cursor-position (the-editor)))
 
   (define (cursor-height)::real 1)
 
@@ -1041,11 +1044,11 @@
 		      (set! (new-data (+ (* new-width
 					    line)
                                          column))
-                        (if (and (is column < width)
-                                 (is line < height))
-                            (data (+ (* width line)
-                                     column))
-                            #\space))))
+                            (if (and (is column < width)
+                                     (is line < height))
+				(data (+ (* width line)
+					 column))
+				#\space))))
             (set! width new-width)
             (set! height new-height)
             (set! data new-data)))
@@ -1058,19 +1061,20 @@
 	  (set! (data (+ (* width (+ y 1)) x)) #\~))
 	)))
 
-    (define (clear!)::void
-      (reset! modifier)
-      (for line from 0 below height
-           (for column from 0 below width
-		(set! (data (+ (* line width)
-			       column))
-                      #\space)))
-      (set! shiftLeft 0)
-      (set! shiftTop 0))
+  (define (clear!)::void
+    (reset! modifier)
+    (for line from 0 below height
+         (for column from 0 below width
+	      (set! (data (+ (* line width)
+			     column))
+                    #\space)))
+    (set! shiftLeft 0)
+    (set! shiftTop 0))
 
-  (define (mark-cursor! +left::real +top::real)::void
+  (define (mark-editor-cursor! +left::real +top::real editor::WithCursor)
+    ::void
     (invoke-special CharPainter (this)
-		    'mark-cursor! +left +top)
+		    'mark-editor-cursor! +left +top (the-editor))
     (match (the-expression)
       (,@Space?
        (put! #\| (+ +top 1) +left))

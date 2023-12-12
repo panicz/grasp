@@ -11,6 +11,23 @@
 (import (language examples))
 (import (language for))
 
+(define-interface WithCursor ()
+  (mark-cursor! left::real top::real)::void
+  (cursor-position)::Position
+  )
+
+(define-object (CursorMarker)::WithCursor
+  (define marked ::Position
+    (Position left: 0
+	      top: 0))
+  
+  (define (mark-cursor! left::real top::real)::void
+    (set! marked:left left)
+    (set! marked:top top))
+
+  (define (cursor-position)::Position
+    marked))
+
 (define-type (Extent width: real := 0
                      height: real := 0))
 
@@ -149,8 +166,14 @@ def") ===> [Extent width: 3 height: 2])
 		action::(maps () to: void))
   ::void
   
+  (mark-editor-cursor! +left::real +top::real editor::WithCursor)::void
+  (editor-cursor-position editor::WithCursor)::Position
+
+  ;; the functions should only pass (the-editor) as the
+  ;; last arguments of the functions above
   (mark-cursor! +left::real +top::real)::void
   (cursor-position)::Position
+
   (cursor-height)::real
 
   (line-simplification-resolution)::real
@@ -496,6 +519,14 @@ def") ===> [Extent width: 3 height: 2])
   (define (horizontal-popup-margin)::real 0)
   (define (vertical-popup-margin)::real 0)
 
+  (define (mark-editor-cursor! +left::real +top::real editor::WithCursor)
+    ::void
+    (values))
+
+  (define (editor-cursor-position editor::WithCursor)::Position
+    (Position left: 0
+	      top: 0))
+  
   (define (mark-cursor! +left::real +top::real)
     ::void
     (values))

@@ -15,7 +15,7 @@
 (import (language for))
 (import (language while))
 (import (editor input transforms))
-(import (editor types extensions interactions))
+
 (import (editor input pane))
 (import (editor interfaces elements))
 (import (editor interfaces painting))
@@ -35,7 +35,7 @@
 (import (editor types extensions extensions))
 (import (editor types extensions widgets))
 (import (editor types extensions visual-stepper))
-
+(import (editor input gestures))
 
 (define-alias Bundle android.os.Bundle)
 ;;(define-alias KeyEvent android.view.KeyEvent)
@@ -631,28 +631,30 @@
     ::void
     (draw-line! x0 y0 x1 y1))
 
-  (define marked-cursor-position ::Position
-    (Position left: 0
-	      top: 0))
-
-  (define (mark-cursor! +left::real +top::real)::void
+  (define (mark-editor-cursor! +left::real +top::real
+			       editor::WithCursor)
+    ::void
     (let* ((cursor-extent (the-cursor-extent))
 	   (cursor-offset (the-cursor-offset))
 	   (left (+ +left cursor-offset:left))
 	   (top (+ +top cursor-offset:top)))
-      (set! marked-cursor-position:left
-	    (+ (current-translation-left) +left))
-      (set! marked-cursor-position:top
-	    (+ (current-translation-top) +top))
+      (editor:mark-cursor! (+ (current-translation-left) +left)
+			   (+ (current-translation-top) +top))
       (set-color! text-color)
       (canvas:drawRect left top
 		       (+ left cursor-extent:width)
 		       (+ top cursor-extent:height)
 		       paint)))
 
-  (define (cursor-position)::Position
-    marked-cursor-position)
+  (define (mark-cursor! +left::real +top::real)::void
+    (mark-editor-cursor! +left +top (the-editor)))
+  
+  (define (editor-cursor-position editor::WithCursor)::Position
+    (editor:cursor-position))
 
+  (define (cursor-position)::Position
+    (editor-cursor-position (the-editor)))
+  
   (define (cursor-height)::real
     (let ((offset ::Position (the-cursor-offset))
 	  (extent ::Extent (the-cursor-extent)))
@@ -1518,7 +1520,7 @@
     (invoke-special AndroidActivity (this) 'onCreate
 		    savedState)
     (set! (default-transform) (lambda () (Isogonal)))
-    (set! (current-message-handler) (ScreenLogger 10))
+    (set! (current-message-handler) (ScreenLogger 100))
     (let ((scheme ::gnu.expr.Language
 		  (or kawa.standard.Scheme:instance
 		      (kawa.standard.Scheme))))
@@ -1556,7 +1558,8 @@
 		(set! (reaction-to-request-response request)
 		      (lambda args
 			(safely
-			 (and-let* ((`(,intent::Intent) args)
+			 (and-let* ((editor ::DocumentEditor editor)
+				    (`(,intent::Intent) args)
 				    (uri ::Uri (intent:getData))
 				    (r ::ContentResolver
 				       (invoke-special
@@ -1593,7 +1596,8 @@
 		(set! (reaction-to-request-response request)
 		      (lambda args
 			(safely
-			 (and-let* ((`(,intent::Intent) args)
+			 (and-let* ((editor ::DocumentEditor editor)
+				    (`(,intent::Intent) args)
 				    (uri ::Uri (intent:getData))
 				    (r ::ContentResolver
 				       (invoke-special

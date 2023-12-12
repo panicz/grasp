@@ -24,7 +24,7 @@
 (import (language examples))
 (import (editor interfaces elements))
 (import (editor types extensions extensions))
-(import (editor types extensions interactions))
+
 (import (editor interfaces painting))
 (import (editor document editor-operations))
 (import (editor input pane))
@@ -150,19 +150,19 @@
 		      ", expression: "(the-expression))))
 
 (invoke
- (the-recognizers) 'add
+ the-recognizers 'add
  split-pane-by-horizontal-line)
 
 (invoke
- (the-recognizers) 'add
+ the-recognizers 'add
  split-pane-by-vertical-line)
 
 (invoke
- (the-recognizers) 'add
+ the-recognizers 'add
  evaluate-expression-by-wedge)
 
 (screen:set-content!
- (Editor document: (Document (car (with-input-from-string #;"
+ (DocumentEditor document: (Document (car (with-input-from-string #;"
           #|FAC|# #|
 TOR
   |# #|

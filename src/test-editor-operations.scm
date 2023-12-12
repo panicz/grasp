@@ -11,7 +11,7 @@
  (editor document cursor)
  (editor types primitive)
  (editor text-painter)
- (editor types extensions interactions)
+ 
  (editor types extensions extensions)
  (editor types extensions combinators)
  (editor document parse)

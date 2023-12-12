@@ -22,7 +22,7 @@
 (import (editor types texts))
 (import (editor input evaluation))
 (import (editor types comments))
-(import (editor types extensions interactions))
+
 (import (editor types extensions extensions))
 (import (editor document parse))
 (import (language mapping))

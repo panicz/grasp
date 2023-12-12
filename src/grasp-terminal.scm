@@ -30,7 +30,7 @@
 (import (editor interfaces painting))
 (import (language for))
 (import (language while))
-(import (editor types extensions interactions))
+
 (import (editor document document-operations))
 (import (editor document editor-operations))
 (import (editor text-painter))
@@ -321,7 +321,7 @@
 		 (is 0 <= y < screen:height))
 	(io:setCharacter x y (letter c)))))
 
-  (define (mark-cursor! +left::real +top::real)::void
+  (define (mark-cursor! +left::real +top::real editor::WithCursor)::void
     (invoke-special CharPainter (this)
 		    'mark-cursor! +left +top)
     (let ((x markedCursorPosition:left)
