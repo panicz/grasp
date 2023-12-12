@@ -1329,6 +1329,44 @@
   (define (drop! x::real y::real vx::real vy::real)::void
     (values)))
 
+(define-object (CursorMarker)::WithCursor
+  (define marked ::Position
+    (Position left: 0
+	      top: 0))
+
+  (define preceding-line-height ::real 0)
+
+  (define cursor-line-height ::real 0)
+    
+  (define (current-line-height)::real
+    cursor-line-height)
+  
+  (define (previous-line-height)::real
+    preceding-line-height)
+  
+  (define (mark-cursor! left::real top::real)::void
+    (let ((traversal ::Traversal (the-traversal)))
+      (set! marked:left left)
+      (set! marked:top top)
+      (set! preceding-line-height
+	    (traversal:preceding-line-height))
+      (set! traversal:on-end-line
+	    (lambda ()
+	      (set! cursor-line-height traversal:max-line-height)
+	      (set! traversal:on-end-line nothing)))))
+
+  (define (cursor-position)::Position
+    marked)
+
+  (define column ::real 0)
+  
+  (define (set-cursor-column! left::real)::void
+    (set! column left))
+  
+  (define (cursor-column)::real
+    column)
+  )
+
 (define-object (DocumentEditor)::Editor
 
   (define (pane-under x::real y::real)::Embeddable
