@@ -647,9 +647,9 @@
   (define (draw-string! text::CharSequence
 			context::Cursor)
     ::void
-    (let-values (((selection-start
-		   selection-end)
-		  (the-selection)))
+    (let-values (((selection-start selection-end)
+		  (the-selection))
+		 ((parent) (the-traversal)))
       (let ((focused?
 	     (and (pair? (the-cursor))
 		  (equal? context
@@ -663,36 +663,41 @@
 		  (equal?
 		   (tail selection-end)
 		   context)))
-	    (row ::int 0)
-	    (col ::int 0)
-	    (n ::int 0))
+	    (traversal ::Traversal
+		       (Traversal
+			max-line-height: 1
+			parent-left: (+ parent:parent-left
+					parent:left)
+			parent-top: (+ parent:parent-top
+				       parent:top)
+			parent: parent)))
 
 	(define (handle-cursor-and-selection!)
 	  (when (and enters-selection-drawing-mode?
-		     (eqv? n (head selection-start)))
+		     (eqv? traversal:index (head selection-start)))
 	    (enter-selection-drawing-mode!))
 	  (when (and exits-selection-drawing-mode?
-		     (eqv? n (head selection-end)))
+		     (eqv? traversal:index (head selection-end)))
 	    (exit-selection-drawing-mode!))
-	  (when (and focused? (eqv? n (car (the-cursor))))
-	    (mark-cursor! col row)))
+	  (when (and focused? (eqv? traversal:index (car (the-cursor))))
+	    (mark-cursor! traversal:left traversal:top)))
 
-	(for c in text
-	  (handle-cursor-and-selection!)
-          (cond ((eq? c #\newline)
-		 (set! row (+ row 1))
-		 (set! col 0))
-		((eq? c #\return)
-		 ;; this seems to solve a bug on Windows/WSL1
-		 (set! n (- n 1)))
-		;; jeszcze chcemy combining-character
-		;; po prostu dopisac do biezacego znaku
-		(else
-		 (put! c row col)
-		 (set! col (+ col 1))))
-
-	  (set! n (+ n 1)))
-	(handle-cursor-and-selection!))))
+	(parameterize ((the-traversal traversal))
+	  (for c in text
+	    (handle-cursor-and-selection!)
+            (cond ((eq? c #\newline)
+		   (traversal:new-line!)
+		   (set! traversal:max-line-height 1))
+		  ((eq? c #\return)
+		   ;; this seems to solve a bug on Windows/WSL1
+		   (set! traversal:index (- traversal:index 1)))
+		  ;; jeszcze chcemy combining-character
+		  ;; po prostu dopisac do biezacego znaku
+		  (else
+		   (put! c traversal:top traversal:left)
+		   (traversal:expand-by! 1)))
+	    (set! traversal:index (+ traversal:index 1)))
+	  (handle-cursor-and-selection!)))))
 
   (define (string-character-index-under
 	   x::real y::real

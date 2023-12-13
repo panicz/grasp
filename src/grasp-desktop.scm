@@ -863,13 +863,7 @@
 			       editor::WithCursor)
     ::void
     (let ((cursor-extent (the-cursor-extent))
-	  (cursor-offset (the-cursor-offset))
-	  (traversal ::Traversal (the-traversal)))
-      #;(set! traversal:on-end-line
-	    (lambda ()
-	      (DUMP (traversal:preceding-line-height)
-		    traversal:max-line-height)
-	      (set! traversal:on-end-line nothing)))
+      (cursor-offset (the-cursor-offset)))
 
       (editor:mark-cursor! (+ (current-translation-left) +left)
 			   (+ (current-translation-top) +top))
@@ -997,13 +991,23 @@
 	      (and (pair? selection-end)
 		   (equal? (tail selection-end) context)))
 	     (metrics ::FontMetrics (graphics:getFontMetrics font))
+	     (parent ::Traversal (the-traversal))
+	     (height ::float (font:getSize))
+	     (traversal ::Traversal
+		       (Traversal
+			max-line-height: height
+			parent-left: (+ parent:parent-left
+					parent:left)
+			parent-top: (+ parent:parent-top
+				       parent:top)
+			parent: parent))	     
 	     (segment-start 0)
 	     (left ::float 0)
 	     (lines 1)
-	     (height ::float (font:getSize))
 	     (string-end (text:length)))
 	(parameterize ((the-cursor-extent (Extent width: 2
-						  height: height)))
+						  height: height))
+		       (the-traversal traversal))
 	  (define (render-fragment! segment-end::int)
 	    (let* ((fragment (text:subSequence segment-start
 					       segment-end))

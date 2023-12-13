@@ -1051,14 +1051,24 @@
 	     (exits-selection-drawing-mode?
 	      (and (pair? selection-end)
 		   (equal? (cdr selection-end) context)))
+	     (parent ::Traversal (the-traversal))
+	     (height ::float font:size)
+	     (traversal ::Traversal
+		       (Traversal
+			max-line-height: height
+			parent-left: (+ parent:parent-left
+					parent:left)
+			parent-top: (+ parent:parent-top
+				       parent:top)
+			parent: parent))
 	     (segment-start 0)
 	     (left ::float 0)
 	     (lines 1)
-	     (height ::float font:size)
 	     (string-end (text:length)))
 	(parameterize ((the-cursor-extent (Extent
 					   width: 2
-					   height: height)))
+					   height: height))
+		       (the-traversal traversal))
 	  (define (render-fragment! segment-end::int)
 	    (let* ((fragment (text:subSequence segment-start
 					       segment-end))
