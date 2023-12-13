@@ -863,8 +863,8 @@
 			       editor::WithCursor)
     ::void
     (let ((cursor-extent (the-cursor-extent))
-	  (cursor-offset (the-cursor-offset)))
-      
+      (cursor-offset (the-cursor-offset)))
+
       (editor:mark-cursor! (+ (current-translation-left) +left)
 			   (+ (current-translation-top) +top))
       
