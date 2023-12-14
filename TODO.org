@@ -1,3 +1,100 @@
+
+* 13.12.2023
+
+dzis/jutro bysmy zaimplementowali traverse w metodach draw-string!
+w kliencie androidowym i desktopowym, i uzyli tego do zaimplementowania
+nowej nawigacji
+
+i trzeba jeszcze przemyslec kwestie reprezentowania wspolrzednych
+w taki czy inny sposob (tzn najpewniej bysmy chcieli je wyrazac
+we wspolrzednych dokumentu)
+
+* 12.12.2023
+
+bysmy przeniesli (cursor-column) do WithCursor / CursorMarker
+(i dodali set-cursor-column!)
+
+oraz ser-current-line-height!, current-line-height,
+set-previous-line-height!, previous-line-height
+
+to teraz bysmy zrobili, zeby zamiast (cursor-column)
+uzywac (editor:cursor-column), a po tym, zeby traverse
+ustawialo wartosci previous-line-height oraz current-line-height
+
+i dalej: w painterze grasp-desktop i grasp-android mamy metode
+draw-text!, a w text painterze - metode draw-string. I chcielibysmy,
+zeby te metody wprowadzaly swoj traversal.
+
+* 11.12.2023
+
+nalezaloby wzbogacic interfejs WithCursor o funkcje
+mark-cursor! oraz cursor-position.
+
+dobra, to juz zrobione
+
+I co dalej?
+
+Chcielibysmy, zeby rysowanie stringow i komentarzy
+wprowadzalo swojego Traverse'a, i chcielibysmy, zeby
+wszystkie dane potrzebne do pionowej nawigacji kursora
+byly gromadzone w CursorMarker (czyli de facto w edytorze)
+
+I teraz tak:
+
+#+BEGIN_SRC scheme
+  (define (move-cursor-up!)
+    (let* ((editor ::Editor (the-editor))
+	   (current ::Position (editor:cursor-position)))
+      (set! (the-cursor)
+	    (cursor-under (cursor-column)
+			  (- current:top
+			     (editor:previous-line-height))))))
+
+  (define (move-cursor-down!)
+    (let* ((editor ::Editor (the-editor))
+	   (current ::Position (editor:cursor-position)))
+      (set! (the-cursor)
+	    (cursor-under (cursor-column)
+			  (+ current:top
+			     (editor:current-line-height))))))
+#+END_SRC
+
+
+Tego cursor-column tez bysmy chcieli zintegrowac z CursorMakerem.
+
+* 10.12.2023
+
+Mamy juz intetfejs Editor (choc na razie bez metody mark-cursor!).
+
+Wiec teraz bysmy dodali mark-cursor! do Editor, i przemianowali
+mark-cursor! z paintera na draw-cursor!, i przeniesli
+cursor-position i cursor-height do editor.
+
+no niestety wydaje sie, ze tutaj jest problem, bo obsluga kursora
+zalezy od klienta, a to jedynie painter jest "client-specific"
+
+a poza tym chcemy zrobic
+- zmiane rozmiaru listy pustej
+- kopiowanie wyrazen podwojnym tapnieciem
+- usuwanie wyrazen szybkim ruchem palca
+- drag&drop na komentarzach i tekscie
+  
+* 08.12.2023
+
+Na razie plan jest taki, zeby:
+- stworzyc interfejs Editor jako podtyp Embeddable
+- przemianowac dotychczasowy Editor na DocumentEditor
+- dodac metode 'mark-cursor!' do interfejsu Editor
+
+Musimy sobie mniej wiecej wyobrazic co sie wtenczas powinno dziac.
+
+A konkretnie: podczas renderowania wywolujemy
+(the-editor):mark-cursor!, ktory z kolei powinien
+wywolac painter:draw-cursor!.
+
+Metody "mark-cursor!" oraz "cursor-position" powinny
+zostac przeniesione do edytora. 
+
 * 07.12.2023
 
 No to teraz musimy sobie wyobrazic jak bysmy chcieli, zeby to bylo
@@ -66,7 +163,7 @@ grasp-desktop:
 
 * 05.12.2023 (telefon)
 
-Plan jest taki, zeby pozostac przy aktualnym rozwiazaniu
++Plan jest taki, zeby pozostac przy aktualnym rozwiazaniu
 w kwestii pionowego ruchu kursora, ale z jednym malym twistem:
 - chcemy zapamietac polozenie linii poprzedzajacej kursor,
   oraz polozenie linii nastepujacej po kursorze
