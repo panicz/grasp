@@ -1466,6 +1466,22 @@
     (set! (previously-edited doc) document)
     (set! transform (document-transform doc))
     (set! document doc))
+
+  (define (draw-debug-cursor-points!)
+    (safely
+     (and-let* ((position ::Position (invoke (this) 'cursor-position))
+		(left ::real position:left)
+		(top ::real position:top)
+		(column ::real (invoke-special CursorMarker (this)
+					       'cursor-column))
+		(previous ::real (invoke-special CursorMarker (this)
+						 'previous-line-height))
+		(current ::real (invoke-special CursorMarker (this)
+						'current-line-height)))
+       (painter:draw-point! left top #x000000)
+       (painter:draw-point! column top #xff0000)
+       (painter:draw-point! column (+ top current) #x00ff00)
+       (painter:draw-point! column (- top previous) #x0000ff))))
     
   (define (draw!)::void
     (parameterize ((the-document document)
@@ -1476,7 +1492,8 @@
 	(with-view-edges-transformed transform
 	  (transform:within painter
 			    (lambda ()
-			      (document:draw! '())))))))
+			      (document:draw! '())
+			      (draw-debug-cursor-points!)))))))
   
   (define (tap! finger::byte #;at xe::real ye::real)::boolean
     (with-post-transform transform
