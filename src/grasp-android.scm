@@ -1062,8 +1062,6 @@
 				       parent:top)
 			parent: parent))
 	     (segment-start 0)
-	     (left ::float 0)
-	     (lines 1)
 	     (string-end (text:length)))
 	(parameterize ((the-cursor-extent (Extent
 					   width: 2
@@ -1074,13 +1072,15 @@
 					       segment-end))
 		   (width (text-width fragment font)))
 	      (set-color! background-color)
-	      (canvas:drawRect left (* (- lines 1) height)
-			       (+ left width) (* lines height)
+	      (canvas:drawRect traversal:left traversal:top
+			       (+ traversal:left width)
+			       (+ traversal:top height)
 			       paint)
 	      (set-color! text-color)
-	      (canvas:drawText fragment left (* lines height)
+	      (canvas:drawText fragment traversal:left
+			       (+ traversal:top height)
 			       paint)
-	      (set! left (+ left width))))
+	      (traversal:expand-by! width)))
 
 	  (paint:setTypeface font:face)
 	  (paint:setTextSize font:size)
@@ -1088,7 +1088,8 @@
 	       (when (and focused? (eqv? (car (the-cursor)) i))
 		 (render-fragment! i)
 		 (set! segment-start i)
-		 (mark-cursor! left (* (- lines 1) height)))
+		 (mark-cursor! traversal:left
+			       traversal:top))
 
 	       (when (and enters-selection-drawing-mode?
 			  (eqv? (car selection-start) i))
@@ -1104,13 +1105,13 @@
 
 	       (when (eq? (text:charAt i) #\newline)
 		 (render-fragment! i)
-		 (set! left 0)
-		 (set! lines (+ lines 1))
+		 (traversal:new-line!)
+		 (set! traversal:max-line-height height)
 		 (set! segment-start (+ i 1))))
 	  (render-fragment! string-end)
 	  (when (and focused? (eqv? (car (the-cursor))
 				    string-end))
-	    (mark-cursor! left (* (- lines 1) height)))))))
+	    (mark-cursor! traversal:left traversal:top))))))
 
   (define (draw-string! text::CharSequence context::Cursor)
     ::void
