@@ -1371,6 +1371,12 @@
 
   (define (pane-under x::real y::real)::Embeddable
     (this))
+
+  (define post-draw-actions ::java.util.List
+    (java.util.ArrayList))
+  
+  (define (add-post-draw-action! action::(maps () to: void))::void
+    (post-draw-actions:add (post-draw-actions:size) action))
   
   (define document ::Document (Document (empty) #!null))
   (define cursor ::Cursor '())
@@ -1493,7 +1499,11 @@
 	  (transform:within painter
 			    (lambda ()
 			      (document:draw! '())
-			      (draw-debug-cursor-points!)))))))
+			      (for action::procedure in post-draw-actions
+				(action))
+			      (post-draw-actions:clear)
+			      (draw-debug-cursor-points!)
+			      ))))))
   
   (define (tap! finger::byte #;at xe::real ye::real)::boolean
     (with-post-transform transform
@@ -1512,7 +1522,6 @@
 		  (else
 		   (set! cursor target-cursor)
 		   (set! selection-anchor cursor)
-
 		   #t)))))))))
   
   (define (press! finger::byte #;at xe::real ye::real)::boolean

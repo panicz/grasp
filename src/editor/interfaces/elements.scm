@@ -350,6 +350,7 @@ operate on cursors.
   )
 
 (define-interface Editor (Embeddable java.lang.Cloneable WithCursor)
+  (add-post-draw-action! action::(maps () to: void))::void
   )
 
 (define-parameter (the-editor)::Editor
