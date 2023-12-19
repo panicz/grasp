@@ -5,11 +5,15 @@
 (import (language define-type))
 (import (language define-syntax-rule))
 (import (language define-parameter))
+(import (language define-property))
 
 (import (language fundamental))
-
+(import (language match))
+(import (language infix))
 (import (language examples))
 (import (language for))
+(import (utils functions))
+(import (utils print))
 
 (define-interface WithCursor ()
   (mark-cursor! left::real top::real)::void
@@ -48,6 +52,23 @@ def") ===> [Extent width: 3 height: 2])
 (define-type (Position left: real := 0
 		       top: real := 0))
 
+(define-interface Extensive ()
+  (extent)::Extent)
+
+(define-property (extent-cached? tile::Extensive)::boolean
+  #f)
+
+(define-property+ (cached-extent tile::Extensive)::Extent
+  (Extent width: 0 height: 0))
+
+(define (extent+ tile::Extensive)::Extent
+  (let ((cached ::Extent (cached-extent tile)))
+    (unless (is tile extent-cached?)
+      (let ((fresh ::Extent (tile:extent)))
+        (cached:assign fresh)
+	(set! (extent-cached? tile) #t)))
+    cached))
+
 (define-type (Area left: real top: real
                    right: real bottom: real))
 
@@ -60,6 +81,62 @@ def") ===> [Extent width: 3 height: 2])
       (set! result:right (max result:right p:left))
       (set! result:bottom (max result:bottom p:top)))
     result))
+
+(define-type (Traversal left: real := 0
+			top: real := 0
+			index: int := 0
+			max-width: real := 0
+			max-line-height: real := 0
+			parent-left: real := 0
+			parent-top: real := 0
+			parent: Traversal := #!null
+			previous-line-height: real := 0
+			on-end-line: (maps () to: void)
+			:= nothing)
+  extending Base with
+  ((advance! element::java.lang.Object)::void
+   (cond
+    ((Expandable? element)
+     (let ((x ::Expandable element))
+       (x:expand! (this))))
+    ((Extensive? element)
+     (expand! (extent+ (as Extensive element))))
+    (else
+     (error "Unable to advance over "element(element:getClass))))
+   (set! index (+ index 1)))
+
+  ((expand-by! width::real)::void
+   (set! left (+ left width))
+   (set! max-width (max max-width left)))
+
+  ((expand! extent::Extent)::void
+   (expand-by! extent:width)
+   (set! max-line-height (max extent:height
+			      max-line-height)))
+
+  ((preceding-line-height)
+   (if (and (zero? previous-line-height) parent)
+       (parent:preceding-line-height)
+       previous-line-height))
+  
+  ((new-line!)::void
+   (on-end-line)
+   (set! top (+ top max-line-height))
+   (set! left 0)
+   (set! previous-line-height max-line-height)
+   (set! max-line-height (painter:min-line-height)))
+
+  )
+
+(define-interface Expandable ()
+  (expand! t::Traversal)::void)
+
+(define-parameter (the-traversal) ::Traversal
+  (Traversal left: 0
+	     top: 0
+	     index: 0
+	     max-width: 0
+	     max-line-height: 0))
 
 (define-interface Map2D ()
   (outside-in x::real y::real)::(Values real real))
@@ -682,11 +759,17 @@ def") ===> [Extent width: 3 height: 2])
 (define-syntax-rule (with-translation (x y)
 		      . actions)
   (let ((x! ::real x)
-        (y! ::real y))
+        (y! ::real y)
+	(t ::Traversal (the-traversal)))
+    (set! t:left (+ t:left x!))
+    (set! t:top (+ t:top y!))
     (painter:translate! x! y!)
     (try-finally
      (begin . actions)
-     (painter:translate! (- x!) (- y!)))))
+     (begin
+       (painter:translate! (- x!) (- y!))
+       (set! t:left (+ t:left x!))
+       (set! t:top (+ t:top y!))))))
 
 (define-syntax-rule (with-clip (w h) . actions)
   (painter:with-clip w h (lambda () (begin . actions))))

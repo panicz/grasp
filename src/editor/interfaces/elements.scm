@@ -25,78 +25,6 @@
 ;; implicitly parameterized with painter, (the-cursor)
 ;; and (the-selection-anchor) parameters
 
-(define-property (extent-cached? tile::Tile)::boolean
-  #f)
-
-(define-property+ (cached-extent tile::Tile)::Extent
-  (Extent width: 0 height: 0))
-
-(define (extent+ tile::Tile)::Extent
-  (let ((cached ::Extent (cached-extent tile)))
-    (unless (is tile extent-cached?)
-      (let ((fresh ::Extent (tile:extent)))
-        (cached:assign fresh)
-	(set! (extent-cached? tile) #t)))
-    cached))
-
-(define-type (Traversal left: real := 0
-			top: real := 0
-			index: int := 0
-			max-width: real := 0
-			max-line-height: real := 0
-			parent-left: real := 0
-			parent-top: real := 0
-			parent: Traversal := #!null
-			previous-line-height: real := 0
-			on-end-line: (maps () to: void)
-			:= nothing)
-  extending Base with
-  ((advance! element::Element)::void
-   (cond
-    ((Expandable? element)
-     (let ((x ::Expandable element))
-       (x:expand! (this))))
-    ((Tile? element)
-     (expand! (extent+ (as Tile element))))
-    (else
-     (error "Unable to advance over "element)))
-   (set! index (+ index 1)))
-
-  ((expand-by! width::real)::void
-   (set! left (+ left width))
-   (set! max-width (max max-width left)))
-
-  ((expand! extent::Extent)::void
-   (expand-by! extent:width)
-   (set! max-line-height (max extent:height
-			      max-line-height)))
-
-  ((preceding-line-height)
-   (if (and (zero? previous-line-height) parent)
-       (parent:preceding-line-height)
-       previous-line-height))
-  
-  ((new-line!)::void
-   (on-end-line)
-   (set! top (+ top max-line-height))
-   (set! left 0)
-   (set! previous-line-height max-line-height)
-   (set! max-line-height (painter:min-line-height)))
-
-  )
-
-
-(define-interface Expandable ()
-  (expand! t::Traversal)::void)
-
-(define-parameter (the-traversal) ::Traversal
-  (Traversal left: 0
-	     top: 0
-	     index: 0
-	     max-width: 0
-	     max-line-height: 0))
-
-
 (define-interface Indexable ()
   (part-at index::Index)::Indexable*
 
@@ -149,9 +77,7 @@
 
   (Base))
 
-(define-interface Tile (Element)
-  (extent)::Extent
-  )
+(define-interface Tile (Extensive Element))
 
 (define-interface ShadowedTile (Shadowed Tile))
 
@@ -168,7 +94,7 @@
   (remove-from! fragments::list)::list
   )
 
-#|
+#|=
 `the-cursor` and `the-document` are parameters
 that provide the default values to some functions that
 operate on cursors.
