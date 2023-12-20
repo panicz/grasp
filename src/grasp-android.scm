@@ -637,9 +637,10 @@
     (let* ((cursor-extent (the-cursor-extent))
 	   (cursor-offset (the-cursor-offset))
 	   (left (+ +left cursor-offset:left))
-	   (top (+ +top cursor-offset:top)))
-      (editor:mark-cursor! (+ (current-translation-left) +left)
-			   (+ (current-translation-top) +top))
+	   (top (+ +top cursor-offset:top))
+	   (traversal ::Traversal (the-traversal)))
+      (editor:mark-cursor! (+ traversal:parent-left +left)
+			   (+ traversal:parent-top +top))
       (set-color! text-color)
       (canvas:drawRect left top
 		       (+ left cursor-extent:width)

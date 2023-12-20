@@ -22,7 +22,9 @@
   (set! (the-cursor) (cursor-advance))
   (let* ((cursor-position ::Position (painter:cursor-position))
 	 (editor ::Editor (the-editor)))
-    (editor:set-cursor-column! cursor-position:left))
+    (editor:add-post-draw-action!
+     (lambda ()
+       (editor:set-cursor-column! cursor-position:left))))
   (set! (the-selection-anchor) (the-cursor))
   ;;(DUMP (the-cursor))
   )
@@ -31,7 +33,9 @@
   (set! (the-cursor) (cursor-retreat))
   (let* ((cursor-position ::Position (painter:cursor-position))
 	 (editor ::Editor (the-editor)))
-    (editor:set-cursor-column! cursor-position:left))
+    (editor:add-post-draw-action!
+     (lambda ()
+       (editor:set-cursor-column! cursor-position:left))))
   (set! (the-selection-anchor) (the-cursor))
   ;;(DUMP (the-cursor))
   )
