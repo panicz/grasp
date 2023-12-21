@@ -424,7 +424,7 @@
 				   Color:ANSI:WHITE)))
       (parameterize ((the-text-color foreground)
 		     (the-background-color color))
-	(put! #\⦿ left top))))
+	(put! #\⦿ top left))))
 
   (define (play! animation::Animation)::void
     (unless (any (lambda (pending::Pending)

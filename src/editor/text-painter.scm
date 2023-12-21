@@ -33,23 +33,11 @@
     (set! shiftLeft (+ shiftLeft (nearby-int (* x horizontal-stretch))))
     (set! shiftTop (+ shiftTop (nearby-int (* y vertical-stretch)))))
 
-  (define (current-translation-left)::real
-    shiftLeft)
-
-  (define (current-translation-top)::real
-    shiftTop)
-
   (define (rotate! angle::real)::void
     (error "Rotation not supported in textual painters"))
 
-  (define (current-rotation-angle)::real
-    0.0)
-
   (define (scale! factor::real)::void
     (error "Scaling not supported in textual painters"))
-
-  (define (current-scale)::real
-    1.0)
 
   (define clipLeft ::real 0)
   (define clipTop ::real 0)
@@ -93,8 +81,9 @@
   (define (mark-editor-cursor! +left::real +top::real
 			       editor::WithCursor)
     ::void
-    (editor:mark-cursor! (+ shiftLeft +left)
-			 (+ shiftTop +top)))
+    (let ((t ::Traversal (the-traversal)))
+      (editor:mark-cursor! (+ t:parent-left +left)
+			   (+ t:parent-top +top 1))))
 
   (define (editor-cursor-position editor::WithCursor)::Position
     (editor:cursor-position))
@@ -627,7 +616,8 @@
   (define (draw-quoted-text! s::CharSequence
 			     context::Cursor)
     ::void
-    (let ((extent ::Extent (string-extent s)))
+    (let ((extent ::Extent (string-extent s))
+	  (t ::Traversal (the-traversal)))
       (put! #\❝ 0 0)
       (put! #\• 0 (+ extent:width 3))
       (for i from 1 below (+ extent:width 3)
@@ -640,7 +630,9 @@
       (put! #\❞ (+ extent:height 1)
 	    (+ extent:width 3))
       (with-translation (2 1)
-	  (draw-string! s context))
+	(set! t:left (+ t:left 1))
+	(draw-string! s context)
+	(set! t:left (- t:left 1)))
       (put! #\❞ (+ extent:height 1)
 	    (+ extent:width 3))))
 

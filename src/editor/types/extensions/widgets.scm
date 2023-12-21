@@ -37,9 +37,7 @@
   (define (draw! context::Cursor)::void
     (let* ((grid-border ::real (painter:grid-border))
 	   (total ::Extent (extent))
-           (n ::int 0)
-           (x0 ::real (painter:current-translation-left))
-	   (y0 ::real (painter:current-translation-top)))
+           (n ::int 0))
       (for item::Enchanted in items
 	(let ((inner ::Extent (extent+ item)))
 	  (painter:fill-grid-cell! total:width (+ inner:height
@@ -56,10 +54,7 @@
 	    (item:draw! (recons n context)))
 	  (painter:translate! 0 (+ grid-border inner:height))
 	  (set! n (+ n 1))))
-      (painter:draw-horizontal-grid! total:width)
-      (painter:translate!
-       (- x0 (painter:current-translation-left))
-       (- y0 (painter:current-translation-top)))))
+      (painter:draw-horizontal-grid! total:width)))
 
   (define (propagate finger::byte x::real y::real
                      action::(maps (Enchanted byte real real int)

@@ -120,40 +120,18 @@ def") ===> [Extent width: 3 height: 2])
    (begin . actions)
    (the-transform-stack:removeFirst)))
 
+(define-interface Painter ()
 
-(define-interface Translatable ()
   (translate! x::real y::real)::void
-  (current-translation-left)::real
-  (current-translation-top)::real
-  )
-
-(define-interface Rotatable ()
   (rotate! angle::real)::void
-  (current-rotation-angle)::real
-  )
-
-(define-interface Clippable ()
   (with-clip w::real h::real action::(maps () to: void))::void
-  )
-
-(define-interface Scalable ()
   (scale! factor::real)::void
-  (current-scale)::real
-  )
 
-(define-interface Splittable ()
   (draw-horizontal-split! top::real)::void
   (draw-vertical-split! left::real)::void
   (horizontal-split-height)::real
   (vertical-split-width)::real
-  )
-
-(define-interface Painter (Splittable
-			   Clippable
-			   Translatable
-			   Scalable
-			   Rotatable)
-
+  
   (play! animation::Animation)::void
   (with-intensity i::float action::(maps () to: void))::void
   (with-stretch horizontal::float vertical::float
@@ -382,20 +360,8 @@ def") ===> [Extent width: 3 height: 2])
   (define (rotate! angle ::real)::void
     (values))
 
-  (define (current-rotation-angle)::real
-    0)
-
   (define (scale! factor ::real)::void
     (values))
-
-  (define (current-scale)::real
-    1)
-
-  (define (current-translation-left)::real
-    0)
-
-  (define (current-translation-top)::real
-    0)
 
   (define (with-clip w::real h::real action::(maps () to: void))::void
     (action))

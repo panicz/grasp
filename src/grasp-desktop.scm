@@ -545,32 +545,14 @@
   (define (translate! x::real y::real)::void
     (graphics:translate (as double x) (as double y)))
 
-  (define (current-translation-left)::real
-    (let ((transform ::AffineTransform
-		     (graphics:getTransform)))
-      (transform:getTranslateX)))
-
-  (define (current-translation-top)::real
-    (let ((transform ::AffineTransform
-		     (graphics:getTransform)))
-      (transform:getTranslateY)))
-
   (define rotation ::real 0.0)
   
   (define (rotate! angle ::real)::void
     (set! rotation (+ rotation angle))
     (graphics:rotate angle))
 
-  (define (current-rotation-angle)::real
-    rotation)
-
   (define (scale! factor ::real)::void
     (graphics:scale factor factor))
-
-  (define (current-scale)::real
-    (let ((transform ::AffineTransform
-		     (graphics:getTransform)))
-      (transform:getScaleX)))
   
   (define rendering-hints ::RenderingHints
     (RenderingHints RenderingHints:KEY_TEXT_ANTIALIASING
@@ -862,12 +844,11 @@
   (define (mark-editor-cursor! +left::real +top::real
 			       editor::WithCursor)
     ::void
-    (let ((cursor-extent (the-cursor-extent))
-      (cursor-offset (the-cursor-offset)))
-
-      (editor:mark-cursor! (+ (current-translation-left) +left)
-			   (+ (current-translation-top) +top))
-      
+    (let ((cursor-extent ::Extent (the-cursor-extent))
+	  (cursor-offset ::Position (the-cursor-offset))
+	  (traversal ::Traversal (the-traversal)))
+      (editor:mark-cursor! (as int (+ traversal:parent-left +left))
+			   (as int (+ traversal:parent-top +top)))
       (graphics:fillRect (+ +left cursor-offset:left)
 			 (+ +top cursor-offset:top)
 			 cursor-extent:width
@@ -1014,8 +995,8 @@
 	      (graphics:fillRect traversal:left traversal:top
 				 width height)
 	      (set-color! text-color)
-	      (graphics:drawString fragment traversal:left
-				   (+ traversal:top height))
+	      (graphics:drawString fragment (as float traversal:left)
+				   (as float (+ traversal:top height)))
 	      (traversal:expand-by! width)))
 
 	  (graphics:setFont font)
@@ -1038,9 +1019,9 @@
 		 (exit-selection-drawing-mode!))
 
 	       (when (eq? (text:charAt i) #\newline)
+		 (render-fragment! i)
 		 (traversal:new-line!)
 		 (set! traversal:max-line-height height)
-		 (render-fragment! i)
 		 (set! segment-start (+ i 1))))
 	  (render-fragment! string-end)
 	  (when (and focused? (eqv? (head (the-cursor)) string-end))
@@ -1059,7 +1040,12 @@
 	(graphics:fill single-quote)
 	(with-translation (single-quote-extent:width
 			   single-quote-extent:height)
-	  (draw-string! text context)
+	  (let ((t ::Traversal (the-traversal)))
+	    (set! t:left (+ t:left (* 2 single-quote-extent:width)))
+	    (set! t:top (+ t:top single-quote-extent:height))
+	    (draw-string! text context)  
+	    (set! t:left (- t:left (* 2 single-quote-extent:width)))
+	    (set! t:top (- t:top single-quote-extent:height)))
       	  (let ((extent ::Extent (text-extent text
 					      (the-string-font))))
 	    (with-translation (extent:width extent:height)

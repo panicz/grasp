@@ -250,7 +250,7 @@
   (define the-log-font ::($bracket-apply$ parameter Font)
     (make-parameter
      (Font face: Oswald-Regular
-	   size: 16)))
+	   size: 10)))
 
   (define the-cursor-offset ::($bracket-apply$ parameter Position)
     (make-parameter (Position left: 0 top: 32)))
@@ -521,33 +521,17 @@
   (define (translate! x ::real y ::real)::void
     (canvas:translate x y))
 
-  (define (current-translation-left)::real
-    (let ((m ::android.graphics.Matrix (canvas:getMatrix)))
-      (m:getValues matrix-points)
-      (matrix-points 2)))
-
-  (define (current-translation-top)::real
-    (let ((m ::android.graphics.Matrix (canvas:getMatrix)))
-      (m:getValues matrix-points)
-      (matrix-points 5)))
-
   (define rotation ::real 0.0)
 
   (define (rotate! angle ::real)::void
     (canvas:rotate (java.lang.Math:toDegrees angle))
     (set! rotation (+ rotation angle)))
 
-  (define (current-rotation-angle)::real
-    rotation)
-
   (define scale ::real 1.0)
 
   (define (scale! factor ::real)::void
     (set! scale (* scale factor))
     (canvas:scale factor factor))
-
-  (define (current-scale)::real
-    scale)
 
   (define (with-stretch horizontal::float vertical::float
 			action::(maps () to: void))
@@ -634,10 +618,10 @@
   (define (mark-editor-cursor! +left::real +top::real
 			       editor::WithCursor)
     ::void
-    (let* ((cursor-extent (the-cursor-extent))
-	   (cursor-offset (the-cursor-offset))
-	   (left (+ +left cursor-offset:left))
-	   (top (+ +top cursor-offset:top))
+    (let* ((cursor-extent ::Extent (the-cursor-extent))
+	   (cursor-offset ::Position (the-cursor-offset))
+	   (left ::real (+ +left cursor-offset:left))
+	   (top ::real (+ +top cursor-offset:top))
 	   (traversal ::Traversal (the-traversal)))
       (editor:mark-cursor! (+ traversal:parent-left +left)
 			   (+ traversal:parent-top +top))
@@ -1131,7 +1115,12 @@
 	(canvas:drawPath single-quote paint)
 	(with-translation (single-quote-extent:width
 			   single-quote-extent:height)
-	  (draw-string! text context)
+	  (let ((t ::Traversal (the-traversal)))
+	    (set! t:left (+ t:left (* 2 single-quote-extent:width)))
+	    (set! t:top (+ t:top single-quote-extent:height))
+	    (draw-string! text context)
+	    (set! t:left (- t:left (* 2 single-quote-extent:width)))
+	    (set! t:top (- t:top single-quote-extent:height)))
 	  (let ((extent ::Extent (text-extent text
 					      (the-string-font))))
 	    (with-translation (extent:width extent:height)
