@@ -1,3 +1,37 @@
+* 19.12.2023
+
+dzis bysmy sie zajeli tym ukladem wspolrzednych - moze tez
+by sie udalo wyrzucic metody current-translation-* z Paintera
+
+
+* 17.12.2023
+
+post-draw-actions zrobione, uklad wspolrzednych do
+zrobienia - a po nim trzeba przemyslec co sie ma dziac
+z tym traversem
+
+* 16.12.2023
+
+bysmy zaczeli od tego, ze bysmy dodali do edytora
+'post-draw-actions' i poprawili uklad wspolrzednych,
+w ktorym zachowujemy pozycje kursora
+
+* 14.12.2023
+
+mamy taki problem, ze biezaca metoda nie zawsze dziala
+
+w szczegolnosci, nie dziala gdy chcemy zjechac ponizej
+biezacego stringa, ale takze w innych okolicznosciach
+
+innym problemem jest to, ze set-cursor-column! jest
+wywolywane przed przerysowaniem ekranu, a nie po
+(co daloby sie rozwiazac, wprowadzajac kolejke
+funkcji ktore mialyby byc wywolane po rysowaniu)
+
+jednnak nasze dzialania zaczelibysmy od wyrysowywania
+na ekranie punktu oznaczonego kursora, i kiedy to bedziemy
+mieli, bedziemy kontynuowac prace nad naprawa ruchu
+pionowego
 
 * 13.12.2023
 
