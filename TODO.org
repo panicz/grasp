@@ -36,6 +36,166 @@ Być może warto by było się skupić właśnie na zrozumieniu tego?
 
 No dobra, ale rozumiec to se mozna nawet na kiblu na telefonie :P
 
+* 03.01.2023
+
+#+BEGIN_SRC scheme
+      (define-syntax-rule (test-that-operation operation
+					       #;transforms
+					       initial-view
+					       #;into
+					       final-view)
+	(assert (equal? (snapshot) initial-view))
+	operation
+	(assert (equal? (snapshot) final-view))
+	(undo!)
+	(assert (equal? (snapshot) initial-view))
+	(redo!)
+	(assert (equal? (snapshot) final-view)))
+
+      (define-syntax test-edit-sequence
+	(syntax-rules ()
+	  ((_ initial-view operation final-view . rest)
+	   (begin
+	     (test-that-operation operation #;transforms initial-view
+				  #;into final-view)
+	     (test-edit-sequence final-view . rest)))
+	  ((_ final-view)
+	   (assert (equal? (snapshot) final-view)))))
+
+    (test-edit-sequence "
+" (insert-character! #\[ #;#\]) "
+╭  ╮
+│  │
+╰ |╯
+" (for-each insert-character! '(#\d #\e #\f #\n #\e)) "
+╭       ╮
+│ defne │
+╰      ^╯
+" (times 2 delete-backward!) "
+╭     ╮
+│ def │
+╰    ^╯
+" )
+
+#+END_SRC
+
+Wiemy juz, ze to nie zadziala, bo bywaja w kodzie miejsca,
+w ktorych opieramy sie na undo. Zatem lepiej byloby zrobic
+
+#+BEGIN_SRC scheme
+  (define-syntax-rule (with-undo-redo operation)
+    (let ((initial (snapshot)))
+      operation
+      (let ((final (snapshot)))
+	(undo!)
+	(let ((reverted (snapshot)))
+	  (unless (equal? initial reverted)
+	    (fail "Unexpected output after undoing "'operation
+		  "\nexpected:\n"
+		  initial
+		  "\ngot:\n"
+		  reverted)))
+	(redo!)
+	(let ((redone (snapshot)))
+	  (unless (equal? final redone)
+	    (fail "Unexpected output after redoing "'operation
+		  "\nexpected:\n"
+		  final
+		  "\ngot:\n"
+		  redone)))
+	final)))
+#+END_SRC
+
+* 02.01.2023
+
+Wydaje sie, ze na telefonie nawet nie da sie przeprowadzic
+sensownych eksperymentow, ale moze uda sie chociaz dokonac
+jakiejs auto-analizy.
+
+Po prostu wyglada na to, ze opieranie sie na pojeciu
+wysokosci poprzedniej i biezacej linii to kiepski pomysl.
+
+Zamiast niego chcemy raczej miec 'odleglosc do poprzedniej
+/nastepnej linii'. I teraz: w przypadku cofania sie do gory
+to raczej nie powinno nam az tak mocno przeszkadzac, bo
+ze wzgledu na sama mechanike dzialania musimy tylko uwazac,
+zeby odleglosc, o ktora cofamy, nie byla zbyt duza
+(moze nawet wystarczy przyjac 1?). Natomiast jezeli idzie
+o odleglosc do nastepnej linii, to winna ona byc zdefiniowana
+jako roznica pomiedzy biezaca pozycja, a pozycja otrzymana
+w wyniku dodania 'wysokosci biezacej linii' do pierwszego
+'nie-terminujacego' rodzica
+
+No dobra. To wydaje sie miec sens. Byc moze nawet bedzie
+dzialac dla stringow bez zadnych dodatkowych zmian?
+
+Natomiast wydaje sie tez, ze fajnie by bylo rowniez
+opracowac zestaw testow do wyrazania pionowego ruchu
+kursora, a ponadto uproscic test-editor-operations.
+
+Zamiast
+
+#+BEGIN_SRC scheme
+  
+  (insert-character! #\[)
+
+  (e.g.
+   (snapshot) ===> "
+  ╭  ╮
+  │  │
+  ╰ |╯
+  ")
+
+  (undo!)
+
+  (e.g.
+   (snapshot) ===> "
+  ")
+
+  (redo!)
+
+  (e.g.
+   (snapshot) ===> "
+  ╭  ╮
+  │  │
+  ╰ |╯
+  ")
+
+
+#+END_SRC
+
+chcielibysmy miec
+
+#+BEGIN_SRC scheme
+      (test-edit-sequence "
+    "
+			  (insert-character! #\[)
+
+      (surely-the-operation
+
+	   transforms "
+	"
+	   into "
+	  ╭  ╮
+	  │  │
+	  ╰ |╯
+	  "))
+
+  (define-syntax-rule (test-edit-sequence initial-view
+					  operation
+					  final-view
+					  . rest)
+    (assert ...)
+    operation
+    (assert ...)
+    (undo!)
+    (assert ...)
+    (redo!)
+    (assert ...)
+    (test-edit-sequence final-view . rest))
+
+
+#+END_SRC
 
 * 01.01.2024
 
@@ -72,7 +232,6 @@ czyli "distance to next line", i nazwalibysmy ja to-next-line.
 Natomiast te druga wielkosc bysmy nazwali "to-previous-line" - i chociaz
 wydaje sie, ze ona zachowuje sie z grubsza poprawnie, jest mozliwe, ze to
 nie do konca prawda.
-
 
 * 19.12.2023
 

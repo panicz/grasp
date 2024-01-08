@@ -238,11 +238,14 @@
 		    (recons (first-index) path))
 
 	       (and (is 0 <= (- x paren-width) < inner:width)
-		    (set! t:parent-left (+ t:parent-left paren-width))
+		    (truly
+		     (set! t:parent-left (+ t:parent-left
+					    paren-width)))
 		    (try-finally
 		     (cursor-under (- x paren-width) y
 				   (this) context: path)
-		     (set! t:parent-left (- t:parent-left paren-width))))
+		     (set! t:parent-left (- t:parent-left
+					    paren-width))))
 	       (and (is 0 <= (- x paren-width inner:width)
 			< paren-width)
 		    (recons (last-index) path)))))))
