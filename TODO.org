@@ -1,3 +1,79 @@
+* 07.01.2024
+
+No, to teraz probujemy zrozumiec, jak dziala mark-cursor!. Zasadniczo jest tak,
+ze sobie rysujemy po kolei elementy wraz ze sledzeniem kontekstu, i jezeli akurat
+kontekst jest tozsamy z kursorem, to wywolujemy mark-cursor!.
+
+Do niedawna, jedynym, co "mark-cursor!" robilo, bylo narysowanie prostokata
+i zapamietanie pozycji. Tymczasem jednak wywolujemy editor:mark-cursor!
+przekazujac (+ traversal:parent-left +left) oraz (+ traversal:parent-top +top).
+
+I owa metoda wydaje sie jako tako dzialac dla atomow oraz stringow, natomiast
+dla spacji (z nowymi liniami) juz niekoniecznie.
+
+OK, i dla spacji sie udalo to poprawic. To teraz bysmy sie zajeli nawiasami.
+
+A moze jutro?
+
+* 06.01.2024
+
+Udalo sie jako tako zaimplementowac wyliczanie kolejnej pozycji
+na dole (a w kazdym razie tak sie wydaje) - choc nalezaloby to jeszcze
+zrobic dla klienta terminalowego.
+
+Mamy jednak jeszcze kilka problemow:
+- na spacjach, nawiasach i komentarzach rzecz nie dziala prawidlowo
+- momentami kursor znika, i wtedy z tym adjust-view! dzieja sie
+dziwne rzeczy
+
+No dobra, to teraz trzeba zobaczyc co sie dzieje jak robimy mark-cursor!
+na spacji.
+
+Ogólnie kłopot jest taki, że sam do końca nie rozumiem, 
+jak to wszystko działa :/
+
+Być może warto by było się skupić właśnie na zrozumieniu tego?
+
+No dobra, ale rozumiec to se mozna nawet na kiblu na telefonie :P
+
+
+* 01.01.2024
+
+Najsamprzód należałoby wyjaśnić, dlaczego - w sytuacji, gdy klikniemy
+myszka na swiezym edytorze, to wyglada na to, ze callback on-end-line 
+nie jest wywolywany, a co za tym idzie, current-line-height nie jest
+ustawiana. Natomiast gdy najedziemy w to samo miejsce z pozycji spacji,
+wydaje sie, ze owa wysokosc jest ustawiana prawidlowo (moze byc jednak
+tak, ze wcale nie jest prawidlowo ustawiana, tylko posiada poprzednio
+zapamietana wartosc)
+
+Po drugie, gdy jestesmy na spacjach albo nawiasach, to wyglada na to,
+ze cursor-column jest ustawiane nieprawidlowo.
+
+Po trzecie, kiedy jestesmy na ostatniej linii wyrazenia, to rzeczywiscie
+prawidlowo wyznaczamy wysokosc linii -- ale zamiast tego powinnismy wyznaczyc
+pozycje kolejnego wyrazenia.
+
+No bo tak: wydaje sie, ze nasz interfejs WithCursor jest o tyle dobrze
+zaprojektowany, ze wymiary (current-line-height, previous-line-height)
+sa inwariantne wzgledem przesuniecia polozenia, wiec stanowia najmniejszy
+problem podczas uzywania (oczywiscie wymiary sa wyrazone we wspolrzednych
+dokumentu)
+
+Natomiast tak naprawde tym, co nas interesuje, nie sa wysokosci linii,
+tylko przesuniecia do poprzedniej/nastepnej linii. I tutaj rzecz wyglada
+w taki sposob, ze w momencie, kiedy wywolujemy on-end-line, mamy wszelkie
+informacje do tego, zeby okreslic, gdzie znajduje sie kolejny punkt.
+
+Tylko ze w takim razie nazwa "current-line-height" nie oddaje adekwatnie
+tego, co powinna wyrazac - a powinna wyrazac "odleglosc do nastepnej linii",
+czyli "distance to next line", i nazwalibysmy ja to-next-line.
+
+Natomiast te druga wielkosc bysmy nazwali "to-previous-line" - i chociaz
+wydaje sie, ze ona zachowuje sie z grubsza poprawnie, jest mozliwe, ze to
+nie do konca prawda.
+
+
 * 19.12.2023
 
 dzis bysmy sie zajeli tym ukladem wspolrzednych - moze tez
