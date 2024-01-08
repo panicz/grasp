@@ -1025,7 +1025,8 @@
 		 (set! segment-start (+ i 1))))
 	  (render-fragment! string-end)
 	  (when (and focused? (eqv? (head (the-cursor)) string-end))
-	    (mark-cursor! traversal:left traversal:top))))))
+	    (mark-cursor! traversal:left traversal:top))
+	  (traversal:on-end-line #f)))))
 
   (define (draw-string! text::CharSequence context::Cursor)::void
     (draw-text! text (the-string-font) context))

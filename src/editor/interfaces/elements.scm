@@ -48,7 +48,7 @@
 			parent-top: real := 0
 			parent: Traversal := #!null
 			previous-line-height: real := 0
-			on-end-line: (maps () to: void)
+			on-end-line: (maps (boolean) to: void)
 			:= nothing)
   extending Base with
   ((advance! element::Element)::void
@@ -77,7 +77,7 @@
        previous-line-height))
   
   ((new-line!)::void
-   (on-end-line)
+   (on-end-line #t)
    (set! top (+ top max-line-height))
    (set! left 0)
    (set! previous-line-height max-line-height)

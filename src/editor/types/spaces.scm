@@ -239,10 +239,18 @@
 			(equal? sub context)
 			(is total <= tip <= (+ total
 					       width)))
-	       (painter:mark-cursor! (- t:left left
-					(* space-width
-					   (- total tip)))
-				     (- t:top top -1)))
+	       (with-translation ((- t:left left
+				     (* space-width
+					(- total tip))) (- t:top top -1))
+		 (parameterize ((the-traversal t))
+		   (set! t:parent-left (+ t:parent-left t:left (* space-width
+								(- tip total))))
+		   (set! t:parent-top (+ t:parent-top t:top))
+		   (painter:mark-cursor! 0 0)
+		   (set! t:parent-left (- t:parent-left t:left (* space-width
+								(- tip total))))
+		   (set! t:parent-top (- t:parent-top t:top))
+		   )))
 	     (when (and enters-selection-drawing-mode?
 			(is total <= (car
 				      selection-start) <= (+ total
@@ -271,7 +279,6 @@
 	   (`(,width::integer . ,rest)
 	    (expand-with-cursor! width)
 	    (skip rest (+ total width)))
-
 
 	   ('()
 	    (values)))))))

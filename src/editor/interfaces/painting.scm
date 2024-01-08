@@ -18,8 +18,8 @@
   (set-cursor-column! left::real)::void
   (cursor-column)::real
 
-  (current-line-height)::real
-  (previous-line-height)::real
+  (to-next-line)::real
+  (to-previous-line)::real
   )
 
 (define-type (Extent width: real := 0

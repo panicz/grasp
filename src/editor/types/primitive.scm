@@ -512,12 +512,12 @@
              (traversal:advance! post-head)
              (cond ((dotted? pair)
 		    (step-over-dotted-tail! pair)
-		    (traversal:on-end-line)
+		    (traversal:on-end-line #f)
 		    (result traversal))
 		   ((pair? (tail pair))
 		    (step! (tail pair)))
 		   (else
-		    (traversal:on-end-line)
+		    (traversal:on-end-line #f)
 		    (result traversal)))))
 
 	 (if (pair? sequence)
@@ -526,7 +526,7 @@
                (traversal:advance! pre-head)
                (step! sequence))
 	     (begin
-	       (traversal:on-end-line)
+	       (traversal:on-end-line #f)
 	       (result traversal)))
 	 )))
     ((_ sequence doing: action)

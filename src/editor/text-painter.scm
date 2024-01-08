@@ -689,7 +689,8 @@
 		   (put! c traversal:top traversal:left)
 		   (traversal:expand-by! 1)))
 	    (set! traversal:index (+ traversal:index 1)))
-	  (handle-cursor-and-selection!)))))
+	  (handle-cursor-and-selection!)
+	  (traversal:on-end-line #f)))))
 
   (define (string-character-index-under
 	   x::real y::real

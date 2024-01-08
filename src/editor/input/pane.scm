@@ -1334,26 +1334,40 @@
     (Position left: 0
 	      top: 0))
 
-  (define preceding-line-height ::real 0)
+  (define distance-to-previous-line ::real 0)
 
-  (define cursor-line-height ::real 0)
-    
-  (define (current-line-height)::real
-    cursor-line-height)
+  (define distance-to-next-line ::real 0)
   
-  (define (previous-line-height)::real
-    preceding-line-height)
+  (define (to-next-line)::real
+    distance-to-next-line)
+  
+  (define (to-previous-line)::real
+    distance-to-previous-line)
   
   (define (mark-cursor! left::real top::real)::void
-    (let ((traversal ::Traversal (the-traversal)))
+    (let* ((traversal ::Traversal (the-traversal))
+	   (cursor-top ::real (+ traversal:top traversal:parent-top)))
       (set! marked:left left)
       (set! marked:top top)
-      (set! preceding-line-height
+      (set! distance-to-previous-line
 	    (traversal:preceding-line-height))
       (set! traversal:on-end-line
-	    (lambda ()
-	      (set! cursor-line-height traversal:max-line-height)
-	      (set! traversal:on-end-line nothing)))))
+	    (lambda (continued?::boolean)
+	      (let* ((traversal ::Traversal (the-traversal))
+		     (parent-top ::real (+ traversal:top traversal:parent-top))
+		     (distance ::real (- traversal:max-line-height
+				       (- cursor-top parent-top))))
+		(cond
+		 (continued?
+		  (WARN "setting distance to "distance)
+		  (set! distance-to-next-line distance)
+		  (set! traversal:on-end-line nothing))
+		 ((isnt traversal:parent eq? #!null)
+		  (WARN "propagating to parent")
+		  (set! traversal:parent:on-end-line
+			traversal:on-end-line))
+		 (else
+		  (WARN "to the top!"))))))))
 
   (define (cursor-position)::Position
     marked)
@@ -1481,9 +1495,9 @@
 		(column ::real (invoke-special CursorMarker (this)
 					       'cursor-column))
 		(previous ::real (invoke-special CursorMarker (this)
-						 'previous-line-height))
+						 'to-previous-line))
 		(current ::real (invoke-special CursorMarker (this)
-						'current-line-height)))
+						'to-next-line)))
        (painter:draw-point! left top #x000000)
        (painter:draw-point! column top #xff0000)
        (painter:draw-point! column (+ top current) #x00ff00)
@@ -1904,14 +1918,13 @@
 
 (define (adjust-view!)
   (and-let* ((editor ::DocumentEditor (the-editor))
-	     (cursor ::Position (painter:cursor-position))
+	     (cursor ::Position (editor:cursor-position))
 	     (cursor-height ::real (painter:cursor-height))
 	     (editor-left ::real (the-pane-left))
 	     (editor-top ::real (the-pane-top))
 	     (editor-width ::real (the-pane-width))
 	     (editor-height ::real (the-pane-height))
-	     (xe ::real (- cursor:left editor-left))
-	     (ye ::real (- cursor:top editor-top)))
+	     (xe ye (the-transform-stack:inside-out cursor:left cursor:top))) 
     (unless (is 0 <= ye < (- editor-height cursor-height))
       (painter:play!
        (Transition of: editor:transform

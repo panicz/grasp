@@ -74,7 +74,7 @@
     (set! (the-cursor)
 	  (cursor-under (editor:cursor-column)
 			(- current:top
-			   (editor:previous-line-height))))
+			   (editor:to-previous-line))))
     (set! (the-selection-anchor) (the-cursor))
     ))
 
@@ -84,7 +84,7 @@
     (set! (the-cursor)
 	  (cursor-under (editor:cursor-column)
 			(+ current:top
-			   (editor:current-line-height))))
+			   (editor:to-next-line))))
     (set! (the-selection-anchor) (the-cursor))))
 
 (define (undo!)

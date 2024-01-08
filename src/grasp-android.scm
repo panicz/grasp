@@ -1096,7 +1096,8 @@
 	  (render-fragment! string-end)
 	  (when (and focused? (eqv? (car (the-cursor))
 				    string-end))
-	    (mark-cursor! traversal:left traversal:top))))))
+	    (mark-cursor! traversal:left traversal:top))
+	  (traversal:on-end-line #f)))))
 
   (define (draw-string! text::CharSequence context::Cursor)
     ::void
