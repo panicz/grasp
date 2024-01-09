@@ -1,3 +1,533 @@
+* 09.01.2024
+
+wydaje sie wstepnie, ze podejscie zastosowane w kliencie
+terminalowym z grubsza dziala [chociaz jakosc kodu
+nie jest zadowalajaca]
+
+pytanie zatem teraz jest takie: czy mozemy to jakos
+sensownie zrefaktoryzowac?
+
+tym, co budzi zagwozdki, jest fakt, ze oznaczenie wydaje sie
+znajdowac zupelnie gdzie indziej niz kursor
+
+moze wiec caly podsystem wymags poteznej refaktoryzacji?
+
+#+BEGIN_SRC scheme
+  ;; grasp-android
+
+  (define (mark-editor-cursor! +left::real +top::real
+			       editor::WithCursor)
+    ::void
+    (let* ((cursor-extent ::Extent (the-cursor-extent))
+	   (cursor-offset ::Position (the-cursor-offset))
+	   (left ::real (+ +left cursor-offset:left))
+	   (top ::real (+ +top cursor-offset:top))
+	   (traversal ::Traversal (the-traversal)))
+      (editor:mark-cursor! (+ traversal:parent-left +left)
+			   (+ traversal:parent-top +top))
+      (set-color! text-color)
+      (canvas:drawRect left top
+		       (+ left cursor-extent:width)
+		       (+ top cursor-extent:height)
+		       paint)))
+
+  (define (mark-cursor! +left::real +top::real)::void
+    (mark-editor-cursor! +left +top (the-editor)))
+
+  (define (editor-cursor-position editor::WithCursor)::Position
+    (editor:cursor-position))
+
+  (define (cursor-position)::Position
+    (editor-cursor-position (the-editor)))
+
+  (define (draw-box! width::real height::real context::Cursor)::void
+    (and-let* ((`(#\[ . ,,context) (the-cursor)))
+      (mark-cursor! 0 0))
+    (open-paren! height context)
+    (with-translation ((- width (paren-width)) 0)
+      (and-let* ((`(#\] . ,,context) (the-cursor)))
+	(mark-cursor! 0 0))
+      (close-paren! height context)))
+
+  (define (draw-quote-box! width::real
+			   height::real
+			   context::Cursor)
+    ::void
+    (and-let* ((`(#\[ . ,,context) (the-cursor)))
+      (mark-cursor! 0 0))
+    (open-quote-paren! height context)
+    (with-translation ((- width (quote-paren-width)) 0)
+      (and-let* ((`(#\] . ,,context) (the-cursor)))
+	(mark-cursor! 0 0))
+      (close-quote-paren! height context)))
+
+  (define (draw-quote-markers! width::real
+			       height::real
+			       context::Cursor)
+    ::void
+    (and-let* ((`(#\[ . ,,context) (the-cursor)))
+      (mark-cursor! 0 0))
+    (set-color! (opening-parenthesis-color context))
+    (canvas:drawPath quote-marker paint))
+
+  (define (draw-quasiquote-box! width::real
+				height::real
+				context::Cursor)
+    ::void
+    (and-let* ((`(#\[ . ,,context) (the-cursor)))
+      (mark-cursor! 0 0))
+    (open-quasiquote-paren! height context)
+    (with-translation ((- width (quasiquote-paren-width)) 0)
+      (and-let* ((`(#\] . ,,context) (the-cursor)))
+	(mark-cursor! 0 0))
+      (close-quasiquote-paren! height context)))
+
+  (define (draw-unquote-box! width::real
+			     height::real
+			     context::Cursor)
+    ::void
+    (and-let* ((`(#\[ . ,,context) (the-cursor)))
+      (mark-cursor! 0 0))
+    (open-unquote-paren! height context)
+    (with-translation ((- width (quasiquote-paren-width)) 0)
+      (and-let* ((`(#\] . ,,context) (the-cursor)))
+	(mark-cursor! 0 0))
+      (close-unquote-paren! height context)))
+
+  (define (draw-unquote-markers! width::real
+				 height::real
+				 context::Cursor)
+    ::void
+    (with-translation (0 (- height bottom-left-quote-extent:height))
+      (and-let* ((`(#\[ . ,,context) (the-cursor)))
+	(mark-cursor! 0 0))
+      (set-color! (opening-parenthesis-color context))
+      (canvas:drawPath bottom-left-quote-paren paint)
+      (with-translation ((+ width (quasiquote-marker-width)) 0)
+	(and-let* ((`(#\]
+ . ,,context) (the-cursor)))
+	  (mark-cursor! 0 0))
+	(set-color! (closing-parenthesis-color context))
+	(canvas:drawPath bottom-right-quote-paren paint))))
+
+  (define (draw-unquote-splicing-box!
+	   width::real
+	   height::real
+	   context::Cursor)
+    ::void
+    (and-let* ((`(#\[ . ,,context) (the-cursor)))
+      (mark-cursor! 0 0))
+    (open-unquote-splicing-paren! height context)
+    (with-translation ((- width (unquote-splicing-paren-width)) 0)
+      (and-let* ((`(#\] . ,,context) (the-cursor)))
+	(mark-cursor! 0 0))
+      (close-unquote-splicing-paren! height context)))
+
+  (define (draw-unquote-splicing-markers!
+	   width::real
+	   height::real
+	   context::Cursor)
+    ::void
+    (with-translation (0 (- height bottom-left-quote-extent:height))
+      (and-let* ((`(#\[ . ,,context) (the-cursor)))
+	(mark-cursor! 0 0))
+      (set-color! (opening-parenthesis-color context))
+      (canvas:drawRect 0 10 2.5 20 paint)
+      (canvas:drawRect 5 10 10 20
+		       paint)
+      (with-translation (10 0)
+	(canvas:drawPath bottom-left-quote-paren paint)
+	(with-translation ((+ width (quasiquote-marker-width)) 0)
+	  (and-let* ((`(#\] . ,,context) (the-cursor)))
+	    (mark-cursor! 0 0))
+	  (set-color! (closing-parenthesis-color context))
+	  (canvas:drawPath bottom-right-quote-paren paint)
+	  (canvas:drawRect 20 10 25 20 paint)
+	  (canvas:drawRect 27.5 10 30 20 paint)))))
+
+  ;; a takze w metodzie draw-text!
+#+END_SRC
+
+#+BEGIN_SRC scheme
+  ;; grasp-desktop
+
+    (define (draw-box! width::real height::real
+		     context::Cursor)
+    ::void
+    (let ((cursor (the-cursor)))
+
+      (and-let* ((`(#\[ . ,,context) cursor))
+	(mark-cursor! 0 0))
+
+      (open-paren! height context)
+
+      (with-translation ((- width (paren-width)) 0)
+	(and-let* ((`(#\] . ,,context) cursor))
+	  (mark-cursor! 0 0))
+	(close-paren! height context))))
+
+
+  (define (draw-quote-box! width::real
+			   height::real
+			   context::Cursor)
+    ::void
+    (and-let* ((`(#\[ . ,,context) (the-cursor)))
+      (mark-cursor! 0 0))
+    (open-quote-paren! height context)
+    (with-translation ((- width (quote-paren-width)) 0)
+      (and-let* ((`(#\] . ,,context) (the-cursor)))
+	(mark-cursor! 0 0))
+      (close-quote-paren! height context)))
+
+  (define (draw-quasiquote-box! width::real
+				height::real
+				context::Cursor)
+    ::void
+    (and-let* ((`(#\[ . ,,context) (the-cursor)))
+      (mark-cursor! 0 0))
+    (open-quasiquote-paren! height context)
+    (with-translation ((- width (quasiquote-paren-width)) 0)
+      (and-let* ((`(#\] . ,,context) (the-cursor)))
+	(mark-cursor! 0 0))
+      (close-quasiquote-paren! height context)))
+
+
+  (define (draw-quasiquote-markers! width::real
+				    height::real
+				    context::Cursor)
+    ::void
+    (and-let* ((`(#\[ . ,,context) (the-cursor)))
+      (mark-cursor! 0 0))
+    (set-color! (opening-parenthesis-color context))
+    (graphics:fill top-left-quote-paren)
+    (with-translation ((+ width (quasiquote-marker-width)) 0)
+      (and-let* ((`(#\] . ,,context) (the-cursor)))
+	(mark-cursor! 0 0))
+      (set-color! (closing-parenthesis-color context))
+      (graphics:fill top-right-quote-paren)))
+
+
+  (define (draw-unquote-box! width::real
+			     height::real
+			     context::Cursor)
+    ::void
+    (and-let* ((`(#\[ . ,,context) (the-cursor)))
+      (mark-cursor! 0 0))
+    (open-unquote-paren! height context)
+    (with-translation ((- width (quasiquote-paren-width)) 0)
+      (and-let* ((`(#\] . ,,context) (the-cursor)))
+	(mark-cursor! 0 0))
+      (close-unquote-paren! height context)))
+
+
+  (define (draw-unquote-markers! width::real
+				 height::real
+				 context::Cursor)
+    ::void
+    (and-let* ((`(#\[ . ,,context) (the-cursor)))
+      (mark-cursor! 0 0))
+    (with-translation (0 (- height bottom-left-quote-bounds:height))
+      (set-color! (opening-parenthesis-color context))
+      (graphics:fill bottom-left-quote-paren)
+      (with-translation ((+ width (quasiquote-marker-width)) 0)
+	(and-let* ((`(#\] . ,,context) (the-cursor)))
+	  (mark-cursor! 0 0))
+	(set-color! (closing-parenthesis-color context))
+	(graphics:fill bottom-right-quote-paren))))
+
+  (define (draw-unquote-splicing-box!
+	   width::real
+	   height::real
+	   context::Cursor)
+    ::void
+    (and-let* ((`(#\[ . ,,context) (the-cursor)))
+      (mark-cursor! 0 0))
+    (open-unquote-splicing-paren! height context)
+    (with-translation ((- width (unquote-splicing-paren-width)) 0)
+      (and-let* ((`(#\] . ,,context) (the-cursor)))
+	(mark-cursor! 0 0))
+      (close-unquote-splicing-paren! height context)))
+
+  (define (draw-unquote-splicing-markers!
+	   width::real
+	   height::real
+	   context::Cursor)
+    ::void
+    (and-let* ((`(#\[ . ,,context) (the-cursor)))
+      (mark-cursor! 0 0))
+    (with-translation (0 (- height bottom-left-quote-bounds:height))
+      (set-color! (opening-parenthesis-color context))
+      (graphics:fillRect 0 5 1 10)
+      (graphics:fillRect 3 5 5 10)
+      (with-translation (5 0)
+	(graphics:fill bottom-left-quote-paren)
+	(with-translation ((+ width (quasiquote-marker-width)) 0)
+	  (and-let* ((`(#\] . ,,context) (the-cursor)))
+	    (mark-cursor! 0 0))
+	  (set-color! (closing-parenthesis-color context))
+	  (graphics:fill bottom-right-quote-paren)
+	  (graphics:fillRect 10 5 13 10)
+	  (graphics:fillRect 14 5 15 10)))))
+
+    (define (mark-editor-cursor! +left::real +top::real
+			       editor::WithCursor)
+    ::void
+    (let ((cursor-extent ::Extent (the-cursor-extent))
+	  (cursor-offset ::Position (the-cursor-offset))
+	  (traversal ::Traversal (the-traversal)))
+      (editor:mark-cursor! (as int (+ traversal:parent-left +left))
+			   (as int (+ traversal:parent-top +top)))
+      (graphics:fillRect (+ +left cursor-offset:left)
+			 (+ +top cursor-offset:top)
+			 cursor-extent:width
+			 cursor-extent:height)))
+
+  (define (mark-cursor! +left::real +top::real)::void
+    (mark-editor-cursor! +left +top (the-editor)))
+
+  (define (editor-cursor-position editor::WithCursor)::Position
+    (editor:cursor-position))
+
+  (define (cursor-position)::Position
+    (editor-cursor-position (the-editor)))
+
+  (define (cursor-height)::real
+    (let ((offset ::Position (the-cursor-offset))
+	  (extent ::Extent (the-cursor-extent)))
+      (+ offset:top extent:height)))
+
+  ;; a takze w metodzie draw-text!
+  
+#+END_SRC
+
+#+BEGIN_SRC scheme
+  ;; text-painter
+
+  (define (mark-editor-cursor! +left::real +top::real
+			       editor::WithCursor)
+    ::void
+    (let ((t ::Traversal (the-traversal)))
+      (editor:mark-cursor! (+ t:parent-left +left)
+			   (+ t:parent-top +top 1))))
+
+  (define (editor-cursor-position editor::WithCursor)::Position
+    (editor:cursor-position))
+
+  (define (mark-cursor! +left::real +top::real)::void
+    (mark-editor-cursor! +left +top (the-editor)))
+
+  (define (cursor-position)::Position
+    (editor-cursor-position (the-editor)))
+
+  (define (draw-horizontal-bar! width::real
+				highlighted?::boolean)
+    ::void
+    (let ((width (nearby-int (* width
+				horizontal-stretch))))
+      (when highlighted?
+	(mark-cursor! 0 1)
+	(enter-selection-drawing-mode!))
+      (for i from 0 below width
+	   (when (eq? (get -1 i) #\space)
+	     (put! #\_ -1 i)))
+      (when highlighted?
+	(exit-selection-drawing-mode!))))
+
+  (define (draw-vertical-bar! height::real
+			      highlighted?::boolean)
+    ::void
+    (let ((height (nearby-int (* height
+				 horizontal-stretch))))
+      (when highlighted?
+	(mark-cursor! 0 1)
+	(enter-selection-drawing-mode!))
+      (put! #\╷ 0 0)
+      (for i from 1 below (- height 1)
+	   (put! #\│ i 0))
+      (put! #\╵ (- height 1) 0)
+      (when highlighted?
+	(exit-selection-drawing-mode!))))
+
+  (define (draw-custom-box!
+	   top-left::gnu.text.Char
+	   top-right::gnu.text.Char
+	   bar::gnu.text.Char ;;│┃┆┇┊┋
+	   bottom-left::gnu.text.Char
+	   bottom-right::gnu.text.Char
+	   width::real
+	   height::real
+	   context::Cursor)
+    ::void
+    (let-values (((selection-start selection-end)
+		  (the-selection))
+		 ((width height) (values
+				  (nearby-int (* width
+						 horizontal-stretch))
+				  (nearby-int (* height
+						 vertical-stretch))))
+		 ((t) (the-traversal)))
+      (when (and (pair? (the-cursor))
+		 (equal? context (cdr (the-cursor))))
+	(parameterize ((the-traversal (Traversal
+				       parent: t
+				       parent-left:
+				       (+ t:left t:parent-left)
+				       parent-top:
+				       (+ t:top t:parent-top))))
+	  (match (head (the-cursor))
+	    (#\[
+	     (mark-cursor! 0 1))
+	    (#\]
+	     (slot-set! (the-traversal) 'left (- width 1))
+	     (mark-cursor! (- width 1) (- height 2)))
+	    (_ (values)))))
+      (when (and (pair? selection-start)
+		 (equal? (tail selection-start) context)
+		 (is (head selection-start) in '(#\[ #\])))
+	(enter-selection-drawing-mode!))
+      (put! top-left 0 0)
+      (for i from 1 to (- height 2)
+           (put! bar i 0))
+      (put! bottom-left (- height 1) 0)
+
+      (put! top-right 0 (- width 1))
+      (for i from 1 to (- height 2)
+           (put! bar i (- width 1)))
+      (put!  bottom-right (- height 1) (- width 1))
+
+      (when (and (pair? selection-end)
+		 (equal? (tail selection-end) context)
+		 (is (head selection-end) in '(#\[ #\])))
+	(exit-selection-drawing-mode!))
+      ))  
+
+#+END_SRC
+
+#+BEGIN_SRC scheme
+  (module-name (editor input pane))
+
+  (define (mark-cursor! left::real top::real)::void
+    (let* ((traversal ::Traversal (the-traversal))
+	   (cursor-top ::real (+ traversal:top traversal:parent-top)))
+      (set! marked:left left)
+      (set! marked:top top)
+      (set! distance-to-previous-line
+	    (traversal:preceding-line-height))
+      (set! traversal:on-end-line
+	    (lambda (continued?::boolean)
+	      (let* ((traversal ::Traversal (the-traversal))
+		     (parent-top ::real (+ traversal:top traversal:parent-top))
+		     (distance ::real (- traversal:max-line-height
+					 (- cursor-top parent-top))))
+		(cond
+		 (continued?
+		  #;(WARN "setting distance to "distance)
+		  (set! distance-to-next-line distance)
+		  (set! traversal:on-end-line nothing))
+		 ((isnt traversal:parent eq? #!null)
+		  #;(WARN "propagating to parent")
+		  (set! traversal:parent:on-end-line
+			traversal:on-end-line))
+		 #;(else
+		 (WARN "to the top!"))))))))
+#+END_SRC
+
+No dobra, to widzimy, ze ten mark-cursor! wewnatrz edytora
+sobie bierze traversala
+
+Ale żeby to było możliwe, traversal musi mieć aktualną informację.
+
+Rozważmy zatem taką hipotezę: co gdyby with-translation
+zmieniało również wartości traverse:left i traverse:top?
+
+#+BEGIN_SRC scheme
+  (module-name (editor types primitive))
+
+  (define (draw-sequence! #!optional
+			  (elems::list (head (the-document)))
+			  #!key (context::Cursor (recons 1 '())))
+    ::void
+    (escape-with end-drawing
+      (let*-values (((selection-start selection-end) (the-selection)))
+	(define (action item ::Element traversal ::Traversal)
+	  (escape-with skip-element
+	    (with-translation (traversal:left
+			       traversal:top)
+	      (when (is item instance? Tile)
+		(let* ((document-left ::real (+ traversal:left
+						traversal:parent-left))
+		       (document-top ::real (+ traversal:top
+					       traversal:parent-top))
+		       (e ::Extent (extent+ item))
+		       (document-right ::real (+ document-left
+						 e:width))
+		       (document-bottom ::real (+ document-top
+						  e:height)))
+
+		  (unless (visible? document-left document-top
+				    document-right document-bottom)
+		    (when (is document-top > (view-edge-bottom))
+		      (end-drawing))
+		    (skip-element))))
+
+	      (let ((context (recons traversal:index
+				     context)))
+		(when (equal? context selection-start)
+		  (painter:enter-selection-drawing-mode!))
+		(item:draw! context)
+		(when (equal? context selection-end)
+		  (painter:exit-selection-drawing-mode!))))))
+	(traverse elems doing: action))))
+
+  ;; cons
+  (define (draw! context::Cursor)
+    ::void
+    (let* ((inner ::Extent (sequence-extent (this)))
+	   (t ::Traversal (the-traversal))
+	   (paren-width ::real (painter:paren-width)))
+      (painter:draw-box! (+ inner:width (* 2 paren-width))
+			 inner:height
+			 context)
+      (with-translation (paren-width 0)
+	(set! t:parent-left (+ t:parent-left paren-width))
+	(try-finally
+	 (draw-sequence! (this) context: context)
+	 (set! t:parent-left (- t:parent-left paren-width))))))
+
+#+END_SRC
+
+Tutaj mamy
+
+(with-translation (traversal:left traversal:top) ...)
+
+czyli traverse nam zmienia traversal pod spodem, i dodanie
+tego do with-translation by nam napsulo
+
+Stad wydaje sie, ze rozwiazaniem powinno byc reczne zmodyfikowanie
+traverse'a przy wywolywaniu mark-cursor! na nawiasach.
+
+* 08.01.2024
+
+to teraz bysmy sie zajeli tymi nieszczesnymi nawiasami
+
+i tutaj sytuacja wyglada tak, ze w kliencie androidowym
+i desktopowym mark-cursor! jest wolany (nieco wbrew intuicji)
+wewnatrz opening/closing-parenthesis-color
+
+W kliencie terminalowym i tekstowym mamy metode draw-custom-box,
+w ktorej jest robiony mark-cursor!
+
+Wiec plan bylby taki:
+- do klienta tekstowego powinnismy moc wprowadzic zmiany
+  bez problemu (choc ich nature bedzie jeszcze trzeba nieco
+  przemyslec)
+- klienty androidowy i desktopowy wymagalyby jeszcze
+  refaktoryzacji, tak zeby mark-cursor! byl wolany poza
+  funkcja od koloru?
+
+no to te dwa klienty mamy zrefaktoryzowane. teraz bysmy przeniesli
+wywolania mark-cursor
+
 * 07.01.2024
 
 No, to teraz probujemy zrozumiec, jak dziala mark-cursor!. Zasadniczo jest tak,
