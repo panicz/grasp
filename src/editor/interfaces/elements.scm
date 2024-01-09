@@ -353,9 +353,6 @@ operate on cursors.
   (add-post-draw-action! action::(maps () to: void))::void
   )
 
-(define-parameter (the-editor)::Editor
-  #!null)
-
 (define-object (NullPane)::Embeddable
   (define (drop-at! x::real y::real expression::pair)::boolean
     #f)
@@ -402,6 +399,39 @@ operate on cursors.
     #f)
   
   (IgnoreInput))
+
+(define-object (NoEditor)::Editor
+  
+  (define (add-post-draw-action! action::(maps () to: void))::void
+    (action))
+
+  (define marked ::Position
+    (Position left: 0
+	      top: 0))
+
+  (define (mark-cursor! left::real top::real)::void
+    (set! marked:left left)
+    (set! marked:top top))
+  
+  (define (current-line-height)::real
+    0)
+  
+  (define (previous-line-height)::real
+    0)
+  
+  (define (cursor-position)::Position
+    marked)
+  
+  (define (set-cursor-column! left::real)::void
+    (values))
+  
+  (define (cursor-column)::real
+    0)
+
+  (NullPane))
+
+(define-parameter (the-editor)::Editor
+  (NoEditor))
 
 (define-interface Drag ()
   (move! x::real y::real dx::real dy::real)::void

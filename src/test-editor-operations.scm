@@ -6,6 +6,7 @@
  (language define-type)
  (language define-object)
  (utils conversions)
+ (editor interfaces painting)
  (editor interfaces elements)
  (editor types spaces)
  (editor document cursor)
@@ -23,7 +24,6 @@
  (utils functions)
  (utils print)
  (utils hash-table)
- (editor interfaces painting)
  (language for)
  (editor document document-operations)
  (editor document editor-operations)
@@ -35,6 +35,8 @@
 
 (define verbose ::boolean #false)
 
+(define fail ::procedure error)
+
 (define (snapshot)::String
   (with ((painter (TextPainter)))
     (reset! extent-cached?)
@@ -44,6 +46,29 @@
 	(display result))
       ;;(display (history (the-document)))
       result)))
+
+(define-syntax-rule (with-undo-redo operation)
+  (let ((initial (snapshot)))
+    operation
+    (let ((final (snapshot)))
+      (undo!)
+      (let ((reverted (snapshot)))
+	(unless (equal? initial reverted)
+	  (fail "Unexpected output after undoing "'operation
+		"\nexpected:\n"
+		initial
+		"\ngot:\n"
+		reverted)))
+      (redo!)
+      (let ((redone (snapshot)))
+	(unless (equal? final redone)
+	  (fail "Unexpected output after redoing "'operation
+		"\nexpected:\n"
+		final
+		"\ngot:\n"
+		redone)))
+      final)))
+
 
 (set! (the-document)
       (call-with-input-string
@@ -64,25 +89,9 @@
 (exit)
 |#
 
-(insert-character! #\[)
-
 (e.g.
- (snapshot) ===> "
-╭  ╮
-│  │
-╰ |╯
-")
-
-(undo!)
-
-(e.g.
- (snapshot) ===> "
-")
-
-(redo!)
-
-(e.g.
- (snapshot) ===> "
+ (with-undo-redo
+  (insert-character! #\[)) ===> "
 ╭  ╮
 │  │
 ╰ |╯
@@ -103,28 +112,9 @@
 ╰ |╯
 ")
 
-(for-each insert-character! '(#\d #\e #\f #\n #\e))
-
 (e.g.
- (snapshot) ===> "
-╭       ╮
-│ defne │
-╰      ^╯
-")
-
-(undo!)
-
-(e.g.
- (snapshot) ===> "
-╭  ╮
-│  │
-╰ |╯
-")
-
-(redo!)
-
-(e.g.
- (snapshot) ===> "
+ (with-undo-redo
+  (for-each insert-character! '(#\d #\e #\f #\n #\e))) ===> "
 ╭       ╮
 │ defne │
 ╰      ^╯
@@ -157,28 +147,9 @@
 ╰    ^  ╯
 ")
 
-(insert-character! #\i)
-
 (e.g.
- (snapshot) ===> "
-╭        ╮
-│ define │
-╰     ^  ╯
-")
-
-(undo!)
-
-(e.g.
- (snapshot) ===> "
-╭       ╮
-│ defne │
-╰    ^  ╯
-")
-
-(redo!)
-
-(e.g.
- (snapshot) ===> "
+ (with-undo-redo
+  (insert-character! #\i))  ===> "
 ╭        ╮
 │ define │
 ╰     ^  ╯
@@ -222,7 +193,7 @@
 │ define-cache │
 ╰             ^╯
 ")
- 
+
 (undo!)
 
 (e.g.
@@ -269,10 +240,9 @@
 ╰       ^      ╯
 ")
 
-(insert-character! #\newline)
-
 (e.g.
- (snapshot) ===> "
+ (with-undo-redo
+  (insert-character! #\newline)) ===> "
 ╭        ╮
 │ define │
 │        │
@@ -281,52 +251,9 @@
 ╰ |      ╯
 ")
 
-(undo!)
-
 (e.g.
- (snapshot) ===> "
-╭              ╮
-│ define-cache │
-╰       ^      ╯
-")
-
-(redo!)
-
-(e.g.
- (snapshot) ===> "
-╭        ╮
-│ define │
-│        │
-│        │
-│ -cache │
-╰ |      ╯
-")
-
-(delete-backward!)
-
-(e.g.
- (snapshot) ===> "
-╭              ╮
-│ define-cache │
-╰       ^      ╯
-")
-
-(undo!)
-
-(e.g.
- (snapshot) ===> "
-╭        ╮
-│ define │
-│        │
-│        │
-│ -cache │
-╰ |      ╯
-")
-
-(redo!)
-
-(e.g.
- (snapshot) ===> "
+ (with-undo-redo
+  (delete-backward!)) ===> "
 ╭              ╮
 │ define-cache │
 ╰       ^      ╯
@@ -341,28 +268,9 @@
 ╰             ^╯
 ")
 
-(times 6 delete-backward!)
-
 (e.g.
- (snapshot) ===> "
-╭        ╮
-│ define │
-╰       ^╯
-")
-
-(undo!)
-
-(e.g.
- (snapshot) ===> "
-╭              ╮
-│ define-cache │
-╰             ^╯
-")
-
-(redo!)
-
-(e.g.
- (snapshot) ===> "
+ (with-undo-redo
+  (times 6 delete-backward!)) ===> "
 ╭        ╮
 │ define │
 ╰       ^╯
@@ -708,10 +616,9 @@
 (set! (the-cursor) (cursor #\[ 7 1 1))
 (set! (the-selection-anchor) (the-cursor))
 
-(insert-character! #\;)
-
 (e.g.
- (snapshot) ===> "
+ (with-undo-redo
+  (insert-character! #\;)) ===> "
 ╭        ╭     ╮ ⸾ -> int      ╮
 │ define │ ! n │               │
 │        ╰     ╯               │
@@ -730,98 +637,9 @@
 ╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
 ")
 
-(undo!)
-
 (e.g.
- (snapshot) ===> "
-╭        ╭     ╮ ⸾ -> int      ╮
-│ define │ ! n │               │
-│        ╰     ╯               │
-│ ❝┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈•     │
-│ ┊ Computes the product ┊     │
-│ ┊ 1 * ... * n          ┊     │
-│ •┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈❞     │
-│ ╭    ╭           ╮         ╮ │
-│ │ if │ is n <= 1 │         │ │
-│ │    ╰           ╯         │ │
-│ │                          │ │
-│ │   1                      │ │
-│ │                          │ │
-│ │  ╭     ╭   ╭       ╮ ╮ ╮ │ │
-│ │  │ * n │ ! │ - n 1 │ │ │ │ │
-╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
-")
-
-(redo!)
-
-(e.g.
- (snapshot) ===> "
-╭        ╭     ╮ ⸾ -> int      ╮
-│ define │ ! n │               │
-│        ╰     ╯               │
-│ ❝┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈•     │
-│ ┊ Computes the product ┊     │
-│ ┊ 1 * ... * n          ┊     │
-│ •┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈❞     │
-│ ╭    ╭           ╮         ╮ │
-│ ┊ i̶f̶ ┊ i̶s̶ n̶ <̶=̶ 1̶ ┊         ┊ │
-│ ┊    ╰           ╯         ┊ │
-│ ┊                          ┊ │
-│ ┊   1̶                      ┊ │
-│ ┊                          ┊ │
-│ ┊  ╭     ╭   ╭       ╮ ╮ ╮ ┊ │
-│ ┊  ┊ *̶ n̶ ┊ !̶ ┊ -̶ n̶ 1̶ ┊ ┊ ┊ ┊ │
-╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
-")
-
-(insert-character! #\;)
-
-(e.g.
- (snapshot) ===> "
-╭        ╭     ╮ ⸾ -> int      ╮
-│ define │ ! n │               │
-│        ╰     ╯               │
-│ ❝┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈•     │
-│ ┊ Computes the product ┊     │
-│ ┊ 1 * ... * n          ┊     │
-│ •┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈❞     │
-│ ╭    ╭           ╮         ╮ │
-│ │ if │ is n <= 1 │         │ │
-│ │    ╰           ╯         │ │
-│ │                          │ │
-│ │   1                      │ │
-│ │                          │ │
-│ │  ╭     ╭   ╭       ╮ ╮ ╮ │ │
-│ │  │ * n │ ! │ - n 1 │ │ │ │ │
-╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
-")
-
-(undo!)
-
-(e.g.
- (snapshot) ===> "
-╭        ╭     ╮ ⸾ -> int      ╮
-│ define │ ! n │               │
-│        ╰     ╯               │
-│ ❝┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈•     │
-│ ┊ Computes the product ┊     │
-│ ┊ 1 * ... * n          ┊     │
-│ •┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈❞     │
-│ ╭    ╭           ╮         ╮ │
-│ ┊ i̶f̶ ┊ i̶s̶ n̶ <̶=̶ 1̶ ┊         ┊ │
-│ ┊    ╰           ╯         ┊ │
-│ ┊                          ┊ │
-│ ┊   1̶                      ┊ │
-│ ┊                          ┊ │
-│ ┊  ╭     ╭   ╭       ╮ ╮ ╮ ┊ │
-│ ┊  ┊ *̶ n̶ ┊ !̶ ┊ -̶ n̶ 1̶ ┊ ┊ ┊ ┊ │
-╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
-")
-
-(redo!)
-
-(e.g.
- (snapshot) ===> "
+ (with-undo-redo
+  (insert-character! #\;))  ===> "
 ╭        ╭     ╮ ⸾ -> int      ╮
 │ define │ ! n │               │
 │        ╰     ╯               │
