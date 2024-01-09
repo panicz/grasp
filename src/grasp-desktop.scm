@@ -561,10 +561,8 @@
   (define (opening-parenthesis-color context::Cursor)::Color
     (match (the-cursor)
       (`(#\[ . ,,context)
-       (mark-cursor! 0 0)
        (focused-parenthesis-color))
       (`(#\] . ,,context)
-       (mark-cursor! 0 0)
        (matching-parenthesis-color))
       (_
        (parenthesis-color))))
@@ -572,19 +570,17 @@
   (define (closing-parenthesis-color context::Cursor)::Color
     (match (the-cursor)
       (`(#\] . ,,context)
-       (mark-cursor! 0 0)
        (focused-parenthesis-color))
       (`(#\[ . ,,context)
-       (mark-cursor! 0 0)
        (matching-parenthesis-color))
       (_
        (parenthesis-color))))
 
-  (define (open-paren! height::real color::Color)::void
+  (define (open-paren! height::real context::Cursor)::void
     (let ((line-height (max 0 (- height
 				 top-left-bounds:height
 				 bottom-left-bounds:height))))
-      (set-color! color)
+      (set-color! (opening-parenthesis-color context))
       (graphics:fill top-left-paren)
       (graphics:fillRect 0 top-left-bounds:height
 			 5 line-height)
@@ -592,11 +588,11 @@
 			      line-height))
 	  (graphics:fill bottom-left-paren))))
 
-  (define (close-paren! height::real color::Color)::void
+  (define (close-paren! height::real context::Cursor)::void
     (let ((line-height (max 0 (- height
 				 top-right-bounds:height
 				 bottom-right-bounds:height))))
-      (set-color! color)
+      (set-color! (closing-parenthesis-color context))
       (graphics:fill top-right-paren)
       (graphics:fillRect (- top-right-bounds:width 5)
 			 top-right-bounds:height 5 line-height)
@@ -609,13 +605,16 @@
 		     context::Cursor)
     ::void
     (let ((cursor (the-cursor)))
+
+      (and-let* ((`(#\[ . ,,context) cursor))
+	(mark-cursor! 0 0))
       
-      (open-paren! height
-		   (opening-parenthesis-color context))
+      (open-paren! height context)
       
       (with-translation ((- width (paren-width)) 0)
-	  (close-paren! height
-			(closing-parenthesis-color context)))))
+	(and-let* ((`(#\] . ,,context) cursor))
+	  (mark-cursor! 0 0))
+	(close-paren! height context))))
 
   (define (draw-border! width::real height::real)::void
     (graphics:fillRect 3 3 (- width 6) 4)
@@ -632,11 +631,11 @@
 
   (define (line-simplification-resolution)::real 20)
   
-  (define (open-quote-paren! height::real color::Color)::void
+  (define (open-quote-paren! height::real context::Cursor)::void
     (let ((line-height (max 0 (- height
 				 top-left-bounds:height
 				 bottom-left-bounds:height))))
-      (set-color! color)
+      (set-color! (opening-parenthesis-color context))
       (graphics:fill top-left-quote-paren)
       (graphics:fillRect 0 top-left-quote-bounds:height
 		       5 line-height)
@@ -644,11 +643,11 @@
 			      line-height))
 	  (graphics:fill bottom-left-quote-paren))))
 
-  (define (close-quote-paren! height::real color::Color)::void
+  (define (close-quote-paren! height::real context::Cursor)::void
     (let ((line-height (max 0 (- height
 				 top-right-bounds:height
 				 bottom-right-bounds:height))))
-      (set-color! color)
+      (set-color! (closing-parenthesis-color context))
       (graphics:fill top-right-quote-paren)
       (graphics:fillRect (- top-right-quote-bounds:width 5)
 			 top-right-quote-bounds:height
@@ -663,10 +662,13 @@
 			   height::real
 			   context::Cursor)
     ::void
-    (open-quote-paren! height (opening-parenthesis-color context))
+    (and-let* ((`(#\[ . ,,context) (the-cursor)))
+      (mark-cursor! 0 0))
+    (open-quote-paren! height context)
     (with-translation ((- width (quote-paren-width)) 0)
-      (close-quote-paren! height
-			  (closing-parenthesis-color context))))
+      (and-let* ((`(#\] . ,,context) (the-cursor)))
+	(mark-cursor! 0 0))
+      (close-quote-paren! height context)))
 
   (define (quote-paren-width)::real
     (+ 1 top-left-quote-bounds:width))
@@ -681,16 +683,16 @@
   (define (quote-marker-width)::real
     (+ 1 top-left-quote-bounds:width))
 
-  (define (open-quasiquote-paren! height::real color::Color)::void
+  (define (open-quasiquote-paren! height::real context::Cursor)::void
     (let ((line-height (max 0 (- height top-left-bounds:height))))
-      (set-color! color)
+      (set-color! (opening-parenthesis-color context))
       (graphics:fill top-left-quote-paren)
       (graphics:fillRect 0 top-left-quote-bounds:height
 		       5 line-height)))
 
-  (define (close-quasiquote-paren! height::real color::Color)::void
+  (define (close-quasiquote-paren! height::real context::Cursor)::void
     (let ((line-height (max 0 (- height top-right-bounds:height))))
-      (set-color! color)
+      (set-color! (closing-parenthesis-color context))
       (graphics:fill top-right-quote-paren)
       (graphics:fillRect (- top-right-quote-bounds:width 5)
 			 top-right-quote-bounds:height
@@ -700,11 +702,13 @@
 				height::real
 				context::Cursor)
     ::void
-    (open-quasiquote-paren! height
-			    (opening-parenthesis-color context))
+    (and-let* ((`(#\[ . ,,context) (the-cursor)))
+      (mark-cursor! 0 0))
+    (open-quasiquote-paren! height context)
     (with-translation ((- width (quasiquote-paren-width)) 0)
-      (close-quasiquote-paren! height
-			       (closing-parenthesis-color context))))
+      (and-let* ((`(#\] . ,,context) (the-cursor)))
+	(mark-cursor! 0 0))
+      (close-quasiquote-paren! height context)))
 
   (define (quasiquote-paren-width)::real
     (+ 1 top-left-quote-bounds:width))
@@ -713,28 +717,32 @@
 				    height::real
 				    context::Cursor)
     ::void
+    (and-let* ((`(#\[ . ,,context) (the-cursor)))
+      (mark-cursor! 0 0))
     (set-color! (opening-parenthesis-color context))
     (graphics:fill top-left-quote-paren)
     (with-translation ((+ width (quasiquote-marker-width)) 0)
+      (and-let* ((`(#\] . ,,context) (the-cursor)))
+	(mark-cursor! 0 0))
       (set-color! (closing-parenthesis-color context))
       (graphics:fill top-right-quote-paren)))
 
   (define (quasiquote-marker-width)::real
     (+ 1 quote-marker-bounds:width))
 
-  (define (open-unquote-paren! height::real color::Color)::void
+  (define (open-unquote-paren! height::real context::Cursor)::void
     (let ((line-height (max 0 (- height
 				 bottom-left-quote-bounds:height))))
-      (set-color! color)
+      (set-color! (opening-parenthesis-color context))
       (graphics:fillRect 0 0 5 line-height)
       (with-translation (0 line-height)
 	(graphics:fill bottom-left-quote-paren))
       ))
 
-  (define (close-unquote-paren! height::real color::Color)::void
+  (define (close-unquote-paren! height::real context::Cursor)::void
     (let ((line-height (max 0 (- height
 				 bottom-right-quote-bounds:height))))
-      (set-color! color)
+      (set-color! (closing-parenthesis-color context))
       (graphics:fillRect (- bottom-right-quote-bounds:width 5) 0
 			 5 line-height)
       (with-translation (0 line-height)
@@ -744,10 +752,13 @@
 			     height::real
 			     context::Cursor)
     ::void
-    (open-unquote-paren! height (opening-parenthesis-color context))
+    (and-let* ((`(#\[ . ,,context) (the-cursor)))
+      (mark-cursor! 0 0))
+    (open-unquote-paren! height context)
     (with-translation ((- width (quasiquote-paren-width)) 0)
-      (close-unquote-paren! height
-			    (closing-parenthesis-color context))))
+      (and-let* ((`(#\] . ,,context) (the-cursor)))
+	(mark-cursor! 0 0))
+      (close-unquote-paren! height context)))
 
   (define (unquote-paren-width)::real
     (+ 1 bottom-left-quote-bounds:width))
@@ -756,28 +767,32 @@
 				 height::real
 				 context::Cursor)
     ::void
+    (and-let* ((`(#\[ . ,,context) (the-cursor)))
+      (mark-cursor! 0 0))
     (with-translation (0 (- height bottom-left-quote-bounds:height))
       (set-color! (opening-parenthesis-color context))
       (graphics:fill bottom-left-quote-paren)
       (with-translation ((+ width (quasiquote-marker-width)) 0)
+	(and-let* ((`(#\] . ,,context) (the-cursor)))
+	  (mark-cursor! 0 0))
 	(set-color! (closing-parenthesis-color context))
 	(graphics:fill bottom-right-quote-paren))))
 
   (define (unquote-marker-width)::real
     (+ 1 bottom-left-quote-bounds:width))
 
-  (define (open-unquote-splicing-paren! height::real color::Color)
+  (define (open-unquote-splicing-paren! height::real context::Cursor)
     ::void
-    (set-color! color)
+    (set-color! (opening-parenthesis-color context))
     (graphics:fillRect 0 5 1 5)
     (graphics:fillRect 3 5 3 5)
     (with-translation (5 0)
-      (open-unquote-paren! height color)))
+      (open-unquote-paren! height context)))
 
-  (define (close-unquote-splicing-paren! height::real color::Color)
+  (define (close-unquote-splicing-paren! height::real context::Cursor)
     ::void
-    (set-color! color)
-    (close-unquote-paren! height color)
+    (set-color! (closing-parenthesis-color context))
+    (close-unquote-paren! height context)
     (graphics:fillRect 10 5 3 5)
     (graphics:fillRect 14 5 1 5))
 
@@ -786,11 +801,13 @@
 	   height::real
 	   context::Cursor)
     ::void
-    (open-unquote-splicing-paren!
-     height (opening-parenthesis-color context))
+    (and-let* ((`(#\[ . ,,context) (the-cursor)))
+      (mark-cursor! 0 0))
+    (open-unquote-splicing-paren! height context)
     (with-translation ((- width (unquote-splicing-paren-width)) 0)
-      (close-unquote-splicing-paren!
-       height (closing-parenthesis-color context))))
+      (and-let* ((`(#\] . ,,context) (the-cursor)))
+	(mark-cursor! 0 0))
+      (close-unquote-splicing-paren! height context)))
 
   (define (unquote-splicing-paren-width)::real
     (+ (unquote-paren-width) 5))
@@ -800,6 +817,8 @@
 	   height::real
 	   context::Cursor)
     ::void
+    (and-let* ((`(#\[ . ,,context) (the-cursor)))
+      (mark-cursor! 0 0))
     (with-translation (0 (- height bottom-left-quote-bounds:height))
       (set-color! (opening-parenthesis-color context))
       (graphics:fillRect 0 5 1 10)
@@ -807,6 +826,8 @@
       (with-translation (5 0)
 	(graphics:fill bottom-left-quote-paren)
 	(with-translation ((+ width (quasiquote-marker-width)) 0)
+	  (and-let* ((`(#\] . ,,context) (the-cursor)))
+	    (mark-cursor! 0 0))
 	  (set-color! (closing-parenthesis-color context))
 	  (graphics:fill bottom-right-quote-paren)
 	  (graphics:fillRect 10 5 13 10)

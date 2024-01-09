@@ -182,32 +182,42 @@
 				  (nearby-int (* width
 						 horizontal-stretch))
 				  (nearby-int (* height
-						 vertical-stretch)))))
-	(when (and (pair? (the-cursor))
-		   (equal? context (cdr (the-cursor))))
+						 vertical-stretch))))
+		 ((t) (the-traversal)))
+      (when (and (pair? (the-cursor))
+		 (equal? context (cdr (the-cursor))))
+	(parameterize ((the-traversal (Traversal
+				       parent: t
+				       parent-left:
+				       (+ t:left t:parent-left)
+				       parent-top:
+				       (+ t:top t:parent-top))))
 	  (match (head (the-cursor))
-	    (#\[ (mark-cursor! 0 1))
-	    (#\] (mark-cursor! (- width 1) (- height 2)))
-	    (_ (values))))
-	(when (and (pair? selection-start)
-		   (equal? (tail selection-start) context)
-		   (is (head selection-start) in '(#\[ #\])))
-	  (enter-selection-drawing-mode!))
-	(put! top-left 0 0)
-	(for i from 1 to (- height 2)
-             (put! bar i 0))
-	(put! bottom-left (- height 1) 0)
+	    (#\[
+	     (mark-cursor! 0 1))
+	    (#\]
+	     (slot-set! (the-traversal) 'left (- width 1))
+	     (mark-cursor! (- width 1) (- height 2)))
+	    (_ (values)))))
+      (when (and (pair? selection-start)
+		 (equal? (tail selection-start) context)
+		 (is (head selection-start) in '(#\[ #\])))
+	(enter-selection-drawing-mode!))
+      (put! top-left 0 0)
+      (for i from 1 to (- height 2)
+           (put! bar i 0))
+      (put! bottom-left (- height 1) 0)
 
-	(put! top-right 0 (- width 1))
-	(for i from 1 to (- height 2)
-             (put! bar i (- width 1)))
-	(put!  bottom-right (- height 1) (- width 1))
+      (put! top-right 0 (- width 1))
+      (for i from 1 to (- height 2)
+           (put! bar i (- width 1)))
+      (put!  bottom-right (- height 1) (- width 1))
 
-	(when (and (pair? selection-end)
-		   (equal? (tail selection-end) context)
-		   (is (head selection-end) in '(#\[ #\])))
-	  (exit-selection-drawing-mode!))
-	))
+      (when (and (pair? selection-end)
+		 (equal? (tail selection-end) context)
+		 (is (head selection-end) in '(#\[ #\])))
+	(exit-selection-drawing-mode!))
+      ))
 
   (define (draw-box! width::real height::real
 		     context::Cursor)

@@ -768,11 +768,29 @@
 	   (+ top-right-extent:height
 	      bottom-right-extent:height))))
 
-  (define (open-paren! height::real color::long)::void
+  (define (opening-parenthesis-color context::Cursor)::long
+    (match (the-cursor)
+      (`(#\[ . ,,context)
+       (focused-parenthesis-color))
+      (`(#\] . ,,context)
+       (matching-parenthesis-color))
+      (_
+       (parenthesis-color))))
+
+  (define (closing-parenthesis-color context::Cursor)::long
+    (match (the-cursor)
+      (`(#\] . ,,context)
+       (focused-parenthesis-color))
+      (`(#\[ . ,,context)
+       (matching-parenthesis-color))
+      (_
+       (parenthesis-color))))
+  
+  (define (open-paren! height::real context::Cursor)::void
     (let ((line-height (max 0 (- height
 				 top-left-extent:height
 				 bottom-left-extent:height))))
-      (set-color! color)
+      (set-color! (opening-parenthesis-color context))
       (canvas:drawPath top-left-paren paint)
       (canvas:drawRect 0 top-left-extent:height
 		       10 (+ top-left-extent:height
@@ -782,11 +800,11 @@
 			      line-height))
 	  (canvas:drawPath bottom-left-paren paint))))
 
-  (define (close-paren! height::real color::long)::void
+  (define (close-paren! height::real context::Cursor)::void
     (let ((line-height (max 0 (- height
 				 top-right-extent:height
 				 bottom-right-extent:height))))
-      (set-color! color)
+      (set-color! (closing-parenthesis-color context))
       (canvas:drawPath top-right-paren paint)
       (canvas:drawRect (- top-right-extent:width 10)
 		       top-right-extent:height
@@ -798,41 +816,20 @@
 			      line-height))
 	  (canvas:drawPath bottom-right-paren paint))))
 
-  (define (opening-parenthesis-color context::Cursor)::long
-    (match (the-cursor)
-      (`(#\[ . ,,context)
-       (mark-cursor! 0 0)
-       (focused-parenthesis-color))
-      (`(#\] . ,,context)
-       (mark-cursor! 0 0)
-       (matching-parenthesis-color))
-      (_
-       (parenthesis-color))))
-
-  (define (closing-parenthesis-color context::Cursor)::long
-    (match (the-cursor)
-      (`(#\] . ,,context)
-       (mark-cursor! 0 0)
-       (focused-parenthesis-color))
-      (`(#\[ . ,,context)
-       (mark-cursor! 0 0)
-       (matching-parenthesis-color))
-      (_
-       (parenthesis-color))))
-
-  (define (draw-box! width::real height::real
-		     context::Cursor)
-    ::void
-    (open-paren! height (opening-parenthesis-color context))
+  (define (draw-box! width::real height::real context::Cursor)::void
+    (and-let* ((`(#\[ . ,,context) (the-cursor)))
+      (mark-cursor! 0 0))
+    (open-paren! height context)
     (with-translation ((- width (paren-width)) 0)
-      (close-paren! height
-		    (closing-parenthesis-color context))))
+      (and-let* ((`(#\] . ,,context) (the-cursor)))
+	(mark-cursor! 0 0))
+      (close-paren! height context)))
 
-  (define (open-quote-paren! height::real color::long)::void
+  (define (open-quote-paren! height::real context::Cursor)::void
     (let ((line-height (max 0 (- height
 				 top-left-extent:height
 				 bottom-left-extent:height))))
-      (set-color! color)
+      (set-color! (opening-parenthesis-color context))
       (canvas:drawPath top-left-quote-paren paint)
       (canvas:drawRect 0 top-left-quote-extent:height
 		       10 (+ top-left-quote-extent:height
@@ -842,11 +839,11 @@
 			      line-height))
 	  (canvas:drawPath bottom-left-quote-paren paint))))
 
-  (define (close-quote-paren! height::real color::long)::void
+  (define (close-quote-paren! height::real context::Cursor)::void
     (let ((line-height (max 0 (- height
 				 top-right-extent:height
 				 bottom-right-extent:height))))
-      (set-color! color)
+      (set-color! (closing-parenthesis-color context))
       (canvas:drawPath top-right-quote-paren paint)
       (canvas:drawRect (- top-right-quote-extent:width 10)
 		       top-right-quote-extent:height
@@ -863,10 +860,13 @@
 			   height::real
 			   context::Cursor)
     ::void
-    (open-quote-paren! height (opening-parenthesis-color context))
+    (and-let* ((`(#\[ . ,,context) (the-cursor)))
+      (mark-cursor! 0 0))
+    (open-quote-paren! height context)
     (with-translation ((- width (quote-paren-width)) 0)
-      (close-quote-paren! height
-			  (closing-parenthesis-color context))))
+      (and-let* ((`(#\] . ,,context) (the-cursor)))
+	(mark-cursor! 0 0))
+      (close-quote-paren! height context)))
 
   (define (quote-paren-width)::real
     (+ 1 top-left-quote-extent:width))
@@ -875,24 +875,26 @@
 			       height::real
 			       context::Cursor)
     ::void
+    (and-let* ((`(#\[ . ,,context) (the-cursor)))
+      (mark-cursor! 0 0))
     (set-color! (opening-parenthesis-color context))
     (canvas:drawPath quote-marker paint))
 
   (define (quote-marker-width)::real
     (+ 1 quote-marker-extent:width))
 
-  (define (open-quasiquote-paren! height::real color::long)::void
+  (define (open-quasiquote-paren! height::real context::Cursor)::void
     (let ((line-height (max 0 (- height top-left-extent:height))))
-      (set-color! color)
+      (set-color! (opening-parenthesis-color context))
       (canvas:drawPath top-left-quote-paren paint)
       (canvas:drawRect 0 top-left-quote-extent:height
 		       10 (+ top-left-quote-extent:height
 			     line-height)
 		       paint)))
 
-  (define (close-quasiquote-paren! height::real color::long)::void
+  (define (close-quasiquote-paren! height::real context::Cursor)::void
     (let ((line-height (max 0 (- height top-right-extent:height))))
-      (set-color! color)
+      (set-color! (closing-parenthesis-color context))
       (canvas:drawPath top-right-quote-paren paint)
       (canvas:drawRect (- top-right-quote-extent:width 10)
 		       top-right-quote-extent:height
@@ -904,11 +906,13 @@
 				height::real
 				context::Cursor)
     ::void
-    (open-quasiquote-paren! height
-			    (opening-parenthesis-color context))
+    (and-let* ((`(#\[ . ,,context) (the-cursor)))
+      (mark-cursor! 0 0))
+    (open-quasiquote-paren! height context)
     (with-translation ((- width (quasiquote-paren-width)) 0)
-      (close-quasiquote-paren! height
-			       (closing-parenthesis-color context))))
+      (and-let* ((`(#\] . ,,context) (the-cursor)))
+	(mark-cursor! 0 0))
+      (close-quasiquote-paren! height context)))
 
   (define (quasiquote-paren-width)::real
     (+ 1 top-left-quote-extent:width))
@@ -917,28 +921,32 @@
 				    height::real
 				    context::Cursor)
     ::void
+    (and-let* ((`(#\[ . ,,context) (the-cursor)))
+      (mark-cursor! 0 0))
     (set-color! (opening-parenthesis-color context))
     (canvas:drawPath top-left-quote-paren paint)
     (with-translation ((+ width (quasiquote-marker-width)) 0)
+      (and-let* ((`(#\] . ,,context) (the-cursor)))
+	(mark-cursor! 0 0))
       (set-color! (closing-parenthesis-color context))
       (canvas:drawPath top-right-quote-paren paint)))
 
   (define (quasiquote-marker-width)::real
     (+ 1 top-left-quote-extent:width))
 
-  (define (open-unquote-paren! height::real color::long)::void
+  (define (open-unquote-paren! height::real context::Cursor)::void
     (let ((line-height (max 0 (- height
 				 bottom-left-quote-extent:height))))
-      (set-color! color)
+      (set-color! (opening-parenthesis-color context))
       (canvas:drawRect 0 0 10 line-height paint)
       (with-translation (0 line-height)
 	(canvas:drawPath bottom-left-quote-paren paint))
       ))
 
-  (define (close-unquote-paren! height::real color::long)::void
+  (define (close-unquote-paren! height::real context::Cursor)::void
     (let ((line-height (max 0 (- height
 				 bottom-right-quote-extent:height))))
-      (set-color! color)
+      (set-color! (closing-parenthesis-color context))
       (canvas:drawRect (- bottom-right-quote-extent:width 10) 0
 		       bottom-right-quote-extent:width line-height
 		       paint)
@@ -949,10 +957,13 @@
 			     height::real
 			     context::Cursor)
     ::void
-    (open-unquote-paren! height (opening-parenthesis-color context))
+    (and-let* ((`(#\[ . ,,context) (the-cursor)))
+      (mark-cursor! 0 0))
+    (open-unquote-paren! height context)
     (with-translation ((- width (quasiquote-paren-width)) 0)
-      (close-unquote-paren! height
-			    (closing-parenthesis-color context))))
+      (and-let* ((`(#\] . ,,context) (the-cursor)))
+	(mark-cursor! 0 0))
+      (close-unquote-paren! height context)))
 
   (define (unquote-paren-width)::real
     (+ 1 bottom-left-quote-extent:width))
@@ -962,40 +973,48 @@
 				 context::Cursor)
     ::void
     (with-translation (0 (- height bottom-left-quote-extent:height))
+      (and-let* ((`(#\[ . ,,context) (the-cursor)))
+	(mark-cursor! 0 0))
       (set-color! (opening-parenthesis-color context))
       (canvas:drawPath bottom-left-quote-paren paint)
       (with-translation ((+ width (quasiquote-marker-width)) 0)
+	(and-let* ((`(#\] . ,,context) (the-cursor)))
+	  (mark-cursor! 0 0))
 	(set-color! (closing-parenthesis-color context))
 	(canvas:drawPath bottom-right-quote-paren paint))))
 
   (define (unquote-marker-width)::real
     (+ 1 bottom-left-quote-extent:width))
 
-  (define (open-unquote-splicing-paren! height::real color::long)
+  (define (open-unquote-splicing-paren! height::real context::Cursor)
     ::void
-    (set-color! color)
-    (canvas:drawRect 0 10 2.5 20 paint)
-    (canvas:drawRect 5 10 10 20 paint)
-    (with-translation (10 0)
-      (open-unquote-paren! height color)))
+    (let ((color (opening-parenthesis-color context))) 
+      (set-color! color)
+      (canvas:drawRect 0 10 2.5 20 paint)
+      (canvas:drawRect 5 10 10 20 paint)
+      (with-translation (10 0)
+	(open-unquote-paren! height color))))
 
-  (define (close-unquote-splicing-paren! height::real color::long)
+  (define (close-unquote-splicing-paren! height::real context::Cursor)
     ::void
-    (set-color! color)
-    (close-unquote-paren! height color)
-    (canvas:drawRect 20 10 25 20 paint)
-    (canvas:drawRect 27.5 10 30 20 paint))
+    (let ((color (closing-parenthesis-color context))) 
+      (set-color! color)
+      (close-unquote-paren! height color)
+      (canvas:drawRect 20 10 25 20 paint)
+      (canvas:drawRect 27.5 10 30 20 paint)))
 
   (define (draw-unquote-splicing-box!
 	   width::real
 	   height::real
 	   context::Cursor)
     ::void
-    (open-unquote-splicing-paren!
-     height (opening-parenthesis-color context))
+    (and-let* ((`(#\[ . ,,context) (the-cursor)))
+      (mark-cursor! 0 0))
+    (open-unquote-splicing-paren! height context)
     (with-translation ((- width (unquote-splicing-paren-width)) 0)
-      (close-unquote-splicing-paren!
-       height (closing-parenthesis-color context))))
+      (and-let* ((`(#\] . ,,context) (the-cursor)))
+	(mark-cursor! 0 0))
+      (close-unquote-splicing-paren! height context)))
 
   (define (unquote-splicing-paren-width)::real
     (+ (unquote-paren-width) 10))
@@ -1006,6 +1025,8 @@
 	   context::Cursor)
     ::void
     (with-translation (0 (- height bottom-left-quote-extent:height))
+      (and-let* ((`(#\[ . ,,context) (the-cursor)))
+	(mark-cursor! 0 0))
       (set-color! (opening-parenthesis-color context))
       (canvas:drawRect 0 10 2.5 20 paint)
       (canvas:drawRect 5 10 10 20
@@ -1013,6 +1034,8 @@
       (with-translation (10 0)
 	(canvas:drawPath bottom-left-quote-paren paint)
 	(with-translation ((+ width (quasiquote-marker-width)) 0)
+	  (and-let* ((`(#\] . ,,context) (the-cursor)))
+	    (mark-cursor! 0 0))
 	  (set-color! (closing-parenthesis-color context))
 	  (canvas:drawPath bottom-right-quote-paren paint)
 	  (canvas:drawRect 20 10 25 20 paint)
