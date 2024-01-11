@@ -17,8 +17,8 @@
 (import (editor input transforms))
 
 (import (editor input pane))
-(import (editor interfaces elements))
 (import (editor interfaces painting))
+(import (editor interfaces elements))
 (import (utils print))
 
 (import (editor types spaces))

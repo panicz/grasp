@@ -413,10 +413,10 @@ operate on cursors.
     (set! marked:left left)
     (set! marked:top top))
   
-  (define (current-line-height)::real
+  (define (to-next-line)::real
     0)
   
-  (define (previous-line-height)::real
+  (define (to-previous-line)::real
     0)
   
   (define (cursor-position)::Position
