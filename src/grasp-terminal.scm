@@ -454,7 +454,8 @@
 
 (define (run-in-terminal
 	 #!optional
-	 (io :: LanternaScreen (make-terminal-screen background: (letter #\space))))
+	 (io :: LanternaScreen (make-terminal-screen
+				background: (letter #\space))))
   ::void
   (cond
    ((and-let* ((`(,command "-p" ,port) (command-line))

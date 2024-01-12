@@ -3,21 +3,20 @@
 (import (srfi :11))
 (import (language for))
 (import (language fundamental))
-(import (editor types primitive))
-(import (utils conversions))
 (import (language infix))
-
-(import (editor interfaces painting))
 (import (language define-object))
 (import (language define-type))
-(import (editor interfaces elements))
-(import (editor document cursor))
 (import (language match))
-(import (editor types spaces))
-(import (utils functions))
 (import (language mapping))
+(import (utils conversions))
+(import (utils functions))
 (import (utils hash-table))
 (import (utils print))
+(import (editor types primitive))
+(import (editor interfaces painting))
+(import (editor interfaces elements))
+(import (editor document cursor))
+(import (editor types spaces))
 
 (define-object (CharPainter)::Painter
 
@@ -186,19 +185,25 @@
 		 ((t) (the-traversal)))
       (when (and (pair? (the-cursor))
 		 (equal? context (cdr (the-cursor))))
-	(parameterize ((the-traversal (Traversal
-				       parent: t
-				       parent-left:
-				       (+ t:left t:parent-left)
-				       parent-top:
-				       (+ t:top t:parent-top))))
 	  (match (head (the-cursor))
 	    (#\[
-	     (mark-cursor! 0 1))
+	     (parameterize ((the-traversal (Traversal
+					    parent: t
+					    parent-left:
+					    (+ t:left t:parent-left)
+					    parent-top:
+					    (+ t:top t:parent-top))))
+	       (mark-cursor! 0 1)))
 	    (#\]
-	     (slot-set! (the-traversal) 'left (- width 1))
-	     (mark-cursor! (- width 1) (- height 2)))
-	    (_ (values)))))
+	     (parameterize ((the-traversal (Traversal
+					    parent: t
+					    parent-left:
+					    (+ t:left t:parent-left)
+					    parent-top:
+					    (+ t:top t:parent-top)
+					    left: (- width 1))))
+	       (mark-cursor! (- width 1) (- height 2))))
+	    (_ (values))))
       (when (and (pair? selection-start)
 		 (equal? (tail selection-start) context)
 		 (is (head selection-start) in '(#\[ #\])))

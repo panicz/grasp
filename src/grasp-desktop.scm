@@ -14,10 +14,13 @@
 (import (language fundamental))
 (import (language infix))
 (import (language match))
+(import (language while))
+(import (language for))
+
 (import (utils functions))
 (import (utils print))
-(import (language for))
-(import (language while))
+(import (utils conversions))
+
 (import (editor interfaces painting))
 (import (editor interfaces elements))
 
@@ -25,7 +28,6 @@
 (import (editor document cursor))
 (import (editor input input))
 
-(import (utils conversions))
 (import (editor document parse))
 (import (editor document editor-operations))
 (import (editor document history-tracking))
@@ -259,8 +261,8 @@
    (lineTo 10 0)
    (lineTo 10 5)
    (lineTo 5 5)
-   (lineTo 5 25)
-   (lineTo 0 25)
+   (lineTo 5 10)
+   (lineTo 0 10)
    (closePath)))
 
 (define-constant top-left-quote-bounds ::Rectangle
@@ -269,10 +271,10 @@
 (define-constant bottom-left-quote-paren ::Path2D
   (Path
    (moveTo 0 0)
-   (lineTo 0 25)
-   (lineTo 10 25)
-   (lineTo 10 20)
-   (lineTo 5 20)
+   (lineTo 0 10)
+   (lineTo 10 10)
+   (lineTo 10 5)
+   (lineTo 5 5)
    (lineTo 5 0)
    (closePath)))
 
@@ -283,8 +285,8 @@
   (Path
    (moveTo 0 0)
    (lineTo 10 0)
-   (lineTo 10 25)
-   (lineTo 5 25)
+   (lineTo 10 10)
+   (lineTo 5 10)
    (lineTo 5 5)
    (lineTo 0 5)
    (closePath)))
@@ -295,10 +297,10 @@
 (define-constant bottom-right-quote-paren ::Path2D
   (Path
    (moveTo 10 0)
-   (lineTo 10 25)
-   (lineTo 0 25)
-   (lineTo 0 20)
-   (lineTo 5 20)
+   (lineTo 10 10)
+   (lineTo 0 10)
+   (lineTo 0 5)
+   (lineTo 5 5)
    (lineTo 5 0)
    (closePath)))
 
@@ -309,7 +311,7 @@
   (Path
    (moveTo 0 0)
    (lineTo 5 0)
-   (lineTo 5 25)
+   (lineTo 5 10)
    (closePath)))
 
 (define-constant quote-marker-bounds ::Rectangle
@@ -533,7 +535,7 @@
       clip-area:height))
 
   (define (current-clip-left)::real
-    (let ((clip-area ::Rectangle
+   (let ((clip-area ::Rectangle
 		     (graphics:getClipBounds)))
       clip-area:x))
 
@@ -561,25 +563,39 @@
   (define (draw-custom-box!
 	   draw-left-paren!::(maps (real) to: void)
 	   draw-right-paren!::(maps (real) to: void)
-	   paren-width::(maps () to: real)
+	   paren-width::real
 	   width::real height::real context::Cursor)
     ::void
-    (let ((left-color ::long (parenthesis-color))
-	  (right-color ::long (parenthesis-color)))
+    (let ((left-color ::Color (parenthesis-color))
+	  (right-color ::Color (parenthesis-color))
+	  (t ::Traversal (the-traversal)))
       (match (the-cursor)
-	(`(#\[ #;#\] . ,,context) 
+	(`(#\[ . ,,context) 
 	 (set! left-color (focused-parenthesis-color))
 	 (set! right-color (matching-parenthesis-color))
-	 (mark-cursor! 0 0))
-	(#;#\[ `(#\] . ,,context)
-	       (set! left-color (matching-parenthesis-color))
-	       (set! right-color (focused-parenthesis-color))
-	       (mark-cursor! 0 0))
+	 (parameterize ((the-traversal (Traversal
+					parent: t
+					parent-left:
+					(+ t:left t:parent-left)
+					parent-top:
+					(+ t:top t:parent-top))))
+	   (mark-cursor! (quotient paren-width 2) 0)))
+	(`(#\] . ,,context)
+	 (set! left-color (matching-parenthesis-color))
+	 (set! right-color (focused-parenthesis-color))
+	 (parameterize ((the-traversal (Traversal
+					parent: t
+					parent-left:
+					(+ t:left t:parent-left)
+					parent-top:
+					(+ t:top t:parent-top)
+					left: width)))
+	   (mark-cursor! (- width (quotient paren-width 2)) 0)))
 	(_
 	 (values)))
       (set-color! left-color)
       (draw-left-paren! height)
-      (with-translation ((- width (paren-width)) 0)
+      (with-translation ((- width paren-width) 0)
 	(set-color! right-color)
 	(draw-right-paren! height))))
  
@@ -610,12 +626,9 @@
 		     context::Cursor)
     ::void
     (draw-custom-box!
-     (lambda (width::real)::void
-	     (invoke (this) 'open-paren! height))
-     (lambda (width::real)::void
-	     (invoke (this) 'close-paren! height))
-     (lambda ()::real
-	     (invoke (this) 'paren-width))
+     (lambda (width::real)::void (open-paren! height))
+     (lambda (width::real)::void (close-paren! height))
+     (paren-width)
      width height context))
 
   (define (open-quote-paren! height::real)::void
@@ -651,12 +664,9 @@
 			   context::Cursor)
     ::void
     (draw-custom-box!
-     (lambda (width::real)::void
-	     (invoke (this) 'open-quote-paren! height))
-     (lambda (width::real)::void
-	     (invoke (this) 'close-quote-paren! height))
-     (lambda ()::real
-	     (invoke (this) 'quote-paren-width))
+     (lambda (width::real)::void (open-quote-paren! height))
+     (lambda (width::real)::void (close-quote-paren! height))
+     (quote-paren-width)
      width height context))
 
   (define (open-quasiquote-paren! height::real)::void
@@ -707,17 +717,14 @@
   (define (unquote-paren-width)::real
     (+ 1 bottom-left-quote-bounds:width))
 
-    (define (draw-unquote-box! width::real
+  (define (draw-unquote-box! width::real
 			     height::real
 			     context::Cursor)
     ::void
     (draw-custom-box!
-     (lambda (width::real)::void
-	     (invoke (this) 'open-unquote-paren! height))
-     (lambda (width::real)::void
-	     (invoke (this) 'close-unquote-paren! height))
-     (lambda ()::real
-	     (invoke (this) 'unquote-paren-width))
+     (lambda (width::real)::void (open-unquote-paren! height))
+     (lambda (width::real)::void (close-unquote-paren! height))
+     (unquote-paren-width)
      width height context))
 
   (define (open-unquote-splicing-paren! height::real)
@@ -742,11 +749,10 @@
     ::void
     (draw-custom-box!
      (lambda (width::real)::void
-	     (invoke (this) 'open-unquote-splicing-paren! height))
+	     (open-unquote-splicing-paren! height))
      (lambda (width::real)::void
-	     (invoke (this) 'close-unquote-splicing-paren! height))
-     (lambda ()::real
-	     (invoke (this) 'unquote-splicing-paren-width))
+	     (close-unquote-splicing-paren! height))
+     (unquote-splicing-paren-width)
      width height context))
 
   (define (open-quote-marker! height::real)
@@ -761,13 +767,9 @@
 			       context::Cursor)
     ::void
     (draw-custom-box!
-     (lambda (width::real)::void
-	     (invoke (this) 'open-quote-marker! height))
-     (lambda (width::real)::void
-	     (values)
-	     #;(invoke (this) 'close-quote-marker! height))
-     (lambda ()::real
-	     (invoke (this) 'quote-marker-width))
+     (lambda (width::real)::void (open-quote-marker! height))
+     (lambda (width::real)::void (values))
+     (quote-marker-width)
      width height context))
 
   (define (open-quasiquote-marker! height::real)
@@ -786,12 +788,9 @@
 				    context::Cursor)
     ::void
     (draw-custom-box!
-     (lambda (width::real)::void
-	     (invoke (this) 'open-quasiquote-marker! height))
-     (lambda (width::real)::void
-	     (invoke (this) 'close-quasiquote-marker! height))
-     (lambda ()::real
-	     (invoke (this) 'quasiquote-marker-width))
+     (lambda (width::real)::void (open-quasiquote-marker! height))
+     (lambda (width::real)::void (close-quasiquote-marker! height))
+     (quasiquote-marker-width)
      width height context))
 
   (define (open-unquote-marker! height::real)
@@ -812,12 +811,9 @@
 				 context::Cursor)
     ::void
     (draw-custom-box!
-     (lambda (width::real)::void
-	     (invoke (this) 'open-unquote-marker! height))
-     (lambda (width::real)::void
-	     (invoke (this) 'close-unquote-marker! height))
-     (lambda ()::real
-	     (invoke (this) 'unquote-marker-width))
+     (lambda (width::real)::void (open-unquote-marker! height))
+     (lambda (width::real)::void (close-unquote-marker! height))
+     (unquote-marker-width)
      width height context))
 
   (define (open-unquote-splicing-marker! height::real)
@@ -844,11 +840,10 @@
     ::void
     (draw-custom-box!
      (lambda (width::real)::void
-	     (invoke (this) 'open-unquote-splicing-marker! height))
+	     (open-unquote-splicing-marker! height))
      (lambda (width::real)::void
-	     (invoke (this) 'close-unquote-splicing-marker! height))
-     (lambda ()::real
-	     (invoke (this) 'unquote-splicing-marker-width))
+	     (close-unquote-splicing-marker! height))
+     (unquote-splicing-marker-width)
      width height context))
   
   (define (draw-border! width::real height::real)::void

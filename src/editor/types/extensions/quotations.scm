@@ -99,7 +99,7 @@
 	(let* ((inner ::Extent (extent+ expression))
 	       (marker-width (marker-width painter)))
 	  (draw-markers! painter
-			 inner:width
+			 (+ inner:width (* 2 marker-width))
 			 inner:height
 			 context)
 	  (with-translation (marker-width 0)
