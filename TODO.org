@@ -1,3 +1,17 @@
+* 11.01.2024
+
+na razie zrefaktoryzowalismy klienta desktopowego.
+trzeba to przetestowac, i dla androida zrobic cos analogicznego.
+
+no dobra, to sie chyba udalo
+
+tyle ze w obu tych klientach *quote-markers sa zepsute
+[i trzeba je bedzie naprawic]
+
+natomiast inna rzecz, to pozbyc sie abstrakcji rozmiaru nawiasu
+
+ale i z tym jakos sie uporalismy
+
 * 10.01.2024
 
 dzis bysmy dalej zrefaktoryzowali klienta androidowego
