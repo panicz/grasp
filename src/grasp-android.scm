@@ -56,6 +56,10 @@
 (define-alias InputMethodManager
   android.view.inputmethod.InputMethodManager)
 (define-alias Path2D android.graphics.Path)
+(define-alias PathEffect android.graphics.PathEffect)
+(define-alias DashPathEffect
+  android.graphics.DashPathEffect)
+
 (define-alias RectF android.graphics.RectF)
 (define-alias Rect android.graphics.Rect)
 
@@ -255,7 +259,7 @@
   (define the-log-font ::($bracket-apply$ parameter Font)
     (make-parameter
      (Font face: Oswald-Regular
-	   size: 10)))
+	   size: 16)))
 
   (define the-cursor-offset ::($bracket-apply$ parameter Position)
     (make-parameter (Position left: 0 top: 32)))
@@ -379,27 +383,32 @@
 
   (define single-quote ::Path2D
     (Path
-     (moveTo 5 0)
-     (quadTo 10 0 10 5)
-     (quadTo 10 10 5 10)
-     (quadTo 0 10 0 5)
-     (quadTo 0 0 5 0)
+     (lineTo 10 0)
+     (lineTo 10 5)
+     (lineTo 0 5)
      (close)
 
-     (moveTo (+ 5 (* 0.5 5 (sqrt 2)))
-	     (- 5 (* 0.5 5 (sqrt 2))))
-     (quadTo 15 15 0 20)
-     (quadTo 5 20 5 10)
+     (moveTo 10 5)
+     (lineTo 0 10)
+     (lineTo 5 5)
      (close)
      ))
 
   (define single-quote-extent ::Extent
-    (path-extent single-quote))
+    (let ((e ::Extent (path-extent single-quote)))
+      (set! e:width (+ e:width 2))
+      e))
 
-  (define external-open-file ::(maps (byte Editor) to: (maps _ to: void))
+  (define dashed-line ::PathEffect
+    (DashPathEffect
+     (($bracket-apply$ float) 10 20) 0))
+
+  (define external-open-file ::(maps (byte Editor)
+				     to: (maps _ to: void))
     #!null)
   
-  (define external-save-file ::(maps (byte Editor) to: (maps _ to: void))
+  (define external-save-file ::(maps (byte Editor)
+				     to: (maps _ to: void))
     #!null)
   
   )
@@ -495,7 +504,6 @@
     (try-finally
      (action)
      (canvas:restore)))
-
 
   (define (clip! left::real  top::real
 		 width::real height::real)
@@ -1159,23 +1167,44 @@
     ::void
     (parameterize ((the-cursor-offset
 		    quoted-text-cursor-offset))
-      (canvas:drawPath single-quote paint)
-      (with-translation (single-quote-extent:width 0)
+      (let* ((w ::real single-quote-extent:width)
+	     (h ::real single-quote-extent:height)
+	     (e ::Extent (text-extent text
+				      (the-string-font)))
+	     (2w ::real (* 2 w))
+	     (h/2 ::real (quotient h 2))
+	     (r ::real (min 2w h))
+	     (r/2 ::real (quotient r 2)))
+
+	(paint:setPathEffect dashed-line)
+	(canvas:drawLine 2w h/2 (+ 2w e:width) h/2 paint)
+	(canvas:drawLine w h w (+ h e:height) paint)
+	(canvas:drawLine 2w (+ h e:height h/2)
+			 (+ 2w e:width) (+ h e:height h/2) paint)
+	(canvas:drawLine (+ 2w e:width w) h
+			 (+ 2w e:width w) (+ h e:height) paint)
+	(paint:setPathEffect #!null)
+	
 	(canvas:drawPath single-quote paint)
-	(with-translation (single-quote-extent:width
-			   single-quote-extent:height)
-	  (let ((t ::Traversal (the-traversal)))
-	    (set! t:left (+ t:left (* 2 single-quote-extent:width)))
-	    (set! t:top (+ t:top single-quote-extent:height))
-	    (draw-string! text context)
-	    (set! t:left (- t:left (* 2 single-quote-extent:width)))
-	    (set! t:top (- t:top single-quote-extent:height)))
-	  (let ((extent ::Extent (text-extent text
-					      (the-string-font))))
-	    (with-translation (extent:width extent:height)
-	      (canvas:drawPath single-quote paint)
-	      (with-translation (single-quote-extent:width 0)
-		(canvas:drawPath single-quote paint))))))))
+	(with-translation (w 0)
+	  (canvas:drawPath single-quote paint)
+	  (with-translation (w h/2)
+	    (let ((t ::Traversal (the-traversal)))
+	      (set! t:left (+ t:left 2w))
+	      (set! t:top (+ t:top h))
+	      (draw-string! text context)
+	      (set! t:left (- t:left 2w))
+	      (set! t:top (- t:top h)))
+	    (let (
+		  )
+	      (with-translation ((- w) (+ e:height h/2))
+		(canvas:drawCircle 0 0 (/ r 2) paint))
+	      (with-translation ((+ e:width w) (- h/2))
+		(canvas:drawCircle 0 0 (/ r 2) paint))
+	      (with-translation (e:width e:height)
+		(canvas:drawPath single-quote paint)
+		(with-translation (single-quote-extent:width 0)
+		  (canvas:drawPath single-quote paint)))))))))
 
   (define (quoted-text-extent text::CharSequence)::Extent
     (let ((inner ::Extent (text-extent text (the-string-font))))
@@ -1674,7 +1703,7 @@
 	   (metrics ::DisplayMetrics
 		    (resources:getDisplayMetrics)))
       (screen:set-size! metrics:widthPixels metrics:heightPixels))
-
+    
     (view:setSystemUiVisibility
      (bitwise-ior
       AndroidView:SYSTEM_UI_FLAG_FULLSCREEN
