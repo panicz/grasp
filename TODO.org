@@ -1,3 +1,43 @@
+* 13.01.2024
+
+plan poprawek w ruchu kursora:
+1. nie wprowadzać nowego traversa na nawiasach,
+   tylko modyfikować aktualnego
+   (może to pomoże z tym, że wysokość skoku 
+   na nawiasach jest źle wyliczama)
+2. uniewrażliwić wysokość skoku ma przesunięcia
+   kursora
+3. przyjrzeć się sytuacji, gdy kursor jest
+   przed komentarzem blokowym, albo na komentarzu
+   wyrażeniowym
+
+   a jak to będzie, to byśmy się zajęli selekcjami
+   oraz integracją ze schowkiem
+
+* 12.01.2024
+
+nad pionowym ruchem kursora prace dalsze:
+- jak kursor jest pomiedzy spacja a komentarzem blokowym,
+  to jego wysokosc (z calym szacunkiem) nie jest
+  wyliczana prawidlowo (wynosi 0)
+- po kliknieciu chcielibysmy wymusic aktuakizacje
+  kolumny
+- i podobnie po kazdej edycji
+- nadto gdy jestesmy w komentarzu wyrazeniowym,
+  to jej wysokosc nie jest wyliczana
+
+poza tym warto by bylo sie zaczac przygladac edycji
+- nie dziala odczarowywanie quote'ow
+
+no ale tak:
+- aktualnie prace nad kursorem najlepiej prowadzic
+  na desktopie, bo tam jest najwygodniejszy dostep
+  do danych debugowycj
+
+- mozemy zrobic rysowanie obwoluty wokol stringow,
+  bo to zawsze cos
+
+
 * 11.01.2024
 
 na razie zrefaktoryzowalismy klienta desktopowego.
@@ -11,6 +51,8 @@ tyle ze w obu tych klientach *quote-markers sa zepsute
 natomiast inna rzecz, to pozbyc sie abstrakcji rozmiaru nawiasu
 
 ale i z tym jakos sie uporalismy
+
+
 
 * 10.01.2024
 
