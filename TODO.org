@@ -1,3 +1,16 @@
+* 14.01.2024
+
+dzis moglibysmy sprobowac zrobic rysowanie linii
+przerywanej w kliencie desktopowym i androidowym
+
+#+BEGIN_SRC scheme
+(paint:setPathEffect dashed-line)
+(canvas:drawLine x0 y0 x0 y1 paint)
+(canvas:drawLine x0 y0 x1 y0 paint)
+(canvas:drawLine x0 y1 x1 y1 paint)
+(canvas:drawLine x1 y0 x1 y1 paint)
+(paint:setPathEffect #!null)
+#+END_SRC
 * 13.01.2024
 
 plan poprawek w ruchu kursora:
@@ -13,6 +26,17 @@ plan poprawek w ruchu kursora:
 
    a jak to będzie, to byśmy się zajęli selekcjami
    oraz integracją ze schowkiem
+
+#+BEGIN_SRC java
+  Paint fgPaintSel = new Paint();
+  fgPaintSel.setARGB(255, 0, 0,0);
+  fgPaintSel.setStyle(Style.STROKE);
+  fgPaintSel.setPathEffect(new
+			   DashPathEffect(new
+					  float[] {10f,20f},
+					  0f));
+#+END_SRC
+
 
 * 12.01.2024
 
