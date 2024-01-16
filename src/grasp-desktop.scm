@@ -64,6 +64,8 @@
 (define-alias RenderingHints java.awt.RenderingHints)
 (define-alias Shape java.awt.Shape)
 (define-alias Path2D java.awt.geom.Path2D)
+(define-alias Stroke java.awt.Stroke)
+(define-alias BasicStroke java.awt.BasicStroke)
 
 (define-alias Rectangle java.awt.Rectangle)
 (define-alias AffineTransform java.awt.geom.AffineTransform)
@@ -319,17 +321,15 @@
 
 (define-constant single-quote ::Path2D
   (Path
-   (moveTo 2.5 0)
-   (quadTo 5 0 5 2.5)
-   (quadTo 5 5 2.5 5)
-   (quadTo 0 5 0 2.5)
-   (quadTo 0 0 2.5 0)
+   (moveTo 0 0)
+   (lineTo 5 0)
+   (lineTo 5 2.5)
+   (lineTo 0 2.5)
    (closePath)
 
-   (moveTo (+ 2.5 (* 0.5 2.5 (sqrt 2)))
-	   (- 2.5 (* 0.5 2.5 (sqrt 2))))
-   (quadTo 7.5 7.5 0 10)
-   (quadTo 2.5 10 2.5 5)
+   (moveTo 5 2.5)
+   (lineTo 0 5)
+   (lineTo 2.5 2.5)
    (closePath)
    ))
 
@@ -1080,25 +1080,46 @@
   (define quoted-text-cursor-offset::Position
     (Position left: -1 top: 2))
 
+  (define dashed ::Stroke
+    (BasicStroke 3 BasicStroke:CAP_BUTT BasicStroke:JOIN_BEVEL
+		 0 (($bracket-apply$ float) 9) 0))
+  
   (define (draw-quoted-text! text::CharSequence context::Cursor)::void
-    (parameterize ((the-cursor-offset quoted-text-cursor-offset))
-      (graphics:fill single-quote)
-      (with-translation (single-quote-extent:width 0)
+    (let* ((e ::Extent (text-extent text
+				    (the-string-font)))
+	   (w ::real single-quote-extent:width)
+	   (h ::real single-quote-extent:height)
+	   (2w ::int (* 2 w))
+	   (h/2 ::int (quotient h 2))
+	   (r ::real (min 2w h))
+	   (r/2 ::real (quotient r 2))
+	   (s ::Stroke (graphics:getStroke)))
+      (graphics:setStroke dashed)
+      (graphics:drawLine 2w h/2 (as int (+ 2w e:width)) h/2)
+      (graphics:drawLine w h w (as int (+ h e:height)))
+      (graphics:drawLine 2w (as int (+ h e:height h/2))
+			 (as int (+ 2w e:width))
+			 (as int (+ h e:height h/2)))
+      (graphics:drawLine (as int (+ 2w e:width w)) h
+			 (as int (+ 2w e:width w))
+			 (as int (+ h e:height)))
+      (graphics:setStroke s)
+      (parameterize ((the-cursor-offset quoted-text-cursor-offset))
 	(graphics:fill single-quote)
-	(with-translation (single-quote-extent:width
-			   single-quote-extent:height)
-	  (let ((t ::Traversal (the-traversal)))
-	    (set! t:left (+ t:left (* 2 single-quote-extent:width)))
-	    (set! t:top (+ t:top single-quote-extent:height))
-	    (draw-string! text context)  
-	    (set! t:left (- t:left (* 2 single-quote-extent:width)))
-	    (set! t:top (- t:top single-quote-extent:height)))
-      	  (let ((extent ::Extent (text-extent text
-					      (the-string-font))))
-	    (with-translation (extent:width extent:height)
+	(with-translation (w 0)
+	  (graphics:fill single-quote)
+	  (with-translation (w h)
+	    (let ((t ::Traversal (the-traversal)))
+	      (set! t:left (+ t:left 2w))
+	      (set! t:top (+ t:top h))
+	      (draw-string! text context)  
+	      (set! t:left (- t:left w))
+	      (set! t:top (- t:top h)))
+	    (with-translation (e:width e:height)
 	      (graphics:fill single-quote)
-	      (with-translation (single-quote-extent:width 0)
-		(graphics:fill single-quote))))))))
+	      (with-translation (w 0)
+		(graphics:fill single-quote)))
+      	    )))))
 
   (define (text-extent text::CharSequence font::Font)::Extent
     (let* ((metrics ::FontMetrics (graphics:getFontMetrics font))
