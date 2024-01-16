@@ -1,3 +1,10 @@
+* 15.01.2024
+
+plan jeden z dwojga:
+- "uniewrazliwic wysokosc skoku na przesuniecia kursora"
+- linia przerywana wokol stringow w kliencie desktopowym?
+  
+
 * 14.01.2024
 
 dzis moglibysmy sprobowac zrobic rysowanie linii
