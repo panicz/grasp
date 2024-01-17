@@ -797,7 +797,7 @@
 					(+ t:left t:parent-left)
 					parent-top:
 					(+ t:top t:parent-top))))
-	   (mark-cursor! 0 -10)))
+	   (mark-cursor! 0 0)))
 	(`(#\] . ,,context)
 	 (set! left-color (matching-parenthesis-color))
 	 (set! right-color (focused-parenthesis-color))
@@ -808,7 +808,7 @@
 					parent-top:
 					(+ t:top t:parent-top)
 					left: width)))
-	   (mark-cursor! width -10)))
+	   (mark-cursor! width 0)))
 	(_
 	 (values)))
       (set-color! left-color)

@@ -54,7 +54,8 @@
 	    (item:draw! (recons n context)))
 	  (painter:translate! 0 (+ grid-border inner:height))
 	  (set! n (+ n 1))))
-      (painter:draw-horizontal-grid! total:width)))
+      (painter:draw-horizontal-grid! total:width)
+      (painter:translate! 0 (- total:height))))
 
   (define (propagate finger::byte x::real y::real
                      action::(maps (Enchanted byte real real int)

@@ -15,10 +15,15 @@
 (import (language mapping))
 (import (language infix))
 (import (language match))
-(import (utils functions))
 (import (language for))
 (import (language while))
 (import (language fundamental))
+(import (language parameterize-up))
+(import (utils functions))
+(import (utils conversions))
+(import (utils print))
+
+(import (editor interfaces painting))
 (import (editor interfaces elements))
 (import (editor document cursor))
 
@@ -27,11 +32,8 @@
 (import (editor types extensions extensions))
 
 (import (editor document parse))
-(import (utils conversions))
-(import (editor interfaces painting))
-(import (utils print))
-(import (language parameterize-up))
 (import (editor document document-operations))
+
 (import (editor types spaces))
 (import (editor input input))
 (import (editor document history-tracking))
@@ -861,11 +863,11 @@
   (let* ((content ::Enchanted pop-up:content)
 	 (left ::real pop-up:left)
 	 (top ::real pop-up:top)
-         (inner ::Extent (extent+ content))
 	 (horizontal ::real (painter:horizontal-popup-margin))
 	 (vertical ::real (painter:vertical-popup-margin))
 	 (inner-left ::real (+ left horizontal))
 	 (inner-top ::real (+ top vertical))
+	 (inner ::Extent (extent+ content))
 	 (inner-right ::real (+ inner-left inner:width))
 	 (inner-bottom ::real (+ inner-top inner:height))
 	 (right ::real (+ inner-right horizontal))
@@ -878,7 +880,7 @@
 	       (is y < top) (is y > bottom))
 	   (outer-action pop-up finger x y))
 	  (else
-	   (boundary-action pop-up finger x y)))))
+	   (boundary-action pop-up finger (- x left) (- y top))))))
 
 (define-type (PopUp left: real := 0 top: real := 0
                     content: Enchanted)
@@ -1350,7 +1352,8 @@
       (set! marked:left left)
       (set! marked:top top)
       (set! distance-to-previous-line
-	    (traversal:preceding-line-height))
+	    (min (painter:min-line-height)
+		 (traversal:preceding-line-height)))
       (set! traversal:on-end-line
 	    (lambda (continued?::boolean)
 	      (let* ((traversal ::Traversal (the-traversal))

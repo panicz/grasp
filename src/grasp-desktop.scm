@@ -64,8 +64,8 @@
 (define-alias RenderingHints java.awt.RenderingHints)
 (define-alias Shape java.awt.Shape)
 (define-alias Path2D java.awt.geom.Path2D)
-(define-alias Stroke java.awt.Stroke)
-(define-alias BasicStroke java.awt.BasicStroke)
+(define-alias LineDecoration java.awt.Stroke)
+(define-alias BasicLineDecoration java.awt.BasicStroke)
 
 (define-alias Rectangle java.awt.Rectangle)
 (define-alias AffineTransform java.awt.geom.AffineTransform)
@@ -1080,9 +1080,11 @@
   (define quoted-text-cursor-offset::Position
     (Position left: -1 top: 2))
 
-  (define dashed ::Stroke
-    (BasicStroke 3 BasicStroke:CAP_BUTT BasicStroke:JOIN_BEVEL
-		 0 (($bracket-apply$ float) 9) 0))
+  (define dashed ::LineDecoration
+    (BasicLineDecoration
+     3 BasicLineDecoration:CAP_BUTT
+     BasicLineDecoration:JOIN_BEVEL
+     0 (($bracket-apply$ float) 9) 0))
   
   (define (draw-quoted-text! text::CharSequence context::Cursor)::void
     (let* ((e ::Extent (text-extent text
@@ -1093,7 +1095,7 @@
 	   (h/2 ::int (quotient h 2))
 	   (r ::real (min 2w h))
 	   (r/2 ::real (quotient r 2))
-	   (s ::Stroke (graphics:getStroke)))
+	   (s ::LineDecoration (graphics:getStroke)))
       (graphics:setStroke dashed)
       (graphics:drawLine 2w h/2 (as int (+ 2w e:width)) h/2)
       (graphics:drawLine w h w (as int (+ h e:height)))
