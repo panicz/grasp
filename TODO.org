@@ -1,3 +1,13 @@
+* 16.01.2024
+
+no to plan jest taki, zeby nie dodawac zadnych wartosci
+przy wywolywaniu mark-cursor!, ale za to zeby dodawac
+te wartosci przy samym rysowaniu
+
+i bysmy tez poprawili te traversy przy nawiasach
+
+
+
 * 15.01.2024
 
 plan jeden z dwojga:
