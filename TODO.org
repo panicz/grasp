@@ -1,3 +1,16 @@
+* 17.01.2024
+
+dzisiaj bysmy zaczeli od tego, zeby nie wprowadzac
+nowego traverse'a przy markowaniu nawiasu - najpierw
+w kliencie androidowym, nastepnie teeminalowym i
+desktopowym.
+
+warto by jeszcze bylo naprawic pozycje rysowanego
+kursora, w szczegolnosci w trybie androidowym,
+i przyjrzec sie, dlaczego nie dziala cursor-under*
+w quote'ach
+
+
 * 16.01.2024
 
 no to plan jest taki, zeby nie dodawac zadnych wartosci
