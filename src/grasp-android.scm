@@ -442,13 +442,13 @@
     (let* ((canvas ::Canvas (as Canvas output))
 	   (font ::Font (the-log-font))
 	   (screen-extent ::Extent (screen:size))
-	   (top ::float  (- screen-extent:height
+	   (top ::float  font:size #;(- screen-extent:height
 			    (* 4 font:size))))
       (paint:setTypeface font:face)
       (paint:setTextSize font:size)
       (for message in messages
 	   (canvas:drawText message 0 top paint)
-	   (set! top (- top font:size)))))
+	   (set! top (+ top font:size)))))
 
   (logger size))
 
@@ -791,24 +791,19 @@
 	(`(#\[ . ,,context) 
 	 (set! left-color (focused-parenthesis-color))
 	 (set! right-color (matching-parenthesis-color))
-	 (parameterize ((the-traversal (Traversal
-					parent: t
-					parent-left:
-					(+ t:left t:parent-left)
-					parent-top:
-					(+ t:top t:parent-top))))
-	   (mark-cursor! 0 0)))
+	 (set! t:parent-left (+ t:parent-left t:left))
+	 (set! t:parent-top (+ t:parent-top t:top))
+	 (mark-cursor! 0 0)
+	 (set! t:parent-top (- t:parent-top t:top))
+	 (set! t:parent-left (- t:parent-left t:left)))
 	(`(#\] . ,,context)
 	 (set! left-color (matching-parenthesis-color))
 	 (set! right-color (focused-parenthesis-color))
-	 (parameterize ((the-traversal (Traversal
-					parent: t
-					parent-left:
-					(+ t:left t:parent-left)
-					parent-top:
-					(+ t:top t:parent-top)
-					left: width)))
-	   (mark-cursor! width 0)))
+	 (set! t:parent-left (+ t:parent-left t:left))
+	 (set! t:parent-top (+ t:parent-top t:top))
+	 (mark-cursor! width 0)
+	 (set! t:parent-top (- t:parent-top t:top))
+	 (set! t:parent-left (- t:parent-left t:left)))
 	(_
 	 (values)))
       (set-color! left-color)
@@ -1392,7 +1387,8 @@
     (screen:set-painter! (this))
     (set! canvas c)
     (clear!)
-    (screen:draw!)
+    (safely
+     (screen:draw!))
     (invoke (current-message-handler)
 	    'display-messages canvas))
 
@@ -1663,7 +1659,7 @@
 				    p (Named thing: uri name: name))))
 			    (c:close))))))
 		(startActivityForResult intent request)))))
-    (set! (open-file) external-open-file)
+    ;;(set! (open-file) external-open-file)
     (set! external-save-file
 	  (lambda (finger::byte editor::Editor)
 	    (lambda _
@@ -1695,7 +1691,7 @@
 			   (s:flush)
 			   (s:close)))))
 		(startActivityForResult intent request)))))
-    (set! (save-file) external-save-file)
+    ;;(set! (save-file) external-save-file)
     (set! view (View (this) sync))
     (set! the-view view)
 
