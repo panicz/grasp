@@ -1528,7 +1528,8 @@
 	(parameterize/update-sources ((the-document document))
 	  (let-values (((x y) (transform:outside-in xe ye)))
 	    (let* ((target-cursor (cursor-under x y))
-		   (target (the-expression at: target-cursor)))
+		   (target (the-expression at: target-cursor))
+		   (editor ::Editor (this)))
 	      (let*-values (((x0 y0) (document-position-of-element-pointed-by
 				      target-cursor
 				      (car document)))
@@ -1539,6 +1540,7 @@
 		  (else
 		   (set! cursor target-cursor)
 		   (set! selection-anchor cursor)
+		   (editor:set-cursor-column! xe)
 		   #t)))))))))
   
   (define (press! finger::byte #;at xe::real ye::real)::boolean
