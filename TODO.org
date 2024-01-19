@@ -1,3 +1,9 @@
+* 19.01.2024
+
+dobrze by bylo wreszcie skonczyc te wszystkie hocki klock
+z poruszaniem kursora, bo na razie jest jakas padaka
+
+
 * 17.01.2024
 
 dzisiaj bysmy zaczeli od tego, zeby nie wprowadzac
