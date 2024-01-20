@@ -573,24 +573,19 @@
 	(`(#\[ . ,,context) 
 	 (set! left-color (focused-parenthesis-color))
 	 (set! right-color (matching-parenthesis-color))
-	 (parameterize ((the-traversal (Traversal
-					parent: t
-					parent-left:
-					(+ t:left t:parent-left)
-					parent-top:
-					(+ t:top t:parent-top))))
-	   (mark-cursor! (quotient paren-width 2) 0)))
+	 (set! t:parent-left (+ t:parent-left t:left))
+	 (set! t:parent-top (+ t:parent-top t:top))
+	 (mark-cursor! (quotient paren-width 2) 0)
+	 (set! t:parent-top (- t:parent-top t:top))
+	 (set! t:parent-left (- t:parent-left t:left)))
 	(`(#\] . ,,context)
 	 (set! left-color (matching-parenthesis-color))
 	 (set! right-color (focused-parenthesis-color))
-	 (parameterize ((the-traversal (Traversal
-					parent: t
-					parent-left:
-					(+ t:left t:parent-left)
-					parent-top:
-					(+ t:top t:parent-top)
-					left: width)))
-	   (mark-cursor! (- width (quotient paren-width 2)) 0)))
+	 (set! t:parent-left (+ t:parent-left t:left))
+	 (set! t:parent-top (+ t:parent-top t:top))
+	 (mark-cursor! (- width (quotient paren-width 2)) 0)
+	 (set! t:parent-top (- t:parent-top t:top))
+	 (set! t:parent-left (- t:parent-left t:left)))
 	(_
 	 (values)))
       (set-color! left-color)
