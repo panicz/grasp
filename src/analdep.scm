@@ -91,9 +91,9 @@
 
 (define (system-module? x)
   (match x
-    (`(srfi ,_)
+    (`(srfi . ,_)
      #t)
-    (`(kawa _)
+    (`(kawa . ,_)
      #t)
     (`(tools ,_)
      #t)
