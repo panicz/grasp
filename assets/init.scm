@@ -22,6 +22,11 @@
 (import (utils functions))
 (import (utils conversions))
 (import (utils print))
+(import (utils fixnum))
+(import (utils binary))
+(import (utils affine))
+(import (utils crypto))
+(import (utils server))
 
 (import (editor input input))
 (import (editor interfaces elements))
@@ -60,7 +65,7 @@
 	  (lambda ()
 	    (move-cursor-up!)
 	    (adjust-view!)))
-	    
+
 (set-key! 'down
 	  (lambda ()
 	    (move-cursor-down!)
@@ -171,61 +176,19 @@
  evaluate-expression-by-wedge)
 
 (screen:set-content!
- (DocumentEditor document: (Document (car (with-input-from-string #;"
-          #|FAC|# #|
-TOR
-  |# #|
-IAL|# #|FAC
-TOR
-IAL|#
-  ;  A factorial of an integer number n
-  ;  is a product 1 * 2 * 3 * 4 * ... * n.
-  ;  It represents the number of permutations
-  ;  of an n-element set.""
-`',x
-(quote ())
-(quote (a b))
-(quote (a . b))
-(define (! n) ; -> int
-\"Computes the product 1*...*n.
-It represents the number of per-
-mutations of an n-element set.\"
-  (if (<= n 0)
-      1 #| BASE CASE |#
-      (* n (! (- n 1))))) #|factorial
-is a serious
-business,
-son|#
-(Stepper (! 5))
-#;(e.g. #;(! #;5) ===> 120)
-(Button action: (lambda () (WARN \"button pressed!\"))
-        label: \"Press me!\")
+ (DocumentEditor document: (Document (car (with-input-from-string "
+(import (language infix) (language match))
+(import (utils functions) (utils server) (utils serial) (utils binary))
 
-(e.g.
- (parameterize ((the-cursor (cursor 0 1 3 1 1)))
-   (grasped \"\\
-(define (! n)
-  (if (<= n 0)
-      1
-      (* n (! (- n 1)))))
-\"))
-===>
-\"
-╭        ╭     ╮                      ╮
-│ define │ ! n │                      │
-│        ╰ ^   ╯                      │
-│   ╭    ╭        ╮                 ╮ │
-│   │ if │ <= n 0 │                 │ │
-│   │    ╰        ╯                 │ │
-│   │                               │ │
-│   │       1                       │ │
-│   │                               │ │
-│   │       ╭     ╭   ╭       ╮ ╮ ╮ │ │
-│   │       │ * n │ ! │ - n 1 │ │ │ │ │
-╰   ╰       ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
-\")
-" parse-document))
-			     #!null)))
+(let ((sv (tcp-output-server 12345)))
+  (set! (current-output-port) sv)
+  (set! (current-error-port) sv))
+
+(define dongle :: Dongle (Dongle (open-serial-connection \"COM7\")))
+
+(dongle:command! \"help\")
+
+" parse-document)) #!null)))
 
 (WARN "loaded init.scm")
 

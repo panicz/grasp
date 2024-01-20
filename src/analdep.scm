@@ -48,7 +48,7 @@
     (`(,command "--" "--list" . ,args)
      (set! list? #t)
      args)
-    
+
     (`(,command "--" . ,args)
      args)))
 
@@ -57,7 +57,7 @@
        (string-split (string-take file
 				  (- (length file) 4))
 		     "/")))
-  
+
 (define (dependency-graph files)
   (let ((dependencies (mapping (module) '())))
     (for file in files
@@ -95,7 +95,7 @@
      #t)
     (`(kawa . ,_)
      #t)
-    (`(tools ,_)
+    (`(tools . ,_)
      #t)
     (_
      #f)))

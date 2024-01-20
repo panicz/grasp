@@ -1,0 +1,13 @@
+(module-name (utils fixnum))
+
+(define-alias fxarithmetic-shift-left bitwise-arithmetic-shift-left)
+(define-alias fxbit-set? bitwise-bit-set?)
+(define-alias fxbit-field bitwise-bit-field)
+(define-alias fx+ +)
+(define-alias fx- -)
+(define-alias fx<? <)
+(define-alias fx=? =)
+(define-alias fxior bitwise-ior)
+(define-alias fxxor bitwise-xor)
+(define-alias fxand bitwise-and)
+(define-alias fxzero? zero?)

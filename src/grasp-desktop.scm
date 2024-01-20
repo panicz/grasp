@@ -20,6 +20,13 @@
 (import (utils functions))
 (import (utils print))
 (import (utils conversions))
+(import (utils binary))
+
+(import (utils fixnum))
+(import (utils affine))
+(import (utils crypto))
+(import (utils serial))
+(import (utils server))
 
 (import (editor interfaces painting))
 (import (editor interfaces elements))
@@ -379,7 +386,7 @@
 
   (define (mouseWheelMoved event::MouseWheelEvent)::void
     (values))
-  
+
   (define (focusGained event::FocusEvent)::void
     (values))
 
@@ -454,10 +461,10 @@
   (define clipboard ::Clipboard
     (let* ((toolkit ::java.awt.Toolkit
 		    (java.awt.Toolkit:getDefaultToolkit))
-	   (clipboard ::AWTClipboard 
+	   (clipboard ::AWTClipboard
 		      (toolkit:getSystemClipboard)))
       (AWTSystemClipboard clipboard)))
-  
+
   (define graphics ::Graphics2D)
 
   (define intensity ::float 1.0)
@@ -488,7 +495,7 @@
     (try-finally
      (action)
      (graphics:scale (/ horizontal) (/ vertical))))
-  
+
   (define directory-box ::ViewBox
     (let* ((box ::FloatSize (directory-icon:size))
 	   (w/h ::float (/ box:width box:height))
@@ -560,14 +567,14 @@
     (graphics:translate (as double x) (as double y)))
 
   (define rotation ::real 0.0)
-  
+
   (define (rotate! angle ::real)::void
     (set! rotation (+ rotation angle))
     (graphics:rotate angle))
 
   (define (scale! factor ::real)::void
     (graphics:scale factor factor))
-  
+
   (define rendering-hints ::RenderingHints
     (RenderingHints RenderingHints:KEY_TEXT_ANTIALIASING
 		    RenderingHints:VALUE_TEXT_ANTIALIAS_ON))
@@ -582,7 +589,7 @@
 	  (right-color ::Color (parenthesis-color))
 	  (t ::Traversal (the-traversal)))
       (match (the-cursor)
-	(`(#\[ . ,,context) 
+	(`(#\[ . ,,context)
 	 (set! left-color (focused-parenthesis-color))
 	 (set! right-color (matching-parenthesis-color))
 	 (set! t:parent-left (+ t:parent-left t:left))
@@ -605,7 +612,7 @@
       (with-translation ((- width paren-width) 0)
 	(set-color! right-color)
 	(draw-right-paren! height))))
- 
+
   (define (open-paren! height::real)::void
     (let ((line-height (max 0 (- height
 				 top-left-bounds:height
@@ -665,7 +672,7 @@
 
   (define (quote-paren-width)::real
     (+ 1 top-left-quote-bounds:width))
-  
+
   (define (draw-quote-box! width::real
 			   height::real
 			   context::Cursor)
@@ -691,7 +698,7 @@
 
   (define (quasiquote-paren-width)::real
     (+ 1 top-left-quote-bounds:width))
-  
+
   (define (draw-quasiquote-box! width::real
 				height::real
 				context::Cursor)
@@ -789,7 +796,7 @@
 
   (define (quasiquote-marker-width)::real
     (+ 1 quote-marker-bounds:width))
-  
+
   (define (draw-quasiquote-markers! width::real
 				    height::real
 				    context::Cursor)
@@ -809,10 +816,10 @@
     ::void
     (with-translation (0 (- height bottom-right-quote-bounds:height))
       (graphics:fill bottom-right-quote-paren)))
-  
+
   (define (unquote-marker-width)::real
     (+ 1 bottom-left-quote-bounds:width))
-  
+
   (define (draw-unquote-markers! width::real
 				 height::real
 				 context::Cursor)
@@ -852,7 +859,7 @@
 	     (close-unquote-splicing-marker! height))
      (unquote-splicing-marker-width)
      width height context))
-  
+
   (define (draw-border! width::real height::real)::void
     (graphics:fillRect 3 3 (- width 6) 4)
     (graphics:fillRect 3 3 4 (- height 6))
@@ -860,14 +867,14 @@
     (graphics:fillRect 3 (- height 7) (- width 6) 4))
 
   (define (border-size)::real 10)
-  
+
   (define (space-width)::real 8)
 
   (define (paren-width)::real
     top-left-bounds:width)
 
   (define (line-simplification-resolution)::real 20)
-  
+
   (define (min-box-height)::real
     (max (invoke (the-atom-font) 'getSize2D)
 	 (+ top-left-bounds:height bottom-left-bounds:height)
@@ -909,7 +916,7 @@
 
   (define (mark-cursor! +left::real +top::real)::void
     (mark-editor-cursor! +left +top (the-editor)))
-  
+
   (define (editor-cursor-position editor::WithCursor)::Position
     (editor:cursor-position))
 
@@ -1034,7 +1041,7 @@
 					parent:left)
 			parent-top: (+ parent:parent-top
 				       parent:top)
-			parent: parent))	     
+			parent: parent))
 	     (segment-start 0)
 	     (string-end (text:length)))
 	(parameterize ((the-cursor-extent (Extent width: 2
@@ -1093,7 +1100,7 @@
      3 BasicLineDecoration:CAP_BUTT
      BasicLineDecoration:JOIN_BEVEL
      0 (($bracket-apply$ float) 9) 0))
-  
+
   (define (draw-quoted-text! text::CharSequence context::Cursor)::void
     (let* ((e ::Extent (text-extent text
 				    (the-string-font)))
@@ -1122,7 +1129,7 @@
 	    (let ((t ::Traversal (the-traversal)))
 	      (set! t:left (+ t:left 2w))
 	      (set! t:top (+ t:top h))
-	      (draw-string! text context)  
+	      (draw-string! text context)
 	      (set! t:left (- t:left w))
 	      (set! t:top (- t:top h)))
 	    (with-translation (e:width e:height)
@@ -1341,7 +1348,7 @@ by the AWT framework."))
 	      (if (event:shift-down?) SHIFT_MASK 0)))
 	 '()))
       (repaint)))
-  
+
   (define (mouseDragged event::MouseEvent)::void
     (parameterize ((the-system-clipboard clipboard))
       (invalidating
@@ -1379,7 +1386,7 @@ by the AWT framework."))
     (java.util.concurrent.ConcurrentLinkedQueue))
 
   (define last-animation-event-time-ms ::long 0)
-  
+
   (define (actionPerformed event::java.awt.event.ActionEvent)::void
     (unless (pending-animations:isEmpty)
       (let* ((now ::long (current-time-ms))
@@ -1391,14 +1398,14 @@ by the AWT framework."))
 	(repaint)
 	(when (pending-animations:isEmpty)
 	  (animator:stop)))))
-  
+
   (define animator ::javax.swing.Timer
     (let ((timer ::javax.swing.Timer
 		 (javax.swing.Timer 40 (this))))
       (timer:stop)
       (timer:setRepeats #t)
       timer))
-  
+
   (define (play! animation::Animation)::void
     (unless (any (is _ eq? animation) pending-animations)
       (let ((was-empty? ::boolean (pending-animations:isEmpty)))
@@ -1408,7 +1415,7 @@ by the AWT framework."))
 	  (animator:start)))))
 
   (InputHandler)
-  
+
   (java.awt.EventQueue:invokeAndWait
    (lambda ()
      (set! (default-transform) (lambda () (Isogonal)))))
@@ -1427,12 +1434,12 @@ by the AWT framework."))
 
 (define (run-in-AWT-window)::void
   (let ((application ::GRASP (GRASP)))
-    
+
     (set! (the-system-clipboard) application:clipboard)
- 
+
     (set! painter application)
     (initialize-keymap)
-    
+
     (safely
      (let* ((input (gnu.kawa.io.InPort
 		   (java.io.InputStreamReader

@@ -7,6 +7,7 @@ cd src
 
 KAWA_JAR="../libs/kawa.jar"
 JSVG="../libs/jsvg-1.0.0.jar"
+JSERIAL="../libs/jSerialComm-2.10.4.jar"
 
 DEPS=`java -jar $KAWA_JAR --no-warn-unreachable \
  -f analdep.scm -- --list grasp-desktop.scm`
@@ -28,7 +29,7 @@ echo $UPDATE
 
 set -x
 
-java -cp "../build/desktop/:$KAWA_JAR:$JSVG" kawa.repl \
+java -cp "../build/desktop/:$KAWA_JAR:$JSVG:$JSERIAL" kawa.repl \
      --no-warn-unreachable -d ../build/desktop -C \
      $UPDATE grasp-desktop.scm || exit
 set +x
@@ -45,6 +46,14 @@ if [ ! -f com/github/weisj/jsvg ]; then
     cp ../../libs/jsvg-1.0.0.jar .
     unzip jsvg-1.0.0.jar || exit
     rm jsvg-1.0.0.jar module-info.class
+    rm -rf META-INF
+fi
+
+if [ ! -f com/fazecast/jSerialComm ]; then
+    cp ../../libs/jSerialComm-2.10.4.jar .
+    unzip jSerialComm-2.10.4.jar || exit
+    rm jSerialComm-2.10.4.jar module-info.class
+    rm -rf META-INF
 fi
 
 if [ ! -f kawa ]; then
@@ -56,5 +65,6 @@ fi
 jar --verbose --create --file ../grasp-desktop.jar \
     --main-class=grasp\$Mndesktop `find ./ -name '*.class'` \
     assets
-#cd ..
-#rm -r desktop
+
+cd ..
+rm -r desktop
