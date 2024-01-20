@@ -22,6 +22,11 @@
 (import (utils functions))
 (import (utils conversions))
 (import (utils print))
+(import (utils fixnum))
+(import (utils binary))
+(import (utils affine))
+(import (utils crypto))
+(import (utils server))
 
 (import (editor input input))
 (import (editor interfaces elements))
@@ -65,7 +70,7 @@
 	  (lambda ()
 	    (move-cursor-up!)
 	    (adjust-view!)))
-	    
+
 (set-key! 'down
 	  (lambda ()
 	    (move-cursor-down!)
@@ -192,7 +197,7 @@
        (load-document-from-port
 	(open-asset "intro.scm")
 	(java.io.File "intro.scm"))))
-    
+
     (screen:set-content!
      (open-beside (map (lambda (file-name ::java.lang.String)
 			 ::java.io.File

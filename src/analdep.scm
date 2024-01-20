@@ -56,7 +56,7 @@ exec java -jar ../libs/kawa.jar --no-warn-unreachable -f "$0" $*
     (`(,command "--" "--list" . ,args)
      (set! list? #t)
      args)
-    
+
     (`(,command "--" "--layers" . ,args)
      (set! layers? #t)
      (if (null? args)
@@ -68,7 +68,7 @@ exec java -jar ../libs/kawa.jar --no-warn-unreachable -f "$0" $*
      (if (null? args)
 	 (all-scm-files-from-subdirectories)
 	 args))
-    
+
     (`(,command "--" . ,args)
      args)))
 
@@ -77,7 +77,7 @@ exec java -jar ../libs/kawa.jar --no-warn-unreachable -f "$0" $*
        (string-split (string-take file
 				  (- (length file) 4))
 		     "/")))
-  
+
 (define (dependency-graph files)
   (let ((dependencies (mapping (module) '())))
     (for file in files
@@ -115,7 +115,7 @@ exec java -jar ../libs/kawa.jar --no-warn-unreachable -f "$0" $*
      #t)
     (`(kawa . ,_)
      #t)
-    (`(tools ,_)
+    (`(tools . ,_)
      #t)
     (_
      #f)))

@@ -585,6 +585,21 @@
  (paste! (list 'a 'b 'c) into: (list 1 2 3 4) at: 2)
  ===> (1 2 a b c 3 4))
 
+(define (extend-right l #;to size #;with #!optional (fill #f))
+  (let ((extension-size (- size (length l))))
+    (if (< extension-size 0)
+	(error "list length exceeds the desired length")
+	`(,@l ,@(make-list extension-size fill)))))
+
+(e.g. (extend-right '(1 2 3) 5 0) ===> (1 2 3 0 0))
+
+(define (extend-left l #;to size #;with #!optional (fill #f))
+  (let ((extension-size (- size (length l))))
+    (if (< extension-size 0)
+	(error "list length exceeds the desired length")
+	`(,@(make-list extension-size fill) ,@l))))
+
+(e.g. (extend-left '(1 2 3) 5 0) ===> (0 0 1 2 3))
 
 (define (first-cell satisfying?::predicate elements::list)
   (and (not (null? elements))
@@ -892,7 +907,7 @@
 	 (unsatisfying (cons #f '()))
 	 (satisfying+ satisfying)
 	 (unsatisfying+ unsatisfying))
-    
+
     (for element in elements
       (cond
        ((satisfying? element)
@@ -918,7 +933,7 @@
 	 (n ::int (string-length pattern))
 	 (candidate ::gnu.lists.FString (gnu.lists.FString)))
     (let loop ()
-      
+
       (if (= n (string-length candidate))
 	  from
 	  (and-let* ((c ::gnu.text.Char (read-char from))
@@ -935,3 +950,35 @@
      (and-let* ((,port (skip-characters from: port
 					until-having-read: "kokos")))
        (read-string 5 port)))) ===> "owych")
+
+(define (sequence->list s::sequence)::list
+  (let ((result '())
+        (cone '()))
+    (for x in s
+         (cond
+          ((null? result)
+           (set! result (cons x '()))
+           (set! cone result))
+          (else
+           (set-cdr! cone (cons x '()))
+           (set! cone (cdr cone)))))
+    result))
+
+(define (unfold-right-until stop? #;using f #;starting-with seed)
+  (define (unfold seed result)
+    (if (stop? seed)
+	result
+	(unfold (f seed) `(,seed . ,result))))
+  (unfold seed '()))
+
+(define (unfold-right-upto n #;using f #;starting-with seed)
+  (define (unfold n seed result)
+    (if (is n <= 0)
+	result
+	(unfold (- n 1) (f seed) `(,seed . ,result))))
+  (unfold n seed '()))
+
+
+(define (current-UNIX-epoch-second)::long
+  (let ((this-instant (java.time.Instant:now)))
+    (this-instant:getEpochSecond)))
