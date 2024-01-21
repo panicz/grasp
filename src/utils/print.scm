@@ -29,7 +29,7 @@
 
   (define (clear-messages!)::void
     (set! messages '()))
-  
+
   (define (add-message message::list)::void
     (let ((message-string (with-output-to-string
 			    (lambda ()
@@ -39,7 +39,7 @@
 			      ))))
       (set! messages `(,message-string . ,messages))
       (drop-after! historyLength messages)))
-  
+
   (define (display-messages output::Object)::void
     #!abstract)
 
@@ -51,7 +51,7 @@
       (display word))
     (newline)
     (flush-output-port))
-  
+
   (define last-message::string "")
 
   (define (clear-messages!)::void
@@ -63,7 +63,7 @@
 (define-object (ignoring-message-handler)::MessageHandler
   (define (add-message message::list)::void
     (values))
-  
+
   (define last-message::string "")
 
   (define (clear-messages!)::void
@@ -77,7 +77,7 @@
 
   (define (clear-messages!)::void
     (set! last-message #!null))
-  
+
   (define (add-message message::list)::void
     (set! last-message
 	  (with-output-to-string
@@ -85,7 +85,7 @@
 	      (for word in message
 		(display word))
 	      (newline)))))
-  
+
   (define (display-messages output::Object)::void
     (display last-message)
     (set! last-message #!null)))
@@ -150,3 +150,8 @@
 (define-syntax-rule (DEBUG-DUMP expr ...)
   (when (debugging?)
     (DUMP expr ...)))
+
+(define (any->string object)
+  (call-with-output-string
+    (lambda (port)
+      (display object port))))
