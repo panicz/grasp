@@ -187,22 +187,18 @@
 		 (equal? context (cdr (the-cursor))))
 	  (match (head (the-cursor))
 	    (#\[
-	     (parameterize ((the-traversal (Traversal
-					    parent: t
-					    parent-left:
-					    (+ t:left t:parent-left)
-					    parent-top:
-					    (+ t:top t:parent-top))))
-	       (mark-cursor! 0 1)))
+	     (set! t:parent-left (+ t:parent-left t:left))
+	     (set! t:parent-top (+ t:parent-top t:top))
+	     (mark-cursor! 0 0)
+	     (set! t:parent-top (- t:parent-top t:top))
+	     (set! t:parent-left (- t:parent-left t:left))
+	     )
 	    (#\]
-	     (parameterize ((the-traversal (Traversal
-					    parent: t
-					    parent-left:
-					    (+ t:left t:parent-left)
-					    parent-top:
-					    (+ t:top t:parent-top)
-					    left: (- width 1))))
-	       (mark-cursor! (- width 1) (- height 2))))
+	     (set! t:parent-left (+ t:parent-left t:left))
+	     (set! t:parent-top (+ t:parent-top t:top))
+	     (mark-cursor! (- width 1) 0)
+	     (set! t:parent-top (- t:parent-top t:top))
+	     (set! t:parent-left (- t:parent-left t:left)))
 	    (_ (values))))
       (when (and (pair? selection-start)
 		 (equal? (tail selection-start) context)
