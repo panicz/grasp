@@ -12,6 +12,7 @@
 (import (utils fixnum))
 (import (utils affine))
 (import (utils crypto))
+(import (utils print))
 
 (define-constant every-two-characters ::regex #/(?<=..)(?=(?:..)+$)/)
 
@@ -142,41 +143,6 @@
 (e.g.
  (wmbus-manufacturer-string #x8d #x19) ===> "FLM")
 
-(define (wmbus-device-id-bytes+offset device-id::string)
-  ::(Values (list-of byte) integer)
-  (cond
-   ((regex-match "^([A-Z]{3})([0-9]{8})$" device-id)
-    => (lambda (result)
-         (match result
-           (`(,_ ,manufacturer ,serial-number)
-            (values
-             `(,@(wmbus-manufacturer-bytes manufacturer)
-               ,@(reverse
-                  (map hex->number
-                       (regex-split every-two-characters
-                                    serial-number))))
-             2)))))
-    ((regex-match "^([0-9]{8})$" device-id)
-     => (lambda (result)
-          (match result
-            (`(,_ ,serial-number)
-             (values
-              (reverse
-               (map hex->number
-                    (regex-split every-two-characters
-                                 serial-number)))
-              4)))))
-     (else
-     (error "Unsupported device-id format: "device-id))))
-
-(e.g.
- (wmbus-device-id-bytes+offset "KYN12345678")
- ===> (#x2e #x2f #x78 #x56 #x34 #x12) 2)
-
-(e.g.
- (wmbus-device-id-bytes+offset "12345678")
- ===> (#x78 #x56 #x34 #x12) 4)
-
 (define (MBus-STL-conf-word byte0::Byte byte1::Byte)::(list-of Byte)
   ;; TODO: trzeba przeanalizowac owo slowo konfiguracyjne
   `(,byte0 ,byte1))
@@ -204,7 +170,7 @@
                          ,@config-frame-payload))
          (padded (let* ((n (length payload))
                         (unpadded (modulo n 16)))
-                   (if (= unpaddede 0)
+                   (if (= unpadded 0)
                        payload
                        (append! payload (make-list (- 16 unpadded) #x2f)))))
          (aes-initial-vector `(,@man ,@id ,ver ,(MBUS-DEVICE-TYPE:00-OTHER:ordinal)
@@ -212,7 +178,8 @@
          (encrypted-payload (aes-cbc-encrypt padded key: aes-key
                                              iv: aes-initial-vector))
          (content `(,@dll ,@stl ,@encrypted-payload)))
-    `(,(length content) ,@content)))
+    (map (lambda (x) (as int x))
+         `(,(length content) ,@content))))
 
 (e.g.
  (wmbus-flowis-config-frame
@@ -224,6 +191,17 @@
   target-serial-number: #x41146360
   config-frame-payload:
   `(,(DONGLE-COMMAND:1C-ENTER-CONFIGURATION:ordinal)))
- ;     L  C  MANUF SERIAL NUM  V  T  ?  AC ST CONFW
- ===> "1e 44 8d 19 00 02 00 10 01 00 7a c5 00 10 a5\
- f1 32 44 d8 98 65 93 c3 84 b5 51 ce 80 6a bf 96")
+ ===> (#x1e ; length
+       #x44 ; control word
+       #x8d #x19 ; manufacturer
+       #x00 #x02 #x00 #x10 ; serial number
+       #x01 ; version
+       #x00 ; type
+       #x7a ; ?
+       #xc5 ; access number
+       #x00 ; status
+       #x10 #xa5 ; configuration word
+       #xf1 #x32 #x44 #xd8 ; encrypted payload
+       #x98 #x65 #x93 #xc3 ; (with padding)
+       #x84 #xb5 #x51 #xce
+       #x80 #x6a #xbf #x96))

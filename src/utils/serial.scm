@@ -6,12 +6,16 @@
 (import (language define-type))
 (import (language define-object))
 (import (language define-interface))
+(import (language while))
+(import (language for))
 (import (language match))
 (import (language infix))
 (import (language examples))
 
 (import (utils functions))
 (import (utils binary))
+(import (utils print))
+(import (utils mbus))
 
 (define-alias serial com.fazecast.jSerialComm.SerialPort)
 
@@ -32,8 +36,10 @@
    (port:closePort))
 
   ((send! message::string)::void
-   (write-string message output)
-   (flush-output-port output))
+   ;;(write-string message output)
+   (for c::char in message
+        (write-char c output)
+        (flush-output-port output)))
 
   ((receive!)::string
    (read-string (port:bytesAvailable) input)))
@@ -77,45 +83,47 @@
   (define access-number ::Byte 0)
 
   (define (command! . messages)::string
-    (connection:send! (string-append (string-join messages "") "\r\n"))
+    (let ((command ::string (string-join messages "")))
+      (DUMP command)
+      (connection:send! (string-append command "\r\n")))
     (java.lang.Thread:sleep timeout/ms)
-    (connection:receive!))
+    (let ((response ::string (connection:receive!)))
+      (DUMP response)
+      response))
 
-  (define (setup-config-ambush! device-id::string)
+  (define (setup-config-ambush! device-id::integer)
     ::integer
     (otherwise
      #!null
      (and-let* ((ambush-response (command! "ambush new 2 12 12 1 perpetual"))
-                (`(,_ ,ambush-index) (regex-match #/The ambush index is ([0-9]*)/
+                (`(,_ ,ambush-index) (regex-match "The ambush index is ([0-9]*)"
                                                   ambush-response))
                 (config-response (command! "config radio"))
-                (`(,_ ,dongle-id) (regex-match #/device_id = 0x([0-9]{8}),/
+                (`(,_ ,dongle-id) (regex-match "device_id = 0x([0-9]{8}),"
                                                config-response))
-                (`(,_ ,dongle-manufacturer) (regex-match #/manufacturer = ([A-Z]{3}),/
+                (`(,_ ,dongle-manufacturer) (regex-match "manufacturer = ([A-Z]{3}),"
                                                          config-response))
-                (`(,_ dongle-version) (regex-match #/version = ([0-9]+),/
+                (`(,_ ,dongle-version) (regex-match "version = ([0-9]+),"
                                                    config-response))
-                (address offset (wmbus-device-id-bytes+offset device-id))
-                (serial-number (match offset
-                                 (2 (take 4 (drop 2 address)))
-                                 (4 (take 4 address))))
                 (config-frame (wmbus-flowis-config-frame
                                dongle-manufacturer: dongle-manufacturer
-                               dongle-serial-number: (reverse
-                                                      (hex->list
-                                                       (regex-split every-two-characters
-                                                                    dongle-id)))
-                               dongle-version: (list->number dongle-version)
+                               dongle-serial-number: (string->number dongle-id 16)
+                               dongle-version: (string->number dongle-version)
                                timestamp: (current-UNIX-epoch-second)
                                aes-key: aes-key
                                access-number: access-number
-                               target-serial-number: serial-number
+                               target-serial-number: device-id
                                config-frame-payload:
                                `(,(DONGLE-COMMAND:1C-ENTER-CONFIGURATION:ordinal)))))
-
-       (command! "ambush set_trigger "ambush-index" "(list->hex address))
-       (command! "ambush set_trigger_offset "ambush-index" "(number->string offset))
-       (command! "ambush set_response "ambush_index" "(list->hex config-frame))
+       (command! "ambush set_trigger "ambush-index" "(string-join
+                                                      (map number->hex
+                                                           (little-endian-32 device-id))
+                                                      ""))
+       (command! "ambush set_trigger_offset "ambush-index" 4")
+       (command! "ambush set_response "ambush-index" "(string-join
+                                                       (map number->hex
+                                                            config-frame)
+                                                       ""))
        (string->number ambush-index))))
 
   )
