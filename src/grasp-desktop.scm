@@ -1458,6 +1458,4 @@ by the AWT framework."))
       (window:setFocusTraversalKeysEnabled #f)
       (window:setVisible #t))))
 
-(set! *print-base* 16)
-
 (run-in-AWT-window)

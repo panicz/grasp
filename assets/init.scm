@@ -177,7 +177,7 @@
 
 (screen:set-content!
  (DocumentEditor document: (Document (car (with-input-from-string "
-(import (language infix) (language match))
+(import (language infix) (language match) (utils print))
 (import (utils functions) (utils server) (utils serial) (utils binary))
 
 (let ((sv (tcp-output-server 12345)))

@@ -36,7 +36,7 @@
    (port:closePort))
 
   ((send! message::string)::void
-   ;;(write-string message output)
+   ;;(write-string message output) ;<- loses characters with longer messages
    (for c::char in message
         (write-char c output)
         (flush-output-port output)))
@@ -83,19 +83,44 @@
   (define access-number ::Byte 0)
 
   (define (command! . messages)::string
-    (let ((command ::string (string-join messages "")))
+    (let ((discarded (connection:receive!)))
+      (unless (equal? "" discarded)
+        (DUMP discarded)))
+
+    (let ((command ::string (string-join (only (isnt _ string=? "")
+                                               (map any->string messages))
+                                         " ")))
       (DUMP command)
       (connection:send! (string-append command "\r\n")))
+
     (java.lang.Thread:sleep timeout/ms)
+
     (let ((response ::string (connection:receive!)))
       (DUMP response)
       response))
+
+  (define ambush-repetitions ::int 2)
+
+  (define ambush-delay-ms ::int 12)
+
+  (define ambush-period-ms ::int 12)
+
+  (define ambush-channel ::int 1)
+
+  (define ambush-perpetual? ::boolean #t)
 
   (define (setup-config-ambush! device-id::integer)
     ::integer
     (otherwise
      #!null
-     (and-let* ((ambush-response (command! "ambush new 2 12 12 1 perpetual"))
+     (and-let* ((ambush-response (command! "ambush new"
+                                           ambush-repetitions
+                                           ambush-delay-ms
+                                           ambush-period-ms
+                                           ambush-channel
+                                           (if ambush-perpetual?
+                                               "perpetual"
+                                               "")))
                 (`(,_ ,ambush-index) (regex-match "The ambush index is ([0-9]*)"
                                                   ambush-response))
                 (config-response (command! "config radio"))
@@ -115,15 +140,27 @@
                                target-serial-number: device-id
                                config-frame-payload:
                                `(,(DONGLE-COMMAND:1C-ENTER-CONFIGURATION:ordinal)))))
-       (command! "ambush set_trigger "ambush-index" "(string-join
+       (command! "ambush set_trigger" ambush-index (string-join
                                                       (map number->hex
                                                            (little-endian-32 device-id))
                                                       ""))
-       (command! "ambush set_trigger_offset "ambush-index" 4")
-       (command! "ambush set_response "ambush-index" "(string-join
-                                                       (map number->hex
-                                                            config-frame)
-                                                       ""))
+       (command! "ambush set_trigger_offset" ambush-index 4)
+       (command! "ambush set_response" ambush-index (string-join
+                                                     (map number->hex config-frame)
+                                                     ""))
        (string->number ambush-index))))
+
+  (define (disable-ambush! index::int)
+    ::void
+    (command! "ambush set_response" index)
+    (command! "ambush set_trigger" index)
+    (command! "ambush set_trigger_offset" index 0))
+
+  (define (configure! device-id::int)::void
+    (command! "dongle target config_key "(list->hex aes-key))
+    (command! "dongle target id "(number->string device-id 16))
+    (command! "dongle radio_ch 1")
+    (command! "radio_cmd_state on"))
+
 
   )
