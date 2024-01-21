@@ -188,6 +188,8 @@
 
 (dongle:command! \"help\")
 
+(dongle:setup-config-ambush! #x41146360)
+
 " parse-document)) #!null)))
 
 (WARN "loaded init.scm")
