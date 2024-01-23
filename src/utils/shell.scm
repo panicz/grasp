@@ -1,18 +1,16 @@
 (module-name (utils shell))
 
-(define-alias InputStream java.io.InputStream)
-(define-alias Runtime java.lang.Runtime)
-(define-alias Process java.lang.Process)
 (define-alias Charset java.nio.charset.StandardCharsets)
 
 ;(define-alias PtyProcess com.pty4j.PtyProcess)
 
-(define runtime ::Runtime (Runtime:getRuntime))
+(define runtime ::java.lang.Runtime
+  (java.lang.Runtime:getRuntime))
 
 (define (shell command::string)::string
-  (let ((process ::Process (runtime:exec command)))
+  (let ((process ::java.lang.Process (runtime:exec command)))
     (process:waitFor)
-    (let* ((output ::InputStream (process:getInputStream))
+    (let* ((output ::java.io.InputStream (process:getInputStream))
 	   (bytes ::int (output:available))
 	   (data ::($bracket-apply$ byte)
 		 (($bracket-apply$ byte) length: bytes)))
