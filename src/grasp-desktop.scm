@@ -27,6 +27,7 @@
 (import (utils crypto))
 (import (utils serial))
 (import (utils server))
+(import (utils shell))
 
 (import (editor interfaces painting))
 (import (editor interfaces elements))
