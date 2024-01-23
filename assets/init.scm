@@ -177,7 +177,11 @@
  evaluate-expression-by-wedge)
 
 (screen:set-content!
- (DocumentEditor document: (Document (car (with-input-from-string "
+ (DocumentEditor document: (Document (car
+                                      (if (file-exists? "autoload.grasp")
+                                          (with-input-from-file "autoload.grasp"
+                                            parse-document)
+                                          (with-input-from-string "
 (import (language infix) (language match) (utils print))
 (import (utils functions) (utils server) (utils serial) (utils binary))
 
@@ -189,9 +193,11 @@
 
 (dongle:command! \"help\")
 
-(dongle:setup-config-ambush! #x41146360)
+(dongle:setup-target! 41146360)
+(dongle:setup-config-ambush! 41146360)
 
-" parse-document)) #!null)))
+
+" parse-document))) #!null)))
 
 (WARN "loaded init.scm")
 
