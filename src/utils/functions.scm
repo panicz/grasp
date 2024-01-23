@@ -7,6 +7,8 @@
 (import (language for))
 (import (language while))
 
+(define predicate procedure)
+
 (define (nearby-int x::real)::int
   (as int (round x)))
 
@@ -98,6 +100,27 @@
  (take 3 #;elements-from '(1 2 3 4 5))
  ===> (1 2 3))
 
+(define (take-while satisfying?::predicate s::sequence)::list
+  (let ((result '())
+        (tip '()))
+    (escape-with
+     break
+     (for item in s
+          (cond
+           ((isnt item satisfying?)
+            (break))
+           ((pair? tip)
+            (set-cdr! tip (cons item '()))
+            (set! tip (cdr tip)))
+           (else
+            (set! result (cons item '()))
+            (set! tip result))
+           )))
+    result))
+
+(e.g.
+ (take-while even? '(2 4 6 7 8 9)) ===> (2 4 6))
+
 (define (suffix? ending::list stem::list)::boolean
   (let ((m ::integer (length ending))
         (n ::integer (length stem)))
@@ -107,7 +130,6 @@
 
 (e.g.
  (is '(4 5) suffix? '(1 2 3 4 5)))
-
 
 (define (prefix? candidate::list stem::list)::boolean
   (or (null? candidate)
@@ -827,12 +849,14 @@
    l) ===> (1 3 5 7))
 
 (define (count-while satisfying?::predicate s::sequence)::int
-  (let ((l ::int (length s)))
-    (let loop ((n ::int 0))
-      (if (or (is n >= l)
-	      (isnt (s n) satisfying?))
-	  n
-	  (loop (+ n 1))))))
+  (let ((result ::int 0))
+    (escape-with
+     break
+     (for item in s
+          (if (satisfying? item)
+              (set! result (+ result 1))
+              (break))))
+    result))
 
 (e.g.
  (count-while even? '(2 4 6 7 8)) ===> 3)
