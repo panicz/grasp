@@ -132,7 +132,7 @@
                                                    config-response))
                 (config-frame (wmbus-flowis-config-frame
                                dongle-manufacturer: dongle-manufacturer
-                               dongle-serial-number: (string->number dongle-id 16)
+                               dongle-serial-number: (string->number dongle-id)
                                dongle-version: (string->number dongle-version)
                                timestamp: (current-UNIX-epoch-second)
                                aes-key: aes-key
@@ -142,7 +142,10 @@
                                `(,(DONGLE-COMMAND:1C-ENTER-CONFIGURATION:ordinal)))))
        (command! "ambush set_trigger" ambush-index (string-join
                                                       (map number->hex
-                                                           (little-endian-32 device-id))
+                                                           (little-endian-32
+                                                            (number/base
+                                                             16 (digits/base
+                                                                 10 device-id))))
                                                       ""))
        (command! "ambush set_trigger_offset" ambush-index 4)
        (command! "ambush set_response" ambush-index (string-join
@@ -152,15 +155,13 @@
 
   (define (disable-ambush! index::int)
     ::void
-    (command! "ambush set_response" index)
-    (command! "ambush set_trigger" index)
-    (command! "ambush set_trigger_offset" index 0))
+    (command! "ambush set_trigger_offset" index 255))
 
-  (define (configure! device-id::int)::void
+  (define (setup-target! device-id::int)::void
     (command! "dongle target config_key "(list->hex aes-key))
-    (command! "dongle target id "(number->string device-id 16))
-    (command! "dongle radio_ch 1")
-    (command! "radio_cmd_state on"))
+    (command! "dongle target id "device-id)
+    #;(command! "dongle radio_ch 1")
+    #;(command! "radio_cmd_state on"))
 
 
   )
