@@ -32,6 +32,16 @@
 (e.g.
  (number/base 10 '(1 0 0)) ===> 100)
 
+(define (number/base* base::integer . digits)::integer
+  (fold-left (lambda (result factor power)
+	       (+ result (* factor (expt base power))))
+	     0
+	     digits
+	     (numbers from: (- (length digits) 1) to: 0 by: -1)))
+
+(e.g.
+ (number/base* 10 1 2 3) ===> 123)
+
 (define (number->hex number::int)::string
   (format #f "~2,'0x" number))
 
