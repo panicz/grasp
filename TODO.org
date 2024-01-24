@@ -1,3 +1,91 @@
+* 24.01.2024
+
+zagadka, od ktotej powinnismy rozpoczac, to: dlaczego
+w metodach draw! oraz cursor-under* klasy Space
+musimy klonowac Traversal?
+
+i rzecz wyglada tak, ze jak mamy traverse, to ono
+po wywolaniu action na spacji wywoluje tez
+traversal:advance! na tej spacji
+
+no, ale to chyba powstawalo jeszcze zanim mielismy traverse,
+i wydaje sie, ze teraz mamy wieksza elastycznosc w zmianie
+implementacji
+
+no dobra, to moze sprobujmy po prostu
+- wywalic traversal:advance! z traverse'a
+- wywalic clone z metod Space:draw! i Space:cursor-under*
+
+Ale ale! Nie mozemy tego zrobic, poniewaz sequence-extent
+uzywa traverse'a, ktorego action to nothing.
+
+No ale wowczas mozeny zamiast nothing dac po prostu
+traverse:expand! space i powinno byc po krzyku?
+
+#+BEGIN_SRC scheme
+  (define (expand-space! item::Element traversal::Travesal)
+    (match item
+      (space::Space
+       (traversal:advance! space))
+      (_
+       (nothing))))
+#+END_SRC
+
+* 23.01.2024
+
+no dobra, to teraz musimy zrozumiec co sie tam dzieje ze ten
+max-line-height jest wiekszy od dystansu do kolejnej linii
+
+na razie bowiem problem udalo sie rozwiazac jedynie polowicznie,
+stosujac brzydki hack [i nie wiadomo czy w klientach poza androidowym
+to czegos nie napsuje]
+
+do tego dochodzi taka kwestia, ze jak kursor jest na spacji,
+to sie chyba callback on-end-line nie wywoluje poprawnie
+
+no to tak. w sytuacji, gdy kursor jest mniej wiecej tu
+(w kliencie androidowym):
+
+#+BEGIN_SRC
+╭        ╭     ╮                      ╮
+│ define │ ! n │                      │
+│        ╰     ╯                      │
+│   ╭    ╭        ╮                 ╮ │
+│   │ if │ <= n 0 │                 │ │
+│   │    ╰        ╯                 │ │
+│   │          ┌───────────┐        │ │
+│   │       1  │ BASE CASE │        │ │
+│   │        ^ └───────────┘        │ │
+│   │       ╭     ╭   ╭       ╮ ╮ ╮ │ │
+│   │       │ * n │ ! │ - n 1 │ │ │ │ │
+╰   ╰       ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
+#+END_SRC
+
+distance 0 
+traversal:max-line-height 52.0
+cursor-top 516.0
+parent-top 464.0
+traversal:top 52.0
+traversal:parent-top 412.0
+original-traversal:top 52.0
+original-traversal:parent-top 412.0
+
+
+
+* 22.01.2024
+
+teraz mamy nieco luzniejszy tydzien, wiec bysmy sie skupili
+na poprawie tego bledu z poruszaniem kursorem przy komentarzu
+
+wydaje sie, ze tutaj problem jest jakos zwiazany z wyrazeniem
+
+#+BEGIN_SRC scheme
+  (as int (+ total (min width (quotient (- x t:left) space-width))))
+#+END_SRC
+
+gdzie total to calkowita liczba wyprobowanych do tej pory
+indeksow na danej spacji
+
 * 21.01.2024
 
 Trzeba zdecydowanie jak najszybciej skonczyc prace nad kursorem.
