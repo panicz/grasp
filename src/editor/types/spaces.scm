@@ -243,12 +243,14 @@
 				     (* space-width
 					(- total tip))) (- t:top top -1))
 		 (parameterize ((the-traversal t))
-		   (set! t:parent-left (+ t:parent-left t:left (* space-width
-								(- tip total))))
+		   (set! t:parent-left (+ t:parent-left t:left
+					  (* space-width
+					     (- tip total))))
 		   (set! t:parent-top (+ t:parent-top t:top))
 		   (painter:mark-cursor! 0 0)
-		   (set! t:parent-left (- t:parent-left t:left (* space-width
-								(- tip total))))
+		   (set! t:parent-left (- t:parent-left t:left
+					  (* space-width
+					     (- tip total))))
 		   (set! t:parent-top (- t:parent-top t:top))
 		   )))
 	     (when (and enters-selection-drawing-mode?
@@ -312,11 +314,14 @@
 	      (hash-cons (as int (+ total
 				    (min width
 					 (quotient
-					  (- x t:left)
+					  (max 0 (- x t:left))
 					  space-width))))
 			 path))
 	     (else
 	      (t:expand-by! (* space-width width))
+	      (unless (eq? t:on-end-line nothing)
+		(WARN "overridden on-end-line invoked from cursor-under in"
+		      (this)))
 	      (t:new-line!)
 	      (skip (cdr input)
 		    (as int (+ total width 1))))))
@@ -326,7 +331,7 @@
 		  (is x < (+ t:left (* space-width width)))
 		  (hash-cons (as int (+ total
 					(quotient
-					 (- x t:left)
+					 (max 0 (- x t:left))
 					 space-width)))
 			     path))
 	     (begin
