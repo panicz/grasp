@@ -1347,19 +1347,24 @@
     distance-to-previous-line)
   
   (define (mark-cursor! left::real top::real)::void
-    (let* ((traversal ::Traversal (the-traversal))
-	   (cursor-top ::real (+ traversal:top traversal:parent-top)))
+    (let* ((original-traversal ::Traversal (the-traversal))
+	   (cursor-top ::real (+ original-traversal:top
+				 original-traversal:parent-top)))
       (set! marked:left left)
       (set! marked:top top)
       (set! distance-to-previous-line
 	    (min (painter:min-line-height)
-		 (traversal:preceding-line-height)))
-      (set! traversal:on-end-line
+		 (original-traversal:preceding-line-height)))
+      (set! original-traversal:on-end-line
 	    (lambda (continued?::boolean)
 	      (let* ((traversal ::Traversal (the-traversal))
-		     (parent-top ::real (+ traversal:top traversal:parent-top))
+		     (parent-top ::real (+ traversal:top
+					   traversal:parent-top))
 		     (distance ::real (- traversal:max-line-height
-				       (- cursor-top parent-top))))
+					 (if (eq? traversal:parent
+						  original-traversal:parent)
+					     0
+					     (- cursor-top parent-top)))))
 		(cond
 		 (continued?
 		  (WARN "setting distance to "distance)
