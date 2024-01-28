@@ -1,3 +1,22 @@
+* 25.01.2024
+
+wczorajsza reorganizacja spalila na panewce - co w sumie
+jest ok, bo zrobilsmy finalnie cos duzo prostszego
+- mianowicie przypisanie on-end-line od klona do oryginalu.
+
+teraz jednak mamy jeszcze kilka innych problemow.
+
+po pierwsze, kiedy lamiemy spacje, to wyglada tak, jakby
+brana byla wysokosc sprzed zlamania spacji
+
+dlatego teraz pojawia sie pomysl, zeby do on-end-line
+dodac jako argumenty:
+- biezacy kontekst
+- biezacy widget
+
+
+
+
 * 24.01.2024
 
 zagadka, od ktotej powinnismy rozpoczac, to: dlaczego
