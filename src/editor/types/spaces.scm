@@ -283,7 +283,7 @@
 	    (skip rest (+ total width)))
 
 	   ('()
-	    (values)))))))
+	    (set! t0:on-end-line t:on-end-line)))))))
 
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
    (otherwise #!null

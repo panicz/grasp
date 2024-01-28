@@ -443,7 +443,8 @@
 	   (font ::Font (the-log-font))
 	   (screen-extent ::Extent (screen:size))
 	   (top ::float  font:size #;(- screen-extent:height
-			    (* 4 font:size))))
+		(* 4 font:size))))
+      (paint:setColor #xff555555)
       (paint:setTypeface font:face)
       (paint:setTextSize font:size)
       (for message in messages
@@ -1733,5 +1734,4 @@
 		screen:after-tap))
     )
 
-  (AndroidActivity)
-  (set! *print-base* 16))
+  (AndroidActivity))

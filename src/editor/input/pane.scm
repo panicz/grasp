@@ -1357,6 +1357,7 @@
 		 (original-traversal:preceding-line-height)))
       (set! original-traversal:on-end-line
 	    (lambda (continued?::boolean)
+	      (painter:draw-point! 0 0 #xffff00)
 	      (let* ((traversal ::Traversal (the-traversal))
 		     (parent-top ::real (+ traversal:top
 					   traversal:parent-top))
@@ -1365,9 +1366,13 @@
 						  original-traversal:parent)
 					     0
 					     (- cursor-top parent-top)))))
+		(DUMP (traversal:cursor))
+		(painter:draw-point! traversal:left
+				     traversal:top #xffaa00)
 		(cond
 		 (continued?
 		  (WARN "setting distance to "distance)
+		  (WARN)
 		  (set! distance-to-next-line distance)
 		  (set! traversal:on-end-line nothing))
 		 ((isnt traversal:parent eq? #!null)
@@ -1506,10 +1511,10 @@
 						 'to-previous-line))
 		(current ::real (invoke-special CursorMarker (this)
 						'to-next-line)))
-       (painter:draw-point! left top #x000000)
-       (painter:draw-point! column top #xff0000)
+       #;(painter:draw-point! left top #x000000)
+       #;(painter:draw-point! column top #xff0000)
        (painter:draw-point! column (+ top current) #x00ff00)
-       (painter:draw-point! column (- top previous) #x0000ff))))
+       #;(painter:draw-point! column (- top previous) #x0000ff))))
     
   (define (draw!)::void
     (parameterize ((the-document document)

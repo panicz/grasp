@@ -71,10 +71,13 @@
    (set! max-line-height (max extent:height
 			      max-line-height)))
 
-  ((preceding-line-height)
+  ((preceding-line-height)::real
    (if (and (zero? previous-line-height) parent)
        (parent:preceding-line-height)
        previous-line-height))
+
+  ((cursor)::Cursor
+   (hash-cons index (if parent (parent:cursor) '())))
   
   ((new-line!)::void
    (on-end-line #t)
