@@ -27,6 +27,8 @@
 (import (utils affine))
 (import (utils crypto))
 (import (utils server))
+(import (utils serial))
+(import (utils mbus))
 
 (import (editor input input))
 (import (editor interfaces elements))
@@ -181,12 +183,11 @@
                                           (with-input-from-file "autoload.grasp"
                                             parse-document)
                                           (with-input-from-string "
-(import (language infix) (language match) (utils print))
-(import (utils functions) (utils server) (utils serial) (utils binary))
-
 (let ((sv (tcp-output-server 12345)))
   (set! (current-output-port) sv)
   (set! (current-error-port) sv))
+
+(list-serial-ports)
 
 (define dongle :: Dongle (Dongle (open-serial-connection \"COM7\")))
 

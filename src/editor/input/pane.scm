@@ -1502,7 +1502,7 @@
 						'to-next-line)))
        #;(painter:draw-point! left top #x000000)
        #;(painter:draw-point! column top #xff0000)
-       (painter:draw-point! column (+ top current) #x00ff00)
+       #;(painter:draw-point! column (+ top current) #x00ff00)
        #;(painter:draw-point! column (- top previous) #x0000ff))))
 
   (define (draw!)::void
