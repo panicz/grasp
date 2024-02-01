@@ -1,3 +1,115 @@
+* 31.01.2024
+
+wczoraj udalo sie rozwiazac mase problemow, i wyglada na to,
+ze z tych zasadniczych pozostal jeden - mianowicie to, ze
+(na co wyglada) jak w Space przepisujemy callback od klonu
+do oryginalu, a pozniej traverse advance'uje oryginal, to
+owo advance'owanie powoduje wywolanie callbacku on-end-line,
+ktore nie powinno miec miejsca
+
+stad pomysl jest taki, zeby przyjrzec sie wszystkim wywolaniom
+new-line, ktore wg grepa sa takie:
+
+
+#+BEGIN_SRC fs -n new-line 
+./src/grasp-android.scm:1158: (traversal:new-line!) ; draw-text!
+./src/grasp-desktop.scm:1064: (traversal:new-line!) ; draw-text!
+./src/editor/text-painter.scm:692: (traversal:new-line!) ; draw-string!
+./src/editor/interfaces/elements.scm:82: ((new-line!)::void
+./src/editor/types/comments.scm:164: (traversal:new-line!))  ; LineComment expand!
+./src/editor/types/primitive.scm:677: (next:new-line!) ; line-ending-embracing
+./src/editor/types/spaces.scm:278: (t:new-line!) ; Space:draw!
+./src/editor/types/spaces.scm:325: (t:new-line!) ; Space:cursor-under*
+./src/editor/types/spaces.scm:377: (t:new-line!) ; Space:expand
+#+END_SRC
+
+moze zamiast tego zrobimy tak, zeby usunac wywolanie on-end-line
+z new-line, i wywolywac je recznie tam gdzie trzeba?
+
+* 30.01.2024
+
+pomysl jest taki, zeby dodac do interfejsu painter metode draw-line
+
+ale ale! przeciez my juz mamy taka metode! no to jej uzyjmy!
+
+* 29.01.2024
+
+callback, ktory ustawia mark-cursor!, wyglada na razietak:
+
+#+BEGIN_SRC scheme
+  (let* ((original-traversal ::Traversal (the-traversal))
+	 (cursor-top ::real (+ original-traversal:top
+			       original-traversal:parent-top)))
+    ;;...
+    (set! original-traversal:on-end-line
+	  (lambda (continued?::boolean)
+	    (painter:draw-point! 0 0 #xffff00) ;; yellow
+	    (let* ((traversal ::Traversal (the-traversal))
+		   (parent-top ::real (+ traversal:top
+					 traversal:parent-top))
+		   (distance ::real (- traversal:max-line-height
+				       (if (eq? traversal:parent
+						original-traversal:parent)
+					   0
+					   (- cursor-top parent-top)))))
+	      (painter:draw-point! traversal:left
+				   traversal:top #xffaa00) ;; orange
+	      (cond
+	       (continued?
+		(set! distance-to-next-line distance)
+		(set! traversal:on-end-line nothing))
+	       ((isnt traversal:parent eq? #!null)
+		(set! traversal:parent:on-end-line
+		      traversal:on-end-line)))))))
+#+END_SRC
+
+no to moze powinnismy sobie opowiedziec slowami, co sie powinno
+dziac:
+- jezeli callback wywolano z argumentem #t, to po prostu powinnismy
+  jako odleglosc do nastepnej linii ustawic wysokosc biezacej linii
+- jezeli wywolano go z argumentem #f, to chcemy przekazac dzialanie
+  'pietro wyzej' - do momentu, az argument nie przyjmie
+  wartosci #t
+
+* 28.01.2024
+
+no to musimy sobie ponownie przeanalizowac dzialanie calego
+systemu
+
+to mamy tak:
+- wolamy sobie metode draw! na DocumentEditor
+  
+- powoduje to wywolanie metody draw! klasy Document,
+  ktora zasadniczo wywoluje draw-sequence! na swoim 'car'ze
+  
+- draw-sequence jest zaimplementowany jako traverse, ktory
+  wywoluje 'draw!' na poszczegolnych elementach (plus
+  jakies dodatkowe czary mary)
+  
+- w szczegolnosci draw! moze byc wywolany na Space, ktory
+  tworzy sobie kopie robocza dla the-traverse
+  
+- podczas rysowania tesktu oraz spacji wywolywany jest
+  mark-cursor!, ktory w ostatwcznym rozrachunku ustawia
+  callback on-end-line biezacego Traverse'a
+  
+- callback jest wywolywany z boole'owskim argumentem,
+  ktory orzeka, czy przechodzimy do nowej linii, czy
+  konczymy renderowanie [i na tej podstawie aktualnie stwierdzamy,
+  czy mamy ustawic odleglosc kolejnej linii bezposrednio,
+  czy raczej rozpropagowac ustawienie pietro wyzej]
+  
+- same nawiasy sa rysowane w taki sposob, ze jak mamy elementy
+  typu cons, to ich metoda draw! wywoluje draw-box!, po czym
+  rekurencyjnie wywoluje (z odpowiednim przesunieciem)
+  draw-sequence! na swoich elementach.
+
+i teraz tak: nieco problematyczna wydaje sie nam sytuacja,
+w ktorej linia jest lamana, i jestesmy za podzialem linii
+- albo w ktorej znajdujemy sie na nawiasie otwierajacym
+  albo zamykajacym w podobnej sytuacji
+
+
 * 25.01.2024
 
 wczorajsza reorganizacja spalila na panewce - co w sumie
@@ -13,9 +125,6 @@ dlatego teraz pojawia sie pomysl, zeby do on-end-line
 dodac jako argumenty:
 - biezacy kontekst
 - biezacy widget
-
-
-
 
 * 24.01.2024
 
