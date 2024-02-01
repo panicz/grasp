@@ -27,6 +27,8 @@
 (import (utils affine))
 (import (utils crypto))
 (import (utils server))
+(import (utils serial))
+(import (utils mbus))
 
 (import (editor input input))
 (import (editor interfaces elements))
