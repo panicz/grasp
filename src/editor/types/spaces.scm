@@ -231,18 +231,19 @@
 	    (t ::Traversal (t0:clone))
 	    (left ::real t:left)
 	    (top ::real t:top))
-       (let skip ((input ::list fragments)
-		  (total ::int 0))
-	 (define (expand-with-cursor! width::real)
-	   (and-let* ((`(,tip . ,sub) (the-cursor)))
-	     (when (and (integer? tip)
-			(equal? sub context)
-			(is total <= tip <= (+ total
-					       width)))
-	       (with-translation ((- t:left left
-				     (* space-width
-					(- total tip))) (- t:top top -1))
-		 (parameterize ((the-traversal t))
+       (parameterize ((the-traversal t))
+	 (let skip ((input ::list fragments)
+		    (total ::int 0))
+	   (define (expand-with-cursor! width::real)
+	     (and-let* ((`(,tip . ,sub) (the-cursor)))
+	       (when (and (integer? tip)
+			  (equal? sub context)
+			  (is total <= tip <= (+ total
+						 width)))
+		 (with-translation ((- t:left left
+				       (* space-width
+					  (- total tip))) (- t:top top -1))
+
 		   (set! t:parent-left (+ t:parent-left t:left
 					  (* space-width
 					     (- tip total))))
@@ -252,38 +253,40 @@
 					  (* space-width
 					     (- tip total))))
 		   (set! t:parent-top (- t:parent-top t:top))
-		   )))
-	     (when (and enters-selection-drawing-mode?
-			(is total <= (car
-				      selection-start) <= (+ total
+		   ))
+	       (when (and enters-selection-drawing-mode?
+			  (is total <= (car
+					selection-start) <= (+ total
+							       width)))
+		 (painter:enter-selection-drawing-mode!))
+	       (when (and exits-selection-drawing-mode?
+			  (is total <= (car
+					selection-end) <= (+ total
 							     width)))
-	       (painter:enter-selection-drawing-mode!))
-	     (when (and exits-selection-drawing-mode?
-			(is total <= (car
-				      selection-end) <= (+ total
-							   width)))
-	       (painter:exit-selection-drawing-mode!)))
-	   (t:expand-by! (* width space-width)))
+		 (painter:exit-selection-drawing-mode!)))
+	     (t:expand-by! (* width space-width)))
 
-	 (match input
-	   (`(,comment::Comment . ,rest)
-	    (parameterize ((the-traversal t))
+	   (match input
+	     (`(,comment::Comment . ,rest)
 	      (with-translation ((- t:left left) (- t:top top))
-		  (comment:draw! (hash-cons (+ total 1) context))))
-	    (comment:expand! t)
-	    (skip rest (+ total 2)))
+		(comment:draw! (hash-cons (+ total 1) context)))
+	      (comment:expand! t)
+	      (when (comment:breaks-line?)
+		(t:on-end-line #t))
+	      (skip rest (+ total 2)))
 
-	   (`(,width::integer ,next::integer . ,_)
-	    (expand-with-cursor! width)
-	    (t:new-line!)
-	    (skip (cdr input) (+ total width 1)))
+	     (`(,width::integer ,next::integer . ,_)
+	      (expand-with-cursor! width)
+	      (t:on-end-line #t)
+	      (t:new-line!)
+	      (skip (cdr input) (+ total width 1)))
 
-	   (`(,width::integer . ,rest)
-	    (expand-with-cursor! width)
-	    (skip rest (+ total width)))
+	     (`(,width::integer . ,rest)
+	      (expand-with-cursor! width)
+	      (skip rest (+ total width)))
 
-	   ('()
-	    (set! t0:on-end-line t:on-end-line)))))))
+	     ('()
+	      (set! t0:on-end-line t:on-end-line))))))))
 
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
    (otherwise #!null

@@ -80,12 +80,10 @@
    (hash-cons index (if parent (parent:cursor) '())))
   
   ((new-line!)::void
-   (on-end-line #t)
    (set! top (+ top max-line-height))
    (set! left 0)
    (set! previous-line-height max-line-height)
    (set! max-line-height (painter:min-line-height)))
-
   )
 
 

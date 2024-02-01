@@ -689,6 +689,7 @@
 	  (for c in text
 	    (handle-cursor-and-selection!)
             (cond ((eq? c #\newline)
+		   (traversal:on-end-line #t)
 		   (traversal:new-line!)
 		   (set! traversal:max-line-height 1))
 		  ((eq? c #\return)

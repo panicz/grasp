@@ -50,7 +50,7 @@
     (mapping (finger::byte)::Drag #!null))
 
   (define top ::Embeddable (NullPane))
-  
+
   ;; this parameter must be set by the
   ;; graphical framework (Lanterna, AWT, ...)
   ;; and changed every time the hosting
@@ -59,7 +59,7 @@
 
   (define (set-painter! p::Painter)::void
     (set! painter p))
-  
+
   (define (drag! finger::byte action::Drag)::void
     (set! (dragging finger) action))
 
@@ -85,7 +85,7 @@
       (overlay:draw!)))
 
   (define after-tap ::(list-of (maps (byte real real) to: void)) '())
-  
+
   (define (tap! finger::byte #;at x::real y::real)::boolean
     (parameterize ((the-pane-width extent:width)
 		   (the-pane-height extent:height))
@@ -94,7 +94,7 @@
 	(for hook::(maps (byte real real) to: void) in after-tap
 	     (hook finger x y))
 	result)))
-  
+
   (define (press! finger::byte #;at x::real y::real)::boolean
     (parameterize ((the-pane-width extent:width)
 		   (the-pane-height extent:height))
@@ -148,13 +148,13 @@
 
   (define (can-split-beside? line::Area)::boolean
     (top:can-split-beside? line))
-  
+
   (define (split-beside! line::Area)::void
     (set! top (top:split-beside! line)))
-  
+
   (define (can-split-below? line::Area)::boolean
     (top:can-split-below? line))
-  
+
   (define (split-below! line::Area)::void
     (set! top (top:split-below! line)))
 
@@ -163,19 +163,19 @@
 		   (the-pane-height extent:height))
       (or (overlay:scroll-up! x y)
 	  (top:scroll-up! x y))))
-  
+
   (define (scroll-down! x::real y::real)::boolean
     (parameterize ((the-pane-width extent:width)
 		   (the-pane-height extent:height))
       (or (overlay:scroll-down! x y)
 	  (top:scroll-down! x y))))
-  
+
   (define (scroll-left! x::real y::real)::boolean
     (parameterize ((the-pane-width extent:width)
 		   (the-pane-height extent:height))
       (or (overlay:scroll-left! x y)
 	  (top:scroll-left! x y))))
-  
+
   (define (scroll-right! x::real y::real)::boolean
     (parameterize ((the-pane-width extent:width)
 		   (the-pane-height extent:height))
@@ -187,7 +187,7 @@
 		   (the-pane-height extent:height))
       (or (overlay:zoom-in! x y)
 	  (top:zoom-in! x y))))
-  
+
   (define (zoom-out! x::real y::real)::boolean
     (parameterize ((the-pane-width extent:width)
 		   (the-pane-height extent:height))
@@ -199,7 +199,7 @@
 		   (the-pane-height extent:height))
       (or (overlay:rotate-left! x y)
 	  (top:rotate-left! x y))))
-  
+
   (define (rotate-right! x::real y::real)::boolean
     (parameterize ((the-pane-width extent:width)
 		   (the-pane-height extent:height))
@@ -212,13 +212,13 @@
 
   (define (add-point! p::Position)::void
     (points:add p))
-  
+
   (define (draw!)::void
     (for i from 1 below (points:size)
         (let ((p0 ::Position (points (- i 1)))
 	      (p1 ::Position (points i)))
           (painter:draw-line! p0:left p0:top p1:left p1:top))))
-  
+
   (IgnoreInput))
 
 (define-object (Drawing stroke::Stroke)::Drag
@@ -249,7 +249,7 @@
     (parameterize ((the-document items))
       (with-translation (position:left position:top)
 	(draw-sequence! items))))
-    
+
   (IgnoreInput))
 
 (define-object (DragAround selected::Selected)::Drag
@@ -276,7 +276,7 @@
 
   (define width ::real initial:width)
   (define height ::real initial:height)
-  
+
   (define ending ::LineEnding
     (line-ending-embracing anchor #;from box))
 
@@ -287,7 +287,7 @@
        (set! width (+ width (- dx* zx)))
        (set! height (+ height (- dy* zy)))
        (resize! box width height ending))))
-  
+
   (define (drop! x::real y::real vx::real vy::real)::void
     (let ((final ::Extent (extent+ box))
 	  (history ::History (history (the-document))))
@@ -305,12 +305,12 @@
   (define cursor ::(maps (Layer) to: Cursor)
     (property+ (layer::Layer)::Cursor
 	       (cursor-climb-front '() layer)))
-  
+
   (define (draw!)::void
     (for layer::Layer in-reverse layers
       (parameterize ((the-cursor (cursor layer)))
 	(layer:draw!))))
-  
+
   (define (add! element::Layer)::void
     (layers:add 0 element))
 
@@ -360,17 +360,17 @@
     (any (lambda (layer::Layer)
 	   (layer:scroll-up! left top))
 	 layers))
-  
+
   (define (scroll-down! left::real top::real)::boolean
     (any (lambda (layer::Layer)
 	   (layer:scroll-down! left top))
 	 layers))
-  
+
   (define (scroll-left! left::real top::real)::boolean
     (any (lambda (layer::Layer)
 	   (layer:scroll-left! left top))
 	 layers))
-  
+
   (define (scroll-right! left::real top::real)::boolean
     (any (lambda (layer::Layer)
 	   (layer:scroll-right! left top))
@@ -380,7 +380,7 @@
     (any (lambda (layer::Layer)
 	   (layer:zoom-in! left top))
 	 layers))
-  
+
   (define (zoom-out! left::real top::real)::boolean
     (any (lambda (layer::Layer)
 	   (layer:zoom-out! left top))
@@ -390,12 +390,12 @@
     (any (lambda (layer::Layer)
 	   (layer:rotate-left! left top))
 	 layers))
-  
+
   (define (rotate-right! left::real top::real)::boolean
     (any (lambda (layer::Layer)
 	   (layer:rotate-right! left top))
 	 layers))
-  
+
   )
 
 (define-enum SplitFocus (First Last))
@@ -415,13 +415,13 @@
 
   ((set-translation! pos::real)::void
    #!abstract)
-  
+
   ((resize! pointer-left::real pointer-top::real
 	    pane-left::real pane-top::real
 	    pane-width::real pane-height::real)
    ::void
    #!abstract)
-     
+
   ((part-sizes)::(Values real real real)
     #!abstract)
 
@@ -430,16 +430,16 @@
 
   ((with-pane-translation shift::real action::procedure)::Object
    #!abstract)
-  
+
   ((area/last original::Area earlier-size::real)::Area
    #!abstract)
-  
+
   ((varying-dimension x::real y::real)::real
    #!abstract)
 
   ((varying-size w::real h::real size::real)::(Values real real)
    #!abstract)
-  
+
   ((transformed-dimension x::real y::real shift::real)
    ::(Values real real)
    #!abstract)
@@ -475,7 +475,7 @@
 					 (the-split-path))))
 	   (with-clip ((the-pane-width) (the-pane-height))
 	     (first:draw!)))))))
-  
+
   ((propagate action::procedure x::real y::real default::procedure)
    (let-values (((first-size line-size last-size) (part-sizes))
 		((pos) (varying-dimension x y)))
@@ -542,7 +542,7 @@
 		(target:outside-in x y))
               x y
               values))
-  
+
   ((pane-under x::real y::real)::Embeddable
    (propagate (lambda (target::Embeddable x::real y::real)
 		(target:pane-under x y))
@@ -587,19 +587,19 @@
 		(target:scroll-up! x y))
 	      left top
 	      never))
-  
+
   ((scroll-down! left::real top::real)::boolean
    (propagate (lambda (target::Embeddable x::real y::real)
 		(target:scroll-down! x y))
 	      left top
 	      never))
-  
+
   ((scroll-left! left::real top::real)::boolean
    (propagate (lambda (target::Embeddable x::real y::real)
 		(target:scroll-left! x y))
 	      left top
 	      never))
-  
+
   ((scroll-right! left::real top::real)::boolean
    (propagate (lambda (target::Embeddable x::real y::real)
 		(target:scroll-right! x y))
@@ -611,7 +611,7 @@
 		(target:zoom-in! x y))
 	      left top
 	      never))
-  
+
   ((zoom-out! left::real top::real)::boolean
    (propagate (lambda (target::Embeddable x::real y::real)
 		(target:zoom-out! x y))
@@ -623,13 +623,13 @@
 		(target:rotate-left! x y))
 	      left top
 	      never))
-  
+
   ((rotate-right! left::real top::real)::boolean
    (propagate (lambda (target::Embeddable x::real y::real)
 		(target:rotate-right! x y))
 	      left top
 	      never))
-  
+
   ((can-split-beside? line::Area)::boolean
    (let-values (((first-size line-size last-size) (part-sizes)))
      (or (with-pane-size first-size
@@ -639,7 +639,7 @@
 	   (lambda ()
 	     (last:can-split-beside?
 	      (area/last line (+ first-size line-size))))))))
-  
+
   ((split-beside! line::Area)::Embeddable
    (let-values (((first-size line-size last-size) (part-sizes)))
      (with-pane-size first-size
@@ -652,7 +652,7 @@
 	   (when (last:can-split-beside? line*)
 	     (set! last (last:split-beside! line*))))))
      (this)))
-  
+
   ((can-split-below? line::Area)::boolean
    (let-values (((first-size line-size last-size) (part-sizes)))
      (or (with-pane-size first-size
@@ -735,7 +735,7 @@
 					      split-path
 					      screen:top)))
       (split:resize! x y left top width height)))
-  
+
   (define (drop! x::real y::real vx::real vy::real)::void
     (and-let* ((target ::Split (split-ref split-path))
                (first-size line-size last-size
@@ -762,7 +762,7 @@
 
   ((draw-line!)::void
    (painter:draw-vertical-split! 0))
-  
+
   ((with-pane-size size::real action::procedure)::Object
    (parameterize ((the-pane-width size))
      (action)))
@@ -770,7 +770,7 @@
   ((with-pane-translation shift::real action::procedure)::Object
    (with-translation (shift 0)
      (action)))
-  
+
   ((area/last line::Area earlier-size::real)::Area
    (Area left: (- line:left earlier-size)
 	 top: line:top
@@ -782,14 +782,14 @@
 
   ((set-translation! pos::real)::void
    (set! translation:left pos))
-  
+
   ((varying-size w::real h::real size::real)::(Values real real)
    (values size h))
 
   ((transformed-dimension x::real y::real shift::real)
    ::(Values real real)
    (values (- x shift) y))
-  
+
   ((resize! pointer-left::real pointer-top::real
 	    pane-left::real pane-top::real
 	    pane-width::real pane-height::real)
@@ -812,7 +812,7 @@
 
   ((draw-line!)::void
    (painter:draw-horizontal-split! 0))
-  
+
   ((with-pane-size size::real action::procedure)::Object
    (parameterize ((the-pane-height size))
      (action)))
@@ -820,7 +820,7 @@
   ((with-pane-translation shift::real action::procedure)::Object
    (with-translation (0 shift)
      (action)))
-  
+
   ((area/last line::Area earlier-size::real)::Area
    (Area left: line:left
 	 top: (- line:top earlier-size)
@@ -831,15 +831,15 @@
 
   ((set-translation! pos::real)::void
    (set! translation:top pos))
-  
+
   ((varying-size w::real h::real size::real)::(Values real real)
    (values w size))
-  
+
   ((transformed-dimension x::real y::real shift::real)
    ::(Values real real)
    (values x (- y shift)))
 
-   
+
   ((resize! pointer-left::real pointer-top::real
 	    pane-left::real pane-top::real
 	    pane-width::real pane-height::real)
@@ -889,7 +889,7 @@
   ((draw!)::void
    (let ((tile ::Tile (as Tile (this))))
      (tile:draw! '())))
-  
+
   ((press! finger::byte #;at x::real y::real)::boolean
    (pop-up-action (this) finger x y
      inside:
@@ -1011,28 +1011,28 @@
      (set! top
 	   (max 0 (min (- outer:height inner:height)
 		       (- y (quotient inner:height 2)))))))
-  
+
   ((scroll-up! left::real top::real)::boolean
    (content:scroll-up! left top))
-  
+
   ((scroll-down! left::real top::real)::boolean
    (content:scroll-down! left top))
-  
+
   ((scroll-left! left::real top::real)::boolean
    (content:scroll-left! left top))
-  
+
   ((scroll-right! left::real top::real)::boolean
    (content:scroll-right! left top))
 
   ((rotate-left! left::real top::real)::boolean
    (content:rotate-left! left top))
-  
+
   ((rotate-right! left::real top::real)::boolean
    (content:rotate-right! left top))
 
   ((zoom-in! left::real top::real)::boolean
     (content:zoom-in! left top))
-  
+
   ((zoom-out! left::real top::real)::boolean
    (content:zoom-out! left top))
   )
@@ -1102,20 +1102,20 @@
      (let* ((h ::real (painter:min-line-height)))
        (set! top (max 0 (- top h)))))
    #t)
-  
+
   ((scroll-down! x::real y::real)::boolean
    (let ((inner ::Extent (extent+ content)))
      (when (is top < (- inner:height height))
        (let* ((h ::real (painter:min-line-height)))
 	 (set! top (min (- inner:height height) (+ top h))))))
    #t)
-  
+
   ((scroll-left! x::real y::real)::boolean
    (when (is left > 0)
      (let* ((w ::real (painter:space-width)))
        (set! left (max 0 (- left w)))))
    #t)
-  
+
   ((scroll-right! x::real y::real)::boolean
    (let ((inner ::Extent (extent+ content)))
      (when (is left < (- inner:width width))
@@ -1125,16 +1125,16 @@
 
   ((zoom-in! x::real y::real)::boolean
    #f)
-  
+
   ((zoom-out! x::real y::real)::boolean
    #f)
 
   ((rotate-left! x::real y::real)::boolean
    #f)
-  
+
   ((rotate-right! x::real y::real)::boolean
    #f)
-  
+
   ((value)::Object
    (invoke-special Base 'to-list cons to-expression)))
 
@@ -1280,7 +1280,7 @@
 			  finger)))
 	   (window:center-around! position:left position:top)
 	   (screen:overlay:add! window)))))))
-  
+
 (define-parameter (open-file)::(maps (byte java.io.File Editor)
 				     to: (maps _ to: void))
   builtin-open-file)
@@ -1302,7 +1302,7 @@
 	      (window:center-around! position:left position:top)
 	      (screen:overlay:add! window))))))
       #t))
-  
+
 (define-parameter (save-file)::(maps (byte java.io.File Editor)
 				     to: (maps _ to: void))
   builtin-save-file)
@@ -1339,46 +1339,36 @@
   (define distance-to-previous-line ::real 0)
 
   (define distance-to-next-line ::real 0)
-  
+
   (define (to-next-line)::real
     distance-to-next-line)
-  
+
   (define (to-previous-line)::real
     distance-to-previous-line)
-  
+
   (define (mark-cursor! left::real top::real)::void
-    (let* ((original-traversal ::Traversal (the-traversal))
-	   (cursor-top ::real (+ original-traversal:top
-				 original-traversal:parent-top)))
+    (let* ((original-traversal ::Traversal (the-traversal)))
       (set! marked:left left)
       (set! marked:top top)
       (set! distance-to-previous-line
 	    (min (painter:min-line-height)
 		 (original-traversal:preceding-line-height)))
+
       (set! original-traversal:on-end-line
 	    (lambda (continued?::boolean)
-	      (painter:draw-point! 0 0 #xffff00)
 	      (let* ((traversal ::Traversal (the-traversal))
 		     (parent-top ::real (+ traversal:top
 					   traversal:parent-top))
 		     (distance ::real (- traversal:max-line-height
-					 (if (eq? traversal:parent
-						  original-traversal:parent)
-					     0
-					     (- cursor-top parent-top)))))
-		(DUMP (traversal:cursor))
-		(painter:draw-point! traversal:left
-				     traversal:top #xffaa00)
+					 (- top parent-top))))
 		(cond
 		 (continued?
-		  (WARN "setting distance to "distance)
-		  (WARN)
 		  (set! distance-to-next-line distance)
 		  (set! traversal:on-end-line nothing))
 		 ((isnt traversal:parent eq? #!null)
-		  (WARN "propagating to parent")
 		  (set! traversal:parent:on-end-line
-			traversal:on-end-line))
+			traversal:on-end-line)
+		  (set! traversal:on-end-line nothing))
 		 (else
 		  (WARN "to the top!"))))))))
 
@@ -1386,10 +1376,10 @@
     marked)
 
   (define column ::real 0)
-  
+
   (define (set-cursor-column! left::real)::void
     (set! column left))
-  
+
   (define (cursor-column)::real
     column)
   )
@@ -1401,13 +1391,13 @@
 
   (define post-draw-actions ::java.util.List
     (java.util.ArrayList))
-  
+
   (define (add-post-draw-action! action::(maps () to: void))::void
     (post-draw-actions:add (post-draw-actions:size) action))
-  
+
   (define document ::Document (Document (empty) #!null))
   (define cursor ::Cursor '())
-  
+
   (define transform ::Transform ((default-transform)))
 
   (define selection-anchor ::Cursor '())
@@ -1450,7 +1440,7 @@
 
   (define (outside-in x::real y::real)::(Values real real)
     (transform:outside-in x y))
-  
+
   (define previously-edited
     (property (document::Document)
       ::Document
@@ -1467,7 +1457,7 @@
     (property+ (document::Document)
 	       ::Transform
 	       ((default-transform))))
-  
+
   (define (clone)
     (let* ((new-document-transform (copy document-transform))
 	   (new-transform ::Transform (new-document-transform
@@ -1478,14 +1468,14 @@
 		      previously-edited: (copy previously-edited)
 		      transform: new-transform
 		      document-transform: new-document-transform)))
-  
+
   (define (switch-to! target::Document)::void
     (unless (eq? target document)
       (set! (previously-edited target) document)
       (set! (document-transform document) transform)
       (set! document target)
       (set! transform (document-transform target))))
-  
+
   (define (load-file file::java.io.File)::void
     (safely
      (select-document! (open-document-file file))))
@@ -1493,7 +1483,7 @@
   (define (load-from-port port::gnu.kawa.io.InPort source)::void
     (safely
      (select-document! (load-document-from-port port source))))
-    
+
   (define (select-document! doc::Document)::void
     (set! (document-transform document) transform)
     (set! (previously-edited doc) document)
@@ -1515,7 +1505,7 @@
        #;(painter:draw-point! column top #xff0000)
        (painter:draw-point! column (+ top current) #x00ff00)
        #;(painter:draw-point! column (- top previous) #x0000ff))))
-    
+
   (define (draw!)::void
     (parameterize ((the-document document)
 		   (the-cursor cursor)
@@ -1531,7 +1521,7 @@
 			      (post-draw-actions:clear)
 			      (draw-debug-cursor-points!)
 			      ))))))
-  
+
   (define (tap! finger::byte #;at xe::real ye::real)::boolean
     (with-post-transform transform
       (with-view-edges-transformed transform
@@ -1552,7 +1542,7 @@
 		   (set! selection-anchor cursor)
 		   (editor:set-cursor-column! xe)
 		   #t)))))))))
-  
+
   (define (press! finger::byte #;at xe::real ye::real)::boolean
     (with-post-transform transform
       (with-view-edges-transformed transform
@@ -1626,7 +1616,7 @@
 			       ::void
 			       (values)))))))
 
-	      
+
 	      ((is target Space?)
 	       (screen:drag! finger
 			     (Drawing (Stroke finger (this)))))
@@ -1788,7 +1778,7 @@
 	 (let* ((h ::real (painter:min-line-height)))
 	   (transform:translate! 0 h)
 	   #t)))))
-  
+
   (define (scroll-down! x::real y::real)::boolean
     (with-post-transform transform
       (with-view-edges-transformed transform
@@ -1800,7 +1790,7 @@
 	 (let* ((h ::real (painter:min-line-height)))
 	   (transform:translate! 0 (- h))
 	   #t)))))
-  
+
   (define (scroll-left! x::real y::real)::boolean
     (with-post-transform transform
       (with-view-edges-transformed transform
@@ -1857,7 +1847,7 @@
 				      selection-anchor))
 	 (transform:rotate! -5.0 x y)
 	 #t))))
-  
+
   (define (rotate-right! x::real y::real)::boolean
     (with-post-transform transform
       (with-view-edges-transformed transform
@@ -1868,7 +1858,7 @@
 				      selection-anchor))
 	 (transform:rotate! 5.0 x y)
 	 #t))))
-  
+
   (define (key-typed! key-code::long context::Cursor)::boolean
     (with-post-transform transform
       (with-view-edges-transformed transform
@@ -1887,7 +1877,7 @@
       (and (is 0 < line:left <= line:right < (the-pane-width))
 	   (is line:top <= 3vicinity)
 	   (is (- (the-pane-height) line:bottom) <= 3vicinity))))
-  
+
   (define (split-beside! line::Area)::Embeddable
     (if (can-split-beside? line)
 	(let*-values (((ratio::real) (/ (/ (+ line:left line:right)
@@ -1902,7 +1892,7 @@
 	  (new:transform:translate! (- shift) 0)
 	  split)
 	(this)))
-  
+
   (define (can-split-below? line::Area)::boolean
     (let* ((vicinity ::real
 		     (painter:line-simplification-resolution))
@@ -1939,7 +1929,7 @@
 	     (editor-top ::real (the-pane-top))
 	     (editor-width ::real (the-pane-width))
 	     (editor-height ::real (the-pane-height))
-	     (xe ye (the-transform-stack:inside-out cursor:left cursor:top))) 
+	     (xe ye (the-transform-stack:inside-out cursor:left cursor:top)))
     (unless (is 0 <= ye < (- editor-height cursor-height))
       (painter:play!
        (Transition of: editor:transform

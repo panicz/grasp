@@ -515,12 +515,10 @@
              (traversal:advance! post-head)
              (cond ((dotted? pair)
 		    (step-over-dotted-tail! pair)
-		    (traversal:on-end-line #f)
 		    (result traversal))
 		   ((pair? (tail pair))
 		    (step! (tail pair)))
 		   (else
-		    (traversal:on-end-line #f)
 		    (result traversal)))))
 
 	 (if (pair? sequence)
@@ -528,9 +526,7 @@
                (action pre-head traversal)
                (traversal:advance! pre-head)
                (step! sequence))
-	     (begin
-	       (traversal:on-end-line #f)
-	       (result traversal)))
+	     (result traversal))
 	 )))
     ((_ sequence doing: action)
      (traverse* sequence doing: action returning: nothing))
@@ -565,13 +561,18 @@
   ::void
   (escape-with end-drawing
     (let*-values (((selection-start selection-end) (the-selection)))      
+      (define (after-end-line t::Traversal)::void
+	(t:new-line!)
+	(t:on-end-line #f))
       (define (action item ::Element traversal ::Traversal)
 	(escape-with skip-element
 	  (with-translation (traversal:left
 			     traversal:top)
 	    (when (is item instance? Tile)
-	      (let* ((document-left ::real (+ traversal:left traversal:parent-left))
-		     (document-top ::real (+ traversal:top traversal:parent-top))
+	      (let* ((document-left ::real (+ traversal:left
+					      traversal:parent-left))
+		     (document-top ::real (+ traversal:top
+					     traversal:parent-top))
 		     (e ::Extent (extent+ item))
 		     (document-right ::real (+ document-left e:width))
 		     (document-bottom ::real (+ document-top e:height)))
@@ -579,6 +580,7 @@
 		(unless (visible? document-left document-top
 				  document-right document-bottom)
 		  (when (is document-top > (view-edge-bottom))
+		    (after-end-line traversal)
 		    (end-drawing))
 		  (skip-element))))
 	    
@@ -589,7 +591,7 @@
 	      (item:draw! context)
 	      (when (equal? context selection-end)
 		(painter:exit-selection-drawing-mode!))))))
-      (traverse elems doing: action))))
+      (traverse elems doing: action returning: after-end-line))))
   
 (define (draw! object #!key
 	      (context::Cursor '()))

@@ -1061,6 +1061,7 @@
 
 	       (when (eq? (text:charAt i) #\newline)
 		 (render-fragment! i)
+		 (traversal:on-end-line #t)
 		 (traversal:new-line!)
 		 (set! traversal:max-line-height height)
 		 (set! segment-start (+ i 1))))
