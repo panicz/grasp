@@ -373,6 +373,9 @@
    (else                              0)))
 
 
+(define (10^ n::real)::number
+  (expt 10 n))
+
 (define (mbus-VIF-unit+scale VIF::int)
   ::(Values MBUS-UNIT
             (either real MBUS-TIME-UNITS))
@@ -380,34 +383,34 @@
    return
    (match (bitwise-and #b01111000 VIF)
      (#b00000000
-      (return MBUS-UNIT:ENERGY-kWh (expt 10 (- (bitwise-and VIF #b111) 3))))
+      (return MBUS-UNIT:ENERGY-kWh (10^ (- (bitwise-and VIF #b111) 3))))
 
      (#b00001000
-      (return MBUS-UNIT:ENERGY-J (expt 10 (bitwise-and VIF #b111))))
+      (return MBUS-UNIT:ENERGY-J (10^ (bitwise-and VIF #b111))))
 
      (#b00010000
-      (return MBUS-UNIT:VOLUME-m^3 (expt 10 (- (bitwise-and VIF #b111) 6))))
+      (return MBUS-UNIT:VOLUME-m^3 (10^ (- (bitwise-and VIF #b111) 6))))
 
      (#b00011000
-      (return MBUS-UNIT:MASS-kg (expt 10 (- (bitwise-and VIF #b111) 3))))
+      (return MBUS-UNIT:MASS-kg (10^ (- (bitwise-and VIF #b111) 3))))
 
      (#b00101000
-      (return MBUS-UNIT:POWER-W (expt 10 (- (bitwise-and VIF #b111) 3))))
+      (return MBUS-UNIT:POWER-W (10^ (- (bitwise-and VIF #b111) 3))))
 
      (#b00110000
-      (return MBUS-UNIT:POWER-J/h (expt 10 (bitwise-and VIF #b111))))
+      (return MBUS-UNIT:POWER-J/h (10^ (bitwise-and VIF #b111))))
 
      (#b00111000
-      (return MBUS-UNIT:VOLUME-FLOW-m^3/h (expt 10 (- (bitwise-and VIF #b111) 6))))
+      (return MBUS-UNIT:VOLUME-FLOW-m^3/h (10^ (- (bitwise-and VIF #b111) 6))))
 
      (#b01000000
-      (return MBUS-UNIT:VOLUME-FLOW-EXT-m^3/min (expt 10 (- (bitwise-and VIF #b111) 7))))
+      (return MBUS-UNIT:VOLUME-FLOW-EXT-m^3/min (10^ (- (bitwise-and VIF #b111) 7))))
 
      (#b01001000
-      (return MBUS-UNIT:VOLUME-FLOW-EXT-m^3/s  (expt 10 (- (bitwise-and VIF #b111) 9))))
+      (return MBUS-UNIT:VOLUME-FLOW-EXT-m^3/s  (10^ (- (bitwise-and VIF #b111) 9))))
 
      (#b01010000
-      (return MBUS-UNIT:MASS-FLOW-kg/h (expt 10 (- (bitwise-and VIF #b111) 3))))
+      (return MBUS-UNIT:MASS-FLOW-kg/h (10^ (- (bitwise-and VIF #b111) 3))))
 
      (_
       (values)))
@@ -420,19 +423,19 @@
       (return MBUS-UNIT:OPERATING-TIME (mbus-short-time-units (bitwise-and VIF #b11))))
 
      (#b01011000
-      (return MBUS-UNIT:FLOW-TEMPERATURE-C (expt 10 (- (bitwise-and VIF #b11) 3))))
+      (return MBUS-UNIT:FLOW-TEMPERATURE-C (10^ (- (bitwise-and VIF #b11) 3))))
 
      (#b01011100
-      (return MBUS-UNIT:RETURN-TEMPERATURE-C (expt 10 (- (bitwise-and VIF #b11) 3))))
+      (return MBUS-UNIT:RETURN-TEMPERATURE-C (10^ (- (bitwise-and VIF #b11) 3))))
 
      (#b01100000
-      (return MBUS-UNIT:TEMPERATURE-DIFFERENCE-K (expt 10 (- (bitwise-and VIF #b11) 3))))
+      (return MBUS-UNIT:TEMPERATURE-DIFFERENCE-K (10^ (- (bitwise-and VIF #b11) 3))))
 
      (#b01100100
-      (return MBUS-UNIT:EXTERNAL-TEMPERATURE-C (expt 10 (- (bitwise-and VIF #b11) 3))))
+      (return MBUS-UNIT:EXTERNAL-TEMPERATURE-C (10^ (- (bitwise-and VIF #b11) 3))))
 
      (#b01101000
-      (return MBUS-UNIT:PRESSURE-BAR (expt 10 (- (bitwise-and VIF #b11) 3))))
+      (return MBUS-UNIT:PRESSURE-BAR (10^ (- (bitwise-and VIF #b11) 3))))
 
      (#b01110000
       (return MBUS-UNIT:AVERAGING-DURATION (mbus-short-time-units (bitwise-and VIF #b11))))
@@ -491,10 +494,10 @@
    return
    (match (bitwise-and #b01110000 VIFED)
      (#b01000000
-      (return MBUS-UNIT:VOLTAGE-V (expt 10 (- (bitwise-and VIFED #b111) 9))))
+      (return MBUS-UNIT:VOLTAGE-V (10^ (- (bitwise-and VIFED #b111) 9))))
 
      (#b01010000
-      (return MBUS-UNIT:CURRENT-A (expt 10 (- (bitwise-and #b111 VIFED) 12))))
+      (return MBUS-UNIT:CURRENT-A (10^ (- (bitwise-and #b111 VIFED) 12))))
 
      (_
       (values)))
@@ -637,10 +640,10 @@
 
    (match (bitwise-and #b01111100 VIFED)
      (#b00000000
-      (return MBUS-UNIT:CURRENCY-CREDIT (expt 10 (- (bitwise-and VIFED #b11) 3))))
+      (return MBUS-UNIT:CURRENCY-CREDIT (10^ (- (bitwise-and VIFED #b11) 3))))
 
      (#b00000100
-      (return MBUS-UNIT:CURRENCY-DEBIT  (expt 10 (- (bitwise-and VIFED #b11) 3))))
+      (return MBUS-UNIT:CURRENCY-DEBIT  (10^ (- (bitwise-and VIFED #b11) 3))))
 
      (#b00100100
       (return MBUS-UNIT:STORAGE-INTERVAL (mbus-short-time-units (bitwise-and VIFED #b11))))
@@ -678,52 +681,52 @@
    (match (bitwise-and #b01111000 VIFEB)
      (#b01111000
       (return MBUS-UNIT:CUMULATED-COUNT-MAX-POWER-W;
-              (expt 10 (- (bitwise-and VIFEB #b111) 3))))
+              (10^ (- (bitwise-and VIFEB #b111) 3))))
      (_
       (values)))
 
    (match (bitwise-and #b01111100 VIFEB)
      (#b01011000
-      (return MBUS-UNIT:FLOW-TEMPERATURE-F (expt 10 (- (bitwise-and VIFEB #b11) 3))))
+      (return MBUS-UNIT:FLOW-TEMPERATURE-F (10^ (- (bitwise-and VIFEB #b11) 3))))
 
      (#b01011100
-      (return MBUS-UNIT:RETURN-TEMPERATURE-F (expt 10 (- (bitwise-and VIFEB #b11) 3))))
+      (return MBUS-UNIT:RETURN-TEMPERATURE-F (10^ (- (bitwise-and VIFEB #b11) 3))))
 
      (#b01100000
-      (return MBUS-UNIT:TEMPERATURE-DIFFERENCE-F (expt 10 (- (bitwise-and VIFEB #b11) 3))))
+      (return MBUS-UNIT:TEMPERATURE-DIFFERENCE-F (10^ (- (bitwise-and VIFEB #b11) 3))))
 
      (#b01100100
-      (return MBUS-UNIT:EXTERNAL-TEMPERATURE-F (expt 10 (- (bitwise-and VIFEB #b11) 3))))
+      (return MBUS-UNIT:EXTERNAL-TEMPERATURE-F (10^ (- (bitwise-and VIFEB #b11) 3))))
 
      (#b01110000
       (return MBUS-UNIT:COLD-WARM-TEMPERATURE-LIMIT-F
-              (expt 10 (- (bitwise-and VIFEB #b11) 3))))
+              (10^ (- (bitwise-and VIFEB #b11) 3))))
 
      (#b01110100
       (return MBUS-UNIT:COLD-WARM-TEMPERATURE-LIMIT-C
-              (expt 10 (- (bitwise-and VIFEB #b11) 3))))
+              (10^ (- (bitwise-and VIFEB #b11) 3))))
      (_
       (values)))
 
 
    (match (bitwise-and #b01111110 VIFEB)
      (#b00000000
-      (return MBUS-UNIT:ENERGY-MWh (expt 10 (- (bitwise-and VIFEB #b1) 1))))
+      (return MBUS-UNIT:ENERGY-MWh (10^ (- (bitwise-and VIFEB #b1) 1))))
 
      (#b00001000
-      (return MBUS-UNIT:ENERGY-GJ (expt 10 (- (bitwise-and VIFEB #b1) 1))))
+      (return MBUS-UNIT:ENERGY-GJ (10^ (- (bitwise-and VIFEB #b1) 1))))
 
      (#b00010000
-      (return MBUS-UNIT:VOLUME-m^3 (expt 10 (+ (bitwise-and VIFEB #b1) 2))))
+      (return MBUS-UNIT:VOLUME-m^3 (10^ (+ (bitwise-and VIFEB #b1) 2))))
 
      (#b00011000
-      (return MBUS-UNIT:VOLUME-T (expt 10 (+ (bitwise-and VIFEB #b1) 2))))
+      (return MBUS-UNIT:VOLUME-T (10^ (+ (bitwise-and VIFEB #b1) 2))))
 
      (#b00101000
-      (return MBUS-UNIT:POWER-MW (expt 10 (- (bitwise-and VIFEB #b1) 1))))
+      (return MBUS-UNIT:POWER-MW (10^ (- (bitwise-and VIFEB #b1) 1))))
 
      (#b00110000
-      (return MBUS-UNIT:POWER-GJ/h (expt 10 (- (bitwise-and VIFEB #b1) 1))))
+      (return MBUS-UNIT:POWER-GJ/h (10^ (- (bitwise-and VIFEB #b1) 1))))
 
      (_
       (values)))
@@ -858,6 +861,7 @@
        #x80 #x6a #xbf #x96))
 
 (define-type (MBusBlock value: (either number string)
+                        type: MBUS-DATA-TYPE
                         unit: MBUS-UNIT
                         scale: (either real MBUS-TIME-UNITS)
                         storage: int
@@ -934,6 +938,7 @@
            (let* ((size ::int (mbus-LVAR-size lvar))
                   (data (take size data+)))
              (MBusBlock value: (mbus-value data type unit storage)
+                        type: type
                         unit: unit
                         scale: scale
                         storage: storage
@@ -952,12 +957,13 @@
         (error "Unsupported MBus data type: "type))
 
        (,MBUS-DATA-TYPE:F-SPECIAL
-        (error "Unsupported MBus data type: "type))
+        (error "Unsupported MBus data type: "type", DIB: "DIB", VIB: "VIB", data: "data+))
 
        (_
         (let* ((size ::int (mbus-data-size type))
                (data (take size data+)))
           (MBusBlock value: (mbus-value data type unit storage)
+                     type: type
                      unit: unit
                      scale: scale
                      storage: storage
@@ -974,7 +980,7 @@
 (define (mbus-parse-data-blocks input::(list-of ubyte))::(list-of (either MBusBlock
                                                                           ubyte))
   (match input
-    (`(#2f . ,_) input)
+    (`(#x2f . ,_) input)
     ('() input)
     (else
      (let ((block (mbus-parse-data-block input)))
@@ -1027,51 +1033,3 @@
                         access-number: access-number
                         blocks: blocks
                         source: input))))))))
-
-
-#;(e.g.
- (wmbus-parse-frame
-  (hex->list "7e 44 8f 41 60 63 14 41 02 04 7a 0f 00 70 a5 64 1c f6 35 2a 0b 79 5a 64 f3 09 31 92 41 32 6a 11 b1 a1 8d 50 38 b7 17 74 65 b8 24 01 77 3d 42 11 c9 a5 db 9d 4a 32 8b 59 50 2d 5b aa 67 34 16 de 7a 4d f3 ee 61 ed 86 65 3d c7 28 d6 c2 d1 a0 a2 8c 26 90 05 e5 44 fe c6 fe dd 9f ba 54 d4 cf aa a1 33 9d ca f4 a9 2a dc c3 48 a3 2e 64 fa 4f b8 00 9c 43 1a b2 24 eb 35 8b b6 91 22 0d b8 f3") ===>
-  [WMBusFrame manufacturer: "PLO"
-              serial-number: 41146360
-              type: 04-HEAT-METER
-              version: 2
-              length: 126
-              access-number: 15
-              blocks: ([MBusBlock value: (3 0 0 0)
-                                  unit: ENERGY-J
-                                  scale: 10000000
-                                  storage: 0 tariff: 0 subunit: 0
-                                  DIB-size: 1 VIB-size: 1 data-size: 4 total-size: 6
-                                  source: (12 15 3 0 0 0)]
-                       [MBusBlock value: (184 48 22 49)
-                                  unit: DATETIME-F
-                                  scale: 1
-                                  storage: 0 tariff: 0 subunit: 0
-                                  DIB-size: 1 VIB-size: 1 data-size: 4 total-size: 6
-                                  source: (4 109 184 48 22 49)]
-                       [MBusBlock value: (16)
-                                  unit: ERROR-FLAGS
-                                  scale: 1
-                                  storage: 0 tariff: 0 subunit: 0
-                                  DIB-size: 1 VIB-size: 2 data-size: 1 total-size: 4
-                                  source: (1 253 23 16)]
-                       [MBusBlock value: (0)
-                                  unit: ERROR-FLAGS
-                                  scale: 1
-                                  storage: 1 tariff: 0 subunit: 0
-                                  DIB-size: 1 VIB-size: 2 data-size: 1 total-size: 4
-                                  source: (65 253 23 0)]
-                       [MBusBlock value: (0 0 0 0 0 0 0 0 0 0 ...)
-                                  unit: ERROR-FLAGS
-                                  scale: 1
-                                  storage: 14 tariff: 0 subunit: 0
-                                  DIB-size: 2 VIB-size: 2 data-size: 15 total-size: 19
-                                  source: (141 7 253 23 14 0 0 0 0 0 ...)]
-                       [MBusBlock value: (0 0 0 0 0 0 0 0 0 0 ...)
-                                  unit: ENERGY-J
-                                  scale: 1
-                                  storage: 14 tariff: 0 subunit: 0
-                                  DIB-size: 2 VIB-size: 1 data-size: 68 total-size: 71
-                                  source: (141 7 8 0 0 0 0 0 0 0 ...)])
-              source: (126 68 143 65 96 99 20 65 2 4 ...)]))

@@ -1492,7 +1492,7 @@ by the AWT framework."))
      (let* ((input (gnu.kawa.io.InPort
 		   (java.io.InputStreamReader
 		    (load-resource "/assets/init.scm"))))
-	   (init-script (read-all input)))
+	    (init-script (read-all input)))
       (for expression in init-script
 	(eval expression))))
 
