@@ -1,3 +1,88 @@
+* 2.02.2024
+
+ogolny zamysl jest taki:
+1. jezeli jestesmy wewnatrz stringa albo komentarza blokowego,
+   to wklejamy zawartosc schowka jako tekst
+2. w przeciwnym razie probujemy zawartosc schowka
+   przeparsowac i zwrocic wynik parsowania (a jesli to sie
+   nie powiedzie, to wklejamy calosc jako tekst)
+
+no dobra, ale teraz musimy jakos ogarnac uzywanie schowka
+
+na JVM:
+
+#+BEGIN_SRC scheme
+  (define-alias Transferable ...)
+
+  (let ((clipboard ::java.awt.datatransfer.Clipboard
+		   (java.awt.Toolkit:getSystemClipboard)))
+    (clipboard:setContents (as Transferable something)
+			   (as ClipboardOwner (this)))
+    (let ((content ::Transferable
+		   (clipboard:getContents (this) #;unused)))
+      ...))
+
+#+END_SRC
+
+na Androidzie:
+
+#+BEGIN_SRC scheme
+  (define-alias AndroidClipboard android.content.ClipboardManager)
+  (define-alias AndroidClipData android.content.ClipData)
+
+  (let ((clipboard ::AndroidClipboard
+		   (activity:getSystemService
+		    android.content.Context:CLIPBOARD_SERVICE)))
+    (clipboard:setPrimaryClip some)
+    (let ((clip ::AndroidClipData (clipboard:getPrimaryClip)))
+      ;;getItemAt(int), getItemCount(), addItem(ClipData.Item)
+
+#+END_SRC
+
+
+* 1.02.2024
+
+jupi! na Androidzie wszystko zasadniczo wydaje sie dzialac!
+
+jest jeszcze klika drobnych problemow przy zchodzeniu na stringa,
+i trzeba przetestowac w terminalu i na desktopie, ale wyglada na to,
+ze wreszcie mozemy isc ze swoim zyciem dalej.
+
+dobrze, tylko dokad?
+
+na sobote mozemy sobie w zasadzie zcherrypickowac poprawke
+w obsludze walka myszy i jestesmy urobieni.
+
+natomiast z takich wiekszych konkretow, to bysmy chcieli sie zajac
+mechanizmem selekcji.
+
+i pierwsza zmiana, jaka bysmy zrobili, to zastapienie w selekcji
+kursora (the-selection-anchor) pojedyncza liczba.
+
+#+BEGIN_SRC scheme
+(define-parameter (the-selection)::integer 0)
+#+END_SRC
+
+i oczywiscie nalezaloby odpowiednio zmienic definicje
+'(the-selection)', i to dwojako
+- po pierwsze zeby dobrze dzialala z nowa koncepcja
+- po drugie, zeby robila cache-owanie
+
+natomiast to jest dopiero poczatek, bo tym, co w tym wszystkim
+najistotniejsze, jest integracja ze schowkiem systemowym
+
+
+no i tutaj rzecz wyglada tak, ze JVM na swoje rozwiazanie
+(java.awt.datatransfer.Clipboard), a Android swoje
+(android.content.ClipboardManager)
+
+I bedzie trzeba na ich temat poczytac nieco.
+
+Ale my bysmy sobie - jak zwykle - uwspolnili interfejs
+za pomoca parametru clipboard albo cos w tym stylu.
+
+check AWTPermission("accessClipboard")
+
 * 31.01.2024
 
 wczoraj udalo sie rozwiazac mase problemow, i wyglada na to,
