@@ -121,9 +121,8 @@
 		      (recons (first-index) path))
 		 
 		 (and (is 0 <= (- x lag-width) < inner:width)
-		      (cursor-under (- x lag-width) y
-				    expression
-				    context: path*))
+		      (expression:cursor-under* (- x lag-width) y
+						path*))
 		 (and (is 0 <= (- x lag-width inner:width)
 			  < lag-width)
 		      (recons (last-index) path)))))))
