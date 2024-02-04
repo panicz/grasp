@@ -1311,7 +1311,8 @@ by the AWT framework."))
 		     (System:currentTimeMillis))))
 
   (define (mouseWheelMoved event::MouseWheelEvent)::void
-    (let ((direction ::int (event:getWheelRotation))
+    (let ((direction ::real (+ (event:getWheelRotation)
+                               (event:getPreciseWheelRotation)))
 	  (pointer ::Position (last-known-pointer-position 0)))
       (set! pointer:left (event:getX))
       (set! pointer:top (event:getY))
