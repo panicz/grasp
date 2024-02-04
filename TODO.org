@@ -1,3 +1,22 @@
+* 3.02.2024
+
+no dobra, czyli patrzac oglednie, to mamy cos takiego, ze:
+- na Androidzie jest cos takiego, jak Clip, zlozonego z wielu itemow
+- na Desktopie musimy prosic o uprawnienia do schowka
+- nie wiadomo czy w kliencie terminalowym jest jakakolwiek szansa
+  na dostep do systemowego schowka
+
+zasadniczy pomysl jest taki, zeby stworzyc 'wlasny schowek', ktory
+dzialalby tak samo we wszystkich trzech klientach, a ktory
+dodatkowo i niejako w tle synchronizowal sie ze schowkiem systemowym
+tam gdzie to mozliwe
+
+wowczas operacja wycinania i wklejania dodatkowo by przesylala
+obiekty do schowka systemowego, natomiast operacja wklejania
+sprawdzalaby, czy obiekt w schowku systemowym jest taki sam,
+jak w lokalnym schowku
+
+
 * 2.02.2024
 
 ogolny zamysl jest taki:
