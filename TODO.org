@@ -1,3 +1,130 @@
+* 7.02.2024
+
+te wczorajsze pomysly wydaja aie ok, aczkolwiek lepiej
+byloby pomyslec o jakims cache'owaniu
+
+#+BEGIN_SRC scheme
+
+    (define-parameter (the-selection-range) ::integer 0)
+
+    (define-single-cache (selection-start+end cursor::Cursor
+					      range::integer)
+      ::(Values Cursor Cursor)
+      (cond
+       ((is range = 0)
+	(values cursor cursor))
+
+       ((is range < #;> 0)
+	(values
+	 (iterations (- range)
+		     cursor-retreat
+		     cursor)
+	 cursor))
+
+       ((is range #;< > 0) 
+	(values
+	 cursor
+	 (iterations range
+		     cursor-retreat
+		     cursor)))))
+
+    (define (the-selection)::(Values Cursor Cursor)
+      (selection-start+end (the-cursor) (the-selection-range)))
+
+#+END_SRC
+
+
+* 6.02.2024
+
+warto przemyslec dzialanie mechanizmu selekcji.
+
+Chcielibysmy sobie celekcje reprezentowac jako pojedyncza liczbe,
+gdzie 0 oznacza 'brak selekcji' (albo tylko biezacy obiekt),
+liczba ujemna - selekcje zaczynajaca sie przed kursorem, zas
+liczba dodatnia - selekcja zaczynajaca sie za kursorem.
+
+I teraz wydaje sie, ze mamy kilka mozliwosci, jezeli idzie
+o traktowanie selekcji:
+
+- albo jak selekcje w edytorach tesktowych, gdzie traktujemy
+  te liczbe jako ilosc iteracji 'cursor-advance' (dla liczb
+  dodatnich)  badz 'cursor-retreat' (dla liczb ujemnych), ktore
+  trzeba wykonac, zeby dojsc od kursora do zakotwiczenia selekcji
+  
+- albo w sposob bardziej strukturalny, czyli jezeli wyjedziemy
+  kursore poza granice wyrazenia, w ktorym znajduje sie kursor,
+  to przesuwamy kursor za to wyrazenie
+
+tym niemniej, pierwsza mozliwosc jest implementowalna w ramach
+drugiej
+
+No dobra, to przyjmujemy na razie ren pierwszy wariant, a jesli
+bedzie trzeba, to po prostu zmienimy zachowanie funkcji.
+
+Czyli tak: zaczmiemy od tego, ze przemodelujemy sobie
+zachowanie (the-selection) tak, zeby wywalic (the-selection-anchor),
+bo to byl bardzo kiepski i upierdliwy design.
+
+Jest zdefiniowany w (editor interfaces elements).
+
+#+BEGIN_SRC scheme
+
+  (define (the-selection)
+    ;; temporary override:
+    ;;(values (the-cursor) (the-cursor))
+  
+    ;; implicitly parameterized with (the-document),
+    ;; (the-cursor) and (the-selection-anchor),
+    ;; because cursor< is parameterized with (the-document)
+    ;; and the remaining parameters are used directly
+
+    (if (is (the-selection-anchor) cursor< (the-cursor))
+	 (values (the-selection-anchor) (the-cursor))
+	 (values (the-cursor) (the-selection-anchor))))
+
+#+END_SRC
+
+a chcielibysmy raczej cos w rodzaju:
+
+#+BEGIN_SRC scheme
+
+  (define selection-range ::int 0)
+
+  (define (the-selection)::(Values Cursor Cursor)
+    (cond
+     ((is selection-range = 0)
+      (values (the-cursor) (the-cursor)))
+
+     ((is selection-range < #;> 0)
+      (values
+       (iterations (- selection-range)
+		   cursor-retreat
+		   (the-cursor))
+       (the-cursor)))
+
+     ((is selection-range #;< > 0) 
+      (values
+       (the-cursor)
+       (iterations selection-range
+		   cursor-retreat
+		   (the-cursor))))))
+
+#+END_SRC
+
+
+
+* 5.02.2024
+
+plany mamy takie mniej wiecej:
+- integracja ze schowkiem (najfajniejsze!)
+- wizualizacja stanu historii
+- dlaczego zaquote'owane wyrazenie sie tak dziwnie renderuje?
+
+* 4.02.2024
+
+incydentalnie odkrylismy, ze funkcje w module (editor types spaces)
+w ogole nie uwzgledniaja komentarzy
+
 * 3.02.2024
 
 no dobra, czyli patrzac oglednie, to mamy cos takiego, ze:
