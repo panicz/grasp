@@ -315,7 +315,7 @@
 
       (put! #\┌ 0 0)
       ;;(put! #\╵ 1 0)
-      (put! #\┐ 0 (+ width 1))
+      (put! #\┐ 0 (- width 1))
       ;;(put! #\╵ 1 (+ width 1))
 
       (when (and (pair? selection-end)
@@ -360,7 +360,7 @@
       ;;(put! #\╷ (- height 2) 0)
       (put! #\└ (- height 1) 0)
       ;;(put! #\╷ (- height 2) (+ width 1))
-      (put! #\┘ (- height 1) (+ width 1))
+      (put! #\┘ (- height 1) (- width 1))
 
       (when (and (pair? selection-end)
 		 (equal? (tail selection-end) context)
@@ -412,7 +412,7 @@
 		 (equal? context (cdr (the-cursor))))
 	(match (head (the-cursor))
 	  (#\[ (mark-cursor! 1 (- height 1)))
-	  (#\] (mark-cursor! (+ width 2) (- height 1)))
+	  (#\] (mark-cursor! (- width 2) (- height 1)))
 	  (_ (values))))
       (when (and (pair? selection-start)
 		 (equal? (tail selection-start) context)
