@@ -1,3 +1,53 @@
+* 8.02.2024
+
+no dobra, to mamy sobie zrefaktoryzowany mechanizm selekcji
+- takze mozemy wrocic do naszych schowkowatych rozkminek
+
+i teraz tak: pierwsza sprawa jest taka, ze byamy chcieli
+serializowac selekcje
+
+czyli np. [ a b ] [ c d ]
+             ^       ^
+takie cos bysmy chcieli serializowac do stringa
+"b ] [ c"
+
+ale jak to zrobic?
+
+moze nie od tego powinnismy zaczac, tylko od kopowania calych
+wyrazen
+
+Kiedy selekcja dotyczy calego wyrazenia?
+- kiedy jej zasieg wynosi 0
+- kiedy selection-start ma postac `([ . ,kursor), a
+  selection-end - `(] . ,kursor)
+
+a ktorego wyrazenia dotyczy?
+- jezeli jestesmy na spacji, to listy bezposrednio zawierajacej
+  te spacje
+- jezeli jestesmy na tekscie, to owego tekstu (czyli to moze byc
+  tez komentarz liniowy albo blokowy)
+- jezeli jestesmy na nawiasie otwierajacym albo zamykajacym,
+  to rowniez listy
+- jezeli jestesmy na atomie, to atomu
+
+ponadto, jezeli zasieg jest rozny od zera, ale selection-start
+ma postac `(,n . ,kursor) a selection-end - `(,m . ,kursor),
+i kursor wskazuje na obiekt tekstowy, to kopiujemy zakres
+obiektu tekstowego
+
+jezeli zas idzie o oryginalny problem, to musimy miec sposob
+na iterowanie po calych wyrazeniach: poczynajac od selection-start
+sprawdzamy, czy jestesmy na spacji, nawiasie czy obiekcie tekstowym.
+
+chodzi o to, ze chcemy sie znalezc na tym samym poziomie, na ktorym
+jest selection-end, robiac w miare mozliwosci jak najwieksze kroki.
+
+no to wezmy moze
+
+[[[[a b] c] [d e] [f [g h]]] i]
+     ^                 ^
+     
+
 * 7.02.2024
 
 te wczorajsze pomysly wydaja aie ok, aczkolwiek lepiej
