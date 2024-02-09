@@ -10,13 +10,14 @@
 (import (language keyword-arguments))
 (import (language infix))
 (import (language fundamental))
-(import (editor interfaces elements))
 (import (language match))
-(import (editor types spaces))
 (import (language assert))
+(import (language examples))
+
 (import (utils functions))
 (import (utils print))
-(import (language examples))
+
+(import (editor interfaces elements))
 
 ;; See the `fundamental.scm` file for a detailed explanation
 ;; how cursors are represented
@@ -72,7 +73,7 @@
   (match cursor
     (`(,h . ,t)
      (let-values (((parent stem) (cursor-terminal+stem t document)))
-       (if (Space? parent)
+       (if (isnt parent Tile?)
 	   (values parent stem)
 	   (let ((target (part-at h parent)))
 	     (if (eq? parent target)
@@ -288,20 +289,39 @@
 	  (next updated))
 	updated)))
 
-(define/kw (space-preceding cursor::Cursor
-			    in: document := (the-document))
-  ::Space
-  (match cursor
-    (`(,tip ,top . ,root)
-     (let* ((grandpa (cursor-ref document root))
-	    (parent (part-at top grandpa))
-	    (target (part-at tip parent)))
-       (cond ((Space? target)
-	      target)
-	     ((and (eq? target parent)
-		   (integer? top)
-		   (pair? grandpa))
-	      (part-at (- top 1) grandpa))
-	     ((and (pair? parent)
-		   (integer? tip))
-	      (part-at (- tip 1) parent)))))))
+(define-single-cache (selection-start+end cursor::Cursor
+					  range::integer)
+  (cond
+   ((is range < 0)
+    (list
+     (iterations (- range)
+		 cursor-retreat
+		 cursor)
+     cursor))
+
+   ((is range > 0) 
+    (list
+     cursor
+     (iterations range
+		 cursor-advance
+		 cursor)))
+   (else
+    (list cursor cursor))))
+
+(define (the-selection)::(Values Cursor Cursor)
+  (match (selection-start+end (the-cursor)
+			      (the-selection-range))
+    (`(,start ,end)
+     (values start end))))
+
+(define (within-selection? context::Cursor)::boolean
+  ;; implicitly parameterized with (the-document),
+  ;; (the-cursor) and (the-selection-range),
+  ;; because cursor< is parameterized with (the-document),
+  ;; and (the-selection) is implicitly parameterized
+  ;; with (the-document), (the-cursor)
+  ;; and (the-selection-range)
+  (and (isnt (the-selection-range) zero?)
+       (let-values (((selection-start selection-end) (the-selection)))
+	 (is selection-start cursor< context cursor< selection-end))))
+

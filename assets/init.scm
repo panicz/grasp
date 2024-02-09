@@ -149,6 +149,9 @@
 		(WARN "cursor: "(the-cursor)
 		      ", expression: "(the-expression))))
 
+(set-key! 'F2 (lambda ()
+		(DUMP (last-operation))))
+
 (invoke
  the-recognizers 'add
  split-pane-by-horizontal-line)
@@ -193,8 +196,7 @@ son|#
         label: \"Press me!\")
 
 (e.g.
- (parameterize ((the-cursor (cursor 0 1 3 1 1))
-		(the-selection-anchor (cursor 0 1 3 1 1)))
+ (parameterize ((the-cursor (cursor 0 1 3 1 1)))
    (grasped \"\\
 (define (! n)
   (if (<= n 0)

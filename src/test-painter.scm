@@ -217,8 +217,7 @@ step|# (- n 1)))))
 
 
 (e.g.
- (parameterize ((the-cursor (cursor 0 1 3 1 1))
-		(the-selection-anchor (cursor 0 1 3 1 1)))
+ (parameterize ((the-cursor (cursor 0 1 3 1 1)))
    (grasped "\
 (define (! n)
   (if (<= n 0)
@@ -241,8 +240,7 @@ step|# (- n 1)))))
 
 
 (e.g.
- (parameterize ((the-cursor (cursor 0 2 3 1 1))
-		(the-selection-anchor (cursor 0 2 3 1 1)))
+ (parameterize ((the-cursor (cursor 0 2 3 1 1)))
    (grasped "\
 (define (! n)
   (if (<= n 0)
@@ -264,8 +262,7 @@ step|# (- n 1)))))
 ")
 
 (e.g.
- (parameterize ((the-cursor (cursor 0 1 1 1))
-		(the-selection-anchor (cursor 0 1 1 1)))
+ (parameterize ((the-cursor (cursor 0 1 1 1)))
    (grasped "\
 (define (! n)
   (if (<= n 0)
@@ -288,8 +285,7 @@ step|# (- n 1)))))
 
 
 (e.g.
- (parameterize ((the-cursor (cursor 6 1 1 1))
-		(the-selection-anchor (cursor 6 1 1 1)))
+ (parameterize ((the-cursor (cursor 6 1 1 1)))
    (grasped "\
 (define (! n)
   (if (<= n 0)
@@ -312,8 +308,8 @@ step|# (- n 1)))))
 
 
 (e.g.
- (parameterize ((the-selection-anchor (cursor 0 1 1 1))
-		(the-cursor (cursor 6 1 1 1)))
+ (parameterize ((the-cursor (cursor 6 1 1 1))
+		(the-selection-range -6))
    (grasped "\
 (define (! n)
   (if (<= n 0)
@@ -336,8 +332,8 @@ step|# (- n 1)))))
 
 
 (e.g.
- (parameterize ((the-selection-anchor (cursor 1 1 1 1))
-		(the-cursor (cursor 4 1 1 1)))
+ (parameterize ((the-cursor (cursor 4 1 1 1))
+		(the-selection-range -3))
    (grasped "\
 (define (! n)
   (if (<= n 0)

@@ -163,5 +163,5 @@
 		      (operation ::Insert (Insert element: result+ at: next))
 		      (history ::History (history document)))
 		 (history:record! operation)
-		 (set! (the-cursor) (operation:apply! document))
-		 (set! (the-selection-anchor) (the-cursor))))))))))))
+		 (set! (the-cursor)
+		       (operation:apply! document))))))))))))

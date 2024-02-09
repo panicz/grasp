@@ -41,6 +41,23 @@
 (define (invalidate-cache! invoker . point)
   (apply invalidate! (procedure-property invoker 'cache) point))
 
+;; a single cache is a cache that only stores the value from
+;; the last function invocation - it useful for things that
+;; don't change very often but are accessed frequently
+
+(define-syntax-rule (single-cache args . body)
+  (let ((cached-args #!null)
+	(cached-result #!null)
+	(update (lambda args . body)))
+    (lambda args*
+      (unless (equal? args* cached-args)
+	(set! cached-result (apply update args*))
+	(set! cached-args args*))
+      cached-result)))
+
+(define-syntax-rule (define-single-cache (name . args) . body)
+  (define name (single-cache args . body)))
+
 ;; the `hash-cons` definition presented here is only used
 ;; for bootstrapping. Prefer the analogous definition of
 ;; `recons` that is defined in the `(editor types primitive)` module.
@@ -52,7 +69,6 @@
 
   (define (setCdr value)
     (error "The pair is immutable: "(this)))
-  
   (pair car cdr))
 
 (define-cache (hash-cons head tail)

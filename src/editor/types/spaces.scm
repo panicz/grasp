@@ -1,25 +1,27 @@
 (module-name (editor types spaces))
 
 (import (srfi :11))
+(import (language assert))
 (import (language define-type))
 (import (language define-interface))
-(import (utils hash-table))
 (import (language define-property))
 (import (language define-object))
 (import (language define-cache))
 (import (language keyword-arguments))
 (import (language fundamental))
-(import (editor interfaces elements))
 (import (language infix))
 (import (language examples))
 (import (language match))
 (import (language for))
-(import (utils functions))
-(import (language assert))
-(import (utils conversions))
-(import (editor interfaces painting))
 
+(import (utils functions))
+(import (utils hash-table))
 (import (utils print))
+(import (utils conversions))
+
+(import (editor interfaces elements))
+(import (editor interfaces painting))
+(import (editor document cursor))
 
 (define (fragment-size fragment)
   (match fragment
@@ -31,15 +33,39 @@
     ))
 
 (define (space-fragment-index fragments::list index::int)
-  (if (or (isnt fragments pair?)
-	  (is (fragment-size (car fragments)) >= index))
-      (values fragments index)
-      (space-fragment-index (cdr fragments)
-			    (as int
-				(- index
-				   (fragment-size
-				    (car fragments))
-				   1)))))
+  (cond
+   ((zero? index)
+    (values fragments index))
+   
+   ((and (pair? fragments)
+	 (isnt (car fragments) integer?))
+    (space-fragment-index (cdr fragments) (- index 1)))
+
+    ((or (isnt fragments pair?)
+	(is (fragment-size (car fragments)) >= index))
+     (values fragments index))
+    
+   (else
+    (space-fragment-index (cdr fragments)
+			  (as int
+			      (- index
+				 (fragment-size
+				  (car fragments))
+				 1))))))
+
+;; in the following examples the symbol 'comment' stands for
+;; comments, because the functions defined in this module
+;; treat everything that is not a number as a comment - but
+;; in practice, a comment must implement the Comment interface
+;; from the (editor interfaces elements) module
+
+(e.g.
+ (space-fragment-index '(comment 0 0) 0)
+ ===> (comment 0 0) 0)
+
+(e.g.
+ (space-fragment-index '(comment 0 0) 1)
+ ===> (0 0) 0)
 
 (e.g.
  (space-fragment-index '(0 0) 0)
@@ -116,12 +142,18 @@
        (set! (car cell) (as int (+ index next)))
        (set! (cdr cell) rest)
        fragments)
+      
+      (`(,,@(isnt _ integer?) ,next . ,rest)
+       (set! (car cell) next)
+       (set! (cdr cell) rest)
+       fragments)
+      
       (`(,,@(is _ > 0) . ,_)
        (set! (car cell) (as int (- (car cell) 1)))
        fragments)
       (_
-       fragments
-       ))))
+       fragments)
+      )))
 
 (e.g.
  (let* ((fragments (list 1 2 3))
@@ -477,17 +509,29 @@
 (define (split-fragments! fragments::pair
 			  index::int)
   ::Space
-  (cond
-   ((is index <= (car fragments))
-    (let ((reminent (cons (- (car fragments) index)
-			  (cdr fragments))))
-      (set! (car fragments) index)
-      (set! (cdr fragments) '())
-      (Space fragments: reminent)))
-   (else
-    (split-fragments!
-     (cdr fragments)
-     (as int (- index (car fragments) 1))))))
+  (match fragments
+    (`(,first . ,rest)
+     (cond
+      ((is index <= first)
+       (let ((reminent (cons (- first index) rest)))
+	 (set! (car fragments) index)
+	 (set! (cdr fragments) '())
+	 (Space fragments: reminent)))
+      
+      ((and-let* ((`(,next . ,rest*) rest)
+		  ((isnt next integer?)))
+	 (cond
+	  ((= index (+ first 1))
+	   (set! (cdr fragments) '())
+	   (Space fragments: rest))
+	  (else
+	   (split-fragments!
+	    rest*
+	    (as int (- index first 1)))))))
+      (else
+       (split-fragments!
+	rest
+	(as int (- index first 1))))))))
 
 
 (define (split-space! space::Space index::int)::Space
@@ -539,7 +583,7 @@
 
 (define (skip-first-line s::Space)::Space
   (match s:fragments
-    (`(,_ ,_ . ,_)
+    (`(,,@integer? ,,@integer? . ,_)
      (Space fragments: (cdr s:fragments)))
     (_
      (Space fragments: '(0)))))
@@ -695,3 +739,21 @@
   (EmptyListProxy space))
 
 (define-early-constant Empty ::EmptyListProxy (empty))
+
+(define/kw (space-preceding cursor::Cursor
+			    in: document := (the-document))
+  ::Space
+  (match cursor
+    (`(,tip ,top . ,root)
+     (let* ((grandpa (cursor-ref document root))
+	    (parent (part-at top grandpa))
+	    (target (part-at tip parent)))
+       (cond ((Space? target)
+	      target)
+	     ((and (eq? target parent)
+		   (integer? top)
+		   (pair? grandpa))
+	      (part-at (- top 1) grandpa))
+	     ((and (pair? parent)
+		   (integer? tip))
+	      (part-at (- tip 1) parent)))))))

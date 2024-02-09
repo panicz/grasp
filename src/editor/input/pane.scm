@@ -1400,7 +1400,7 @@
 
   (define transform ::Transform ((default-transform)))
 
-  (define selection-anchor ::Cursor '())
+  (define selection-range ::integer 0)
 
   (define (drop-at! x::real y::real object::pair)::boolean
     (and-let* ((items ::cons object)
@@ -1421,8 +1421,7 @@
 					  at: cursor))
 		 (history ::History (history document)))
 	    (history:record! action)
-	    (set! (the-cursor) (action:apply! document))
-	    (set! (the-selection-anchor) (the-cursor))))
+	    (set! (the-cursor) (action:apply! document))))
 
 	 ((is parent cons?)
 	  (cond
@@ -1464,7 +1463,7 @@
 				       document)))
       (DocumentEditor document: document
 		      cursor: cursor
-		      selection-anchor: selection-anchor
+		      selection-range: selection-range
 		      previously-edited: (copy previously-edited)
 		      transform: new-transform
 		      document-transform: new-document-transform)))
@@ -1510,7 +1509,7 @@
     (parameterize ((the-document document)
 		   (the-cursor cursor)
 		   (the-editor (this))
-		   (the-selection-anchor selection-anchor))
+		   (the-selection-range selection-range))
       (with-post-transform transform
 	(with-view-edges-transformed transform
 	  (transform:within painter
@@ -1539,7 +1538,6 @@
 		   (enchanted:tap! finger x y))
 		  (else
 		   (set! cursor target-cursor)
-		   (set! selection-anchor cursor)
 		   (editor:set-cursor-column! xe)
 		   #t)))))))))
 
@@ -1549,8 +1547,8 @@
        (parameterize/update-sources ((the-document document)
 				     (the-cursor cursor)
 				     (the-editor (this))
-				     (the-selection-anchor
-				      selection-anchor))
+				     (the-selection-range
+				      selection-range))
 	 (let-values (((selection-start selection-end)
 		       (the-selection))
 		      ((x y) (transform:outside-in xe ye)))
@@ -1634,7 +1632,6 @@
 	       ;; podzielona przez (painter:space-width)
 	       (set! (the-cursor) (cursor-climb-back
 				   (cursor-retreat (tail path))))
-	       (set! (the-selection-anchor) (the-cursor))
 	       (let* ((removed ::Remove (remove-element!
 					 at: subpath))
 		      (selection (Selected removed:element
@@ -1656,7 +1653,6 @@
 	       (screen:drag! finger
 			     (Drawing (Stroke finger (this))))
 	       ;;(set! (the-cursor) path)
-	       ;;(set! (the-selection-anchor) path)
 	       )))
 	   #t)))))
 
@@ -1667,8 +1663,8 @@
        (parameterize/update-sources ((the-document document)
 				     (the-cursor cursor)
 				     (the-editor (this))
-				     (the-selection-anchor
-				      selection-anchor))
+				     (the-selection-range
+				      selection-range))
 	 (let-values (((selection-start selection-end)
 		       (the-selection))
 		      ((x y) (transform:outside-in xe ye)))
@@ -1696,8 +1692,8 @@
        (parameterize/update-sources ((the-document document)
 				     (the-cursor cursor)
 				     (the-editor (this))
-				     (the-selection-anchor
-				      selection-anchor))
+				     (the-selection-range
+				      selection-range))
 	 (cond
 	  ((isnt (transform:get-angle) = 0.0)
 	   (painter:play!
@@ -1734,8 +1730,8 @@
        (parameterize/update-sources ((the-document document)
 				     (the-cursor cursor)
 				     (the-editor (this))
-				     (the-selection-anchor
-				      selection-anchor))
+				     (the-selection-range
+				      selection-range))
 	 (safely
 	  (invoke (current-message-handler) 'clear-messages!)
 	  (let* ((content
@@ -1773,8 +1769,8 @@
        (parameterize/update-sources ((the-document document)
 				     (the-cursor cursor)
 				     (the-editor (this))
-				     (the-selection-anchor
-				      selection-anchor))
+				     (the-selection-range
+				      selection-range))
 	 (let* ((h ::real (painter:min-line-height)))
 	   (transform:translate! 0 h)
 	   #t)))))
@@ -1785,8 +1781,8 @@
        (parameterize/update-sources ((the-document document)
 				     (the-cursor cursor)
 				     (the-editor (this))
-				     (the-selection-anchor
-				      selection-anchor))
+				     (the-selection-range
+				      selection-range))
 	 (let* ((h ::real (painter:min-line-height)))
 	   (transform:translate! 0 (- h))
 	   #t)))))
@@ -1797,8 +1793,8 @@
        (parameterize/update-sources ((the-document document)
 				     (the-cursor cursor)
 				     (the-editor (this))
-				     (the-selection-anchor
-				      selection-anchor))
+				     (the-selection-range
+				      selection-range))
 	 (let* ((w ::real (painter:space-width)))
 	   (transform:translate! w 0)
 	   #t)))))
@@ -1809,8 +1805,8 @@
        (parameterize/update-sources ((the-document document)
 				     (the-cursor cursor)
 				     (the-editor (this))
-				     (the-selection-anchor
-				      selection-anchor))
+				     (the-selection-range
+				      selection-range))
 	 (let* ((w ::real (painter:space-width)))
 	  (transform:translate! (- w) 0))
 	 #t))))
@@ -1821,8 +1817,8 @@
        (parameterize/update-sources ((the-document document)
 				     (the-cursor cursor)
 				     (the-editor (this))
-				     (the-selection-anchor
-				      selection-anchor))
+				     (the-selection-range
+				      selection-range))
 	 (transform:scale! 1.25 0 0)
 	 #t))))
 
@@ -1832,8 +1828,8 @@
        (parameterize/update-sources ((the-document document)
 				     (the-cursor cursor)
 				     (the-editor (this))
-				     (the-selection-anchor
-				      selection-anchor))
+				     (the-selection-range
+				      selection-range))
 	 (transform:scale! 0.8 0 0)
 	 #t))))
 
@@ -1843,8 +1839,8 @@
        (parameterize/update-sources ((the-document document)
 				     (the-cursor cursor)
 				     (the-editor (this))
-				     (the-selection-anchor
-				      selection-anchor))
+				     (the-selection-range
+				      selection-range))
 	 (transform:rotate! -5.0 x y)
 	 #t))))
 
@@ -1854,8 +1850,8 @@
        (parameterize/update-sources ((the-document document)
 				     (the-cursor cursor)
 				     (the-editor (this))
-				     (the-selection-anchor
-				      selection-anchor))
+				     (the-selection-range
+				      selection-range))
 	 (transform:rotate! 5.0 x y)
 	 #t))))
 
@@ -1865,8 +1861,8 @@
        (parameterize/update-sources ((the-document document)
 				     (the-cursor cursor)
 				     (the-editor (this))
-				     (the-selection-anchor
-				      selection-anchor))
+				     (the-selection-range
+				      selection-range))
 	 ((keymap key-code))
 	 #t))))
 

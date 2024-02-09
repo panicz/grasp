@@ -436,7 +436,6 @@
 	       (inverse ::Edit (last-action:inverse))
 	       (cursor (inverse:apply! document)))
       (set! (the-cursor) cursor)
-      (set! (the-selection-anchor) cursor)
       (set! undo-step (+ undo-step 1))))
 
   (define (redo!)::void
@@ -446,7 +445,6 @@
 						   timeline))
 	       (cursor (undone-action:apply! document)))
       (set! (the-cursor) cursor)
-      (set! (the-selection-anchor) cursor)
       (set! undo-step (- undo-step 1))))
 
   (define (record! operation ::Edit)::void

@@ -21,10 +21,6 @@
 (import (language fundamental))
 (import (editor interfaces painting))
 
-;; the methods provided by these interfaces should be thought of as
-;; implicitly parameterized with painter, (the-cursor)
-;; and (the-selection-anchor) parameters
-
 (define-property (extent-cached? tile::Tile)::boolean
   #f)
 
@@ -86,6 +82,9 @@
    (set! max-line-height (painter:min-line-height)))
   )
 
+;; the methods provided by these interfaces should be thought of as
+;; implicitly parameterized with painter, (the-cursor)
+;; and (the-selection-range) parameters
 
 (define-interface Expandable ()
   (expand! t::Traversal)::void)
@@ -180,8 +179,6 @@ operate on cursors.
 (define-parameter (the-document) ::pair
   (cons (cons '() '()) '()))
 
-(define-parameter (the-selection-anchor) :: Cursor '())
-
 ;; We stipulate that, for any N >= 1, () < (x1 ... xN)
 ;; (as a consequence, whenever one cursor is a proper
 ;; suffix of another, it is considered to be "earlier"
@@ -218,31 +215,7 @@ operate on cursors.
 	  ((is length/a > length/b)
 	   (not (cursor< b a document))))))
 
-(define (the-selection)
-  ;; temporary override:
-  ;;(values (the-cursor) (the-cursor))
-  
-  ;; implicitly parameterized with (the-document),
-  ;; (the-cursor) and (the-selection-anchor),
-  ;; because cursor< is parameterized with (the-document)
-  ;; and the remaining parameters are used directly
-
-  (if (is (the-selection-anchor) cursor< (the-cursor))
-       (values (the-selection-anchor) (the-cursor))
-       (values (the-cursor) (the-selection-anchor))))
-
-(define (within-selection? context::Cursor)::boolean
-  ;; implicitly parameterized with (the-document),
-  ;; (the-cursor) and (the-selection-anchor),
-  ;; because cursor< is parameterized with (the-document),
-  ;; and (the-selection) is implicitly parameterized
-  ;; with (the-document), (the-cursor)
-  ;; and (the-selection-anchor)
-  (and (pair? (the-selection-anchor))
-       (isnt (the-selection-anchor) equal? (the-cursor))
-       (let-values (((selection-start selection-end) (the-selection)))
-	 (is selection-start cursor< context cursor< selection-end))))
-
+(define-parameter (the-selection-range) ::integer 0)
 
 ;; A Keeper is needed to obtain permissions on Android
 ;; - otherwise it does nothing special

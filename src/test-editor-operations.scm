@@ -75,7 +75,6 @@
        "" parse-document))
 
 (set! (the-cursor) (cursor 0 0 1))
-(set! (the-selection-anchor) (the-cursor))
 
 #|
 (for-each insert-character! "\
@@ -502,7 +501,6 @@
 ")
 
 (set! (the-cursor) (cursor 0 4 1 1))
-(set! (the-selection-anchor) (the-cursor))
 
 (e.g.
  (snapshot) ===> "
@@ -614,7 +612,6 @@
 ")
 
 (set! (the-cursor) (cursor #\[ 7 1 1))
-(set! (the-selection-anchor) (the-cursor))
 
 (e.g.
  (with-undo-redo

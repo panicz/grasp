@@ -15,6 +15,14 @@
     (apply action args)
     (apply times (- n 1) action args)))
 
+(define (iterations n::int f::procedure x)
+  (if (is n <= 0)
+      x
+      (iterations (- n 1) f (f x))))
+
+(e.g.
+ (iterations 3 (lambda (x) (* x 2)) 1) ===> 8)
+
 (define (identity x) x)
 
 (define-early-constant head car)

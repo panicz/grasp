@@ -18,34 +18,28 @@
 (import (editor types texts))
 (import (editor types comments))
 
-(define (move-cursor-right!)
-  (set! (the-cursor) (cursor-advance))
+(define (update-cursor-column!)
   (let* ((cursor-position ::Position (painter:cursor-position))
 	 (editor ::Editor (the-editor)))
     (editor:add-post-draw-action!
      (lambda ()
-       (editor:set-cursor-column! cursor-position:left))))
-  (set! (the-selection-anchor) (the-cursor))
-  ;;(DUMP (the-cursor))
-  )
+       (editor:set-cursor-column! cursor-position:left)))))
+
+(define (move-cursor-right!)
+  (set! (the-cursor) (cursor-advance))
+  (set! (the-selection-range) 0)
+  (update-cursor-column!))
 
 (define (move-cursor-left!)
   (set! (the-cursor) (cursor-retreat))
-  (let* ((cursor-position ::Position (painter:cursor-position))
-	 (editor ::Editor (the-editor)))
-    (editor:add-post-draw-action!
-     (lambda ()
-       (editor:set-cursor-column! cursor-position:left))))
-  (set! (the-selection-anchor) (the-cursor))
-  ;;(DUMP (the-cursor))
-  )
+  (set! (the-selection-range) 0)
+  (update-cursor-column!))
 
 (define (unnest-cursor-right!)
   (and-let* ((`(,tip ,top . ,root) (the-cursor))
 	     (parent ::Indexable (the-expression at: root))
 	     (target ::Indexable (parent:part-at top))
-	     (item ::Indexable (target:part-at tip))
-	     (editor ::Editor (the-editor)))
+	     (item ::Indexable (target:part-at tip)))
     ;;(assert (eq? target item))
     (set! (the-cursor)
 	  (cond
@@ -55,27 +49,17 @@
 	    (recons (parent:last-index) root))
 	   (else
 	    (recons* (parent:last-index) top root))))
-    (editor:add-post-draw-action!
-     (lambda ()
-       (let ((cursor-position ::Position (painter:cursor-position)))
-	 (editor:set-cursor-column! cursor-position:left))))
-    (set! (the-selection-anchor) (the-cursor))))
+    (update-cursor-column!)))
 
 (define (expand-selection-right!)
   (set! (the-cursor) (cursor-advance))
-  (let* ((cursor-position ::Position (painter:cursor-position))
-	 (editor ::Editor (the-editor)))
-    (editor:add-post-draw-action!
-     (lambda ()
-       (editor:set-cursor-column! cursor-position:left)))))
+  (set! (the-selection-range) (- (the-selection-range) 1))
+  (update-cursor-column!))
 
 (define (expand-selection-left!)
   (set! (the-cursor) (cursor-retreat))
-  (let* ((cursor-position ::Position (painter:cursor-position))
-	 (editor ::Editor (the-editor)))
-    (editor:add-post-draw-action!
-     (lambda ()
-       (editor:set-cursor-column! cursor-position:left)))))
+  (set! (the-selection-range) (+ (the-selection-range) 1))
+  (update-cursor-column!))
 
 (define (move-cursor-up!)
   (let* ((editor ::Editor (the-editor))
@@ -84,8 +68,7 @@
 	  (cursor-under (editor:cursor-column)
 			(- current:top
 			   (editor:to-previous-line))))
-    (set! (the-selection-anchor) (the-cursor))
-    ))
+    (set! (the-selection-range) 0)))
 
 (define (move-cursor-down!)
   (let* ((editor ::Editor (the-editor))
@@ -94,7 +77,7 @@
 	  (cursor-under (editor:cursor-column)
 			(+ current:top
 			   (editor:to-next-line))))
-    (set! (the-selection-anchor) (the-cursor))))
+     (set! (the-selection-range) 0)))
 
 (define (undo!)
   (let ((document-history ::History (history (the-document))))
@@ -107,8 +90,7 @@
 (define (perform&record! operation ::Edit)::boolean
   (and-let* ((document (the-document))
 	     (history ::History (history document))
-	     (new-cursor (operation:apply! document))
-	     (editor ::Editor (the-editor)))
+	     (new-cursor (operation:apply! document)))
     ;; A note: in case of removal operations,
     ;; we record the operation after applying it,
     ;; but in case of insertion operation, we record
@@ -117,17 +99,12 @@
     ;; in the presence of history merging.
     (history:record! operation)
     (set! (the-cursor) new-cursor)
-    (set! (the-selection-anchor) new-cursor)
-    (editor:add-post-draw-action!
-     (lambda ()
-       (let ((cursor-position ::Position (painter:cursor-position)))
-	 (editor:set-cursor-column! cursor-position:left))))
+    (update-cursor-column!)
     #t))
 
 (define (delete-backward!)::boolean
   (and-let* ((`(,tip ,top . ,root) (the-cursor))
 	     (parent ::Indexable (the-expression at: root))
-	     (editor ::Editor (the-editor))
 	     (target ::Indexable (parent:part-at top))
 	     ((eq? target (target:part-at tip)))
 	     (first-index ::Index (target:first-index))
@@ -137,17 +114,13 @@
 						top root)))
 	     (preceding-element (the-expression
 				 at: preceding-cursor)))
-    (editor:add-post-draw-action!
-      (lambda ()
-	(let ((cursor-position ::Position (painter:cursor-position)))
-	  (editor:set-cursor-column! cursor-position:left))))
+    (update-cursor-column!)
     (cond
      ((Atom? target)
       (let ((target ::Atom target))
 	(cond
 	 ((eqv? tip first-index)
 	  (set! (the-cursor) (cursor-retreat))
-	  (set! (the-selection-anchor) (the-cursor))
 	  (delete-backward!))
 	 ((is (text-length target) <= 1)
 	  ;; the cell will be cut off from the rest
@@ -167,7 +140,6 @@
 	(cond
 	 ((eqv? tip first-index)
 	  (set! (the-cursor) (cursor-retreat))
-	  (set! (the-selection-anchor) (the-cursor))
 	  (delete-backward!))
 	 ((is (text-length target) <= 1)
 	  (cond
@@ -202,7 +174,6 @@
 	(cond
 	 ((eqv? tip first-index)
 	  (set! (the-cursor) (cursor-retreat))
-	  (set! (the-selection-anchor) (the-cursor))
 	  (delete-backward!))
 	 ((or (eqv? tip last-index)
 	      (is (text-length (as Text target)) <= 0))
@@ -245,12 +216,8 @@
       #f))))
 
 (define (delete-forward!)::boolean
-  (let ((target ::Indexable (the-expression))
-	(editor ::Editor (the-editor)))
-    (editor:add-post-draw-action!
-     (lambda ()
-       (let ((cursor-position ::Position (painter:cursor-position)))
-	 (editor:set-cursor-column! cursor-position:left))))
+  (let ((target ::Indexable (the-expression)))
+    (update-cursor-column!)
     (cond
      ((gnu.lists.LList? target)
       (match (the-cursor)
@@ -266,29 +233,20 @@
 
 (define (record&perform! operation ::Edit)::boolean
   (let* ((document (the-document))
-	 (editor ::Editor (the-editor))
 	 (history ::History (history document)))
     (history:record! operation)
     (and-let* ((new-cursor (operation:apply! document)))
       (set! (the-cursor) new-cursor)
-      (set! (the-selection-anchor) new-cursor)
-      (editor:add-post-draw-action!
-       (lambda ()
-	 (let ((cursor-position ::Position (painter:cursor-position)))
-	   (editor:set-cursor-column! cursor-position:left))))
+      (update-cursor-column!)
       #t)))
 
 (define (insert-character! c::char)::boolean
   (and-let* (((isnt c eqv? #\null))
 	     (`(,tip ,top . ,subcursor) (the-cursor))
-	     (editor ::Editor (the-editor))
 	     (parent ::Indexable (the-expression at: subcursor))
 	     (item ::Indexable (parent:part-at top))
 	     (final ::Indexable (item:part-at tip)))
-    (editor:add-post-draw-action!
-     (lambda ()
-       (let ((cursor-position ::Position (painter:cursor-position)))
-	 (editor:set-cursor-column! cursor-position:left))))
+    (update-cursor-column!)
     (cond
      ((isnt final eq? item)
       (WARN "attempted to insert character "c" to non-final position")
@@ -458,7 +416,6 @@
      
      ((gnu.lists.LList? item)
       (set! (the-cursor) (cursor-advance))
-      (set! (the-selection-anchor) (the-cursor))
       (insert-character! c))
      
      ((Atom? item)
