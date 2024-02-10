@@ -47,13 +47,15 @@
 
 (define-syntax-rule (single-cache args . body)
   (let ((cached-args #!null)
-	(cached-result #!null)
+	(cached-results '())
 	(update (lambda args . body)))
     (lambda args*
       (unless (equal? args* cached-args)
-	(set! cached-result (apply update args*))
-	(set! cached-args args*))
-      cached-result)))
+	(call-with-values (lambda () (apply update args*))
+	  (lambda results
+	    (set! cached-results results)
+	    (set! cached-args args*))))
+      (apply values cached-results))))
 
 (define-syntax-rule (define-single-cache (name . args) . body)
   (define name (single-cache args . body)))

@@ -215,6 +215,11 @@ operate on cursors.
 	  ((is length/a > length/b)
 	   (not (cursor< b a document))))))
 
+(define (cursor<= a::Cursor b::Cursor
+		  #!optional (document (the-document)))
+  (or (equal? a b)
+      (cursor< a b document)))
+
 (define-parameter (the-selection-range) ::integer 0)
 
 ;; A Keeper is needed to obtain permissions on Android

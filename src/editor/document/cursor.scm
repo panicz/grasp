@@ -289,30 +289,33 @@
 	  (next updated))
 	updated)))
 
-(define-single-cache (selection-start+end cursor::Cursor
-					  range::integer)
+(define (selection-start+end cursor::Cursor range::integer)
+  ::(Values Cursor Cursor)
   (cond
    ((is range < 0)
-    (list
+    (values
      (iterations (- range)
 		 cursor-retreat
 		 cursor)
      cursor))
 
    ((is range > 0) 
-    (list
+    (values
      cursor
      (iterations range
 		 cursor-advance
 		 cursor)))
    (else
-    (list cursor cursor))))
+    (values cursor cursor))))
+
+(define-single-cache (cached-selection-start+end cursor::Cursor
+						 range::integer)
+  ::(Values Cursor Cursor)
+  (selection-start+end cursor range))
 
 (define (the-selection)::(Values Cursor Cursor)
-  (match (selection-start+end (the-cursor)
-			      (the-selection-range))
-    (`(,start ,end)
-     (values start end))))
+  (cached-selection-start+end (the-cursor)
+			      (the-selection-range)))
 
 (define (within-selection? context::Cursor)::boolean
   ;; implicitly parameterized with (the-document),
