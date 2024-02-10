@@ -12,9 +12,14 @@
 (import (language keyword-arguments))
 (import (language match))
 (import (language for))
-(import (utils functions))
 (import (language examples))
 (import (language fundamental))
+(import (language mapping))
+
+(import (utils functions))
+(import (utils print))
+(import (utils hash-table))
+
 (import (editor interfaces elements))
 (import (editor types primitive))
 (import (editor interfaces painting))
@@ -24,9 +29,7 @@
 (import (editor document documents))
 (import (editor document cursor))
 (import (editor document history-tracking))
-(import (language mapping))
-(import (utils print))
-(import (utils hash-table))
+(import (editor types extensions extensions))
 
 (define (self-evaluating? x)
   (or (and (pair? x)
@@ -127,6 +130,8 @@
 	 (Atom (symbol->string expression)))
 	((number? expression)
 	 (Atom (number->string expression)))
+	((Enchanted? expression)
+	 expression)
 	(else
 	 (WARN "dont know what to do with "expression)
 	 (Atom (show->string expression)))))
@@ -136,14 +141,20 @@
 				 in: document ::Document := (the-document))
   (let*-values (((terminal stem) (cursor-terminal+stem source document))
 		((cursor next) (if (Space? terminal)
-				   (let-values (((previous stem) (cursor-terminal+stem (cursor-retreat stem document)
-										       document)))
-				     (values stem (cursor-advance stem document)))
-				   (values stem (cursor-advance stem document)))))
+				   (let-values (((previous stem)
+						 (cursor-terminal+stem
+						  (cursor-retreat stem
+								  document)
+						  document)))
+				     (values stem (cursor-advance stem
+								  document)))
+				   (values stem (cursor-advance stem
+								document)))))
     (safely
      (match (the-expression at: cursor in: document)
        (`(define (,name . ,args) . ,value)
-	(invoke (default-context) 'define! name (cons (Atom "lambda") (cons args value))))
+	(invoke (default-context) 'define! name
+		(cons (Atom "lambda") (cons args value))))
        
        (`(define ,name ,value)
 	(invoke (default-context) 'define! name value))

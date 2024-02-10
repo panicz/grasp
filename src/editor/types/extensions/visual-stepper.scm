@@ -611,12 +611,10 @@
 	      #t))))))
   
   (define (rewind!)::void
-    (WARN "rewind!")
     (set! current-morph (morph-from initial-expression))
     (set! current-morph:progress 0.0))
   
   (define (back!)::void
-    (WARN "back!")
     (set! playing-backwards? #t)
     (set! now-playing? #f)
     (when (and (is current-morph:progress <= 0.0)
@@ -626,7 +624,6 @@
     (painter:play! (this)))
 
   (define (play!)::void
-    (WARN "play!")
     (set! now-playing? #t)
     (set! playing-backwards? #f)
     (painter:play! (this)))
@@ -634,9 +631,7 @@
   (define (pause!)::void
     (set! now-playing? #f))
   
-  (define (next!)::void
-    (WARN "next!")
-    
+  (define (next!)::void    
     (begin
       (set! now-playing? #f)
       (set! playing-backwards? #f)
@@ -659,7 +654,7 @@
     )
       
   (define (fast-forward!)::void
-    (WARN "fast-forward!")
+    (WARN "fast-forward not implemented for Stepper")
     ;; to zasadniczo nie wiemy, jak zaimplementowac
     (values))
 
@@ -681,7 +676,6 @@
       (set! max-extent:width (max max-extent:width current:width))
       (set! max-extent:height (max max-extent:height current:height))
       max-extent))
-      
 
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
     #!null)
@@ -689,27 +683,16 @@
   (Magic))
 
 (define (PlayerWithControls player::Player)::Enchanted
-  (Bordered
-   element:
-   (Below
-    top: player
-    bottom:
-    (Beside
-     left:
-     (Beside left: (Button label: "▮◀◀"
-			   action: (lambda () (player:rewind!)))
-	     right: (Button label: "▮◀ "
-			    action: (lambda () (player:back!))))
-     right:
-     (Beside
-      left: (Button label: " ▶ "
-		    action: (lambda () (player:play!)))
-      right:
-      (Beside left: (Button label: " ▶▮"
-			    action: (lambda () (player:next!)))
-	      right: (Button label: "▶▶▮"
-			     action: (lambda ()
-				       (player:fast-forward!)))))))))
+  (bordered
+   (below
+    player
+    (beside
+      (Button label: "▮◀◀" action: (lambda () (player:rewind!)))
+      (Button label: "▮◀ " action: (lambda () (player:back!)))
+      (Button label: " ▶ " action: (lambda () (player:play!)))
+      (Button label: " ▶▮" action: (lambda () (player:next!)))
+      (Button label: "▶▶▮" action: (lambda () (player:fast-forward!))))
+    )))
 
 (set! (extension 'Stepper)
       (object (Extension)

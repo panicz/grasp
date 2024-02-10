@@ -1,5 +1,7 @@
 (module-name (editor types extensions combinators))
 
+(import (language match))
+(import (language infix))
 (import (language define-type))
 (import (language fundamental))
 (import (utils functions))
@@ -8,10 +10,6 @@
 (import (editor types spaces))
 (import (editor document cursor))
 (import (editor interfaces painting))
-
-(import (language match))
-(import (language infix))
-
 (import (editor types extensions extensions))
 
 (define-type (Bordered element: Enchanted)
@@ -535,3 +533,38 @@
   ((value)::Object
    (invoke-special Base 'to-list cons to-expression))
   )
+
+(define (beside first::Enchanted second::Enchanted . rest)::Beside
+  (let ((n ::int (length rest)))
+    (match n
+     (0 (Beside left: first right: second))
+     (1 (Beside left: first
+		right: (Beside left: second
+			       right: (car rest))))
+     (2 (Beside left: (Beside left: first
+			      right: second)
+		right: (apply beside rest)))
+     (_
+      (let ((n-2/2 ::int (quotient (- n 2) 2)))
+	(Beside left: (apply beside first second
+			      (take n-2/2 rest))
+		right: (apply beside (drop n-2/2 rest))))))))
+     
+(define (below first::Enchanted second::Enchanted . rest)::Below
+  (let ((n ::int (length rest)))
+    (match n
+     (0 (Below top: first bottom: second))
+     (1 (Below top: first
+	       bottom: (Below top: second
+			      bottom: (car rest))))
+     (2 (Below top: (Below top: first
+			   bottom: second)
+	       bottom: (apply below rest)))
+     (_
+      (let ((n-2/2 ::int (quotient (- n 2) 2)))
+	(Below top: (apply below first second
+			   (take n-2/2 rest))
+	       bottom: (apply below (drop n-2/2 rest))))))))
+
+(define (bordered element::Enchanted)::Bordered
+  (Bordered element: element))

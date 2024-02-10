@@ -92,7 +92,7 @@
 	      (begin
 		(set! (cdr tip) (cons (car input) (cdr tip)))
 		(loop (cdr input) (cdr tip) (- k 1))))))
-      s))
+      '()))
 
 (e.g.
  (take 3 #;elements-from '(1 2 3 4 5))
