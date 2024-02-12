@@ -99,11 +99,11 @@
       (DUMP response)
       response))
 
-  (define ambush-repetitions ::int 2)
+  (define ambush-repetitions ::int 1)
 
-  (define ambush-delay-ms ::int 12)
+  (define ambush-delay-ms ::int 0)
 
-  (define ambush-period-ms ::int 12)
+  (define ambush-period-ms ::int 6)
 
   (define ambush-channel ::int 1)
 
