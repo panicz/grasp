@@ -1,3 +1,65 @@
+* 17.02.2024
+
+dzisiaj nic nie robimy, ale mozna pozwolic umyslowi troche sobie
+powedrowac
+
+kilka rzeczy natomiast mamy:
+- przywrocic 'propertisy' dla rzadkich cech komorek
+  (pre-head-space, pre-tail-space, post-tail-space, dotted?)
+- wycinanie komentarzy
+- drag&drop stringow i komentarzy
+
+tymczasem chcielibysmy zaimplementowac jeszcze zamykanie i otwieranie
+pudelek (tzn. list i stringow)
+
+* 16.02.2024
+
+no to tak:
+- wycinanie wyrazen dziala
+- wklejanie wyrazen dziala
+- wklejanie w tekst dziala
+  - przy wklejaniu do atomu powinnismy uwazac na spacje i nawiasy
+
+natomiast do zrobienia mamy:
+- kopiowanie wyrazen
+- wycinanie selekcji z tekstow
+- wklejanie selekcji w tekst (zastepowanie)
+- integracje ze schowkiem na androidzie
+- na desktopie
+- w terminalu?
+
+i jeszcze w dalszej kolejnosci:
+- selekcje przekraczajace granice wyrazen?
+
+* 13.02.2024
+
+mamy fragment wycinania, i teraz bysmy zrobili analogiczny
+fragment wklejania i kopjowania.
+
+a jak to bedziem to przynajmniej na desktopie i androidzie
+bysmy zintegrowali ze schowkiem systemowym
+
+* 11.02.2024
+
+na razie mamy sobie kilka tajemniczych funkcjonalnosci,
+czyli funkcje cursor-core oraz cursor-terminal+stem.
+
+ten pierwszy to jest po prostu cdr kursora w sytuacji, gdy
+part-at zwraca sam awoj obiekt
+
+ten drugi przecina lancuch na dowolnej spacji, tak zeby
+nie ewaluowac komenrarzy
+
+teraz jeszcze zmienilismy (the-expression) zeby nie zwracal
+spacyj
+
+* 9.02.2024
+
+plan jest taki, zeby na razie kompletnie olac heterogeniczne
+selekcje, i jak najszybciej dojsc do tego, zebysmy mogli
+wycinac, kopiowac i wklejac cale wyraxenia i selekcje
+tekstowe
+
 * 8.02.2024
 
 no dobra, to mamy sobie zrefaktoryzowany mechanizm selekcji
