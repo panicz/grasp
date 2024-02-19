@@ -45,7 +45,7 @@
   ((inverse)::Edit
    (NoEdit)))
 
-(define-type (EditSequence operations:  (list-of Edit))
+(define-type (EditSequence operations: (list-of Edit))
   implementing Edit
   with
   ((apply! document)::Cursor
@@ -208,7 +208,7 @@
     (set-width!)
     (set-height!)))
 
-(define-type (InsertCharacter list: (list-of char)
+(define-type (InsertCharacter list: (sequence-of char)
 			      after: Cursor := (the-cursor))
   implementing Edit
   with

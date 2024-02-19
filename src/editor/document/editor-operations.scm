@@ -37,7 +37,7 @@
 
 (define (unnest-cursor-right!)
   (and-let* ((`(,tip ,top . ,root) (the-cursor))
-	     (parent ::Indexable (the-expression at: root))
+	     (parent ::Indexable (cursor-ref (the-document) root))
 	     (target ::Indexable (parent:part-at top))
 	     (item ::Indexable (target:part-at tip)))
     ;;(assert (eq? target item))
@@ -104,7 +104,7 @@
 
 (define (delete-backward!)::boolean
   (and-let* ((`(,tip ,top . ,root) (the-cursor))
-	     (parent ::Indexable (the-expression at: root))
+	     (parent ::Indexable (cursor-ref (the-document) root))
 	     (target ::Indexable (parent:part-at top))
 	     ((eq? target (target:part-at tip)))
 	     (first-index ::Index (target:first-index))
@@ -112,8 +112,8 @@
 	     (preceding-cursor (cursor-retreat (recons*
 						first-index
 						top root)))
-	     (preceding-element (the-expression
-				 at: preceding-cursor)))
+	     (preceding-element (cursor-ref (the-document)
+					    preceding-cursor)))
     (update-cursor-column!)
     (cond
      ((Atom? target)
@@ -148,8 +148,8 @@
 					  (recons* last-index
 						   top root)))
 		       (following-element ::Textual
-					  (the-expression
-					   at: following-cursor))
+					  (cursor-ref (the-document)
+						      following-cursor))
 		       (preceding-element ::Textual preceding-element)
 		       ((eq? (preceding-element:getClass)
 			     (following-element:getClass))))
@@ -216,7 +216,7 @@
       #f))))
 
 (define (delete-forward!)::boolean
-  (let ((target ::Indexable (the-expression)))
+  (let ((target ::Indexable (cursor-ref)))
     (update-cursor-column!)
     (cond
      ((gnu.lists.LList? target)
@@ -243,7 +243,8 @@
 (define (insert-character! c::char)::boolean
   (and-let* (((isnt c eqv? #\null))
 	     (`(,tip ,top . ,subcursor) (the-cursor))
-	     (parent ::Indexable (the-expression at: subcursor))
+	     (parent ::Indexable (cursor-ref (the-document)
+					     subcursor))
 	     (item ::Indexable (parent:part-at top))
 	     (final ::Indexable (item:part-at tip)))
     (update-cursor-column!)
@@ -386,15 +387,16 @@
        
        ((and-let* (((is tip eqv? (item:last-index)))
 		   (next-cursor (cursor-advance))
-		   (next-target (the-expression at: next-cursor))
+		   (next-target (cursor-ref (the-document)
+					    next-cursor))
 		   ((Atom? next-target)))
 	  (record&perform! (InsertCharacter list: (list c)
 				     after: next-cursor))))
 
        ((and-let* (((is tip eqv? (item:first-index)))
 		   (previous-cursor (cursor-retreat))
-		   (previous-target (the-expression
-				     at: previous-cursor))
+		   (previous-target (cursor-ref (the-document)
+						previous-cursor))
 		   ((Atom? previous-target)))
 	  (record&perform! (InsertCharacter list: (list c)
 				     after: previous-cursor))))
@@ -409,7 +411,8 @@
       (if (is parent ExpressionComment?)
 	  (record&perform! (UncommentExpression))
 	  (and-let* ((`(,tip ,top::integer . ,root) (the-cursor))
-		     (parent ::Indexable (the-expression at: root))
+		     (parent ::Indexable (cursor-ref (the-document)
+						     root))
 		     (preceding ::Space (parent:part-at (- top 1)))
 		     (shift ::integer (preceding:last-index)))
 	    (record&perform! (CommentExpression with-shift: shift)))))

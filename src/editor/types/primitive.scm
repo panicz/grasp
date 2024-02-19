@@ -204,8 +204,8 @@
 
   (define (matches? x)::boolean
     (and-let* ((`(,h . ,t) x)
-	       ((match/equal? car h))
-	       ((match/equal? cdr t)))))
+	       ((match/equal? (invoke-special pair (this) 'getCar) h))
+	       ((match/equal? (invoke-special pair (this) 'getCdr) t)))))
   
   (define (equals object)::boolean
    (eq? object (this)))
@@ -310,7 +310,10 @@
 	  element)))
 
   (define (clone)::Element
-    (cons car cdr))
+    (let ((a (copy (invoke-special pair (this) 'getCar)))
+	  (d (copy (invoke-special pair (this) 'getCdr))))
+    (copy-properties
+     cell-display-properties (this) (cons a d))))
 
   (define pre-head-space ::Space (Space fragments: (pair 0 '())))
 

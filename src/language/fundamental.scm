@@ -54,6 +54,13 @@
 	      (cloned:put key (copy value))
 	      (cloned:put key value))))
       cloned))
+   ((pair? object)
+    (cons (copy (car object)) (copy (cdr object))))
+
+   ((null? object)
+    ;; it's a singleton, so we don't clone
+    object)
+   
    (else
     (error "Unable to clone "object" "(object:getClass)))))
 

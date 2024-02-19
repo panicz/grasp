@@ -1,6 +1,5 @@
 (module-name (editor types extensions extensions))
 
-(import (utils hash-table))
 (import (language define-interface))
 (import (language define-property))
 (import (language define-type))
@@ -8,14 +7,16 @@
 (import (language keyword-arguments))
 (import (language mapping))
 (import (language fundamental))
-(import (editor interfaces elements))
-(import (editor types primitive))
 (import (language infix))
 (import (language match))
-(import (utils functions))
-(import (editor document cursor))
-(import (utils print))
 
+(import (utils functions))
+(import (utils print))
+(import (utils hash-table))
+
+(import (editor interfaces elements))
+(import (editor types primitive))
+(import (editor document cursor))
 (import (editor types texts))
 (import (editor types spaces))
 

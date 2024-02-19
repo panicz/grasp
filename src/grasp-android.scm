@@ -30,6 +30,7 @@
 (import (editor document parse))
 (import (editor document cursor))
 (import (editor document editor-operations))
+(import (editor document copy-paste))
 
 (import (editor input input))
 (import (editor input android-keymap))

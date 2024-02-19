@@ -1085,7 +1085,7 @@
     ::void
     (invoke-special CharPainter (this)
 		    'mark-editor-cursor! +left +top (the-editor))
-    (match (the-expression)
+    (match (cursor-ref)
       (,@Space?
        (put! #\| (+ +top 1) +left))
       (,@Atom?

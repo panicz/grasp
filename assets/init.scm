@@ -15,16 +15,17 @@
 (import (language fundamental))
 (import (language infix))
 (import (language match))
-(import (utils functions))
 (import (language for))
 (import (language while))
-(import (utils print))
-(import (editor input input))
-(import (utils conversions))
 (import (language examples))
+
+(import (utils functions))
+(import (utils conversions))
+(import (utils print))
+
+(import (editor input input))
 (import (editor interfaces elements))
 (import (editor types extensions extensions))
-
 (import (editor interfaces painting))
 (import (editor document editor-operations))
 (import (editor input pane))
@@ -38,6 +39,8 @@
 (import (editor types extensions visual-stepper))
 (import (editor document history-tracking))
 (import (editor types spaces))
+(import (editor document copy-paste))
+
 
 (define-syntax $lookup$
   (syntax-rules ()
@@ -68,6 +71,9 @@
 
 (set-key! '(ctrl z) undo!)
 (set-key! '(ctrl y) redo!)
+(set-key! '(ctrl x) cut-selection!)
+(set-key! '(ctrl c) copy-selection!)
+(set-key! '(ctrl v) paste-selection!)
 
 (set-key! '(ctrl q) exit)
 

@@ -49,7 +49,14 @@
 (define (the-expression #!key
 			(at::Cursor (the-cursor))
 			(in (the-document)))
-  (cursor-ref in at))
+  (let ((target (cursor-ref in at)))
+    (if (and (is target Element?)
+	     (isnt target Tile?)
+	     (is at pair?))
+	;; (the-expression) is never a Space
+	;; - it is either a Tile or a Lisp primitive
+	(the-expression at: (cdr at) in: in)
+	target)))
 
 (define (fully-expanded? cursor::Cursor #;on document)
   ::boolean
@@ -62,7 +69,9 @@
     (and-let* ((`(,tip . ,root) cursor)
 	       (parent ::Indexable (cursor-ref document root))
 	       (target ::Indexable (parent:part-at tip)))
-      (if (eq? parent target)
+      (if (or (eq? parent target)
+	      (and (is target Element?)
+		   (isnt target Tile?)))
 	  (cursor-core root document)
 	  cursor))))
 
