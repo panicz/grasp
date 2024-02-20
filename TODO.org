@@ -1,3 +1,12 @@
+* 19.02.2024
+
+- obsluga schowka w pozostalych klientach
+- refaktoryzacja spacji zeby poprawic klonowanie
+- kopiowanie
+- obsluga selekcji w obrebie jednego elementu
+- wyjatki dla atomu
+- integracja ze schowkami systemowymi
+
 * 17.02.2024
 
 dzisiaj nic nie robimy, ale mozna pozwolic umyslowi troche sobie
