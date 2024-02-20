@@ -183,13 +183,13 @@
 5 ;6"))
 		#;(cell-access-mode CellAccessMode:Evaluating))
    (and (equal? (extract! at: '(1 0 1))
-		(ExpressionComment expression: (Atom "0")))
+		(ExpressionComment (Atom "0")))
 	(equal? (extract! at: '(2 2 1))
-		(BlockComment content: (text "2")))
+		(BlockComment (text "2")))
 	(equal? (extract! at: '(2 4 1))
-		(LineComment content: (text "4")))
+		(LineComment (text "4")))
 	(equal? (extract! at: '(2 6 1))
-		(LineComment content: (text "6")))
+		(LineComment (text "6")))
 	(document->string (the-document)))) ===>
 		" 1  3 
 5 

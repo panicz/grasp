@@ -315,7 +315,7 @@
     (copy-properties
      cell-display-properties (this) (cons a d))))
 
-  (define pre-head-space ::Space (Space fragments: (pair 0 '())))
+  (define pre-head-space ::Space (Space (pair 0 '())))
 
   (define dotted? ::boolean
     (not (or (empty? cdr)
@@ -324,14 +324,14 @@
   (define post-head-space ::Space
     (if (and (not dotted?)
 	     (empty? cdr))
-	(Space fragments: (pair 0 '()))
-	(Space fragments: (pair 1 '()))))
+	(Space (pair 0 '()))
+	(Space (pair 1 '()))))
 
   (define pre-tail-space ::Space
-    (Space fragments: (pair 1 '())))
+    (Space (pair 1 '())))
 
   (define post-tail-space ::Space
-    (Space fragments: (pair 0 '())))
+    (Space (pair 0 '())))
   
   (pair car cdr))
 
@@ -658,7 +658,7 @@
 
     (escape-with return
 
-      (define-syntax-rule (action item #|::Element|# current #|::Traversal|#)
+      (define-syntax-rule (action item #;Element current #;Traversal)
 	 (and-let* ((space ::Space item))
 	   (set! last-space space)
 	   (next:assign current)
@@ -691,7 +691,7 @@
 		(values))))
 	   (set! previous-left current:left)))
 
-      (define-syntax-rule (result t #|::Traversal|#)
+      (define-syntax-rule (result t #;Traversal)
 	(LineEnding reach: previous-left
 		    space: last-space
 		    index: (last-space:last-index)))
@@ -722,7 +722,8 @@
 
 
 (define (document-position-of-element-pointed-by cursor document 
-                                                 #!key (context::Cursor (recons 1 '())))
+                                                 #!key (context::Cursor
+							(recons 1 '())))
   ::(Values real real)
   (escape-with return
     (define (action item ::Element traversal ::Traversal)
@@ -775,14 +776,8 @@
 
 (define (copy-properties properties original cell)
   (for property in properties
-    (set! (property cell) (property original)))
+    (update! (property cell) (copy (property original))))
   cell)
-
-(define (copy-properties* properties original cell)
-  (copy-properties properties original cell)
-  (when (and (pair? (cdr original))
-	     (pair? (cdr cell)))
-    (copy-properties* properties (cdr original) (cdr cell))))
 
 (define (tail-space-to-head original cell)
   (set! (pre-head-space cell)

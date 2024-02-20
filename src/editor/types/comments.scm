@@ -3,6 +3,7 @@
 (import (language assert))
 (import (language define-cache))
 (import (language define-type))
+(import (language define-object))
 (import (language define-interface))
 (import (language fundamental))
 (import (editor interfaces elements))
@@ -18,54 +19,58 @@
 (import (utils print))
 (import (utils functions))
 
-(define-type (ExpressionComment expression: Tile)
-  implementing Comment
-  with
-  ((draw! context::Cursor)::void
+(define-object (ExpressionComment expression ::Tile)::Comment
+
+  (define (clone)::Element
+    (ExpressionComment (copy expression)))
+
+  (define (draw! context::Cursor)::void
    (painter:enter-comment-drawing-mode!)
    (expression:draw! (hash-cons #\; context))
    (painter:exit-comment-drawing-mode!))
   
-  ((cursor-under* x::real y::real path::Cursor)::Cursor*
+  (define (cursor-under* x::real y::real path::Cursor)::Cursor*
    (expression:cursor-under* x y (hash-cons #\; path)))
 
-  ((extent)::Extent
+  (define (extent)::Extent
    (expression:extent))
 
-  ((expand! traversal::Traversal)::void
+  (define (expand! traversal::Traversal)::void
    (traversal:expand! (extent)))
 
-  ((breaks-line?)::boolean #f)
+  (define (breaks-line?)::boolean #f)
   
-  ((print out::gnu.lists.Consumer)::void
+  (define (print out::gnu.lists.Consumer)::void
    (out:append #\#)
    (out:append #\;)
    (show expression))
 
-  ((toString)::String
+  (define (toString)::String
    (string-append "#;" (show->string expression)))
 
-  ((part-at index::Index)::Indexable*
+  (define (part-at index::Index)::Indexable*
    (assert (eqv? index #\;))
    expression)
 
-  ((first-index)::Index #\;)
+  (define (first-index)::Index #\;)
 
-  ((last-index)::Index #\;)
+  (define (last-index)::Index #\;)
 
-  ((next-index index::Index)::Index #\;)
+  (define (next-index index::Index)::Index #\;)
 
-  ((previous-index index::Index)::Index #\;)
+  (define (previous-index index::Index)::Index #\;)
 
-  ((index< a::Index b::Index)::Index #f))
+  (define (index< a::Index b::Index)::Index #f))
 
-(define-type (BlockComment content: Text := (Text))
-  implementing TextualComment
-  with
-  ((draw! context::Cursor)::void
+(define-object (BlockComment content ::Text)::TextualComment
+
+  (define (clone)::Element
+    (BlockComment (copy content)))
+  
+  (define (draw! context::Cursor)::void
    (painter:draw-block-comment! content context))
   
-  ((cursor-under* x::real y::real path::Cursor)::Cursor*
+  (define (cursor-under* x::real y::real path::Cursor)::Cursor*
    (otherwise #!null
      (let ((inner ::Extent (extent)))
        (and (is 0 <= x < inner:width)
@@ -74,15 +79,15 @@
 			  x y content)))
 	      (hash-cons index path))))))
   
-  ((extent)::Extent
+  (define (extent)::Extent
    (painter:block-comment-extent content))
 
-  ((expand! traversal::Traversal)::void
+  (define (expand! traversal::Traversal)::void
    (traversal:expand! (extent)))
 
-  ((breaks-line?)::boolean #f)
+  (define (breaks-line?)::boolean #f)
   
-  ((print out::gnu.lists.Consumer)::void
+  (define (print out::gnu.lists.Consumer)::void
    (out:append #\#)
    (out:append #\|)
    (for c::gnu.text.Char in content
@@ -90,50 +95,50 @@
    (out:append #\|)
    (out:append #\#))
 
-  ((toString)::String
+  (define (toString)::String
    (string-append "#|" content "|#"))
   
-  ((part-at index::Index)::Indexable*
+  (define (part-at index::Index)::Indexable*
    (this))
   
-  ((first-index)::Index 0)
+  (define (first-index)::Index 0)
 
-  ((last-index)::Index
+  (define (last-index)::Index
    (string-length content))
 
-  ((next-index index::Index)::Index
+  (define (next-index index::Index)::Index
    (min (+ index 1) (last-index)))
 
-  ((previous-index index::Index)::Index
+  (define (previous-index index::Index)::Index
    (max (- index 1) (first-index)))
 
-  ((index< a::Index b::Index)::boolean
+  (define (index< a::Index b::Index)::boolean
    (is a < b))
   
-  ((insert-char! c::char index::int)::void
+  (define (insert-char! c::char index::int)::void
    (content:insert-char! c index))
   
-  ((delete-char! index::int)::char
+  (define (delete-char! index::int)::char
    (content:delete-char! index))
   
-  ((char-ref index::int)::char
+  (define (char-ref index::int)::char
    (content:char-ref index))
   
-  ((text-length)::int
+  (define (text-length)::int
    (content:text-length))
   
-  ((split! position::int)::Textual
+  (define (split! position::int)::Textual
    (let ((splitted ::Text (content:split! position)))
-     (BlockComment content: splitted)))
+     (BlockComment splitted)))
    
-  ((merge! following::Textual)::boolean
+  (define (merge! following::Textual)::boolean
    (and-let* ((next ::BlockComment following))
      (content:merge! next:content)))
 
-  ((removable?)::boolean
+  (define (removable?)::boolean
    (is (text-length) <= 0))
 
-  ((remove-from! fragments::list)::list
+  (define (remove-from! fragments::list)::list
    (let ((that (this)))
      (cond
       ((first-cell (lambda (l)
@@ -150,20 +155,22 @@
        fragments))))
   )
 
-(define-type (LineComment content: Text := (Text))
-  implementing TextualComment
-  with
-  ((draw! context::Cursor)::void
+(define-object (LineComment content ::Text)::TextualComment
+
+  (define (clone)::Element
+    (LineComment (copy content)))
+  
+  (define (draw! context::Cursor)::void
    (painter:draw-line-comment! content context))
 
-  ((extent)::Extent
+  (define (extent)::Extent
    (painter:line-comment-extent content))
 
-  ((expand! traversal::Traversal)::void
+  (define (expand! traversal::Traversal)::void
    (traversal:expand! (extent))
    (traversal:new-line!))
 
-  ((cursor-under* x::real y::real path::Cursor)::Cursor*
+  (define (cursor-under* x::real y::real path::Cursor)::Cursor*
    (otherwise #!null
      (let ((inner ::Extent (extent)))
        (and (is 0 <= x < inner:width)
@@ -172,59 +179,59 @@
 			x y content)
 		       path)))))
 
-  ((breaks-line?)::boolean #t)
+  (define (breaks-line?)::boolean #t)
   
-  ((print out::gnu.lists.Consumer)::void
+  (define (print out::gnu.lists.Consumer)::void
    (out:append #\;)
    (for c in content
      (out:append (as char c)))
    (out:append #\newline))
 
-  ((toString)::String
+  (define (toString)::String
    (string-append ";" content "\n"))
   
-  ((part-at index::Index)::Indexable*
+  (define (part-at index::Index)::Indexable*
    (this))
 
-  ((first-index)::Index 0)
+  (define (first-index)::Index 0)
 
-  ((last-index)::Index
+  (define (last-index)::Index
    (string-length content))
 
-  ((next-index index::Index)::Index
+  (define (next-index index::Index)::Index
    (min (+ index 1) (last-index)))
 
-  ((previous-index index::Index)::Index
+  (define (previous-index index::Index)::Index
    (max (- index 1) (first-index)))
 
-  ((index< a::Index b::Index)::boolean
+  (define (index< a::Index b::Index)::boolean
    (is a < b))
 
-  ((insert-char! c::char index::int)::void
+  (define (insert-char! c::char index::int)::void
    (unless (eqv? c #\newline)
      (content:insert-char! c index)))
   
-  ((delete-char! index::int)::char
+  (define (delete-char! index::int)::char
    (content:delete-char! index))
   
-  ((char-ref index::int)::char
+  (define (char-ref index::int)::char
    (content:char-ref index))
   
-  ((text-length)::int
+  (define (text-length)::int
    (content:text-length))
   
-  ((split! position::int)::Textual
+  (define (split! position::int)::Textual
    (let ((splitted ::Text (content:split! position)))
-     (LineComment content: splitted)))
+     (LineComment splitted)))
    
-  ((merge! following::Textual)::boolean
+  (define (merge! following::Textual)::boolean
    (and-let* ((next ::LineComment following))
      (content:merge! next:content)))
 
-  ((removable?)::boolean
+  (define (removable?)::boolean
    (is (text-length) <= 1))
 
-  ((remove-from! fragments::list)::list
+  (define (remove-from! fragments::list)::list
    (let ((that (this)))
      (remove! (is _ eq? that) fragments)))
    )

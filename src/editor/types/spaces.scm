@@ -203,9 +203,15 @@
    (and (equal? result '(1 2 2))
 	(eq? result fragments))))
 
-(define-type (Space fragments: pair)
-  implementing Element with
-  ((part-at index::Index)::Indexable*
+(define-object (Space fragments ::pair)::ExpandableTextualElement
+  
+  (define (clone)::Element
+    (Space (copy fragments)))
+  
+  (define (equals other::java.lang.Object)::boolean
+    (and-let* (((Space fragments: ,fragments) other))))
+  
+  (define (part-at index::Index)::Indexable*
    (try-catch
     (let-values (((fragments* index*) (space-fragment-index
 				       fragments index)))
@@ -217,9 +223,9 @@
 	(WARN"fragments: "fragments", index "index)
 	#!null)))
 
-  ((first-index)::Index 0)
+  (define (first-index)::Index 0)
 
-  ((last-index)::Index
+  (define (last-index)::Index
    (fold-left (lambda (total next)
 		(if (number? next)
 		    (+ total next)
@@ -227,28 +233,28 @@
 	      (length (cdr fragments))
 	      fragments))
 
-  ((next-index index::Index)::Index
+  (define (next-index index::Index)::Index
    (min (+ index 1) (last-index)))
 
-  ((previous-index index::Index)::Index
+  (define (previous-index index::Index)::Index
    (max (first-index) (- index 1)))
 
-  ((index< a::Index b::Index)::boolean
+  (define (index< a::Index b::Index)::boolean
    (is (as int a) < (as int b)))
 
-  ((insert-space! position::int)::void
+  (define (insert-space! position::int)::void
    (let-values (((cell index) (space-fragment-index
 			       fragments
 			       position)))
      (set! (car cell) (as int (+ (car cell) 1)))))
 
-  ((insert-break! position::int)::void
+  (define (insert-break! position::int)::void
    (let-values (((cell index) (space-fragment-index
 			       fragments
 			       position)))
      (set! (cdr cell) (cons 0 (cdr cell)))))
 
-  ((draw! context::Cursor)::void
+  (define (draw! context::Cursor)::void
    (let-values (((selection-start selection-end) (the-selection)))
      (let* ((enters-selection-drawing-mode?::boolean
 	     (and (pair? selection-start)
@@ -320,7 +326,7 @@
 	     ('()
 	      (set! t0:on-end-line t:on-end-line))))))))
 
-  ((cursor-under* x::real y::real path::Cursor)::Cursor*
+  (define (cursor-under* x::real y::real path::Cursor)::Cursor*
    (otherwise #!null
      (and-let* ((space-width ::real (painter:space-width))
 		(traversal ::Traversal (the-traversal))
@@ -375,7 +381,7 @@
 
 	   ('()
 	    #!null))))))
-  ((print out::gnu.lists.Consumer)::void
+  (define (print out::gnu.lists.Consumer)::void
    (let process ((input fragments))
      (match input
        (`(,width::integer ,next-line-prefix::integer . ,_)
@@ -396,9 +402,7 @@
        (_
 	(values)))))
 
-  implementing Expandable
-  with
-  ((expand! t::Traversal)::void
+  (define (expand! t::Traversal)::void
    (let* ((space-width ::real (painter:space-width)))
      (let skip ((input ::list fragments)
 		(total ::int 0))
@@ -419,21 +423,19 @@
 	 ('()
 	  (values))))))
 
-  implementing Textual
-  with
-  ((insert-char! c::char index::int)::void
+  (define (insert-char! c::char index::int)::void
    (match (integer->char c)
      (#\space
       (insert-space! index))
      (#\newline
       (insert-break! index))))
 
-  ((delete-char! index::int)::char
+  (define (delete-char! index::int)::char
    (let ((result (char-ref index)))
      (delete-space-fragment! fragments index)
      result))
 
-  ((char-ref index::int)::char
+  (define (char-ref index::int)::char
    (let-values (((fragment index) (space-fragment-index
 				   fragments index)))
      (match fragments
@@ -442,10 +444,10 @@
        (_
 	#\space))))
 
-  ((split! position::int)::Textual
+  (define (split! position::int)::Textual
    (split-fragments! fragments position))
 
-  ((merge! next::Textual)::boolean
+  (define (merge! next::Textual)::boolean
    (and-let* ((next ::Space next)
 	      (suffix (last-tail fragments))
 	      (`(,n) suffix)
@@ -454,7 +456,7 @@
      (set! (cdr suffix) appendix)
      #t))
 
-  ((text-length)::int
+  (define (text-length)::int
    (fold-left (lambda (x0::int f)::int
 		      (+ x0 (fragment-size f)
 			 (if (number? f) 1 0)))
@@ -463,19 +465,19 @@
 
 
 (define (SingleSpace)::Space
-  (Space fragments: (list 1)))
+  (Space (list 1)))
 
 (define (SingleSpace? space ::Space)::boolean
   (and-let* (((Space fragments: '(1)) space))))
 
 (define (NewLine)::Space
-  (Space fragments: (list 0 0)))
+  (Space (list 0 0)))
 
 (define (NewLine? space ::Space)::boolean
   (and-let* (((Space fragments: '(0 0)) space))))
 
 (define (EmptySpace)::Space
-  (Space fragments: (list 0)))
+  (Space (list 0)))
 
 (define (EmptySpace? space ::Space)::boolean
   (and-let* (((Space fragments: '(0)) space))))
@@ -516,14 +518,14 @@
        (let ((reminent (cons (- first index) rest)))
 	 (set! (car fragments) index)
 	 (set! (cdr fragments) '())
-	 (Space fragments: reminent)))
+	 (Space reminent)))
       
       ((and-let* ((`(,next . ,rest*) rest)
 		  ((isnt next integer?)))
 	 (cond
 	  ((= index (+ first 1))
 	   (set! (cdr fragments) '())
-	   (Space fragments: rest))
+	   (Space rest))
 	  (else
 	   (split-fragments!
 	    rest*
@@ -540,53 +542,53 @@
 
 (e.g.
  (let* ((fragments (list 3 6 9))
-	(space (Space fragments: fragments))
+	(space (Space fragments))
 	(rest (split-space! space 0)))
-   (and (equal? space (Space fragments: '(0)))
-	(equal? rest (Space fragments: '(3 6 9))))))
+   (and (equal? space (Space '(0)))
+	(equal? rest (Space '(3 6 9))))))
 
 (e.g.
- (let* ((space (Space fragments: (list 3 6 9)))
+ (let* ((space (Space (list 3 6 9)))
 	(rest (split-space! space 1)))
-   (and (equal? space (Space fragments: '(1)))
-	(equal? rest (Space fragments: '(2 6 9))))))
+   (and (equal? space (Space '(1)))
+	(equal? rest (Space '(2 6 9))))))
 
 (e.g.
- (let* ((space (Space fragments: (list 3 6 9)))
+ (let* ((space (Space (list 3 6 9)))
 	(rest (split-space! space 3)))
-   (and (equal? space (Space fragments: '(3)))
-	(equal? rest (Space fragments: '(0 6 9))))))
+   (and (equal? space (Space '(3)))
+	(equal? rest (Space '(0 6 9))))))
 
 (e.g.
- (let* ((space (Space fragments: (list 3 6 9)))
+ (let* ((space (Space (list 3 6 9)))
 	(rest (split-space! space 4)))
-   (and (equal? space (Space fragments: '(3 0)))
-	(equal? rest (Space fragments: '(6 9))))))
+   (and (equal? space (Space '(3 0)))
+	(equal? rest (Space '(6 9))))))
 
 (e.g.
- (let* ((space (Space fragments: (list 3 6 9)))
+ (let* ((space (Space (list 3 6 9)))
 	(rest (split-space! space 5)))
-   (and (equal? space (Space fragments: '(3 1)))
-	(equal? rest (Space fragments: '(5 9))))))
+   (and (equal? space (Space '(3 1)))
+	(equal? rest (Space '(5 9))))))
 
 (e.g.
- (let* ((space (Space fragments: (list 3 6 9)))
+ (let* ((space (Space (list 3 6 9)))
 	(rest (split-space! space 10)))
-   (and (equal? space (Space fragments: '(3 6)))
-	(equal? rest (Space fragments: '(0 9))))))
+   (and (equal? space (Space '(3 6)))
+	(equal? rest (Space '(0 9))))))
 
 (e.g.
- (let* ((space (Space fragments: (list 3 6 9)))
+ (let* ((space (Space (list 3 6 9)))
 	(rest (split-space! space 11)))
-   (and (equal? space (Space fragments: '(3 6 0)))
-	(equal? rest (Space fragments: '(9))))))
+   (and (equal? space (Space '(3 6 0)))
+	(equal? rest (Space '(9))))))
 
 (define (skip-first-line s::Space)::Space
   (match s:fragments
     (`(,,@integer? ,,@integer? . ,_)
-     (Space fragments: (cdr s:fragments)))
+     (Space (cdr s:fragments)))
     (_
-     (Space fragments: '(0)))))
+     (Space '(0)))))
 
 (define-object (HeadTailSeparator)::Indexable
   (define (part-at index::Index)::Indexable* (this))

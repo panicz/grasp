@@ -280,7 +280,7 @@
 		   (Remove element: (drop (quotient top 2) parent)
 			   at: (recons top subcursor)
 			   with-shift: (car preceding-cursor))
-		   (InsertComment content: (BlockComment)
+		   (InsertComment content: (BlockComment (Text))
 				  at: preceding-cursor)))))
 	     ((= tip 1)
 	      ;; remove the # character from the beginning 
@@ -291,7 +291,7 @@
 		operations:
 		(list
 		 (RemoveCharacter list: (cons #\# '()))
-		 (InsertComment content: (BlockComment)
+		 (InsertComment content: (BlockComment (Text))
 				at: preceding-cursor)))))
 
 	     ((= tip n)
@@ -303,7 +303,7 @@
 		operations:
 		(list
 		 (RemoveCharacter list: (cons #\# '()))
-		 (InsertComment content: (BlockComment)
+		 (InsertComment content: (BlockComment (Text))
 				at: following-cursor)))))
 	     
 	     (else
@@ -316,8 +316,7 @@
 		(list
 		 (RemoveCharacter list: (cons #\# '()))
 		 (SplitElement at: (recons* (- tip 1) top subcursor)
-			       with: (Space fragments:
-					    (cons* 0 (BlockComment)
+			       with: (Space (cons* 0 (BlockComment (Text))
 						   0 '())))))))))
 	   ((and (is tip < n) (eq? (atom:char-ref tip) #\#))
 	     (cond
@@ -330,7 +329,7 @@
 		(list
 		 (Remove element: (drop (quotient top 2) parent)
 			 at: (recons top subcursor))
-		 (InsertComment content: (BlockComment)
+		 (InsertComment content: (BlockComment (Text))
 				at: preceding-cursor)))))
 	     ((= tip 0)
 	      ;; remove the # character from the beginning 
@@ -342,7 +341,7 @@
 		(list
 		 (RemoveCharacter list: (cons #\# '())
 				  before: (recons* 1 top subcursor))
-		 (InsertComment content: (BlockComment)
+		 (InsertComment content: (BlockComment (Text))
 				at: preceding-cursor)))))
 	     ((= tip (- n 1))
 	      ;; remove the # character from the end
@@ -354,7 +353,7 @@
 		(list
 		 (RemoveCharacter list: (cons #\# '())
 				  before: (recons* n top cursor))
-		 (InsertComment content: (BlockComment))))))
+		 (InsertComment content: (BlockComment (Text)))))))
 	     (else
 	      ;; remove the # character from the middle of the atom.
 	      ;; then split the atom and insert a new block comment
@@ -366,8 +365,7 @@
 		 (RemoveCharacter list: (cons #\# '())
 				  before: (recons* (+ tip 1) top
 						   subcursor))
-		 (SplitElement with: (Space fragments:
-					    (cons* 0 (BlockComment)
+		 (SplitElement with: (Space (cons* 0 (BlockComment (Text))
 						   0 '())))))))
 	     )))))))
      
@@ -383,7 +381,7 @@
 	(record&perform! (InsertCharacter list: (list c))))
 
        ((eqv? c #\;)
-	(record&perform! (InsertComment content: (LineComment))))
+	(record&perform! (InsertComment content: (LineComment (Text)))))
        
        ((and-let* (((is tip eqv? (item:last-index)))
 		   (next-cursor (cursor-advance))

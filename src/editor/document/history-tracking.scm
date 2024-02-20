@@ -292,7 +292,7 @@
    (and-let* ((`(,tip ,top . ,root) at)
 	      (`(,expression) (extract! at: (recons top root)
 					from: document)))
-     (insert! (ExpressionComment expression: expression)
+     (insert! (ExpressionComment expression)
               into: document at: (recons* with-shift (- top 1) root))
      (recons* tip #\; (+ with-shift 1) (- top 1) root)))
   ((inverse)::Edit

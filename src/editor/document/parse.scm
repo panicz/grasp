@@ -144,8 +144,7 @@
 
 
 (define (read-spaces #!optional (result::Space
-				 (Space fragments:
-					(cons 0 '()))))
+				 (Space (cons 0 '()))))
   ::Space
   (define (read-spaces-into pair)
     (let ((c (peek-char)))
@@ -157,7 +156,7 @@
 	    (#\;
 	     (let ((line-comment (read-line-comment)))
 	       (set-cdr! pair
-			 (cons (LineComment content: line-comment)
+			 (cons (LineComment line-comment)
 			       (cons 0 (tail pair))))
 	       (read-spaces-into (tail (tail pair)))))
 	    (#\newline
@@ -280,8 +279,7 @@
 		      ;;(assert (EmptySpace? spaces))
 		      (set-cdr! coda
 				(cons
-				 (ExpressionComment
-				  expression: (car unexpr))
+				 (ExpressionComment (car unexpr))
 				 next-space:fragments))
 		      (read-next))))
 
@@ -292,7 +290,7 @@
 			 (next-space (read-spaces)))
 		    (set-cdr! coda
 			      (cons
-			       (BlockComment content: comment)
+			       (BlockComment comment)
 			       next-space:fragments))
 		    (read-next)))
 

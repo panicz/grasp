@@ -57,8 +57,9 @@
    ((pair? object)
     (cons (copy (car object)) (copy (cdr object))))
 
-   ((null? object)
-    ;; it's a singleton, so we don't clone
+   ((or (null? object)
+	(number? object)
+	(boolean? object))
     object)
    
    (else

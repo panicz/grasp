@@ -149,6 +149,10 @@
 
   (Base))
 
+(define-interface ExpandableTextualElement (Expandable
+					    Textual
+					    Element))
+
 (define-interface Tile (Element)
   (extent)::Extent
   )

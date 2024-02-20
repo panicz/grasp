@@ -31,6 +31,8 @@
 (import (editor document parse))
 (import (editor document editor-operations))
 (import (editor document history-tracking))
+(import (editor document copy-paste))
+
 (import (editor input desktop-keymap))
 (import (editor types extensions extensions))
 (import (editor input transforms))

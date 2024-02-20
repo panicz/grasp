@@ -34,6 +34,8 @@
 
 (import (editor document document-operations))
 (import (editor document editor-operations))
+(import (editor document copy-paste))
+
 (import (editor text-painter))
 (import (editor types extensions extensions))
 (import (editor types extensions widgets))
