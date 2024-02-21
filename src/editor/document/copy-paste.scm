@@ -37,7 +37,6 @@
   (define items ::list '())
   
   (define (upload! new-content ::list)::boolean
-    (WARN "send "new-content" to clipboard")
     (set! items new-content)
     #t)
   
@@ -55,8 +54,8 @@
   (the-cursor))
 
 (define/kw (cut-selection! at: cursor ::Cursor := (the-cursor)
-			    to: range ::integer := (the-selection-range)
-			    in: document := (the-document))
+			   to: range ::integer := (the-selection-range)
+			   in: document := (the-document))
   ::boolean
   (let ((clipboard ::Clipboard (the-system-clipboard)))
     (if (= range 0)
@@ -94,18 +93,16 @@
 		   (expression (the-expression)))
 	  (clipboard:upload! (cons expression (empty))))
 	#f)))
-  
+
 (define/kw (paste-selection! into: document := (the-document)
-			      at: cursor ::Cursor := (the-cursor)
-			      to: range ::integer := (the-selection-range))
+			     at: cursor ::Cursor := (the-cursor)
+			     to: range ::integer := (the-selection-range))
   ::boolean
   (and-let* ((clipboard ::Clipboard (the-system-clipboard))
 	     ;; moze trzeba tutaj zrobic kopie:
 	     (content ::list (clipboard:content))
 	     ((pair? content))
-	     ((truly (DUMP content)))
-	     (content ::list (copy content))
-	     ((truly (DUMP content))))
+	     (content ::list (copy content)))
     (if (= range 0)
 	(let ((target (cursor-ref document cursor)))
 	  (cond
