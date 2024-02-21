@@ -1,3 +1,13 @@
+* 20.02.2024
+
+- dzis bysmy zrobili to kopiowanie i sprobowali poczynic
+  jakies kroki w kierunku integracji ze schowkiem systemowym
+  - najpierw na Androidzie, a potem w AWT
+
+aaa kopiowanie juz dziala!
+
+no to od razu robimy costam ze schowkiem systemowym
+
 * 19.02.2024
 
 - obsluga schowka w pozostalych klientach
