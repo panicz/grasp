@@ -779,6 +779,12 @@
     (update! (property cell) (copy (property original))))
   cell)
 
+(define (copy-properties* properties original cell)
+  (copy-properties properties original cell)
+  (when (and (pair? (cdr original))
+	     (pair? (cdr cell)))
+    (copy-properties* properties (cdr original) (cdr cell))))
+
 (define (tail-space-to-head original cell)
   (set! (pre-head-space cell)
 	   (pre-tail-space original))

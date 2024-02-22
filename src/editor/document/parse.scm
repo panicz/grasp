@@ -172,7 +172,8 @@
 
   (read-spaces-into result:fragments))
 
-(define (read-list #!optional (max-items +inf.0))::(Values (list-of Tile) Space)
+(define (read-list #!optional (max-items +inf.0))
+  ::(Values (list-of Tile) Space)
   (let* ((result (empty))
 	 (growth-cone '())
 	 (initial-space (read-spaces))

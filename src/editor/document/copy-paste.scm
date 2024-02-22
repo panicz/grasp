@@ -24,39 +24,30 @@
 (import (editor document document-operations))
 (import (editor document editor-operations))
 (import (editor document history-tracking))
-(import (editor input evaluation)) ;; for grasp
 
 (define the-clip #!null)
 
 (define-interface Clipboard ()
-  (upload! new-content ::list)::boolean
+  (upload! new-content ::pair)::void
   (content)::list)
 
 (define-object (SystemClipboardMissing)::Clipboard
 
   (define items ::list '())
   
-  (define (upload! new-content ::list)::boolean
-    (set! items new-content)
-    #t)
+  (define (upload! new-content ::pair)::void
+    (set! items new-content))
   
   (define (content)::list
-    items))
+    (copy items)))
 
 (define-parameter (the-system-clipboard)::Clipboard
   (SystemClipboardMissing))
 
-;; To oczywiscie bedzie trzeba dopicowac
-(define (the-selection-start)
-  (the-cursor))
-
-(define (the-selection-end)
-  (the-cursor))
-
 (define/kw (cut-selection! at: cursor ::Cursor := (the-cursor)
 			   to: range ::integer := (the-selection-range)
 			   in: document := (the-document))
-  ::boolean
+  ::void
   (let ((clipboard ::Clipboard (the-system-clipboard)))
     (if (= range 0)
 	(and-let* ((core ::Cursor (cursor-core cursor document))
@@ -85,8 +76,8 @@
 
 (define/kw (copy-selection! at: cursor ::Cursor := (the-cursor)
 			    to: range ::integer := (the-selection-range)
-			     in: document := (the-document))`
-  ::boolean
+			    in: document := (the-document))
+  ::void
   (let ((clipboard ::Clipboard (the-system-clipboard)))
     (if (= range 0)
 	(and-let* ((core ::Cursor (cursor-core cursor document))
@@ -97,12 +88,11 @@
 (define/kw (paste-selection! into: document := (the-document)
 			     at: cursor ::Cursor := (the-cursor)
 			     to: range ::integer := (the-selection-range))
-  ::boolean
+  ::void
   (and-let* ((clipboard ::Clipboard (the-system-clipboard))
 	     ;; moze trzeba tutaj zrobic kopie:
 	     (content ::list (clipboard:content))
-	     ((pair? content))
-	     (content ::list (copy content)))
+	     ((pair? content)))
     (if (= range 0)
 	(let ((target (cursor-ref document cursor)))
 	  (cond
@@ -140,7 +130,5 @@
 	      (record&perform!
 	       (EditSequence operations: insertions))))
 	   (else
-	    (WARN "unhandled target: "(target:getClass) target)
-	    #f)))
-	#f)))
+	    (WARN "unhandled target: "(target:getClass) target)))))))
 
