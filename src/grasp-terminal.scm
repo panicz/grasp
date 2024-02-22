@@ -48,6 +48,7 @@
 (import (editor input touch-event-processor))
 (import (editor types extensions visual-stepper))
 (import (editor input transforms))
+(import (editor awt-clipboard))
 
 (define-alias Thread java.lang.Thread)
 (define-alias BlockingQueue java.util.concurrent.BlockingQueue)
@@ -55,13 +56,6 @@
 (define-alias Scheduler java.util.concurrent.ScheduledExecutorService)
 (define-alias ScheduledTask java.util.concurrent.ScheduledFuture)
 (define-alias TimeUnit java.util.concurrent.TimeUnit)
-
-(define-alias Transferable java.awt.datatransfer.Transferable)
-(define-alias DataFlavor java.awt.datatransfer.DataFlavor)
-
-(define-alias StringSelection java.awt.datatransfer.StringSelection)
-(define-alias AWTClipboard java.awt.datatransfer.Clipboard)
-(define-alias ClipboardOwner java.awt.datatransfer.ClipboardOwner)
 
 (define-alias InputStream java.io.InputStream)
 (define ClassLoader ::java.lang.ClassLoader
@@ -158,47 +152,6 @@
   (let ((color ::Color (blend text-color background
 			      (the-text-intensity))))
     (letter/cached character color background style)))
-
-(define-interface OwnClipboard (Clipboard ClipboardOwner))
-
-(define-object (AWTSystemClipboard clipboard::AWTClipboard)
-  ::OwnClipboard
-
-  (define own-content ::list '())
-  (define own-clip-data ::Transferable #!null)
-
-  (define (try-parse item ::Transferable)::list
-    (let* ((reader ::java.io.Reader
-		   (DataFlavor:stringFlavor:getReaderForText item))
-	   (input ::gnu.kawa.io.InPort (gnu.kawa.io.InPort reader)))
-      (with-input-from-port input
-	(lambda ()
-	  (let*-values (((expression preceding-space) (read-list 1))
-			((following-space) (read-spaces))
-			((next) (peek-char)))
-	    (if (eof-object? next)
-		expression
-		(cons (text input) '())))))))
-
-  (define (upload! new-content ::pair)::void
-    (and-let* ((`(,head . ,tail) new-content)
-	       (text (show->string head))
-	       (clip ::Transferable (StringSelection text)))
-      (clipboard:setContents clip (this))
-      (set! own-clip-data clip)
-      (set! own-content new-content)))
-
-  (define (content)::list
-    (let ((clip ::Transferable (clipboard:getContents (this))))
-      (if (eq? clip own-clip-data)
-	  (copy own-content)
-	  (try-parse clip))))
-  
-  (define (lostOwnership context::AWTClipboard
-			 content::Transferable)
-    ::void
-    (set! own-content '()))
-  )
 
 (define system-clipboard
   (let* ((toolkit ::java.awt.Toolkit
