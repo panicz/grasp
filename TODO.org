@@ -1,3 +1,8 @@
+* 21.02.2024
+
+dzis kontynuujemy prace nad schowkiem systemowym na Androidzie
+
+
 * 20.02.2024
 
 - dzis bysmy zrobili to kopiowanie i sprobowali poczynic
