@@ -1,7 +1,50 @@
+* 22.02.2024
+
+jako tako dzialajacy schowek udalo sie wymodzic
+(choc jeszcze nie dziala doskonale)
+
+to teraz kolejnym krokiem powinna byc implementacja
+schowka w kliencie desktopowym
+
+a pozniej chyba obsluga selekcji
+
+no to przywolajmy sobie:
+
+#+BEGIN_SRC scheme
+  (define-alias Transferable java.awt.datatransfer.Transferable)
+  (define-alias StringSelection java.awt.datatransfer.StringSelection)
+  (define-alias AWTClipboard java.awt.datatransfer.Clipboard)
+
+  (let ((clipboard ::AWTClipboard (java.awt.Toolkit:getSystemClipboard)))
+    (clipboard:setContents (as Transferable something)
+			   (as ClipboardOwner (this)))
+    (let ((content ::Transferable
+		   (clipboard:getContents (this) #;unused)))
+      ...))
+
+#+END_SRC
+
+java.awt.datatransfer.Transferable to interfejs implementowany
+m.in. przez java.awt.datatransfer.StringSelection
+z metoda java.lang.Object getTransferData(DataFlavor flavor)
+gdzie argument flavor powinien przyjmowac wartosc
+java.awt.datatransfer.DataFlavor:stringFlavor
+
+czyli bedzie StringSelection(data)
+
+no dobra, wezmy sobie impkementacje androidowa:
+
+#+BEGIN_SRC
+
+
+
+#+END_SRC
+
+
+
 * 21.02.2024
 
 dzis kontynuujemy prace nad schowkiem systemowym na Androidzie
-
 
 * 20.02.2024
 
