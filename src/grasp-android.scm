@@ -25,6 +25,7 @@
 
 (import (editor input transforms))
 (import (editor input pane))
+(import (editor types primitive))
 (import (editor types spaces))
 
 (import (editor document parse))
@@ -37,10 +38,10 @@
 
 (import (editor input touch-event-processor))
 (import (editor document history-tracking))
-;;(import (editor types primitive))
 (import (editor types extensions extensions))
 (import (editor types extensions widgets))
 (import (editor types extensions visual-stepper))
+(import (editor types texts))
 (import (editor input gestures))
 
 (define-alias Bundle android.os.Bundle)
@@ -52,6 +53,10 @@
 (define-alias Paint android.graphics.Paint)
 (define-alias ViewTreeObserver
   android.view.ViewTreeObserver)
+
+(define-alias AndroidClipboard android.content.ClipboardManager)
+
+(define-alias AndroidClipData android.content.ClipData)
 
 (define-alias Typeface android.graphics.Typeface)
 (define-alias InputMethodManager
@@ -453,6 +458,57 @@
 	   (set! top (+ top font:size)))))
 
   (logger size))
+
+(define-object (AndroidSystemClipboard clipboard::AndroidClipboard)
+  ::Clipboard
+
+  (define own-content ::list '())
+  (define own-clip-data ::AndroidClipData #!null)
+  
+  (define (try-parse item ::AndroidClipData:Item)::Element
+    (let ((input (item:getText)))
+      (with-input-from-string input
+	(lambda ()
+	  (let*-values (((expression preceding-space) (read-list 1))
+			((following-space) (read-spaces))
+			((next) (peek-char)))
+	    (if (eof-object? next)
+		(or (and-let* ((`(,inside) expression))
+		      inside)
+		    expression)
+		(text input)))))))
+  
+  (define (upload! new-content ::pair)::void
+    (and-let* ((`(,head . ,tail) new-content)
+	       (text (show->string head))
+	       (clip ::AndroidClipData (AndroidClipData:newPlainText
+				   "label" text)))
+      (let rewrite ((input tail))
+	(and-let* ((`(,head . ,tail) input))
+	  (clip:addItem (AndroidClipData:Item
+			 (show->string head)))
+	  (rewrite tail)))
+      (clipboard:setPrimaryClip clip)
+      (set! own-clip-data clip)
+      (set! own-content new-content)))
+  
+  (define (content)::list
+    (let ((clip ::AndroidClipData (clipboard:getPrimaryClip)))
+      (if (eq? clip own-clip-data)
+	  (copy own-content)
+	  (let ((n ::int (clip:getItemCount)))
+	    (if (is n <= 0)
+		'()
+		(let* ((items ::list (cons (try-parse (clip:getItemAt 0))
+					   '()))
+		       (end ::list items))
+		  (for i from 1 below n
+		       (let ((item (try-parse (clip:getItemAt i))))
+			 (set! (cdr end) (cons item '()))
+			 (set! end (cdr end))))
+		  items))))))
+  )
+
 
 (define-object (View source::AndroidActivity
 		     sync::android.os.Handler)::Painter
@@ -1448,7 +1504,7 @@
   (paint:setFlags Paint:ANTI_ALIAS_FLAG))
 
 (define-object (GRASP)::Keeper
-
+  
   (define reaction-to-request-response
     (property (request-code::int)::(maps (Object) to: void)
       nothing))
@@ -1638,6 +1694,11 @@
     (initialize-activity (this))
     (safely (initialize-keymap))
     (set! (the-keeper) (this))
+    (set! (the-system-clipboard)
+	  (AndroidSystemClipboard
+	   (invoke-special AndroidActivity (this)
+			   'getSystemService
+			   android.content.Context:CLIPBOARD_SERVICE)))
     (set! external-open-file
 	  (lambda (finger::byte editor::Editor)
 	    (lambda _
