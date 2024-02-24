@@ -1,3 +1,52 @@
+* 23.02.2024
+
+#+BEGIN_SRC scheme
+
+  (define-alias Transferable java.awt.datatransfer.Transferable)
+  (define-alias DataFlavor java.awt.datatransfer.DataFlavor)
+
+  (define-alias StringSelection java.awt.datatransfer.StringSelection)
+  (define-alias AWTClipboard java.awt.datatransfer.Clipboard)
+  (define-alias ClipboardOwner java.awt.datatransfer.ClipboardOwner)
+
+  (define-interface OwnClipboard (Clipboard ClipboardOwner))
+
+  (define-object (AWTSystemClipboard clipboard::AWTClipboard)
+    ::OwnClipboard
+
+    (define own-content ::list '())
+    (define own-clip-data ::Transferable #!null)
+
+    (define (try-parse item ::Transferable)::pair
+      (let* ((reader ::java.io.Reader
+		     (DataFlavor:stringFlavor:getReaderForText item))
+	     (input ::gnu.kawa.io.InPort (gnu.kawa.io.InPort reader)))
+	(with-input-from-port input
+	  (lambda ()
+	    (let*-values (((expression preceding-space) (read-list 1))
+			  ((following-space) (read-spaces))
+			  ((next) (peek-char)))
+	      (if (eof-object? next)
+		  expression
+		  (cons (text input) '())))))))
+
+    (define (upload! new-content ::pair)::void
+      (and-let* ((`(,head . ,tail) new-content) ;<
+		 (text (show->string head))
+		 (clip ::Transferable (StringSelection text)))
+	(clipboard:setContents clip (this))
+	(set! own-clip-data clip)
+	(set! own-content new-content)))
+
+    (define (content)::list
+      (let ((clip ::Transferable (clipboard:getContents)))
+	(if (eq? clip own-clip-data)
+	    (copy own-content)
+	    (try-parse clip))))
+    )
+
+#+END_SRC
+
 * 22.02.2024
 
 jako tako dzialajacy schowek udalo sie wymodzic
@@ -34,9 +83,57 @@ czyli bedzie StringSelection(data)
 
 no dobra, wezmy sobie impkementacje androidowa:
 
-#+BEGIN_SRC
+#+BEGIN_SRC scheme
 
+(define-object (AndroidSystemClipboard clipboard::AndroidClipboard)
+  ::Clipboard
 
+  (define own-content ::list '())
+  (define own-clip-data ::AndroidClipData #!null)
+  
+  (define (try-parse item ::AndroidClipData:Item)::Element
+    (let ((input (item:getText)))
+      (with-input-from-string input
+	(lambda ()
+	  (let*-values (((expression preceding-space) (read-list 1))
+			((following-space) (read-spaces))
+			((next) (peek-char)))
+	    (if (eof-object? next)
+		(or (and-let* ((`(,inside) expression))
+		      inside)
+		    expression)
+		(text input)))))))
+  
+  (define (upload! new-content ::pair)::void
+    (and-let* ((`(,head . ,tail) new-content)
+	       (text (show->string head))
+	       (clip ::AndroidClipData (AndroidClipData:newPlainText
+				   "label" text)))
+      (let rewrite ((input tail))
+	(and-let* ((`(,head . ,tail) input))
+	  (clip:addItem (AndroidClipData:Item
+			 (show->string head)))
+	  (rewrite tail)))
+      (clipboard:setPrimaryClip clip)
+      (set! own-clip-data clip)
+      (set! own-content new-content)))
+  
+  (define (content)::list
+    (let ((clip ::AndroidClipData (clipboard:getPrimaryClip)))
+      (if (eq? clip own-clip-data)
+	  (copy own-content)
+	  (let ((n ::int (clip:getItemCount)))
+	    (if (is n <= 0)
+		'()
+		(let* ((items ::list (cons (try-parse (clip:getItemAt 0))
+					   '()))
+		       (end ::list items))
+		  (for i from 1 below n
+		       (let ((item (try-parse (clip:getItemAt i))))
+			 (set! (cdr end) (cons item '()))
+			 (set! end (cdr end))))
+		  items))))))
+  )
 
 #+END_SRC
 
