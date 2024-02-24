@@ -9,11 +9,19 @@
       (parameterize ((current-output-port port))
 	(proc)))))
 
+(define (with-output-to-port port proc)
+  (parameterize ((current-output-port port))
+    (proc)))
+
 (define (with-input-from-string s proc)
   (call-with-input-string s
     (lambda (port)
       (parameterize ((current-input-port port))
 	(proc)))))
+
+(define (with-input-from-port port proc)
+  (parameterize ((current-input-port port))
+    (proc)))
 
 (define (keyword->symbol kw)
   (string->symbol (keyword->string kw)))

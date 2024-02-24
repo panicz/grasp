@@ -72,6 +72,13 @@
 (define-alias Rectangle java.awt.Rectangle)
 (define-alias AffineTransform java.awt.geom.AffineTransform)
 
+(define-alias Transferable java.awt.datatransfer.Transferable)
+(define-alias DataFlavor java.awt.datatransfer.DataFlavor)
+
+(define-alias StringSelection java.awt.datatransfer.StringSelection)
+(define-alias AWTClipboard java.awt.datatransfer.Clipboard)
+(define-alias ClipboardOwner java.awt.datatransfer.ClipboardOwner)
+
 (define-alias System java.lang.System)
 
 (define-alias Color java.awt.Color)
@@ -447,7 +454,66 @@
     (timer:start)
     (this)))
 
+(define-interface OwnClipboard (Clipboard ClipboardOwner))
+
+(define-object (AWTSystemClipboard clipboard::AWTClipboard)
+  ::OwnClipboard
+
+  (define own-content ::list '())
+  (define own-clip-data ::Transferable #!null)
+
+  (define (try-parse item ::Transferable)::list
+    (WARN "parsing AWT clipbpard content")
+    (let* ((reader ::java.io.Reader
+		   (DataFlavor:stringFlavor:getReaderForText item))
+	   (input ::gnu.kawa.io.InPort (gnu.kawa.io.InPort reader)))
+      (with-input-from-port input
+	(lambda ()
+	  (let*-values (((expression preceding-space) (read-list 1))
+			((following-space) (read-spaces))
+			((next) (peek-char)))
+	    (cond
+	     ((eof-object? next)
+	      (WARN "returning parsed expression")
+	      expression)
+	     (else
+	      (WARN "falling back to text")
+	      (cons (text input) '()))))))))
+
+  (define (upload! new-content ::pair)::void
+    (and-let* ((`(,head . ,tail) new-content)
+	       (text (show->string head))
+	       (clip ::Transferable (StringSelection text)))
+      (clipboard:setContents clip (this))
+      (WARN "sending "text" to AWT clipboard")
+      (set! own-clip-data clip)
+      (set! own-content new-content)))
+
+  (define (content)::list
+    (let ((clip ::Transferable (clipboard:getContents (this))))
+      (cond
+       ((eq? clip own-clip-data)
+	(WARN "pasting own content")
+	(copy own-content))
+       (else
+	(try-parse clip)))))
+  
+  (define (lostOwnership context::AWTClipboard
+			 content::Transferable)
+    ::void
+    (set! own-content '()))
+  
+  )
+
 (define-object (GRASP)::Application
+
+  (define clipboard ::Clipboard
+    (let* ((toolkit ::java.awt.Toolkit
+		    (java.awt.Toolkit:getDefaultToolkit))
+	   (clipboard ::AWTClipboard 
+		      (toolkit:getSystemClipboard)))
+      (AWTSystemClipboard clipboard)))
+  
   (define graphics ::Graphics2D)
 
   (define intensity ::float 1.0)
@@ -1308,44 +1374,49 @@ by the AWT framework."))
     result)
 
   (define (mousePressed event::MouseEvent)::void
-    (invalidating
-     (pointer:press! (event:getX) (event:getY)
-		     (System:currentTimeMillis))))
+    (parameterize ((the-system-clipboard clipboard))
+      (invalidating
+       (pointer:press! (event:getX) (event:getY)
+		       (System:currentTimeMillis)))))
 
   (define (mouseWheelMoved event::MouseWheelEvent)::void
-    (let ((direction ::real (+ (event:getWheelRotation)
-                               (event:getPreciseWheelRotation)))
-	  (pointer ::Position (last-known-pointer-position 0)))
-      (set! pointer:left (event:getX))
-      (set! pointer:top (event:getY))
-      (screen:key-typed!
-       (as long
-	   (bitwise-ior
-	    (if (is direction < 0)
-		KeyEvent:VK_PAGE_UP
-		KeyEvent:VK_PAGE_DOWN)
-	    (if (event:control-down?) CTRL_MASK 0)
-	    (if (event:alt-down?) ALT_MASK 0)
-	    (if (event:shift-down?) SHIFT_MASK 0)))
-       '()))
-    (repaint))
+    (parameterize ((the-system-clipboard clipboard))
+      (let ((direction ::real (+ (event:getWheelRotation)
+				 (event:getPreciseWheelRotation)))
+	    (pointer ::Position (last-known-pointer-position 0)))
+	(set! pointer:left (event:getX))
+	(set! pointer:top (event:getY))
+	(screen:key-typed!
+	 (as long
+	     (bitwise-ior
+	      (if (is direction < 0)
+		  KeyEvent:VK_PAGE_UP
+		  KeyEvent:VK_PAGE_DOWN)
+	      (if (event:control-down?) CTRL_MASK 0)
+	      (if (event:alt-down?) ALT_MASK 0)
+	      (if (event:shift-down?) SHIFT_MASK 0)))
+	 '()))
+      (repaint)))
   
   (define (mouseDragged event::MouseEvent)::void
-    (invalidating
-     (pointer:move! (event:getX) (event:getY)
-		    (System:currentTimeMillis))))
+    (parameterize ((the-system-clipboard clipboard))
+      (invalidating
+       (pointer:move! (event:getX) (event:getY)
+		      (System:currentTimeMillis)))))
 
   (define (mouseReleased event::MouseEvent)::void
-    (invalidating
-     (pointer:release! (event:getX) (event:getY)
-		       (System:currentTimeMillis))))
+    (parameterize ((the-system-clipboard clipboard))
+      (invalidating
+       (pointer:release! (event:getX) (event:getY)
+			 (System:currentTimeMillis)))))
 
   (define (keyPressed event::KeyEvent)::void
     (let ((typed (event:getKeyChar)))
       (parameterize ((unicode-input (if (eqv? KeyEvent:CHAR_UNDEFINED
 					      typed)
 					#\null
-					(integer->char typed))))
+					(integer->char typed)))
+		     (the-system-clipboard clipboard))
 	(screen:key-typed!
 		(as long (bitwise-ior
 			  (as long (event:getKeyCode))
@@ -1412,6 +1483,9 @@ by the AWT framework."))
 
 (define (run-in-AWT-window)::void
   (let ((application ::GRASP (GRASP)))
+    
+    (set! (the-system-clipboard) application:clipboard)
+ 
     (set! painter application)
     (initialize-keymap)
     
