@@ -463,7 +463,6 @@
   (define own-clip-data ::Transferable #!null)
 
   (define (try-parse item ::Transferable)::list
-    (WARN "parsing AWT clipbpard content")
     (let* ((reader ::java.io.Reader
 		   (DataFlavor:stringFlavor:getReaderForText item))
 	   (input ::gnu.kawa.io.InPort (gnu.kawa.io.InPort reader)))
@@ -472,37 +471,28 @@
 	  (let*-values (((expression preceding-space) (read-list 1))
 			((following-space) (read-spaces))
 			((next) (peek-char)))
-	    (cond
-	     ((eof-object? next)
-	      (WARN "returning parsed expression")
-	      expression)
-	     (else
-	      (WARN "falling back to text")
-	      (cons (text input) '()))))))))
+	    (if (eof-object? next)
+		expression
+		(cons (text input) '())))))))
 
   (define (upload! new-content ::pair)::void
     (and-let* ((`(,head . ,tail) new-content)
 	       (text (show->string head))
 	       (clip ::Transferable (StringSelection text)))
       (clipboard:setContents clip (this))
-      (WARN "sending "text" to AWT clipboard")
       (set! own-clip-data clip)
       (set! own-content new-content)))
 
   (define (content)::list
     (let ((clip ::Transferable (clipboard:getContents (this))))
-      (cond
-       ((eq? clip own-clip-data)
-	(WARN "pasting own content")
-	(copy own-content))
-       (else
-	(try-parse clip)))))
+      (if (eq? clip own-clip-data)
+	  (copy own-content)
+	  (try-parse clip))))
   
   (define (lostOwnership context::AWTClipboard
 			 content::Transferable)
     ::void
     (set! own-content '()))
-  
   )
 
 (define-object (GRASP)::Application
