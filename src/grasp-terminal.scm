@@ -37,6 +37,7 @@
 (import (editor document copy-paste))
 
 (import (editor text-painter))
+(import (editor types texts))
 (import (editor types extensions extensions))
 (import (editor types extensions widgets))
 (import (editor types extensions quotations))
@@ -54,6 +55,13 @@
 (define-alias Scheduler java.util.concurrent.ScheduledExecutorService)
 (define-alias ScheduledTask java.util.concurrent.ScheduledFuture)
 (define-alias TimeUnit java.util.concurrent.TimeUnit)
+
+(define-alias Transferable java.awt.datatransfer.Transferable)
+(define-alias DataFlavor java.awt.datatransfer.DataFlavor)
+
+(define-alias StringSelection java.awt.datatransfer.StringSelection)
+(define-alias AWTClipboard java.awt.datatransfer.Clipboard)
+(define-alias ClipboardOwner java.awt.datatransfer.ClipboardOwner)
 
 (define-alias InputStream java.io.InputStream)
 (define ClassLoader ::java.lang.ClassLoader
@@ -151,33 +159,86 @@
 			      (the-text-intensity))))
     (letter/cached character color background style)))
 
-(define (render io ::LanternaScreen)::void
-  (let loop ()
-    (synchronized screen-up-to-date?
-      (while (screen-up-to-date?)
-	     (invoke screen-up-to-date? 'wait))
-      ;; if - during rendering - the state of
-      ;; the screen changes (by the editing thread),
-      ;; then this value will be set to #f, and
-      ;; another iteration of the rendering loop
-      ;; will be forced.
-      ;; (This idea was inspired by Richard Stallman's
-      ;; 1981 paper "EMACS: The Extensible,
-      ;; Customizable Display Editor", section 13
-      ;; "The Display Processor")
-      (set! (screen-up-to-date?) #t))
-    (let* ((resize ::TerminalSize (io:doResizeIfNecessary))
-	   (size (or resize (io:getTerminalSize))))
-      (screen:set-size! (size:getColumns) (size:getRows))
-      (painter:clear!)
-      (screen:draw!)
-      ;; swap front- and back-buffer
-      (io:refresh (if resize
-		      LanternaScreen:RefreshType:COMPLETE
-		      LanternaScreen:RefreshType:DELTA))
-      (loop))))
+(define-interface OwnClipboard (Clipboard ClipboardOwner))
 
-(define-interface CancellableRunner (java.lang.Runnable Postponed Cancellable))
+(define-object (AWTSystemClipboard clipboard::AWTClipboard)
+  ::OwnClipboard
+
+  (define own-content ::list '())
+  (define own-clip-data ::Transferable #!null)
+
+  (define (try-parse item ::Transferable)::list
+    (let* ((reader ::java.io.Reader
+		   (DataFlavor:stringFlavor:getReaderForText item))
+	   (input ::gnu.kawa.io.InPort (gnu.kawa.io.InPort reader)))
+      (with-input-from-port input
+	(lambda ()
+	  (let*-values (((expression preceding-space) (read-list 1))
+			((following-space) (read-spaces))
+			((next) (peek-char)))
+	    (if (eof-object? next)
+		expression
+		(cons (text input) '())))))))
+
+  (define (upload! new-content ::pair)::void
+    (and-let* ((`(,head . ,tail) new-content)
+	       (text (show->string head))
+	       (clip ::Transferable (StringSelection text)))
+      (clipboard:setContents clip (this))
+      (set! own-clip-data clip)
+      (set! own-content new-content)))
+
+  (define (content)::list
+    (let ((clip ::Transferable (clipboard:getContents (this))))
+      (if (eq? clip own-clip-data)
+	  (copy own-content)
+	  (try-parse clip))))
+  
+  (define (lostOwnership context::AWTClipboard
+			 content::Transferable)
+    ::void
+    (set! own-content '()))
+  )
+
+(define system-clipboard
+  (let* ((toolkit ::java.awt.Toolkit
+		  (java.awt.Toolkit:getDefaultToolkit))
+	 (clipboard ::AWTClipboard 
+		    (toolkit:getSystemClipboard)))
+    (AWTSystemClipboard clipboard)))
+
+(set! (the-system-clipboard) system-clipboard)
+
+(define (render io ::LanternaScreen)::void
+  (parameterize ((the-system-clipboard system-clipboard))
+    (let loop ()
+      (synchronized screen-up-to-date?
+	(while (screen-up-to-date?)
+	  (invoke screen-up-to-date? 'wait))
+	;; if - during rendering - the state of
+	;; the screen changes (by the editing thread),
+	;; then this value will be set to #f, and
+	;; another iteration of the rendering loop
+	;; will be forced.
+	;; (This idea was inspired by Richard Stallman's
+	;; 1981 paper "EMACS: The Extensible,
+	;; Customizable Display Editor", section 13
+	;; "The Display Processor")
+	(set! (screen-up-to-date?) #t))
+      (let* ((resize ::TerminalSize (io:doResizeIfNecessary))
+	     (size (or resize (io:getTerminalSize))))
+	(screen:set-size! (size:getColumns) (size:getRows))
+	(painter:clear!)
+	(screen:draw!)
+	;; swap front- and back-buffer
+	(io:refresh (if resize
+			LanternaScreen:RefreshType:COMPLETE
+			LanternaScreen:RefreshType:DELTA))
+	(loop)))))
+
+(define-interface CancellableRunner (java.lang.Runnable
+				     Postponed
+				     Cancellable))
 
 (define-object (EventRunner queue::BlockingQueue)
   ::CancellableRunner
@@ -212,78 +273,80 @@
   ;; to another may not seem very useful, the point is
   ;; to expose a queue, so that things can be added to it
   ;; asynchronously, from a timer event
-  (while #t
-    (let ((event ::KeyStroke (io:readInput)))
-      (queue:put event))))
+  (parameterize ((the-system-clipboard system-clipboard))
+    (while #t
+      (let ((event ::KeyStroke (io:readInput)))
+	(queue:put event)))))
 
 (define (edit io ::LanternaScreen queue::BlockingQueue)::void
   (let* ((postpone ::CancellableRunner (EventRunner queue))
 	 (pointer ::TouchEventProcessor
 		  (TouchEventProcessor 0 screen postpone
 				       vicinity: 1)))
-    (while #t
-      (safely
-       (let ((input (queue:take)))
-	 (if (procedure? input)
-	     (input)
-	     (let* ((key ::KeyStroke input)
-		    (type ::KeyType (key:getKeyType))
-		    (caret ::TerminalPosition (io:getCursorPosition)))
-	       (match type
+    (parameterize ((the-system-clipboard system-clipboard))
+      (while #t
+	(safely
+	 (let ((input (queue:take)))
+	   (if (procedure? input)
+	       (input)
+	       (let* ((key ::KeyStroke input)
+		      (type ::KeyType (key:getKeyType))
+		      (caret ::TerminalPosition (io:getCursorPosition)))
+		 (match type
 
-		 (,KeyType:MouseEvent
-		  (let* ((action ::MouseAction
-				 (as MouseAction key))
-			 (position ::TerminalPosition
-				   (action:getPosition))
-			 (last-position ::Position
-					(last-known-pointer-position
-					 0))
-			 (left (position:getColumn))
-			 (top (position:getRow)))
-		    (cond
-		     ((action:isMouseMove)
-		      (set! last-position:left left)
-		      (set! last-position:top top))
-		     ((action:isMouseDown)
+		   (,KeyType:MouseEvent
+		    (let* ((action ::MouseAction
+				   (as MouseAction key))
+			   (position ::TerminalPosition
+				     (action:getPosition))
+			   (last-position ::Position
+					  (last-known-pointer-position
+					   0))
+			   (left (position:getColumn))
+			   (top (position:getRow)))
+		      (cond
+		       ((action:isMouseMove)
+			(set! last-position:left left)
+			(set! last-position:top top))
+		       ((action:isMouseDown)
 
-		      (match (action:getButton)
-			(,MouseButton:Left
-			 (pointer:press! left top
-					 (System:currentTimeMillis)))
-			(,MouseButton:Right
- 			 (set! last-position:left left)
-			 (set! last-position:top top))
-			(,MouseButton:WheelUp
-			 (set! last-position:left left)
-			 (set! last-position:top top)
-			 (screen:key-typed!
-			  (special-key-code KeyType:PageUp)
-			  '()))
-			(,MouseButton:WheelDown
-			 (set! last-position:left left)
-			 (set! last-position:top top)
-			 (screen:key-typed!
-			  (special-key-code KeyType:PageDown)
-			  '()))
-			(_
-			 (values))))
-		     ((action:isMouseDrag)
-		      (pointer:move! left top
-				     (System:currentTimeMillis)))
+			(match (action:getButton)
+			  (,MouseButton:Left
+			   (pointer:press! left top
+					   (System:currentTimeMillis)))
+			  (,MouseButton:Right
+ 			   (set! last-position:left left)
+			   (set! last-position:top top))
+			  (,MouseButton:WheelUp
+			   (set! last-position:left left)
+			   (set! last-position:top top)
+			   (screen:key-typed!
+			    (special-key-code KeyType:PageUp)
+			    '()))
+			  (,MouseButton:WheelDown
+			   (set! last-position:left left)
+			   (set! last-position:top top)
+			   (screen:key-typed!
+			    (special-key-code KeyType:PageDown)
+			    '()))
+			  (_
+			   (values))))
+		       ((action:isMouseDrag)
+			(pointer:move! left top
+				       (System:currentTimeMillis)))
 
-		     ((action:isMouseUp)
-		      (pointer:release! left top
-					(System:currentTimeMillis)))
-		     )))
+		       ((action:isMouseUp)
+			(pointer:release! left top
+					  (System:currentTimeMillis)))
+		       )))
 
-		 (_
-		  (parameterize ((unicode-input (input-character
-						 key)))
-		    (screen:key-typed! (scancode key) '())))))))
-       (synchronized screen-up-to-date?
-	 (set! (screen-up-to-date?) #f)
-	 (invoke screen-up-to-date? 'notify))))))
+		   (_
+		    (parameterize ((unicode-input (input-character
+						   key)))
+		      (screen:key-typed! (scancode key) '())))))))
+	 (synchronized screen-up-to-date?
+	   (set! (screen-up-to-date?) #f)
+	   (invoke screen-up-to-date? 'notify)))))))
 
 (define pending-animations
   ::java.util.Collection
@@ -453,6 +516,8 @@
   (CharPainter)
   (start-animating!)
   )
+
+
 
 (define (run-in-terminal
 	 #!optional
