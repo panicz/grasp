@@ -226,7 +226,7 @@
 				       (length list))
 				    (cdr after)))))
 
-(define-type (RemoveCharacter list: (list-of char)
+(define-type (RemoveCharacter list: (sequence-of char)
 			      before: Cursor := (the-cursor))
   implementing Edit
   with

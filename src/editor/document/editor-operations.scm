@@ -2,18 +2,21 @@
 
 (import (language define-parameter))
 (import (language keyword-arguments))
-(import (utils functions))
-(import (language fundamental))
-(import (editor interfaces elements))
-(import (editor types spaces))
-(import (editor document cursor))
-(import (editor types primitive))
-(import (editor document document-operations))
 (import (language infix))
 (import (language match))
+(import (language while))
+(import (language for))
+(import (language fundamental))
+
+(import (utils functions))
 (import (utils print))
 
 (import (editor interfaces painting))
+(import (editor interfaces elements))
+(import (editor types spaces))
+(import (editor types primitive))
+(import (editor document cursor))
+(import (editor document document-operations))
 (import (editor document history-tracking))
 (import (editor types texts))
 (import (editor types comments))
@@ -243,6 +246,11 @@
 (define (insert-character! c::char)::boolean
   (and-let* (((isnt c eqv? #\null))
 	     (`(,tip ,top . ,subcursor) (the-cursor))
+	     (selection-start selection-end (the-selection))
+	     (`(,selection-start-tip . ,selection-start-stem)
+	      selection-start)
+	     (`(,selection-end-tip . ,selection-end-stem)
+	      selection-end)
 	     (parent ::Indexable (cursor-ref (the-document)
 					     subcursor))
 	     (item ::Indexable (parent:part-at top))
@@ -253,7 +261,32 @@
       (WARN "attempted to insert character "c" to non-final position")
       #f)
      ((or (Text? item) (TextualComment? item))
-      (record&perform! (InsertCharacter list: (list c))))
+      (cond
+       ((equal? selection-start selection-end)
+	(record&perform! (InsertCharacter list: (list c))))
+       
+       ((and (equal? selection-start-stem selection-end-stem)
+	     (integer? selection-start-tip)
+	     (integer? selection-end-tip))
+	(let ((selection ::string (make-string (- selection-end-tip
+						  selection-start-tip)))
+	      (source ::Textual (as Textual item)))
+	  (for i from selection-start-tip below selection-end-tip
+	       (string-set! selection (- i selection-start-tip)
+			    (source:char-ref i)))
+	  (set! (the-selection-range) 0)
+	  (record&perform!
+	   (EditSequence
+	    operations:
+	    (list
+	     (RemoveCharacter list: selection
+			      before: selection-end)
+	     (InsertCharacter list: (list c)
+			      after: selection-start))))))
+	  
+       (else
+	(WARN "selections spanning multiple objects\
+ are currently not supported"))))
      
      ((is c in '(#\] #\) #\}))
       (unnest-cursor-right!))
