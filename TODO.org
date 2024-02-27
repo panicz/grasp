@@ -1,3 +1,23 @@
+* 26.02.2024
+
+to co? teraz selekcje?
+
+to moze bysmy zrobili tak, ze bysmy zaczeli od kasowania
+i nadpisywania selekcji
+
+
+
+* 25.02.2024
+
+plan teraz jest taki, zeby:
+- uwspolnic obsluge schowka
+- obsluzyc selekcje wewnatrz jednego obiektu, i to tak:
+  - kopiowanie
+  - wycinanie
+  - wklejanie
+  - kasowanie
+  - nadpisywanie
+
 * 23.02.2024
 
 #+BEGIN_SRC scheme
