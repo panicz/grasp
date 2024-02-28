@@ -109,6 +109,11 @@
   (and-let* ((`(,tip ,top . ,root) (the-cursor))
 	     (parent ::Indexable (cursor-ref (the-document) root))
 	     (target ::Indexable (parent:part-at top))
+	     (selection-start selection-end (the-selection))
+	     (`(,selection-start-tip . ,selection-start-stem)
+	      selection-start)
+	     (`(,selection-end-tip . ,selection-end-stem)
+	      selection-end)
 	     ((eq? target (target:part-at tip)))
 	     (first-index ::Index (target:first-index))
 	     (last-index ::Index (target:last-index))
@@ -119,6 +124,29 @@
 					    preceding-cursor)))
     (update-cursor-column!)
     (cond
+     ((and (Textual? target)
+	   (equal? selection-start-stem selection-end-stem)
+	   (isnt selection-start-tip equal? selection-end-tip)
+	   (integer? selection-start-tip)
+	   (integer? selection-end-tip))
+      (set! (the-selection-range) 0)
+      (if (and (equal? (target:first-index) selection-start-tip)
+	       (equal? (target:last-index) selection-end-tip))
+	  (record&perform!
+	   (Remove element: (drop (quotient top 2) parent)
+		   at: selection-start-stem
+		   with-shift: (car preceding-cursor)))
+	  (let ((selection ::string (make-string
+				     (- selection-end-tip
+					selection-start-tip)))
+		(source ::Textual (as Textual target)))
+	    (for i from selection-start-tip below selection-end-tip
+		 (string-set! selection (- i selection-start-tip)
+			      (source:char-ref i)))
+	    (record&perform!
+	     (RemoveCharacter list: selection
+			      before: selection-end)))))
+     
      ((Atom? target)
       (let ((target ::Atom target))
 	(cond
@@ -231,7 +259,8 @@
 	 (move-cursor-right!)
 	 (delete-forward!))))
      (else
-      (move-cursor-right!)
+      (when (zero? (the-selection-range))
+	(move-cursor-right!))
       (delete-backward!)))))
 
 (define (record&perform! operation ::Edit)::boolean
@@ -276,13 +305,11 @@
 			    (source:char-ref i)))
 	  (set! (the-selection-range) 0)
 	  (record&perform!
-	   (EditSequence
-	    operations:
-	    (list
-	     (RemoveCharacter list: selection
-			      before: selection-end)
-	     (InsertCharacter list: (list c)
-			      after: selection-start))))))
+	   (RemoveCharacter list: selection
+			    before: selection-end))
+	  (record&perform!
+	   (InsertCharacter list: (list c)
+			    after: selection-start))))
 	  
        (else
 	(WARN "selections spanning multiple objects\
