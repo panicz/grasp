@@ -1,11 +1,26 @@
+* 27.02.2024
+
+mamy zrobione nadpisywanie selekcji.
+Wydaje sie, ze w analogiczny sposob moglibysmy zrobic
+- kasowanie selekcji (po wcisnieciu "backspace")
+- wycinanie selekcji
+- wklejanie selekcji
+
+i co dalej?
+
+dalej bysmy:
+- zajeli sie lowieniem, katalogowaniem i naprawianiem bugow
+  (i przy okazji pisaniem testow)
+- popracowali nad tym, zeby GRASP zachowywal sie bardziej
+  jak zwyczajny edytor tekstu, a mniej jak plotno
+  
+
 * 26.02.2024
 
 to co? teraz selekcje?
 
 to moze bysmy zrobili tak, ze bysmy zaczeli od kasowania
 i nadpisywania selekcji
-
-
 
 * 25.02.2024
 
