@@ -1006,3 +1006,8 @@
 (define (current-UNIX-epoch-second)::long
   (let ((this-instant (java.time.Instant:now)))
     (this-instant:getEpochSecond)))
+
+(define (current-timezone-offset-seconds)::long
+  (let* ((timezone ::java.util.TimeZone (java.util.TimeZone:getDefault))
+         (offset/ms ::long (timezone:getRawOffset)))
+    (/ offset/ms 1000)))

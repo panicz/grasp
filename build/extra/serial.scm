@@ -1,4 +1,4 @@
-(module-name (utils serial))
+(module-name (extra serial))
 
 (import (kawa regex))
 
@@ -15,7 +15,7 @@
 (import (utils functions))
 (import (utils binary))
 (import (utils print))
-(import (utils mbus))
+(import (extra mbus))
 
 (define-alias serial com.fazecast.jSerialComm.SerialPort)
 
@@ -134,7 +134,8 @@
                                dongle-manufacturer: dongle-manufacturer
                                dongle-serial-number: (string->number dongle-id)
                                dongle-version: (string->number dongle-version)
-                               timestamp: (current-UNIX-epoch-second)
+                               timestamp: (+ (current-UNIX-epoch-second)
+                                             (current-timezone-offset-seconds))
                                aes-key: aes-key
                                access-number: access-number
                                target-serial-number: device-id

@@ -1,4 +1,4 @@
-(module-name (utils mbus))
+(module-name (extra mbus))
 
 (import (srfi :11))
 (import (kawa regex))
@@ -873,13 +873,19 @@
                         total-size: int
                         source: (list-of ubyte)))
 
+(define-type (MBusParseError encrypted: (list-of ubyte)
+                             decrypted: (list-of ubyte)
+                             iv: (list-of ubyte)))
+
+
 (define-type (WMBusFrame manufacturer: string
                          serial-number: int
                          type: MBUS-DEVICE-TYPE
                          version: int
                          length: int
                          access-number: ubyte
-                         blocks: (list-of (either MBusBlock ubyte))
+                         blocks: (either MBusParseError
+                                         (list-of (either MBusBlock ubyte)))
                          source: (list-of ubyte)))
 
 (define (mbus-value bytes::(list-of ubyte)
@@ -1032,4 +1038,20 @@
                         length: frame-length
                         access-number: access-number
                         blocks: blocks
-                        source: input))))))))
+                        source: input)))
+         (_
+          (WMBusFrame manufacturer: (wmbus-manufacturer-string manufacturer-1
+                                                                 manufacturer-2)
+                        serial-number: (number/base
+                                        10 (digits/base
+                                            16 (number/base* 256
+                                                             id4 id3 id2 id1)))
+                        type: ((MBUS-DEVICE-TYPE:values) type)
+                        version: version
+                        length: frame-length
+                        access-number: access-number
+                        blocks: (MBusParseError
+                                 encrypted: encrypted-payload
+                                 decrypted: decrypted-payload
+                                 iv: aes-initial-vector)
+                        source: input)))))))

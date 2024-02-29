@@ -25,7 +25,6 @@
 (import (utils fixnum))
 (import (utils affine))
 (import (utils crypto))
-(import (utils serial))
 (import (utils server))
 (import (utils shell))
 
