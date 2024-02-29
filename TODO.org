@@ -1,3 +1,7 @@
+* 28.02.2024
+
+dzis moze sprobujemy zrobic wycinanie selekcji
+
 * 27.02.2024
 
 mamy zrobione nadpisywanie selekcji.
