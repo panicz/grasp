@@ -1,0 +1,32 @@
+
+(import  (extra serial))
+
+(let ((sv (tcp-output-server 12345)))
+  (set! (current-output-port) sv)
+  (set! (current-error-port) sv))
+
+(list-serial-ports) 
+
+(define d0 :: Dongle (Dongle (open-serial-connection "COM7")))
+
+(d0:command! "help")
+(define (clock-ms):: long
+(java.lang.System:currentTimeMillis)) 
+
+
+
+(d0:setup-target! 41146360)
+(d0:setup-config-ambush! 41146360)
+
+
+(define (test-config-send! )
+(let ((start (clock-ms)))
+(d0:command! "radio_cmd initial_liters 20")
+(d0:command! "radio_cmd clear_alarms")
+(d0:command! "radio_cmd clear_history")
+(d0:command! "radio_cmd config_send")
+(- (clock-ms) start)))
+
+(test-config-send!)477
+
+

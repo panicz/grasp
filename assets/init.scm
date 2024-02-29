@@ -27,8 +27,6 @@
 (import (utils affine))
 (import (utils crypto))
 (import (utils server))
-(import (utils serial))
-(import (utils mbus))
 
 (import (editor input input))
 (import (editor interfaces elements))
@@ -183,6 +181,8 @@
                                           (with-input-from-file "autoload.grasp"
                                             parse-document)
                                           (with-input-from-string "
+(import (extra mbus) (extra serial))
+
 (let ((sv (tcp-output-server 12345)))
   (set! (current-output-port) sv)
   (set! (current-error-port) sv))
