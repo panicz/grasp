@@ -48,31 +48,54 @@
 			   to: range ::integer := (the-selection-range)
 			   in: document := (the-document))
   ::void
-  (let ((clipboard ::Clipboard (the-system-clipboard)))
-    (if (= range 0)
-	(and-let* ((core ::Cursor (cursor-core cursor document))
-		   (`(,top . ,root) core)
-		   (parent ::cons (cursor-ref document root))
-		   (target ::Indexable (parent:part-at top))
-		   (first-index ::Index (target:first-index))
-		   (preceding-cursor (cursor-retreat (recons
-						      first-index
-						      core)))
-		   (content (drop (quotient top 2) parent)))
-	  ;; the target will be cut off from the rest
-	  ;; of the document after performing Remove
-	  (perform&record!
-	   (Remove element: content
-		   at: core
-		   with-shift: (car preceding-cursor)))
-	  (clipboard:upload! content))
-	(let-values (((selection-start selection-end)
-		      (selection-start+end cursor range)))
+  (and-let* ((clipboard ::Clipboard (the-system-clipboard))
+	     (core ::Cursor (cursor-core cursor document))
+	     (`(,top . ,root) core)
+	     (parent ::cons (cursor-ref document root))
+	     (target ::Indexable (parent:part-at top))
+	     (first-index ::Index (target:first-index))
+	     (last-index ::Index (target:last-index))
+	     (preceding-cursor (cursor-retreat (recons
+						first-index
+						core)))
+	     (content (drop (quotient top 2) parent))
+	     (selection-start selection-end
+			      (selection-start+end cursor range))
+	     (`(,start . ,start-stem) selection-start)
+	     (`(,end . ,end-stem) selection-end))
+    (set! (the-selection-range) 0)
+    (cond
+     ((= range 0)
+      ;; the target will be cut off from the rest
+      ;; of the document after performing Remove
+      (perform&record!
+       (Remove element: content
+	       at: core
+	       with-shift: (car preceding-cursor)))
+      (clipboard:upload! content))
 	  ;; czy sa w tym samym obiekcie tekstowym?
-	  (or (and-let* ((`(,start . ,stem) selection-start)
-			 (`(,end . ,,stem) selection-end))
-		#t)
-	      #f)))))
+     ((isnt start-stem equal? end-stem)
+      (WARN "cutting selections spanning multiple objects\
+ is currently not supported"))
+     
+     ((and (equal? first-index start)
+	   (equal? last-index end))
+      (record&perform!
+       (Remove element: content
+	       at: core
+	       with-shift: (car preceding-cursor)))
+      (clipboard:upload! content))
+
+     (else
+      (let ((selection ::string (make-string (- end start)))
+	    (source ::Textual (as Textual target)))
+	(for i from start below end
+	     (string-set! selection (- i start)
+			  (source:char-ref i)))
+	(record&perform!
+	 (RemoveCharacter list: selection
+			  before: selection-end))
+	(clipboard:upload! (cons selection '())))))))
 
 (define/kw (copy-selection! at: cursor ::Cursor := (the-cursor)
 			    to: range ::integer := (the-selection-range)
