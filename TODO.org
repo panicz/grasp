@@ -1,3 +1,44 @@
+* 29.02.2024
+
+dzisiaj matomiast mozemy:
+- na szybko zajac sie kopiowaniem selekcji
+- ale tez zrobic cos, zeby nievwklejac cudzyslowow
+- jest tez taki pomysl, zeby przy wklejaniu selekcji
+  w spacje zachowac typ oryginalu
+
+  no dobra. a tu po drodze sie jeszcze objawia zupelnie
+  nowy pomysl, mianowicie zeby miec nowa-stara reprezentacje
+  dla dokumentu
+
+  tzn ze mamy cos takiego jak Box, ktory ma wskaznik na
+  Spacje
+
+  na razie chyba nie idzmy ta droga :/
+
+wiec na razie plan jest taki, ze bedziemy sobie opisywac i
+lowic bledy, i w miare mozliwosci pisac testy
+
+no to taka lista bledow:
+- czasem dostajemy komunikat, ze znak rozni sie od
+  oczekiwanego
+- po przelaczeniu dokumentu na desktopie nie dziala zoomowanie
+- jak napiszemy np. "[1 ", to potem backspace nie chce usunac
+  tej spacji
+- nie dziala dodawanie i usuwanie elementow do Quotationow
+- nie dziala odczarowywanie pudelek
+- nie da sie usuwac zaczarowanych pudelek
+- zdarzenia z klawiatury nie sa prawidlowo propagowane
+- nie dziala przegladarka plikow na androidzie
+  (nie widzi plikow)
+- czasem po zaladowaniu innego dokumentu nie dziala menu
+  na kliencie desktopowym
+- klient terminalowy wiesza sie w tajemniczy sposob
+- brak oznaczenia komentarzy liniowych
+- nie dziala drag&drop na komentarzach
+- dziwne rzeczy sie dzieja z selekcja na granicy atomow
+  (na pewno na Androidzie)
+  
+
 * 28.02.2024
 
 dzis moze sprobujemy zrobic wycinanie selekcji
