@@ -1524,7 +1524,12 @@
   (define (tap! finger::byte #;at xe::real ye::real)::boolean
     (with-post-transform transform
       (with-view-edges-transformed transform
-	(parameterize/update-sources ((the-document document))
+	(parameterize/update-sources ((the-document document)
+				      ; trzeba dojsc dlaczego to nie dziala
+				      #;(the-cursor cursor)
+				      (the-editor (this))
+				      #;(the-selection-range
+				       selection-range))
 	  (let-values (((x y) (transform:outside-in xe ye)))
 	    (let* ((target-cursor (cursor-under x y))
 		   (target (the-expression at: target-cursor))
@@ -1538,6 +1543,7 @@
 		   (enchanted:tap! finger x y))
 		  (else
 		   (set! cursor target-cursor)
+		   (set! selection-range 0)
 		   (editor:set-cursor-column! xe)
 		   #t)))))))))
 

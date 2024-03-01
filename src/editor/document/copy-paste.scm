@@ -101,13 +101,29 @@
 			    to: range ::integer := (the-selection-range)
 			    in: document := (the-document))
   ::void
-  (let ((clipboard ::Clipboard (the-system-clipboard)))
-    (if (= range 0)
-	(and-let* ((core ::Cursor (cursor-core cursor document))
-		   (expression (the-expression)))
-	  (clipboard:upload! (cons expression (empty))))
-	#f)))
+  (and-let* ((clipboard ::Clipboard (the-system-clipboard))
+	     (core ::Cursor (cursor-core cursor document))
+	     (expression (the-expression))
+	     (selection-start selection-end
+			      (selection-start+end cursor range))
+	     (`(,start . ,start-stem) selection-start)
+	     (`(,end . ,end-stem) selection-end))
+    (cond
+     ((= range 0)
+      (clipboard:upload! (cons expression (empty))))
 
+     ((equal? start-stem end-stem)
+      (let ((selection ::string (make-string (- end start)))
+	    (source ::Textual (as Textual expression)))
+	(for i from start below end
+	     (string-set! selection (- i start)
+			  (source:char-ref i)))
+	(clipboard:upload! (cons selection '()))))
+
+     (else
+      (WARN "copying selections spanning multiple objects\
+ is currently not supported")))))
+     
 (define/kw (paste-selection! into: document := (the-document)
 			     at: cursor ::Cursor := (the-cursor)
 			     to: range ::integer := (the-selection-range))
