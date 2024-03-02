@@ -31,43 +31,9 @@
  (editor interfaces painting)
  (editor text-painter)
  (editor document documents)
+
+ (utils test)
  )
-
-(define verbose ::boolean #false)
-
-(define fail ::procedure error)
-
-(define (snapshot)::String
-  (with ((painter (TextPainter)))
-    (reset! extent-cached?)
-    (draw-document! (the-document))
-    (let ((result ::String (painter:toString)))
-      (when verbose
-	(display result))
-      ;;(display (history (the-document)))
-      result)))
-
-(define-syntax-rule (with-undo-redo operation)
-  (let ((initial (snapshot)))
-    operation
-    (let ((final (snapshot)))
-      (undo!)
-      (let ((reverted (snapshot)))
-	(unless (equal? initial reverted)
-	  (fail "Unexpected output after undoing "'operation
-		"\nexpected:\n"
-		initial
-		"\ngot:\n"
-		reverted)))
-      (redo!)
-      (let ((redone (snapshot)))
-	(unless (equal? final redone)
-	  (fail "Unexpected output after redoing "'operation
-		"\nexpected:\n"
-		final
-		"\ngot:\n"
-		redone)))
-      final)))
 
 
 (set! (the-document)
@@ -723,7 +689,7 @@
 
 (insert-character! #\;)
 
-;;(set! verbose #true)
+;;(set! (verbose-tests?) #true)
 
 (e.g.
  (snapshot) ===> "
