@@ -1,3 +1,11 @@
+* 01.03.2024
+
+to moze dzis sie zajmijmy "[1 "
+
+to plan jest taki, zeby stworxtc modul "test-regressions.scm"
+
+ale moze najpierw zajmiemy sie warningami?
+
 * 29.02.2024
 
 dzisiaj matomiast mozemy:
