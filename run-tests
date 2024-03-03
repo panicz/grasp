@@ -7,9 +7,10 @@ if [ "$#" -gt 0 ]; then
         . <(sed -n $(($n+9))p $0)
     done
 else
-java -jar libs/kawa.jar $FLAGS -f src/test-parser.scm
-java -jar libs/kawa.jar $FLAGS -f src/test-painter.scm
-java -jar libs/kawa.jar $FLAGS -f src/test-editor-operations.scm
-java -jar libs/kawa.jar $FLAGS -f src/test-document-operations.scm
-java -jar libs/kawa.jar $FLAGS -f src/test-stepper.scm
+java -jar libs/kawa.jar $FLAGS -f src/test-parser.scm #1
+java -jar libs/kawa.jar $FLAGS -f src/test-painter.scm #2
+java -jar libs/kawa.jar $FLAGS -f src/test-editor-operations.scm #3
+java -jar libs/kawa.jar $FLAGS -f src/test-document-operations.scm #4
+java -jar libs/kawa.jar $FLAGS -f src/test-stepper.scm #5
+java -jar libs/kawa.jar $FLAGS -f src/test-regressions.scm #6
 fi
