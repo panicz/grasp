@@ -46,7 +46,10 @@
 ")
   (e.g. (the-cursor) ===> (1 2 1 1))
   (delete-backward!)
-  (DUMP (history (the-document)))
-  (snapshot)
-  (DUMP (the-expression) (the-cursor) (cursor-ref))
+  (e.g. (snapshot) ===> "
+╭   ╮
+│ 1 │
+╰  |╯
+")
+  (e.g. (the-cursor) ===> (0 2 1 1)) 
 )

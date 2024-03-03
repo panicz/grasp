@@ -175,18 +175,20 @@
 	 ((is (text-length target) <= 1)
 	  (cond
 	   ((Textual? preceding-element)
-	    (and-let* ((following-cursor (cursor-advance
+	    (let* ((following-cursor (cursor-advance
 					  (recons* last-index
 						   top root)))
-		       (following-element ::Textual
-					  (cursor-ref (the-document)
-						      following-cursor))
-		       (preceding-element ::Textual preceding-element)
-		       ((eq? (preceding-element:getClass)
-			     (following-element:getClass))))
-	      (perform&record!
-	       (MergeElements removing: target
-			      after: preceding-cursor))))
+		   (following-element (cursor-ref (the-document)
+						  following-cursor))
+		   (preceding-element ::Textual preceding-element))
+	      (if (eq? (preceding-element:getClass)
+		       (following-element:getClass))
+		  (perform&record!
+		   (MergeElements removing: target
+				  after: preceding-cursor))
+		  (perform&record!
+		   (RemoveCharacter
+		    list: (cons (target:char-ref tip) '()))))))
 	   ((and (eq? preceding-element parent)
 		 (is (text-length (as Space target)) > 0))
 	    (perform&record!
@@ -194,7 +196,8 @@
 	      list: (cons (target:char-ref tip) '()))))
 	   ;; teoretycznie moglibysmy tutaj dodac scalanie
 	   ;; list
-	   (else #f)))
+	   (else
+	    #f)))
 	 (else
 	  (perform&record!
 	   (RemoveCharacter
