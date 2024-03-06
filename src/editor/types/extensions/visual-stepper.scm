@@ -570,7 +570,6 @@
 
 (define-interface Player (Enchanted Playable Animation))
 
-
 (define-object (Stepper initial-expression::Tile)::Player
 
   (define (typename)::String "Stepper")
@@ -697,7 +696,6 @@
 (set! (extension 'Stepper)
       (object (Extension)
 	((enchant source::cons)::Enchanted
-	 (WARN "invoking stepper")
 	 (otherwise (begin
 		      (WARN "Unable to create Stepper from "source)
 		      #!null)

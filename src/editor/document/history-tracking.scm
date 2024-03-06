@@ -238,7 +238,8 @@
      (for c in list
        (unless (eq? c (target:char-ref i))
 	 (WARN "the removed char "(target:char-ref i)
-	       " differs from expected "c))
+	       (char->integer (target:char-ref i))
+	       " differs from expected "c (char->integer c)))
        (target:delete-char! i)))
    (recons (- (car before)
 	      (length list))

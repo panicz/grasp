@@ -293,10 +293,9 @@
 
 (define/kw (disenchant-expression! at: cursor::Cursor := (the-cursor)
 				   in: document := (the-document))
-  (parameterize ((cell-access-mode CellAccessMode:Evaluating))
-    (and-let* ((enchanted ::Enchanted (the-expression at: cursor
-						      in: document))
-	       (expression (enchanted:value)))
-      (replace-expression! at: cursor with: expression
-			   in: document)
-      expression)))
+  (and-let* ((enchanted ::Enchanted (the-expression at: cursor
+						    in: document))
+	     (expression (enchanted:value)))
+    (replace-expression! at: cursor with: expression
+			 in: document)
+    expression))

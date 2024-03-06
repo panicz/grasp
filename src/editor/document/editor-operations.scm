@@ -20,6 +20,8 @@
 (import (editor document history-tracking))
 (import (editor types texts))
 (import (editor types comments))
+(import (editor types extensions extensions))
+
 
 (define (update-cursor-column!)
   (let* ((cursor-position ::Position (painter:cursor-position))
@@ -246,7 +248,14 @@
 		   with-shift: (text-length
 				preceding-element)))
 	  #f))
+     ((Enchanted? target)
+      (perform&record!
+	   (Remove element: (drop (quotient top 2) parent)
+		   at: (recons top root)
+		   with-shift: (text-length
+				preceding-element))))
      (else
+      (WARN "unable to delete "target)
       #f))))
 
 (define (delete-forward!)::boolean

@@ -439,7 +439,7 @@
    (let-values (((fragment index) (space-fragment-index
 				   fragments index)))
      (match fragments
-       (`(,,index . ,_)
+       (`(,,index ,,@integer? . ,_)
 	#\newline)
        (_
 	#\space))))

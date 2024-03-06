@@ -19,8 +19,6 @@
 
 (import (editor interfaces painting))
 
-(define-parameter (verbose-tests?) #false)
-
 (define-parameter (test-failed) ::procedure error)
 
 (define (snapshot)::String
@@ -28,7 +26,7 @@
     (reset! extent-cached?)
     (draw-document! (the-document))
     (let ((result ::String (painter:toString)))
-      (when (verbose-tests?)
+      (unless (in-example-context?)
 	(display result))
       ;;(display (history (the-document)))
       result)))
