@@ -1,3 +1,210 @@
+* 05.03.2024
+pozostale bledy
+- czasem nadal dostajemy komunikat, ze znak rozni sie od
+  oczekiwanego
+- po przelaczeniu dokumentu na desktopie nie dziala zoomowanie
+- nie dziala dodawanie i usuwanie elementow do Quotationow
+- zdarzenia z klawiatury nie sa prawidlowo propagowane
+- nie dziala przegladarka plikow na androidzie
+  (nie widzi plikow)
+- czasem po zaladowaniu innego dokumentu nie dziala menu
+  na kliencie desktopowym
+- klient terminalowy wiesza sie w tajemniczy sposob
+- brak oznaczenia komentarzy liniowych
+- nie dziala drag&drop na komentarzach
+- dziwne rzeczy sie dzieja z selekcja na granicy atomow
+  (na pewno na Androidzie)
+
+duzy temat na dzis i na jutro to uporzadkowanie steppera
+
+no bo ogolne to bysmy chcieli, zeby;
+- zapamietywac, na ktorym kroku ewaluacji wyrazenia
+  jestesmy
+- Stepper byl wyrazeniem (w takim samym sensie, jak Button)
+i pewnie tez zeby izomorfizm miedzy wyrazeniem a stepperem
+utrzymywal sie automatycznie
+
+no ale dobra, na razie mamy cos co jakby dziala, wiec wyjdzmy od tego.
+
+w tej chwili rozszerzenie jest tak napisane:
+
+#+BEGIN_SRC scheme
+
+  (define-interface Playable ()
+    (rewind!)::void
+    ...
+    (fast-forward!)::void)
+
+  (define-interface Player (Enchanted Playable Animation))
+
+  (define-object (Stepper initial-expression::Tile)::Player
+    ...
+    (define (draw! context::Cursor)::void
+      (current-morph:draw! context))
+    ...
+    (Magic))
+
+  (define (PlayerWithControls player::Player)::Enchanted
+    (bordered
+     (below
+      player
+      (beside
+       (Button label: "▮◀◀" action: (lambda () (player:rewind!)))
+       (Button label: "▮◀ " action: (lambda () (player:back!)))
+       (Button label: " ▶ " action: (lambda () (player:play!)))
+       (Button label: " ▶▮" action: (lambda () (player:next!)))
+       (Button label: "▶▶▮" action: (lambda () (player:fast-forward!))))
+      )))
+
+  (set! (extension 'Stepper)
+	(object (Extension)
+	  ((enchant source::cons)::Enchanted
+	   (otherwise (begin
+			(WARN "Unable to create Stepper from "source)
+			#!null)
+	     (parameterize ((cell-access-mode CellAccessMode:Editing))
+	       (and-let* ((`(Stepper ,expression) source))
+		 (PlayerWithControls (Stepper expression))))))))
+
+#+END_SRC
+
+a dla odmiany np. Button jest zdefiniowany tak:
+
+#+BEGIN_SRC scheme
+
+  (define-type (Button action: (maps () to: void)
+		       label: string)
+    extending Magic
+    with
+    ((draw! context::Cursor)::void
+     ...)
+    ...)
+
+  (set! (extension 'Button)
+      (object (Extension)
+	((enchant source::cons)::Enchanted
+	 (try-catch
+	  (or (as Button (eval source)) #!null)
+	  (ex java.lang.Throwable
+	      (WARN "Unable to create Button from "source": "
+		    (java.lang.String:valueOf ex))
+	      #!null)))))
+
+#+END_SRC
+
+Natomiast ogolnie chcielibysmy w ogole zrezygnowac z czegos takiego,
+jak extension, natomiast zamiadt zaczarowywania i odczarowywania
+bysmy mieli ciag operacji:
+- ewaluacja wyrazenia
+- skasowanie wyewaluowanego wyrazenia
+
+czyli docelowo powinny nam wyleciec:
+- disenchant-expression!
+- enchant-expression!
+- odpowiednie operacje edycji
+- tablica extension
+
+#+BEGIN_SRC scheme
+
+;; document-operations
+(define/kw (enchant-expression! at: cursor::Cursor := (the-cursor)
+				in: document := (the-document))
+  (parameterize ((cell-access-mode CellAccessMode:Evaluating))
+    (and-let* ((expression ::cons (the-expression at: cursor
+						  in: document))
+	       (`(,keyword::symbol . ,data) expression)
+	       (magic ::Extension (extension keyword))
+	       (enchanted ::Enchanted (magic:enchant expression)))
+      (set! (origin enchanted) expression)
+      (replace-expression! at: cursor with: enchanted
+			   in: document)
+      enchanted)))
+
+(define/kw (disenchant-expression! at: cursor::Cursor := (the-cursor)
+				   in: document := (the-document))
+  (and-let* ((enchanted ::Enchanted (the-expression at: cursor
+						    in: document))
+	     (expression (enchanted:value)))
+    (replace-expression! at: cursor with: expression
+			 in: document)
+    expression))
+
+;; history-tracking
+
+(define-type (EnchantExpression at: Cursor := (the-cursor))
+  implementing Edit
+  with
+  ((apply! document::pair)::Cursor
+   (otherwise #!null
+     (and-let* ((enchanted ::Element
+			  (enchant-expression! at: at
+					       in: document)))
+       (recons (enchanted:first-index)
+	       (cursor-core at document)))))
+
+  ((inverse)::Edit
+   (DisenchantExpression at: at)))
+
+(define-type (DisenchantExpression at: Cursor := (the-cursor))
+  implementing Edit
+  with
+  ((apply! document::pair)::Cursor
+   (otherwise #!null
+     (and-let* ((expression ::Element
+			    (disenchant-expression! at: at
+						    in: document)))
+       (recons (expression:first-index)
+	       (cursor-core at document)))))
+
+  ((inverse)::Edit
+   (EnchantExpression at: at)))
+
+;; editor types extensions extensions
+
+(define-simple-class Extension ()
+  ((enchant source::cons)::Enchanted
+   #!abstract)
+  )
+
+(define-constant extension
+  (mapping (keyword)
+	   (begin
+	     (WARN "no extension for "keyword)
+	     #f)))
+
+(define-property (origin enchanted) enchanted)
+   
+#+END
+
+jednakowoz zanim to bedzie moglo nastapic, Stepper musi sie
+ewaluowac do steppera - a zanim do tego dojdzie, musimy
+wykombinowac, jak sie za to zabrac
+
+
+* 04.03.2024
+
+mamy problem z deserializacja Steppera - bo to nie jest
+"osobny obiekt", tylko kompozycja kilku obiektow
+
+ale ogolnie to z tym stepperem jest nieco wiecej problemow.
+Konkretnie, on jest zdefiniowany jako zwykla funkcja, ktora
+zwraca obiekt Bordered. i to samo w sobie jest fajne.
+
+tyle ze po odczarowaniu nie chcemy dostac Bordered, a Stepper.
+
+No to zacznijmy od tego, ze bysmy chcieli, zeby Stepper byl
+zwyklym wyrazeniem, ktore ewaluuje sie do steppera. W tym celu
+zamiast [Stepper [! 5]] bysmy musieli pisac [Stepper '[! 5]].
+
+Ok, moze tym tematem sie zajmiemy pozniej, a na razie skupmy
+sie na kasowaniu wyrazen.
+
+
+* 03.03.2024
+
+to teraz bysmy sie moze zajeli usuwanuem zaczarowanych pudelek
+oraz odczarowywaniem pudelek
+
 * 01.03.2024
 
 to moze dzis sie zajmijmy "[1 "
@@ -45,7 +252,6 @@ no to taka lista bledow:
 - nie dziala drag&drop na komentarzach
 - dziwne rzeczy sie dzieja z selekcja na granicy atomow
   (na pewno na Androidzie)
-  
 
 * 28.02.2024
 
