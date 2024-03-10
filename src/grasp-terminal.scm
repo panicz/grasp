@@ -154,11 +154,15 @@
     (letter/cached character color background style)))
 
 (define system-clipboard
-  (let* ((toolkit ::java.awt.Toolkit
-		  (java.awt.Toolkit:getDefaultToolkit))
-	 (clipboard ::AWTClipboard 
-		    (toolkit:getSystemClipboard)))
-    (AWTSystemClipboard clipboard)))
+  (try-catch
+   (let* ((toolkit ::java.awt.Toolkit
+		   (java.awt.Toolkit:getDefaultToolkit))
+	  (clipboard ::AWTClipboard 
+		     (toolkit:getSystemClipboard)))
+     (AWTSystemClipboard clipboard))
+   (ex java.lang.Throwable
+       (WARN "unable to obtain system clipboard: "ex)
+       (the-system-clipboard))))
 
 (set! (the-system-clipboard) system-clipboard)
 
