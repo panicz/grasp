@@ -1,4 +1,210 @@
+* 08.03.2024
+
+#+BEGIN_SRC scheme
+   (define-syntax dropping-type-signatures
+     (syntax-rules (::)
+       ((_ all one () (processed ...))
+	(all processed ...))
+
+       ((_ all one (arg :: type args ...) (processed ...))
+	(_ all one (args ...) (processed ... (one arg))))
+
+       ((_ all one (arg args ...) (processed ...))
+	(_ all one (args ...) (processed ... (one arg))))
+       ))
+
+
+   (define-syntax-rule (define-simple-extension (name args ...) . body)
+     (define-object (name . args)::Enchanted ;<
+       (define (typename)::String (symbol->string 'name))
+
+       (define (value)::cons
+	 (cons (Atom #;< (symbol->string 'name))
+	       (dropping-type-signatures cons*
+					 identity-syntax
+					 (args ...) ())))
+       (SimpleExtension (begin . body))))
+#+END_SRC
+
+No dobra, to teraz majac takie cudo, chcielibysmy sobie
+zdefiniowac stepper, ktory daloby sie odczarowac
+
+#+BEGIN_SRC scheme
+  (define-simple-extension (PlayerWithControls player::Player)
+    (bordered
+     (below
+      player
+      (beside
+       (Button label: "▮◀◀" action: (lambda () (player:rewind!)))
+       (Button label: "▮◀ " action: (lambda () (player:back!)))
+       (Button label: " ▶ " action: (lambda () (player:play!)))
+       (Button label: " ▶▮" action: (lambda () (player:next!)))
+       (Button label: "▶▶▮" action: (lambda () (player:fast-forward!))))
+      )))
+#+END_SRC
+
+czy to ma szanse zadzialac?
+
+* 07.03.2024
+
+#+BEGIN_SRC scheme
+  (define-object (SimpleExtension content::Enchanted)::Enchanted
+    (define (tap! finger::byte  x::real y::real)::boolean
+      (content:tap! finger x y))
+
+    (define (press! finger::byte x::real y::real)::boolean
+      (content:press! finger x y))
+
+    (define (second-press! finger::byte #;at x::real y::real)::boolean
+      (content:second-press! finger #;at x y))
+
+    (define (double-tap! finger::byte x::real y::real)::boolean
+      (content:double-tap! finger x y))
+
+    (define (long-press! finger::byte x::real y::real)::boolean
+      (content:long-press! finger x y))
+
+    (define (key-typed! key-code::long context::Cursor)::boolean
+      (content:key-typed! key-code context))
+
+    (define (scroll-up! left::real top::real)::boolean
+      (content:scroll-up! left top))
+
+    (define (scroll-down! left::real top::real)::boolean
+      (content:scroll-down! left top))
+
+    (define (scroll-left! left::real top::real)::boolean
+      (content:scroll-left! left top))
+
+    (define (scroll-right! left::real top::real)::boolean
+      (content:scroll-right! left top))
+
+    (define (zoom-in! left::real top::real)::boolean
+      (content:zoom-in! left top))
+
+    (define (zoom-out! left::real top::real)::boolean
+      (content:zoom-out! left top))
+
+    (define (rotate-left! left::real top::real)::boolean
+      (content:rotate-left! left top))
+
+    (define (rotate-right! left::real top::real)::boolean
+      (content:rotate-right! left top))
+
+    (define (draw! context::Cursor)::void
+      (content:draw! context))
+
+    (define (cursor-under* x::real y::real path::Cursor)::Cursor*
+      (content:cursor-under* x y path))
+
+    (define (extent)::Extent
+      (content:extent))
+
+    (define (typename)::String #!abstract)
+
+    (define (part-at index::Index)::Indexable*
+      (let ((target (content:part-at index)))
+	(if (eq? target content)
+	    (this)
+	    target)))
+
+    (define (first-index)::Index
+      (content:first-index))
+
+    (define (last-index)::Index
+      (content:last-index))
+
+    (define (next-index index::Index)::Index
+      (content:next-index index))
+
+    (define (previous-index index::Index)::Index
+      (content:previous-index index))
+
+    (define (index< a::Index b::Index)::boolean
+      (content:index< a b)) ;>
+
+    (define (value)::Object
+      #!abstract)
+
+    (Magic))
+
+  (define-syntax-rule (define-simple-extension (name args ...) . body)
+    (define-object (name . args)::Enchanted
+      (define (value)::cons
+	(cons (Atom #;< (symbol->string 'name))
+	      (without-type-signatures args ...)))
+      (SimpleExtension (begin . body))))
+#+END_SRC
+
+dalsze plany: stworzyc ObjectProxy i ProcedureProxy. Ten pierwszy
+bedzie wyswietlal wszystkie wlasciwosci i metody, a ten drugi
+- typy argumentow.
+
+* 06.03.2024
+
+dzis probujemy zrefaktoryzowac Stepper tak, zeby byl wyrazeniem
+(a nie "extension"em), tak zeby finalnie skasowac cala tablice
+oraz klase Extension
+
+#+BEGIN_SRC scheme
+  (define-extension (VisualStepper expression: Expression
+				   step: int := 0)
+    (PlayerWithControls (Stepper expression step)))
+#+END_SRC
+
+czy definicja moglaby tak wygladac?
+
+Jaki jest problem?
+
+Rzecz w tym, ze mamy juz obiekt Stepper, ktory powinien sie
+serializowac do (Stepper expression).
+
+Czyli raczej powinnismy sie skupic na PlayerWithControls.
+
+I tutaj plan jest taki, zeby zmienic Player na
+EnchantedPlayableAnimation, zas PlayerWithControls
+na Player.
+
+I wowczas bysmy mieli taki dwupoziomowy schemat: zamiast
+(Stepper expression) bysmy mieli (Player (Stepper 'expression 0)).
+
+Czyli moze zamiast
+
+#+BEGIN_SRC scheme
+  (define (PlayerWithControls player::Player)::Enchanted
+    (bordered
+     (below
+      player
+      (beside
+       (Button label: "▮◀◀" action: (lambda () (player:rewind!)))
+       (Button label: "▮◀ " action: (lambda () (player:back!)))
+       (Button label: " ▶ " action: (lambda () (player:play!)))
+       (Button label: " ▶▮" action: (lambda () (player:next!)))
+       (Button label: "▶▶▮" action: (lambda () (player:fast-forward!))))
+      )))
+#+END_SRC
+
+bysmy mieli
+
+#+BEGIN_SRC scheme
+  (define-simple-extension (PlayerWithControls player::Player)
+    (bordered
+     (below
+      player
+      (beside
+       (Button label: "▮◀◀" action: (lambda () (player:rewind!)))
+       (Button label: "▮◀ " action: (lambda () (player:back!)))
+       (Button label: " ▶ " action: (lambda () (player:play!)))
+       (Button label: " ▶▮" action: (lambda () (player:next!)))
+       (Button label: "▶▶▮" action: (lambda () (player:fast-forward!))))
+      )))
+#+END_SRC
+
+I co by to nam dawalo?
+
+
 * 05.03.2024
+
 pozostale bledy
 - czasem nadal dostajemy komunikat, ze znak rozni sie od
   oczekiwanego
@@ -14,7 +220,7 @@ pozostale bledy
 - nie dziala drag&drop na komentarzach
 - dziwne rzeczy sie dzieja z selekcja na granicy atomow
   (na pewno na Androidzie)
-
+\
 duzy temat na dzis i na jutro to uporzadkowanie steppera
 
 no bo ogolne to bysmy chcieli, zeby;
@@ -174,7 +380,7 @@ czyli docelowo powinny nam wyleciec:
 
 (define-property (origin enchanted) enchanted)
    
-#+END
+#+END_SRC
 
 jednakowoz zanim to bedzie moglo nastapic, Stepper musi sie
 ewaluowac do steppera - a zanim do tego dojdzie, musimy
