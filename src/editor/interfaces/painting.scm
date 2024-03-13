@@ -22,9 +22,6 @@
   (to-previous-line)::real
   )
 
-(define-type (Extent width: real := 0
-                     height: real := 0))
-
 (define (string-extent s::java.lang.CharSequence)::Extent
   (let ((line-length 0)
         (max-length 0)

@@ -108,7 +108,9 @@
     #t))
 
 (define (delete-backward!)::boolean
-  (and-let* ((`(,tip ,top . ,root) (the-cursor))
+  (and-let* ((cursor (the-cursor))
+	     (`(,tip . ,stem) cursor)
+	     (`(,top . ,root) stem)
 	     (parent ::Indexable (cursor-ref (the-document) root))
 	     (target ::Indexable (parent:part-at top))
 	     (selection-start selection-end (the-selection))
@@ -249,11 +251,18 @@
 				preceding-element)))
 	  #f))
      ((Enchanted? target)
-      (perform&record!
-	   (Remove element: (drop (quotient top 2) parent)
-		   at: (recons top root)
-		   with-shift: (text-length
-				preceding-element))))
+      (and-let* ((ground-stem (suffix-without (isnt _ integer?)
+					      stem))
+		 (`(,top . ,root) ground-stem)
+		 (parent (cursor-ref (the-document) root))
+		 (preceding-cursor (cursor-retreat ground-stem))
+		 (preceding-element (cursor-ref (the-document)
+						preceding-cursor)))
+	(perform&record!
+	 (Remove element: (drop (quotient top 2) parent)
+		 at: (recons top root)
+		 with-shift: (text-length
+			      preceding-element)))))
      (else
       (WARN "unable to delete "target)
       #f))))

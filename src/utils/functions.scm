@@ -581,6 +581,24 @@
 		   '(4 3 2 1 0))
  ===> (2 1 0) 2)
 
+(define (suffix-without satisfying?::predicate elements::list)
+  ::list
+  (let ((candidate elements))
+    (let loop ((elements elements))
+      (match elements
+	(`(,first . ,rest)
+	 (when (satisfying? first)
+	   (set! candidate rest))
+	 (loop rest))
+	('()
+	 candidate)))))
+
+(e.g.
+ (suffix-without (isnt _ integer?)
+		 '(0 right right right bottom element 1 1))
+ #;< ===> (1 1))
+
+
 (define (for-each-pair action sequence::list)::void
   (when (pair? sequence)
     (action sequence)

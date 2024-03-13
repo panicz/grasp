@@ -570,7 +570,7 @@
 
 (define-interface Player (Enchanted Playable Animation))
 
-(define-object (Stepper initial-expression::Tile)::Player
+(define-object (ExpressionReducer initial-expression::Tile)::Player
 
   (define (typename)::String "Stepper")
 
@@ -693,6 +693,9 @@
       (Button label: "▶▶▮" action: (lambda () (player:fast-forward!))))
     )))
 
+(define-simple-extension (Stepper expression::Tile)
+  (PlayerWithControls (ExpressionReducer expression)))
+
 (set! (extension 'Stepper)
       (object (Extension)
 	((enchant source::cons)::Enchanted
@@ -701,4 +704,4 @@
 		      #!null)
 	   (parameterize ((cell-access-mode CellAccessMode:Editing))
 	     (and-let* ((`(Stepper ,expression) source))
-	       (PlayerWithControls (Stepper expression))))))))
+	       (Stepper expression)))))))

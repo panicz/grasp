@@ -109,7 +109,6 @@
 ")
   )
 
-
 (parameterize  ((the-document (call-with-input-string
 				  "" parse-document))
 		(the-cursor (cursor 0 0 1)))
@@ -135,9 +134,37 @@
 ╚═══════════════════════════════════╝
 ")
   (move-cursor-right!)
-  ;;(perform&record! (DisenchantExpression))
-  (DUMP (the-cursor) (cursor-ref))
-  ;;(delete-backward!)
-  (snapshot)
+  (delete-backward!)
+  (e.g. (snapshot) ===> "
+")
+  (undo!)
+  (e.g. (snapshot) ===> "
+╔═══════════════════════════════════╗
+║╭  ╭       ╮ ╭       ╮  ╮          ║
+║│+ │ * 2 3 │ │ - 4 5 │  │          ║
+║╰  ╰       ╯ ╰       ╯  ╯          ║
+║╭─────╮╭─────╮╭─────╮╭─────╮╭─────╮║
+║│ ▮◀◀ ││ ▮◀  ││  ▶  ││  ▶▮ ││ ▶▶▮ │║
+║╰─────╯╰─────╯╰─────╯╰─────╯╰─────╯║
+╚═══════════════════════════════════╝
+")
+  (perform&record! (DisenchantExpression
+		    at: (suffix-without (isnt _ integer?)
+					(the-cursor))))
+  (e.g. (snapshot) ===> "
+╭         ╭   ╭       ╮ ╭       ╮ ╮ ╮
+│ Stepper │ + │ * 2 3 │ │ - 4 5 │ │ │
+╰         ╰   ╰       ╯ ╰       ╯ ╯ ╯
+")
+  (undo!)
+  (e.g. (snapshot) ===> "
+╔═══════════════════════════════════╗
+║╭  ╭       ╮ ╭       ╮  ╮          ║
+║│+ │ * 2 3 │ │ - 4 5 │  │          ║
+║╰  ╰       ╯ ╰       ╯  ╯          ║
+║╭─────╮╭─────╮╭─────╮╭─────╮╭─────╮║
+║│ ▮◀◀ ││ ▮◀  ││  ▶  ││  ▶▮ ││ ▶▶▮ │║
+║╰─────╯╰─────╯╰─────╯╰─────╯╰─────╯║
+╚═══════════════════════════════════╝
+")
   )
-

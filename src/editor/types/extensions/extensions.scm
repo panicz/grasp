@@ -1,5 +1,6 @@
 (module-name (editor types extensions extensions))
 
+(import (language define-syntax-rule))
 (import (language define-interface))
 (import (language define-property))
 (import (language define-type))
@@ -77,6 +78,125 @@
     (cons (Atom "Magic") (empty)))
   
   (Simple))
+
+
+(define-object (SimpleExtension content::Enchanted)::Enchanted
+  (define (tap! finger::byte  x::real y::real)::boolean
+    (content:tap! finger x y))
+
+  (define (press! finger::byte x::real y::real)::boolean
+    (content:press! finger x y))
+
+  (define (second-press! finger::byte #;at x::real y::real)::boolean
+    (content:second-press! finger #;at x y))
+
+  (define (double-tap! finger::byte x::real y::real)::boolean
+    (content:double-tap! finger x y))
+
+  (define (long-press! finger::byte x::real y::real)::boolean
+    (content:long-press! finger x y))
+
+  (define (key-typed! key-code::long context::Cursor)::boolean
+    (content:key-typed! key-code context))
+
+  (define (scroll-up! left::real top::real)::boolean
+    (content:scroll-up! left top))
+
+  (define (scroll-down! left::real top::real)::boolean
+    (content:scroll-down! left top))
+
+  (define (scroll-left! left::real top::real)::boolean
+    (content:scroll-left! left top))
+
+  (define (scroll-right! left::real top::real)::boolean
+    (content:scroll-right! left top))
+
+  (define (zoom-in! left::real top::real)::boolean
+    (content:zoom-in! left top))
+
+  (define (zoom-out! left::real top::real)::boolean
+    (content:zoom-out! left top))
+
+  (define (rotate-left! left::real top::real)::boolean
+    (content:rotate-left! left top))
+
+  (define (rotate-right! left::real top::real)::boolean
+    (content:rotate-right! left top))
+
+  (define (draw! context::Cursor)::void
+    (content:draw! context))
+
+  (define (cursor-under* x::real y::real path::Cursor)::Cursor*
+    (content:cursor-under* x y path))
+
+  (define (extent)::Extent
+    (content:extent))
+
+  (define (typename)::String #!abstract)
+
+  (define (part-at index::Index)::Indexable*
+    (let ((target (content:part-at index)))
+      (if (eq? target content)
+	  (this)
+	  target)))
+
+  (define (first-index)::Index
+    (content:first-index))
+
+  (define (last-index)::Index
+    (content:last-index))
+
+  (define (next-index index::Index)::Index
+    (content:next-index index))
+
+  (define (previous-index index::Index)::Index
+    (content:previous-index index))
+
+  (define (index< a::Index b::Index)::boolean
+    (content:index< a b)) ;>
+
+  (define (value)::Object
+    #!abstract)
+
+  (Magic))
+
+(define-syntax dropping-type-signatures
+  (syntax-rules (::)
+    ((_ all one () (processed ...))
+     (all processed ...))
+
+    ((_ all one (arg :: type args ...) (processed ...))
+     (dropping-type-signatures
+      all one (args ...) (processed ... (one arg))))
+
+    ((_ all one (arg args ...) (processed ...))
+     (dropping-type-signatures
+      all one (args ...) (processed ... (one arg))))
+    ))
+
+(define (disenchanted item #;Tile)::Tile
+  (match item
+    (magic::Enchanted
+     (disenchanted (magic:value)))
+    (`(,head . ,tail)
+     (cons (disenchanted head) (disenchanted tail)))
+    (,@null?
+     (empty))
+    (_
+     item)))
+
+(define-syntax define-simple-extension
+  (syntax-rules ()
+    ((_ (name args ...) body)
+     (define-object (name args ...)::Enchanted 
+       (define (typename)::String (symbol->string 'name))
+
+       (define (value)::cons
+	 (cons (Atom #;< (symbol->string 'name))
+	       (dropping-type-signatures list*
+					 disenchanted
+					 (args ...) ())))
+       (SimpleExtension body)))))
 
 (define-simple-class Extension ()
   ((enchant source::cons)::Enchanted

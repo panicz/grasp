@@ -441,8 +441,13 @@
 (define-cache (recons head tail)
   (immutable-cons head tail))
 
-(define-syntax cons*
+(define-syntax list*
   (syntax-rules ()
+    ((_) (empty))
+    ((_ h . t) (cons h (list* . t)))))
+
+(define-syntax cons*
+  (syntax-rules ()    
     ((_ a b)
      (cons a b))
 

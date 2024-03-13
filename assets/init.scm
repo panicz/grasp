@@ -153,7 +153,7 @@
 
 (set-key! 'F1 (lambda ()
 		(WARN "cursor: "(the-cursor)
-		      ", expression: "(the-expression))))
+		      ", expression: "(cursor-ref))))
 
 (set-key! 'F2 (lambda ()
 		(DUMP (last-operation))))

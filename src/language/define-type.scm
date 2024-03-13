@@ -248,3 +248,6 @@
 	     (set-fields! instance . rest))))
       ((_ instance)
        #'(values)))))
+
+(define-type (Extent width: real := 0
+                     height: real := 0))

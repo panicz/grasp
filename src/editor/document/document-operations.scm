@@ -293,7 +293,8 @@
 
 (define/kw (disenchant-expression! at: cursor::Cursor := (the-cursor)
 				   in: document := (the-document))
-  (and-let* ((enchanted ::Enchanted (the-expression at: cursor
+  (and-let* ((cursor (suffix-without (isnt _ integer?) cursor))
+	     (enchanted ::Enchanted (the-expression at: cursor
 						    in: document))
 	     (expression (enchanted:value)))
     (replace-expression! at: cursor with: expression
