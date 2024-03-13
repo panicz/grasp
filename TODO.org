@@ -1,3 +1,127 @@
+* 12.03.2024
+
+to dzis bysmy sprobowali zrobic odczarowywanie steppera
+
+no dobra, to chyba co nieco sie tutaj udalo, ale jeszcze
+nie wszystko, bo sie nam Stepper zmienia na PlayerWithControls.
+
+Dlatego dobrze by bylo sprobowac zrobic tak, zeby ta operacja
+zrobila sie idempotentna.
+
+To moze sprobujmy sobie chociaz opisac, na czym w tej chwili
+polega problem. Otoz aktualnie mamy takie cos:
+
+#+BEGIN_SRC scheme
+  (define-simple-extension (PlayerWithControls player::Player) ;::Enchanted
+    (bordered
+     (below
+      player
+      (beside
+	(Button label: "▮◀◀" action: (lambda () (player:rewind!)))
+	(Button label: "▮◀ " action: (lambda () (player:back!)))
+	(Button label: " ▶ " action: (lambda () (player:play!)))
+	(Button label: " ▶▮" action: (lambda () (player:next!)))
+	(Button label: "▶▶▮" action: (lambda () (player:fast-forward!))))
+      )))
+
+  (set! (extension 'Stepper)
+      (object (Extension)
+	((enchant source::cons)::Enchanted
+	 (otherwise (begin
+		      (WARN "Unable to create Stepper from "source)
+		      #!null)
+	   (parameterize ((cell-access-mode CellAccessMode:Editing))
+	     (and-let* ((`(Stepper ,expression) source))
+	       (PlayerWithControls (Stepper expression))))))))
+
+#+END_SRC
+
+Czyli od strony mechanizmu wszystko wydaje sie OK, tylko problemem
+jest wprowadzona przez nas wieloznacznosc terminu Stepper.
+
+Plan jest zatem taki, zeby:
+- przemianowac Stepper na StepperContent
+- z PlayerWithControls uczynic z powrotem zwykla funkcje
+- odpowiednio zdefinowac rozszerzenie Stepper
+
+Przy okazji powinnismy zadbac o to, zeby:
+- ewaluacja wyrazenia Stepper dawala nam odpowiedni przedmiot
+- define-simple-extension samo dodawalo rozszerzenie do haszmapy
+
+No dobra, to na razie mamy tyle ile mamy.
+
+
+* 11.03.2024
+
+Z testu wynika nam, ze problemem jest to, ze kursor ma taka postac:
+(0 right right right bottom element 1 1)
+w czym zasadniczo nie ma nic zlego, tyle ze probujemy podzielic
+symbol "right" przez 2
+
+Czyli bysmy chcieli miec funkcje "skip-all" taka, ze
+
+#+BEGIN_SRC scheme
+    (e.g.
+      (skip-prefix-containing-any (isnt _ integer?)
+				  '(0 right right right bottom element 1 1))
+      #;< ===> (1 1))
+
+  (define (skip-prefix-containing-any satisfying?::predicate elements::list)::list
+    (let ((candidate elements))
+      (let loop ((elements elements))
+	(match elements
+	  (`(,first . ,rest)
+	   (when (satisfying? first)
+	     (set! candidate rest))
+	   (loop rest))
+	  ('()
+	   candidate)))))
+#+END_SRC
+
+No dobra, to wyglada na to, ze kasowanie zaczarowanego wyrazenia mamy juz jako tako
+ogarniete. Teraz pozostaje nam jeszcze odczarowywanie go (i wydaje sie, ze bedziemy
+chcieli to robic na podobna modle, tzn. ucinac kawalek kursora, ktory nie jest
+"liczbowy").
+
+Natomiast przy okazji mysli sie taki oto pomysl, zeby od razu zrobic nawigacje po
+guzikach.
+Co wiecej, byc moze ta nawigacja juz jest w jakiejs mierze zrobiona, i moglibysmy
+to sprobbowac przetestowac.
+
+No dobra, to wyglada na to, ze nawigowanie po przyciskach za pomoca klawiatury
+ogolnie dziala, tylko musielibysmy zrobic dwie rzeczy:
+- zeby pogrubiac albo rozjasniac przycisk, na ktorym znajduje sie kursor
+- zeby animowac wcisniecie przycisku
+
+* 10.03.2024
+
+Jak na razie wyglada na to, ze bedziemy potrzebowac nieco grubszych
+zmian w projekcie systemu rozszerzen.
+
+Rzecz konkretnie ma sie w taki sposob, ze teraz jak probujemy
+odczarowywac zaklete pudelka (takie, ktore wewnetrznie rowniez maja
+jakas swoja strukture), to wychodzi to roznie - bo przykladowo
+ostatnio zamiast oryginalnego wyrazenia dostalismy guzik.
+
+Zatem musimy zmienic funkcje odczarowujaca w taki sposob, zeby
+odczarowywala najmniej zagniezdzone rozszerzenie.
+
+Drugi problem, jaki chcielibysmy zdiagnozowac (i oczywiscie naprawic)
+dotyczy kasowania rozserzenia. Z jakiegos powoduje wydaje sie dzialac
+w przypadku guzika, ale w przypadku steppera juz nie dziala.
+
+Poza tym rzeczy wygladaja tak, ze w kolejnym tygodniu bedziemy mieli
+chyba 6 dni commitowych z rzedu, i wowczas bedziemy sie zajmowac
+diagnozowaniem i naprawianiem drobniejszych bugow.
+
+Po tym ma nastapic tydzien przerwy, a po nim kolejne 2 tygodnie
+orki. W tym wolnym tygodniu dobrze by bylo sie zajac przygotowaniem
+prezentacji o meta-programowaniu do pracy.
+
+No dobra, to moze zacznijmy od tego kasowania steppera, bo na to
+mamy juz w zasadzie napisany test
+
+
 * 08.03.2024
 
 #+BEGIN_SRC scheme
@@ -5693,8 +5817,6 @@ tylko jak by to mialo dzialac?
        (for target in targets
          (morph! expression target progress)))))
 
-(define
-	 
 * 24.08.2023
 
 morph expression into expressions at progress
@@ -7674,6 +7796,7 @@ widok by tak wygladal mniej wiecej:
  (file-list))
 
 a konkretniej moze tak:
+#+BEGIN_SRC
 
 (define (save-file-browser directory::string
                            name-hint::string
@@ -7705,7 +7828,8 @@ a konkretniej moze tak:
      (set! text-field:width (- file-list:width button:width))
      (set! window (popup content))
      window))
-     
+#+END_SRC
+
 ok
 
 czyli ogolniej: w tym tygodniu bysmy chcieli zrobic zapisywanie
@@ -7782,7 +7906,7 @@ ewaluacji)
 teraz chcielibysmy miec funkcje ktora laduje nam dokument
 z pliku. Czyli cos w rodzaju:
 
-
+#+BEGIN_SRC
 (define (open-document file::java.io.File)
 (call-with-input-file file ; ew. (file:getAbsolutePath)
     (let-values (((result spaces) (read-list)))
@@ -7790,6 +7914,7 @@ z pliku. Czyli cos w rodzaju:
 	          (EmptyListProxy spaces)
 		  result)
 		file))))
+#+END_SRC
 
 * 23.06.2023
 
@@ -7848,6 +7973,7 @@ byl otwarty przed zadanym dokumentem, oraz documentTransform,
 ktory przechowuje transformacje dokumentu w edytorze
 
 a jak bysmy to chcieli miec w nowym edytorze?
+#+BEGIN_SRC
 
 ... Editor ...
 
@@ -7876,6 +8002,7 @@ a jak bysmy to chcieli miec w nowym edytorze?
   (let ((opened ::Document (open-document file)))
     (set! (previously-edited opened) document)
     (set! document opened)))
+#+END_SRC
 
 * 21.06.2023
 
@@ -7906,15 +8033,16 @@ czyli co robimy dalej?
 
 
 to tak jak mamy funkcje
-
+#+BEGIN_SRC
 (define (file-list directory::File
                    file-action::(maps (File) to: void)
 		   directory-action::(maps (File) to: void))
   ::PopUp
   ...)
+#+END_SRC
 
 to bysmy sobie zrobili
-
+#+BEGIN_SRC
 (define (open-file-browser directory::File editor::Editor)
   ::PopUp
   (letrec ((popup ::PopUp
@@ -7926,6 +8054,7 @@ to bysmy sobie zrobili
         (screen:remove-overlay! popup)
         (screen:overlay! (open-file-browser directory editor))))))
      popup))
+#+END_SRC
 
 no i to jako tako dziala, ale nie ma mozliwosci wypozycjonowania
 
@@ -7963,10 +8092,11 @@ musimy zaimplementowac wyswietlanie ikon w edytorach:
   no to teraz: jak ma wygladac ten kod?
 
   do paintera dochodza 3 metody:
-
+#+BEGIN_SRC
   (icon-extent)::Extent
   (draw-directory-icon!)
   (draw-file-icon!)
+#+END_SRC
 
 teraz trzeba zaimplementowac te metody i dodac je
 do interfejsu Painter
@@ -7989,6 +8119,7 @@ ktora pobiera plik (tzn obiekt typu java.io.File)
 i zwraca nam Popup z list gridem
 
 czyli cos takiego
+#+BEGIN_SRC
 
 (define-alias File java.io.File)
 (define-alias Array java.util.Arrays)
@@ -8095,6 +8226,7 @@ czyli cos takiego
                              (max 0 (- outer:height
 			               available:height))))
       popup)))
+#+END_SRC
 
 
 zakladajac, ze powyzszy kod jest sprawny, zrobilibtsmy tak,
@@ -8122,15 +8254,18 @@ no to teraz tak: w klientach graficznych bysmy chcieli
 ladowac svg, natomiast w kliencie tekstowym
 po prostu uzylibysmy ikonek z unicode'a
 
+#+BEGIN_SRC
 📁 ..
 📄 file.grasp
+#+END_SRC
 
 po stronie paintera bysmy zrobili
-
+#+BEGIN_SRC
 (draw-directory-icon!)::void
 (directory-icon-size)::Extent
 (draw-file-icon!)::void
 (file-icon-size)::Extent
+#+END_SRC
 
 duzo chyba teraz bedzie rozkminy koncepcyjnej, bo
 na androidzie przegladarka plikow musi miec uprawnienia,
@@ -8144,12 +8279,14 @@ albo SaveFileBrowser, ktore implementuja (nasz wlasny)
 interfejs PermissiomGrantedHandler, ktory dziala tak,
 ze w klasie GRASP mamy metodd
 
+#+BEGIN_SRC
 @override
 public void onRequestPermissionsResult(
   int requestCode,
   String[] permissions,
   int[] grantResults
 )
+#+END_SRC
 
 no dobra. ale teraz takie pytanie:
 w jaki sposob zroznicowac obsluge plikow
@@ -8169,7 +8306,7 @@ tworzy nowe okienko
 
 gdybysmy chcieli dodac te funkcje do paintera,
 to bysmy mieli metody
-
+#+BEGIN_SRC
 (define-interface Keeper ()
   (with-read-permissions action::(maps (...) to: void))::void
   (with-write-permissions action::(maps (...) to: void))::void
@@ -8182,7 +8319,7 @@ to bysmy mieli metody
     (action)))
 
 (define-parameter (the-keeper)::Keeper (PermissiveKeeper))
-
+#+END_SRC
 
 * 13.06.2023
 
@@ -8195,6 +8332,7 @@ rozbudowac paintera
 
 Zamiast
 
+#+BEGIN_SRC
 (define-syntax-rule (with-clip (w h) . actions)
   (let ((painter (the-painter)))
     (let ((x0 (invoke painter 'current-clip-left))
@@ -8208,38 +8346,41 @@ Zamiast
       (invoke painter 'clip! x! y! w! h!)
       (begin . actions)
       (invoke painter 'clip! x0 y0 w0 h0))))
+#+END_SRC
 
 chcielibysmy raczej miec
-
+#+BEGIN_SRC
 (define-syntax-rule (with-clip (w h) . actions)
   (let ((painter ::Painter (the-painter)))
       (painter:store-state!)
       (painter:clip! w h)
       (begin . actions)
       (painter:restore-state!))
+#+END_SRC
 
 znow musimy porownac Androida, AWT i terminal.
 W terminalu musimy wszytskie mechanizmy
 sami zaimplementowac i tak.
 
-
 w starym kliencie Androidowym mielismy
-
+#+BEGIN_SRC
 canvas.save();
 canvas.clipRect(0, 0, _width, _height);
 canvas.translate(-hscroll, -vscroll);
 target.render(canvas);
 canvas.restore();
+#+END_SRC
 
 byc moze w Androidzie mozna uzyc pary
-
+#+BEGIN_SRC
 clipRect
 
 clipOutRect
+#+END_SRC
 
 natomiast w awt mozemy zrobic tak:
 
-
+#+BEGIN_SRC
 (let ((previous-clip ::Shape (graphics:getClip)))
   (graphics:clipRect ...)
 
@@ -8256,9 +8397,11 @@ natomiast w awt mozemy zrobic tak:
          (previous ::Clip (painter:clip! w h)))
       (begin . actions)
       (painter:restore-clip! previous)))
+#+END_SRC
 
 i w kliencie awt to by bylo:
 
+#+BEGIN_SRC
 (define (clip! w h)::Clip
 (let* ((previous-clip (graphics:getClip))
          (transform ::AffineTransform
@@ -8269,10 +8412,10 @@ i w kliencie awt to by bylo:
 
 (define (restote-clip! clip::Clip)::void
   (graphics:setClip (as Shape clip)))
-
+#+END_SRC
 
 a w kliencie androidowym
-
+#+BEGIN_SRC
 (define (clip! w h)::Clip
   (let ((clip ::RectF (RectF 0 0 w h)))
     (canvas:clipRect clip)
@@ -8280,10 +8423,12 @@ a w kliencie androidowym
 
 
 (define (restote-clip! clip::Clip)::void
+#+END_SRC
 
 a moze po prodtu dodac:
-
+#+BEGIN_SRC
 (with-clip w::real h::real action::(maps () to: void))
+#+END_SRC
 
 no, to na tym w koncu stanelo. jak na razie dziala
 na desktopie i androidzie, zas terminal musi jeszcze zostac
@@ -8312,7 +8457,9 @@ rysowac biale tlo
 
 czyli do paintera powinnismy dodac
 
+#+BEGIN_SRC
 (fill-grid-cell! width::real height::real)::void
+#+END_SRC
 
 Ok, a jak to juz bedziemy mieli, to co wtedy bedzie?
 
@@ -8328,7 +8475,7 @@ I kiedy to juz bedzie, zrobimy dzielenie ekranu
 oraz wstepny zarys systemu do rozpoznawania gestow.
 
 No ale dobra. Teraz zajmijmy sie Scrollem.
-
+#+BEGIN_SRC
 (define-type (Scroll width: real
                      height: real
 		     left: real := 0
@@ -8390,11 +8537,12 @@ No ale dobra. Teraz zajmijmy sie Scrollem.
 
   ((as-expression)::cons
    (invoke-special Base 'to-list cons to-expression)))
+#+END_SRC
 
 * 11.06.2023
 
-No dobra, to teraz chcemy dodac nowe widgety:
-
+No dobra, to teraz chcemy dodac nowe widgety
+#+BEGIN_SRC
 (define-type (Link on-tap: (maps (Link byte real real) to: boolean) := always
                    on-double-tap: (maps (Link byte real real) to: boolean) := always
                    on-press: (maps (Link byte real real) to: boolean) := always
@@ -8404,6 +8552,7 @@ No dobra, to teraz chcemy dodac nowe widgety:
                    content: Enchanted)
   implementing Enchanted
   with
+#+END_SRC
 
 
 * 10.06.2023
@@ -8415,7 +8564,7 @@ Na razie bedziemy dodawac do modulu (button):
 
 ale tez musimy dodac 3 metody do Painter
 (na razie do TextPainter)
-
+#+BEGIN_SRC
   (define 4dirs-code
     (let ((4dirs (mapping (4p::char)::int 0)))
       (set! (4dirs #\space) #b0000)
@@ -8446,12 +8595,13 @@ ale tez musimy dodac 3 metody do Painter
     (put! (4dirs (bitwise-ior
                   (4dirs-code (get y x))
                   (4dirs-code c))) y x))
+#+END_SRC
 
 * 09.06.2023
 
 mamy z grubsza zarysowane metody draw! i extent,
 ale do pelni szczescia bylyby nam jeszcze potrzebne:
-
+#+BEGIN_SRC
   (define (part-at index::Index)::Indexable*
     (items index))
 
@@ -8466,11 +8616,13 @@ ale do pelni szczescia bylyby nam jeszcze potrzebne:
 
   (define (index< a::Index b::Index)::boolean
     (is a < b)) ;>>
+#+END_SRC
 
 przy czym te ostatnie raczej powinny byc robione
 na jedno kopyto (analogicznie do tego jak zrobilismy
 tego PopUpa)
 
+#+BEGIN_SRC
 (define (propagate finger::byte x::real y::real
                    action::(maps (Enchanted byte real real int) to: ?))
   (let* ((painter ::Painter (the-painter))
@@ -8524,6 +8676,7 @@ tego PopUpa)
     ;; na razie tego nie obslugujemy; docelowo warto by bylo
     ;; przemyslec obsluge klawiatury
     #f)
+#+END_SRC
 
 * 08-07.06.2023
 
@@ -8536,19 +8689,21 @@ mamy zintegrowany touch event processor
 Tyle ze to nie bedzie ButtonList.
 To bedzie raczej cos w rodzaju
 
+#+BEGIN_SRC
 (Link content: (Caption "Open...")
       action: ...)
+#+END_SRC
 
 czyli Link bedzie troche jak Button
 
 Natomiast tabele bysmy budowali tak,
 ze mamy
-
+#+BEGIN_SRC
 (Table
  (Column
   (Row content: (Link content: ...)
        span: 1)
-
+#+END_SRC
 
 Niewazne, nie skupiajmy sie na razie na tabeli.
 
@@ -8562,15 +8717,16 @@ metod draw-horizontal-line na draw-horizontal-split itd.
 ok, to juz zrobione
 
 teraz bysmy dodali do paintera
+#+BEGIN_SRC
 draw-horizontal-grid!
 draw-vertical-grid!
 grid-border
-
+#+END_SRC
 
 
 Jak powinien wygladac kod renderujacy
 ButtonList?
-
+#+BEGIN_SRC
 (define (column . items)
   (Column items))
 
@@ -8608,6 +8764,7 @@ ButtonList?
        (- (painter:current-translation-left) x0)
        (- (painter:current-translation-top) y0))))
 
+#+END_SRC
 
 
 
@@ -8630,23 +8787,28 @@ bysmy zrobili to samo, tylko dla terminala
 
 w tym celu:
 - stworzymy sobie
-
+#+BEGIN_SRC
   (define events ::BlockingQueue
     (ArrayBlockingQueue 32))
+#+END_SRC
 
 teraz mamy:
+#+BEGIN_SRC
     (let* ((editing (future (edit io)))
 	   (rendering (future (render io))))
       ;; we want the rendering thread to have a lower
       ...)
+#+END_SRC
 
 stworzylibysmy sobie nowy watek:
 
+#+BEGIN_SRC
 (let* ((events ...)
        (preprocessing (future (process io events)))
        (editing (future (edit ioevents)))
        (rendering (future (render io))))
   ...)
+#+END_SRC
 
 ale do tego potrzebny bylby rowniez timer.
 
@@ -8656,7 +8818,7 @@ wyscigow
 
 w kazdym razie jak ma w teeminalu dzialac nasz EventRunner?
 
-
+#+BEGIN_SRC
 (define-interface CancellableRunner (Postponed Cancellable))
 
 (define-object (EventRunner queue::BlockingQueue)
@@ -8680,12 +8842,13 @@ w kazdym razie jak ma w teeminalu dzialac nasz EventRunner?
     (queue:put postponed-action))
 
   (TimerTask))
+#+END_SRC
 
 Ok, to jakis zamysl jest (i jutro sie tym bardziej zajmiemy),
 a tymczasem mozna pomalu myslec o widgecie ButtonsList
 i o tym, jak to obsluzyc od strony Paintera
 
-
+#+BEGIN_SRC
 (define (rewrite-events io::LanternaScreen queue::BlockingQueue)::void
   ;; although a thread rewriting stuff from one place
   ;; to another may not seem very useful, the point is
@@ -8694,7 +8857,7 @@ i o tym, jak to obsluzyc od strony Paintera
   (while #t
     (let ((event ::KeyStroke (io:readInput)))
       (queue:put event))))
-
+#+END_SRC
 
 * 05.06.2023
 
@@ -8793,7 +8956,7 @@ w najblizszym czasie chcemy zrobic takie rzeczy:
 najpierw sie zajmiemy plywajacym oknem
 
 to by dzialalo jakos tak:
-
+#+BEGIN_SRC
 (define/kw (pop-up-action pop-up::PopUp
                           x::real y::real
                           inside: inner-action
@@ -8944,7 +9107,7 @@ to by dzialalo jakos tak:
 (painter:draw-popup!
   (+ inner:width (* 2 (painter:horizontal-popup-margin)))
   (+ inner:height (* 2 (painter:vertical-popup-margin))))
-
+#+END_SRC
 
 a ogolnie "kamienie milowe" bysmy okreslili jako:
 - edycja GRASP w GRASP (i wypchniecie do sklepu)
@@ -8959,6 +9122,7 @@ chyba ze wzgledu na klienta terminalowego
 zaimplementujemy raczej ButtonList. Czyli
 cos w rodzaju
 
+#+BEGIN_SRC
 (define-object (Editor)::Pane
   ...
   (define (long-press! finger::byte x::real y::real)::boolean
@@ -8973,6 +9137,7 @@ cos w rodzaju
 	  (Button label: "Save as..." action: ...)
 	  (Bitton label: "Close" action: ...)))))
   ...)
+#+END_SRC
 
 Wtedy mozemy na razie zupelnie zrezygnowac
 z ustawiania rozmiaru
@@ -8991,9 +9156,10 @@ to co dalej?
 
 
 teraz bysmy chcieli stworzyc pop-upa
-
+#+BEGIN_SRC
 📁 ..
 📄 file.grasp
+#+END_SRC
 
 co sie stanie jezeli wyrzucimy zawartosc pop-upa ze starego
 prototypu?
@@ -9024,6 +9190,7 @@ musimy zatem odkopac nieco starego kodu
 
 To by teraz jakos tak wygladalo
 
+#+BEGIN_SRC
 (define-object (Editor)::Pane
   ...
   (define (long-press! finger::byte x::real y::real)::boolean
@@ -9038,6 +9205,7 @@ To by teraz jakos tak wygladalo
 	  (Button label: "Save as..." action: ...)
 	  (Bitton label: "Close" action: ...)))))
   ...)
+#+END_SRC
 
 no dobrze, w Javowym prototypie mielismy metode trySetSize,
 i element Below mogl go sobie wywolac
@@ -9062,6 +9230,7 @@ tylko jeszcze pytanie, jak sprzac ze soba guziki
 w taki sposob, zeby w kliencie terminalowym te guziki
 wygladaly tak
 
+#+BEGIN_SRC
 ╭────────────────╮
 │┌──────────────┐│
 ││ New          ││
@@ -9075,9 +9244,10 @@ wygladaly tak
 ││ Close        ││
 │└──────────────┘│
 ╰────────────────╯
+#+END_SRC
 
 Zamiast
-
+#+BEGIN_SRC
 ┌──────────────┐
 │ New          │
 └──────────────┘
@@ -9093,6 +9263,7 @@ Zamiast
 ┌──────────────┐
 │ Close        │
 └──────────────┘
+#+END_SRC
 
 
 * 29.05.2023
@@ -9264,7 +9435,7 @@ zaleznosci w modulach
 ok, to sie udalo
 
 to terax chcemy dla tych swoich cycatow zaimplementowac:
-
+#+BEGIN_SRC
   (part-at index::Index)::Indexable*
 
   (first-index)::Index
@@ -9279,7 +9450,7 @@ to terax chcemy dla tych swoich cycatow zaimplementowac:
   (cursor-under* x::real y::real path::Cursor)::Cursor*
 
   (extent)::Extent
-
+#+END_SRC
 
 * 17.05.2023
 
@@ -9298,6 +9469,7 @@ No ale dopsz. Przywolajmy sobie rysowanie sekwencji:
 
 tak wyglada metoda draw! w klasie cons:
 
+#+BEGIN_SRC
   (define (draw! context::Cursor)
     ::void
     (let* ((inner (sequence-extent (this)))
@@ -9308,14 +9480,17 @@ tak wyglada metoda draw! w klasie cons:
 			 context)
       (with-translation (paren-width 0)
 	  (draw-sequence! (this) context: context))))
+#+END_SRC
 
 moglibysmy zrobic taki enum:
 
+#+BEGIN_SRC
 (define-enum ParenType
   (Regular Quote Quasiquote Unquote UnquoteSplicing))
 
 ( quote x )
 [0  1  234]
+#+END_SRC
 
 
 a jeszcze z innej beczki: chcielibysmy, zeby
@@ -9390,6 +9565,7 @@ no i trzeba pamietac, ze oprocz klienta terminaloaego
 wypadaloby dodac te funkcjonalnosc w klientach graficznych,
 wiec bedzie trzeba dodac odpowiednie funkcje rysujace
 
+#+BEGIN_SRC
 (define-object (quote target)::Extension
 
  (define (draw! context)::void
@@ -9412,7 +9588,7 @@ wiec bedzie trzeba dodac odpowiednie funkcje rysujace
 
  ;; i jeszcze inne metody
    )
-
+#+END_SRC
 
 
 * 13.05.2023
@@ -9479,6 +9655,7 @@ Do tego bysmy chcieli zrobic rozszerzenie
 "quote", ktore po prostu renderuje grubsze
 nawiasy, albo
 
+#+BEGIN_SRC
       ▖ ▗
 'x =>  x
 
@@ -9497,7 +9674,8 @@ nawiasy, albo
 
 ◥    ◤
  atom
-
+  
+#+END_SRC
 
 
 czyli tak: jezeli mamy (quote (quote ...))
@@ -9675,11 +9853,14 @@ je uzyciem metody to-list.
 No, ale tutaj pomysl jest taki, ze
 bysmy mieli:
 
+#+BEGIN_SRC
 (define-property (construct type-name::symbol)::(maps (list) to: Struct)
   (lambda (_) #!null))
+#+END_SRC
 
 i define-type by dodatkowo robilo
 
+#+BEGIN_SRC
 (set! (constructor 'type)
   (lambda (properties)
     (let ((item (type)))
@@ -9688,11 +9869,14 @@ i define-type by dodatkowo robilo
           (and-let* ((`(,key ,value . ,rest) properties))``
 	    (slot-set! item (keyword->symbol key) value)
 	    (init rest)))))))
+#+END_SRC
 
 a zamiastveval btsmy mieli
+#+BEGIN_SRC
 
 (define (construct struct-spec::list)::Struct
   ((constructor (car struct-spec)) (cdr struct-spec)))
+#+END_SRC
 
 
 a tu w niedzyczasie sie rodzi plan prezentacji
@@ -9740,12 +9924,15 @@ symbole na funkcje tworzace.
 
 ALe ale w (extension) takie cos jest juz zdefiniowane!
 
+#+BEGIN_SRC
 (define-mapping (extension keyword)
   (begin
     (WARN "no extension for "keyword)
     #f))
+#+END_SRC
 
 i jest uzywane np. przez Button o tak:
+#+BEGIN_SRC
 
 (set! (extension 'Button)
       (object (Extension)
@@ -9756,6 +9943,7 @@ i jest uzywane np. przez Button o tak:
 	      (WARN "Unable to create Button from "source": "
 		    (java.lang.String:valueOf ex))
 	      #!null)))))
+#+END_SRC
 
 No ok, i teraz zamiast (eval source) bedziemy
 robili (list->struct source)?
@@ -9809,6 +9997,7 @@ dla struktur definiowanych przez
 define-type.
 
 Cos w stylu
+#+BEGIN_SRC
 
 (define-interface Structurizable ()
   (as-structure)::(either Atom List Text)
@@ -9829,6 +10018,7 @@ Cos w stylu
 
 
 (as-structure conversion::(maps Object to: Object))::Object
+#+END_SRC
 
 * 14.04.2023
 
@@ -9858,6 +10048,8 @@ raczej zwrocic rozszerzenie
 i teraz: jak w ogole chcemy
 te rozszerzenia definiowac?
 
+#+BEGIN_SRC
+
 (define-extension (quote item)
   ((draw! context::Cursor)::void
    (cond
@@ -9875,6 +10067,7 @@ te rozszerzenia definiowac?
   ((last-index) 0)
   ...)
 
+#+END_SRC
 
 * 13.04.2023
 
@@ -9954,6 +10147,8 @@ nie chcemy uzywac podowjnych nawiasow.
 Zrobimy sobie aliasy dla `() ,() '() i ,@(), ale
 tak poza tym nie bedziemy robic zadnych regul.
 
+#+BEGIN_SRC
+
         0 1 2 3 4 5 6 7 8 9 A B C D E F
 U+250x  ─ ━ │ ┃ ┄ ┅ ┆ ┇ ┈ ┉ ┊ ┋ ┌ ┍ ┎ ┏
 U+251x 	┐ ┑ ┒ ┓ └ ┕ ┖ ┗ ┘ ┙ ┚ ┛ ├ ┝ ┞ ┟
@@ -9994,6 +10189,9 @@ U+257x 	╰ ╱ ╲ ╳ ╴ ╵ ╶ ╷ ╸ ╹ ╺ ╻ ╼ ╽ ╾ ╿
 ╓   ╷       ╷  ╷       ╷  ╖
 ║ f │ + x y │ ┈┤ - y z ├┈ ║
 ╙   └       ┘  └       ┘  ╜
+
+#+END_SRC
+
 
 * 10.04.2023
 
@@ -10073,6 +10271,7 @@ insercje. i to bysmy zrobili, plus:
 - dodali operacje historyczne
 - zaimplementowali w kliencie desktopowym i androidowym
 
+#+BEGIN_SRC
 
 (define (f x y) z)
 
@@ -10110,6 +10309,7 @@ insercje. i to bysmy zrobili, plus:
    (and-let* ((`(,tip ,top . ,root) at))
      (CommentExpression at: (recons (+ top 1) root)
                         following: tip))))
+#+END_SRC
 
 * 05.04.2023
 
@@ -10191,6 +10391,7 @@ wymyslic inna
 tej klasy ze screen-rendererem
 
 * 26.03.2023
+#+BEGIN_SRC
 
 (define/kw (fully-expanded? cursor::Cursor
              on: document := (the-document))::boolean
@@ -10205,6 +10406,7 @@ tej klasy ze screen-rendererem
      (and-let* ((trace (cursor-trace document tail))
                 (`(,parent . ,elders) trace))
 	(cons (part-at tip parent) trace)))))
+#+END_SRC
 
 no dobra. i teraz co?
 
@@ -10213,7 +10415,7 @@ no dobra. i teraz co?
 
 1. Wykomentowywanie wyrazen
 dwie nowe operacje:
-
+#+BEGIN_SRC
 (define-type (CommentExpression at: Cursor)
   implementing Edit
   with
@@ -10233,6 +10435,7 @@ dwie nowe operacje:
    (and-let* ((
   ((inverse)::Edit
    (CommentExpression at: ???)))
+#+END_SRC
 
 Aczkolwiek problem jest taki, ze extract!
 nie obsluguje komentarzy.
@@ -10258,6 +10461,7 @@ tematach:
 - poprawne dzialanie drag&drop na komentarzach?
 
 Dobra, zacznijmy od tego rysowania kresek.
+#+BEGIN_SRC
 
 (define-object (Drawing stroke::Stroke)::Drag
 
@@ -10268,6 +10472,7 @@ Dobra, zacznijmy od tego rysowania kresek.
     (the-overlay:removeIf (is _ Stroke?)))
 
   (the-overlay:add! stroke))
+#+END_SRC
 
 No, to rysowanie kresek juz jako tako dziala.
 Wprawdzie jest jeszcze sporo do przemyslenia,
@@ -10311,6 +10516,7 @@ miec (pane), jezeli idzie o rysowanie gestow.
 
 I takie pytanie: czy moglibysmy zaimplementowac
 rysowanie gestu jako 'Drag'?
+#+BEGIN_SRC
 
 (define-object (DrawingGesture gesture::Gesture)::Drag
 
@@ -10323,22 +10529,26 @@ rysowanie gestu jako 'Drag'?
     ...)
 
   (the-overlay:add! gesture))
+#+END_SRC
 
 * 21.03.2023
 
 Przeanalizujmy obsluge gestow w grasp-android:
 
 mamy globalny obiekt
-
+#+BEGIN_SRC
 (define the-stroke ::Stroke #!null)
 (define the-gesture ::Gesture (Gesture))
+#+END_SRC
 
 oraz funkcje 'isShapeBeingDrawn'
-
+#+BEGIN_SRC
 (define (gesture-is-being-drawn?)::boolean
   (isnt the-stroke eq? #!null))
+#+END_SRC
 
 a do tego funkcje
+#+BEGIN_SRC
 
 (define (start-drawing-gesture!)::void
   (set! the-stroke (Stroke)))
@@ -10347,6 +10557,7 @@ a do tego funkcje
   (gesture:clear!)
   (set! the-stroke #!null))
 
+#+END_SRC
 
 no i dobrze. ale ciekawsze jest to, w jaki sposob
 te funkcje sa wywolywane:
@@ -10400,6 +10611,7 @@ ale jak sie on bedzie nazywal?
 * 19.03.2023
 
 teraz to bysmy chcieli miec funkcje
+#+BEGIN_SRC
 
 (define 4pix-code
   (let ((4pix (mapping (4p::char)::int 0)))
@@ -10476,9 +10688,12 @@ y = sqrt(r^2 - x^2)
         (4pix-set! x +y)
         (4pix-set! x -y)))))
 
+#+END_SRC
+
 
 * 18.03.2023
 
+#+BEGIN_SRC
 
 x1-x0   y1-y0
 ----- = -----
@@ -10526,6 +10741,8 @@ y1 = ax1 + b
 ▐   ▌
 
   ▀
+#+END_SRC
+
 * 17.03.2023 (telefon)
 
 W ramach odpinki moze sprobujemy dodac do systemu
@@ -10551,6 +10768,7 @@ W przypadku klienta terminalowego bedziemy
 uzywac koloru, natomiast w przypadku klienta
 tekstowego bysmy uzyli tego:
 
+#+BEGIN_SRC
 ▞▀▀▀▚
 ▌    ▌
 ▚    ▐
@@ -10559,6 +10777,7 @@ tekstowego bysmy uzyli tego:
 
 ▛▜
 ▙▟ █
+#+END_SRC
 
 czyli dodajemy do paintera funkcje
 
@@ -10686,19 +10905,25 @@ To ostatnie bedzie najpewniej wymagalo zaimplementowania
 interfejsu Textual w LineComment
 
 Trzeba bedzie dodac nowe operacje:
+#+BEGIN_SRC
 (InsertComment content: TextualComment at: Cursor)
+#+END_SRC
 
 oraz
-
+#+BEGIN_SRC
 (RemoveComment content: TextualComment at: Cursor)
+#+END_SRC
 
 a takze
-
+#+BEGIN_SRC
 (CommentExpression at: Cursor)
+#+END_SRC
 
 oraz
 
+#+BEGIN_SRC
 (UncommentExpression at: Cursor)
+#+END_SRC
 
 
 * 06.03.2023
@@ -10728,6 +10953,7 @@ To sie chyba udalo jakos naprawic.
 Przy okazji - problem, ktory pojawia sie, gdy mamy
 "generic dispatch" oraz "subclassing" - i jest to
 problem zasadniczo nierozwiazywalny:
+#+BEGIN_SRC
 
 (define-class <a> ())
 
@@ -10744,6 +10970,7 @@ problem zasadniczo nierozwiazywalny:
 (define-method (m (x <a>) (y <c>)) 'ac)
 
 (m b c)
+#+END_SRC
 
 * 05.03.2023
 
@@ -10808,6 +11035,7 @@ kolejna 2
 
 
 ** a to takie tam bazgrolki:
+#+BEGIN_SRC
 
 ︴
 ︴
@@ -10842,7 +11070,8 @@ kolejna 2
 
 
 ⏭ ⏮ ⏯
-⏴⏵⏶⏷⏸⏹⏺
+⏴⏵⏶⏷⏸⏹
+#+END_SRC
 
 * 01.03.2023
 
@@ -10963,11 +11192,13 @@ Dla TextPainter bysmy tylko robili
 dla TerminalPainter bysmy tez dodali
 troche koloru.
 
+#+BEGIN_SRC
 │ jeden srednik
 ┃ dwa sredniki
 ┣ trzy sredniki
 ┣━ cztery sredniki
 ┣━━ piec srednikow
+#+END_SRC
 
 Wreszcie dla screen-renderera - i docelowo
 dla Androida tez - bysmy wybrali jakas
@@ -10975,6 +11206,8 @@ zwariowana czczionke
 
 Jezeli idzie o komentarze pudelkowe,
 to bysmy je tak rysowali:
+
+#+BEGIN_SRC
 
 ┌───┐
 │   │
@@ -10984,6 +11217,9 @@ Lispiarze maja ogolnie taka konwencje, ze
 ;;; Heading
 ;;;; subheading
 ;;;;; subsubheading
+
+#+END_SRC
+
 
 No dobra, ale pozostaje nam jeszcze kwestia
 tego, ze chcielibysmy, zeby komentarze liniowe
@@ -11050,6 +11286,7 @@ enter-comment-drawing-mode!
 exit-comment-drawing-mode!
 
 A co z cytowaniem?
+#+BEGIN_SRC
 
 increase-quotation-level!
 decrease-quotation-level!
@@ -11093,6 +11330,7 @@ block-comment-extent
 ┆ ┆ ┆ ┋ head ┋ tail ┋ ┆ ┆ ┊
 ╰ ╰ ╰ ╙      ^      ╜ ╯ ╯ ╯
 
+#+END_SRC
 
 
 
@@ -11210,6 +11448,7 @@ komentarzy i zakomentowywania linii
 
 *bold*
 /italic/
+#+BEGIN_SRC
 
 ╭        ╭         ╮                                   ╮
 │ define │ map f l │                                   │
@@ -11250,6 +11489,7 @@ komentarzy i zakomentowywania linii
 ▼
 
 ▮◀◀  ▮◀  ▶/▮▮  ▶▮  ▶▶▮
+#+END_SRC
 
 Pomalu sobie pomysliwamy
 zeby quote i quasiquote implementowac
@@ -11314,26 +11554,33 @@ pole "document" z wiekszosci operacji edycji.
 
 Ale bedzie trzeba albo dodac dodatkowe pole do
 
+#+BEGIN_SRC
 (SplitElement with: Space
               at: Cursor := (the-cursor)
 	      in: pair := (the-document))
+#+END_SRC
 
 badz
 
+#+BEGIN_SRC
 (MergeElements removing: Space
                at: Cursor := (the-cursor)
                in: pair := (the-document))
+#+END_SRC
 
 albo moze tak:
 
+#+BEGIN_SRC
 (SplitElement with: Space at: Cursor)
 (MergeElements removing: Space after: Cursor)
+#+END_SRC
 
 tak zeby
 
+#+BEGIN_SRC
 (inverse (MergeElements removing: Space after: Cursor))
 = (SplitElement at: Cursor with: space)
-
+#+END_SRC
 
 * 15.02.2023
 
@@ -11438,6 +11685,7 @@ I taki oto jest plan na dzis.
 
 No i OK. I teraz mamy takie cus:
 
+#+BEGIN_SRC
 (define-interface Textual ()
   (insert-char! c::char index::int)::void
   (delete-char! index::int)::char
@@ -11446,6 +11694,7 @@ No i OK. I teraz mamy takie cus:
   (subpart start::int)::Textual
   (text-length)::int
   )
+#+END_SRC
 
 Natomiast po stronie spacji to mamy metody:
 - insert-space!
@@ -11557,11 +11806,13 @@ i implementacje w Atom oraz Text.
 
 Jeszcze bysmy chcieli wywalic te funkcje:
 
+#+BEGIN_SRC
 (atom-length a::Atom)
 (insert-char! c::char a::Atom index::int)
 (delete-char! a::Atom index::int)
 (truncate-atom! a::Atom length::int)
 (atom-subpart a::Atom start::int)
+#+END_SRC
 
 i zastapic je uzyciem metod interfejsu.
 
@@ -11593,8 +11844,10 @@ znajdujace sie pod kursorem zostaje wyodrebnione.
 
 I teraz tak: jezeli kursor jest "pelny", to
 
+#+BEGIN_SRC
 (eq? (the-expression at: cursor)
      (the-expression at: (cdr cursor)))
+#+END_SRC
 
 Czyli zasadniczo sprawdzamy, kto jest rodzicem naszego elementu:
 - jezeli jest to para (a nasz element to nie spacja)
@@ -11633,6 +11886,7 @@ albo przed usunietym elementem.
 
 -----
 
+#+BEGIN_SRC
 
 [Insert element: (f) at: (1 2 1 1)]
 [Insert element: ('i') at: (1 3 1 1)]
@@ -11647,6 +11901,9 @@ albo przed usunietym elementem.
 
 ===>
 [Insert element: (fine) at: (1 2 1 1)]
+
+#+END_SRC
+
 
 Warunek jest taki:
 - jezeli ostatnia operacja to wstawienie atomu A
@@ -11956,10 +12213,14 @@ Najogolniej rzecz biorac, chcemy, zeby
 wcisniecie klawisza powodowalo domyslnie
 wywolanie
 
+#+BEGIN_SRC
+
 (insert-character! (unicode-input)
              into: (the-document)
                at: (the-cursor))
+#+END_SRC
 
+	       
 gdzie:
 - jezeli input to lewy nawias i jestesmy na spacji,
 tworzymy nowe pudelko
@@ -12113,28 +12374,34 @@ w androidzie chcemy zmienic podsystem zdarzen
 tak zeby na razie po prostu wypluwal zdarzenie
 do logow
 
+#+BEGIN_SRC
 
 (active-pointers) ::(list-of int)
 
 (pointer-position index::int) ::Position
 
 (unicode-input)::char
+#+END_SRC
 
 w KeyboardEvent z awt mamy metode getKeyChar,
 ktora zwraca kod albo CHAR_UNDEFINED.
 
+#+BEGIN_SRC
 (define-mapping (key-handler key-code)::(maps () to: void)
   (lambda ()::void
     (and-let* ((c (unicode-input)))
       (insert-character! c))))
+#+END_SRC
 
 Jeszcze trzeba rozwazyc opcje dodawania trybow,
 tak zeby mozna bylo przeslaniac sobie tablice znakow
 w roznych kontekstach.
 
+#+BEGIN_SRC
 
 (define-type (KeyMap bindings: (maps (key::int) to: () to: void)
                      parent: KeyMap))
+#+END_SRC
 
 * 10.01.2023
 
@@ -12206,8 +12473,9 @@ Ok, i teraz co?
 
 Teraz musimy odwzorowac klawisze i sekwencje
 w ich nazwy. Na przyklad
-
+#+BEGIN_SRC
 (on-key '(ctrl alt shit x) cut-selection!)
+#+END_SRC
 
 czy cos
 
@@ -12225,6 +12493,8 @@ mielismy wiazania w poszczegolnych
 klienach:
 
 ** klient terminalowy:
+
+#+BEGIN_SRC
 
   (set! (on-key-press KeyType:ArrowLeft)
 	(lambda ()
@@ -12248,7 +12518,11 @@ klienach:
 
   (set! (on-key-type #\x) exit)
 
+#+END_SRC
+  
 ** klient desktopowy
+
+#+BEGIN_SRC
 
   (set! (on-key-press KeyEvent:VK_LEFT)
 	(lambda _
@@ -12282,8 +12556,11 @@ klienach:
 	      (let ((history ::History (history (the-document))))
 		(history:redo!)))))
 
+#+END_SRC
+
 ** klient androidowy:
 
+#+BEGIN_SRC
     (set! (on-key-press KeyEvent:KEYCODE_DPAD_LEFT)
       (lambda _
 	(move-cursor-left!
@@ -12303,7 +12580,7 @@ klienach:
 
     (set! (on-key-press KeyEvent:KEYCODE_DPAD_DOWN)
       move-cursor-down!)
-
+#+END_SRC
 
 * 09.01.2023
 
@@ -12348,12 +12625,15 @@ Poza tym jest jeszcze kwestia taka, ze chcielibysmy
 zbudowac przenosny interfejs wwjscia/wyjscia
 pomiedzy klientami - cos w rodzaju
 
+#+BEGIN_SRC
 (on-key '(ctrl z) undo!)
 
 (on-key '(ctrl y) redo!)
 
 i wowczas bysmy sobie zdefiniowali:
+#+END_SRC
 
+#+BEGIN_SRC
 (on-key 'space insert-space!)
 
 (on-key 'backspace delete-backward!)
@@ -12369,14 +12649,17 @@ i wowczas bysmy sobie zdefiniowali:
 (on-key 'right move-cursor-right!)
 
 (on-key '(shift right) expand-selection-right!)
-
+#+END_SRC
 Mielibysmy tez takie funkcje:
 
+#+BEGIN_SRC
 (active-pointers) ::int
 
 (pointer-position index::int) ::Position
 
 (unicode-input)::char
+#+END_SRC
+
 
 Bedziemy chcieli miec plik init.scm, zawierajacy
 powyzsze definicje.
