@@ -168,3 +168,28 @@
 ╚═══════════════════════════════════╝
 ")
   )
+
+(parameterize  ((the-document (call-with-input-string
+				  "" parse-document))
+		(the-cursor (cursor 0 0 1)))
+  (for-each insert-character! "[] ")
+  (move-cursor-left!)
+  (insert-character! #\newline)
+  (e.g. (snapshot) ===> "
+╭  ╮
+│  │
+╰  ╯
+    
+    
+|   
+")
+  (move-cursor-right!)
+  (e.g. (snapshot) ===> "
+╭  ╮
+│  │
+╰  ╯
+    
+    
+ |  
+")
+  )

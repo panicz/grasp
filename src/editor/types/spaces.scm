@@ -249,10 +249,12 @@
      (set! (car cell) (as int (+ (car cell) 1)))))
 
   (define (insert-break! position::int)::void
-   (let-values (((cell index) (space-fragment-index
-			       fragments
-			       position)))
-     (set! (cdr cell) (cons 0 (cdr cell)))))
+    (if (= position 0)
+	(set! fragments (cons 0 fragments))
+	(let-values (((cell index) (space-fragment-index
+				    fragments
+				    position)))
+	  (set! (cdr cell) (cons 0 (cdr cell))))))
 
   (define (draw! context::Cursor)::void
    (let-values (((selection-start selection-end) (the-selection)))

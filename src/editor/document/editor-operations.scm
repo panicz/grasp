@@ -337,7 +337,8 @@
  are currently not supported"))))
      
      ((is c in '(#\] #\) #\}))
-      (unnest-cursor-right!))
+      (and-let* ((`(,_ ,_ . ,_) subcursor))
+	(unnest-cursor-right!)))
 
      ((is c eqv? #\|)
       (cond
