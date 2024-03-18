@@ -1,3 +1,50 @@
+* 15.03.2024
+
+no dobra, to moze sprobujmy zrobic tak:
+- dodawanie elementow do quote'ow
+- quote'owanie wyrazen
+
+* 14.03.2024
+
+no dobra, cos tam naprawilismy z tym enterem.
+
+to teraz moze sie tymi quote'ami zajmijmy
+
+pierwszy pomysl jest taki, zeby potraktowac
+quote'y jako consy, ale w gruncie rzeczy wydaje
+sie to nieco problematyczne.
+
+zatem mozliwe, ze trzeba by bylo stworzyc
+interfejs, ktory bylby implementowany zarowno
+przez cons, jak i przez Quote
+
+No ale teraz tak:
+
+Jest kilka spraw. Zasadniczo chodzi o to, ze teraz robimy tak,
+ze wydobywamy sobie rodzica elementu, na ktorym chcemy operowac,
+no bo chodzi o to, ze na przyklad taki backspace moze nam
+usunac element.
+
+* 13.03.2024
+
+wracamy do naszej listy:
+- czasem nadal dostajemy komunikat, ze znak rozni sie od
+  oczekiwanego
+- po przelaczeniu dokumentu na desktopie nie dziala zoomowanie
+- nie dziala dodawanie i usuwanie elementow do Quotationow
+- zdarzenia z klawiatury nie sa prawidlowo propagowane
+- nie dziala przegladarka plikow na androidzie
+  (nie widzi plikow)
+- czasem po zaladowaniu innego dokumentu nie dziala menu
+  na kliencie desktopowym
+- klient terminalowy wiesza sie w tajemniczy sposob
+- brak oznaczenia komentarzy liniowych
+- nie dziala drag&drop na komentarzach
+- dziwne rzeczy sie dzieja z selekcja na granicy atomow
+  (na pewno na Androidzie)
+- jak mamy "[]| " i wcisniemy enter, to sie dzieje dosc
+  dziwacznie
+
 * 12.03.2024
 
 to dzis bysmy sprobowali zrobic odczarowywanie steppera
@@ -344,7 +391,7 @@ pozostale bledy
 - nie dziala drag&drop na komentarzach
 - dziwne rzeczy sie dzieja z selekcja na granicy atomow
   (na pewno na Androidzie)
-\
+
 duzy temat na dzis i na jutro to uporzadkowanie steppera
 
 no bo ogolne to bysmy chcieli, zeby;
