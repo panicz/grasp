@@ -1,3 +1,31 @@
+* 18.03.2024
+
+no to teraz plan jest taki, zeby override'owac
+set-car! oraz set-cdr! w quote'ach
+
+jak na razie samo w sobie to nic nie dalo.
+
+chyba trzeba to troche lepiej przemyslec, tak zeby
+dzialalo 'bezszwowo' z dotychczasowym systemem edycji
+
+#+begin_src scheme
+  (quote ())
+  ;      ^ ---  ([ 3)
+  []
+#+end_src
+
+no i dobra, i teraz jaki jest problem?
+
+albo: jakie sa pomysly na rozwiazanie go?
+
+Jeden pomysl to potraktowac Quotation jako "cons".
+No ale zasadniczo widzimy, ze to nie dziala.
+
+Stad inny pomysl jest taki, zeby dla interfejsu
+"Enchanted" stworzyc jakas specjalna sciezke
+w "insert-character!". 
+
+
 * 15.03.2024
 
 no dobra, to moze sprobujmy zrobic tak:
