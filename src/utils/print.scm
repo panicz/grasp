@@ -130,9 +130,12 @@
 	    (WARN line))
        #!null)))
 
-(define-constant debug ::parameter (make-parameter #f))
+(define-parameter (debugging?) #f)
 
-(define-syntax-rule (DEBUG action ...)
-  (when (debug)
-    (action ...)))
+(define (DEBUG . msg)
+  (when (debugging?)
+    (apply WARN msg)))
 
+(define-syntax-rule (DEBUG-DUMP expr ...)
+  (when (debugging?)
+    (DUMP expr ...)))
