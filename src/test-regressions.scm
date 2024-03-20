@@ -74,7 +74,7 @@
   (e.g. (snapshot) ===> "
 ╭               ❝┈┈┈┈┈┈┈┈•                 ╮
 │ Button label: ┊ button ┊ action: nothing │
-╰               •┈┈┈┈┈┈┈┈❞                |╯
+╰               •┈┈┈┈┈┈┈┈❞                 ╯
 ")
   (perform&record! (EnchantExpression))
   (e.g. (snapshot) ===> "
@@ -193,3 +193,33 @@
  |  
 ")
   )
+
+(parameterize  ((the-document (call-with-input-string
+				  "" parse-document))
+		(the-cursor (cursor 0 0 1)))
+  (for-each insert-character! "[quote []]")
+  (enchant-expression!)
+  (snapshot)
+  (move-cursor-left!)
+  (DUMP (cursor-ref) (the-cursor))
+  (parameterize ((debugging? #t))
+    (insert-character! #\space)
+    (snapshot)
+    (insert-character! #\x)
+    (snapshot)
+
+    ))
+
+(parameterize  ((the-document (call-with-input-string
+				  "" parse-document))
+		(the-cursor (cursor 0 0 1)))
+  (for-each insert-character! "[quote [x]]")
+  (enchant-expression!)
+  (snapshot)
+  (move-cursor-left!)
+  (insert-character! #\space)
+  (snapshot)
+  (parameterize ((debugging? #t))
+    (insert-character! #\a)
+    ;;(snapshot)
+    ))

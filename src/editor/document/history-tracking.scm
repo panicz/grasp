@@ -108,12 +108,11 @@
    (and-let* ((`(,tip ,top . ,root) at)
 	      (last-element (last element)))
      (insert! element into: document at: at)
-     (let* ((base-cursor (cursor-climb-back (recons (+ top 1) root)
-					    document)))
-       (if (or (gnu.lists.LList? last-element)
-	       (Text? last-element))
-	   (cursor-retreat base-cursor document)
-	   base-cursor))))
+     (let* ((base-cursor (cursor-climb-back
+			  (cursor-next (recons top root)
+					  document)
+			  document)))
+       base-cursor)))
   ((inverse)::Edit
    (match at
      (`(,tip ,top . ,root)

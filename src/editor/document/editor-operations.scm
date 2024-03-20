@@ -310,6 +310,7 @@
      ((isnt final eq? item)
       (WARN "attempted to insert character "c" to non-final position")
       #f)
+     
      ((or (Text? item) (TextualComment? item))
       (cond
        ((equal? selection-start selection-end)
@@ -454,10 +455,12 @@
      ((Space? item)
       (cond
        ((eqv? c #\")
-	(record&perform! (Insert element: (cons (Text) '()))))
+	(record&perform! (Insert element: (cons (Text) '())))
+	(truly (move-cursor-left!)))
        
        ((is c in '(#\[ #\( #\{))
-	(record&perform! (Insert element: (cons (empty) '()))))
+	(record&perform! (Insert element: (cons (empty) '())))
+	(truly (move-cursor-left!)))
 
        ((is c char-whitespace?)
 	(record&perform! (InsertCharacter list: (list c))))
@@ -515,16 +518,19 @@
 	  (record&perform! (SplitElement with: (SpaceFrom c))))))
        
        ((is c in '(#\[ #\( #\{))
-	(cond
-	 ((eqv? (final:first-index) tip)
-	  (record&perform! (Insert element: (cons (empty) '())
-			    at: (cursor-retreat))))
-	 ((eqv? (final:last-index) tip)
-	  (record&perform! (Insert element: (cons (empty) '())
-			    at: (cursor-advance))))
-	 (else
-	  (record&perform! (SplitElement with: (EmptySpace)))
-	  (record&perform! (Insert element: (cons (empty) '()))))))
+	(and
+	 (cond
+	  ((eqv? (final:first-index) tip)
+	   (record&perform! (Insert element: (cons (empty) '())
+				    at: (cursor-retreat))))
+	  ((eqv? (final:last-index) tip)
+	   (record&perform! (Insert element: (cons (empty) '())
+				    at: (cursor-advance))))
+	  (else
+	   (record&perform! (SplitElement with: (EmptySpace)))
+	   (record&perform! (Insert element: (cons (empty) '())))))
+	 (truly (move-cursor-left!))))
+       
        (else
 	(record&perform! (InsertCharacter list: (list c))))))
      ((Text? item)

@@ -42,21 +42,10 @@
 
 (set! (the-cursor) (cursor 0 0 1))
 
-#|
-(for-each insert-character! "\
-[define [map f l]
-  [march l
-   [`[,h . ,t] `[,(f h) . ,[map f l]]]
-   ['[]        '[]]")
-
-(snapshot)
-
-(exit)
-|#
+(insert-character! #\[)
 
 (e.g.
- (with-undo-redo
-  (insert-character! #\[)) ===> "
+ (snapshot)  ===> "
 ╭  ╮
 │  │
 ╰ |╯
@@ -69,6 +58,7 @@
 ")
 
 (undo!)
+(move-cursor-left!)
 
 (e.g.
  (snapshot) ===> "
