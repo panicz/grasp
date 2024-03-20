@@ -1,3 +1,67 @@
+* 20.03.2024
+
+dzis bysmy zrobili tak, zeby operacja wklejania pudelka
+nie powodowala cofania kursora, zas operacja wstawiania
+pudelka to powodowala
+
+* 19.03.2024
+
+walczymy sobie z tymi kursorami, i zastanawiajace jest,
+czy nie powinnismy wprowadzic nowej reprezentacji dla
+dokumentu:
+
+
+#+begin_src scheme
+  (define-object (Comb)::Tile
+    ;; the name is Comb, because its stands for
+    ;; a combination, but also because items and
+    ;; spaces are meant to be interleaved in the same
+    ;; way the teeth in a comb are interleaved with
+    ;; spaces/hair
+    (define items ::(instance java.util.List Tile)
+      (java.util.ArrayList))
+
+    ;; we assume here that 
+    (define spaces ::(instance java.util.List Space)
+      (java.util.ArrayList))
+
+    ;; the number of elements in spaces should always
+    ;; be one greater than 
+
+    (define (draw! context::Cursor)::void
+      (for i::int from 0 below (items:size)
+	   ...))
+
+    (define (extent)::Extent
+      ...)
+
+    (define (remove-at! index::int)::Tile
+      ...)
+
+    (define (insert-at! index::int item::Tile)::void
+      ...)
+
+    (spaces:add (Space)))
+#+end_src
+
+no dobra, to wyglada na to, ze teraz nas czeka sporo roboty.
+
+musimy bowiem:
+- zaimplementowac Comb
+- wymienic parser
+- obsluzyc wszystkie operacje (dodawanie, usuwanie, zamiana)
+- naprawic ewaluator
+
+Do tego dochodza jeszcze takie kwestie, ze operacje Insert etc.
+uzywaja list linkowanych
+  
+I moze dlatego warto by jeszcze bylo sprawdzic, czy jestesmy
+w stanie naprawic tego quote'a i poruszanie kursorem.
+
+No i dobra, to co teraz mamy wydaje sie w jakims sensie
+ok, aczkolwiek byloby dobrze rozprzegnac poruszanie kursorem
+od wstawiania wyrazenia.
+
 * 18.03.2024
 
 no to teraz plan jest taki, zeby override'owac
@@ -23,7 +87,7 @@ No ale zasadniczo widzimy, ze to nie dziala.
 
 Stad inny pomysl jest taki, zeby dla interfejsu
 "Enchanted" stworzyc jakas specjalna sciezke
-w "insert-character!". 
+w "insert-character!".  
 
 
 * 15.03.2024
