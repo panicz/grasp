@@ -3,27 +3,31 @@
 (import (srfi :11))
 (import (language define-interface))
 (import (language define-type))
-(import (utils hash-table))
+(import (language assert))
+(import (language match))
+(import (language examples))
+(import (language infix))
 (import (language define-property))
 (import (language fundamental))
+(import (language keyword-arguments))
+(import (language for))
+
+(import (utils functions))
+(import (utils print))
+(import (utils hash-table))
+
 (import (editor interfaces elements))
 (import (editor interfaces painting))
 
 (import (editor types primitive))
 (import (editor types spaces))
 (import (editor document cursor))
-(import (language assert))
-(import (language match))
-(import (language examples))
-(import (language infix))
-(import (utils functions))
-(import (language keyword-arguments))
-(import (utils print))
-(import (language for))
 (import (editor types texts))
 (import (editor types comments))
 
 (import (editor types extensions extensions))
+(import (editor types extensions quotations))
+
 
 ;; extract! returns either a cons-cell whose
 ;; car is the desired object, or a head/tail-separator
@@ -153,10 +157,17 @@
 		    at: cursor ::Cursor := (the-cursor))
   ::boolean
   (and-let* ((`(,tip::integer ,top::integer . ,root) cursor)
-	     (grandpa ::list (cursor-ref document root))
+	     (grandpa (cursor-ref document root))
 	     (parent ::Space (part-at top grandpa))
 	     (target ::Space (part-at tip parent)))
     (cond
+     ((Quotation? grandpa)
+      (let* ((quoted ::Quotation grandpa)
+	     (context (cons quoted:expression (empty))))
+	(insert! element into: context at: (recons* tip top 1 '()))
+	(set! quoted:expression (car context))
+	#t))
+	
      ((Comment? element)
       (let-values (((suffix remnant)
 		    (space-fragment-index target:fragments
@@ -184,7 +195,7 @@
 	   #t))))
 		 
      ((is top <= 1)
-      (and-let* ((`(,heir . ,origin) root)
+      (and-let* ((`(,heir::integer . ,origin) root)
 		 (predecesor ::pair (cursor-ref document
 						origin))
 		 (parent (drop (quotient heir 2)
