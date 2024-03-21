@@ -4,6 +4,12 @@ dzis bysmy zrobili tak, zeby operacja wklejania pudelka
 nie powodowala cofania kursora, zas operacja wstawiania
 pudelka to powodowala
 
+no dobra, to juz mamy.
+
+to teraz moze sprobujmy wrocic do naszych Quotationow
+(a jutro bysmy sie zajeli owijaniem ich w ramach
+operacji edycji)
+
 * 19.03.2024
 
 walczymy sobie z tymi kursorami, i zastanawiajace jest,
