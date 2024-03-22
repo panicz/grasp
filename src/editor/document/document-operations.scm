@@ -61,6 +61,25 @@
       (cond
        ((eq? parent target)
 	(extract! at: (cdr cursor) from: document))
+       
+       ((Quotation? grandpa)
+	(let* ((quoted ::Quotation grandpa)
+	       (scratch (cons quoted:expression
+			      (empty)))
+	       (extracted (extract! at: (recons* tip top 1 '())
+				    from: scratch)))
+	  (set! quoted:expression (car scratch))
+	  extracted))
+
+       ((Quotation? parent)
+	(let* ((quoted ::Quotation parent)
+	       (scratch (cons (cons quoted:expression (empty))
+			      (empty)))
+	       (extracted (extract! at: (recons* tip top 1 '())
+				    from: scratch)))
+	  (set! quoted:expression (car (car scratch)))
+	  extracted))
+       
        ((pair? parent)
 	(if (eqv? tip 1)
             (let* ((grandpa ::pair grandpa)

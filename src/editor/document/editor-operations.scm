@@ -21,6 +21,7 @@
 (import (editor types texts))
 (import (editor types comments))
 (import (editor types extensions extensions))
+(import (editor types extensions quotations))
 
 
 (define (update-cursor-column!)
@@ -157,13 +158,18 @@
 	 ((eqv? tip first-index)
 	  (set! (the-cursor) (cursor-retreat))
 	  (delete-backward!))
+	 
 	 ((is (text-length target) <= 1)
 	  ;; the cell will be cut off from the rest
 	  ;; of the document after performing Remove
-	  (perform&record!
-	   (Remove element: (drop (quotient top 2) parent)
-		   at: (recons top root)
-		   with-shift: (car preceding-cursor))))
+	  (let* ((parent (match parent
+			   (quoted::Quotation quoted:expression)
+			   (_ parent)))
+		 (element (drop (quotient top 2) parent)))
+	    (perform&record!
+	     (Remove element: element
+		     at: (recons top root)
+		     with-shift: (car preceding-cursor)))))
 	 (else
 	  (perform&record!
 	   (RemoveCharacter

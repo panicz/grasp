@@ -215,7 +215,35 @@
   (e.g. (snapshot) ===> "
 ┏   ┓
 ┃ x ┃
-┗   ┛
+┗  ^┛
 ")
-
+  (insert-character! #\space)
+  (insert-character! #\z)
+  (e.g. (snapshot) ===> "
+┏     ┓
+┃ x z ┃
+┗    ^┛
+")
+  (times 3 move-cursor-left!)
+  (insert-character! #\space)
+  (insert-character! #\y)
+  (e.g. (snapshot) ===> "
+┏       ┓
+┃ x y z ┃
+┗    ^  ┛
+")
+  (delete-backward!)
+  (e.g. (snapshot) ===> "
+┏      ┓
+┃ x  z ┃
+┗   |  ┛
+")
+  (move-cursor-left!)
+  ;;(parameterize ((debugging? #t)))
+  (delete-backward!)
+  (e.g. (snapshot) ===> "
+┏     ┓
+┃   z ┃
+┗ |   ┛
+")
   )
