@@ -1,3 +1,7 @@
+* 21.03.2024
+
+dzisiaj sie zajmiemy kasowaniem wyrazen wewnatrz quote'ow
+
 * 20.03.2024
 
 dzis bysmy zrobili tak, zeby operacja wklejania pudelka
