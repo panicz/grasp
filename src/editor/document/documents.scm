@@ -20,6 +20,12 @@
 (define-object (Document car source)::Tile
   ;; TODO: cursor-under* etc.
 
+  (define (setCar value)
+    (set! car value))
+
+  (define (getCar)
+    car)
+  
   (define (draw! context::Cursor)::void
     (cond ((EmptyListProxy? car)
 	   (let ((proxy ::EmptyListProxy (as EmptyListProxy car)))
