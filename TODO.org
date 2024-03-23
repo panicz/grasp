@@ -1,3 +1,59 @@
+* 22.03.2024
+
+dzisiaj/jutro bysmy:
+- dokonczyli testy kasowania i dodawania elementow do quote'ow
+- sprobowali zaimplementowac taka funkcjonalnosc, ze:
+  - jak jestesmy na nawiasie albo atomie i nacisniemy `, to owijamy
+    wyrazenie w quasiquote
+  - podobnie z , oraz '
+  - jak wcisniemy te przyciski bedac na spacji, to po prostu
+    dodajemy nowego quote'a/quasiquote'a/unquote/a z pusta lista
+  - jezeli jestesmy na liscie majacej dokladnie jeden element,
+    to powinnismy sie moc przelaczac poimedzy 'x a '(x)
+  - wcisniecie tych przyciskow po raz drugi powinno nam zmieniac
+    tryb
+
+
+No dobra, to jakis tam projekt mamy, i moze sie nam go uda lepiej
+lub gorzej zrealizowac.
+
+Tymczasem warto by bylo sie zastanowic nad szerzymi kwestiami
+rozwojowymi.
+
+Pierwsza rzecz, to w kolejnym tygodniu bede prowadzil prezentacje
+i metaprogramowaniu, i to na niej chcialbym sie skupic.
+
+Druga sprawa, to zmiana reprezentacji. I tutaj rzecz wyglada tak,
+ze zmiany musiayby dotknac nastepujacych modulow:
+- oczywiscie samego (editor types primitive)
+- parsera (no bo jakze by inaczej)
+- ale rowniez (editor document history-tracking)
+
+Strategia natomiast musialaby byc taka, ze bysmy musieli robic tak,
+zeby dotychczasowe testy nam przechodzily.
+
+Zaleta jest taka, ze mamy juz gotowe paintery, wiec kod powinien
+wzglednie od razu dzialac.
+
+No dobra, to teraz myk jest taki:
+- rozwijac grzebien to bysmy woleli raczej w tle
+- byc moze fajnie by bylo przejsc na nowa reprezentacje
+  jeszcze przed naprawa bugow z edycja komentarzy
+- a moze lepiej wydac wersje 1.0 jeszcze na starej
+  reprezentacji
+
+
+OK, to sie sprobujmy teraz zajac tym bledem, ze jak mamy
+dokument wczytany z pliku i skasujemy pierwsze wyrazenie,
+to pozostaje nam wszystko oprocz pierwszego wyrazenia.
+
+Ogolnie wydaje sie, ze blad moze byc zwiazany z tym, ze
+cos mylnie jest brane za dokument, a co innego - za wyodrebniona
+rzecz.
+
+
+
+
 * 21.03.2024
 
 dzisiaj sie zajmiemy kasowaniem wyrazen wewnatrz quote'ow
