@@ -1560,26 +1560,30 @@
 	     permissions" has been denied: "grantResults)
        (unset! (reaction-to-request-response requestCode))))))
 
-  (define (with-permission permission::String
-			   action::(maps () to: void))
+  (define (with-permissions permissions::($bracket-apply$ String)
+			    action::(maps () to: void))
     ::void
     (safely
-     (if (eq? (checkSelfPermission permission)
-	      PackageManager:PERMISSION_DENIED)
+     (if (any (is (checkSelfPermission _)
+		  eq? PackageManager:PERMISSION_DENIED)
+	      permissions)
 	 (let ((request-code ::int (new-request-code)))
 	   (set! (reaction-to-request-response
 		  request-code) action)
-	   (requestPermissions (($bracket-apply$ String)
-				permission) request-code))
+	   (requestPermissions permissions request-code))
 	 (action '(PackageManager:PERMISSION_GRANTED)))))
 
   (define (with-read-permission action::(maps _ to: void))::void
-    (with-permission Manifest:permission:WRITE_EXTERNAL_STORAGE
+    (with-permissions (($bracket-apply$ String)
+		       Manifest:permission:WRITE_EXTERNAL_STORAGE
+		       Manifest:permission:MANAGE_EXTERNAL_STORAGE)
 		     action))
 
   (define (with-write-permission action::(maps _ to: void))::void
-    (with-permission Manifest:permission:READ_EXTERNAL_STORAGE
-		     action))
+    (with-permissions (($bracket-apply$ String)
+		       Manifest:permission:READ_EXTERNAL_STORAGE
+		       Manifest:permission:MANAGE_EXTERNAL_STORAGE)
+		      action))
 
   (define (initial-directory)::java.io.File
     (android.os.Environment:getExternalStorageDirectory))
