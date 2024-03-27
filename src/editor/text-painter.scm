@@ -615,7 +615,7 @@
        (else
 	(draw-line-8pix! x1 y1 x0 y0)))))
 
-  (define (draw-line! x0::real y0::real
+  (define (draw-thick-line! x0::real y0::real
 		      x1::real y1::real)
     ::void
     (draw-line-4pix! (* x0 2) (* y0 2)

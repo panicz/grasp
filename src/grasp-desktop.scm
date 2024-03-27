@@ -1004,7 +1004,7 @@
     (set-color! Color:WHITE)
     (graphics:fillRect 5 5 (- width 10) (- height 10)))
 
-  (define (draw-line! x0::real y0::real x1::real y1::real)
+  (define (draw-thick-line! x0::real y0::real x1::real y1::real)
     ::void
     (graphics:drawLine (as int (round x0))
 		       (as int (round y0))

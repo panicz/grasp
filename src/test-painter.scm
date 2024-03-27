@@ -94,10 +94,10 @@
 
 (e.g.
 (with ((painter ::TextPainter (TextPainter)))
-    (painter:draw-line! 0 0 30 3)
-    (painter:draw-line! 3 2 30 15)
-    (painter:draw-line! 32 15 34 0)
-    (painter:draw-line! 5 15 34 7)
+    (painter:draw-thick-line! 0 0 30 3)
+    (painter:draw-thick-line! 3 2 30 15)
+    (painter:draw-thick-line! 32 15 34 0)
+    (painter:draw-thick-line! 5 15 34 7)
     (painter:toString)) ===> "
 ▀▀▀▄▄▄▄▖                          ▌
        ▝▀▀▀▀▀▄▄▄▄▖                ▌

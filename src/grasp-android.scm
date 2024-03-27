@@ -675,7 +675,7 @@
     (set-color! Color:WHITE)
     (canvas:drawRect 10 10 (- width 10) (- height 10) paint))
 
-  (define (draw-line! x0::real y0::real x1::real y1::real)
+  (define (draw-thick-line! x0::real y0::real x1::real y1::real)
     ::void
     (set-color! Color:LTGRAY)
     (paint:setStrokeWidth 4)
@@ -684,7 +684,7 @@
 
   (define (draw-stroke! x0::real y0::real x1::real y1::real)
     ::void
-    (draw-line! x0 y0 x1 y1))
+    (draw-thick-line! x0 y0 x1 y1))
 
   (define (mark-editor-cursor! +left::real +top::real
 			       editor::WithCursor)

@@ -207,7 +207,7 @@ def") ===> [Extent width: 3 height: 2])
 
   (fill-background! width::real height::real)::void
   
-  (draw-line! x0::real y0::real x1::real y1::real)
+  (draw-thick-line! x0::real y0::real x1::real y1::real)
   ::void
 
   (enter-selection-drawing-mode!)::void
@@ -379,7 +379,7 @@ def") ===> [Extent width: 3 height: 2])
     ::void
     (values))
 
-  (define (draw-line! x0::real y0::real
+  (define (draw-thick-line! x0::real y0::real
 		      x1::real y1::real)
     ::void
     (values))
