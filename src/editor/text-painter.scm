@@ -619,11 +619,15 @@
 		      x1::real y1::real)
     ::void
     (draw-line-4pix! (* x0 2) (* y0 2)
-		     (* x1 2) (* y1 2))
-    #;(draw-line-8pix! (* x0 2) (* y0 4)
-		     (* x1 2) (* y1 4))
-    )
+		     (* x1 2) (* y1 2)))
 
+  (define (draw-thin-line! x0::real y0::real
+			   x1::real y1::real)
+    ::void
+    (draw-line-8pix! (* x0 2) (* y0 4)
+		     (* x1 2) (* y1 4)))
+
+  
   (define (draw-quoted-text! s::CharSequence
 			     context::Cursor)
     ::void

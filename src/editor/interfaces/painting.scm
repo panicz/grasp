@@ -210,6 +210,9 @@ def") ===> [Extent width: 3 height: 2])
   (draw-thick-line! x0::real y0::real x1::real y1::real)
   ::void
 
+  (draw-thin-line! x0::real y0::real x1::real y1::real)
+  ::void
+
   (enter-selection-drawing-mode!)::void
   (exit-selection-drawing-mode!)::void
   (in-selection-drawing-mode?)::boolean
@@ -384,6 +387,11 @@ def") ===> [Extent width: 3 height: 2])
     ::void
     (values))
 
+  (define (draw-thin-line! x0::real y0::real
+		      x1::real y1::real)
+    ::void
+    (values))
+  
   (define (horizontal-split-height)::real
     0)
 

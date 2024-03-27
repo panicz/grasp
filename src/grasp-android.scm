@@ -682,6 +682,12 @@
     (canvas:drawLine x0 y0 x1 y1 paint)
     (paint:setStrokeWidth 1))
 
+  (define (draw-thin-line! x0::real y0::real x1::real y1::real)
+    ::void
+    (set-color! Color:LTGRAY)
+    (paint:setStrokeWidth 1)
+    (canvas:drawLine x0 y0 x1 y1 paint))
+  
   (define (draw-stroke! x0::real y0::real x1::real y1::real)
     ::void
     (draw-thick-line! x0 y0 x1 y1))

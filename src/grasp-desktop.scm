@@ -1004,13 +1004,28 @@
     (set-color! Color:WHITE)
     (graphics:fillRect 5 5 (- width 10) (- height 10)))
 
+  (define thick ::LineDecoration
+    (BasicLineDecoration 4))
+  
   (define (draw-thick-line! x0::real y0::real x1::real y1::real)
     ::void
+    (graphics:setStroke thick)
     (graphics:drawLine (as int (round x0))
 		       (as int (round y0))
 		       (as int (round x1))
 		       (as int (round y1))))
 
+  (define thick ::LineDecoration
+    (BasicLineDecoration 1))
+  
+  (define (draw-thin-line! x0::real y0::real x1::real y1::real)
+    ::void
+    (graphics:setStroke thin)
+    (graphics:drawLine (as int (round x0))
+		       (as int (round y0))
+		       (as int (round x1))
+		       (as int (round y1))))
+  
   (define (draw-text! text::CharSequence
 		      font::Font
 		      context::Cursor)
@@ -1090,7 +1105,7 @@
 
   (define dashed ::LineDecoration
     (BasicLineDecoration
-     3 BasicLineDecoration:CAP_BUTT
+     1 BasicLineDecoration:CAP_BUTT
      BasicLineDecoration:JOIN_BEVEL
      0 (($bracket-apply$ float) 9) 0))
   
