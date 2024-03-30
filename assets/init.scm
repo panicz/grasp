@@ -37,6 +37,7 @@
 (import (editor types primitive))
 (import (editor input evaluation))
 (import (editor types extensions visual-stepper))
+(import (editor types extensions testing))
 (import (editor document history-tracking))
 (import (editor types spaces))
 (import (editor document copy-paste))
@@ -200,6 +201,10 @@ son|#
 #;(e.g. #;(! #;5) ===> 120)
 (Button action: (lambda () (WARN \"button pressed!\"))
         label: \"Press me!\")
+
+(Movement from: (Position left: 20 top: 20)
+          to: (Position left: 120 top: 170)
+          via: '())
 
 (e.g.
  (parameterize ((the-cursor (cursor 0 1 3 1 1)))

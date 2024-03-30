@@ -156,6 +156,9 @@ def") ===> [Extent width: 3 height: 2])
   (draw-directory-icon!)::void
   (draw-file-icon!)::void
 
+  (draw-press-mark! left::real top::real)::void
+  (draw-release-mark! left::real top::real)::void
+  
   (clear!)::void
 
   (draw-quoted-text! s::CharSequence context::Cursor)
@@ -198,6 +201,7 @@ def") ===> [Extent width: 3 height: 2])
   (draw-border! width::real height::real)::void
 
   (border-size)::real
+  (height/width-ratio)::real
   
   (draw-rounded-rectangle! width::real
 			   height::real)
@@ -351,6 +355,12 @@ def") ===> [Extent width: 3 height: 2])
   (define (draw-file-icon!)::void
     (values))
 
+  (define (draw-press-mark! left::real top::real)::void
+    (values))
+  
+  (define (draw-release-mark! left::real top::real)::void
+    (values))
+  
   (define (clear!)::void
     (values))
 
@@ -466,6 +476,9 @@ def") ===> [Extent width: 3 height: 2])
   (define (border-size)::real
     1)
 
+  (define (height/width-ratio)::real
+    1)
+  
   (define (draw-rounded-rectangle! width::real
 				   height::real)
     ::void

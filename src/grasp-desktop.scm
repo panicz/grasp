@@ -179,6 +179,12 @@
 (define-constant file-icon ::SVGDocument
   (load-svg "/assets/file.svg"))
 
+(define-constant press-mark ::SVGDocument
+  (load-svg "/assets/press.svg"))
+
+(define-constant release-mark ::SVGDocument
+  (load-svg "/assets/release.svg"))
+
 (define-parameter+ (the-atom-font) ::Font
   Roboto-Medium)
 
@@ -518,6 +524,18 @@
   (define (draw-file-icon!)::void
     (file-icon:render (this) graphics file-box))
 
+  (define (draw-press-mark! left::real top::real)::void
+    (let ((mark ::FloatSize (press-mark:size)))
+      (with-translation ((- left (/ mark:width 2))
+			 (- top (/ mark:height 2)))
+	  (press-mark:render (this) graphics))))
+
+  (define (draw-release-mark! left::real top::real)::void
+    (let ((mark ::FloatSize (release-mark:size)))
+      (with-translation ((- left (/ mark:width 2))
+			 (- top (/ mark:height 2)))
+	  (release-mark:render (this) graphics))))
+  
   (define (with-clip w::real h::real
 		     action::(maps () to: void))
     ::void
@@ -860,6 +878,8 @@
     (graphics:fillRect 3 (- height 7) (- width 6) 4))
 
   (define (border-size)::real 10)
+
+  (define (height/width-ratio)::real 1)
   
   (define (space-width)::real 8)
 
@@ -1015,7 +1035,7 @@
 		       (as int (round x1))
 		       (as int (round y1))))
 
-  (define thick ::LineDecoration
+  (define thin ::LineDecoration
     (BasicLineDecoration 1))
   
   (define (draw-thin-line! x0::real y0::real x1::real y1::real)

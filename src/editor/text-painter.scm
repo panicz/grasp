@@ -165,6 +165,20 @@
   (define (draw-file-icon!)::void
     (put! #\f 0 0))
 
+  (define (draw-release-mark! left::real top::real)::void
+    (put! #\✶ left top)
+    (put! #\← (- left 2) top)
+    (put! #\→ (+ left 2) top)
+    (put! #\↑ left (- top 1))
+    (put! #\↓ left (+ top 1)))
+    
+  (define (draw-press-mark! left::real top::real)::void
+    (put! #\✶ left top)
+    (put! #\← (+ left 2) top)
+    (put! #\→ (- left 2) top)
+    (put! #\↑ left (+ top 1))
+    (put! #\↓ left (- top 1)))
+      
   (define (draw-custom-box!
 	   top-left::gnu.text.Char
 	   top-right::gnu.text.Char
@@ -241,6 +255,9 @@
 
   (define (border-size)::real
     1)
+
+  (define (height/width-ratio)::real
+    1/2)
   
   (define (draw-quote-box! width::real
 			   height::real

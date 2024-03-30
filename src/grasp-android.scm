@@ -41,6 +41,8 @@
 (import (editor types extensions extensions))
 (import (editor types extensions widgets))
 (import (editor types extensions visual-stepper))
+(import (editor types extensions testing))
+
 (import (editor types texts))
 (import (editor input gestures))
 
@@ -219,6 +221,12 @@
 
   (define directory-icon ::SVG
     (load-svg "directory.svg" activity width: 48 height: 48))
+
+  (define press-mark ::SVG
+    (load-svg "press.svg" activity width: 32 height: 32))
+
+  (define release-mark ::SVG
+    (load-svg "release.svg" activity width: 32 height: 32))
 
   (define assets ((activity:getAssets):list ""))
 
@@ -539,6 +547,20 @@
   (define (draw-file-icon!)::void
     (file-icon:renderToCanvas canvas))
 
+  (define (draw-press-mark! left::real top::real)::void
+    (let ((mark-width ::real (press-mark:getDocumentWidth))
+	  (mark-height ::real (press-mark:getDocumentHeight)))
+      (with-translation ((- left (/ mark-width 2))
+			 (- top (/ mark-height 2)))
+	  (press-mark:renderToCanvas canvas))))
+
+  (define (draw-release-mark! left::real top::real)::void
+    (let ((mark-width ::real (release-mark:getDocumentWidth))
+	  (mark-height ::real (release-mark:getDocumentHeight)))
+      (with-translation ((- left (/ mark-width 2))
+			 (- top (/ mark-height 2)))
+	  (release-mark:renderToCanvas canvas))))
+  
   (define activity ::AndroidActivity source)
 
   (define (showKeyboard)::void
@@ -830,6 +852,8 @@
 
   (define (border-size)::real 20)
 
+  (define (height/width-ratio)::real 1)
+  
   (define (min-line-height)::real
     (let ((font ::Font (the-atom-font)))
       font:size))

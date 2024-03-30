@@ -1,0 +1,23 @@
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 32 32"
+     width="32" height="32" >
+  <circle cx="16" cy="16" r="2"
+          stroke="black" stroke-width="1"
+	  fill="black" />
+  <path stroke="black" stroke-width="1"
+	fill="black"
+	d="M1 16 L4 14 L4 15 L11 15 L11 17 L4 17 L4 18 Z"/>
+
+  <path stroke="black" stroke-width="1"
+	fill="black"
+	d="M16 1 L14 4 L15 4 L15 11 L17 11 L17 4 L18 4 Z"/>
+
+  <path stroke="black" stroke-width="1"
+	fill="black"
+	d="M31 16 L28 14 L28 15 L21 15 L21 17 L28 17 L28 18 Z"/>
+
+  <path stroke="black" stroke-width="1"
+	fill="black"
+	d="M16 31 L14 28 L15 28 L15 21 L17 21 L17 28 L18 28 Z"/>
+</svg>
