@@ -217,7 +217,7 @@
     (for i from 1 below (points:size)
         (let ((p0 ::Position (points (- i 1)))
 	      (p1 ::Position (points i)))
-          (painter:draw-line! p0:left p0:top p1:left p1:top))))
+          (painter:draw-thick-line! p0:left p0:top p1:left p1:top))))
 
   (IgnoreInput))
 
@@ -449,14 +449,14 @@
      (,SplitFocus:First first)
      (,SplitFocus:Last last)))
 
-  ((draw-line!)::void
+  ((draw-split!)::void
    #!abstract)
 
   ((draw!)::void
    (let-values (((first-size line-size last-size) (part-sizes)))
      (with-pane-translation first-size
        (lambda ()
-	 (draw-line!)
+	 (draw-split!)
 	 (set-translation! (+ first-size line-size))
 	 (with-post-transform translation
 	   (with-pane-translation line-size
@@ -760,7 +760,7 @@
           (right-width ::real (- pane-width left-width line-width)))
      (values left-width line-width right-width)))
 
-  ((draw-line!)::void
+  ((draw-split!)::void
    (painter:draw-vertical-split! 0))
 
   ((with-pane-size size::real action::procedure)::Object
@@ -810,7 +810,7 @@
           (right-height ::real (- inner-height left-height)))
      (values left-height line-height right-height)))
 
-  ((draw-line!)::void
+  ((draw-split!)::void
    (painter:draw-horizontal-split! 0))
 
   ((with-pane-size size::real action::procedure)::Object

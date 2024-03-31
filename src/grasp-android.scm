@@ -41,6 +41,8 @@
 (import (editor types extensions extensions))
 (import (editor types extensions widgets))
 (import (editor types extensions visual-stepper))
+(import (editor types extensions testing))
+
 (import (editor types texts))
 (import (editor input gestures))
 
@@ -219,6 +221,12 @@
 
   (define directory-icon ::SVG
     (load-svg "directory.svg" activity width: 48 height: 48))
+
+  (define press-mark ::SVG
+    (load-svg "press.svg" activity width: 32 height: 32))
+
+  (define release-mark ::SVG
+    (load-svg "release.svg" activity width: 32 height: 32))
 
   (define assets ((activity:getAssets):list ""))
 
@@ -539,6 +547,20 @@
   (define (draw-file-icon!)::void
     (file-icon:renderToCanvas canvas))
 
+  (define (draw-press-mark! left::real top::real)::void
+    (let ((mark-width ::real (press-mark:getDocumentWidth))
+	  (mark-height ::real (press-mark:getDocumentHeight)))
+      (with-translation ((- left (/ mark-width 2))
+			 (- top (/ mark-height 2)))
+	  (press-mark:renderToCanvas canvas))))
+
+  (define (draw-release-mark! left::real top::real)::void
+    (let ((mark-width ::real (release-mark:getDocumentWidth))
+	  (mark-height ::real (release-mark:getDocumentHeight)))
+      (with-translation ((- left (/ mark-width 2))
+			 (- top (/ mark-height 2)))
+	  (release-mark:renderToCanvas canvas))))
+  
   (define activity ::AndroidActivity source)
 
   (define (showKeyboard)::void
@@ -675,16 +697,22 @@
     (set-color! Color:WHITE)
     (canvas:drawRect 10 10 (- width 10) (- height 10) paint))
 
-  (define (draw-line! x0::real y0::real x1::real y1::real)
+  (define (draw-thick-line! x0::real y0::real x1::real y1::real)
     ::void
     (set-color! Color:LTGRAY)
     (paint:setStrokeWidth 4)
     (canvas:drawLine x0 y0 x1 y1 paint)
     (paint:setStrokeWidth 1))
 
+  (define (draw-thin-line! x0::real y0::real x1::real y1::real)
+    ::void
+    (set-color! Color:LTGRAY)
+    (paint:setStrokeWidth 1)
+    (canvas:drawLine x0 y0 x1 y1 paint))
+  
   (define (draw-stroke! x0::real y0::real x1::real y1::real)
     ::void
-    (draw-line! x0 y0 x1 y1))
+    (draw-thick-line! x0 y0 x1 y1))
 
   (define (mark-editor-cursor! +left::real +top::real
 			       editor::WithCursor)
@@ -824,6 +852,8 @@
 
   (define (border-size)::real 20)
 
+  (define (height/width-ratio)::real 1)
+  
   (define (min-line-height)::real
     (let ((font ::Font (the-atom-font)))
       font:size))
@@ -1560,26 +1590,30 @@
 	     permissions" has been denied: "grantResults)
        (unset! (reaction-to-request-response requestCode))))))
 
-  (define (with-permission permission::String
-			   action::(maps () to: void))
+  (define (with-permissions permissions::($bracket-apply$ String)
+			    action::(maps () to: void))
     ::void
     (safely
-     (if (eq? (checkSelfPermission permission)
-	      PackageManager:PERMISSION_DENIED)
+     (if (any (is (checkSelfPermission _)
+		  eq? PackageManager:PERMISSION_DENIED)
+	      permissions)
 	 (let ((request-code ::int (new-request-code)))
 	   (set! (reaction-to-request-response
 		  request-code) action)
-	   (requestPermissions (($bracket-apply$ String)
-				permission) request-code))
+	   (requestPermissions permissions request-code))
 	 (action '(PackageManager:PERMISSION_GRANTED)))))
 
   (define (with-read-permission action::(maps _ to: void))::void
-    (with-permission Manifest:permission:WRITE_EXTERNAL_STORAGE
+    (with-permissions (($bracket-apply$ String)
+		       Manifest:permission:WRITE_EXTERNAL_STORAGE
+		       Manifest:permission:MANAGE_EXTERNAL_STORAGE)
 		     action))
 
   (define (with-write-permission action::(maps _ to: void))::void
-    (with-permission Manifest:permission:READ_EXTERNAL_STORAGE
-		     action))
+    (with-permissions (($bracket-apply$ String)
+		       Manifest:permission:READ_EXTERNAL_STORAGE
+		       Manifest:permission:MANAGE_EXTERNAL_STORAGE)
+		      action))
 
   (define (initial-directory)::java.io.File
     (android.os.Environment:getExternalStorageDirectory))

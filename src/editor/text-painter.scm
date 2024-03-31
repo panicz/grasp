@@ -165,6 +165,20 @@
   (define (draw-file-icon!)::void
     (put! #\f 0 0))
 
+  (define (draw-release-mark! left::real top::real)::void
+    (put! #\✶ left top)
+    (put! #\← (- left 2) top)
+    (put! #\→ (+ left 2) top)
+    (put! #\↑ left (- top 1))
+    (put! #\↓ left (+ top 1)))
+    
+  (define (draw-press-mark! left::real top::real)::void
+    (put! #\✶ left top)
+    (put! #\← (+ left 2) top)
+    (put! #\→ (- left 2) top)
+    (put! #\↑ left (+ top 1))
+    (put! #\↓ left (- top 1)))
+      
   (define (draw-custom-box!
 	   top-left::gnu.text.Char
 	   top-right::gnu.text.Char
@@ -241,6 +255,9 @@
 
   (define (border-size)::real
     1)
+
+  (define (height/width-ratio)::real
+    1/2)
   
   (define (draw-quote-box! width::real
 			   height::real
@@ -615,15 +632,19 @@
        (else
 	(draw-line-8pix! x1 y1 x0 y0)))))
 
-  (define (draw-line! x0::real y0::real
+  (define (draw-thick-line! x0::real y0::real
 		      x1::real y1::real)
     ::void
     (draw-line-4pix! (* x0 2) (* y0 2)
-		     (* x1 2) (* y1 2))
-    #;(draw-line-8pix! (* x0 2) (* y0 4)
-		     (* x1 2) (* y1 4))
-    )
+		     (* x1 2) (* y1 2)))
 
+  (define (draw-thin-line! x0::real y0::real
+			   x1::real y1::real)
+    ::void
+    (draw-line-8pix! (* x0 2) (* y0 4)
+		     (* x1 2) (* y1 4)))
+
+  
   (define (draw-quoted-text! s::CharSequence
 			     context::Cursor)
     ::void

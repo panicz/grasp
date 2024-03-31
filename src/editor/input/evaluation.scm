@@ -130,6 +130,10 @@
 	 (Atom (symbol->string expression)))
 	((number? expression)
 	 (Atom (number->string expression)))
+	((boolean? expression)
+	 (if expression
+	     (Atom "#true")
+	     (Atom "#false")))
 	((Enchanted? expression)
 	 expression)
 	(else
