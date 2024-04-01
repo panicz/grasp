@@ -62,6 +62,7 @@
    (set! via `(,from))
    (let ((tip via))
      (screen:drag!
+      finger
       (object (Drag)
 	((move! x::real y::real dx::real dy::real)::void
 	 (and-let* ((`(,(Position left: left top: top)) tip))

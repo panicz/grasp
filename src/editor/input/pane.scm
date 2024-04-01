@@ -1620,7 +1620,9 @@
 			       ::void
 			       (values)))))))
 
-
+	      ((Enchanted? target)
+	       (target:press! finger (- xe xd) (- ye yd)))
+	      
 	      ((is target Space?)
 	       (screen:drag! finger
 			     (Drawing (Stroke finger (this)))))

@@ -133,7 +133,9 @@
 	      ;; the hash function could likely be improved
 	      (as int
 		  (+ (*:hashCode type-name)
-		     (*:hashCode slot-symbol)
+		     (if (eq? slot-symbol #!null)
+			 0
+			 (*:hashCode slot-symbol))
 		     ...
 		     (invoke-special parent (this) 'hashCode))))
 
