@@ -1,3 +1,189 @@
+* 31.04.2024
+
+no to wyglada na to, ze musimy wprowadzic do paintera
+press/release-mark-extent, i jakos zrefaktoryzowac
+obsluge wcisniecia, zeby dobrze dzialala dla Enchanted.
+a jak to bedziemy mieli, to mozemy kontynuowac nasza
+liste bledow
+
+przy czym w gre nam tutaj jeszcze wchodzi co nieco
+rozkminy, jak to zrobic, zeby moc na telefonie
+edytowac GRASP w GRASP i ewentualnie zrobic takie
+rzeczy, jak cache'owanie plikow '.class'.
+
+
+* 27.04.2024
+
+nie chcemy jednak tego "extension-margin".  Zamiast niego bysmy
+chcieli miec wartosc height/width-ratio, ktora by nam mowila,
+w jaki sposob powinnismy przeskalowac szerokosc, zeby otrzymac
+wizualnie podobny efekt dla wysokosci (i dla klientow tekstowych
+bysmy przyjeli wartosc 1/2, a dla graficznych - 1)
+
+i co dalej?
+
+Najmniejsza szerokosc widgetu powinna wynosic
+
+#+begin_src
+(+ (* 2 (painter:border-size))
+   (* (painter:space-width)
+       (+ 2 (length (typename)))))
+#+end_src
+
+a najmniejsza wysokosc powinna byc wynikiem 
+wymnozenia tej wartosci przez height/width-ratio.
+
+OK, ale pozostaje nam jeszcze draw-press-mark!
+i draw-release-mark!
+
+i przypadku klienta tekstowego to latwe, ale
+dla graficznych jest dosc klopotliwe
+
+* 26.04.2024
+
+No dobra, to co teraz chcemy zrobic?
+
+Mozemy sprobowac zaimplementowac tego movementa w pelni.
+
+To rzecz wyglada tak, ze musimy teraz dodac do
+Paintera:
+
+#+begin_src
+extension-margin-horizontal
+extension-margin-vertical
+draw-press!
+draw-release!
+
+┏━ Movement ━━┓
+┃             ┃
+┃    ↖ ↑ ↗    ┃
+┃    ← ✶ →    ┃
+┃    ↙ ↓ ↘    ┃
+┃             ┃
+┗━━━━━━━━━━━━━┛
+
+┏━ Movement ━━┓
+┃             ┃
+┃      ↑      ┃
+┃    ← ✶ →    ┃
+┃      ↓      ┃
+┃             ┃
+┗━━━━━━━━━━━━━┛
+
+
+╔═ Stepper ═════════════════════════╗
+║╭  ╭       ╮ ╭       ╮  ╮          ║
+║│+ │ * 2 3 │ │ - 4 5 │  │          ║
+║╰  ╰       ╯ ╰       ╯  ╯          ║
+║╭─────╮╭─────╮╭─────╮╭─────╮╭─────╮║
+║│ ▮◀◀ ││ ▮◀  ││  ▶  ││  ▶▮ ││ ▶▶▮ │║
+║╰─────╯╰─────╯╰─────╯╰─────╯╰─────╯║
+╚═══════════════════════════════════╝
+
+#+end_src
+
+a do tego bysmy przemianowali draw-line! na
+draw-thick-line! i dodali draw-thin-line!
+
+* 25.04.2024
+
+no dobra, to teraz jak bysmy chcieli, zeby wygladaly
+testy zwiazane z drag&dropem?
+
+no oczywiscie tak, ze mamy jakas "sytuacje przed",
+klikniecie, przeciagniecie i upuszczenie, a po nich
+nowa sytuacje
+
+i teraz tak: od strony czysto technicznej bysmy sobie
+stworzyli specjalny widget, ktory nam rejestruje
+zdarzenia wcisniecia, puszczenia i poruszenia
+
+#+begin_src scheme
+  (define-type (Movement from: Point
+			 via: (list-of Point)
+			 to: Point)
+    extending Magic
+    with
+    (define (draw! context::Cursor)
+      (let ((last-point ::Point from))
+	(for p in via
+	  (painter:draw-line! last-point p)
+	  (set! last-point p))
+	(when to
+	  (painter:draw-release! to)
+	  (painter:draw-line! last-point to))
+	(painter:draw-press! from)
+	))
+#+end_src
+
+  i teraz rozmiar tego cacuszka powiniem wynosic
+  rozmiar sciezki + marginesy
+
+
+* 24.03.2024
+
+wczoraj sie udalo wyeliminowac mala upierdliwosc z komunikatami
+diagnostycznymi podczas ewaluacji
+
+natomiast teraz mysl jest taka: skoro mamy przerwe w edycji,
+to moze zamiast latania drobnych bugow, skupilibysmy sie
+na doprowadzeniu uzywalnosci do jako takiego ladu?
+
+co konkretnie przez to rozumiem:
+
+- poprawki w scrollowaniu edytora, tak zeby nie dalo sie
+  wychodzic poza prostokat dokumentu (i zeby nie dalo sie
+  obracac) i zeby sie wyswietlaly scroll bary
+
+- zeby edytor zapamietywal swoj stan (zawartosc ostatnio
+  edytowanego dokumentu, a w przypadku desktopa
+  rozmiar okna)
+
+- zeby na androidzie dalo sie edytowac (i ew. budowac)
+  kod GRASPa
+
+- i w sumue to zeby na desktopie i w terminalu tez sie dalo
+
+a no i fajnie by tez bylo pisac testy dla tego drag&dropa
+✷ ✶
+
+#+begin_src
+
+   ↘ ↓ ↙   ↖ ↑ ↗
+   → ✶ ←   ← ✶ →
+   ↗ ↑ ↖   ↙ ↓ ↘
+
+#+end_src
+
+
+* 23.03.2024
+
+Wielu rzeczy wczoraj planowanych jeszcze sie nie udalo.
+Ale to nic, bo za tydzien bedziemy mieli kolejny sprint.
+
+Teraz pytanie, czy lepiej sie skupic na 'grzebieniowej'
+reprezentacji, czy na poprawie bugow?
+
+Bugi w edycji mamy teraz takie, ze:
+- pole tekstowe przy zapisie plikow jest jakies ble
+
+no i te wczesniejsze bugi:
+
++ czasem nadal dostajemy komunikat, ze znak rozni sie od
+  oczekiwanego
++ po przelaczeniu dokumentu na desktopie nie dziala zoomowanie
++ zdarzenia z klawiatury nie sa prawidlowo propagowane
++ nie dziala przegladarka plikow na androidzie
+  (nie widzi plikow)
++ czasem po zaladowaniu innego dokumentu nie dziala menu
+  na kliencie desktopowym
++ klient terminalowy wiesza sie w tajemniczy sposob
++ brak oznaczenia komentarzy liniowych
++ nie dziala drag&drop na komentarzach
++ drag&drop na nie-komentarzach tez ma swoje problemy
++ dziwne rzeczy sie dzieja z selekcja na granicy atomow
+  (na pewno na Androidzie)
+
 * 22.03.2024
 
 dzisiaj/jutro bysmy:
@@ -50,8 +236,6 @@ to pozostaje nam wszystko oprocz pierwszego wyrazenia.
 Ogolnie wydaje sie, ze blad moze byc zwiazany z tym, ze
 cos mylnie jest brane za dokument, a co innego - za wyodrebniona
 rzecz.
-
-
 
 
 * 21.03.2024
