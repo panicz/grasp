@@ -524,6 +524,14 @@
   (define (draw-file-icon!)::void
     (file-icon:render (this) graphics file-box))
 
+  (define press-mark-size ::Extent
+    (let ((mark ::FloatSize (press-mark:size)))
+      (Extent width: mark:width
+	      height: mark:height)))
+  
+  (define (press/release-mark-extent)::Extent
+    press-mark-size)
+  
   (define (draw-press-mark! left::real top::real)::void
     (let ((mark ::FloatSize (press-mark:size)))
       (with-translation ((- left (/ mark:width 2))

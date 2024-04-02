@@ -156,6 +156,7 @@ def") ===> [Extent width: 3 height: 2])
   (draw-directory-icon!)::void
   (draw-file-icon!)::void
 
+  (press/release-mark-extent)::Extent
   (draw-press-mark! left::real top::real)::void
   (draw-release-mark! left::real top::real)::void
   
@@ -355,6 +356,9 @@ def") ===> [Extent width: 3 height: 2])
   (define (draw-file-icon!)::void
     (values))
 
+  (define (press/release-mark-extent)::Extent
+    (Extent width: 1 height: 1))
+  
   (define (draw-press-mark! left::real top::real)::void
     (values))
   

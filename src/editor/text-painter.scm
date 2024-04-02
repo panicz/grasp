@@ -165,6 +165,13 @@
   (define (draw-file-icon!)::void
     (put! #\f 0 0))
 
+  (define press-mark-size ::Extent
+    (Extent width: 5
+	    height: 3))
+  
+  (define (press/release-mark-extent)::Extent
+    press-mark-size)
+  
   (define (draw-release-mark! left::real top::real)::void
     (put! #\✶ left top)
     (put! #\← (- left 2) top)

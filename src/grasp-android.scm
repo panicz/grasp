@@ -547,6 +547,15 @@
   (define (draw-file-icon!)::void
     (file-icon:renderToCanvas canvas))
 
+  (define press-mark-size ::Extent
+    (let ((mark-width ::real (press-mark:getDocumentWidth))
+	  (mark-height ::real (press-mark:getDocumentHeight)))
+      (Extent width: mark-width
+	      height: mark-height)))
+
+  (define (press/release-mark-extent)::Extent
+    press-mark-size)
+  
   (define (draw-press-mark! left::real top::real)::void
     (let ((mark-width ::real (press-mark:getDocumentWidth))
 	  (mark-height ::real (press-mark:getDocumentHeight)))
