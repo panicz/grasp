@@ -1,4 +1,12 @@
-* 31.04.2024
+* 01.04.2024
+
+oprocz dodania press/release-mark-extent bysmy jeszcze
+cos pokombinowali z mapowaniem wspolrzednych, "tak zeby
+bylo dobrze"
+
+
+
+* 31.03.2024
 
 no to wyglada na to, ze musimy wprowadzic do paintera
 press/release-mark-extent, i jakos zrefaktoryzowac
@@ -12,7 +20,7 @@ edytowac GRASP w GRASP i ewentualnie zrobic takie
 rzeczy, jak cache'owanie plikow '.class'.
 
 
-* 27.04.2024
+* 27.03.2024
 
 nie chcemy jednak tego "extension-margin".  Zamiast niego bysmy
 chcieli miec wartosc height/width-ratio, ktora by nam mowila,
@@ -39,7 +47,7 @@ i draw-release-mark!
 i przypadku klienta tekstowego to latwe, ale
 dla graficznych jest dosc klopotliwe
 
-* 26.04.2024
+* 26.03.2024
 
 No dobra, to co teraz chcemy zrobic?
 
@@ -85,7 +93,7 @@ draw-release!
 a do tego bysmy przemianowali draw-line! na
 draw-thick-line! i dodali draw-thin-line!
 
-* 25.04.2024
+* 25.03.2024
 
 no dobra, to teraz jak bysmy chcieli, zeby wygladaly
 testy zwiazane z drag&dropem?
