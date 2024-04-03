@@ -28,9 +28,15 @@
   
   ((draw! context::Cursor)
    (let ((outer ::Extent (extent+ (this)))
+	 (margin ::Extent (painter:press/release-mark-extent))
 	 (border ::real (painter:border-size)))
      (painter:draw-border! outer:width outer:height)
-     (with-translation (border border)
+     (with-translation ((+ border
+			   (quotient margin:width 2)
+			   (remainder margin:width 2))
+			(+ border
+			   (quotient margin:height 2)
+			   (remainder margin:height 2)))
        (and-let* ((`(,last-point::Position . ,path) via))
 	 (for p::Position in path
 	   (painter:draw-thin-line! last-point:left last-point:top
@@ -44,6 +50,7 @@
   
   ((extent)::Extent
    (let* ((2border ::real (* 2 (painter:border-size)))
+	  (margin ::Extent (painter:press/release-mark-extent))
 	  (width ::real
 		 (* (painter:space-width)
 		    (+ 2 (length (typename)))))
@@ -53,26 +60,35 @@
      (for p::Position in via
        (set! width (max width p:left))
        (set! height (max height p:top)))
-     (Extent width: (+ width 2border)
-	     height: (+ height 2border))))
+     (Extent width: (+ width 2border margin:width
+		       (remainder margin:width 2))
+	     height: (+ height 2border margin:height
+			(remainder margin:height 2)))))
 
   ((press! finger::byte x::real y::real)::boolean
-   (set! from (Position left: x top: y))
-   (set! to #!null)
-   (set! via `(,from))
-   (let ((tip via))
-     (screen:drag!
-      finger
-      (object (Drag)
-	((move! x::real y::real dx::real dy::real)::void
-	 (and-let* ((`(,(Position left: left top: top)) tip))
-	   (set-cdr! tip `(,(Position left: (+ left dx)
-				      top: (+ top dy))))
-	   (set! tip (cdr tip))))
-	((drop! x::real y::real vx::real vy::real)::void
-	 (and-let* ((`(,(Position left: left top: top)) tip))
-	   (set! to (Position left: left top: top))))
-	))))
+   ;; no dobra, to musimy sobie przechwycic transformacje
+   (let* ((margin ::Extent (painter:press/release-mark-extent))
+	  (border ::real (painter:border-size))
+	  (x (- x border (quotient margin:width 2)
+		(remainder margin:width 2)))
+	  (y (- y border (quotient margin:height 2)
+		(remainder margin:height 2))))
+     (set! from (Position left: x top: y))
+     (set! to #!null)
+     (set! via `(,from))
+     (let ((tip via))
+       (screen:drag!
+	finger
+	(object (Drag)
+	  ((move! x::real y::real dx::real dy::real)::void
+	   (and-let* ((`(,(Position left: left top: top)) tip))
+	     (set-cdr! tip `(,(Position left: (+ left dx)
+					top: (+ top dy))))
+	     (set! tip (cdr tip))))
+	  ((drop! x::real y::real vx::real vy::real)::void
+	   (and-let* ((`(,(Position left: left top: top)) tip))
+	     (set! to (Position left: left top: top))))
+	  )))))
   )
 
 (set! (extension 'Movement)

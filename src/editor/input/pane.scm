@@ -1621,7 +1621,7 @@
 			       (values)))))))
 
 	      ((Enchanted? target)
-	       (target:press! finger (- xe xd) (- ye yd)))
+	       (target:press! finger (- x xd) (- y yd)))
 	      
 	      ((is target Space?)
 	       (screen:drag! finger

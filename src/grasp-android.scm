@@ -223,10 +223,10 @@
     (load-svg "directory.svg" activity width: 48 height: 48))
 
   (define press-mark ::SVG
-    (load-svg "press.svg" activity width: 32 height: 32))
+    (load-svg "press.svg" activity width: 64 height: 64))
 
   (define release-mark ::SVG
-    (load-svg "release.svg" activity width: 32 height: 32))
+    (load-svg "release.svg" activity width: 64 height: 64))
 
   (define assets ((activity:getAssets):list ""))
 

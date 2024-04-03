@@ -41,6 +41,7 @@
 (import (editor interfaces delayed))
 (import (editor input touch-event-processor))
 (import (editor types extensions visual-stepper))
+(import (editor types extensions testing))
 
 (import (editor awt-clipboard))
 
