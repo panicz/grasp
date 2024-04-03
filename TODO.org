@@ -1,3 +1,101 @@
+* 02.04.2024
+
+plan na dzis jest z grubsza taki, zeby ten nasz Movement
+uwzglednial press/release-extent, i bysmy sobie tez
+dopracowali jego dzialanie w obliczu transformacji
+edytora
+
+a jak to nam sie uda, to bysmy:
+- dodali nowy kombinator Shift
+- wykombinowali sobie jak rysowac testy
+- zrobili test dla operacji Resize
+
+No dobra, to przynajmniej press/release-extent
+mamy uwzgledniony (i wydaje sie to calkiem fajnie
+zachowywac). To teraz bysmy sie skupili na tych
+transformacjach, bo ewidentnie widac, ze
+one nie sa aplikowane:
+- do przemieszczen
+- do polozenia poczatkowego
+
+Wydaje sie, ze to sa dwie nieco rozne kwestie,
+poniewaz punkt poczatkowy powinien zawsze byc
+dobrze mapowany, natomiast mapowaniem przesuniec
+powinien sie juz martwic sam widget.
+
+No dobra, to sie wydaje, ze ten pierwszy problem
+mamy rozwiazany. Jezeli idzie o ten drugi problem,
+czyli skalowanie przesuniec, to musielibysmy
+zrobic to mniej wiecej tak, ze:
+- w momencie tworzenia elementu Drag przechwytujemy
+  sobie biezaca transformacje
+- kazdorazowo aplikujemy te transformacje w
+  metodzie "move!"
+
+Widac, ze uzywamy dwoch makr:
+- with-post-transform
+- with-view-edges-transformed
+
+No dobra, to wiemy, ze mamy
+
+#+BEGIN_SRC scheme
+
+  (define the-transform-stack ::TransformStack (TransformStack))
+
+  (define-syntax-rule (with-post-transform t . actions)
+    (the-transform-stack:addLast t)
+    (try-finally
+     (begin . actions)
+     (the-transform-stack:removeLast)))
+  
+#+END_SRC
+
+gdzie "the-transform-stack" to singletonowany obiekt typu TransformStack:
+
+#+BEGIN_SRC scheme
+
+  (define-object (TransformStack)::BiMap2D
+    (define transforms ::($bracket-apply$ java.util.ArrayList BiMap2D) ...)
+
+    (define (outside-in x::real y::real)::(Values real real) ...)
+    (define (inside-out x::real y::real)::(Values real real) ...)
+
+    (define (addLast transform::BiMap2D)::void ...)
+
+    (define (addFirst transform::BiMap2D)::void ...)
+
+    (define (removeLast)::BiMap2D ...)
+
+    (define (removeFirst)::BiMap2D ...)
+    )
+
+#+END_SRC
+
+chcielibysmy miec sposob, zeby "splaszczac" stos transformacji
+
+#+BEGIN_SRC scheme
+  (define (transform2D transform ::Map2D)
+    ::Transform
+    (let*-values (((x0 y0) (transform:outside-in 0 0))
+		  ((x10 y10) (transform:outside-in 1 0))
+		  ((kC kS) (values (- x10 x0) (- y10 y0)))
+		  ((angle scale) (values (atan2 kS kC)
+					 (sqrt (+ (* kS kS)
+						  (* kC kC)))))
+		  ((C/k S/k) (values (/ (cos angle) scale)
+				     (/ (sin angle) scale)))
+		  ((left top) (values (+ (* C/k x0) (* S/k y0))
+				      (- (* C/k y0) (* S/k x0)))))
+      (if (and (= angle 0) (= scale 1))
+	  (Translation left: left
+		       top: top)
+	  (Isogonal left: left
+		    top: top
+		    scale: scale
+		    angle/rad: angle))))
+#+END_SRC
+
+
 * 01.04.2024
 
 oprocz dodania press/release-mark-extent bysmy jeszcze
