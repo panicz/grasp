@@ -138,8 +138,7 @@
 	   ((Space? target)
 	    (record&perform!
 	     (Insert element: content
-		     at: cursor
-		     in: document))
+		     at: cursor))
 	    )
 	   #;((Atom? target)
 	    ;; rozszczepiamy atom?

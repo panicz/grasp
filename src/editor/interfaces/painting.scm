@@ -70,6 +70,9 @@ def") ===> [Extent width: 3 height: 2])
   (define transforms ::($bracket-apply$ java.util.ArrayList BiMap2D)
     (($bracket-apply$ java.util.ArrayList BiMap2D)))
 
+  (define (toString)::String
+    (transforms:toString))
+  
   (define (outside-in x::real y::real)::(Values real real)
     (for transform::BiMap2D in transforms
       (let-values (((x* y*) (transform:outside-in x y)))

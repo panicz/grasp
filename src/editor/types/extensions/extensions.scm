@@ -213,14 +213,20 @@
     (cell::cons
      cell)
     (cell::pair
-     (cons (to-expression (car pair))
-           (to-expression (cdr pair))))
+     (cons (to-expression (car cell))
+           (to-expression (cdr cell))))
     (s::symbol
      (Atom (symbol->string s)))
-    (,@(null? object)
+    ('()
      (empty))
     (n::number
      (Atom (number->string n)))
+    (#!null
+     (Atom "#!null"))
+    (#t
+     (Atom "#true"))
+    (#f
+     (Atom "#false"))
     (t::Text
      t)
     (s::string

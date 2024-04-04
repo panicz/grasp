@@ -15,6 +15,7 @@
 (import (editor types texts))
 (import (editor types spaces))
 (import (editor document cursor))
+(import (editor input transforms))
 (import (editor input pane))
 
 (import (editor types extensions extensions))
@@ -76,19 +77,28 @@
      (set! from (Position left: x top: y))
      (set! to #!null)
      (set! via `(,from))
-     (let ((tip via))
+     (let ((tip via)
+	   (transform (only-scale&rotation
+		       the-transform-stack)))
        (screen:drag!
 	finger
 	(object (Drag)
 	  ((move! x::real y::real dx::real dy::real)::void
-	   (and-let* ((`(,(Position left: left top: top)) tip))
-	     (set-cdr! tip `(,(Position left: (+ left dx)
-					top: (+ top dy))))
+	   (and-let* ((dx* dy* (transform:outside-in dx dy))
+		      (`(,(Position left: left top: top)) tip))
+	     (set-cdr! tip `(,(Position left: (max 0 (+ left dx*))
+					top: (max 0 (+ top dy*)))))
 	     (set! tip (cdr tip))))
 	  ((drop! x::real y::real vx::real vy::real)::void
 	   (and-let* ((`(,(Position left: left top: top)) tip))
 	     (set! to (Position left: left top: top))))
 	  )))))
+
+  ((value)::Object
+   (let ((me ::Base (this)))
+     (me:to-list (lambda (a d)
+		   (cons a d))
+		 to-expression)))
   )
 
 (set! (extension 'Movement)

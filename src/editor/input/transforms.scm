@@ -39,6 +39,57 @@
 
   )
 
+#|
+(define-object (IdentityTransform)::Transform
+  (define (outside-in x::real y::real)::(Values real real)
+    (values x y))
+
+  (define (inside-out x::real y::real)::(Values real real)
+    (values x y))
+
+  (define (within painter::Painter action::procedure)::void
+    (action))
+
+  (define (translate! dx::real dy::real)::void
+    (values))
+
+  (define (stretch! x00::real y00::real x10::real y10::real
+		    x01::real y01::real x11::real y11::real)
+    ::void
+    (values))
+  
+  (define (scale! factor::real x::real y::real)::void
+    (values))
+
+  (define (rotate! factor::real x::real y::real)::void
+    (values))
+
+  (define (get-angle)::real 0)
+  
+  (define (set-angle! rad::real)::void
+    (values))
+
+  (define (get-scale)::real 1)
+  
+  (define (set-scale! s::real)::void
+    (values))
+
+  (define (get-left)::real 0)
+  
+  (define (set-left! l::real)::void
+    (values))
+  
+  (define (get-top)::real 0)
+  
+  (define (set-top! t::real)::void
+    (values))
+  )
+
+(define-early-constant identity-2d ::IdentityTransform
+  (IdentityTransform))
+|#
+
+
 (define-type (Translation left: real := 0
 			  top: real := 0)
   implementing Transform
@@ -195,6 +246,14 @@
    (set! top t))
   )
 
+(define (only-scale&rotation transform ::BiMap2D)::Transform
+  (let*-values (((-left -top) (transform:outside-in 0 0))
+		((x y) (transform:outside-in 1 0))
+		((dx dy) (values (- x -left) (- y -top)))
+		((scale) (hypotenuse dx dy))
+		((angle) (atan (- dy) dx)))
+    (Isogonal angle/rad: angle scale: (/ scale))))
+  
 (define-type (Transition of: Transform
                          from: Transform
 			 to: Transform
