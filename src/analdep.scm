@@ -36,7 +36,7 @@
 		(and (is (length name) > 2)
 		     (none (is _ eq? #\#) name)
 		     (string-drop name 2)))
-	      (string-split (shell "find ./ -name *.scm") "\n")))
+	      (string-split (shell "find . -name *.scm") "\n")))
 
 (define list?::boolean #f)
 
