@@ -37,7 +37,6 @@
 (import (editor types primitive))
 (import (editor input evaluation))
 (import (editor types extensions visual-stepper))
-(import (editor types extensions testing))
 (import (editor document history-tracking))
 (import (editor types spaces))
 (import (editor document copy-paste))
