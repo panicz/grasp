@@ -1,3 +1,9 @@
+* 03.04.2024
+
+no to dzis bysmy sprobowali zintegrowac ten wczorajszy kod
+z baza GRASP, tylko jakas lepsza nazwe bysmy wymyslili.
+Moze simplified-transform?
+
 * 02.04.2024
 
 plan na dzis jest z grubsza taki, zeby ten nasz Movement
@@ -74,8 +80,7 @@ gdzie "the-transform-stack" to singletonowany obiekt typu TransformStack:
 chcielibysmy miec sposob, zeby "splaszczac" stos transformacji
 
 #+BEGIN_SRC scheme
-  (define (transform2D transform ::Map2D)
-    ::Transform
+  (define (transform2D transform ::Map2D)::Transform
     (let*-values (((x0 y0) (transform:outside-in 0 0))
 		  ((x10 y10) (transform:outside-in 1 0))
 		  ((kC kS) (values (- x10 x0) (- y10 y0)))
