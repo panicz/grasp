@@ -1,3 +1,17 @@
+* 05.04.2024
+
+no to jak teraz bedzie?
+
+chcielibysmy zrobic tak, zeby odczarowywanie
+rozszerzenia dopisywalo na poczatku atom "list"
+
+* 04.04.2024
+
+dzisiaj byla tylko zmiana inita - z bezsensownego
+na pomocny. Ale jutro warto by bylo wrocic
+do developerki, a przynajmniej zmienic strzalki
+w ikonkach :D
+
 * 03.04.2024
 
 no to dzis bysmy sprobowali zintegrowac ten wczorajszy kod
