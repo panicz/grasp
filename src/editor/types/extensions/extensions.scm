@@ -189,19 +189,37 @@
   (syntax-rules ()
     ((_ (name args ...) body)
      (define-object (name args ...)::Enchanted 
-       (define (typename)::String (symbol->string 'name))
+       (define (typename)::String
+	 (symbol->string 'name))
 
        (define (value)::cons
-	 (cons (Atom #;< (symbol->string 'name))
+	 (cons (Atom (symbol->string 'name))
 	       (dropping-type-signatures list*
 					 disenchanted
-					 (args ...) ())))
+					 (args ...)
+					 ())))
        (SimpleExtension body)))))
 
 (define-simple-class Extension ()
   ((enchant source::cons)::Enchanted
    #!abstract)
   )
+
+(define (list-expression p::pair)
+  (let ((result (cons (to-expression (car p))
+		      (empty))))
+    (let loop ((p p)
+	       (tip result))
+      (cond
+       ((pair? (cdr p))
+	(set-cdr! tip (cons (to-expression
+			     (cadr p))
+			    (cdr tip)))
+	(loop (cdr p) (cdr tip)))
+       ((null? (cdr p))
+	(cons (Atom "list") result))
+       (else
+	(error "list-expression called on an improper list "p))))))
 
 (define (to-expression object)
   (match object
@@ -213,8 +231,10 @@
     (cell::cons
      cell)
     (cell::pair
-     (cons (to-expression (car cell))
-           (to-expression (cdr cell))))
+     (if (list? cell)
+	 (list-expression cell)
+	 (cons (to-expression (car cell))
+               (to-expression (cdr cell)))))
     (s::symbol
      (Atom (symbol->string s)))
     ('()

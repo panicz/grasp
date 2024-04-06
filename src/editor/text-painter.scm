@@ -171,21 +171,30 @@
   
   (define (press/release-mark-extent)::Extent
     press-mark-size)
+
+  (define (put-around! left::real top::real
+		       tl::char tr::char
+		       central::char
+		       bl::char br::char)
+    ::void
+    (put! central top left)
+    (put! tl (- top 1) (- left 2))
+    (put! tr (- top 1) (+ left 2))
+    (put! bl (+ top 1) (- left 2))
+    (put! br (+ top 1) (+ left 2)))
   
   (define (draw-release-mark! left::real top::real)::void
-    (put! #\✶ left top)
-    (put! #\← (- left 2) top)
-    (put! #\→ (+ left 2) top)
-    (put! #\↑ left (- top 1))
-    (put! #\↓ left (+ top 1)))
-    
+    (put-around! left top
+		 #\↖ #\↗ 
+	           #\✶
+		 #\↙ #\↘))
+
   (define (draw-press-mark! left::real top::real)::void
-    (put! #\✶ left top)
-    (put! #\← (+ left 2) top)
-    (put! #\→ (- left 2) top)
-    (put! #\↑ left (+ top 1))
-    (put! #\↓ left (- top 1)))
-      
+    (put-around! left top
+		 #\↘ #\↙
+		   #\✶
+		 #\↗ #\↖))
+
   (define (draw-custom-box!
 	   top-left::gnu.text.Char
 	   top-right::gnu.text.Char

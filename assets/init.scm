@@ -176,8 +176,7 @@
   document: (Document (car (with-input-from-string"
      (Welcome to GRASP)
 
-#|
-GRASP is an extensible structutal editor
+#|GRASP is an extensible structutal editor
 for Scheme and other s-expression based
 programming languages.
 
@@ -190,8 +189,7 @@ treats its components in a special way.
 
 For example, this text is placed in a section
 of a text file that the Scheme parser treats
-as a block comment.
-|#
+as a block comment.|#
 
 ;; In Scheme, a block comment is any text
 ;; that is contained between the #| and |#
@@ -208,8 +206,7 @@ here is a string, which - unlike comments
 - can be passed to functions and bound to
 variables.\"
 
-#|
-You can navigate around the code by using keyboard
+#|You can navigate around the code by using keyboard
 arrows and page-up/page-down keys. The whole
 document is editable in a straightforward manner.
 In particular, you can use ctrl+x for cutting
@@ -220,8 +217,7 @@ Note that all keyboard shortcuts are customizable,
 and they are set up in the assets/init.scm file
 that you can find in the project's repository, or
 inside of the .jar or .apk file (they're both
-secretly just .zip files).
-|#
+secretly just .zip files).|#
 
 ;; And of course, if you know anything about Lisp,
 ;; you're certainly going to expect s-expressions
@@ -241,16 +237,13 @@ secretly just .zip files).
 ;; which should be rather easy to do, but I
 ;; currently have a lot of other things to do).
 
-#|
-Once the underlying Scheme interpreter knows
+#|Once the underlying Scheme interpreter knows
 about the factorial function, you can evaluate
-the following expression:
-|#
+the following expression:|#
 
 (! 5)
 
-#|
-But that's not all! I mentioned that GRASP
+#|But that's not all! I mentioned that GRASP
 is an extensible editor, and this means that
 it can have extensions. They are meant to be
 user-defined, but there's a few of them that
@@ -259,8 +252,7 @@ are built-in.
 At the moment, the most spectacular one is
 the visual stepper. To activate it, position
 the cursor on opening or closing parenthesis
-of the expression below, and press the tab key.
-|#
+of the expression below, and press the tab key.|#
 
 (Stepper (! 5))
 
@@ -283,13 +275,14 @@ of the expression below, and press the tab key.
 ;; Here are some other extensions that
 ;; are currently available:
 
-(Button action:
- (lambda ()
-  (WARN \"button pressed!\"))
-        label: \"Press me!\")
+(Button label: \"Press me!\"
+        action: (lambda ()
+(WARN
+\"button pressed!\")))
 
 (Movement
- from:  (Position left: 20
+ from:
+ (Position left: 20
        top: 20)
  to:
  (Position left: 120
@@ -309,8 +302,7 @@ of the expression below, and press the tab key.
 
          #|LIMITATIONS OF GRASP|#
 
-#|
-On the surface, GRASP may look like a decent tool,
+#|On the surface, GRASP may look like a decent tool,
 but there are reasons why it hasn't been released.
 
 You will discover many of those reasons if you try
@@ -318,8 +310,7 @@ to actually use it (so I will not spend too much
 time trying to enumerate them).
 
 However, if you want to help out, you're most
-welcome to do so! For more details, visit
-|#
+welcome to do so! For more details, visit|#
 
 https://github.com/panicz/grasp
 
