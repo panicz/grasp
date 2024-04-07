@@ -1,3 +1,50 @@
+* 06.04.2024
+
+no i co dalej?
+czy nie wypadaloby zaczac pisac jakichs testow
+wykorzystujacych Movement?
+
+Jak bumerang powraca rowniez pytanie dotyczace
+zmiany reprezentacji dokumentu.
+
+No ale dobra, powiedzmy ze to na razie olewamy
+(bo to jest cos co bysmy chcieli zrobic w zasadzie
+od podstaw).
+
+Natomiast tak to bysmy zrobili
+
+#+BEGIN_SRC scheme
+(Over top: (Movement ...) bottom: document)
+#+END_SRC
+
+Tylko ze wtedy bysmy caly ten "border" wywalili.
+
+No dobra, ale jak by wowczas wywolywali nasz test?
+
+Zacznijmy moze od nieformalnego opisu. To musi byc
+cos takiego, ze "majac dany taki a taki dokument,
+i wykonując na nim taką a taką akcję, otrzymujemy
+nowy stan dokumentu".
+
+#+BEGIN_SRC scheme
+  (let* ((document ...)
+	 (press ...)
+	 (release ...))
+    (e.g.
+     (rendered
+      (overlay (View document) with: (Movement ...)))
+     #;< ===> "
+  ...
+  ")
+    (pane:press! ...)
+    ...
+
+    (e.g.
+     (rendered (View document)) #;< ===> "
+  ...
+  "))
+#+END_SRC
+
 * 05.04.2024
 
 no to jak teraz bedzie?
