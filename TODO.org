@@ -9,40 +9,39 @@ Ale mozemy sprobowac dopicowac ten wczorajszy
 kod.
 
 #+BEGIN_SRC scheme
-	(let* ((document (with-input-from-string "\
-	(define (! n)
-	  (if (<= n 0)
-	      1
-	      (* n (! (- n 1)))))
-	" parse-document))
-	       (press (Position left: 36 top: 11))
-	       (release (Position left: 41 top: 14))
-	       (finger 0)
-	       (trajectory (list press release))
-	       )
-	  (e.g.
-	   (textually-painted
-	    (Over back: (View document)
-		  front: (Movement from: press
-				   to: release
-				   via: trajectory)))
-	   #;< ===> "
-	  ...
-	  ")
-	  (screen:press! finger press:left press:top)
-	  (let ((last-position press))
-	    (for position in trajectory
-	      (screen:move!
-	       finger
-	       position:left position:top
-	       (- position:left last-position:left)
-	       (- position:top last-position:top))))
-	  (screen:release! finger release:left release:top 0 0)
-	  ...
-	  (e.g.
-	   (textually-painted document) #;< ===> "
-	  ...
-	  "))
+  (let* ((document (with-input-from-string "\
+  (define (! n)
+    (if (<= n 0)
+	1
+	(* n (! (- n 1)))))
+  " parse-document))
+	 (press (Position left: 36 top: 11))
+	 (release (Position left: 41 top: 14))
+	 (finger 0)
+	 (trajectory (list press release))
+	 )
+    (e.g.
+     (textually-painted
+      (Over back: (View document)
+	    front: (Movement from: press
+			     to: release
+			     via: trajectory)))
+     #;< ===> "
+    ...
+    ")
+    (screen:press! finger press:left press:top)
+    (let ((last-position press))
+      (for position in trajectory
+	(screen:move! finger
+		      position:left position:top
+		      (- position:left last-position:left)
+		      (- position:top last-position:top))
+	(set! last-position position)))
+    (screen:release! finger release:left release:top 0 0)
+    (e.g.
+     (textually-painted document) #;< ===> "
+    ...
+    "))
 #+END_SRC
 
 
