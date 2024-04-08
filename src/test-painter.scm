@@ -87,7 +87,7 @@
 					  parse-document)))
     (with ((painter (TextPainter)))
       (parameterize ((the-document document))
-      (draw-document! document)
+      (document:draw! '())
       (painter:toString)))))
 
 (set! painter (TextPainter))

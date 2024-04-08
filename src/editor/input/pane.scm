@@ -1621,7 +1621,8 @@
 			       (values)))))))
 
 	      ((Enchanted? target)
-	       (target:press! finger (- x xd) (- y yd)))
+	       (let ((target ::Enchanted target))
+		 (target:press! finger (- x xd) (- y yd))))
 	      
 	      ((is target Space?)
 	       (screen:drag! finger

@@ -8,6 +8,8 @@
 (import (language define-property))
 (import (language define-type))
 (import (language keyword-arguments))
+(import (language fundamental))
+(import (language define-cache))
 (import (srfi :11))
 (import (srfi :17))
 (import (utils conversions))
@@ -25,6 +27,27 @@
 
 (import (editor types extensions extensions))
 (import (editor types extensions quotations))
+
+(define-object (Document car source)::Tile
+  ;; TODO: cursor-under* etc.
+
+  (define (setCar value)
+    (set! car value))
+
+  (define (getCar)
+    car)
+  
+  (define (draw! context::Cursor)::void
+    (cond ((EmptyListProxy? car)
+	   (let ((proxy ::EmptyListProxy
+			(as EmptyListProxy car)))
+	     (proxy:space:draw! (hash-cons 0 context))))
+	  ((pair? car)
+	   (let ((s ::Space (pre-head-space car)))
+	     (s:draw! (hash-cons 0 context))
+	     (draw-sequence! car)))))
+  
+  (cons car (empty)))
 
 (define (separator? c)::boolean
   (or (eof-object? c)
@@ -328,7 +351,7 @@
 
 (define (parse-document #!optional
 			(port (current-input-port)))
-  (cons (parse port) '()))
+  (Document (parse port) port))
 
 (define (string->document s::string)::list
   (call-with-input-string s parse-document))

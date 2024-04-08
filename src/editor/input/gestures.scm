@@ -12,6 +12,7 @@
 (import (language match))
 (import (utils functions))
 (import (utils print))
+(import (editor document parse))
 (import (editor document documents))
 (import (editor document cursor))
 (import (editor input pane))

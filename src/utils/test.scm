@@ -21,14 +21,14 @@
 
 (define-parameter (test-failed) ::procedure error)
 
-(define (snapshot)::String
+(define (snapshot #!optional (document (the-document)))
+  ::String
   (with ((painter (TextPainter)))
     (reset! extent-cached?)
-    (draw-document! (the-document))
+    (document:draw! '())
     (let ((result ::String (painter:toString)))
       (unless (in-example-context?)
 	(display result))
-      ;;(display (history (the-document)))
       result)))
 
 (define-syntax-rule (with-undo-redo operation)
