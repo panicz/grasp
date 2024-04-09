@@ -1,3 +1,10 @@
+* 08.04.2024
+
+Usunelismy sobie na razie draw-document!, i teraz
+co dalej?
+No, chyba wypadaloby napisac jakiegos takiego
+testa dla resize'a.
+
 * 07.04.2024
 
 byc moze bedzie trzeba zamienic screen na parametr
@@ -21,8 +28,8 @@ kod.
 	 (trajectory (list press release))
 	 )
     (e.g.
-     (textually-painted
-      (Over back: (View document)
+     (snapshot
+      (Over back: (Dummy document)
 	    front: (Movement from: press
 			     to: release
 			     via: trajectory)))
@@ -39,7 +46,7 @@ kod.
 	(set! last-position position)))
     (screen:release! finger release:left release:top 0 0)
     (e.g.
-     (textually-painted document) #;< ===> "
+     (snapshot document) #;< ===> "
     ...
     "))
 #+END_SRC
