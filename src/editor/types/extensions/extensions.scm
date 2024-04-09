@@ -79,6 +79,45 @@
   
   (Simple))
 
+(define-object (Dummy item::Tile)::Enchanted
+
+  (define (part-at index::Index)::Indexable*
+    (let ((target (content:part-at index)))
+      (if (eq? target content)
+	  (this)
+	  target)))
+
+  (define (first-index)::Index
+    (content:first-index))
+
+  (define (last-index)::Index
+    (content:last-index))
+
+  (define (next-index index::Index)::Index
+    (content:next-index index))
+
+  (define (previous-index index::Index)::Index
+    (content:previous-index index))
+
+  (define (index< a::Index b::Index)::boolean
+    (content:index< a b)) ;>
+  
+  (define (draw! context::Cursor)::void
+    (item:draw! context))
+
+  (define (extent)::Extent
+    (item:extent))
+
+  (define (cursor-under* x::real y::real
+			 path::Cursor)
+    ::Cursor*
+    (item:cursor-under* x y path))
+
+  (define (value)::Object
+    (cons (Atom "Dummy")
+	  (cons item (empty))))
+  
+  (Magic))
 
 (define-object (SimpleExtension content::Enchanted)::Enchanted
   (define (tap! finger::byte  x::real y::real)::boolean

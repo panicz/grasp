@@ -34,7 +34,10 @@
 
  (utils test)
  (editor types extensions widgets)
+ (editor types extensions testing)
  (editor types extensions visual-stepper)
+
+ (editor input pane)
  )
 
 (parameterize  ((the-document (call-with-input-string
@@ -247,3 +250,49 @@
 ┗ |   ┛
 ")
   )
+
+(let* ((document ::Document (with-input-from-string "\
+  (define (! n)
+(if (<= n 0)
+  1
+ (* n (! (- n 1)))))
+  " parse-document))
+       (border ::real (painter:border-size))
+       (initial ::Position (Position left: 27 top: 10))
+       (final ::Position (Position left: 41 top: 14))
+       (finger ::byte 0)
+       (press-at! (lambda (point::Position)
+		    (screen:press! finger
+				   (- point:left border)
+				   (- point:top border))))
+       (release-at! (lambda (point::Position)
+		      (screen:release! finger
+				       (- point:left border)
+				       (- point:top border)
+				       0 0)))
+       (move! (lambda (next::Position previous::Position)
+		(screen:move! finger
+			      (- next:left border)
+			      (- next:top border)
+			      (- next:left previous:left)
+			      (- next:top previous:top))))
+       (trajectory ::(list-of Position) (list initial final)))
+  (screen:set-content!
+   (DocumentEditor document: document))
+  (snapshot
+   (bordered 
+    (Over back: (Dummy document)
+	  front: (Movement from: initial
+			   to: final
+			   via: trajectory))))
+  (press-at! initial)
+  (let ((last-position initial))
+    (for position in trajectory
+      (move! position last-position)
+      (set! last-position position)))
+  (release-at! final)
+  (snapshot (bordered (Dummy document)))
+  )
+
+
+  
