@@ -251,48 +251,78 @@
 ")
   )
 
-(let* ((document ::Document (with-input-from-string "\
+
+
+(with ((painter (TextPainter)))
+  (let* ((document ::Document (with-input-from-string "\
   (define (! n)
 (if (<= n 0)
   1
- (* n (! (- n 1)))))
-  " parse-document))
-       (border ::real (painter:border-size))
-       (initial ::Position (Position left: 27 top: 10))
-       (final ::Position (Position left: 41 top: 14))
-       (finger ::byte 0)
-       (press-at! (lambda (point::Position)
-		    (screen:press! finger
-				   (- point:left border)
-				   (- point:top border))))
-       (release-at! (lambda (point::Position)
-		      (screen:release! finger
-				       (- point:left border)
-				       (- point:top border)
-				       0 0)))
-       (move! (lambda (next::Position previous::Position)
-		(screen:move! finger
-			      (- next:left border)
-			      (- next:top border)
-			      (- next:left previous:left)
-			      (- next:top previous:top))))
-       (trajectory ::(list-of Position) (list initial final)))
-  (screen:set-content!
-   (DocumentEditor document: document))
-  (snapshot
-   (bordered 
-    (Over back: (Dummy document)
-	  front: (Movement from: initial
-			   to: final
-			   via: trajectory))))
-  (press-at! initial)
-  (let ((last-position initial))
-    (for position in trajectory
-      (move! position last-position)
-      (set! last-position position)))
-  (release-at! final)
-  (snapshot (bordered (Dummy document)))
-  )
-
-
-  
+ (* n (! (- n 1)))))" parse-document))
+	 (editor ::DocumentEditor (DocumentEditor document: document))
+	 (finger ::byte 0)
+	 (press-at! (lambda (point::Position)
+		      (screen:press! finger point:left point:top)))
+	 (release-at! (lambda (p::Position)
+			(screen:release! finger p:left p:top 0 0)))
+	 (move! (lambda (next::Position previous::Position)
+		  (screen:move! finger next:left next:top
+				(- next:left previous:left)
+				(- next:top previous:top))))
+	 (initial ::Position (Position left: 29 top: 6))
+	 (final ::Position (Position left: 41 top: 10))
+	 (trajectory ::(list-of Position) (list initial final))
+	 (overlay (bordered
+		   (Over back: (Dummy document)
+			 front: (Movement from: initial
+					  to: final
+					  via: trajectory)))))
+    (parameterize ((the-document document)
+		   (the-cursor '())
+		   (the-editor editor)
+		   (debugging? #t))
+      (screen:set-content! editor)
+      (screen:set-size! 60 16)
+      (e.g. (snapshot overlay) ===> "
+╔══════════════════════════════════════════════╗
+║╭        ╭     ╮               ╮              ║
+║│ define │ ! n │               │              ║
+║│        ╰     ╯               │              ║
+║│ ╭    ╭        ╮            ╮ │              ║
+║│ │ if │ <= n 0 │            │ │              ║
+║│ │    ╰        ╯          ↘ │ ↙              ║
+║│ │                          ✶⠢⣀              ║
+║│ │   1                    ↗ │ ↖⠑⠢⣀           ║
+║│ │                          │ │   ⠑⠢⣀        ║
+║│ │  ╭     ╭   ╭       ╮ ╮ ╮ │ │      ⠑↖⣀  ↗  ║
+║│ │  │ * n │ ! │ - n 1 │ │ │ │ │         ✶    ║
+║╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯       ↙   ↘  ║
+║                                              ║
+╚══════════════════════════════════════════════╝
+")
+      (press-at! initial)
+      (let ((last-position initial))
+	(for position in trajectory
+	  (move! position last-position)
+	  (set! last-position position)))
+      (release-at! final)
+      (e.g. (snapshot overlay) ===> "
+╔════════════════════════════════════════════════════╗
+║╭        ╭     ╮                           ╮        ║
+║│ define │ ! n │                           │        ║
+║│        ╰     ╯                           │        ║
+║│ ╭    ╭        ╮                        ╮ │        ║
+║│ │ if │ <= n 0 │                        │ │        ║
+║│ │    ╰        ╯          ↘   ↙         │ │        ║
+║│ │                          ✶⠢⣀         │ │        ║
+║│ │                        ↗   ↖⠑⠢⣀      │ │        ║
+║│ │                                ⠑⠢⣀   │ │        ║
+║│ │                                   ⠑↖⣀│ ↗        ║
+║│ │                                      ✶ │        ║
+║│ │   1                                ↙ │ ↘        ║
+║│ │                                      │ │        ║
+║│ │  ╭     ╭   ╭       ╮ ╮ ╮             │ │        ║
+║│ │  │ * n │ ! │ - n 1 │ │ │             │ │        ║
+║╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯             ╯ ╯        ║
+╚════════════════════════════════════════════════════╝
+"))))

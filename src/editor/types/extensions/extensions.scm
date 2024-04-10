@@ -79,7 +79,7 @@
   
   (Simple))
 
-(define-object (Dummy item::Tile)::Enchanted
+(define-object (Dummy content::Tile)::Enchanted
 
   (define (part-at index::Index)::Indexable*
     (let ((target (content:part-at index)))
@@ -103,19 +103,19 @@
     (content:index< a b)) ;>
   
   (define (draw! context::Cursor)::void
-    (item:draw! context))
+    (content:draw! context))
 
   (define (extent)::Extent
-    (item:extent))
+    (content:extent))
 
   (define (cursor-under* x::real y::real
 			 path::Cursor)
     ::Cursor*
-    (item:cursor-under* x y path))
+    (content:cursor-under* x y path))
 
   (define (value)::Object
     (cons (Atom "Dummy")
-	  (cons item (empty))))
+	  (cons content (empty))))
   
   (Magic))
 

@@ -22,8 +22,8 @@
 (import (utils print))
 
 (define-type (Movement from: Position
-		       via: (list-of Position)
-		       to: Position)
+		       to: Position
+		       via: (list-of Position) := '())
   extending Magic
   with
   
