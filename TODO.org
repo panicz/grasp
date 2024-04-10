@@ -1,3 +1,9 @@
+* 09.04.2024
+
+Testa juz mamy, tyle ze nie do konca dziala tak, jak to
+sobie wymarzylismy. Wiec dzis trzeba bedzie pobadac
+nieco; poinwestygowac.
+
 * 08.04.2024
 
 Usunelismy sobie na razie draw-document!, i teraz
