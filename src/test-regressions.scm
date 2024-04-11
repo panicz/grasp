@@ -251,24 +251,13 @@
 ")
   )
 
-
-
 (with ((painter (TextPainter)))
   (let* ((document ::Document (with-input-from-string "\
   (define (! n)
 (if (<= n 0)
   1
  (* n (! (- n 1)))))" parse-document))
-	 (editor ::DocumentEditor (DocumentEditor document: document))
 	 (finger ::byte 0)
-	 (press-at! (lambda (point::Position)
-		      (screen:press! finger point:left point:top)))
-	 (release-at! (lambda (p::Position)
-			(screen:release! finger p:left p:top 0 0)))
-	 (move! (lambda (next::Position previous::Position)
-		  (screen:move! finger next:left next:top
-				(- next:left previous:left)
-				(- next:top previous:top))))
 	 (initial ::Position (Position left: 29 top: 6))
 	 (final ::Position (Position left: 41 top: 10))
 	 (trajectory ::(list-of Position) (list initial final))
@@ -277,13 +266,8 @@
 			 front: (Movement from: initial
 					  to: final
 					  via: trajectory)))))
-    (parameterize ((the-document document)
-		   (the-cursor '())
-		   (the-editor editor)
-		   (debugging? #t))
-      (screen:set-content! editor)
-      (screen:set-size! 60 16)
-      (e.g. (snapshot overlay) ===> "
+    (screen:set-content! (DocumentEditor document: document))
+    (e.g. (snapshot overlay) ===> "
 ╔══════════════════════════════════════════════╗
 ║╭        ╭     ╮               ╮              ║
 ║│ define │ ! n │               │              ║
@@ -300,13 +284,15 @@
 ║                                              ║
 ╚══════════════════════════════════════════════╝
 ")
-      (press-at! initial)
-      (let ((last-position initial))
-	(for position in trajectory
-	  (move! position last-position)
-	  (set! last-position position)))
-      (release-at! final)
-      (e.g. (snapshot overlay) ===> "
+    (screen:press! finger initial:left initial:top)
+    (let ((last-position initial))
+      (for p ::Position in trajectory
+	(screen:move! finger p:left p:top
+		      (- p:left last-position:left)
+		      (- p:top last-position:top))
+	(set! last-position p)))
+    (screen:release! finger final:left final:top 0 0)
+    (e.g. (snapshot overlay) ===> "
 ╔════════════════════════════════════════════════════╗
 ║╭        ╭     ╮                           ╮        ║
 ║│ define │ ! n │                           │        ║
@@ -325,4 +311,66 @@
 ║│ │  │ * n │ ! │ - n 1 │ │ │             │ │        ║
 ║╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯             ╯ ╯        ║
 ╚════════════════════════════════════════════════════╝
-"))))
+")))
+
+
+(parameterize ((debugging? #true))
+  (with ((painter (TextPainter)))
+    (let* ((document ::Document (with-input-from-string "\
+  (define (! n)
+(if (<= n 0)
+  1
+ (* n (! (- n 1)))))" parse-document))
+	   (finger ::byte 0)
+	   (initial ::Position (Position left: 29 top: 8))
+	   (final ::Position (Position left: 41 top: 12))
+	   (trajectory ::(list-of Position) (list initial final))
+	   (overlay (bordered
+		     (Over back: (Dummy document)
+			   front: (Movement from: initial
+					    to: final
+					    via: trajectory)))))
+      (screen:set-content! (DocumentEditor document: document))
+      (snapshot overlay)
+      (screen:press! finger initial:left initial:top)
+      (let ((last-position initial))
+	(for p ::Position in trajectory
+	     (screen:move! finger p:left p:top
+			   (- p:left last-position:left)
+			   (- p:top last-position:top))
+	     (set! last-position p)))
+      (screen:release! finger final:left final:top 0 0)
+      (snapshot overlay))))
+
+(parameterize ((debugging? #true))
+  (with ((painter (TextPainter)))
+    (let* ((document ::Document (with-input-from-string "\
+  (define (! n)
+(if (<= n 0)
+  1
+ (* n (! (- n 1)))))
+
+(e.g. (! 5) ===> 120)" parse-document))
+	   (finger ::byte 0)
+	   (initial ::Position (Position left: 9 top: 1))
+	   (final ::Position (Position left: 36 top: 3))
+	   (trajectory ::(list-of Position) (list initial
+						  (Position left: 21
+							    top: 7)
+						  final))
+	   (overlay (bordered
+		     (Over back: (Dummy document)
+			   front: (Movement from: initial
+					    to: final
+					    via: trajectory)))))
+      (screen:set-content! (DocumentEditor document: document))
+      (snapshot overlay)
+      (screen:press! finger initial:left initial:top)
+      (let ((last-position initial))
+	(for p ::Position in trajectory
+	     (screen:move! finger p:left p:top
+			   (- p:left last-position:left)
+			   (- p:top last-position:top))
+	     (set! last-position p)))
+      (screen:release! finger final:left final:top 0 0)
+      (snapshot overlay))))
