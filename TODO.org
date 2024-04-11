@@ -1,3 +1,26 @@
+* 10.04.2024
+
+No dobra, to test nam dziala. I co robimy dalej?
+
+Jedna mysl jest taka, zeby zrobic rozszerzenie, ktore by nam
+pozwalalo na trzaskanie takich testow na potege.
+
+Druga mysl, to zeby po prostu natrzaskac troche takich testow,
+i ewentualnie potem zrefaktoryzowac.
+
+Z rozszerzeniem bylby taki problem, ze rozne klienty
+maja rozne skale, wiec te same wspolrzedne dotkniec
+nie beda wspolmierne dla roznych klientow
+- chyba ze wszystkie rozszerzenia by operowaly
+  na wspolrzednych tekstowych
+
+no dobra, na razie olewamy rozszerzenie, bo wydaje sie,
+ze zwykla copy-pasta jest wystarczajaca do pisania
+interesujacych nas testow - a juz teraz widzimy, ze
+sa bledy w resize - wiec na razie uzyjmy tego testu
+do naprawy bledu - i ewentualnie pobadajmy jeszcze
+przenoszenie wyrazen. 
+
 * 09.04.2024
 
 Testa juz mamy, tyle ze nie do konca dziala tak, jak to
