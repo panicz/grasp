@@ -348,9 +348,7 @@
   (define (! n)
 (if (<= n 0)
   1
- (* n (! (- n 1)))))
-
-(e.g. (! 5) ===> 120)" parse-document))
+ (* n (! (- n 1)))))" parse-document))
 	   (finger ::byte 0)
 	   (initial ::Position (Position left: 9 top: 1))
 	   (final ::Position (Position left: 36 top: 3))
@@ -364,7 +362,22 @@
 					    to: final
 					    via: trajectory)))))
       (screen:set-content! (DocumentEditor document: document))
-      (snapshot overlay)
+      (e.g. (snapshot overlay) ===> "
+╔═════════════════════════════════════════╗
+║╭      ↘ ╭ ↙   ╮               ╮         ║
+║│ define ✶⢄! n │               │         ║
+║│      ↗ ╰ ↖⢄  ╯               │  ↖   ↗  ║
+║│ ╭    ╭     ⠑⢄ ╮            ╮ │ ⣀⠤⠒✶    ║
+║│ │ if │ <= n 0⠑⢄            ⣀⠤⠒⠉ ↙   ↘  ║
+║│ │    ╰        ╯⠑⢄      ⢀⡠⠔⠊│ │         ║
+║│ │                ⠑⢄⢀⡠⠔⠊⠁   │ │         ║
+║│ │   1              ⠁       │ │         ║
+║│ │                          │ │         ║
+║│ │  ╭     ╭   ╭       ╮ ╮ ╮ │ │         ║
+║│ │  │ * n │ ! │ - n 1 │ │ │ │ │         ║
+║╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯         ║
+╚═════════════════════════════════════════╝
+")
       (screen:press! finger initial:left initial:top)
       (let ((last-position initial))
 	(for p ::Position in trajectory
@@ -373,4 +386,19 @@
 			   (- p:top last-position:top))
 	     (set! last-position p)))
       (screen:release! finger final:left final:top 0 0)
-      (snapshot overlay))))
+      (e.g. (snapshot overlay) ===> "
+╔═══════════════════════════════════════════════╗
+║╭      ↘   ↙                   ╮╭     ╮        ║
+║│ define ✶⢄                    ││ ! n │        ║
+║│      ↗   ↖⢄                  │╰ ↖   ↗        ║
+║│ ╭    ╭     ⠑⢄ ╮            ╮ │ ⣀⠤⠒✶          ║
+║│ │ if │ <= n 0⠑⢄            ⣀⠤⠒⠉ ↙   ↘        ║
+║│ │    ╰        ╯⠑⢄      ⢀⡠⠔⠊│ │               ║
+║│ │                ⠑⢄⢀⡠⠔⠊⠁   │ │               ║
+║│ │   1              ⠁       │ │               ║
+║│ │                          │ │               ║
+║│ │  ╭     ╭   ╭       ╮ ╮ ╮ │ │               ║
+║│ │  │ * n │ ! │ - n 1 │ │ │ │ │               ║
+║╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯               ║
+╚═══════════════════════════════════════════════╝
+"))))

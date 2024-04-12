@@ -29,8 +29,10 @@
 (import (editor types extensions quotations))
 
 (define-object (Document car source)::Tile
-  ;; TODO: cursor-under* etc.
-
+  (define (cursor-under* x::real y::real path::Cursor)::Cursor*
+    (or (cursor-under x y car context: (recons 1 path))
+	(cursor-retreat (cursor #\] 1) (this))))
+  
   (define (setCar value)
     (set! car value))
 

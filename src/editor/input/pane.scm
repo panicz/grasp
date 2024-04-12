@@ -1405,10 +1405,9 @@
   (define (drop-at! x::real y::real object::pair)::boolean
     (and-let* ((items ::cons object)
 	       (xd yd (transform:outside-in x y))
-	       (cursor (cursor-under xd yd document context: '()))
+	       (cursor (document:cursor-under* xd yd '()))
 	       (`(,tip . ,precursor) cursor)
-	       (parent ::Element (the-expression
-				  at: precursor in: document))
+	       (parent ::Element (cursor-ref document precursor))
 	       (location ::Element (parent:part-at tip)))
       (parameterize/update-sources ((the-document document)
 				    (the-cursor cursor))
@@ -1643,16 +1642,18 @@
 				   (cursor-retreat (tail path))))
 	       (let* ((removed ::Remove (remove-element!
 					 at: subpath))
-		      (selection (Selected removed:element
-					   (copy
-					    (last-known-pointer-position
-					     finger)))))
+		      (selection (Selected
+				  removed:element
+				  (copy
+				   (last-known-pointer-position
+				    finger)))))
 		 (screen:drag! finger (DragAround selection))))
 
 	      ((and (is target cons?)
 		    (eqv? tip (target:last-index)))
-	       (let-values (((left top) (document-position-of-element-pointed-by
-					 path (car document))))
+	       (let-values (((left top)
+			     (document-position-of-element-pointed-by
+			      path (car document))))
 		 (let ((extent ::Extent (extent+ target)))
 		   (screen:drag! finger
 				 (Resize target subpath
