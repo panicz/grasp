@@ -1651,14 +1651,12 @@
 
 	      ((and (is target cons?)
 		    (eqv? tip (target:last-index)))
-	       (let-values (((left top)
-			     (document-position-of-element-pointed-by
-			      path (car document))))
-		 (let ((extent ::Extent (extent+ target)))
-		   (screen:drag! finger
-				 (Resize target subpath
-					 (- yd top) left top
-					 (this))))))
+	       (let ((extent ::Extent (extent+ target)))
+		 (screen:drag! finger
+			       (Resize target subpath
+				       (- y yd
+					  (painter:min-line-height))
+				       xd yd (this)))))
 	      (else
 	       (screen:drag! finger
 			     (Drawing (Stroke finger (this))))

@@ -145,6 +145,7 @@
   (let* ((min-line-height ::real (painter:min-line-height))
 	 (space-width ::real (painter:space-width))
 	 (paren-width ::real (painter:paren-width))
+	 (first-space ::Space (pre-head-space box))
 	 (last-space ::Space (last-space box))
 	 (prior ::Extent (extent+ box)))
     (define (set-width!)
@@ -158,8 +159,12 @@
 					  . ,_) cell))
 			      (set-car! cell 0)))
 			  space:fragments))))
-      (let* ((break (last-pair-before ending:index
-				      ending:space:fragments))
+      (let* ((ending-space ::Space (if (eq? ending:space
+					    first-space)
+				       last-space
+				       ending:space))
+	     (break (last-pair-before ending:index
+				      ending-space:fragments))
 	     (coda ::pair (last-pair last-space:fragments))
 	     (new-width (as int (quotient (- width ending:reach
 					     paren-width
@@ -196,7 +201,8 @@
 			      (set! lines (- lines 1))
 			      (remove-line fragments))
 			     (`(,,@integer? ,,@integer?)
-			      (if (eq? space last-space)
+			      (if (or (eq? space first-space)
+				      (eq? space last-space))
 				  (set-cdr! fragments '())
 				  (values)))
 			     (`(,head . ,tail)

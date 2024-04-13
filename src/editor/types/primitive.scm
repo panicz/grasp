@@ -644,10 +644,12 @@
 (define (line-ending-embracing position::real
 			       #;from box::cons)
   ::LineEnding
-  (let* ((last-space ::Space (pre-head-space box))
+  (let* ((first-space ::Space (pre-head-space box))
+	 (last-space ::Space first-space)
 	 (previous-left ::real 0)
 	 (next ::Traversal (Traversal))
 	 (space-width ::real (painter:space-width)))
+
     (define (breaking? element)::boolean
       (or (integer? element)
 	  (and-let* ((comment ::Comment element))
@@ -664,17 +666,17 @@
     (escape-with return
 
       (define-syntax-rule (action item #;Element current #;Traversal)
-	 (and-let* ((space ::Space item))
-	   (set! last-space space)
-	   (next:assign current)
-	   (let skip ((input ::list space:fragments)
+	(and-let* ((space ::Space item))
+	  (set! last-space space)
+	  (next:assign current)
+	  (let skip ((input ::list space:fragments)
 		      (fragment-index ::int 0))
 	     (match input
 	       (`(,,@breaking? ,,@integer? . ,_)
 		(cond
 		 ((is next:top <= position
-		      < (+ next:top
-			   next:max-line-height))
+			  < (+ next:top
+			       next:max-line-height))
 		  (return
 		   (LineEnding
 		    space: space
@@ -698,7 +700,9 @@
 
       (define-syntax-rule (result t #;Traversal)
 	(LineEnding reach: previous-left
-		    space: last-space
+		    space: (if (is position <= 0)
+			       first-space
+			       last-space)
 		    index: (last-space:last-index)))
       
       (traverse* box doing: action returning: result))))
