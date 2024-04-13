@@ -1,3 +1,16 @@
+* 12.04.2024
+
+dzis bysmy sie skupili na tym, zeby dobrze narysowac
+te czerwona kropke przy resize (i ewentualnie dorysowali
+kolejne kropki)
+
+dobra, chyba problem udalo sie naprawic (i nie bylo trudne)
+
+teraz jednak warto by bylo jeszcze popracowac nad tym,
+zeby chwytanie ponad polowa atomu w pierwszym nawiasie
+powodowalo przesuwanie wzgledem pierwszej spacji.
+
+
 * 11.04.2024
 
 dzis bysmy sie sprobowali skoncentrowac na naprawie
