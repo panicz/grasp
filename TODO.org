@@ -1,3 +1,8 @@
+* 15.04.2024
+
+dzisiaj raczej nie zdolamy zrobic nic innego, niz
+uporzadkowac testy
+
 * 12.04.2024
 
 dzis bysmy sie skupili na tym, zeby dobrze narysowac
