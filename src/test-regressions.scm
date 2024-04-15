@@ -25,6 +25,7 @@
  (utils print)
  (utils hash-table)
  (language for)
+ (language keyword-arguments)
  (editor document document-operations)
  (editor document editor-operations)
  (editor document history-tracking)
@@ -251,23 +252,159 @@
 ")
   )
 
-(with ((painter (TextPainter)))
-  (let* ((document ::Document (with-input-from-string "\
-  (define (! n)
+(define/kw (swipe! finger ::byte
+		   from: initial ::Position
+		   to: final ::Position
+		   via: trajectory ::(sequence-of Position)
+		   := (list initial final))
+  (screen:press! finger initial:left initial:top)
+  (let ((last-position initial))
+    (for p ::Position in trajectory
+	 (screen:move! finger p:left p:top
+		       (- p:left last-position:left)
+		       (- p:top last-position:top))
+	 (set! last-position p)))
+  (screen:release! finger final:left final:top 0 0))
+
+
+
+(define-syntax check
+  (syntax-rules (that the movement over from to
+		      via transforms into and back)    
+    ((check the movement over <document> from <initial>
+	    to <final> via <trajectory>)
+     (with ((painter (TextPainter)))
+       (let* ((document ::Document (with-input-from-string
+				       <document>
+				     parse-document))
+	      (finger ::byte 0)
+	      (initial ::Position <initial>)
+	      (final ::Position <final>)
+	      (trajectory ::(list-of Position) <trajectory>)
+	      (overlay (bordered
+			(Over back: (Dummy document)
+			      front: (Movement from: initial
+					       to: final
+					       via: trajectory)))))
+	 (screen:set-content! (DocumentEditor
+			       document: document))
+	 (snapshot overlay)
+	 (swipe! finger from: initial to: final via: trajectory)
+	 (snapshot overlay))))
+
+    ((check the movement over <document> from <initial>
+	    to <final> via <trajectory> and back)
+     (with ((painter (TextPainter)))
+       (let* ((document ::Document (with-input-from-string
+				       <document>
+				     parse-document))
+	      (finger ::byte 0)
+	      (initial ::Position <initial>)
+	      (final ::Position <final>)
+	      (trajectory ::(list-of Position) <trajectory>)
+	      (overlay (bordered
+			(Over back: (Dummy document)
+			      front: (Movement from: initial
+					       to: final
+					       via: trajectory)))))
+	 (screen:set-content! (DocumentEditor
+			       document: document))
+	 (snapshot overlay)
+	 (swipe! finger from: initial to: final via: trajectory)
+	 (snapshot overlay)
+	 (swipe! finger from: final to: initial via:
+		 (reverse trajectory))
+	 (snapshot overlay)
+	 )))
+    
+    ((check the movement over <document> from <initial>
+	    to <final>)
+     (check the movement over <document> from <initial>
+	    to <final> via (list <initial> <final>)))
+
+    ((check the movement over <document> from <initial>
+	    to <final> and back)
+     (check the movement over <document> from <initial>
+	    to <final> via (list <initial> <final>) and back))
+
+    ((check that the movement over <document> from <initial>
+	    to <final> via <trajectory> transforms <original>
+	    into <result> and back)
+     (with ((painter (TextPainter)))
+       (let* ((document ::Document (with-input-from-string
+				       <document>
+				     parse-document))
+	      (finger ::byte 0)
+	      (initial ::Position <initial>)
+	      (final ::Position <final>)
+	      (trajectory ::(list-of Position) <trajectory>)
+	      (overlay (bordered
+			(Over back: (Dummy document)
+			      front: (Movement from: initial
+					       to: final
+					       via: trajectory)))))
+	 (screen:set-content! (DocumentEditor
+			       document: document))
+	 (e.g. (snapshot overlay) ===> <original>)
+	 (swipe! finger from: initial to: final via: trajectory)
+	 (e.g. (snapshot overlay) ===> <result>)
+	 (swipe! finger from: final to: initial
+		 via: (reverse trajectory))
+	 (e.g. (snapshot overlay) ===> <original>))))
+
+    ((check that the movement over <document> from <initial>
+	    to <final> transforms <original>
+	    into <result> and back)
+     (check that the movement over <document> from <initial>
+	    to <final> via (list <initial> <final>)
+	    transforms <original> into <result> and back))
+    
+    ((check that the movement over <document> from <initial>
+	    to <final> via <trajectory> transforms <original>
+	    into <result>)
+     (with ((painter (TextPainter)))
+       (let* ((document ::Document (with-input-from-string
+				       <document>
+				     parse-document))
+	      (finger ::byte 0)
+	      (initial ::Position <initial>)
+	      (final ::Position <final>)
+	      (trajectory ::(list-of Position) <trajectory>)
+	      (overlay (bordered
+			(Over back: (Dummy document)
+			      front: (Movement from: initial
+					       to: final
+					       via: trajectory)))))
+	 (screen:set-content! (DocumentEditor
+			       document: document))
+	 (e.g. (snapshot overlay) ===> <original>)
+	 (swipe! finger from: initial to: final via: trajectory)
+	 (e.g. (snapshot overlay) ===> <result>))))
+
+    ((check that the movement over <document> from <initial>
+	    to <final> transforms <original>
+	    into <result>)
+     
+     (check that the movement over <document> from <initial>
+	    to <final> via (list <initial> <final>)
+	    transforms <original> into <result>))    
+     ))
+
+(check the movement over "(define (! n)
 (if (<= n 0)
   1
- (* n (! (- n 1)))))" parse-document))
-	 (finger ::byte 0)
-	 (initial ::Position (Position left: 29 top: 6))
-	 (final ::Position (Position left: 41 top: 10))
-	 (trajectory ::(list-of Position) (list initial final))
-	 (overlay (bordered
-		   (Over back: (Dummy document)
-			 front: (Movement from: initial
-					  to: final
-					  via: trajectory)))))
-    (screen:set-content! (DocumentEditor document: document))
-    (e.g. (snapshot overlay) ===> "
+ (* n (! (- n 1)))))"
+       from (Position left: 29 top: 3)
+       to (Position left: 41 top: 7)
+       and back)
+  
+(check that the movement over "(define (! n)
+(if (<= n 0)
+  1
+ (* n (! (- n 1)))))"
+       from (Position left: 29 top: 6)
+       to (Position left: 41 top: 10)
+       transforms "
 ╔══════════════════════════════════════════════╗
 ║╭        ╭     ╮               ╮              ║
 ║│ define │ ! n │               │              ║
@@ -283,16 +420,7 @@
 ║╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯       ↙   ↘  ║
 ║                                              ║
 ╚══════════════════════════════════════════════╝
-")
-    (screen:press! finger initial:left initial:top)
-    (let ((last-position initial))
-      (for p ::Position in trajectory
-	(screen:move! finger p:left p:top
-		      (- p:left last-position:left)
-		      (- p:top last-position:top))
-	(set! last-position p)))
-    (screen:release! finger final:left final:top 0 0)
-    (e.g. (snapshot overlay) ===> "
+" into "
 ╔════════════════════════════════════════════════════╗
 ║╭        ╭     ╮                           ╮        ║
 ║│ define │ ! n │                           │        ║
@@ -311,58 +439,117 @@
 ║│ │  │ * n │ ! │ - n 1 │ │ │             │ │        ║
 ║╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯             ╯ ╯        ║
 ╚════════════════════════════════════════════════════╝
-")))
+")
 
 
-(parameterize ((debugging? #true))
-  (with ((painter (TextPainter)))
-    (let* ((document ::Document (with-input-from-string "\
-  (define (! n)
+(check that the movement over "(define (! n)
 (if (<= n 0)
   1
- (* n (! (- n 1)))))" parse-document))
-	   (finger ::byte 0)
-	   (initial ::Position (Position left: 29 top: 8))
-	   (final ::Position (Position left: 41 top: 12))
-	   (trajectory ::(list-of Position) (list initial final))
-	   (overlay (bordered
-		     (Over back: (Dummy document)
-			   front: (Movement from: initial
-					    to: final
-					    via: trajectory)))))
-      (screen:set-content! (DocumentEditor document: document))
-      (snapshot overlay)
-      (screen:press! finger initial:left initial:top)
-      (let ((last-position initial))
-	(for p ::Position in trajectory
-	     (screen:move! finger p:left p:top
-			   (- p:left last-position:left)
-			   (- p:top last-position:top))
-	     (set! last-position p)))
-      (screen:release! finger final:left final:top 0 0)
-      (snapshot overlay))))
+ (* n (! (- n 1)))))"
+       from (Position left: 29 top: 8)
+       to (Position left: 41 top: 12)
+       transforms "
+╔══════════════════════════════════════════════╗
+║╭        ╭     ╮               ╮              ║
+║│ define │ ! n │               │              ║
+║│        ╰     ╯               │              ║
+║│ ╭    ╭        ╮            ╮ │              ║
+║│ │ if │ <= n 0 │            │ │              ║
+║│ │    ╰        ╯            │ │              ║
+║│ │                          │ │              ║
+║│ │   1                    ↘ │ ↙              ║
+║│ │                          ✶⠢⣀              ║
+║│ │  ╭     ╭   ╭       ╮ ╮ ↗ │ ↖⠑⠢⣀           ║
+║│ │  │ * n │ ! │ - n 1 │ │ │ │ │   ⠑⠢⣀        ║
+║╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯      ⠑↖⣀  ↗  ║
+║                                         ✶    ║
+║                                       ↙   ↘  ║
+║                                              ║
+╚══════════════════════════════════════════════╝
+" into "
+╔════════════════════════════════════════════════════╗
+║╭        ╭     ╮                           ╮        ║
+║│ define │ ! n │                           │        ║
+║│        ╰     ╯                           │        ║
+║│ ╭    ╭        ╮                        ╮ │        ║
+║│ │ if │ <= n 0 │                        │ │        ║
+║│ │    ╰        ╯                        │ │        ║
+║│ │                                      │ │        ║
+║│ │   1                    ↘   ↙         │ │        ║
+║│ │                          ✶⠢⣀         │ │        ║
+║│ │                        ↗   ↖⠑⠢⣀      │ │        ║
+║│ │                                ⠑⠢⣀   │ │        ║
+║│ │                                   ⠑↖⣀│ ↗        ║
+║│ │                                      ✶ │        ║
+║│ │  ╭     ╭   ╭       ╮ ╮ ╮           ↙ │ ↘        ║
+║│ │  │ * n │ ! │ - n 1 │ │ │             │ │        ║
+║╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯             ╯ ╯        ║
+╚════════════════════════════════════════════════════╝
+")
 
-(parameterize ((debugging? #true))
-  (with ((painter (TextPainter)))
-    (let* ((document ::Document (with-input-from-string "\
-  (define (! n)
+(check that the movement over "(define (! n)
 (if (<= n 0)
   1
- (* n (! (- n 1)))))" parse-document))
-	   (finger ::byte 0)
-	   (initial ::Position (Position left: 9 top: 1))
-	   (final ::Position (Position left: 36 top: 3))
-	   (trajectory ::(list-of Position) (list initial
-						  (Position left: 21
-							    top: 7)
-						  final))
-	   (overlay (bordered
-		     (Over back: (Dummy document)
-			   front: (Movement from: initial
-					    to: final
-					    via: trajectory)))))
-      (screen:set-content! (DocumentEditor document: document))
-      (e.g. (snapshot overlay) ===> "
+ (* n (! (- n 1)))))"
+       from (Position left: 29 top: 11)
+       to (Position left: 41 top: 15)
+       transforms "
+╔══════════════════════════════════════════════╗
+║╭        ╭     ╮               ╮              ║
+║│ define │ ! n │               │              ║
+║│        ╰     ╯               │              ║
+║│ ╭    ╭        ╮            ╮ │              ║
+║│ │ if │ <= n 0 │            │ │              ║
+║│ │    ╰        ╯            │ │              ║
+║│ │                          │ │              ║
+║│ │   1                      │ │              ║
+║│ │                          │ │              ║
+║│ │  ╭     ╭   ╭       ╮ ╮ ╮ │ │              ║
+║│ │  │ * n │ ! │ - n 1 │ │ ↘ │ ↙              ║
+║╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯ ✶⠢⣀              ║
+║                           ↗   ↖⠑⠢⣀           ║
+║                                   ⠑⠢⣀        ║
+║                                      ⠑↖⣀  ↗  ║
+║                                         ✶    ║
+║                                       ↙   ↘  ║
+║                                              ║
+╚══════════════════════════════════════════════╝
+" into "
+╔════════════════════════════════════════════════════╗
+║╭        ╭     ╮                           ╮        ║
+║│ define │ ! n │                           │        ║
+║│        ╰     ╯                           │        ║
+║│ ╭    ╭        ╮                        ╮ │        ║
+║│ │ if │ <= n 0 │                        │ │        ║
+║│ │    ╰        ╯                        │ │        ║
+║│ │                                      │ │        ║
+║│ │   1                                  │ │        ║
+║│ │                                      │ │        ║
+║│ │  ╭     ╭   ╭       ╮ ╮ ╮             │ │        ║
+║│ │  │ * n │ ! │ - n 1 │ │ ↘   ↙         │ │        ║
+║│ │  ╰     ╰   ╰       ╯ ╯ ╯ ✶⠢⣀         │ │        ║
+║│ │                        ↗   ↖⠑⠢⣀      │ │        ║
+║│ │                                ⠑⠢⣀   │ │        ║
+║│ │                                   ⠑↖⣀│ ↗        ║
+║╰ ╰                                      ✶ ╯        ║
+║                                       ↙   ↘        ║
+║                                                    ║
+╚════════════════════════════════════════════════════╝
+")
+
+(check that the movement over "(define (! n)
+(if (<= n 0)
+  1
+ (* n (! (- n 1)))))"
+       from (Position left: 9 top: 1) 
+       to (Position left: 36 top: 3)
+       via (list (Position left: 9
+			   top: 1)
+		 (Position left: 21
+			   top: 7)
+		 (Position left: 36
+			   top: 3))
+       transforms "
 ╔═════════════════════════════════════════╗
 ║╭      ↘ ╭ ↙   ╮               ╮         ║
 ║│ define ✶⢄! n │               │         ║
@@ -377,16 +564,7 @@
 ║│ │  │ * n │ ! │ - n 1 │ │ │ │ │         ║
 ║╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯         ║
 ╚═════════════════════════════════════════╝
-")
-      (screen:press! finger initial:left initial:top)
-      (let ((last-position initial))
-	(for p ::Position in trajectory
-	     (screen:move! finger p:left p:top
-			   (- p:left last-position:left)
-			   (- p:top last-position:top))
-	     (set! last-position p)))
-      (screen:release! finger final:left final:top 0 0)
-      (e.g. (snapshot overlay) ===> "
+" into "
 ╔═══════════════════════════════════════════════╗
 ║╭      ↘   ↙                   ╮╭     ╮        ║
 ║│ define ✶⢄                    ││ ! n │        ║
@@ -401,4 +579,4 @@
 ║│ │  │ * n │ ! │ - n 1 │ │ │ │ │               ║
 ║╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯               ║
 ╚═══════════════════════════════════════════════╝
-"))))
+")
