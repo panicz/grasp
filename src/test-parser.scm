@@ -55,7 +55,8 @@
    (show->string (the-expression at: '(2 4 3 1 1)))) ===> "#;y")
 
 (define (check-parser-correctness input::string)
-  (let* ((parsed ::pair (with-input-from-string input parse-document))
+  (let* ((parsed ::pair (with-input-from-string input
+			  parse-document))
 	 (output ::string (with-output-to-string
 			    (lambda ()
 			      (show-document parsed)))))
@@ -168,3 +169,27 @@ hey!
 (check-parser-correctness "
 (first . `rest)
 ")
+
+(parameterize ((debugging? #t))
+  (check-parser-correctness "\
+first-expression
+
+;; first line
+;; comment
+
+`',x
+
+`(,(a) ,b ,@c ,(d))
+
+;; second line
+;; comment
+
+         #|BLOCK COMMENT (title)|#
+
+#|another
+block
+comment|#
+
+last-expression
+
+"))

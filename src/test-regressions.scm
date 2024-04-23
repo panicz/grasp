@@ -255,8 +255,7 @@
 (define/kw (swipe! finger ::byte
 		   from: initial ::Position
 		   to: final ::Position
-		   via: trajectory ::(sequence-of Position)
-		   := (list initial final))
+		   via: trajectory ::(sequence-of Position) := '())
   (screen:press! finger initial:left initial:top)
   (let ((last-position initial))
     (for p ::Position in trajectory
@@ -265,8 +264,6 @@
 		       (- p:top last-position:top))
 	 (set! last-position p)))
   (screen:release! finger final:left final:top 0 0))
-
-
 
 (define-syntax check
   (syntax-rules (that the movement over from to
@@ -390,13 +387,47 @@
 	    transforms <original> into <result>))    
      ))
 
-(check the movement over "(define (! n)
+(check that the movement over "(define (! n)
 (if (<= n 0)
   1
  (* n (! (- n 1)))))"
        from (Position left: 29 top: 3)
        to (Position left: 41 top: 7)
-       and back)
+       transforms "
+╔══════════════════════════════════════════════╗
+║╭        ╭     ╮               ╮              ║
+║│ define │ ! n │               │              ║
+║│        ╰     ╯           ↘   ↙              ║
+║│ ╭    ╭        ╮            ✶⠢⣀              ║
+║│ │ if │ <= n 0 │          ↗ │ ↖⠑⠢⣀           ║
+║│ │    ╰        ╯            │ │   ⠑⠢⣀        ║
+║│ │                          │ │      ⠑↖⣀  ↗  ║
+║│ │   1                      │ │         ✶    ║
+║│ │                          │ │       ↙   ↘  ║
+║│ │  ╭     ╭   ╭       ╮ ╮ ╮ │ │              ║
+║│ │  │ * n │ ! │ - n 1 │ │ │ │ │              ║
+║╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯              ║
+╚══════════════════════════════════════════════╝
+" into "
+╔════════════════════════════════════════════════════╗
+║╭        ╭     ╮                           ╮        ║
+║│ define │ ! n │                           │        ║
+║│        ╰     ╯           ↘   ↙           │        ║
+║│ ╭                          ✶⠢⣀         ╮ │        ║
+║│ │                        ↗   ↖⠑⠢⣀      │ │        ║
+║│ │                                ⠑⠢⣀   │ │        ║
+║│ │                                   ⠑↖⣀│ ↗        ║
+║│ │    ╭        ╮                        ✶ │        ║
+║│ │ if │ <= n 0 │                      ↙ │ ↘        ║
+║│ │    ╰        ╯                        │ │        ║
+║│ │                                      │ │        ║
+║│ │   1                                  │ │        ║
+║│ │                                      │ │        ║
+║│ │  ╭     ╭   ╭       ╮ ╮ ╮             │ │        ║
+║│ │  │ * n │ ! │ - n 1 │ │ │             │ │        ║
+║╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯             ╯ ╯        ║
+╚════════════════════════════════════════════════════╝
+" and back)
   
 (check that the movement over "(define (! n)
 (if (<= n 0)
@@ -439,8 +470,7 @@
 ║│ │  │ * n │ ! │ - n 1 │ │ │             │ │        ║
 ║╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯             ╯ ╯        ║
 ╚════════════════════════════════════════════════════╝
-")
-
+" and back)
 
 (check that the movement over "(define (! n)
 (if (<= n 0)
@@ -485,7 +515,7 @@
 ║│ │  │ * n │ ! │ - n 1 │ │ │             │ │        ║
 ║╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯             ╯ ╯        ║
 ╚════════════════════════════════════════════════════╝
-")
+" and back)
 
 (check that the movement over "(define (! n)
 (if (<= n 0)
@@ -535,7 +565,7 @@
 ║                                       ↙   ↘        ║
 ║                                                    ║
 ╚════════════════════════════════════════════════════╝
-")
+" and back)
 
 (check that the movement over "(define (! n)
 (if (<= n 0)
@@ -580,3 +610,23 @@
 ║╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯               ║
 ╚═══════════════════════════════════════════════╝
 ")
+
+(parameterize  ((the-document (call-with-input-string "\
+#|block comment|#
+
+;; line comment
+
+\"some text\"
+" parse-document)))
+  
+  (e.g. (snapshot) ===> "
+┌─────────────┐
+│block comment│
+└─────────────┘
+               
+┃ line comment 
+               
+❝┈┈┈┈┈┈┈┈┈┈┈•  
+┊ some text ┊  
+•┈┈┈┈┈┈┈┈┈┈┈❞  
+"))

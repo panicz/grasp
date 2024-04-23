@@ -666,11 +666,12 @@
     (escape-with return
 
       (define-syntax-rule (action item #;Element current #;Traversal)
-	(and-let* ((space ::Space item))
+	(and-let* ((space ::Space item)
+		   ((isnt space eq? first-space)))
 	  (set! last-space space)
 	  (next:assign current)
 	  (let skip ((input ::list space:fragments)
-		      (fragment-index ::int 0))
+		     (fragment-index ::int 0))
 	     (match input
 	       (`(,,@breaking? ,,@integer? . ,_)
 		(cond
@@ -696,7 +697,7 @@
 		(skip rest (+ fragment-index 1)))
 	       ('()
 		(values))))
-	   (set! previous-left current:left)))
+	  (set! previous-left current:left)))
 
       (define-syntax-rule (result t #;Traversal)
 	(LineEnding reach: previous-left
@@ -704,7 +705,6 @@
 			       first-space
 			       last-space)
 		    index: (last-space:last-index)))
-      
       (traverse* box doing: action returning: result))))
 
 #|

@@ -45,9 +45,7 @@
 			(as EmptyListProxy car)))
 	     (proxy:space:draw! (hash-cons 0 context))))
 	  ((pair? car)
-	   (let ((s ::Space (pre-head-space car)))
-	     (s:draw! (hash-cons 0 context))
-	     (draw-sequence! car)))))
+	   (draw-sequence! car))))
   
   (cons car (empty)))
 
@@ -219,6 +217,7 @@
 	     (set! growth-cone (tail growth-cone))))
       (update! (post-head-space growth-cone)
 	       following-space)
+      (set! last-space following-space)
       (set! total-items (+ total-items 1)))
 
     (define (read-next)
@@ -295,13 +294,10 @@
 	      (let ((d (read-char)))
 		(cond
 		 ((eq? d #\;)
-		  (let-values (((unexpr spaces)
-				(read-list 1)))
-		    (let ((coda (last-pair
-				 last-space:fragments))
+		  (let-values (((unexpr spaces) (read-list 1)))
+		    (let ((coda (last-pair last-space:fragments))
 			  (next-space ::Space
-				      (post-head-space
-				       unexpr)))
+				      (post-head-space unexpr)))
 		      ;;(assert (EmptySpace? spaces))
 		      (set-cdr! coda
 				(cons
@@ -314,6 +310,7 @@
 			 (coda (last-pair
 				last-space:fragments))
 			 (next-space (read-spaces)))
+
 		    (set-cdr! coda
 			      (cons
 			       (BlockComment comment)
