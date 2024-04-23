@@ -1,3 +1,119 @@
+* 22.04.2024
+
+dzis moze bysmy sie sprobowali zajac tym drugim
+problemem, ktory mamy z initem, czyli tym, co sie dzieje
+na koncu
+
+wyglada na to, ze mamy do czynienia z dwoma problemami:
+- po pierwsze unquote-splicing sie
+  nie najlepiej wyswietla
+- po drugie, komentarze blokowe i liniowe
+  jak sie je przeplata, to cos sie zle parsuja
+
+i teraz plan bylby z grubsza taki:
+- dodac odpowiednie testy do parsera
+- dodac odpowiednie testy do paintera
+
+
+* 19.04.2024
+
+no i co teraz, e?
+
+mozemy sprobowac rozwiazac te problemy, na ktore
+sie natknelismy przy budowaniu inita.
+
+po nich zas bysmy dopracowali drag&drop, w tym:
+- podwojne klikniecia (kopiowanie)
+- pulling-the-rug
+- wyrzucanie
+- przywracanie nieumieszczonych i niewyrzuconych elementow
+- drag&drop na komentarzach
+
+* 18.04.2024
+
+#+begin_src
+╔════════════════════════════════════════════════════╗
+║╭        ╭     ╮                           ╮        ║
+║│ define │ ! n │                           │        ║
+║│        ╰     ╯           ↘   ↙           │        ║
+║│ ╭ 1                        ✶⠢⣀         ╮ │        ║
+║│ │ 2                      ↗   ↖⠑⠢⣀      │ │        ║
+║│ │ 3                              ⠑⠢⣀   │ │        ║
+║│ │ 4                                 ⠑↖⣀│ ↗        ║
+║│ │    ╭        ╮                        ✶ │        ║
+║│ │ if │ <= n 0 │                      ↙ │ ↘        ║
+║│ │    ╰        ╯                        │ │        ║
+║│ │                                      │ │        ║
+║│ │   1                                  │ │        ║
+║│ │                                      │ │        ║
+║│ │  ╭     ╭   ╭       ╮ ╮ ╮             │ │        ║
+║│ │  │ * n │ ! │ - n 1 │ │ │             │ │        ║
+║╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯             ╯ ╯        ║
+╚════════════════════════════════════════════════════╝
+#+end_src
+
+no to widac ze problem jest wtedy, gdy probujemy przeciagnac
+pierwsza spacje - i w takiej sytuacji powinnismy raczej wziac
+sobie "reach" ostatniej spacji
+
+No dobra, to wyglada na to, ze te jedna rzecz udalo sie
+zrobic i jako tako dziala.
+
+Zatem musimy albo ustalic dalsze prace w sensie obslugi
+bledow i brakujacych funkcjonalnosci, albo jakos sie zastanowic
+nad Lisp Game Jam.
+
+OK, to niech bedzie ten Lisp Game Jam ;D
+
+No to plan jest z grubsza taki: kiedy otwieramy gre, jestesmy
+pytani o nasze imie (glosem "jak masz na imie?").
+
+W odpowiedzi podajemy swoje imie. Wowczas jestesmy przenoszeni
+na plansze, na ktorej musimy ulozyc nasze imie z klockow
+na odpowiednim polu.
+
+Kiedy skonczymy, zaladowane zostaja nasze ustawienia.
+
+Sama rozgrywka polega na tym, ze losujemy sobie zdania
+o roznym poziomie trudnosci. Kiedy wylosujemy zdanie,
+wybieramy sobie slowo z tego zdania.
+
+Zeby ulozyc slowo, musimy miec odpowiednio duzo liter.
+Litery odblokowujemy w taki sposob, ze najpierw je rysujemy,
+a pozniej (opcjonalnie) wymawiamy.
+
+Dla niektorych slow rysowane sa obrazki.
+
+Mozna jeszcze zrobic tak, zeby trzeba bylo wypowiedziec
+dane slowo, zeby zdobyc punkty
+
+* 17.04.2024
+
+to dzis bysmy sie zajeli tym resizem.
+
+* 16.04.2024
+
+no to teraz mamy wreszcie troche oddechu.
+
+oczywiscie warto by bylo rozwiazac problem
+tego resize'a, natomiast wydaje sie, ze w kolejce
+jest jeszcze kilka palacych spraw, w tym:
+
+- drag&dropowanie wyrazen
+- drag&dropowanie komentarzy
+- bledy renderowania komentarzy
+- poprawa uzywalnosci:
+  - automatyczne podazanie za kursorem
+  - zapis i odczyt plikow
+  - praca jak z normalnym edytorem tekstu
+- bledy poruszania kursorem
+- poprawne pozycjonowanie kursora
+    
+i jeszcze rzeczy nieco ciekawsze, takie jak:
+- minimalizacja i maksymalizacja wyrazen
+- zmniejszanie i obracanie wyrazen
+- algorytm A*
+  
 * 15.04.2024
 
 dzisiaj raczej nie zdolamy zrobic nic innego, niz
