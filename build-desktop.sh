@@ -63,8 +63,7 @@ if [ ! -f kawa ]; then
 fi
 
 jar --verbose --create --file ../grasp-desktop.jar \
-    --main-class=grasp\$Mndesktop `find ./ -name '*.class'` \
-    assets
+    --main-class=grasp\$Mndesktop `find ./ -type f`
 
 cd ..
 rm -r desktop
