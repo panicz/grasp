@@ -53,6 +53,7 @@
 (import (editor types extensions testing))
 (import (editor input gestures))
 (import (editor awt-clipboard))
+(import (extra serial))
 
 (define-alias Font java.awt.Font)
 (define-alias FontMetrics java.awt.FontMetrics)
