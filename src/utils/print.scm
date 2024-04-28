@@ -122,6 +122,12 @@
     (ex:printStackTrace pw)
     (sw:toString)))
 
+(define-syntax-rule (current-stack-trace)
+  (try-catch
+   (throw (java.lang.Exception))
+   (ex java.lang.Throwable
+       (stack-trace ex))))
+
 (define-syntax-rule (safely actions ...)
   (try-catch
    (begin actions ...)
