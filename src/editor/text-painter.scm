@@ -455,9 +455,9 @@
       (put! #\┈ (- height 2) 0)
       (put! #\┐ (- height 2) 1)
       (put! #\└ (- height 1) 1)
-      (put! #\┈ (- height 2) (+ width 3))
-      (put! #\┌ (- height 2) (+ width 2))
-      (put! #\┘ (- height 1) (+ width 2))
+      (put! #\┈ (- height 2) (- width 1))
+      (put! #\┌ (- height 2) (- width 2))
+      (put! #\┘ (- height 1) (- width 2))
 
       (when (and (pair? selection-end)
 		 (equal? (tail selection-end)
@@ -543,8 +543,8 @@
       (set! (4pix #\█) #b1111)
       4pix))
 
-  (define 4pix ::($bracket-apply$ char)
-    (($bracket-apply$ char) #\space
+  (define 4pix ::(array-of char)
+    ((array-of char) #\space
      #\▘ #\▝ #\▀ #\▖ #\▌
      #\▞ #\▛ #\▗ #\▚ #\▐
      #\▜ #\▄ #\▙ #\▟ #\█))
@@ -592,8 +592,8 @@
        (else
 	(draw-line-4pix! x1 y1 x0 y0)))))
 
-  (define 8pix ::($bracket-apply$ int)
-    (($bracket-apply$ int)
+  (define 8pix ::(array-of int)
+    ((array-of int)
      0 1 2 6
      3 4 5 7))
 
@@ -973,8 +973,8 @@
       (set! (4dirs #\┼) #b1111)
       4dirs))
 
-  (define 4dirs ::($bracket-apply$ char)
-    (($bracket-apply$ char) #\space
+  (define 4dirs ::(array-of char)
+    ((array-of char) #\space
      #\╵ #\╶ #\└ #\╷ #\│
      #\┌ #\├ #\╴ #\┘ #\─
      #\┴ #\┐ #\┤ #\┬ #\┼))
@@ -1015,7 +1015,7 @@
 (define-object (TextPainter)::Painter
   (define width ::int 0)
   (define height ::int 0)
-  (define data ::($bracket-apply$ char))
+  (define data ::(array-of char))
 
   (define modifier ::procedure
     (mapping (key ::int)::char #!null))
@@ -1082,7 +1082,7 @@
                  (new-height (if (is y >= height)
                                  (+ y 1)
                                  height))
-                 (new-data (($bracket-apply$ char)
+                 (new-data ((array-of char)
 			    length:
 			    (* new-width
 			       new-height))))

@@ -24,6 +24,12 @@
 (define-syntax-rule (sequence-of type)
   sequence)
 
+(define-syntax-rule (array-of type)
+  ($bracket-apply$ type))
+
+(define-syntax-rule (parameter-of type)
+  ($bracket-apply$ parameter type))
+
 (define-syntax-rule (either type ...)
   java.lang.Object)
 

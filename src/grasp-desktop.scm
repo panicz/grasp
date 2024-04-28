@@ -1136,7 +1136,7 @@
     (BasicLineDecoration
      1 BasicLineDecoration:CAP_BUTT
      BasicLineDecoration:JOIN_BEVEL
-     0 (($bracket-apply$ float) 9) 0))
+     0 ((array-of float) 9) 0))
   
   (define (draw-quoted-text! text::CharSequence context::Cursor)::void
     (let* ((e ::Extent (text-extent text

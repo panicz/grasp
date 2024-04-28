@@ -44,6 +44,11 @@
 
 (define-alias Array java.util.Arrays)
 
+(define-object (Point x::real y::real color::long)::Layer
+  (define (draw!)
+    (painter:draw-point! x y color))
+  (IgnoreInput))
+
 (define-object (Screen)::ResizablePane
   (define overlay ::Overlay (Overlay))
   (define dragging ::(maps byte to: Drag)
@@ -280,6 +285,13 @@
   (define ending ::LineEnding
     (line-ending-embracing anchor #;from box))
 
+  #;(define p ::Point
+    (let-values (((xe ye) (the-transform-stack:inside-out
+			   (+ left ending:reach
+			      (painter:paren-width))
+			   (+ top anchor))))
+      (Point xe ye #xff0000)))
+
   (define (move! x::real y::real dx::real dy::real)::void
     (safely
      (let*-values (((zx zy) (editor:outside-in 0 0))
@@ -289,6 +301,7 @@
        (resize! box width height ending))))
 
   (define (drop! x::real y::real vx::real vy::real)::void
+    #;(screen:overlay:remove! p)
     (let ((final ::Extent (extent+ box))
 	  (history ::History (history (the-document))))
       (when (isnt final equal? initial)
@@ -296,6 +309,7 @@
 				    from: initial
 				    to: (copy final)
 				    with-anchor: anchor)))))
+  #;(screen:overlay:add! p)
   )
 
 (define-object (Overlay)::Pane
@@ -1167,11 +1181,11 @@
                    file-action::(maps (java.io.File) to: void)
 		   directory-action::(maps (java.io.File) to: void))
   ::Enchanted
-  (let* ((filenames ::($bracket-apply$ String)
+  (let* ((filenames ::(array-of String)
 		    (directory:list))
          (n ::int (length filenames))
-         (buttons ::($bracket-apply$ FileButton)
-		 (($bracket-apply$ FileButton)
+         (buttons ::(array-of FileButton)
+		 ((array-of FileButton)
 		  length: (+ n 1))))
     (set! (buttons 0) (ParentDirectoryButton
                        target: (directory:getParentFile)
@@ -1530,13 +1544,13 @@
 				      #;(the-selection-range
 				       selection-range))
 	  (let-values (((x y) (transform:outside-in xe ye)))
-	    (let* ((target-cursor (cursor-under x y))
-		   (target (the-expression at: target-cursor))
-		   (editor ::Editor (this)))
-	      (let*-values (((x0 y0) (document-position-of-element-pointed-by
-				      target-cursor
-				      (car document)))
-			    ((x* y*) (transform:inside-out x0 y0)))
+	    (and-let* ((target-cursor (cursor-under x y))
+		       (target (the-expression
+				at: target-cursor))
+		       (editor ::Editor (this))
+		       (x0 y0 (document-position-of-element-pointed-by
+			       target-cursor (car document)))
+		       (x* y* (transform:inside-out x0 y0)))
 		(match target
 		  (enchanted::Interactive
 		   (enchanted:tap! finger x y))
@@ -1544,7 +1558,7 @@
 		   (set! cursor target-cursor)
 		   (set! selection-range 0)
 		   (editor:set-cursor-column! xe)
-		   #t)))))))))
+		   #t))))))))
 
   (define (press! finger::byte #;at xe::real ye::real)::boolean
     (with-post-transform transform
@@ -1632,9 +1646,9 @@
 	       (WARN "should move selection"))
 
 	      ((or (is target Atom?)
-		   (and (is target cons?)
-			(eqv? tip (target:first-index)))
-		   (is target EmptyListProxy?))
+		   (and (or (is target cons?)
+			    (is target EmptyListProxy?))
+			(eqv? tip (target:first-index))))
 	       ;; powinnismy powiekszyc spacje poprzedzajaca
 	       ;; wydobywany element o szerokosc tego elementu
 	       ;; podzielona przez (painter:space-width)
@@ -1682,16 +1696,29 @@
 					 at: subpath))
 		      (target ::Element (parent:part-at tip)))
 	     (cond
-	      #;((isnt parent eq? target)
-	      (WARN "reached non-final item on press"))
+	      ((or (isnt parent eq? target)
+		   (is target Space?))
+	       (screen:drag! finger
+			     (Translate transform)))
 
 	      #;((isnt dragging clean?)
 	      (WARN "should start scrolling or zooming "
 	      (keys dragging)))
 
-	      ((is target Space?)
-	       (screen:drag! finger
-			     (Translate transform)))))
+	      ((Enchanted? target)
+	       (let ((target ::Enchanted target))
+		 (target:second-press! finger (- x xd) (- y yd))))
+
+	      ((or (is target Atom?)
+		   (and (or (is target cons?)
+			    (is target EmptyListProxy?))
+			(eqv? tip (target:first-index))))
+	       (let* ((selection (Selected
+				  (cons (copy target) (empty))
+				  (copy
+				   (last-known-pointer-position
+				    finger)))))
+		 (screen:drag! finger (DragAround selection))))))
 	   #t)))))
 
   (define (double-tap! finger::byte x::real y::real)::boolean

@@ -31,7 +31,7 @@
   ;; here we initialize 10 values, because Android can support
   ;; up to 10 pointers. That they'll be unused with other clients?
   ;; We don't care! 
-  (($bracket-apply$ Position)
+  ((array-of Position)
    (Position left: 0 top: 0)
    (Position left: 0 top: 0)
    (Position left: 0 top: 0)
