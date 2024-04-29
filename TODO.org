@@ -1,3 +1,237 @@
+* 25.04.2024
+
+czyli co dzis?
+- kopiowanie na drugie wcisniecie
+- i moze jeszcze zmiana rozmiaru pustego pudelka
+  (ktora daje nam okazje do tego, zeby sie skupic
+  na zachowaniu resize'a w kontekscie komentarzy)
+
+jezeli idzie o ten pierwszy punkt, to najlepiej go zrealizowac
+w analogii do tego, co juz mamy, czyli
+
+#+begin_src scheme
+  ((or (is target Atom?)
+       (and (or (is target cons?)
+		(is target EmptyListProxy?))
+	    (eqv? tip (target:first-index))))
+   ;; powinnismy powiekszyc spacje poprzedzajaca
+   ;; wydobywany element o szerokosc tego elementu
+   ;; podzielona przez (painter:space-width)
+   (set! (the-cursor) (cursor-climb-back
+		       (cursor-retreat (tail path))))
+   (let* ((removed ::Remove (remove-element!
+			     at: subpath))
+	  (selection (Selected
+		      removed:element
+		      (copy
+		       (last-known-pointer-position
+			finger)))))
+     (screen:drag! finger (DragAround selection))))
+#+end_src
+
+i w nowym przypadku to powinno wygladac podobnie, tyle ze
+zamoast usuwac, chcemy kopiowac.
+
+i jest tutaj jeszcze taki szkopul, ze bysmy chcieli zrozumiec,
+co sie tutaj dzieje.
+
+to tak: remove-element! jest zdefiniowane nastepujaco:
+
+#+begin_src scheme
+(define/kw (remove-element! at: cursor::Cursor := (the-cursor)
+			    from: document := (the-document))
+  ::Remove
+  (let* ((shift (last-index (space-preceding cursor in: document)))
+	 (element (extract! at: cursor from: document))
+	 (history ::History (history document))
+	 (action ::Remove (Remove element: element
+				  at: cursor
+				  with-shift: shift)))
+    (history:record! action)
+    action))
+#+end_src
+
+natomiast Selected jest zdefiniowane w taki oto sposob:
+
+#+begin_src scheme
+(define-object (Selected items::cons position::Position)::Layer
+
+  (define (draw!)::void
+    (parameterize ((the-document items))
+      (with-translation (position:left position:top)
+	(draw-sequence! items))))
+
+  (IgnoreInput))
+#+end_src
+
+a DragAround - o tak:
+
+#+begin_src scheme
+(define-object (DragAround selected::Selected)::Drag
+
+  (define (move! x::real y::real dx::real dy::real)::void
+    (let ((position ::Position selected:position))
+      (set! position:left (+ position:left dx))
+      (set! position:top (+ position:top dy))))
+
+  (define (drop! x::real y::real vx::real vy::real)::void
+    ;; musimy sobie przetransformowac wspolrzedne
+    ;; do wspolrzednych edytora oraz wybrac dokument
+    (screen:overlay:remove! selected)
+    (screen:top:drop-at! x y selected:items)
+    )
+
+  (screen:overlay:add! selected))
+#+end_src
+
+I tutaj rzecz ma sie w taki sposob, ze to metoda drop-at!
+w DocumentEditor zajmuje sie zarejestrowaniem akcji Insert:
+
+#+begin_src scheme
+  ((is parent Space?)
+   (let* ((action ::Insert (Insert element: items
+				   at: cursor))
+	  (history ::History (history document)))
+     (history:record! action)
+     (set! (the-cursor) (action:apply! document))))
+#+end_src
+
+przy czym History:record! zajmuje sie tym, zeby sprawdzic, czy
+ostatnia akcja to nie bylo Remove na tym elemencie.
+
+Hipoteza jest zatem taka, ze kopiowanie powinno wygladac
+nastepujaco:
+
+#+begin_src scheme
+  ((or (is target Atom?)
+       (and (or (is target cons?)
+		(is target EmptyListProxy?))
+	    (eqv? tip (target:first-index))))
+   (let* ((selection (Selected
+		      (cons (copy target) (empty))
+		      (copy
+		       (last-known-pointer-position
+			finger)))))
+     (screen:drag! finger (DragAround selection))))
+#+end_src
+
+W porzadku, to wydaje sie dzialac.
+
+Czyli co nam teraz pozostaje?
+
+Teraz bysmy sie zajeli zmiana rozmiaru pustych list?
+(i innymi zmianami behawioralnymi w module (editor input pane))
+
+A moze na razie bysmy sie zajeli odpoczywaniem?
+
+* 24.04.2024
+
+dzis od rana jakies absolutne pierdoly: zamiana $bracket-apply$
+na array-of i parameter-of.
+
+natomiast dobrze by bylo sie zajac tym podwojnym
+kliknieciem, i przy okazji moze zrobic zmiany behawioralne,
+a konkretnie:
+- 'drugie-wcisniecie' atomu albo lewego nawiasu
+  tworzy kopie tego obiektu
+- przytrzymanie na atomie daje nam liste dostepnych metod
+- dwukrotne klikniecie atomu zabiera nas do definicji,
+  a w przypadku definicji - pokazuje wszystkie uzycia
+  (markujac to ostatnie)
+- dwukrotne klikniecie na nawiasie zamyka albo
+  otwiera wyrazenie
+- jezeli przeciagamy wyrazenie i dotkniemy je drugim palcem,
+  to mozemy je powiekszac albo zmniejszac. podobnie powinno dzialac
+  ctrl+shift+mouse wheel
+
+poza tym chcemy miec scroll-bary (polprzezroczyste),
+chcemy moc scrollowac tylko w granicach dokumentu,
+i tylko zoomowac bez obracania, i to tylko w pewnych
+granicach.
+
+jezeli odzoomujemy dalej, to powinien sie nam renderowac
+widok prototypow klas, funkcji i zmiennych w kontekscie
+modulow, oraz zaleznosci pomiedzy modulami
+
+i to jest jedna rzecz. Natomiast w gre wchodzi tutaj
+jeszcze druga, mianowicie widok historii w gicie, czyli
+takie cos, ze sobie rysujemy migawki modulow w poszczegolnych
+commitach (w takim widoku jakby-3D) oraz sciezki historii
+projektu - z akcentem na topologie, ale w taki sposob, zeby
+przy odpowiednim zoomie moc rowniez zobaczyc poszczegolne
+commity
+
+No, ale ta integracja z gitem, przechodzenie do definicji
+itd. to na razie piesn przyszlosci. Natomiast tym, co bysmy
+robili w pierwszej kolejnosci, to:
+- kopiowanie wyrazen
+- scroll bary
+- ograniczenie zoomowania i rotacji
+- rysowaine chmurek <3 (pliz pliz pliz)
+no dobra, rysowanie chmurek
+
+- przegladarka plikow na androidzie
+- wyszukiwanie
+  (i do tego celu bysmy chcieli przeniesc popup
+  z przegladarka pliku z ekranu do poszczeoglnego splita)
+  
+* 23.04.2024
+
+no dobra, to parser udalo sie poprawic.
+mozemy poprawic ten unquote-splicing
+w kliencie tekstowym, natomiast warto sie zastanowic
+nad lista rzeczy do zrobienia na po-majowce.
+
+unquote-splicing poprawiony!
+
+to teraz przypomnijmy sobie wczorajsza sesje nagraniowa
+i rzeczy, ktore wydawaly sie nam potrzebne.
+
+Na pierwszy strzal to by byly:
+- kopiowanie przez podwojne klikniecie
+- podswietlanie wcisniec przyciskow
+- cytowanie wyrazen
+- przenoszenie przyciskow
+- pulling-the-rug
+- i jego przeciwienstwo, czyli zamykanie
+  selekcji w nawias
+- wynik ewaluacji (na czerwono albo zielono)
+- przenoszenie tekstu
+- minimalizacja wyrazen
+- skalowanie wyrazen
+- rysowanie chmurek
+- rysowanie guzikow
+- wyszukiwanie
+- (no i moze jeszcze takie cos, ze jak sie przytrzyma
+  palec na atomie, to sie wokol niego pojawiaja wszystkie
+  metody tego obiektu, i jak je wcisniemy, to sie nam
+  zrobi szablon wywolania metody, no i jezeli mamy
+  przeciazona metode - na co Java pozwala, to mozemy
+  sobie cyrkulowac pomiedzy szablonami. Ale cos takiego
+  samego mogloby byc rowniez wtedy, kiedy wpiszemy
+  dwukropek na koncu symbolu)
+
+Ha! To wszystko brzmi niezle! Jednak co musielibysmy zrobic,
+gdybysmy chcieli, zeby dalo sie uzywac GRASPa do edytowania
+jego samego?
+
+I tutaj pomyslow jest kilka. Pierwsza rzecz - plan minimum
+- to dzialajaca wybieraczka plikow dla Androida.
+
+Przy okazji warto by bylo rowniez rozwazyc kwestie przyspieszenia
+budowania projektu Androidowego, poniewaz aktualnie trwa
+masakrycznie dlugo.
+
+Jednak wlasnie z tego powodu warto by bylo zaczac od systemu
+buildow dla desktopa i dla terminala. A tak naprawde to chcielibysmy
+uwspolnic system buildow dla tych wszystkich modulow.
+
+I z tego powodu zacznijmy od czegos jeszcze zupelnie innego,
+mianowicie maila do Bothnera, w ktorym:
+- zaanonsujemy wczorajsze demo
+- zapytamy o roznice pomiedzy ewaluacja na androidzie i na JVMie
+
+
 * 22.04.2024
 
 dzis moze bysmy sie sprobowali zajac tym drugim

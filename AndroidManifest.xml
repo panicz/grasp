@@ -21,6 +21,7 @@
       "android.permission.MANAGE_EXTERNAL_STORAGE"/>
   
   <application
+      android:requestLegacyExternalStorage="true"
       android:label="GRASP"
       android:icon="@drawable/grasp">
     <profileable android:shell="true" />

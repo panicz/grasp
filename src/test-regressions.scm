@@ -630,3 +630,16 @@
 ┊ some text ┊  
 •┈┈┈┈┈┈┈┈┈┈┈❞  
 "))
+
+(parameterize  ((the-document (call-with-input-string "\
+('x `x ,x ,@x '() `() ,() ,@())
+(',x ',@y ,(a) ,@(b))
+" parse-document)))
+  (e.g. (snapshot) ===> "
+╭ ▗   ┌ ┐           ┏  ┓ ╓  ╖ ╷  ╷  ╷  ╷  ╮
+│  x   x   x  ┈┐x┌┈ ┃  ┃ ║  ║ │  │ ┈┤  ├┈ │
+╰         └ ┘  └ ┘  ┗  ┛ ╙  ╜ └  ┘  └  ┘  ╯
+╭ ▗     ▗       ╷   ╷  ╷   ╷  ╮            
+│   x    ┈┐y┌┈  │ a │ ┈┤ b ├┈ │            
+╰  └ ┘    └ ┘   └   ┘  └   ┘  ╯            
+"))

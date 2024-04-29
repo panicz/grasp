@@ -237,58 +237,57 @@
 		    (assets:open "init.scm")))))
       (safely (read-all input))))
 
-  (define the-atom-font ::($bracket-apply$ parameter Font)
+  (define the-atom-font ::(parameter-of Font)
     (make-parameter
      (Font face: Roboto-Medium
 	   size: 36)))
 
-  (define the-string-font ::($bracket-apply$ parameter Font)
+  (define the-string-font ::(parameter-of Font)
     (make-parameter
      (Font face: Iosevka #;HackRegular #;PragmataProMonoRegular
 	   size: 32)))
 
-  (define the-comment-font ::($bracket-apply$ parameter Font)
+  (define the-comment-font ::(parameter-of Font)
     (make-parameter
      (Font face: GloriaHallelujah
 	   size: 28)))
 
-  (define the-caption-font ::($bracket-apply$ parameter Font)
+  (define the-caption-font ::(parameter-of Font)
     (make-parameter
      (Font face: M+1p #;Oswald-Regular
 	   size: 34)))
 
-  (define the-text-input-font ::($bracket-apply$ parameter Font)
+  (define the-text-input-font ::(parameter-of Font)
     (make-parameter
      (Font face: NotoSerif-Regular
 	   size: 36)))
   
-  (define the-block-comment-font ::($bracket-apply$ parameter Font)
+  (define the-block-comment-font ::(parameter-of Font)
     (make-parameter
      (Font face: NotoSerif-Regular
 	   size: 28)))
 
-  (define the-block-comment-margin ::($bracket-apply$ parameter real)
+  (define the-block-comment-margin ::(parameter-of real)
     (make-parameter 6))
 
-  (define the-log-font ::($bracket-apply$ parameter Font)
+  (define the-log-font ::(parameter-of Font)
     (make-parameter
      (Font face: Oswald-Regular
 	   size: 16)))
 
-  (define the-cursor-offset ::($bracket-apply$ parameter Position)
+  (define the-cursor-offset ::(parameter-of Position)
     (make-parameter (Position left: 0 top: 32)))
 
-  (define the-cursor-extent ::($bracket-apply$ parameter Extent)
+  (define the-cursor-extent ::(parameter-of Extent)
     (make-parameter (Extent width: 2 height: 32)))
 
-  (define parenthesis-color ::($bracket-apply$ parameter long)
+  (define parenthesis-color ::(parameter-of long)
     (make-parameter #xffcccccc))
 
-  (define focused-parenthesis-color ::($bracket-apply$ parameter long)
+  (define focused-parenthesis-color ::(parameter-of long)
     (make-parameter #xff555555))
 
-  (define matching-parenthesis-color ::($bracket-apply$
-					parameter long)
+  (define matching-parenthesis-color ::(parameter-of long)
     (make-parameter #xff888888))
 
   (define top-left-paren ::Path2D
@@ -415,7 +414,7 @@
 
   (define dashed-line ::PathEffect
     (DashPathEffect
-     (($bracket-apply$ float) 10 20) 0))
+     ((array-of float) 10 20) 0))
 
   (define external-open-file ::(maps (byte Editor)
 				     to: (maps _ to: void))
@@ -617,8 +616,8 @@
   (define (current-clip-top)::real
     clipTop)
 
-  (define matrix-points ::($bracket-apply$ float)
-    (($bracket-apply$ float) length: 9))
+  (define matrix-points ::(array-of float)
+    ((array-of float) length: 9))
   
   (define (translate! x ::real y ::real)::void
     (canvas:translate x y))
@@ -1530,8 +1529,8 @@
 	  (set! last-animation-event-time-ms (current-time-ms))
 	  (sync:postDelayed (lambda () (animate!)) 40)))))
 
-  (define window-position ::($bracket-apply$ int)
-    (($bracket-apply$ int) length: 2))
+  (define window-position ::(array-of int)
+    ((array-of int) length: 2))
   
   (AndroidView source)
   (setFocusable #t)
@@ -1578,9 +1577,9 @@
     (unset! (reaction-to-request-response requestCode)))
   
   (define (onRequestPermissionsResult requestCode::int
-                                      permissions::($bracket-apply$
+                                      permissions::(array-of
 						    String)
-                                      grantResults::($bracket-apply$
+                                      grantResults::(array-of
 						     int))
     ::void
     (invoke-special AndroidActivity (this)
@@ -1599,7 +1598,7 @@
 	     permissions" has been denied: "grantResults)
        (unset! (reaction-to-request-response requestCode))))))
 
-  (define (with-permissions permissions::($bracket-apply$ String)
+  (define (with-permissions permissions::(array-of String)
 			    action::(maps () to: void))
     ::void
     (safely
@@ -1613,13 +1612,13 @@
 	 (action '(PackageManager:PERMISSION_GRANTED)))))
 
   (define (with-read-permission action::(maps _ to: void))::void
-    (with-permissions (($bracket-apply$ String)
+    (with-permissions ((array-of String)
 		       Manifest:permission:WRITE_EXTERNAL_STORAGE
 		       Manifest:permission:MANAGE_EXTERNAL_STORAGE)
 		     action))
 
   (define (with-write-permission action::(maps _ to: void))::void
-    (with-permissions (($bracket-apply$ String)
+    (with-permissions ((array-of String)
 		       Manifest:permission:READ_EXTERNAL_STORAGE
 		       Manifest:permission:MANAGE_EXTERNAL_STORAGE)
 		      action))
@@ -1629,8 +1628,8 @@
 
   (define view :: View)
 
-  (define process-finger ::($bracket-apply$ TouchEventProcessor)
-    (($bracket-apply$ TouchEventProcessor) length: 10))
+  (define process-finger ::(array-of TouchEventProcessor)
+    ((array-of TouchEventProcessor) length: 10))
 
   (define (invalidating result::boolean)::boolean
     (when result
@@ -1762,7 +1761,7 @@
 					(this) 'getContentResolver))
 				    (c ::DbCursor
 				       (r:query
-					uri (($bracket-apply$ String)
+					uri ((array-of String)
 					     DbColumn:DISPLAY_NAME
 					     DbColumn:SIZE)
 					#!null #!null #!null))
