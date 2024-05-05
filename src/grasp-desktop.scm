@@ -728,8 +728,7 @@
 	     (invoke (this) 'open-quasiquote-paren! height))
      (lambda (width::real)::void
 	     (invoke (this) 'close-quasiquote-paren! height))
-     (lambda ()::real
-	     (invoke (this) 'quasiquote-paren-width))
+     (quasiquote-paren-width)
      width height context))
 
   (define (open-unquote-paren! height::real)::void
@@ -853,8 +852,8 @@
   (define (open-unquote-splicing-marker! height::real)
     ::void
     (with-translation (0 (- height bottom-left-quote-bounds:height))
-      (graphics:fillRect 0 5 1 10)
-      (graphics:fillRect 3 5 5 10)
+      (graphics:fillRect 0 0 1 5)
+      (graphics:fillRect 3 0 5 5)
       (with-translation (5 0)
 	(graphics:fill bottom-left-quote-paren))))
 
@@ -862,8 +861,9 @@
     ::void
     (with-translation (0 (- height bottom-left-quote-bounds:height))
       (graphics:fill bottom-right-quote-paren)
-      (graphics:fillRect 10 5 13 10)
-      (graphics:fillRect 14 5 15 10)))
+      (graphics:fillRect 10 0 3 5)
+      (graphics:fillRect 14 0 1 5)
+      ))
 
   (define (unquote-splicing-marker-width)::real
     (+ (unquote-marker-width) 10))
@@ -1070,7 +1070,7 @@
 		   (equal? (tail selection-end) context)))
 	     (metrics ::FontMetrics (graphics:getFontMetrics font))
 	     (parent ::Traversal (the-traversal))
-	     (height ::float (font:getSize))
+	     (height ::float (metrics:getHeight))
 	     (traversal ::Traversal
 		       (Traversal
 			max-line-height: height
@@ -1131,7 +1131,7 @@
 
   (define quoted-text-cursor-offset::Position
     (Position left: -1 top: 2))
-
+  
   (define dashed ::LineDecoration
     (BasicLineDecoration
      1 BasicLineDecoration:CAP_BUTT
@@ -1162,7 +1162,7 @@
 	(graphics:fill single-quote)
 	(with-translation (w 0)
 	  (graphics:fill single-quote)
-	  (with-translation (w h)
+	  (with-translation (w (/ h 2))
 	    (let ((t ::Traversal (the-traversal)))
 	      (set! t:left (+ t:left 2w))
 	      (set! t:top (+ t:top h))
@@ -1195,7 +1195,7 @@
 		 (metrics:stringWidth
 		  (text:subSequence line-start string-end))))
       (Extent width: max-width
-	      height: (* lines (metrics:getHeight)))))
+	      height: (* lines line-height))))
 
   (define (text-character-index-under x::real y::real
 				      text::CharSequence
@@ -1241,9 +1241,9 @@
   (define (caption-extent caption::CharSequence)::Extent
     (text-extent caption (the-caption-font)))
 
-  (define (caption-margin-top)::real 6)
+  (define (caption-margin-top)::real 0)
 
-  (define (caption-margin-bottom)::real 0)
+  (define (caption-margin-bottom)::real 16)
 
   (define (caption-horizontal-margin)::real
     (space-width))
@@ -1262,7 +1262,7 @@
 	   (font (the-atom-font)))
       (set-color! atom-frame-color)
       (graphics:fillRoundRect 0 10
-			      extent:width (- extent:height 20)
+			      extent:width (- extent:height 16)
 			      12 12)
       (with-translation (4 8)
 	(parameterize ((the-cursor-offset atom-cursor-offset))
@@ -1276,7 +1276,7 @@
   (define (quoted-text-extent text::CharSequence)::Extent
     (let ((inner ::Extent (text-extent text (the-string-font))))
       (Extent width: (+ inner:width
-			(* 4 single-quote-extent:width))
+			(* 4 single-quote-extent:width) 1)
 	      height: (+ inner:height
 			 (* 2 single-quote-extent:height)))))
 
@@ -1308,16 +1308,18 @@
   (define (draw-block-comment! text::CharSequence context::Cursor)
     ::void
     (let* ((font ::Font (the-block-comment-font))
-	   (font-size ::real (font:getSize))
+	   (metrics ::FontMetrics (graphics:getFontMetrics font))
+	   (font-size ::real (metrics:getHeight))
 	   (outer ::Extent (block-comment-extent text))
 	   (margin ::real (the-block-comment-margin)))
       (draw-rectangle! outer:width (- outer:height 5))
-      (with-translation (margin (* 0.5 font-size))
+      (with-translation (margin (/ font-size 4))
 	  (draw-text! text font context))))
 
   (define (block-comment-extent text::CharSequence)::Extent
     (let* ((font ::Font (the-block-comment-font))
-	   (font-size ::real (font:getSize))
+	   (metrics ::FontMetrics (graphics:getFontMetrics font))
+	   (font-size ::real (metrics:getHeight))
 	   (inner ::Extent (text-extent text font))
 	   (margin ::real (the-block-comment-margin)))
       (Extent width: (+ inner:width margin margin)
@@ -1327,7 +1329,8 @@
 					       text::CharSequence)
     ::int
     (let* ((font ::Font (the-block-comment-font))
-	   (font-size ::real (font:getSize))
+	   (metrics ::FontMetrics (graphics:getFontMetrics font))
+	   (font-size ::real (metrics:getHeight))
 	   (margin ::real (the-block-comment-margin)))
       (text-character-index-under (- x margin) (- y (* 0.5 font-size))
 				  text font)))
