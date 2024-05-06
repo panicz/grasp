@@ -1,3 +1,11 @@
+* 05.05.2024 (telefon)
+
+moze jeszcze bysmy zrobili zmiany pod katem 'usability'
+- zeby moc wreszcie edytowac pliki z poziomu GRASPa
+
+ale zacznijmy od tego, zeby miec w kliencie androidowym
+funkcje (say "message"), uzywajaca androidowego text to speech
+
 * 02.05.2024
 
 sprobujmy poprawic wyswietlanie stringow na desktopie,
