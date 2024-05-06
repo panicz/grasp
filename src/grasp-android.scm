@@ -181,20 +181,20 @@
 
 (define-syntax define-initializer
   (syntax-rules (::)
-    ((define-initializer (initializer-name
-			  object-name::object-type)
+    ((define-initializer (initializer-name . args)
        (definition name etc ... initialization)
        ...)
      (begin
        (definition name etc ... #!null)
        ...
-       (define (initializer-name object-name::object-type)
+       (define (initializer-name . args)
 	 ::void
 	 (set! name initialization)
 	 ...)))))
 
-(define-initializer (initialize-activity
-		     activity::GRASP)
+(define-initializer (initialize-activity activity::GRASP)
+  (define the-activity ::AndroidActivity activity)
+  
   (define Iosevka ::Typeface
     (load-font "iosevka-fixed-semibold.ttf" activity))
     
@@ -1714,8 +1714,17 @@
 		  (or kawa.standard.Scheme:instance
 		      (kawa.standard.Scheme))))
       (kawa.standard.Scheme:registerEnvironment)
-      (gnu.mapping.Environment:setCurrent
-       (scheme:getEnvironment)))
+      (letrec* ((env ::gnu.mapping.Environment
+		     (scheme:getEnvironment))
+		(voice (android.speech.tts.TextToSpeech
+			(this)
+			(lambda (status)
+			  (WARN "text to speech initialized with status "
+				status)))))
+	(gnu.mapping.Environment:setCurrent env)
+	(env:define 'voice #!null voice)
+	(env:define 'speak #!null (lambda (text::string)::void
+				    (voice:speak text #!null #!null)))))
 
     (let* ((window ::AndroidWindow (invoke-special
 				    AndroidActivity
@@ -1732,7 +1741,7 @@
 	WindowManager:LayoutParams:SOFT_INPUT_STATE_VISIBLE
 	WindowManager:LayoutParams:SOFT_INPUT_ADJUST_RESIZE))
       (decor:setSystemUiVisibility flags))
-
+    
     (initialize-activity (this))
     (safely (initialize-keymap))
     (set! (the-keeper) (this))
