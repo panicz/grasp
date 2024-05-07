@@ -46,6 +46,11 @@
 (import (editor types texts))
 (import (editor input gestures))
 
+
+(define-alias BlockingQueue java.util.concurrent.BlockingQueue)
+(define-alias ArrayBlockingQueue
+  java.util.concurrent.ArrayBlockingQueue)
+
 (define-alias Bundle android.os.Bundle)
 ;;(define-alias KeyEvent android.view.KeyEvent)
 (define-alias MotionEvent android.view.MotionEvent)
@@ -83,6 +88,7 @@
 (define-alias Manifest android.Manifest)
 
 (define-alias Intent android.content.Intent)
+(define-alias RecognizerIntent android.speech.RecognizerIntent)
 
 (define-alias Uri android.net.Uri)
 
@@ -158,6 +164,18 @@
     svg))
 
 (define the-view ::AndroidView #!null)
+
+(define-object (RecognitionListener)::android.speech.RecognitionListener
+  (define (onReadyForSpeech bundle::Bundle)::void (values))
+  (define (onBeginningOfSpeech)::void (values))
+  (define (onRmsChanged rms ::float)::void (values))
+  (define (onBufferReceived bytes ::(array-of byte))::void (values))
+  (define (onEndOfSpeech)::void (values))
+  (define (onError code::int)::void (values))
+  (define (onPartialResults bundle::Bundle)::void (values))
+  (define (onEvent i::int bundle::Bundle)::void (values))
+  (define (onResults bundle::Bundle)::void (values))
+  )
 
 (define-object (EventCanceller action::java.lang.Runnable
 			       sync::android.os.Handler)
@@ -1599,7 +1617,7 @@
        (unset! (reaction-to-request-response requestCode))))))
 
   (define (with-permissions permissions::(array-of String)
-			    action::(maps () to: void))
+			    action::(maps _ to: void))
     ::void
     (safely
      (if (any (is (checkSelfPermission _)
@@ -1611,17 +1629,17 @@
 	   (requestPermissions permissions request-code))
 	 (action '(PackageManager:PERMISSION_GRANTED)))))
 
+  (define (with-permission permission::String action::(maps _ to: void))
+    (with-permissions ((array-of String) permission)
+      action))
+
   (define (with-read-permission action::(maps _ to: void))::void
-    (with-permissions ((array-of String)
-		       Manifest:permission:WRITE_EXTERNAL_STORAGE
-		       Manifest:permission:MANAGE_EXTERNAL_STORAGE)
-		     action))
+    (with-permission Manifest:permission:WRITE_EXTERNAL_STORAGE
+      action))
 
   (define (with-write-permission action::(maps _ to: void))::void
-    (with-permissions ((array-of String)
-		       Manifest:permission:READ_EXTERNAL_STORAGE
-		       Manifest:permission:MANAGE_EXTERNAL_STORAGE)
-		      action))
+    (with-permission Manifest:permission:READ_EXTERNAL_STORAGE
+      action))
 
   (define (initial-directory)::java.io.File
     (android.os.Environment:getExternalStorageDirectory))
@@ -1714,17 +1732,48 @@
 		  (or kawa.standard.Scheme:instance
 		      (kawa.standard.Scheme))))
       (kawa.standard.Scheme:registerEnvironment)
-      (letrec* ((env ::gnu.mapping.Environment
-		     (scheme:getEnvironment))
-		(voice (android.speech.tts.TextToSpeech
-			(this)
-			(lambda (status)
-			  (WARN "text to speech initialized with status "
-				status)))))
+      (let* ((env ::gnu.mapping.Environment
+		  (scheme:getEnvironment))
+	     (mouth (android.speech.tts.TextToSpeech
+		     (this)
+		     (lambda (status)
+		       (WARN "text to speech initialized with status "
+			     status)))))
 	(gnu.mapping.Environment:setCurrent env)
-	(env:define 'voice #!null voice)
-	(env:define 'speak #!null (lambda (text::string)::void
-				    (voice:speak text #!null #!null)))))
+	(env:define 'mouth #!null mouth)
+	(env:define 'speak #!null (lambda (text::string)
+				    ::void
+				    (mouth:speak text #!null #!null)))
+	#;(env:define 'ear #!null ear)
+	(env:define
+	 'listen #!null
+	 (lambda (seconds::real)
+	   ::string
+	   (with-permission Manifest:permission:RECORD_AUDIO
+	     (lambda _
+	       (let ((ear (android.speech.SpeechRecognizer:createSpeechRecognizer (this)))
+		     (intent ::Intent
+			     (Intent
+			      RecognizerIntent:ACTION_RECOGNIZE_SPEECH))
+		     (recognized ::BlockingQueue (ArrayBlockingQueue)))
+		 (ear:setRecognitionListener
+		  (object (RecognitionListener)
+		    ((onResults bundle::Bundle)::void
+		     (recognized:put
+		      (bundle:getStringArrayList
+		       android.speech.SpeechRecognizer:RESULTS_RECOGNITION)))
+			))
+		(ear:startListening intent)
+		(sleep seconds)
+		(ear:stopListening)
+		(let* ((results ::($bracket-apply$ java.util.List
+						 String)
+				(recognized:take))
+		       (result (if (results:isEmpty)
+				   #!null
+				   (results:get 0))))
+		  (ear:destroy)
+		  result))))))))
 
     (let* ((window ::AndroidWindow (invoke-special
 				    AndroidActivity
