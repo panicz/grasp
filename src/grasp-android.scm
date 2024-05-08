@@ -89,6 +89,7 @@
 
 (define-alias Intent android.content.Intent)
 (define-alias RecognizerIntent android.speech.RecognizerIntent)
+(define-alias Ear android.speech.SpeechRecognizer)
 
 (define-alias Uri android.net.Uri)
 
@@ -166,15 +167,24 @@
 (define the-view ::AndroidView #!null)
 
 (define-object (RecognitionListener)::android.speech.RecognitionListener
-  (define (onReadyForSpeech bundle::Bundle)::void (values))
-  (define (onBeginningOfSpeech)::void (values))
-  (define (onRmsChanged rms ::float)::void (values))
-  (define (onBufferReceived bytes ::(array-of byte))::void (values))
-  (define (onEndOfSpeech)::void (values))
-  (define (onError code::int)::void (values))
-  (define (onPartialResults bundle::Bundle)::void (values))
-  (define (onEvent i::int bundle::Bundle)::void (values))
-  (define (onResults bundle::Bundle)::void (values))
+  (define (onReadyForSpeech bundle::Bundle)::void
+    (WARN "onReadyForSpeech" bundle))
+  (define (onBeginningOfSpeech)::void
+    (WARN "onBeginningOfSpeech"))
+  (define (onRmsChanged rms ::float)::void
+    (WARN "onRmsChanged" rms))
+  (define (onBufferReceived bytes ::(array-of byte))::void
+    (WARN "onBufferReceived"))
+  (define (onEndOfSpeech)::void
+    (WARN "onEndOfSpeech"))
+  (define (onError code::int)::void
+    (WARN "onError" code))
+  (define (onPartialResults bundle::Bundle)::void
+    (WARN "onPartialResults"))
+  (define (onEvent i::int bundle::Bundle)::void
+    (WARN "onEvent" i bundle))
+  (define (onResults bundle::Bundle)::void
+    (WARN "onResults" bundle))
   )
 
 (define-object (EventCanceller action::java.lang.Runnable
@@ -1617,8 +1627,7 @@
        (unset! (reaction-to-request-response requestCode))))))
 
   (define (with-permissions permissions::(array-of String)
-			    action::(maps _ to: void))
-    ::void
+			    action::procedure)
     (safely
      (if (any (is (checkSelfPermission _)
 		  eq? PackageManager:PERMISSION_DENIED)
@@ -1629,15 +1638,15 @@
 	   (requestPermissions permissions request-code))
 	 (action '(PackageManager:PERMISSION_GRANTED)))))
 
-  (define (with-permission permission::String action::(maps _ to: void))
+  (define (with-permission permission::String action::procedure)
     (with-permissions ((array-of String) permission)
       action))
 
-  (define (with-read-permission action::(maps _ to: void))::void
+  (define (with-read-permission action::procedure)
     (with-permission Manifest:permission:WRITE_EXTERNAL_STORAGE
       action))
 
-  (define (with-write-permission action::(maps _ to: void))::void
+  (define (with-write-permission action::procedure)
     (with-permission Manifest:permission:READ_EXTERNAL_STORAGE
       action))
 
@@ -1738,35 +1747,44 @@
 		     (this)
 		     (lambda (status)
 		       (WARN "text to speech initialized with status "
-			     status)))))
+			     status))))
+	     (recognize ::Intent
+			(Intent
+			 RecognizerIntent:ACTION_RECOGNIZE_SPEECH)))
+	(recognize:putExtra RecognizerIntent:EXTRA_LANGUAGE_MODEL
+			    RecognizerIntent:LANGUAGE_MODEL_FREE_FORM)
+	(recognize:putExtra RecognizerIntent:EXTRA_LANGUAGE
+			    (java.util.Locale:getDefault))
 	(gnu.mapping.Environment:setCurrent env)
 	(env:define 'mouth #!null mouth)
 	(env:define 'speak #!null (lambda (text::string)
 				    ::void
 				    (mouth:speak text #!null #!null)))
-	#;(env:define 'ear #!null ear)
 	(env:define
 	 'listen #!null
 	 (lambda (seconds::real)
 	   ::string
-	   (with-permission Manifest:permission:RECORD_AUDIO
+	   (with-permissions ((array-of String)
+			      Manifest:permission:RECORD_AUDIO
+			      Manifest:permission:INTERNET)
 	     (lambda _
-	       (let ((ear (android.speech.SpeechRecognizer:createSpeechRecognizer (this)))
-		     (intent ::Intent
-			     (Intent
-			      RecognizerIntent:ACTION_RECOGNIZE_SPEECH))
-		     (recognized ::BlockingQueue (ArrayBlockingQueue)))
+	       (let ((ear ::Ear (Ear:createSpeechRecognizer (this)))
+		     (recognized ::BlockingQueue (ArrayBlockingQueue 1)))
+
 		 (ear:setRecognitionListener
-		  (object (RecognitionListener)
+		  (RecognitionListener)
+		  #;(object (RecognitionListener)
 		    ((onResults bundle::Bundle)::void
 		     (recognized:put
 		      (bundle:getStringArrayList
 		       android.speech.SpeechRecognizer:RESULTS_RECOGNITION)))
 			))
-		(ear:startListening intent)
+		(ear:startListening recognize)
 		(sleep seconds)
-		(ear:stopListening)
-		(let* ((results ::($bracket-apply$ java.util.List
+		(ear:cancel #;stopListening)
+		(ear:destroy)
+		#!null
+		#;(let* ((results ::($bracket-apply$ java.util.List
 						 String)
 				(recognized:take))
 		       (result (if (results:isEmpty)
