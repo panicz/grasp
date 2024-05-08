@@ -10,6 +10,47 @@ moze jeszcze bysmy zrobili zmiany pod katem 'usability'
 ale zacznijmy od tego, zeby miec w kliencie androidowym
 funkcje (say "message"), uzywajaca androidowego text to speech
 
+* 05.05.2024
+
+trzeba wymyslic jakis plan na ten tydzien.
+
+z rzeczy calkiem podstawowych, to bysmy sie mogli zajac
+operacjami na komentarzach (kopiowanie, przenoszenie)
+
+natomiast byc moze widget Teletype mialby dla nas wieksza wartosc,
+podobnie jak refleksja w klientach pecetowych, oraz podswietlanie
+wcisnietych guzikow
+
+natomiast na androidzie mozemy sprobowac poeksplorowac
+text to speech oraz speech to text. warto tez pomyslec
+nad trybem przechwytywania inputu przez jakies konkretne
+rozszerzenie - bo chyba docelowo wlasnie czegos takiego
+bysmy chcieli w naszym zgloszeniu na lisp game jam.
+
+I tutaj pomysl jest z grubsza taki:
+- jezeli widget jest "przechwytujacy", to double-tap
+na nim powoduje jego maksymalizacje
+- jezeli jestesmy w trybie przechwytywania, to wcisniecje
+przycisku "escape" (albo "back" na androidizie) spowoduje
+wyjscie z niego
+
+Inny pomysl (taki troche na odleglejsza przyszlosc - moze
+na te przerwe, ktora ma miec miejsce miedzy czerwcem
+a lipcem?) to stworzyc czysto tekstowa implementacje
+edytora, posiadajaca calkowicie nowa reprezentacje dokumentu
+(troche na modle tej wczesnej wersji multics emacsa)
+
+Kolejna istotna rzecz to zrobic w koncu ta implementacje
+algorytmu A*,  moze tez jakis translator Scheme'u do JavaScriptu.
+
+Aaa no i te podswietlania guzikow.
+
+Ogolem wizja jest taka, ze mamy sobie pole tekstowe
+(z mozliwoscia wprowadzania tekstu) oraz pole z tekstem,
+ktory jest wypluwany przez terminal (i w ktorym mozemy
+zaznaczac tekst oraz kopiowac, ale nie mozemy tam nic
+pisac)
+
 * 02.05.2024
 
 sprobujmy poprawic wyswietlanie stringow na desktopie,
