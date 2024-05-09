@@ -120,6 +120,8 @@
   (cond ((pair? expression)
 	 (cons (grasp (car expression))
 	       (grasp (cdr expression))))
+	((Text? expression)
+	 expression)
 	((empty? expression)
 	 (empty))
 	((string? expression)

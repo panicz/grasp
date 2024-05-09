@@ -46,7 +46,6 @@
 (import (editor types texts))
 (import (editor input gestures))
 
-
 (define-alias BlockingQueue java.util.concurrent.BlockingQueue)
 (define-alias ArrayBlockingQueue
   java.util.concurrent.ArrayBlockingQueue)
@@ -187,6 +186,18 @@
     (WARN "onResults" bundle))
   )
 
+(define (recognize-speech #!key (prompt ::string #!null))
+  ::Intent
+  (let ((intent ::Intent
+		(Intent
+		 RecognizerIntent:ACTION_RECOGNIZE_SPEECH)))
+    (intent:putExtra RecognizerIntent:EXTRA_LANGUAGE_MODEL
+		     RecognizerIntent:LANGUAGE_MODEL_FREE_FORM)
+    (when prompt
+      (intent:putExtra RecognizerIntent:EXTRA_PROMPT
+		       prompt))
+    intent))
+   
 (define-object (EventCanceller action::java.lang.Runnable
 			       sync::android.os.Handler)
   ::Cancellable
@@ -1600,9 +1611,9 @@
 			    resultCode::int
 			    data::Intent)
     ::void
-    (when (= resultCode AndroidActivity:RESULT_OK)
-      ((reaction-to-request-response requestCode) data))
-    (unset! (reaction-to-request-response requestCode)))
+    (safely
+     ((reaction-to-request-response requestCode) resultCode data)
+     (unset! (reaction-to-request-response requestCode))))
   
   (define (onRequestPermissionsResult requestCode::int
                                       permissions::(array-of
@@ -1650,6 +1661,12 @@
     (with-permission Manifest:permission:READ_EXTERNAL_STORAGE
       action))
 
+  (define (with-intent intent::Intent action::procedure)
+    (let ((request (new-request-code)))
+      (set! (reaction-to-request-response request)
+	    action)
+      (startActivityForResult intent request)))
+  
   (define (initial-directory)::java.io.File
     (android.os.Environment:getExternalStorageDirectory))
 
@@ -1747,51 +1764,27 @@
 		     (this)
 		     (lambda (status)
 		       (WARN "text to speech initialized with status "
-			     status))))
-	     (recognize ::Intent
-			(Intent
-			 RecognizerIntent:ACTION_RECOGNIZE_SPEECH)))
-	(recognize:putExtra RecognizerIntent:EXTRA_LANGUAGE_MODEL
-			    RecognizerIntent:LANGUAGE_MODEL_FREE_FORM)
-	(recognize:putExtra RecognizerIntent:EXTRA_LANGUAGE
-			    (java.util.Locale:getDefault))
+			     status)))))
 	(gnu.mapping.Environment:setCurrent env)
 	(env:define 'mouth #!null mouth)
-	(env:define 'speak #!null (lambda (text::string)
-				    ::void
-				    (mouth:speak text #!null #!null)))
+	(env:define 'say #!null
+		    (lambda (text::string)
+		      ::void
+		      (mouth:speak text #!null #!null)))
 	(env:define
-	 'listen #!null
-	 (lambda (seconds::real)
-	   ::string
-	   (with-permissions ((array-of String)
-			      Manifest:permission:RECORD_AUDIO
-			      Manifest:permission:INTERNET)
-	     (lambda _
-	       (let ((ear ::Ear (Ear:createSpeechRecognizer (this)))
-		     (recognized ::BlockingQueue (ArrayBlockingQueue 1)))
-
-		 (ear:setRecognitionListener
-		  (RecognitionListener)
-		  #;(object (RecognitionListener)
-		    ((onResults bundle::Bundle)::void
-		     (recognized:put
-		      (bundle:getStringArrayList
-		       android.speech.SpeechRecognizer:RESULTS_RECOGNITION)))
-			))
-		(ear:startListening recognize)
-		(sleep seconds)
-		(ear:cancel #;stopListening)
-		(ear:destroy)
-		#!null
-		#;(let* ((results ::($bracket-apply$ java.util.List
-						 String)
-				(recognized:take))
-		       (result (if (results:isEmpty)
-				   #!null
-				   (results:get 0))))
-		  (ear:destroy)
-		  result))))))))
+	 'ask #!null
+	 (lambda (question::string)
+	   (let ((result ::Text (Text)))
+	     (with-intent (recognize-speech prompt: question)
+	       (lambda (resultCode response)
+		 (and-let* ((intent ::Intent response)
+			    (extra ::java.util.List 
+				   (intent:getStringArrayListExtra
+				    RecognizerIntent:EXTRA_RESULTS))
+			    ((not (extra:isEmpty))))
+		   (result:append (extra 0)))))
+	     result)))
+	))
 
     (let* ((window ::AndroidWindow (invoke-special
 				    AndroidActivity
@@ -1814,78 +1807,73 @@
     (set! (the-keeper) (this))
     (set! (the-system-clipboard)
 	  (AndroidSystemClipboard
-	   (invoke-special AndroidActivity (this)
-			   'getSystemService
-			   android.content.Context:CLIPBOARD_SERVICE)))
+	   (invoke-special
+	    AndroidActivity (this)
+	    'getSystemService
+	    android.content.Context:CLIPBOARD_SERVICE)))
     (set! external-open-file
-	  (lambda (finger::byte editor::Editor)
+	  (lambda (finger::byte editor::DocumentEditor)
 	    (lambda _
-	      (let* ((intent ::Intent
-			     (Intent Intent:ACTION_OPEN_DOCUMENT))
-		     (request (new-request-code)))
-		(intent:addCategory Intent:CATEGORY_OPENABLE)
-		(intent:setType "*/*")
-		(set! (reaction-to-request-response request)
-		      (lambda args
-			(safely
-			 (and-let* ((editor ::DocumentEditor editor)
-				    (`(,intent::Intent) args)
-				    (uri ::Uri (intent:getData))
-				    (r ::ContentResolver
-				       (invoke-special
-					android.content.Context
-					(this) 'getContentResolver))
-				    (c ::DbCursor
-				       (r:query
-					uri ((array-of String)
-					     DbColumn:DISPLAY_NAME
-					     DbColumn:SIZE)
-					#!null #!null #!null))
-				    (s ::java.io.InputStream
-				       (r:openInputStream uri))
-				    (p ::gnu.kawa.io.InPort
-				       (gnu.kawa.io.InPort
-					(java.io.InputStreamReader s))))
-			   (try-finally
-			    (and (c:moveToNext)
-				 (let ((name (c:getString 0)))
-				   (screen:overlay:clear!)
-				   (editor:load-from-port
-				    p (Named thing: uri name: name))))
-			    (c:close))))))
-		(startActivityForResult intent request)))))
-    ;;(set! (open-file) external-open-file)
+	      (with-intent (Intent
+			    Intent:ACTION_OPEN_DOCUMENT
+			    category: Intent:CATEGORY_OPENABLE
+			    type: "*/*")
+		(lambda (resultCode intent::Intent)
+		  (safely
+		   (when (eq? resultCode
+			      AndroidActivity:RESULT_OK)
+		     (let* ((uri ::Uri (intent:getData))
+			    (r ::ContentResolver
+			       (invoke-special
+				android.content.Context
+				(this) 'getContentResolver))
+			    (c ::DbCursor
+			       (r:query
+				uri ((array-of String)
+				     DbColumn:DISPLAY_NAME
+				     DbColumn:SIZE)
+				#!null #!null #!null))
+			    (s ::java.io.InputStream
+			       (r:openInputStream uri))
+			    (p ::gnu.kawa.io.InPort
+			       (gnu.kawa.io.InPort
+				(java.io.InputStreamReader s))))
+		       (try-finally
+			(and (c:moveToNext)
+			     (let ((name (c:getString 0)))
+			       (screen:overlay:clear!)
+			       (editor:load-from-port
+				p (Named thing: uri
+					 name: name))))
+			(c:close))))))))))
+    (set! (open-file) external-open-file)
     (set! external-save-file
-	  (lambda (finger::byte editor::Editor)
+	  (lambda (finger::byte editor::DocumentEditor)
 	    (lambda _
-	      (let* ((intent ::Intent
-			     (Intent Intent:ACTION_CREATE_DOCUMENT))
-		     (request (new-request-code)))
-		(intent:addCategory Intent:CATEGORY_OPENABLE)
-		(intent:setType "text/scm")
-		(set! (reaction-to-request-response request)
-		      (lambda args
-			(safely
-			 (and-let* ((editor ::DocumentEditor editor)
-				    (`(,intent::Intent) args)
-				    (uri ::Uri (intent:getData))
-				    (r ::ContentResolver
-				       (invoke-special
-					android.content.Context
-					(this) 'getContentResolver))
-				    (s ::java.io.
-				       OutputStream
-				       (r:openOutputStream uri))
-				    (p ::gnu.kawa.io.OutPort.8
-				       (gnu.kawa.io.OutPort
-					(java.io.OutputStreamWriter s))))
-			   (parameterize ((current-output-port p))
-			     (show-document editor:document)
-			     (flush-output-port))
-			   (p:close)
-			   (s:flush)
-			   (s:close)))))
-		(startActivityForResult intent request)))))
+	      (with-intent (Intent
+			    Intent:ACTION_CREATE_DOCUMENT
+			    category: Intent:CATEGORY_OPENABLE
+			    type: "text/scm")
+		(lambda (resultCode intent)
+		  (safely
+		   (when (eq? resultCode
+			      AndroidActivity:RESULT_OK)
+		     (let* ((uri ::Uri (intent:getData))
+			    (r ::ContentResolver
+			       (invoke-special
+				android.content.Context
+				(this) 'getContentResolver))
+			    (s ::java.io.OutputStream
+			       (r:openOutputStream uri))
+			    (p ::gnu.kawa.io.OutPort
+			       (gnu.kawa.io.OutPort
+				(java.io.OutputStreamWriter s))))
+		       (parameterize ((current-output-port p))
+			 (show-document editor:document)
+			 (flush-output-port))
+		       (p:close)
+		       (s:flush)
+		       (s:close)))))))))
     ;;(set! (save-file) external-save-file)
     (set! view (View (this) sync))
     (set! the-view view)

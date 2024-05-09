@@ -229,15 +229,15 @@ operate on cursors.
 ;; A Keeper is needed to obtain permissions on Android
 ;; - otherwise it does nothing special
 (define-interface Keeper ()
-  (with-read-permission action::(maps () to: void))::void
-  (with-write-permission action::(maps () to: void))::void
+  (with-read-permission action::procedure)::Object
+  (with-write-permission action::procedure)::Object
   (initial-directory)::java.io.File
   )
 
 (define-object (PermissiveKeeper)::Keeper
-  (define (with-read-permission action::(maps () to: void))::void
+  (define (with-read-permission action::procedure)::Object
     (action))
-  (define (with-write-permission action::(maps () to: void))::void
+  (define (with-write-permission action::procedure)::Object
     (action))
   (define (initial-directory)::java.io.File
     (let ((wd ::java.io.File (java.io.File ".")))
