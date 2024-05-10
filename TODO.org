@@ -1,3 +1,48 @@
+* 09.05.2024
+
+dzisiaj:
+- dodac typ powodujacy 'zachowanie tozsamosci' obiektu
+  podczas graspowania
+- wymuszac przerysowanie ekranu
+
+to sie udalo dosc gladko. ale jest wiekszy problem,
+mianowicie:
+- ewaluacja "say" nie czeka do zakonczenia wypowiedzi
+- ewaluacja "listen" zwraca wynik przed otrzymaniem go
+
+i z tego powodu np. program
+
+#+begin_src scheme
+  (begin
+    (say "Jak masz na imię?")
+    (let ((name (listen)))
+      (say "witaj")
+      (say name)))
+#+end_src
+
+nie zadziala.
+
+ponadto mamy taka hipoteze, ze zarowno kod startActivityForResult
+jak i kod on onActivityResult sa wolane z glownego watku, przez
+co oczekiwanie na odpowiedz po wywolaniu startActivityForResult
+za posrednictwem kolejki powoduje, ze interfejs sie zawiesza.
+
+Rozwiazanie byloby takie, zeby ewaluacji zawsze dokonywac w osobnym
+watku, zas startActivityForResult wywolywac z watku UI?
+(Activity:runOnUiThread)
+
+No dobra. Ewaluacje w osobnym watku juz mamy - teraz jedyny problem
+jest taki, ze parametry zachowuja unikatowosc w obrebie watku, a nie
+w obrebie zasiegu, i przez to kursor sie nie aktualizuje odpowiednio.
+
+Ponadto, dobrze by bylo dorobic inwalidacje ekranu po stronie paintera,
+zeby moc to wywolywac z poziomu ewaluacji.
+
+Jednak zamiast skupiac sie na tych problemach, zajmijmy sie raczej
+synchronizacja czasu ewaluacji wyrazenia z czasem wypowiedzi,
+czyli tym UtteranceProgressListener'em
+
+
 * 08.05.2024
 
 speech to text nadal nie dziala, wiec bysmy jakos sprobowali
@@ -66,8 +111,6 @@ Po kolei co tutaj sie dzieje:
 I teraz na pewno jest tak, ze mamy juz w tym kliencie
 Androidowym jakies mechanizmy, ktore robia takie rzeczy
 za nas, tylko musimy je zmapowac w to rozwiazanie.
-   
-   
 
 * 06.05.2024
 
