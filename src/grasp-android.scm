@@ -44,6 +44,7 @@
 (import (editor types extensions testing))
 
 (import (editor types texts))
+(import (editor input evaluation))
 (import (editor input gestures))
 
 (define-alias BlockingQueue java.util.concurrent.BlockingQueue)
@@ -89,6 +90,7 @@
 (define-alias Intent android.content.Intent)
 (define-alias RecognizerIntent android.speech.RecognizerIntent)
 (define-alias Ear android.speech.SpeechRecognizer)
+(define-alias Mouth android.speech.tts.TextToSpeech)
 
 (define-alias Uri android.net.Uri)
 
@@ -165,7 +167,8 @@
 
 (define the-view ::AndroidView #!null)
 
-(define-object (RecognitionListener)::android.speech.RecognitionListener
+(define-object (RecognitionListener)
+  ::android.speech.RecognitionListener
   (define (onReadyForSpeech bundle::Bundle)::void
     (WARN "onReadyForSpeech" bundle))
   (define (onBeginningOfSpeech)::void
@@ -186,14 +189,53 @@
     (WARN "onResults" bundle))
   )
 
-(define (recognize-speech #!key (prompt ::string #!null))
+(define-object (UtteranceProgressListener)
+  ::android.speech.tts.UtteranceProgressListener
+  (define (onAudioAvailable utteranceId::String
+			    audio::(array-of byte))
+    ::void
+    (WARN "onAudioAvailable " utteranceId))
+
+  (define (onBeginSynthesis utteranceId::String
+			    sampleRateInHz::int
+			    audioFormat::int
+			    channelCount::int)
+    ::void
+    (WARN "onBeginSynthesis " utteranceId))
+  
+  (define (onDone utteranceId::String)::void
+    (WARN "onDone " utteranceId))
+
+  (define (onError utteranceId::String)::void
+    (WARN "onError " utteranceId))
+
+  (define (onError utteranceId::String errorCode::int)::void
+    (WARN "onError " utteranceId" "errorCode))
+  
+  (define (onRangeStart utteranceId::String
+			start::int
+			end::int
+			frame::int)
+    ::void
+    (WARN "onRangeStart "utteranceId" "start" "end" "frame))
+  
+  (define (onStart utteranceId::String)::void
+    (WARN "onStart " utteranceId))
+  
+  (define (onStop utteranceId::String
+		  interrupted?::boolean)
+    ::void
+    (WARN "onStop "utteranceId" "interrupted?))
+  )
+
+(define (recognize-speech)
   ::Intent
   (let ((intent ::Intent
 		(Intent
 		 RecognizerIntent:ACTION_RECOGNIZE_SPEECH)))
     (intent:putExtra RecognizerIntent:EXTRA_LANGUAGE_MODEL
 		     RecognizerIntent:LANGUAGE_MODEL_FREE_FORM)
-    (when prompt
+    #;(when prompt
       (intent:putExtra RecognizerIntent:EXTRA_PROMPT
 		       prompt))
     intent))
@@ -1663,9 +1705,10 @@
 
   (define (with-intent intent::Intent action::procedure)
     (let ((request (new-request-code)))
-      (set! (reaction-to-request-response request)
-	    action)
-      (startActivityForResult intent request)))
+      (set! (reaction-to-request-response request) action)
+      (runOnUiThread
+       (lambda ()
+	 (startActivityForResult intent request)))))
   
   (define (initial-directory)::java.io.File
     (android.os.Environment:getExternalStorageDirectory))
@@ -1760,30 +1803,51 @@
       (kawa.standard.Scheme:registerEnvironment)
       (let* ((env ::gnu.mapping.Environment
 		  (scheme:getEnvironment))
-	     (mouth (android.speech.tts.TextToSpeech
+	     (random (java.util.Random))
+	     (next-utterance-id
+	      (lambda ()
+		::String
+		(string-append
+		 "GRASP"
+		 (number->string (random:nextLong) 36))))
+	     (mouth (Mouth
 		     (this)
 		     (lambda (status)
 		       (WARN "text to speech initialized with status "
 			     status)))))
 	(gnu.mapping.Environment:setCurrent env)
+	(mouth:setOnUtteranceProgressListener
+	 (UtteranceProgressListener))
 	(env:define 'mouth #!null mouth)
 	(env:define 'say #!null
-		    (lambda (text::string)
+		    (lambda (text::String)
 		      ::void
-		      (mouth:speak text #!null #!null)))
+		      (let* ((id ::String (next-utterance-id))
+			     (bundle ::Bundle (Bundle)))
+			(bundle:putString
+			 Mouth:Engine:KEY_PARAM_UTTERANCE_ID id)
+			(DUMP id)
+			(mouth:speak
+			 text
+			 Mouth:QUEUE_ADD
+			 bundle
+			 id))))
 	(env:define
-	 'ask #!null
-	 (lambda (question::string)
-	   (let ((result ::Text (Text)))
-	     (with-intent (recognize-speech prompt: question)
+	 'listen #!null
+	 (lambda ()
+	   (let ((recognized ::BlockingQueue (ArrayBlockingQueue 1)))
+	     (with-intent (recognize-speech)
 	       (lambda (resultCode response)
-		 (and-let* ((intent ::Intent response)
-			    (extra ::java.util.List 
-				   (intent:getStringArrayListExtra
-				    RecognizerIntent:EXTRA_RESULTS))
-			    ((not (extra:isEmpty))))
-		   (result:append (extra 0)))))
-	     result)))
+		 (recognized:put 
+		  (and-let* ((intent ::Intent response)
+			     (extra ::java.util.List 
+				    (intent:getStringArrayListExtra
+				     RecognizerIntent:EXTRA_RESULTS))
+			     ((not (extra:isEmpty))))
+		    (extra 0)))))
+	     (let ((result (or (recognized:take) #!null)))
+	       (the-view:invalidate)
+	       result))))
 	))
 
     (let* ((window ::AndroidWindow (invoke-special
@@ -1818,7 +1882,7 @@
 			    Intent:ACTION_OPEN_DOCUMENT
 			    category: Intent:CATEGORY_OPENABLE
 			    type: "*/*")
-		(lambda (resultCode intent::Intent)
+		(lambda (resultCode intent)
 		  (safely
 		   (when (eq? resultCode
 			      AndroidActivity:RESULT_OK)

@@ -40,6 +40,9 @@
 	       (isnt (x:value) symbol?)
 	       #t))))
 
+(define-property (preserve-identity? item::Tile)::boolean
+  #f)
+
 (define-object (EvaluationContext)
   ;;(define macro-definitions ::)
 
@@ -117,45 +120,48 @@
   (EvaluationContext))
 
 (define (grasp expression)
-  (cond ((pair? expression)
-	 (cons (grasp (car expression))
-	       (grasp (cdr expression))))
-	((Text? expression)
-	 expression)
-	((empty? expression)
-	 (empty))
-	((string? expression)
-	 (text expression))
-	((Atom? expression)
-	 (copy expression))
-	((symbol? expression)
-	 (Atom (symbol->string expression)))
-	((number? expression)
-	 (Atom (number->string expression)))
-	((boolean? expression)
-	 (if expression
-	     (Atom "#true")
-	     (Atom "#false")))
-	((Enchanted? expression)
-	 expression)
-	(else
-	 (WARN "dont know what to do with "expression)
-	 (Atom (show->string expression)))))
-
+  (cond
+   ((and (Tile? expression)
+	 (preserve-identity? expression))
+    expression)
+   ((pair? expression)
+    (cons (grasp (car expression))
+	  (grasp (cdr expression))))
+   ((empty? expression)
+    (empty))
+   ((string? expression)
+    (text expression))
+   ((Atom? expression)
+    (copy expression))
+   ((symbol? expression)
+    (Atom (symbol->string expression)))
+   ((number? expression)
+    (Atom (number->string expression)))
+   ((boolean? expression)
+    (if expression
+	(Atom "#true")
+	(Atom "#false")))
+   ((Enchanted? expression)
+    expression)
+   (else
+    (WARN "dont know what to do with "expression)
+    (Atom (show->string expression)))))
   
 (define/kw (evaluate-expression! at: source ::Cursor := (the-cursor)
 				 in: document ::Document := (the-document))
-  (let*-values (((terminal stem) (cursor-terminal+stem source document))
-		((cursor next) (if (Space? terminal)
-				   (let-values (((previous stem)
-						 (cursor-terminal+stem
-						  (cursor-retreat stem
-								  document)
-						  document)))
-				     (values stem (cursor-advance stem
-								  document)))
-				   (values stem (cursor-advance stem
-								document)))))
+  (let*-values (((terminal stem) (cursor-terminal+stem source
+						       document))
+		((cursor next)
+		 (if (Space? terminal)
+		     (let-values (((previous stem)
+				   (cursor-terminal+stem
+				    (cursor-retreat stem
+						    document)
+				    document)))
+		       (values stem (cursor-advance stem
+						    document)))
+		     (values stem (cursor-advance stem
+						  document)))))
     (safely
      (match (the-expression at: cursor in: document)
        (`(define (,name . ,args) . ,value)
@@ -170,15 +176,17 @@
     (safely
      (with-eval-access
       (let ((expression (the-expression at: cursor in: document)))
-	(call-with-values (lambda ()
-			    (WARN "evaluating "expression)
-			    (eval expression))
-	  (lambda result
-	    (unless (null? result)
-	      (with-edit-access
-	       (let* ((result+ (grasp result))
-		      (operation ::Insert (Insert element: result+ at: next))
-		      (history ::History (history document)))
-		 (history:record! operation)
-		 (set! (the-cursor)
-		       (operation:apply! document))))))))))))
+	(future
+	 (call-with-values (lambda ()
+			     (WARN "evaluating "expression)
+			     (eval expression))
+	   (lambda result
+	     (unless (null? result)
+	       (with-edit-access
+		(let* ((result+ (grasp result))
+		       (operation ::Insert (Insert element: result+
+						   at: next))
+		       (history ::History (history document)))
+		  (history:record! operation)
+		  (set! (the-cursor)
+			(operation:apply! document)))))))))))))
