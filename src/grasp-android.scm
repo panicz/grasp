@@ -91,7 +91,7 @@
 (define-alias RecognizerIntent android.speech.RecognizerIntent)
 (define-alias Ear android.speech.SpeechRecognizer)
 (define-alias Mouth android.speech.tts.TextToSpeech)
-
+(define-alias AudioManager android.media.AudioManager)
 (define-alias Uri android.net.Uri)
 
 (define-type (Named thing: Object name: string)
@@ -187,45 +187,6 @@
     (WARN "onEvent" i bundle))
   (define (onResults bundle::Bundle)::void
     (WARN "onResults" bundle))
-  )
-
-(define-object (UtteranceProgressListener)
-  ::android.speech.tts.UtteranceProgressListener
-  (define (onAudioAvailable utteranceId::String
-			    audio::(array-of byte))
-    ::void
-    (WARN "onAudioAvailable " utteranceId))
-
-  (define (onBeginSynthesis utteranceId::String
-			    sampleRateInHz::int
-			    audioFormat::int
-			    channelCount::int)
-    ::void
-    (WARN "onBeginSynthesis " utteranceId))
-  
-  (define (onDone utteranceId::String)::void
-    (WARN "onDone " utteranceId))
-
-  (define (onError utteranceId::String)::void
-    (WARN "onError " utteranceId))
-
-  (define (onError utteranceId::String errorCode::int)::void
-    (WARN "onError " utteranceId" "errorCode))
-  
-  (define (onRangeStart utteranceId::String
-			start::int
-			end::int
-			frame::int)
-    ::void
-    (WARN "onRangeStart "utteranceId" "start" "end" "frame))
-  
-  (define (onStart utteranceId::String)::void
-    (WARN "onStart " utteranceId))
-  
-  (define (onStop utteranceId::String
-		  interrupted?::boolean)
-    ::void
-    (WARN "onStop "utteranceId" "interrupted?))
   )
 
 (define (recognize-speech)
@@ -1801,37 +1762,61 @@
 		  (or kawa.standard.Scheme:instance
 		      (kawa.standard.Scheme))))
       (kawa.standard.Scheme:registerEnvironment)
-      (let* ((env ::gnu.mapping.Environment
-		  (scheme:getEnvironment))
-	     (random (java.util.Random))
-	     (next-utterance-id
-	      (lambda ()
-		::String
-		(string-append
-		 "GRASP"
-		 (number->string (random:nextLong) 36))))
-	     (mouth (Mouth
-		     (this)
-		     (lambda (status)
-		       (WARN "text to speech initialized with status "
-			     status)))))
+      (letrec* ((env ::gnu.mapping.Environment
+		     (scheme:getEnvironment))
+		(random ::java.util.Random
+			(java.util.Random))
+		(signal ::($bracket-apply$
+			   java.util.concurrent.ConcurrentMap
+			   String BlockingQueue)
+			(java.util.concurrent.ConcurrentHashMap))
+		(new-utterance-id (lambda ()
+				    ::String
+				    (string-append
+				     "GRASP"
+				     (number->string
+				      (random:nextLong)
+				      36))))
+		(mouth ::Mouth
+		       (Mouth
+			(this)
+			(lambda (status)
+			  (mouth:setOnUtteranceProgressListener
+			   (object (android.speech.tts.UtteranceProgressListener)
+			     ((onDone utteranceId::String)::void
+			      (and-let* ((queue ::BlockingQueue
+						(signal:get utteranceId)))
+				(signal:remove utteranceId)
+				(queue:put #t)))
+
+			     ((onError utteranceId::String)::void
+			      (and-let* ((queue ::BlockingQueue
+						(signal:get utteranceId)))
+				(signal:remove utteranceId)
+				(queue:put #f)))
+			     			     
+			     ((onStart utteranceId::String)::void
+			      (values))
+			     ))))))
 	(gnu.mapping.Environment:setCurrent env)
-	(mouth:setOnUtteranceProgressListener
-	 (UtteranceProgressListener))
 	(env:define 'mouth #!null mouth)
-	(env:define 'say #!null
-		    (lambda (text::String)
-		      ::void
-		      (let* ((id ::String (next-utterance-id))
-			     (bundle ::Bundle (Bundle)))
-			(bundle:putString
-			 Mouth:Engine:KEY_PARAM_UTTERANCE_ID id)
-			(DUMP id)
-			(mouth:speak
-			 text
-			 Mouth:QUEUE_ADD
-			 bundle
-			 id))))
+	(env:define
+	 'say #!null
+	 (lambda (text::String)
+	   ::void
+	   (let ((id ::String (new-utterance-id))
+		 (bundle ::Bundle (Bundle))
+		 (queue ::BlockingQueue
+			(ArrayBlockingQueue 1)))
+	     (bundle:putString
+	      Mouth:Engine:KEY_PARAM_UTTERANCE_ID id)
+	     (signal:put id queue)
+	     (match (mouth:speak text Mouth:QUEUE_ADD
+				 bundle id)
+	       (,Mouth:SUCCESS
+		(queue:take))
+	       (,Mouth:ERROR
+		(signal:remove id))))))
 	(env:define
 	 'listen #!null
 	 (lambda ()

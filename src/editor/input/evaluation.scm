@@ -171,15 +171,27 @@
        (`(define ,name ,value)
 	(invoke (default-context) 'define! name value))
        
-       (expression
-	(WARN "not a definition: "expression))))
+       (_
+	(values))))
     (safely
      (with-eval-access
-      (let ((expression (the-expression at: cursor in: document)))
+      (let* ((expression (the-expression at: cursor in: document))
+	     (definition (and-let* ((`(define ,head . ,_) expression))
+			   (let bind ((head head))
+			     (match head
+			       (`(,head . ,_)
+				(bind head))
+			       (,@symbol?
+				(eval `(define ,head #f))
+				head))))))
 	(future
 	 (call-with-values (lambda ()
-			     (WARN "evaluating "expression)
-			     (eval expression))
+			     (if definition
+				 (eval `(set! ,definition
+					      (let ()
+						,expression
+						,definition)))
+				 (eval expression)))
 	   (lambda result
 	     (unless (null? result)
 	       (with-edit-access

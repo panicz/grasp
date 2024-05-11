@@ -346,3 +346,9 @@
 		     ()
 		     #;spec
 		     spec))
+
+(define-syntax-rule (invoke-on object (method . args) ...)
+  (let ((result object))
+    (object:method . args)
+    ...
+    result))
