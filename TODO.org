@@ -1,3 +1,9 @@
+* 10.05.2024
+
+dzisiaj bysmy zrobili tak:
+- zeby say bylo blokujace
+- zeby ten wczorajszy kod dzialal
+
 * 09.05.2024
 
 dzisiaj:
@@ -40,7 +46,7 @@ zeby moc to wywolywac z poziomu ewaluacji.
 
 Jednak zamiast skupiac sie na tych problemach, zajmijmy sie raczej
 synchronizacja czasu ewaluacji wyrazenia z czasem wypowiedzi,
-czyli tym UtteranceProgressListener'em
+czyli tym UtteranceProgressListener'em.
 
 
 * 08.05.2024
