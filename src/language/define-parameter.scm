@@ -3,6 +3,7 @@
 (define-simple-class SharedThreadLocation (gnu.mapping.ThreadLocation)
 
   (location-name ::gnu.mapping.Symbol)
+  (default-value)
   
   ((setWithSave value) access: 'synchronized
    (let* ((old-location (invoke-special gnu.mapping.ThreadLocation (this) 'get))
@@ -21,22 +22,32 @@
    (let ((location ::gnu.mapping.SharedLocation
 		   (invoke-special gnu.mapping.ThreadLocation
 				   (this) 'get)))
-     (location:set value)))
+     (if location
+	 (location:set value)
+	 (let ((new-location (gnu.mapping.SharedLocation
+			      location-name
+			      #!null
+			      (java.lang.System:currentTimeMillis))))
+	   (invoke-special gnu.mapping.ThreadLocation (this) 'set new-location)
+	   (new-location:set value)))))
   
   ((get) access: 'synchronized
    (let ((location ::gnu.mapping.SharedLocation
 		   (invoke-special gnu.mapping.ThreadLocation
 				   (this) 'get)))
-     (location:get)))
+     (if location
+	 (location:get)
+	 default-value)))
   
   ((*init* name ::gnu.mapping.Symbol value)
    (set! location-name name)
+   (set! default-value value)
    (let ((new-location (gnu.mapping.SharedLocation
 			location-name
 			#!null
 			(java.lang.System:currentTimeMillis))))
-     (new-location:set value)     
-     (invoke-special gnu.mapping.ThreadLocation (this) 'set new-location))))
+     (invoke-special gnu.mapping.ThreadLocation (this) 'set new-location)
+     (new-location:set value))))
 
 (define (make-shared-parameter name init #!optional (converter #!null))
   (if (not (eq? converter #!null))
