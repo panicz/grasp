@@ -72,7 +72,7 @@ def") ===> [Extent width: 3 height: 2])
 
   (define (toString)::String
     (transforms:toString))
-  
+
   (define (outside-in x::real y::real)::(Values real real)
     (for transform::BiMap2D in transforms
       (let-values (((x* y*) (transform:outside-in x y)))
@@ -140,13 +140,13 @@ def") ===> [Extent width: 3 height: 2])
   (draw-vertical-split! left::real)::void
   (horizontal-split-height)::real
   (vertical-split-width)::real
-  
+
   (play! animation::Animation)::void
   (with-intensity i::float action::(maps () to: void))::void
   (with-stretch horizontal::float vertical::float
 		action::(maps () to: void))
   ::void
-  
+
   (mark-editor-cursor! +left::real +top::real editor::WithCursor)::void
   (editor-cursor-position editor::WithCursor)::Position
 
@@ -171,7 +171,7 @@ def") ===> [Extent width: 3 height: 2])
   (press/release-mark-extent)::Extent
   (draw-press-mark! left::real top::real)::void
   (draw-release-mark! left::real top::real)::void
-  
+
   (clear!)::void
 
   (request-redraw!)::void
@@ -183,6 +183,9 @@ def") ===> [Extent width: 3 height: 2])
 					    text::CharSequence
 					    index::int)
   ::Position
+
+  (monospace-character-width)::real
+  (monospace-character-height)::real
 
   (draw-caption! caption::CharSequence)::void
   (caption-extent caption::CharSequence)::Extent
@@ -224,7 +227,7 @@ def") ===> [Extent width: 3 height: 2])
 
   (border-size)::real
   (height/width-ratio)::real
-  
+
   (draw-rounded-rectangle! width::real
 			   height::real)
   ::void
@@ -232,7 +235,7 @@ def") ===> [Extent width: 3 height: 2])
   (draw-rectangle! width::real height::real)::void
 
   (fill-background! width::real height::real)::void
-  
+
   (draw-thick-line! x0::real y0::real x1::real y1::real)
   ::void
 
@@ -335,7 +338,7 @@ def") ===> [Extent width: 3 height: 2])
    x::real y::real
    text::CharSequence)
   ::int
-  
+
   (draw-block-comment! text::CharSequence
 		       context::Cursor)
   ::void
@@ -364,7 +367,7 @@ def") ===> [Extent width: 3 height: 2])
 
 (define-object (NullPainter)::Painter
   (define (play! animation::Animation)::void (values))
-  
+
   (define (space-width)::real 1)
 
   (define (paren-width)::real 1)
@@ -392,13 +395,13 @@ def") ===> [Extent width: 3 height: 2])
 
   (define (press/release-mark-extent)::Extent
     (Extent width: 1 height: 1))
-  
+
   (define (draw-press-mark! left::real top::real)::void
     (values))
-  
+
   (define (draw-release-mark! left::real top::real)::void
     (values))
-  
+
   (define (clear!)::void
     (values))
 
@@ -424,7 +427,7 @@ def") ===> [Extent width: 3 height: 2])
 			action::(maps () to: void))
     ::void
     (action))
-  
+
   (define (draw-horizontal-split! top::real)
     ::void
     (values))
@@ -442,7 +445,7 @@ def") ===> [Extent width: 3 height: 2])
 		      x1::real y1::real)
     ::void
     (values))
-  
+
   (define (horizontal-split-height)::real
     0)
 
@@ -458,6 +461,10 @@ def") ===> [Extent width: 3 height: 2])
 			context::Cursor)
     ::void
     (values))
+
+  (define (monospace-character-width)::real 1)
+
+  (define (monospace-character-height)::real 1)
 
   (define (draw-caption! caption::CharSequence)::void
     (values))
@@ -519,7 +526,7 @@ def") ===> [Extent width: 3 height: 2])
 
   (define (height/width-ratio)::real
     1)
-  
+
   (define (draw-rounded-rectangle! width::real
 				   height::real)
     ::void
@@ -531,7 +538,7 @@ def") ===> [Extent width: 3 height: 2])
 
   (define (fill-background! width::real height::real)::void
     (values))
-  
+
   (define (draw-popup! width::real height::real)::void
     (values))
 
@@ -545,7 +552,7 @@ def") ===> [Extent width: 3 height: 2])
   (define (editor-cursor-position editor::WithCursor)::Position
     (Position left: 0
 	      top: 0))
-  
+
   (define (mark-cursor! +left::real +top::real)
     ::void
     (values))
@@ -581,7 +588,7 @@ def") ===> [Extent width: 3 height: 2])
 	   x::real y::real text::CharSequence)
     ::int
     0)
-  
+
   (define (draw-line-comment! text::CharSequence
 			      context::Cursor)
     ::void

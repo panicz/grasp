@@ -181,7 +181,7 @@
       (intent:putExtra RecognizerIntent:EXTRA_PROMPT
 		       prompt))
     intent))
-   
+
 (define-object (EventCanceller action::java.lang.Runnable
 			       sync::android.os.Handler)
   ::Cancellable
@@ -217,16 +217,16 @@
 
 (define-initializer (initialize-activity activity::GRASP)
   (define the-activity ::AndroidActivity activity)
-  
+
   (define Iosevka ::Typeface
     (load-font "iosevka-fixed-semibold.ttf" activity))
-    
+
   (define Basic-Regular
     (load-font "Basic-Regular.otf" activity))
-  
+
   (define Roboto-Medium
     (load-font "Roboto-Medium.ttf" activity))
-  
+
   (define Oswald-Regular ::Typeface
     (load-font "Oswald-Regular.ttf" activity))
 
@@ -238,7 +238,7 @@
 
   (define M+1p ::Typeface
     (load-font "MPLUS1p-Medium.ttf" activity))
-  
+
   (define file-icon ::SVG
     (load-svg "file.svg" activity width: 48 height: 48))
 
@@ -284,7 +284,7 @@
     (make-parameter
      (Font face: NotoSerif-Regular
 	   size: 36)))
-  
+
   (define the-block-comment-font ::(parameter-of Font)
     (make-parameter
      (Font face: NotoSerif-Regular
@@ -442,11 +442,11 @@
   (define external-open-file ::(maps (byte Editor)
 				     to: (maps _ to: void))
     #!null)
-  
+
   (define external-save-file ::(maps (byte Editor)
 				     to: (maps _ to: void))
     #!null)
-  
+
   )
 
 (define (INFO . messages)
@@ -494,7 +494,7 @@
 
   (define own-content ::list '())
   (define own-clip-data ::AndroidClipData #!null)
-  
+
   (define (try-parse item ::AndroidClipData:Item)::Element
     (let ((input (item:getText)))
       (with-input-from-string input
@@ -507,7 +507,7 @@
 		      inside)
 		    expression)
 		(text input)))))))
-  
+
   (define (upload! new-content ::pair)::void
     (and-let* ((`(,head . ,tail) new-content)
 	       (text (show->string head))
@@ -521,7 +521,7 @@
       (clipboard:setPrimaryClip clip)
       (set! own-clip-data clip)
       (set! own-content new-content)))
-  
+
   (define (content)::list
     (let ((clip ::AndroidClipData (clipboard:getPrimaryClip)))
       (if (eq? clip own-clip-data)
@@ -577,7 +577,7 @@
 
   (define (press/release-mark-extent)::Extent
     press-mark-size)
-  
+
   (define (draw-press-mark! left::real top::real)::void
     (let ((mark-width ::real (press-mark:getDocumentWidth))
 	  (mark-height ::real (press-mark:getDocumentHeight)))
@@ -591,7 +591,7 @@
       (with-translation ((- left (/ mark-width 2))
 			 (- top (/ mark-height 2)))
 	  (release-mark:renderToCanvas canvas))))
-  
+
   (define activity ::AndroidActivity source)
 
   (define (showKeyboard)::void
@@ -641,7 +641,7 @@
 
   (define matrix-points ::(array-of float)
     ((array-of float) length: 9))
-  
+
   (define (translate! x ::real y ::real)::void
     (canvas:translate x y))
 
@@ -664,7 +664,6 @@
     (try-finally
      (action)
      (canvas:scale (/ horizontal) (/ vertical))))
-  
   (define (horizontal-split-height)::real 30)
 
   (define (vertical-split-width)::real 30)
@@ -681,20 +680,20 @@
       (try-finally
        (action)
        (set! intensity previous))))
-  
+
   (define (set-color! c::integer)::void
     (let* ((c ::ulong (as ulong c))
 	   (RGB ::ulong (bitwise-and c #xffffff))
 	   (a ::ulong (bitwise-and #xff
 				   (bitwise-arithmetic-shift
 				    c -24)))
-	   
+
 	   (a* ::ulong (clamp 0 (nearby-int (* intensity a)) 255))
 	   (c* ::ulong (bitwise-ior RGB
 				    (bitwise-arithmetic-shift
 				     a* 24))))
       (paint:setColor c*)))
-  
+
   (define (draw-horizontal-split! top::real)::void
     (let* ((left ::float (max 0 (current-clip-left)))
 	   (bottom ::float (+ top (horizontal-split-height)))
@@ -739,7 +738,7 @@
     (set-color! Color:LTGRAY)
     (paint:setStrokeWidth 1)
     (canvas:drawLine x0 y0 x1 y1 paint))
-  
+
   (define (draw-stroke! x0::real y0::real x1::real y1::real)
     ::void
     (draw-thick-line! x0 y0 x1 y1))
@@ -762,13 +761,13 @@
 
   (define (mark-cursor! +left::real +top::real)::void
     (mark-editor-cursor! +left +top (the-editor)))
-  
+
   (define (editor-cursor-position editor::WithCursor)::Position
     (editor:marked-cursor-position))
 
   (define (marked-cursor-position)::Position
     (editor-cursor-position (the-editor)))
-  
+
   (define (cursor-height)::real
     (let ((offset ::Position (the-cursor-offset))
 	  (extent ::Extent (the-cursor-extent)))
@@ -792,7 +791,7 @@
       (set! text-color #xff555555)
       (set! background-color transparent))
      ))
-  
+
   (define (begin-highlight! type::HighlightType)::void
     (let ((type-index (type:ordinal)))
       (set! (highlight-count type-index)
@@ -828,7 +827,7 @@
 
   (define (request-redraw!)::void
     (invalidate))
-  
+
   (define (vertical-bar-width)::real 10)
 
   (define (horizontal-bar-height)::real 10)
@@ -852,7 +851,7 @@
   (define (space-width)::real 16)
 
   (define (line-simplification-resolution)::real 20)
-  
+
   (define (draw-rounded-rectangle! width::real height::real)
     ::void
     (set-color! #xffffffff)
@@ -867,7 +866,7 @@
   (define (fill-background! width::real height::real)::void
     (set-color! #xffffffff)
     (canvas:drawRect 0 0 (as int width) (as int height) paint))
-  
+
   (define (draw-popup! width::real height::real)::void
     (paint:setColor (- text-color
 		       #x77000000))
@@ -900,7 +899,7 @@
   (define (border-size)::real 20)
 
   (define (height/width-ratio)::real 1)
-  
+
   (define (min-line-height)::real
     (let ((font ::Font (the-atom-font)))
       font:size))
@@ -923,7 +922,7 @@
 	  (right-color ::long (parenthesis-color))
 	  (t ::Traversal (the-traversal)))
       (match (the-cursor)
-	(`(#\[ . ,,context) 
+	(`(#\[ . ,,context)
 	 (set! left-color (focused-parenthesis-color))
 	 (set! right-color (matching-parenthesis-color))
 	 (let ((left t:left)
@@ -959,7 +958,7 @@
       (with-translation ((- width paren-width) 0)
 	(set-color! right-color)
 	(draw-right-paren! height))))
-  
+
   (define (open-paren! height::real)::void
     (let ((line-height (max 0 (- height
 				 top-left-extent:height
@@ -999,7 +998,7 @@
      (lambda (width::real)::void (close-paren! height))
      (paren-width)
      width height context))
-    
+
   (define (open-quote-paren! height::real)::void
     (let ((line-height (max 0 (- height
 				 top-left-extent:height
@@ -1029,7 +1028,7 @@
 
     (define (quote-paren-width)::real
       (+ 1 top-left-quote-extent:width))
-    
+
     (define (draw-quote-box! width::real
 			     height::real
 			     context::Cursor)
@@ -1127,14 +1126,14 @@
 	     (close-unquote-splicing-paren! height))
      (unquote-splicing-paren-width)
      width height context))
-  
+
   (define (open-quote-marker! height::real)
     ::void
     (canvas:drawPath quote-marker paint))
 
   (define (quote-marker-width)::real
     (+ 1 quote-marker-extent:width))
-  
+
   (define (draw-quote-markers! width::real
 			       height::real
 			       context::Cursor)
@@ -1178,7 +1177,7 @@
 
   (define (unquote-marker-width)::real
     (+ 1 bottom-left-quote-extent:width))
-  
+
   (define (draw-unquote-markers! width::real
 				 height::real
 				 context::Cursor)
@@ -1237,7 +1236,7 @@
 				      (text-width line font))))
 	       (break))))
       target))
-  
+
   (define (draw-text! text::CharSequence
 		      font::Font
 		      context::Cursor)
@@ -1298,7 +1297,7 @@
 		 (render-fragment! i)
 		 (set! segment-start i)
 		 (begin-highlight! HighlightType:Selection))
-	       
+
 	       (when (and exits-selection-drawing-mode?
 			  (eqv? (car selection-end) i))
 		 (render-fragment! i)
@@ -1328,7 +1327,7 @@
 				       text
 				       index
 				       (the-string-font)))
-  
+
   (define quoted-text-cursor-offset::Position
     (Position left: -1 top: 2))
 
@@ -1340,7 +1339,7 @@
     (set! target:top (+ target:top
 			single-quote-extent:height))
     (measure-string-index-position-into! target text index))
-  
+
   (define (draw-quoted-text! text::CharSequence
 			     context::Cursor)
     ::void
@@ -1363,7 +1362,7 @@
 	(canvas:drawLine (+ 2w e:width w) h
 			 (+ 2w e:width w) (+ h e:height) paint)
 	(paint:setPathEffect #!null)
-	
+
 	(canvas:drawPath single-quote paint)
 	(with-translation (w 0)
 	  (canvas:drawPath single-quote paint)
@@ -1433,7 +1432,7 @@
   (define (caption-margin-top)::real 4)
 
   (define (caption-margin-bottom)::real 14)
-  
+
   (define (caption-horizontal-margin)::real
     (space-width))
 
@@ -1449,7 +1448,7 @@
 				       text
 				       index
 				       (the-text-input-font)))
-  
+
   (define (text-input-extent text::CharSequence)::Extent
     (text-extent text (the-text-input-font)))
 
@@ -1457,7 +1456,7 @@
 	   x::real y::real text::CharSequence)
     ::int
     (text-character-index-under x y text (the-text-input-font)))
-  
+
   (define (atom-extent text::CharSequence)::Extent
     (let ((inner ::Extent (text-extent text (the-atom-font))))
       (Extent width: (+ inner:width 8)
@@ -1491,7 +1490,7 @@
 				       text
 				       index
 				       (the-atom-font)))
-  
+
   (define (text-character-index-under x::real y::real
 				      text::CharSequence
 				      font::Font)
@@ -1536,7 +1535,7 @@
 				       text
 				       index
 				       (the-comment-font)))
-  
+
   (define (line-comment-extent text::CharSequence)
     ::Extent
     (text-extent text (the-comment-font)))
@@ -1616,8 +1615,8 @@
     (java.util.concurrent.ConcurrentLinkedQueue))
 
   (define last-animation-event-time-ms ::long 0)
-  
-  (define (animate!)::void 
+
+  (define (animate!)::void
     (unless (pending-animations:isEmpty)
       (let* ((now ::long (current-time-ms))
 	     (delta-ms ::long (- now
@@ -1629,7 +1628,7 @@
 	(invalidate)
 	(unless (pending-animations:isEmpty)
 	  (sync:postDelayed (lambda () (animate!)) 40)))))
-  
+
   (define (play! animation::Animation)::void
     (unless (any (is _ eq? animation) pending-animations)
       (let ((was-empty? ::boolean (pending-animations:isEmpty)))
@@ -1640,7 +1639,7 @@
 
   (define window-position ::(array-of int)
     ((array-of int) length: 2))
-  
+
   (AndroidView source)
   (setFocusable #t)
   (invoke-special AndroidView (this)
@@ -1651,7 +1650,7 @@
   (paint:setFlags Paint:ANTI_ALIAS_FLAG))
 
 (define-object (GRASP)::Keeper
-  
+
   (define reaction-to-request-response
     (attribute (request-code::int)::(maps (Object) to: void)
       nothing))
@@ -1684,7 +1683,7 @@
     (safely
      ((reaction-to-request-response requestCode) resultCode data)
      (unset! (reaction-to-request-response requestCode))))
-  
+
   (define (onRequestPermissionsResult requestCode::int
                                       permissions::(array-of
 						    String)
@@ -1737,7 +1736,7 @@
       (runOnUiThread
        (lambda ()
 	 (startActivityForResult intent request)))))
-  
+
   (define (initial-directory)::java.io.File
     (android.os.Environment:getExternalStorageDirectory))
 
@@ -1825,25 +1824,25 @@
   (define scheme ::gnu.expr.Language #!null)
 
   (define save-state ::procedure (lambda () (values)))
-  
+
   (define (onPause)::void
     (invoke-special AndroidActivity (this) 'onPause)
     (save-state))
-  
+
   (define (onCreate savedState::Bundle)::void
     (invoke-special AndroidActivity (this) 'onCreate
 		    savedState)
 
     (set! (default-transform) (lambda () (Isogonal)))
     (set! (current-message-handler) (ScreenLogger 100))
-    
+
     (set! scheme (or kawa.standard.Scheme:instance
 		     (kawa.standard.Scheme)))
     (kawa.standard.Scheme:registerEnvironment)
     (set! env (scheme:getEnvironment))
-    (kawa.standard.Scheme:loadClass "kawa.lib.kawa.base" env)    
+    (kawa.standard.Scheme:loadClass "kawa.lib.kawa.base" env)
     (gnu.mapping.Environment:setCurrent env)
-    
+
     (let* ((window ::AndroidWindow (invoke-special
 				    AndroidActivity
 				    (this) 'getWindow))
@@ -1859,7 +1858,7 @@
 	WindowManager:LayoutParams:SOFT_INPUT_STATE_VISIBLE
 	WindowManager:LayoutParams:SOFT_INPUT_ADJUST_RESIZE))
       (decor:setSystemUiVisibility flags))
-    
+
     (initialize-activity (this))
     (safely (initialize-keymap))
     (set! (the-keeper) (this))
@@ -1933,7 +1932,7 @@
 		       (s:flush)
 		       (s:close)))))))))
     ;;(set! (save-file) external-save-file)
-        
+
     (set! view (View (this) sync))
     (set! the-view view)
 
@@ -1967,7 +1966,7 @@
 					      (signal:get utteranceId)))
 			      (signal:remove utteranceId)
 			      (queue:put #f)))
-			   
+
 			   ((onStart utteranceId::String)::void
 			    (values))
 			   ))))))
@@ -1989,7 +1988,7 @@
 
       (define (before-possible-exit action::procedure)::void
 	(set! save-state action))
-      
+
       (define (listen . prompt)::string
 	(let ((recognized ::BlockingQueue (ArrayBlockingQueue 1)))
 	  (with-intent (recognize-speech
@@ -1997,9 +1996,9 @@
 			    #!null
 			    (apply string-append prompt)))
 	    (lambda (resultCode response)
-	      (recognized:put 
+	      (recognized:put
 	       (and-let* ((intent ::Intent response)
-			  (extra ::java.util.List 
+			  (extra ::java.util.List
 				 (intent:getStringArrayListExtra
 				  RecognizerIntent:EXTRA_RESULTS))
 			  ((not (extra:isEmpty))))
@@ -2007,7 +2006,7 @@
 	  (let ((result (or (recognized:take) #!null)))
 	    (the-view:invalidate)
 	    result)))
-      
+
       (define (ask question::string)::string
 	(say question)
 	(listen question))
@@ -2032,7 +2031,7 @@
 	    (assets:open filename)))))
 
       (define input-files '())
-      
+
       (let-syntax ((export (syntax-rules ()
 			     ((_ identifier ...)
 			      (begin
@@ -2047,12 +2046,12 @@
 		open-asset
 		input-files
 		)))
-    
+
     (let* ((resources ::AndroidResources (getResources))
 	   (metrics ::DisplayMetrics
 		    (resources:getDisplayMetrics)))
       (screen:set-size! metrics:widthPixels metrics:heightPixels))
-    
+
     (view:setSystemUiVisibility
      (bitwise-ior
       AndroidView:SYSTEM_UI_FLAG_FULLSCREEN
@@ -2061,7 +2060,7 @@
     (setContentView view)
     (set-painter! view)
     (view:request-redraw!)
-    
+
     (let* ((parent ::AndroidView (view:getParent))
 	   (span ::Rect (Rect))
 	   (observer ::ViewTreeObserver (parent:getViewTreeObserver)))
@@ -2088,10 +2087,10 @@
       (for expression in init-script
 	(safely
 	 (eval expression)))
-      
+
       (screen:set-size! (span:width) (span:height))
       (view:request-redraw!))
-    
+
     (let ((postpone ::Postponed (EventRunner sync view)))
       (for finger from 0 below 10
 	   (set! (process-finger finger)
@@ -2099,6 +2098,6 @@
 				      postpone
 				      vicinity: 15))))
     )
-  
+
 
   (AndroidActivity))

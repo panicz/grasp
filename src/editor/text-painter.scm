@@ -152,7 +152,7 @@
       (put! #\╵ (- height 1) 0)
       (when highlighted?
 	(end-highlight! HighlightType:Selection))))
- 
+
   (define icon-size ::Extent
     (Extent width: 2
 	    height: 1))
@@ -169,7 +169,7 @@
   (define press-mark-size ::Extent
     (Extent width: 5
 	    height: 3))
-  
+
   (define (press/release-mark-extent)::Extent
     press-mark-size)
 
@@ -183,10 +183,10 @@
     (put! tr (- top 1) (+ left 2))
     (put! bl (+ top 1) (- left 2))
     (put! br (+ top 1) (+ left 2)))
-  
+
   (define (draw-release-mark! left::real top::real)::void
     (put-around! left top
-		 #\↖ #\↗ 
+		 #\↖ #\↗
 	           #\✶
 		 #\↙ #\↘))
 
@@ -275,7 +275,7 @@
 
   (define (height/width-ratio)::real
     1/2)
-  
+
   (define (draw-quote-box! width::real
 			   height::real
 			   context::Cursor)
@@ -661,7 +661,7 @@
     (draw-line-8pix! (* x0 2) (* y0 4)
 		     (* x1 2) (* y1 4)))
 
-  
+
   (define (draw-quoted-text! s::CharSequence
 			     context::Cursor)
     ::void
@@ -693,7 +693,7 @@
     (set! target:top (+ target:top 1))
     (measure-string-index-position-into! target text index))
 
-  
+
   (define (measure-string-index-position-into! target::Position
 					       text::CharSequence
 					       index::int)
@@ -714,7 +714,7 @@
       (set! target:left (+ target:left column))
       (set! target:top (+ target:top line))
       target))
-  
+
   (define (draw-string! text::CharSequence
 			context::Cursor)
     ::void
@@ -772,6 +772,10 @@
 	  (handle-cursor-and-selection!)
 	  (traversal:on-end-line #f)))))
 
+  (define (monospace-character-width)::real 1)
+
+  (define (monospace-character-height)::real 1)
+
   (define (string-character-index-under
 	   x::real y::real
 	   text::CharSequence)
@@ -824,7 +828,7 @@
     ::Position
     (measure-string-index-position-into! target text index))
 
-  
+
   (define (text-input-extent text::CharSequence)::Extent
     (string-extent text))
 
@@ -866,7 +870,7 @@
     ::Position
     (set! target:top (+ target:top 1))
     (measure-string-index-position-into! target text index))
-  
+
   (define (atom-extent text::CharSequence)
     ::Extent
     (let ((inner ::Extent (string-extent text)))
@@ -885,7 +889,7 @@
 
   (define horizontal-stretch ::float 1.0)
   (define vertical-stretch ::float 1.0)
-  
+
   (define (with-stretch horizontal::float vertical::float
 			action::(maps () to: void))
     ::void
@@ -906,7 +910,7 @@
   (define (clear!)::void #!abstract)
 
   (define (request-redraw!)::void #!abstract)
-  
+
   (define (current-width)::real #!abstract)
 
   (define (current-height)::real #!abstract)
@@ -916,7 +920,7 @@
 
   (define (in-selection-drawing-mode?)::boolean
     (is (highlight-count (HighlightType:Selection:ordinal)) > 0))
-  
+
   (define (begin-highlight! type::HighlightType)::void
     (let ((type-index (type:ordinal)))
       (set! (highlight-count type-index)
@@ -1020,7 +1024,7 @@
     (set! target:left (+ target:left 1))
     (set! target:top (+ target:top 1))
     (measure-string-index-position-into! target text index))
-  
+
   (define (block-comment-extent
 	   text::CharSequence)
     ::Extent
@@ -1204,7 +1208,7 @@
 
   (define (request-redraw!)::void
     (values))
-  
+
   (define (mark-editor-cursor! +left::real +top::real editor::WithCursor)
     ::void
     (invoke-special CharPainter (this)
