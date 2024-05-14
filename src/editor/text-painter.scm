@@ -151,7 +151,7 @@
       (put! #\╵ (- height 1) 0)
       (when highlighted?
 	(exit-selection-drawing-mode!))))
- 
+
   (define icon-size ::Extent
     (Extent width: 2
 	    height: 1))
@@ -168,7 +168,7 @@
   (define press-mark-size ::Extent
     (Extent width: 5
 	    height: 3))
-  
+
   (define (press/release-mark-extent)::Extent
     press-mark-size)
 
@@ -182,10 +182,10 @@
     (put! tr (- top 1) (+ left 2))
     (put! bl (+ top 1) (- left 2))
     (put! br (+ top 1) (+ left 2)))
-  
+
   (define (draw-release-mark! left::real top::real)::void
     (put-around! left top
-		 #\↖ #\↗ 
+		 #\↖ #\↗
 	           #\✶
 		 #\↙ #\↘))
 
@@ -274,7 +274,7 @@
 
   (define (height/width-ratio)::real
     1/2)
-  
+
   (define (draw-quote-box! width::real
 			   height::real
 			   context::Cursor)
@@ -660,7 +660,7 @@
     (draw-line-8pix! (* x0 2) (* y0 4)
 		     (* x1 2) (* y1 4)))
 
-  
+
   (define (draw-quoted-text! s::CharSequence
 			     context::Cursor)
     ::void
@@ -740,6 +740,10 @@
 	    (set! traversal:index (+ traversal:index 1)))
 	  (handle-cursor-and-selection!)
 	  (traversal:on-end-line #f)))))
+
+  (define (monospace-character-width)::real 1)
+
+  (define (monospace-character-height)::real 1)
 
   (define (string-character-index-under
 	   x::real y::real
@@ -840,7 +844,7 @@
 
   (define horizontal-stretch ::float 1.0)
   (define vertical-stretch ::float 1.0)
-  
+
   (define (with-stretch horizontal::float vertical::float
 			action::(maps () to: void))
     ::void

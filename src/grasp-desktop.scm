@@ -1137,6 +1137,20 @@
   (define (draw-string! text::CharSequence context::Cursor)::void
     (draw-text! text (the-string-font) context))
 
+  (define monospace-character-extent ::Extent #!null)
+
+  (define (monospace-character-width)::real
+    (unless monospace-character-extent
+      (set! monospace-character-extent
+            (text-extent "#" (the-string-font))))
+    monospace-character-extent:width)
+
+  (define (monospace-character-height)::real
+    (unless monospace-character-extent
+      (set! monospace-character-extent
+            (text-extent "#" (the-string-font))))
+    monospace-character-extent:height)
+
   (define quoted-text-cursor-offset::Position
     (Position left: -1 top: 2))
 
