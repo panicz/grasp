@@ -60,7 +60,7 @@
   ;; graphical framework (Lanterna, AWT, ...)
   ;; and changed every time the hosting
   ;; window is resized
-  (define extent ::Extent (Extent width: 0 height: 0))
+  (define size ::Extent (Extent width: 0 height: 0))
 
   (define (set-painter! p::Painter)::void
     (set! painter p))
@@ -69,13 +69,13 @@
     (set! (dragging finger) action))
 
   (define (set-size! width::real height::real)::void
-    (set! extent:width width)
-    (set! extent:height height)
+    (set! size:width width)
+    (set! size:height height)
     (set! (the-pane-width) width)
     (set! (the-pane-height) height)
     )
 
-  (define (size)::Extent extent)
+  (define (extent)::Extent size)
 
   (define (set-content! content::Embeddable)::void
     (set! top content))
@@ -84,33 +84,33 @@
 
   (define (draw!)::void
     (reset! extent-cached?)
-    (parameterize ((the-pane-width extent:width)
-		   (the-pane-height extent:height))
+    (parameterize ((the-pane-width size:width)
+		   (the-pane-height size:height))
       (top:draw!)
       (overlay:draw!)))
 
   (define after-tap ::(list-of (maps (byte real real) to: void)) '())
 
   (define (tap! finger::byte #;at x::real y::real)::boolean
-    (parameterize ((the-pane-width extent:width)
-		   (the-pane-height extent:height))
-      (let ((result (or (overlay:tap! finger x y)
+    (parameterize ((the-pane-width size:width)
+		   (the-pane-height size:height))
+     (let ((result (or (overlay:tap! finger x y)
 			(top:tap! finger x y))))
 	(for hook::(maps (byte real real) to: void) in after-tap
 	     (hook finger x y))
 	result)))
 
   (define (press! finger::byte #;at x::real y::real)::boolean
-    (parameterize ((the-pane-width extent:width)
-		   (the-pane-height extent:height))
+    (parameterize ((the-pane-width size:width)
+		   (the-pane-height size:height))
       (or (overlay:press! finger x y)
 	  (top:press! finger x y))))
 
   (define (release! finger::byte x::real y::real
 		    vx::real vy::real)
     ::boolean
-    (parameterize ((the-pane-width extent:width)
-		   (the-pane-height extent:height))
+    (parameterize ((the-pane-width size:width)
+		   (the-pane-height size:height))
       (and-let* ((drag ::Drag (dragging finger)))
 	(drag:drop! x y vx vy)
 	(unset! (dragging finger))
@@ -119,35 +119,35 @@
   (define (move! finger::byte x::real y::real
 		 dx::real dy::real)
     ::boolean
-    (parameterize ((the-pane-width extent:width)
-		   (the-pane-height extent:height))
+    (parameterize ((the-pane-width size:width)
+		   (the-pane-height size:height))
       (and-let* ((drag ::Drag (dragging finger)))
 	(drag:move! x y dx dy)
 	#t)))
 
   (define (second-press! finger::byte #;at x::real y::real)
     ::boolean
-    (parameterize ((the-pane-width extent:width)
-		   (the-pane-height extent:height))
+    (parameterize ((the-pane-width size:width)
+		   (the-pane-height size:height))
       (or (overlay:second-press! finger x y)
 	  (top:second-press! finger x y))))
 
   (define (double-tap! finger::byte x::real y::real)::boolean
-    (parameterize ((the-pane-width extent:width)
-		   (the-pane-height extent:height))
+    (parameterize ((the-pane-width size:width)
+		   (the-pane-height size:height))
       (or (overlay:double-tap! finger x y)
 	  (top:double-tap! finger x y))))
 
   (define (long-press! finger::byte x::real y::real)::boolean
-    (parameterize ((the-pane-width extent:width)
-		   (the-pane-height extent:height))
+    (parameterize ((the-pane-width size:width)
+		   (the-pane-height size:height))
       (or (overlay:long-press! finger x y)
 	  (top:long-press! finger x y))))
 
   (define (key-typed! key-code::long context::Cursor)::boolean
     (assert (empty? context))
-    (parameterize ((the-pane-width extent:width)
-		   (the-pane-height extent:height))
+    (parameterize ((the-pane-width size:width)
+		   (the-pane-height size:height))
       (or (overlay:key-typed! key-code context)
 	  (top:key-typed! key-code context))))
 
@@ -164,50 +164,50 @@
     (set! top (top:split-below! line)))
 
   (define (scroll-up! x::real y::real)::boolean
-    (parameterize ((the-pane-width extent:width)
-		   (the-pane-height extent:height))
+    (parameterize ((the-pane-width size:width)
+		   (the-pane-height size:height))
       (or (overlay:scroll-up! x y)
 	  (top:scroll-up! x y))))
 
   (define (scroll-down! x::real y::real)::boolean
-    (parameterize ((the-pane-width extent:width)
-		   (the-pane-height extent:height))
+    (parameterize ((the-pane-width size:width)
+		   (the-pane-height size:height))
       (or (overlay:scroll-down! x y)
 	  (top:scroll-down! x y))))
 
   (define (scroll-left! x::real y::real)::boolean
-    (parameterize ((the-pane-width extent:width)
-		   (the-pane-height extent:height))
+    (parameterize ((the-pane-width size:width)
+		   (the-pane-height size:height))
       (or (overlay:scroll-left! x y)
 	  (top:scroll-left! x y))))
 
   (define (scroll-right! x::real y::real)::boolean
-    (parameterize ((the-pane-width extent:width)
-		   (the-pane-height extent:height))
+    (parameterize ((the-pane-width size:width)
+		   (the-pane-height size:height))
       (or (overlay:scroll-right! x y)
 	  (top:scroll-right! x y))))
 
   (define (zoom-in! x::real y::real)::boolean
-    (parameterize ((the-pane-width extent:width)
-		   (the-pane-height extent:height))
+    (parameterize ((the-pane-width size:width)
+		   (the-pane-height size:height))
       (or (overlay:zoom-in! x y)
 	  (top:zoom-in! x y))))
 
   (define (zoom-out! x::real y::real)::boolean
-    (parameterize ((the-pane-width extent:width)
-		   (the-pane-height extent:height))
+    (parameterize ((the-pane-width size:width)
+		   (the-pane-height size:height))
       (or (overlay:zoom-out! x y)
 	  (top:zoom-out! x y))))
 
   (define (rotate-left! x::real y::real)::boolean
-    (parameterize ((the-pane-width extent:width)
-		   (the-pane-height extent:height))
+    (parameterize ((the-pane-width size:width)
+		   (the-pane-height size:height))
       (or (overlay:rotate-left! x y)
 	  (top:rotate-left! x y))))
 
   (define (rotate-right! x::real y::real)::boolean
-    (parameterize ((the-pane-width extent:width)
-		   (the-pane-height extent:height))
+    (parameterize ((the-pane-width size:width)
+		   (the-pane-height size:height))
       (or (overlay:rotate-right! x y)
 	  (top:rotate-right! x y))))
   )
@@ -705,7 +705,7 @@
   (match split-path
     ('()
      (values pane
-             0 0 screen:extent:width screen:extent:height))
+             0 0 screen:size:width screen:size:height))
     (`(,head . ,tail)
      (let-values (((parent::Embeddable
 		    x::real y::real
@@ -1019,7 +1019,7 @@
 
   ((center-around! x::real y::real)::void
    (let ((inner ::Extent (extent))
-	 (outer ::Extent (screen:size)))
+	 (outer ::Extent (screen:extent)))
      (set! left (max 0 (min (- outer:width inner:width)
 			    (- x (quotient inner:width 2)))))
      (set! top
@@ -1168,7 +1168,7 @@
 				  content: content))
          (popup (PopUp content: scroll))
 	 (outer ::Extent (extent+ popup))
-	 (available ::Extent (screen:size)))
+	 (available ::Extent (screen:extent)))
     (set! scroll:width (- scroll:width
                           (max 0 (- outer:width
 			            available:width))))
@@ -1264,7 +1264,7 @@
                          bottom: browser))
          (popup (PopUp content: content))
 	 (outer ::Extent (extent+ popup))
-	 (available ::Extent (screen:size))
+	 (available ::Extent (screen:extent))
 	 (button-size ::Extent (extent+ button)))
     (set! browser:width (- browser:width
                            (max 0 (- outer:width
@@ -1747,7 +1747,7 @@
 			from: (copy transform)
 			to: (let ((target ::Transform (copy transform))
 				  (document ::Extent (extent+ document))
-				  (screen ::Extent (screen:size)))
+				  (screen ::Extent (screen:extent)))
 			      (target:set-left! 0.0)
 			      (target:set-top! 0.0)
 			      (target:set-scale!

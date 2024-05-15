@@ -474,7 +474,7 @@
   (define (display-messages output::Object)::void
     (let* ((canvas ::Canvas (as Canvas output))
 	   (font ::Font (the-log-font))
-	   (screen-extent ::Extent (screen:size))
+	   (screen-extent ::Extent (screen:extent))
 	   (top ::float  font:size #;(- screen-extent:height
 		(* 4 font:size))))
       (paint:setColor #xff555555)
@@ -696,7 +696,7 @@
   (define (draw-horizontal-split! top::real)::void
     (let* ((left ::float (max 0 (current-clip-left)))
 	   (bottom ::float (+ top (horizontal-split-height)))
-	   (right ::float (min screen:extent:width
+	   (right ::float (min screen:size:width
 			       (+ left (current-clip-width)))))
       (paint:setColor text-color)
       (canvas:drawRect left (as float top) right bottom
@@ -705,7 +705,7 @@
   (define (draw-vertical-split! left::real)::void
     (let* ((top ::float (max 0 (current-clip-top)))
 	   (right ::float (+ left (vertical-split-width)))
-	   (bottom ::float (min screen:extent:height
+	   (bottom ::float (min screen:size:height
 				(+ top (current-clip-height)))))
       (paint:setColor text-color)
       (canvas:drawRect (as float left) top right bottom
@@ -1584,9 +1584,9 @@
 
     (match config:orientation
       (,AndroidConfiguration:ORIENTATION_LANDSCAPE
-       (WARN 'landscape (screen:size)))
+       (WARN 'landscape (screen:extent)))
       (,AndroidConfiguration:ORIENTATION_PORTRAIT
-       (WARN 'portrait (screen:size)))))
+       (WARN 'portrait (screen:extent)))))
 
   (define (onActivityResult requestCode::int
 			    resultCode::int

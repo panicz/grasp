@@ -153,9 +153,12 @@
 					    Textual
 					    Element))
 
-(define-interface Tile (Element)
+(define-interface Extensive ()
   (extent)::Extent
   )
+
+
+(define-interface Tile (Extensive Element))
 
 (define-interface ShadowedTile (Shadowed Tile))
 
@@ -421,9 +424,8 @@ operate on cursors.
   (drop! x::real y::real vx::real vy::real)::void
   )
 
-(define-interface Resizable ()
+(define-interface Resizable (Extensive)
   (set-size! width::real height::real)::void
-  (size)::Extent
   )
 
 (define-interface ResizablePane (Resizable Pane))
