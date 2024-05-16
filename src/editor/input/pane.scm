@@ -56,6 +56,21 @@
 
   (define top ::Embeddable (NullPane))
 
+  (define content-stack ::java.util.Stack
+    (java.util.Stack))
+
+  (define (maximize! tile ::Maximizable)::void
+    (content-stack:push `(,(tile:extent) . ,top))
+    (tile:set-size! size:width size:height)
+    (set! top tile))
+
+  (define (unmaximize!)::void
+    (unless (content-stack:empty)
+      (and-let* ((`(,previous::Extent . ,origin)
+		  (content-stack:pop)))
+	(top:set-size! previous:width previous:height)
+	(set! top origin))))
+  
   ;; this parameter must be set by the
   ;; graphical framework (Lanterna, AWT, ...)
   ;; and changed every time the hosting
@@ -73,6 +88,8 @@
     (set! size:height height)
     (set! (the-pane-width) width)
     (set! (the-pane-height) height)
+    (and-let* ((widget ::Maximizable top))
+      (widget:set-size! width height))
     )
 
   (define (extent)::Extent size)
@@ -146,10 +163,13 @@
 
   (define (key-typed! key-code::long context::Cursor)::boolean
     (assert (empty? context))
-    (parameterize ((the-pane-width size:width)
-		   (the-pane-height size:height))
-      (or (overlay:key-typed! key-code context)
-	  (top:key-typed! key-code context))))
+    (if (and (is top Maximizable?)
+	     (is (key-code-name key-code) in '(escape back)))
+	(screen:unmaximize!)
+	(parameterize ((the-pane-width size:width)
+		       (the-pane-height size:height))
+	  (or (overlay:key-typed! key-code context)
+	      (top:key-typed! key-code context)))))
 
   (define (can-split-beside? line::Area)::boolean
     (top:can-split-beside? line))
@@ -1721,43 +1741,52 @@
 		 (screen:drag! finger (DragAround selection))))))
 	   #t)))))
 
-  (define (double-tap! finger::byte x::real y::real)::boolean
+  (define (double-tap! finger::byte xe::real ye::real)::boolean
     (with-post-transform transform
       (with-view-edges-transformed transform
-       (parameterize/update-sources ((the-document document)
-				     (the-cursor cursor)
-				     (the-editor (this))
-				     (the-selection-range
-				      selection-range))
-	 (cond
-	  ((isnt (transform:get-angle) = 0.0)
-	   (painter:play!
-	    (Transition of: transform
-			from: (copy transform)
-			to: (let ((target ::Transform (copy transform)))
-			      (target:set-angle! 0.0)
-			      target)
-			around: (Position left: x top: y)
-			duration/ms: 500))
-	   #t)
-	  ((or (isnt (transform:get-left) = 0)
-	       (is (transform:get-top) > 0))
-	   (painter:play!
-	    (Transition of: transform
-			from: (copy transform)
-			to: (let ((target ::Transform (copy transform))
-				  (document ::Extent (extent+ document))
-				  (screen ::Extent (screen:extent)))
-			      (target:set-left! 0.0)
-			      (target:set-top! 0.0)
-			      (target:set-scale!
-			       (min (/ screen:width document:width)
-				    (/ screen:height document:height)))
-			      target)
-			duration/ms: 500))
-	   #t)
-	  (else
-	   #f))))))
+	(parameterize/update-sources ((the-document document)
+				      (the-cursor cursor)
+				      (the-editor (this))
+				      (the-selection-range
+				       selection-range))
+	  (and-let* ((x y (transform:outside-in xe ye))
+		     (path (cursor-under x y))
+		     (`(,tip . ,subpath) path)
+		     (parent ::Element (the-expression
+					at: subpath))
+		     (target ::Element (parent:part-at tip)))
+	    (cond
+	     ((Maximizable? target)
+	      (screen:maximize! target))
+	     
+	     ((isnt (transform:get-angle) = 0.0)
+	      (painter:play!
+	       (Transition of: transform
+			   from: (copy transform)
+			   to: (let ((target ::Transform (copy transform)))
+				 (target:set-angle! 0.0)
+				 target)
+			   around: (Position left: xe top: ye)
+			   duration/ms: 500))
+	      #t)
+	     ((or (isnt (transform:get-left) = 0)
+		  (is (transform:get-top) > 0))
+	      (painter:play!
+	       (Transition of: transform
+			   from: (copy transform)
+			   to: (let ((target ::Transform (copy transform))
+				     (document ::Extent (extent+ document))
+				     (screen ::Extent (screen:extent)))
+				 (target:set-left! 0.0)
+				 (target:set-top! 0.0)
+				 (target:set-scale!
+				  (min (/ screen:width document:width)
+				       (/ screen:height document:height)))
+				 target)
+			   duration/ms: 500))
+	      #t)
+	     (else
+	      #f)))))))
 
   (define (long-press! finger::byte x::real y::real)::boolean
     (with-post-transform transform

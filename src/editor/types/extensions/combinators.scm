@@ -114,6 +114,132 @@
      (element:rotate-right! (- x border) (- y border))))
 
   )
+  
+(define-type (Stretched element: Enchanted size: Extent)
+  implementing Enchanted
+  with
+  ((draw! context::Cursor)::void
+   (let ((inner ::Extent (extent+ element)))
+     (with-stretch
+      (/ size:width inner:width)
+      (/ size:height inner:height)
+      (lambda ()
+	(element:draw! (recons 'element context))))))
+
+  ((extent)::Extent
+   size)
+
+  ((part-at index::Index)::Indexable*
+   (match index
+     ('element element)
+     (_ (this))))
+  
+  ((first-index)::Index
+   'element)
+
+  ((last-index)::Index
+   'element)
+
+  ((next-index index::Index)::Index 'element)
+
+  ((previous-index index::Index)::Index 'element)
+
+  ((index< a::Index b::Index)::boolean #f)
+
+  ((index< a::Index b::Index)::boolean
+   (and (is a eq? (first-index))
+	(isnt b eq? (first-index))))
+
+  ((cursor-under* x::real y::real path::Cursor)::Cursor*
+   (let* ((inner ::Extent (extent+ element))
+	  (x* (* (/ size:width inner:width) x))
+	  (y* (* (/ size:height inner:height) y)))
+     (element:cursor-under* x* y*(recons 'element path))))
+  
+  ((tap! finger::byte #;at x::real y::real)::boolean
+   (let* ((inner ::Extent (extent+ element))
+	  (x* (* (/ size:width inner:width) x))
+	  (y* (* (/ size:height inner:height) y)))
+     (element:tap! finger x* y*)))
+  
+  ((press! finger::byte #;at x::real y::real)::boolean
+   (let* ((inner ::Extent (extent+ element))
+	  (x* (* (/ size:width inner:width) x))
+	  (y* (* (/ size:height inner:height) y)))
+     (element:press! finger x* y*)))
+  
+  ((second-press! finger::byte #;at x::real y::real)::boolean
+   (let* ((inner ::Extent (extent+ element))
+	  (x* (* (/ size:width inner:width) x))
+	  (y* (* (/ size:height inner:height) y)))
+     (element:second-press! finger x* y*)))
+  
+   ((double-tap! finger::byte x::real y::real)::boolean
+    (let* ((inner ::Extent (extent+ element))
+	   (x* (* (/ size:width inner:width) x))
+	   (y* (* (/ size:height inner:height) y)))
+      (element:double-tap! finger x* y*)))
+
+   ((long-press! finger::byte x::real y::real)::boolean
+    (let* ((inner ::Extent (extent+ element))
+	   (x* (* (/ size:width inner:width) x))
+	   (y* (* (/ size:height inner:height) y)))
+     (element:long-press! finger x* y*)))
+
+  ((key-typed! key-code::long context::Cursor)::boolean
+   (element:key-typed! key-code (recons 'element context)))
+
+  ((value)::Object
+   (invoke-special Base 'to-list cons to-expression))
+
+  ((scroll-up! x::real y::real)::boolean
+   (let* ((inner ::Extent (extent+ element))
+	  (x* (* (/ size:width inner:width) x))
+	  (y* (* (/ size:height inner:height) y)))
+     (element:scroll-up! x* y*)))
+  
+  ((scroll-down! x::real y::real)::boolean
+   (let* ((inner ::Extent (extent+ element))
+	  (x* (* (/ size:width inner:width) x))
+	  (y* (* (/ size:height inner:height) y)))
+       (element:scroll-down! x* y*)))
+  
+  ((scroll-left! x::real y::real)::boolean
+   (let* ((inner ::Extent (extent+ element))
+	  (x* (* (/ size:width inner:width) x))
+	  (y* (* (/ size:height inner:height) y)))
+     (element:scroll-left! x* y*)))
+  
+  ((scroll-right! x::real y::real)::boolean
+   (let* ((inner ::Extent (extent+ element))
+	  (x* (* (/ size:width inner:width) x))
+	  (y* (* (/ size:height inner:height) y)))
+     (element:scroll-right! x* y*)))
+
+  ((zoom-in! x::real y::real)::boolean
+   (let* ((inner ::Extent (extent+ element))
+	  (x* (* (/ size:width inner:width) x))
+	  (y* (* (/ size:height inner:height) y)))
+     (element:zoom-in! x* y*)))
+  
+  ((zoom-out! x::real y::real)::boolean
+   (let* ((inner ::Extent (extent+ element))
+	  (x* (* (/ size:width inner:width) x))
+	  (y* (* (/ size:height inner:height) y)))
+     (element:zoom-out! x* y*)))
+
+  ((rotate-left! x::real y::real)::boolean
+   (let* ((inner ::Extent (extent+ element))
+	  (x* (* (/ size:width inner:width) x))
+	  (y* (* (/ size:height inner:height) y)))
+     (element:rotate-left! x* y*)))
+  
+  ((rotate-right! x::real y::real)::boolean
+   (let* ((inner ::Extent (extent+ element))
+	  (x* (* (/ size:width inner:width) x))
+	  (y* (* (/ size:height inner:height) y)))
+     (element:rotate-right! x* y*)))
+  )
 
 (define-type (Over back: Enchanted front: Enchanted)
   implementing Enchanted

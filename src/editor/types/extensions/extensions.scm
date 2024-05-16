@@ -26,6 +26,10 @@
   ;; of the Shadowed interface should return a cons-cell
   )
 
+(define-interface ResizableEnchanted (Resizable Enchanted))
+
+(define-interface Maximizable (Embeddable ResizableEnchanted))
+
 (define-object (Magic)::Enchanted
   (define (typename)::String "Magic")
 
