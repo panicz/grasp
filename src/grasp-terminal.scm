@@ -188,7 +188,7 @@
 	     (size (or resize (io:getTerminalSize))))
 	(screen:set-size! (size:getColumns) (size:getRows))
 	(painter:clear!)
-	(screen:draw!)
+	(screen:render!)
 	;; swap front- and back-buffer
 	(io:refresh (if resize
 			LanternaScreen:RefreshType:COMPLETE

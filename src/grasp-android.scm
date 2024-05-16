@@ -1518,7 +1518,7 @@
     (set! canvas c)
     (clear!)
     (safely
-     (screen:draw!))
+     (screen:render!))
     (invoke (current-message-handler)
 	    'display-messages canvas))
 

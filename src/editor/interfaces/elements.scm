@@ -314,12 +314,12 @@ operate on cursors.
   
   (Simple))
 
-(define-interface Drawable ()
-  (draw!)::void
+(define-interface Renderable ()
+  (render!)::void
   )
 
 
-(define-interface Pane (Drawable Interactive))
+(define-interface Pane (Renderable Interactive))
 
 (define-interface Layer (Indexable Pane))
 
@@ -343,7 +343,7 @@ operate on cursors.
   (define (drop-at! x::real y::real expression::pair)::boolean
     #f)
   
-  (define (draw!)::void (values))
+  (define (render!)::void (values))
   
   (define (pane-under x::real y::real)::Embeddable
     (this))

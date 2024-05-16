@@ -41,7 +41,7 @@
 (import (editor document history-tracking))
 (import (editor types spaces))
 (import (editor document copy-paste))
-
+(import (editor types extensions combinators))
 
 (define-syntax $lookup$
   (syntax-rules ()

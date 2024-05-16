@@ -45,7 +45,7 @@
 (define-alias Array java.util.Arrays)
 
 (define-object (Point x::real y::real color::long)::Layer
-  (define (draw!)
+  (define (render!)
     (painter:draw-point! x y color))
   (IgnoreInput))
 
@@ -60,15 +60,16 @@
     (java.util.Stack))
 
   (define (maximize! tile ::Maximizable)::void
-    (content-stack:push `(,(tile:extent) . ,top))
+    (content-stack:push `(,(copy (tile:extent)) . ,top))
     (tile:set-size! size:width size:height)
     (set! top tile))
 
   (define (unmaximize!)::void
     (unless (content-stack:empty)
       (and-let* ((`(,previous::Extent . ,origin)
-		  (content-stack:pop)))
-	(top:set-size! previous:width previous:height)
+		  (content-stack:pop))
+		 (widget ::Maximizable top))
+	(widget:set-size! previous:width previous:height)
 	(set! top origin))))
   
   ;; this parameter must be set by the
@@ -99,12 +100,12 @@
 
   (define (content)::Pane top)
 
-  (define (draw!)::void
+  (define (render!)::void
     (reset! extent-cached?)
     (parameterize ((the-pane-width size:width)
 		   (the-pane-height size:height))
-      (top:draw!)
-      (overlay:draw!)))
+      (top:render!)
+      (overlay:render!)))
 
   (define after-tap ::(list-of (maps (byte real real) to: void)) '())
 
@@ -238,7 +239,7 @@
   (define (add-point! p::Position)::void
     (points:add p))
 
-  (define (draw!)::void
+  (define (render!)::void
     (for i from 1 below (points:size)
         (let ((p0 ::Position (points (- i 1)))
 	      (p1 ::Position (points i)))
@@ -270,7 +271,7 @@
 
 (define-object (Selected items::cons position::Position)::Layer
 
-  (define (draw!)::void
+  (define (render!)::void
     (parameterize ((the-document items))
       (with-translation (position:left position:top)
 	(draw-sequence! items))))
@@ -340,10 +341,10 @@
     (property+ (layer::Layer)::Cursor
 	       (cursor-climb-front '() layer)))
 
-  (define (draw!)::void
+  (define (render!)::void
     (for layer::Layer in-reverse layers
       (parameterize ((the-cursor (cursor layer)))
-	(layer:draw!))))
+	(layer:render!))))
 
   (define (add! element::Layer)::void
     (layers:add 0 element))
@@ -486,7 +487,7 @@
   ((draw-split!)::void
    #!abstract)
 
-  ((draw!)::void
+  ((render!)::void
    (let-values (((first-size line-size last-size) (part-sizes)))
      (with-pane-translation first-size
        (lambda ()
@@ -501,14 +502,14 @@
 						   SplitFocus:Last
 						   (the-split-path))))
 		     (with-clip ((the-pane-width) (the-pane-height))
-		       (last:draw!))))))))))
+		       (last:render!))))))))))
      (with-pane-size first-size
        (lambda ()
 	 (parameterize ((the-split-path (recons
 					 SplitFocus:First
 					 (the-split-path))))
 	   (with-clip ((the-pane-width) (the-pane-height))
-	     (first:draw!)))))))
+	     (first:render!)))))))
 
   ((propagate action::procedure x::real y::real default::procedure)
    (let-values (((first-size line-size last-size) (part-sizes))
@@ -920,7 +921,7 @@
                     content: Enchanted)
   implementing Layer
   with
-  ((draw!)::void
+  ((render!)::void
    (let ((tile ::Tile (as Tile (this))))
      (tile:draw! '())))
 
@@ -1538,7 +1539,7 @@
        (painter:draw-point! column (+ top current) #x00ff00)
        #;(painter:draw-point! column (- top previous) #x0000ff))))
 
-  (define (draw!)::void
+  (define (render!)::void
     (parameterize ((the-document document)
 		   (the-cursor cursor)
 		   (the-editor (this))
@@ -1558,27 +1559,27 @@
     (with-post-transform transform
       (with-view-edges-transformed transform
 	(parameterize/update-sources ((the-document document)
-				      ; trzeba dojsc dlaczego to nie dziala
+					; trzeba dojsc dlaczego to nie dziala
 				      #;(the-cursor cursor)
 				      (the-editor (this))
 				      #;(the-selection-range
-				       selection-range))
-	  (let-values (((x y) (transform:outside-in xe ye)))
-	    (and-let* ((target-cursor (cursor-under x y))
-		       (target (the-expression
-				at: target-cursor))
-		       (editor ::Editor (this))
-		       (x0 y0 (document-position-of-element-pointed-by
-			       target-cursor (car document)))
-		       (x* y* (transform:inside-out x0 y0)))
-		(match target
-		  (enchanted::Interactive
-		   (enchanted:tap! finger x y))
-		  (else
-		   (set! cursor target-cursor)
-		   (set! selection-range 0)
-		   (editor:set-cursor-column! xe)
-		   #t))))))))
+				      selection-range))
+	  (and-let* ((x y (transform:outside-in xe ye))
+		     (target-cursor (cursor-under x y))
+		     (target (the-expression
+			      at: target-cursor))
+		     (editor ::Editor (this))
+		     (x0 y0 (document-position-of-element-pointed-by
+			     target-cursor (car document)))
+		     (x* y* (transform:inside-out x0 y0)))
+	    (match target
+	      (enchanted::Interactive
+	       (enchanted:tap! finger x y))
+	      (else
+	       (set! cursor target-cursor)
+	       (set! selection-range 0)
+	       (editor:set-cursor-column! xe)
+	       #t)))))))
 
   (define (press! finger::byte #;at xe::real ye::real)::boolean
     (with-post-transform transform
@@ -1755,9 +1756,10 @@
 		     (parent ::Element (the-expression
 					at: subpath))
 		     (target ::Element (parent:part-at tip)))
+	    (DUMP parent)
 	    (cond
-	     ((Maximizable? target)
-	      (screen:maximize! target))
+	     ((Maximizable? parent)
+	      (screen:maximize! parent))
 	     
 	     ((isnt (transform:get-angle) = 0.0)
 	      (painter:play!
