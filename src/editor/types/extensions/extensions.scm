@@ -83,6 +83,31 @@
   
   (Simple))
 
+(define-object (MaximizableWidget)::Maximizable
+  
+  (define (typename)::String "")
+  (define (part-at index::Index)::Indexable* (this))
+
+  (define (first-index)::Index 0)
+  (define (last-index)::Index 0)
+
+  (define (next-index index::Index)::Index 0)
+  (define (previous-index index::Index)::Index 0)
+
+  (define (index< a::Index b::Index)::boolean #f)
+
+  (define (extent)::Extent #!abstract)
+
+  (define (draw! context::Cursor)::void #!abstract)
+
+  (define (set-size! width::real height::real)::void
+    #!abstract)
+
+  (define (render!)::void
+    (draw! '()))
+  
+  (NullPane))
+  
 (define-object (Dummy content::Tile)::Enchanted
 
   (define (part-at index::Index)::Indexable*

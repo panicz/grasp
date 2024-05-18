@@ -3,6 +3,7 @@
 (import (language match))
 (import (language infix))
 (import (language define-type))
+(import (language define-object))
 (import (language fundamental))
 (import (utils functions))
 (import (editor types primitive))
@@ -246,8 +247,8 @@
 	   (x* (* (/ size:width inner:width) x))
 	   (y* (* (/ size:height inner:height) y)))
       (element:rotate-right! x* y*)))
-
-  (NullPane))
+  
+  (MaximizableWidget))
 
 (define-type (Over back: Enchanted front: Enchanted)
   implementing Enchanted
