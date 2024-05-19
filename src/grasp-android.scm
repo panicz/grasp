@@ -167,36 +167,14 @@
 
 (define the-view ::AndroidView #!null)
 
-(define-object (RecognitionListener)
-  ::android.speech.RecognitionListener
-  (define (onReadyForSpeech bundle::Bundle)::void
-    (WARN "onReadyForSpeech" bundle))
-  (define (onBeginningOfSpeech)::void
-    (WARN "onBeginningOfSpeech"))
-  (define (onRmsChanged rms ::float)::void
-    (WARN "onRmsChanged" rms))
-  (define (onBufferReceived bytes ::(array-of byte))::void
-    (WARN "onBufferReceived"))
-  (define (onEndOfSpeech)::void
-    (WARN "onEndOfSpeech"))
-  (define (onError code::int)::void
-    (WARN "onError" code))
-  (define (onPartialResults bundle::Bundle)::void
-    (WARN "onPartialResults"))
-  (define (onEvent i::int bundle::Bundle)::void
-    (WARN "onEvent" i bundle))
-  (define (onResults bundle::Bundle)::void
-    (WARN "onResults" bundle))
-  )
-
-(define (recognize-speech)
+(define (recognize-speech prompt::String)
   ::Intent
   (let ((intent ::Intent
 		(Intent
 		 RecognizerIntent:ACTION_RECOGNIZE_SPEECH)))
     (intent:putExtra RecognizerIntent:EXTRA_LANGUAGE_MODEL
 		     RecognizerIntent:LANGUAGE_MODEL_FREE_FORM)
-    #;(when prompt
+    (when prompt
       (intent:putExtra RecognizerIntent:EXTRA_PROMPT
 		       prompt))
     intent))
@@ -496,7 +474,7 @@
   (define (display-messages output::Object)::void
     (let* ((canvas ::Canvas (as Canvas output))
 	   (font ::Font (the-log-font))
-	   (screen-extent ::Extent (screen:size))
+	   (screen-extent ::Extent (screen:extent))
 	   (top ::float  font:size #;(- screen-extent:height
 		(* 4 font:size))))
       (paint:setColor #xff555555)
@@ -718,7 +696,7 @@
   (define (draw-horizontal-split! top::real)::void
     (let* ((left ::float (max 0 (current-clip-left)))
 	   (bottom ::float (+ top (horizontal-split-height)))
-	   (right ::float (min screen:extent:width
+	   (right ::float (min screen:size:width
 			       (+ left (current-clip-width)))))
       (paint:setColor text-color)
       (canvas:drawRect left (as float top) right bottom
@@ -727,7 +705,7 @@
   (define (draw-vertical-split! left::real)::void
     (let* ((top ::float (max 0 (current-clip-top)))
 	   (right ::float (+ left (vertical-split-width)))
-	   (bottom ::float (min screen:extent:height
+	   (bottom ::float (min screen:size:height
 				(+ top (current-clip-height)))))
       (paint:setColor text-color)
       (canvas:drawRect (as float left) top right bottom
@@ -1540,7 +1518,7 @@
     (set! canvas c)
     (clear!)
     (safely
-     (screen:draw!))
+     (screen:render!))
     (invoke (current-message-handler)
 	    'display-messages canvas))
 
@@ -1606,9 +1584,9 @@
 
     (match config:orientation
       (,AndroidConfiguration:ORIENTATION_LANDSCAPE
-       (WARN 'landscape (screen:size)))
+       (WARN 'landscape (screen:extent)))
       (,AndroidConfiguration:ORIENTATION_PORTRAIT
-       (WARN 'portrait (screen:size)))))
+       (WARN 'portrait (screen:extent)))))
 
   (define (onActivityResult requestCode::int
 			    resultCode::int
@@ -1762,6 +1740,8 @@
 		  (or kawa.standard.Scheme:instance
 		      (kawa.standard.Scheme))))
       (kawa.standard.Scheme:registerEnvironment)
+      ;; teraz bysmy sprobowali tutaj przeprowadzic jakas
+      ;; inicjalizacje
       (letrec* ((env ::gnu.mapping.Environment
 		     (scheme:getEnvironment))
 		(random ::java.util.Random
@@ -1798,30 +1778,28 @@
 			     ((onStart utteranceId::String)::void
 			      (values))
 			     ))))))
-	(gnu.mapping.Environment:setCurrent env)
-	(env:define 'mouth #!null mouth)
-	(env:define
-	 'say #!null
-	 (lambda (text::String)
-	   ::void
-	   (let ((id ::String (new-utterance-id))
-		 (bundle ::Bundle (Bundle))
-		 (queue ::BlockingQueue
-			(ArrayBlockingQueue 1)))
-	     (bundle:putString
-	      Mouth:Engine:KEY_PARAM_UTTERANCE_ID id)
-	     (signal:put id queue)
-	     (match (mouth:speak text Mouth:QUEUE_ADD
-				 bundle id)
-	       (,Mouth:SUCCESS
-		(queue:take))
-	       (,Mouth:ERROR
-		(signal:remove id))))))
-	(env:define
-	 'listen #!null
-	 (lambda ()
+	(define (say . words)::void
+	  (let ((text ::String (apply string-append words))
+		(id ::string (new-utterance-id))
+		(bundle ::Bundle (Bundle))
+		(queue ::BlockingQueue
+		       (ArrayBlockingQueue 1)))
+	    (bundle:putString
+	     Mouth:Engine:KEY_PARAM_UTTERANCE_ID id)
+	    (signal:put id queue)
+	    (match (mouth:speak text Mouth:QUEUE_ADD
+				bundle id)
+	      (,Mouth:SUCCESS
+	       (queue:take))
+	      (,Mouth:ERROR
+	       (signal:remove id)))))
+
+	(define (listen . prompt)::string
 	   (let ((recognized ::BlockingQueue (ArrayBlockingQueue 1)))
-	     (with-intent (recognize-speech)
+	     (with-intent (recognize-speech
+			   (if (null? prompt)
+			       #!null
+			       (apply string-append prompt)))
 	       (lambda (resultCode response)
 		 (recognized:put 
 		  (and-let* ((intent ::Intent response)
@@ -1832,7 +1810,19 @@
 		    (extra 0)))))
 	     (let ((result (or (recognized:take) #!null)))
 	       (the-view:invalidate)
-	       result))))
+	       result)))
+	
+	(define (ask question::string)::string
+	  (say question)
+	  (listen question))
+
+	(kawa.standard.Scheme:loadClass "kawa.lib.kawa.base" env)
+	
+	(gnu.mapping.Environment:setCurrent env)
+	(env:define 'mouth #!null mouth)
+	(env:define 'say #!null say)
+	(env:define 'listen #!null listen)
+	(env:define 'ask #!null ask)
 	))
 
     (let* ((window ::AndroidWindow (invoke-special

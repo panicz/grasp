@@ -3,6 +3,7 @@
 (import (language match))
 (import (language infix))
 (import (language define-type))
+(import (language define-object))
 (import (language fundamental))
 (import (utils functions))
 (import (editor types primitive))
@@ -114,6 +115,140 @@
      (element:rotate-right! (- x border) (- y border))))
 
   )
+  
+(define-object (Stretched element::Enchanted size::Extent)::Maximizable
+  (define (set-size! width::real height::real)::void
+    (set! size:width width)
+    (set! size:height height))
+  
+  (define (draw! context::Cursor)::void
+    (let ((inner ::Extent (extent+ element)))
+      (painter:with-stretch
+	  (/ size:width inner:width)
+	  (/ size:height inner:height)
+	(lambda ()
+	  (element:draw! (recons 'element context))))))
+
+  (define (render!)::void
+    (draw! '()))
+  
+  (define (extent)::Extent
+    size)
+
+  (define (part-at index::Index)::Indexable*
+    (match index
+      ('element element)
+      (_ (this))))
+  
+  (define (first-index)::Index
+    'element)
+
+  (define (last-index)::Index
+    'element)
+
+  (define (next-index index::Index)::Index 'element)
+
+  (define (previous-index index::Index)::Index 'element)
+
+  (define (index< a::Index b::Index)::boolean #f)
+
+  (define (index< a::Index b::Index)::boolean
+    (and (is a eq? (first-index))
+	 (isnt b eq? (first-index))))
+
+  (define (cursor-under* x::real y::real path::Cursor)::Cursor*
+    (let* ((inner ::Extent (extent+ element))
+	   (x* (* (/ size:width inner:width) x))
+	   (y* (* (/ size:height inner:height) y))
+	   (path* (recons 'element path)))
+      (or (element:cursor-under* x* y* path*)
+	  path*)))
+  
+  (define (tap! finger::byte #;at x::real y::real)::boolean
+    (let* ((inner ::Extent (extent+ element))
+	   (x* (* (/ size:width inner:width) x))
+	   (y* (* (/ size:height inner:height) y)))
+      (element:tap! finger x* y*)))
+  
+  (define (press! finger::byte #;at x::real y::real)::boolean
+    (let* ((inner ::Extent (extent+ element))
+	   (x* (* (/ size:width inner:width) x))
+	   (y* (* (/ size:height inner:height) y)))
+      (element:press! finger x* y*)))
+  
+  (define (second-press! finger::byte #;at x::real y::real)::boolean
+    (let* ((inner ::Extent (extent+ element))
+	   (x* (* (/ size:width inner:width) x))
+	   (y* (* (/ size:height inner:height) y)))
+      (element:second-press! finger x* y*)))
+  
+  (define (double-tap! finger::byte x::real y::real)::boolean
+    (let* ((inner ::Extent (extent+ element))
+	   (x* (* (/ size:width inner:width) x))
+	   (y* (* (/ size:height inner:height) y)))
+      (element:double-tap! finger x* y*)))
+
+  (define (long-press! finger::byte x::real y::real)::boolean
+    (let* ((inner ::Extent (extent+ element))
+	   (x* (* (/ size:width inner:width) x))
+	   (y* (* (/ size:height inner:height) y)))
+      (element:long-press! finger x* y*)))
+
+  (define (key-typed! key-code::long context::Cursor)::boolean
+    (element:key-typed! key-code (recons 'element context)))
+
+  (define (value)::Object
+    (invoke-special Base 'to-list cons to-expression))
+
+  (define (scroll-up! x::real y::real)::boolean
+    (let* ((inner ::Extent (extent+ element))
+	   (x* (* (/ size:width inner:width) x))
+	   (y* (* (/ size:height inner:height) y)))
+      (element:scroll-up! x* y*)))
+  
+  (define (scroll-down! x::real y::real)::boolean
+    (let* ((inner ::Extent (extent+ element))
+	   (x* (* (/ size:width inner:width) x))
+	   (y* (* (/ size:height inner:height) y)))
+      (element:scroll-down! x* y*)))
+  
+  (define (scroll-left! x::real y::real)::boolean
+    (let* ((inner ::Extent (extent+ element))
+	   (x* (* (/ size:width inner:width) x))
+	   (y* (* (/ size:height inner:height) y)))
+      (element:scroll-left! x* y*)))
+  
+  (define (scroll-right! x::real y::real)::boolean
+    (let* ((inner ::Extent (extent+ element))
+	   (x* (* (/ size:width inner:width) x))
+	   (y* (* (/ size:height inner:height) y)))
+      (element:scroll-right! x* y*)))
+
+  (define (zoom-in! x::real y::real)::boolean
+    (let* ((inner ::Extent (extent+ element))
+	   (x* (* (/ size:width inner:width) x))
+	   (y* (* (/ size:height inner:height) y)))
+      (element:zoom-in! x* y*)))
+  
+  (define (zoom-out! x::real y::real)::boolean
+    (let* ((inner ::Extent (extent+ element))
+	   (x* (* (/ size:width inner:width) x))
+	   (y* (* (/ size:height inner:height) y)))
+      (element:zoom-out! x* y*)))
+
+  (define (rotate-left! x::real y::real)::boolean
+    (let* ((inner ::Extent (extent+ element))
+	   (x* (* (/ size:width inner:width) x))
+	   (y* (* (/ size:height inner:height) y)))
+      (element:rotate-left! x* y*)))
+  
+  (define (rotate-right! x::real y::real)::boolean
+    (let* ((inner ::Extent (extent+ element))
+	   (x* (* (/ size:width inner:width) x))
+	   (y* (* (/ size:height inner:height) y)))
+      (element:rotate-right! x* y*)))
+  
+  (MaximizableWidget))
 
 (define-type (Over back: Enchanted front: Enchanted)
   implementing Enchanted

@@ -1354,7 +1354,7 @@ by the AWT framework."))
     (set! painter (this))
     ;; cf. https://docs.oracle.com/javase/tutorial/2d/advanced/quality.html
     (graphics:setRenderingHints rendering-hints)
-    (screen:draw!))
+    (screen:render!))
 
   (define pointer ::TouchEventProcessor
     (TouchEventProcessor 0 screen (EventRunner (this)) vicinity: 1))

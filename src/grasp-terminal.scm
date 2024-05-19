@@ -188,7 +188,7 @@
 	     (size (or resize (io:getTerminalSize))))
 	(screen:set-size! (size:getColumns) (size:getRows))
 	(painter:clear!)
-	(screen:draw!)
+	(screen:render!)
 	;; swap front- and back-buffer
 	(io:refresh (if resize
 			LanternaScreen:RefreshType:COMPLETE
@@ -330,7 +330,7 @@
   (define background-color-stack ::java.util.Stack (java.util.Stack))
 
   (define (put! c::char row::real col::real)::void
-    (let ((screen ::Extent (screen:size))
+    (let ((screen ::Extent (screen:extent))
 	  (x (+ shiftLeft (nearby-int
 			   (* (slot-ref (this) 'horizontal-stretch)
 			      col))))
@@ -353,7 +353,7 @@
     (let* ((position ::Position (editor:cursor-position))
 	   (x ::real position:left)
 	   (y ::real position:top)
-	   (screen ::Extent (screen:size)))
+	   (screen ::Extent (screen:extent)))
       (when (and (is 0 <= x < screen:width)
 		 (is 0 <= y < screen:height))
 	(let ((letter (io:getBackCharacter x y)))
@@ -383,7 +383,7 @@
 	  (y (+ shiftTop
 		(nearby-int (* (slot-ref (this)
 					 'vertical-stretch) row))))
-	  (screen ::Extent (screen:size)))
+	  (screen ::Extent (screen:extent)))
       (if (and (is 0 <= x < screen:width)
 	       (is 0 <= y < screen:height))
 	  (let ((letter (io:getBackCharacter x y)))
