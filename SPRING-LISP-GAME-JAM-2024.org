@@ -1,0 +1,187 @@
+* Day 1 (May 17, 2024)
+
+Today is the first day of the Spring Lisp Game Jam 2024, so I will use
+it to clarify the concept for a game that I will be working on.
+
+First, the game is supposed to be using GRASP - the extensible
+structure Lisp editor of my own making (based on Kawa Scheme). I will
+use it as an opportunity to improve GRASP along the way.
+
+Second, my goal in making this game is to create an application for my
+daughter to learn the Polish alphabet. This is the only thing that I
+care about. I realize that most people probably won't find it fun to
+use, which is fine as long as they are not my daughter.
+
+Third, even though I put a lot of effort into making sure that GRASP
+will work on windowed desktop and in terminal, the game will only be
+available for Android. The reason for this is that Android comes
+with text to speech and speech to text APIs that work with the Polish
+language. I haven't found anything similar for the JVM.
+
+Fourth, even though GRASP is an editor, it is still too buggy and
+incomplete to use it for the actual development, so I will only use it
+as a runtime environment, and I will probably do most of the actual
+work in Emacs (in Termux, on my phone).
+
+Lastly, I'm going to use the GRASP repository for the development. I
+know that it might be a bit confusing to whoever comes here with the
+purpose of evaluating my submission, but I expect that I will be doing
+some contributions that are not directly related to the game, and
+synchronizing two separate projects would be a bit cumbersome - in
+particular because I haven't yet figured out the model of distributing
+GRASP applications, and while I plan to do it one day, I don't think
+GRASP is yet mature enough for that.
+
+** The idea for the game
+
+The name of the game is going to be "Literki". It is going to consist
+of a few mini-games:
+1. assembling words from tiles with letters
+2. reading written text out loud
+3. optionally, drawing letters on the screen (if time allows)
+
+Also, if I'm well on time, I could try adapting the app to languages
+and alphabets other than Polish (for example, I'd be happy to use
+it myself to learn Devanagari or Hiragana)
+ 
+** The development plan:
+
+1. develop LetterTile, LetterTileBoard and LetterTileSlot
+2. add a Play button to read the contents of LetterTileSlots
+   out loud
+3. develop main menu
+4. we'll see...
+
+* Day 2 (May 18, 2024)
+
+The entry point to the application will be the LetterTileBoard
+widget, which should implement the Maximizable interface.
+It is going to manage everything else.
+
+#+begin_src scheme
+
+  (define-object (DragLetterTile tile::LetterTile board::LetterTileBoard)::Drag
+    (define (move! x::real y::real dx::real dy::real)::void
+      (set! tile:left (+ tile:left dx))
+      (set! tile:top (+ tile:top dy)))
+
+    (define (drop! x::real y::real vx::real vy::real)::void
+      (escape-with break
+	(for slot ::LetterTileSlot in board:tile-slots
+	     (when (and (slot:below? x y)
+			(not slot:content))
+	       (set! slot:content tile)
+	       (board:scattered-tiles:remove tile)
+	       (board:check-move!)
+	       )))))
+
+  (define-object (LetterTile content::character)::Enchanted
+    (define left ::real 0)
+    (define top  ::real 0)
+
+    (define label ::string #;< (list->string `(,content)))
+
+    (define inner ::Extent (painter:caption-extent label))
+
+    (define outer ::Extent
+      (let* ((horizontal-margin
+	      ::real (painter:caption-horizontal-margin))
+	     (top-margin ::real
+			 (painter:caption-margin-top))
+	     (bottom-margin ::real
+			    (painter:caption-margin-bottom)))
+	(Extent width: (+ inner:width (* horizontal-margin 2))
+		height: (+ inner:height (+ top-margin bottom-margin)))))
+
+    (define (extent)::Extent
+      outer)
+
+    (define (draw-content!)
+      (painter:draw-rounded-rectangle!
+       outer:width outer:height)
+      (with-translation (horizontal-margin top-margin)
+	(painter:draw-caption! label)))
+
+    (define (draw!)
+      (with-translation (left top)
+	(draw-content!)))
+
+    (define (below? x::real y::real)::boolean
+      (and (is left <= x < (+ left width)) ;>>
+	   (is top <= y < (+ top height)))) ;>>
+    (Magic))
+
+  (define-object (LetterTileSlot content::LetterTile)
+
+    (define (draw-content!)
+      (if content
+	  (content:draw-content!)
+
+	  ...))
+
+    (LetterTile #\#))
+
+  (define-object (LetterTileBoard)::Maximizable
+    (define size :: Extent (Extent ...))
+
+    (define (extent)::Extent size)
+
+    (define (set-size! width::real height::real)::void
+      (set! size:width width)
+      (set! size:height height))
+
+    (define scattered-tiles ::($bracket-apply$
+			       java.util.LinkedList
+			       LetterTile)
+      (java.util.LinkedList))
+
+    (define tile-slots ::($bracked-apply$
+			  java.util.List
+			  LetterTileSlot)
+      (java.util.ArrayList))
+
+    (define (draw! context::Cursor)::void
+      (for slot ::LetterTileSlot in tile-slots
+	   (slot:draw!))
+      (for tile ::LetterTile in scattered-tiles
+	   (tile:draw!)))
+
+    (define (tap! finger::byte x::real y::real)::boolean
+      (escape-with return
+	(for tile ::LetterTile in scatteted-tiles
+	     (when (tile:below? x y)
+	       (tile:utter!)
+	       (return #t)))
+	(for slot ::LetterTileSlot in tile-slots
+	     (when (and (slot:below? x y)
+			slot:content)
+	       (slot:content:utter!)))))
+
+    (define (press! finger::byte x::real y::real)::boolean
+      (escape-with return
+	(for tile ::LetterTile in scatteted-tiles
+	     (when (tile:below? x y)
+	       (screen:drag! finger (DragLetterTile tile (this)))
+	       (return #t)))
+	(for slot ::LetterTileSlot in tile-slots
+	     (when (and (slot:below? x y)
+			slot:content)
+	       (scattered-tiles:addLast slot:content)
+	       (screen:drag! finger (DragLetterTile slot:content (this)))
+	       (set! slot:content #!null)
+	       (return #t)))
+	(return #f)))
+
+    (define (check-move!)::void
+      ...)
+
+    (MaximizableWidget))
+
+
+#+end_src
+
+* Day 3 (May 19, 2024)
+
+We need to create a module to store the jam-specific code, and also
+to modify the build script to pass it additional arguments
+(extra modules and the init script)
