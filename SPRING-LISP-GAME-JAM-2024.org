@@ -52,7 +52,7 @@ it myself to learn Devanagari or Hiragana)
 3. develop main menu
 4. we'll see...
 
-* Day 2 (May 18, 2024)
+* Days 2-4 (May 18-20, 2024)
 
 The entry point to the application will be the LetterTileBoard
 widget, which should implement the Maximizable interface.
@@ -72,8 +72,7 @@ It is going to manage everything else.
 			(not slot:content))
 	       (set! slot:content tile)
 	       (board:scattered-tiles:remove tile)
-	       (board:check-move!)
-	       )))))
+	       (board:check-move!))))))
 
   (define-object (LetterTile content::character)::Enchanted
     (define left ::real 0)
@@ -96,13 +95,15 @@ It is going to manage everything else.
     (define (extent)::Extent
       outer)
 
-    (define (draw-content!)
+    (define (draw-border!)::void
       (painter:draw-rounded-rectangle!
-       outer:width outer:height)
+       outer:width outer:height))
+
+    (define (draw-content!)::void
       (with-translation (horizontal-margin top-margin)
 	(painter:draw-caption! label)))
 
-    (define (draw!)
+    (define (draw! context::Cursor)::void
       (with-translation (left top)
 	(draw-content!)))
 
@@ -113,16 +114,19 @@ It is going to manage everything else.
 
   (define-object (LetterTileSlot content::LetterTile)
 
-    (define (draw-content!)
+    (define (draw-content!)::void
       (if content
 	  (content:draw-content!)
-
-	  ...))
+	  (invoke-special LetterTile (this) 'draw-border!)))
 
     (LetterTile #\#))
 
   (define-object (LetterTileBoard)::Maximizable
-    (define size :: Extent (Extent ...))
+    (define size ::Extent
+      (let* ((slot ::Tile (LetterTileSlot #!null))
+	     (extent ::Extent (slot:extent)))
+	(Extent width: (* 5 extent:width)
+		height: (* 5 extent:height))))
 
     (define (extent)::Extent size)
 
@@ -142,9 +146,9 @@ It is going to manage everything else.
 
     (define (draw! context::Cursor)::void
       (for slot ::LetterTileSlot in tile-slots
-	   (slot:draw!))
+	   (slot:draw! context))
       (for tile ::LetterTile in scattered-tiles
-	   (tile:draw!)))
+	   (tile:draw! context)))
 
     (define (tap! finger::byte x::real y::real)::boolean
       (escape-with return
@@ -173,7 +177,7 @@ It is going to manage everything else.
 	(return #f)))
 
     (define (check-move!)::void
-      ...)
+      (WARN "check-move! not implemented for LetterTileBoard"))
 
     (MaximizableWidget))
 
@@ -185,3 +189,8 @@ It is going to manage everything else.
 We need to create a module to store the jam-specific code, and also
 to modify the build script to pass it additional arguments
 (extra modules and the init script)
+
+* Day 4 (May 20, 2024)
+
+The preliminary version of the board seems to be in place.
+The task for today is to get it to run.

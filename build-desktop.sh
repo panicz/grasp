@@ -8,9 +8,17 @@ cd src
 KAWA_JAR="../libs/kawa.jar"
 JSVG="../libs/jsvg-1.0.0.jar"
 
-DEPS=`java -jar $KAWA_JAR --no-warn-unreachable \
- -f analdep.scm -- --list grasp-desktop.scm`
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -i) INIT="$2"; shift 2;;
+    --init=*) INIT="${1#*=}"; shift 1;;
+    *) break
+  esac
+done
 
+
+DEPS=`java -jar $KAWA_JAR --no-warn-unreachable \
+ -f analdep.scm -- --list grasp-desktop.scm` $@
 
 UPDATE=""
 for file in $DEPS
@@ -26,8 +34,6 @@ done
 
 echo $UPDATE
 
-set -x
-
 java -cp "../build/desktop/:$KAWA_JAR:$JSVG" kawa.repl \
      --no-warn-unreachable -d ../build/desktop -C \
      $UPDATE grasp-desktop.scm || exit
@@ -37,6 +43,11 @@ cd ..
 
 if [ ! -f build/desktop/assets ]; then
     cp -r assets build/desktop
+    if [ -z "$INIT" ]; then
+	cp init/init.scm build/desktop/assets/
+    else
+	cp $INIT build/desktop/assets/
+    fi
 fi
 
 cd build/desktop

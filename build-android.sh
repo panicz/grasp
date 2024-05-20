@@ -10,6 +10,14 @@ PKGNAME="$(grep -o "package=.*" AndroidManifest.xml | cut -d\" -f2)"
 
 JARS="../libs/kawa.jar:../libs/android.jar:../libs/androidsvg-1.4.jar"
 
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -i) INIT="$2"; shift 2;;
+    --init=*) INIT="${1#*=}"; shift 1;;
+    *) break
+  esac
+done
+
 aapt package -I tools/android.jar -f -m \
      -M "AndroidManifest.xml" \
      -J "build/android/gen" \
@@ -17,12 +25,13 @@ aapt package -I tools/android.jar -f -m \
 
 # -P $PKGNAME. -T $PKGNAME.Grasp
 
+
 cd src
 
 java -cp $JARS kawa.repl \
      --no-warn-unreachable -d ../build/android/obj -C \
      `java -jar ../libs/kawa.jar --no-warn-unreachable \
-      -f analdep.scm -- --list grasp-android.scm` || exit
+      -f analdep.scm -- --list grasp-android.scm` $@ || exit
 
 java -cp "$JARS:../build/android/obj" \
      kawa.repl --no-warn-unreachable -d ../build/android/obj \
@@ -37,11 +46,19 @@ java -cp tools/d8.jar com.android.tools.r8.D8 \
 
 mv classes.dex build/android/bin/
 
+if [ -z "$INIT" ]; then
+    cp init/init.scm assets/
+else
+    cp $INIT assets/
+fi
+
 aapt package -I tools/android.jar -f \
        	-M AndroidManifest.xml \
        	-S res \
        	-A assets \
        	-F build/android/bin/"$PKGNAME.apk" || exit
+
+rm assets/init.scm
 
 cd build/android/bin
 
