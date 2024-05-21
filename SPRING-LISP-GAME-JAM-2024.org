@@ -194,3 +194,24 @@ to modify the build script to pass it additional arguments
 
 The preliminary version of the board seems to be in place.
 The task for today is to get it to run.
+
+* Day 5 (May 21, 2024)
+
+After modifying the build system, I managed to build the modified
+apk using the command:
+
+#+begin_src bash
+  ./build-android.sh -i init/literki.scm extra/tile-board.scm
+#+end_src
+
+today we'd like to be able to set up the letters on the board,
+and possibly also to play the contents of the slots.
+
+so, the goal for today is to implement a new method to the board,
+namely "setup-solution!", which would do the following:
+
+- assign the positions to appropriate slots
+- scatter the letters around the board in such a manner that
+  neither the slots nor the buttons are obscured by them
+- add the buttons to play the solutuion, as well as the current
+  content of the slots
