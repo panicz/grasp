@@ -10,6 +10,10 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
+if [ -z "$INIT" ]; then
+    INIT="init/init.scm"
+fi
+
 mkdir -p build/terminal/assets
 cd src
 java -cp "../libs/lanterna-3.1.1.jar:../libs/kawa.jar" kawa.repl \
@@ -21,11 +25,8 @@ cd ..
 cp libs/lanterna-3.1.1.jar build/terminal
 cp libs/kawa.jar build/terminal
 
-if [ -z "$INIT" ]; then
-    cp init/init.scm build/terminal/assets/
-else
-    cp $INIT build/terminal/assets/
-fi
+cp $INIT build/terminal/assets/init.scm
+
 
 cd build/terminal
 unzip lanterna-3.1.1.jar || exit

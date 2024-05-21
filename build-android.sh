@@ -18,13 +18,16 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
+if [ -z "$INIT" ]; then
+    INIT="init/init.scm"
+fi
+
 aapt package -I tools/android.jar -f -m \
      -M "AndroidManifest.xml" \
      -J "build/android/gen" \
      -S "res" || exit
 
 # -P $PKGNAME. -T $PKGNAME.Grasp
-
 
 cd src
 
@@ -46,11 +49,7 @@ java -cp tools/d8.jar com.android.tools.r8.D8 \
 
 mv classes.dex build/android/bin/
 
-if [ -z "$INIT" ]; then
-    cp init/init.scm assets/
-else
-    cp $INIT assets/
-fi
+cp $INIT assets/init.scm
 
 aapt package -I tools/android.jar -f \
        	-M AndroidManifest.xml \

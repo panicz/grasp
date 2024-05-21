@@ -16,6 +16,9 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
+if [ -z "$INIT" ]; then
+    INIT="init/init.scm"
+fi
 
 DEPS=`java -jar $KAWA_JAR --no-warn-unreachable \
  -f analdep.scm -- --list grasp-desktop.scm` $@
@@ -43,11 +46,7 @@ cd ..
 
 if [ ! -f build/desktop/assets ]; then
     cp -r assets build/desktop
-    if [ -z "$INIT" ]; then
-	cp init/init.scm build/desktop/assets/
-    else
-	cp $INIT build/desktop/assets/
-    fi
+    cp $INIT build/desktop/assets/init.scm
 fi
 
 cd build/desktop

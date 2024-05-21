@@ -1712,6 +1712,8 @@
 		       (the-selection))
 		      ((x y) (transform:outside-in xe ye)))
 	   (and-let* ((path (cursor-under x y))
+		      (xd yd (document-position-of-element-pointed-by
+			      path (car document)))
 		      (`(,tip . ,subpath) path)
 		      (parent ::Element (the-expression
 					 at: subpath))

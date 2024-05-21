@@ -94,6 +94,9 @@
   (define (next-index index::Index)::Index 0)
   (define (previous-index index::Index)::Index 0)
 
+  (define (cursor-under* x::real y::real path::Cursor)::Cursor*
+    (and path (recons 0 path)))
+  
   (define (index< a::Index b::Index)::boolean #f)
 
   (define (extent)::Extent #!abstract)
