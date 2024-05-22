@@ -30,6 +30,7 @@
     (set! tile:top (+ tile:top dy)))
 
   (define (drop! x::real y::real vx::real vy::real)::void
+    (WARN "board release")
     (escape-with break
       (for slot ::LetterTileSlot in board:tile-slots
 	   (when (and (slot:below? x y)
@@ -78,6 +79,21 @@
   (define (below? x::real y::real)::boolean
     (and (is left <= x < (+ left outer:width))
 	 (is top <= y < (+ top outer:height))))
+
+  (define (typename)::String "LetterTile")
+
+  (define (common-fields->string)::String
+    (string-append
+     " left: "(number->string left)
+     " right: "(number->string right)
+     " width: "(number->string outer:width)
+     " height: "(number->string outer:height)))
+  
+  (define (fields->string)::String
+    (string-append
+     " label: "label
+     (common-fields->string)))
+  
   (Magic))
 
 (define-object (LetterTileSlot content::LetterTile)
@@ -87,6 +103,13 @@
 	(content:draw-content!)
 	(invoke-special LetterTile (this) 'draw-border!)))
 
+  (define (typename)::String "LetterTileSlot")
+
+  (define (fields->string)::String
+    (string-append
+     " content: "(if content (content:toString) "#!null")
+     (invoke-special LetterTile (this) 'common-fields->string)))
+  
   (LetterTile #\#))
 
 (define-object (LetterTileBoard solution ::string)::Maximizable
@@ -101,7 +124,7 @@
   (define (set-size! width::real height::real)::void
     (set! size:width width)
     (set! size:height height)
-    (arrange-slots&tiles!))
+    (arrange-slots-and-tiles!))
 
   (define scattered-tiles ::($bracket-apply$
 			     java.util.LinkedList
@@ -135,12 +158,15 @@
       (return #f)))
 
   (define (press! finger::byte x::real y::real)::boolean
+    (WARN "board pressed")
     (escape-with return
       (for tile ::LetterTile in scattered-tiles
+	   (WARN"testing "tile" against "x" "y)
 	   (when (tile:below? x y)
 	     (screen:drag! finger (DragLetterTile tile (this)))
 	     (return #t)))
       (for slot ::LetterTileSlot in tile-slots
+	   (WARN"testing "slot" against "x" "y)
 	   (when (and (slot:below? x y)
 		      slot:content)
 	     (scattered-tiles:addLast slot:content)
@@ -151,7 +177,7 @@
 
   (define random ::java.util.Random (java.util.Random))
   
-  (define (arrange-slots&tiles!)::void
+  (define (arrange-slots-and-tiles!)::void
     (unless (tile-slots:isEmpty)
       (assert (not (word-break-indices:isEmpty)))
 
@@ -163,19 +189,21 @@
 				 slot:width)))
 	     (words ::java.util.List (java.util.ArrayList))
 	     (word-start ::int 0))
-
+	
 	(for word-end ::int in word-break-indices
 	     (words:add (substring solution word-start word-end))
 	     (set! word-start word-end))
-	       
+
 	(let ((lines ::java.util.List (java.util.ArrayList))
 	      (line ::java.util.List (java.util.ArrayList)))
 
-	  (define (word-width word)
-	    (* slot:width (length word)))
+	  (define (word-width word::string)::real
+	    (* slot:width (string-length word)))
 	  
-	  (define (line-width line)
-	    (let ((width ::real (* slot:width (max 0 (- (length line) 1)))))
+	  (define (line-width line ::java.util.List)::real
+	    (let ((width ::real (* slot:width
+				   (max 0 (- (line:size)
+					     1)))))
 	      (for word ::string in line
 		   (set! width (+ width (word-width word))))
 	      width))
@@ -190,22 +218,23 @@
 	       (line:add word))
 
 	  (let* ((interline ::real (ceiling (/ slot:height 2)))
-		 (total-height (+ (* slot:height (length lines))
-				  (* interline (- (length lines) 1))))
-		 (top (floor (/ (- size:height total-height) 2)))
-		 (slot-index 0))
-	    (for line in lines
-	      (let ((left (/ (- size:width (line-width line)) 2)))
-		(for word in words
-		  (for letter in word
-		    (let* ((slot ::LetterTileSlot (tile-slots slot-index))
-			   (e ::Extent (slot:extent)))
-		      (set! slot:left left)
-		      (set! slot:top top)
-		      (set! left (+ left e:width))
-		      (set! slot-index (+ slot-index 1))))
-		  (set! left (+ left slot:width))
-		  (set! slot-index (+ slot-index 1))))
+		 (total-height ::real (+ (* slot:height (lines:size))
+					 (* interline (- (lines:size) 1))))
+		 (top ::real (floor (/ (- size:height total-height) 2)))
+		 (slot-index ::int 0))
+	    (for line ::java.util.List in lines
+	      (let ((left (/ (- size:width 1 (line-width line)) 2)))
+		(for word ::string in line
+		     (for letter in word
+		       (unless (char-whitespace? letter)
+			 (let* ((slot ::LetterTileSlot (tile-slots
+							slot-index))
+				(e ::Extent (slot:extent)))
+			   (set! slot:left left)
+			   (set! slot:top top)
+			   (set! left (+ left e:width))
+			   (set! slot-index (+ slot-index 1)))))
+		  (set! left (+ left slot:width))))
 	      (set! top (+ top slot:height interline)))
 	    (for tile ::LetterTile in scattered-tiles
 		 (set! tile:left (* (random:nextFloat)
@@ -229,9 +258,9 @@
        (else
 	(tile-slots:add (LetterTileSlot #!null))
 	(scattered-tiles:add (LetterTile character)))))
-
+    
     (word-break-indices:add (length tile-slots))
-    (arrange-slots&tiles!))
+    (arrange-slots-and-tiles!))
   
   (define (check-move!)::void
     (WARN "check-move! not implemented for LetterTileBoard"))
@@ -239,4 +268,5 @@
   (define (value)::Object
     (cons (Atom "LetterTileBoard") (empty)))
   
-  (MaximizableWidget))
+  (MaximizableWidget)
+  (setup-solution! solution))
