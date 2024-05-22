@@ -3,10 +3,12 @@
 (import (language define-interface))
 (import (language define-type))
 (import (language define-object))
+(import (language define-syntax-rule))
 (import (language infix))
 (import (language match))
 (import (language for))
 (import (language while))
+(import (language assert))
 (import (utils functions))
 (import (language fundamental))
 
@@ -87,7 +89,7 @@
 
   (LetterTile #\#))
 
-(define-object (LetterTileBoard)::Maximizable
+(define-object (LetterTileBoard solution ::string)::Maximizable
   (define size ::Extent
     (let* ((slot ::Tile (LetterTileSlot #!null))
 	   (extent ::Extent (slot:extent)))
@@ -98,7 +100,8 @@
 
   (define (set-size! width::real height::real)::void
     (set! size:width width)
-    (set! size:height height))
+    (set! size:height height)
+    (arrange-slots&tiles!))
 
   (define scattered-tiles ::($bracket-apply$
 			     java.util.LinkedList
@@ -108,6 +111,9 @@
   (define tile-slots ::java.util.List
     (java.util.ArrayList))
 
+  (define word-break-indices ::java.util.LinkedList
+    (java.util.LinkedList))
+  
   (define (draw! context::Cursor)::void
     (painter:draw-caption! "LetterTileBoard")
     (for slot ::LetterTileSlot in tile-slots
@@ -143,6 +149,90 @@
 	     (return #t)))
       (return #f)))
 
+  (define random ::java.util.Random (java.util.Random))
+  
+  (define (arrange-slots&tiles!)::void
+    (unless (tile-slots:isEmpty)
+      (assert (not (word-break-indices:isEmpty)))
+
+      (let* ((sample-slot ::LetterTileSlot (tile-slots 0))
+	     (slot ::Extent (sample-slot:extent))
+	     (max-line-width ::real
+			     (floor
+			      (/ (- size:width (* 2 slot:width))
+				 slot:width)))
+	     (words ::java.util.List (java.util.ArrayList))
+	     (word-start ::int 0))
+
+	(for word-end ::int in word-break-indices
+	     (words:add (substring solution word-start word-end))
+	     (set! word-start word-end))
+	       
+	(let ((lines ::java.util.List (java.util.ArrayList))
+	      (line ::java.util.List (java.util.ArrayList)))
+
+	  (define (word-width word)
+	    (* slot:width (length word)))
+	  
+	  (define (line-width line)
+	    (let ((width ::real (* slot:width (max 0 (- (length line) 1)))))
+	      (for word ::string in line
+		   (set! width (+ width (word-width word))))
+	      width))
+	  
+	  (lines:add line)
+	  
+	  (for word ::string in words
+	       (when (is (+ (word-width word)
+			    (line-width line)) >= max-line-width)
+		 (set! line (java.util.ArrayList))
+		 (lines:add line))
+	       (line:add word))
+
+	  (let* ((interline ::real (ceiling (/ slot:height 2)))
+		 (total-height (+ (* slot:height (length lines))
+				  (* interline (- (length lines) 1))))
+		 (top (floor (/ (- size:height total-height) 2)))
+		 (slot-index 0))
+	    (for line in lines
+	      (let ((left (/ (- size:width (line-width line)) 2)))
+		(for word in words
+		  (for letter in word
+		    (let* ((slot ::LetterTileSlot (tile-slots slot-index))
+			   (e ::Extent (slot:extent)))
+		      (set! slot:left left)
+		      (set! slot:top top)
+		      (set! left (+ left e:width))
+		      (set! slot-index (+ slot-index 1))))
+		  (set! left (+ left slot:width))
+		  (set! slot-index (+ slot-index 1))))
+	      (set! top (+ top slot:height interline)))
+	    (for tile ::LetterTile in scattered-tiles
+		 (set! tile:left (* (random:nextFloat)
+				    (- size:width slot:width)))
+		 (set! tile:top (+ top
+				   (* (random:nextFloat)
+				      (- size:height top
+					 slot:height))))))))))
+  
+  (define (setup-solution! utterance::string)::void
+    (set! solution utterance)
+    (tile-slots:clear)
+    (scattered-tiles:clear)
+    (word-break-indices:clear)
+    
+    (for character in utterance
+      (cond
+       ((char-whitespace? character)
+	(word-break-indices:add (length tile-slots)))
+       
+       (else
+	(tile-slots:add (LetterTileSlot #!null))
+	(scattered-tiles:add (LetterTile character)))))
+
+    (word-break-indices:add (length tile-slots))
+    (arrange-slots&tiles!))
+  
   (define (check-move!)::void
     (WARN "check-move! not implemented for LetterTileBoard"))
 
