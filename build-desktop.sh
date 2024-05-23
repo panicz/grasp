@@ -20,8 +20,8 @@ if [ -z "$INIT" ]; then
     INIT="init/init.scm"
 fi
 
-DEPS=`java -jar $KAWA_JAR --no-warn-unreachable \
- -f analdep.scm -- --list grasp-desktop.scm` $@
+DEPS="$(java -jar $KAWA_JAR --no-warn-unreachable \
+ -f analdep.scm -- --list grasp-desktop.scm) $@"
 
 UPDATE=""
 for file in $DEPS

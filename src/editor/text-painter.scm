@@ -860,6 +860,8 @@
 
   (define (clear!)::void #!abstract)
 
+  (define (request-redraw!)::void #!abstract)
+  
   (define (current-width)::real #!abstract)
 
   (define (current-height)::real #!abstract)
@@ -1118,6 +1120,9 @@
     (set! shiftLeft 0)
     (set! shiftTop 0))
 
+  (define (request-redraw!)::void
+    (values))
+  
   (define (mark-editor-cursor! +left::real +top::real editor::WithCursor)
     ::void
     (invoke-special CharPainter (this)

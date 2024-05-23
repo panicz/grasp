@@ -1342,6 +1342,9 @@
 		       (as int 9)
 		       (as int 9)))
 
+  (define (request-redraw!)::void
+    (repaint))
+  
   (define (clear!)::void
     (error "
 The `clear!' method is not implemented for the AWT,
@@ -1419,7 +1422,8 @@ by the AWT framework."))
 
   (define (componentResized event::ComponentEvent)::void
     (screen:set-size! (invoke (this) 'getWidth)
-		      (invoke (this) 'getHeight)))
+		      (invoke (this) 'getHeight))
+    (repaint))
 
   (define pending-animations
     ::java.util.Collection
@@ -1479,14 +1483,6 @@ by the AWT framework."))
  
     (set! painter application)
     (initialize-keymap)
-    
-    (safely
-     (let* ((input (gnu.kawa.io.InPort
-		   (java.io.InputStreamReader
-		    (load-resource "/assets/init.scm"))))
-	   (init-script (read-all input)))
-      (for expression in init-script
-	(eval expression))))
 
     (let ((window ::javax.swing.JFrame
 		  (javax.swing.JFrame title: "GRASP"
@@ -1496,8 +1492,20 @@ by the AWT framework."))
       (window:setDefaultCloseOperation
        javax.swing.JFrame:EXIT_ON_CLOSE)
       (window:setFocusTraversalKeysEnabled #f)
-      (window:setVisible #t))))
+      (window:setVisible #t)
+      (application:repaint)
+      
+      (safely
+       (let* ((input (gnu.kawa.io.InPort
+		      (java.io.InputStreamReader
+		       (load-resource "/assets/init.scm"))))
+	      (init-script (read-all input)))
+	 (for expression in init-script
+	   (eval expression))))
 
-(set! *print-base* 16)
+      (screen:set-size! (window:getWidth) (window:getHeight))
+      (window:repaint))))
+
+;;(set! *print-base* 16)
 
 (run-in-AWT-window)

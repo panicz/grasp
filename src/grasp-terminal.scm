@@ -393,6 +393,9 @@
   (define (clear!)::void
     (io:clear))
 
+  (define (request-redraw!)::void
+    (io:refresh LanternaScreen:RefreshType:COMPLETE))
+  
   (define (current-width)::real
     (let ((size (io:getTerminalSize)))
       (size:getColumns)))

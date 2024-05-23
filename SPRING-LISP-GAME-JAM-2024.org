@@ -215,3 +215,8 @@ namely "setup-solution!", which would do the following:
   neither the slots nor the buttons are obscured by them
 - add the buttons to play the solutuion, as well as the current
   content of the slots
+
+* Day 6 (May 22, 2024)
+
+There were some compilation issues that are now solved. It is
+now possible to place tiles inside slots

@@ -808,6 +808,9 @@
   (define (clear!)::void
     (canvas:drawRGB 255 255 255))
 
+  (define (request-redraw!)::void
+    (invalidate))
+  
   (define (vertical-bar-width)::real
     10)
 

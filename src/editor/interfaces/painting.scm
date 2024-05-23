@@ -121,7 +121,7 @@ def") ===> [Extent width: 3 height: 2])
    (the-transform-stack:removeFirst)))
 
 (define-interface Painter ()
-
+  
   (translate! x::real y::real)::void
   (rotate! angle::real)::void
   (with-clip w::real h::real action::(maps () to: void))::void
@@ -165,6 +165,8 @@ def") ===> [Extent width: 3 height: 2])
   
   (clear!)::void
 
+  (request-redraw!)::void
+  
   (draw-quoted-text! s::CharSequence context::Cursor)
   ::void
   (draw-string! s::CharSequence context::Cursor)
@@ -371,6 +373,9 @@ def") ===> [Extent width: 3 height: 2])
   (define (clear!)::void
     (values))
 
+  (define (request-redraw!)::void
+    (values))
+  
   (define (translate! x::real y::real)::void
     (values))
 
