@@ -78,9 +78,6 @@
   ;; window is resized
   (define size ::Extent (Extent width: 0 height: 0))
 
-  (define (set-painter! p::Painter)::void
-    (set! painter p))
-
   (define (drag! finger::byte action::Drag)::void
     (set! (dragging finger) action))
 

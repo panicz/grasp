@@ -220,3 +220,40 @@ namely "setup-solution!", which would do the following:
 
 There were some compilation issues that are now solved. It is
 now possible to place tiles inside slots
+
+* Day 7 (May 23, 2024)
+
+The Android client still renders stuff improperly (although on
+desktop everything looks good), so this needs to be fixed first.
+
+Second, we need to add the "ear" button, to hear the solution.
+Placing a tile in a slot should cause the whole thing to be read.
+
+** fixing the Android client
+
+OK, so regarding the Android client, the problem is that
+the painter is not set up properly within the interpreter
+on Android.
+
+One conceivable solution would be to import the
+(editor interfaces painting) module (and possibly its
+dependencies) and to evaluate '(set-painter! the-view)
+before the evaluation of the contents of "init.scm".
+
+Perhaps it would be possible to import a module from
+the kawa interpreter object itself, without resorting
+to the "eval" function, but we'd need to analyze the
+sources of Kawa for this.
+
+The code for importing seems to be contained in the
+kawa.standard.ImportFromLibrary module, which is
+a superclass of kawa.lang.Syntax, and contains a lot of
+complicated stuff which seems related to the compiler
+internals.
+
+But it seems that the actual work of importing stuff
+is done using the handleImport static method, which in turn
+refers to gnu.expr.ModuleManager.
+
+This stuff seems complicated, and at this moment, a call
+to eval seems inevitable.

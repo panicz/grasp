@@ -1517,7 +1517,6 @@
       (canvas:drawCircle left top 10.0 paint)))
 
   (define (onDraw c::Canvas)::void
-    (screen:set-painter! (this))
     (set! canvas c)
     (clear!)
     (safely
@@ -1559,7 +1558,7 @@
   (setFocusable #t)
   (invoke-special AndroidView (this)
 		  'getLocationInWindow window-position)
-  (WARN window-position)
+  ;;(WARN window-position)
   (setFocusableInTouchMode #t)
   ;;(setClickable #t)
   (paint:setFlags Paint:ANTI_ALIAS_FLAG))
@@ -1585,7 +1584,7 @@
 		    (resources:getDisplayMetrics)))
       (screen:set-size! metrics:widthPixels metrics:heightPixels))
 
-    (match config:orientation
+    #;(match config:orientation
       (,AndroidConfiguration:ORIENTATION_LANDSCAPE
        (WARN 'landscape (screen:extent)))
       (,AndroidConfiguration:ORIENTATION_PORTRAIT
@@ -1733,100 +1732,23 @@
 	 '())))))
 
   (define sync::android.os.Handler (android.os.Handler))
+
+  (define env ::gnu.mapping.Environment #!null)
+
+  (define scheme ::gnu.expr.Language #!null)
   
   (define (onCreate savedState::Bundle)::void
     (invoke-special AndroidActivity (this) 'onCreate
 		    savedState)
     (set! (default-transform) (lambda () (Isogonal)))
     (set! (current-message-handler) (ScreenLogger 100))
-    (let ((scheme ::gnu.expr.Language
-		  (or kawa.standard.Scheme:instance
-		      (kawa.standard.Scheme))))
-      (kawa.standard.Scheme:registerEnvironment)
-      ;; teraz bysmy sprobowali tutaj przeprowadzic jakas
-      ;; inicjalizacje
-      (letrec* ((env ::gnu.mapping.Environment
-		     (scheme:getEnvironment))
-		(random ::java.util.Random
-			(java.util.Random))
-		(signal ::($bracket-apply$
-			   java.util.concurrent.ConcurrentMap
-			   String BlockingQueue)
-			(java.util.concurrent.ConcurrentHashMap))
-		(new-utterance-id (lambda ()
-				    ::String
-				    (string-append
-				     "GRASP"
-				     (number->string
-				      (random:nextLong)
-				      36))))
-		(mouth ::Mouth
-		       (Mouth
-			(this)
-			(lambda (status)
-			  (mouth:setOnUtteranceProgressListener
-			   (object (android.speech.tts.UtteranceProgressListener)
-			     ((onDone utteranceId::String)::void
-			      (and-let* ((queue ::BlockingQueue
-						(signal:get utteranceId)))
-				(signal:remove utteranceId)
-				(queue:put #t)))
-
-			     ((onError utteranceId::String)::void
-			      (and-let* ((queue ::BlockingQueue
-						(signal:get utteranceId)))
-				(signal:remove utteranceId)
-				(queue:put #f)))
-			     			     
-			     ((onStart utteranceId::String)::void
-			      (values))
-			     ))))))
-	(define (say . words)::void
-	  (let ((text ::String (apply string-append words))
-		(id ::string (new-utterance-id))
-		(bundle ::Bundle (Bundle))
-		(queue ::BlockingQueue
-		       (ArrayBlockingQueue 1)))
-	    (bundle:putString
-	     Mouth:Engine:KEY_PARAM_UTTERANCE_ID id)
-	    (signal:put id queue)
-	    (match (mouth:speak text Mouth:QUEUE_ADD
-				bundle id)
-	      (,Mouth:SUCCESS
-	       (queue:take))
-	      (,Mouth:ERROR
-	       (signal:remove id)))))
-
-	(define (listen . prompt)::string
-	   (let ((recognized ::BlockingQueue (ArrayBlockingQueue 1)))
-	     (with-intent (recognize-speech
-			   (if (null? prompt)
-			       #!null
-			       (apply string-append prompt)))
-	       (lambda (resultCode response)
-		 (recognized:put 
-		  (and-let* ((intent ::Intent response)
-			     (extra ::java.util.List 
-				    (intent:getStringArrayListExtra
-				     RecognizerIntent:EXTRA_RESULTS))
-			     ((not (extra:isEmpty))))
-		    (extra 0)))))
-	     (let ((result (or (recognized:take) #!null)))
-	       (the-view:invalidate)
-	       result)))
-	
-	(define (ask question::string)::string
-	  (say question)
-	  (listen question))
-
-	(kawa.standard.Scheme:loadClass "kawa.lib.kawa.base" env)
-	
-	(gnu.mapping.Environment:setCurrent env)
-	(env:define 'mouth #!null mouth)
-	(env:define 'say #!null say)
-	(env:define 'listen #!null listen)
-	(env:define 'ask #!null ask)
-	))
+    
+    (set! scheme (or kawa.standard.Scheme:instance
+		     (kawa.standard.Scheme)))
+    (kawa.standard.Scheme:registerEnvironment)
+    (set! env (scheme:getEnvironment))
+    (kawa.standard.Scheme:loadClass "kawa.lib.kawa.base" env)    
+    (gnu.mapping.Environment:setCurrent env)
 
     (let* ((window ::AndroidWindow (invoke-special
 				    AndroidActivity
@@ -1917,8 +1839,87 @@
 		       (s:flush)
 		       (s:close)))))))))
     ;;(set! (save-file) external-save-file)
+
+    (letrec* ((random ::java.util.Random
+		      (java.util.Random))
+	      (signal ::($bracket-apply$
+			 java.util.concurrent.ConcurrentMap
+			 String BlockingQueue)
+		      (java.util.concurrent.ConcurrentHashMap))
+	      (new-utterance-id (lambda ()
+				  ::String
+				  (string-append
+				   "GRASP"
+				   (number->string
+				    (random:nextLong)
+				    36))))
+	      (mouth ::Mouth
+		     (Mouth
+		      (this)
+		      (lambda (status)
+			(mouth:setOnUtteranceProgressListener
+			 (object (android.speech.tts.UtteranceProgressListener)
+			   ((onDone utteranceId::String)::void
+			    (and-let* ((queue ::BlockingQueue
+					      (signal:get utteranceId)))
+			      (signal:remove utteranceId)
+			      (queue:put #t)))
+
+			   ((onError utteranceId::String)::void
+			    (and-let* ((queue ::BlockingQueue
+					      (signal:get utteranceId)))
+			      (signal:remove utteranceId)
+			      (queue:put #f)))
+			   
+			   ((onStart utteranceId::String)::void
+			    (values))
+			   ))))))
+      (define (say . words)::void
+	(let ((text ::String (apply string-append words))
+	      (id ::string (new-utterance-id))
+	      (bundle ::Bundle (Bundle))
+	      (queue ::BlockingQueue
+		     (ArrayBlockingQueue 1)))
+	  (bundle:putString
+	   Mouth:Engine:KEY_PARAM_UTTERANCE_ID id)
+	  (signal:put id queue)
+	  (match (mouth:speak text Mouth:QUEUE_ADD
+			      bundle id)
+	    (,Mouth:SUCCESS
+	     (queue:take))
+	    (,Mouth:ERROR
+	     (signal:remove id)))))
+
+      (define (listen . prompt)::string
+	(let ((recognized ::BlockingQueue (ArrayBlockingQueue 1)))
+	  (with-intent (recognize-speech
+			(if (null? prompt)
+			    #!null
+			    (apply string-append prompt)))
+	    (lambda (resultCode response)
+	      (recognized:put 
+	       (and-let* ((intent ::Intent response)
+			  (extra ::java.util.List 
+				 (intent:getStringArrayListExtra
+				  RecognizerIntent:EXTRA_RESULTS))
+			  ((not (extra:isEmpty))))
+		 (extra 0)))))
+	  (let ((result (or (recognized:take) #!null)))
+	    (the-view:invalidate)
+	    result)))
+      
+      (define (ask question::string)::string
+	(say question)
+	(listen question))
+
+      (env:define 'mouth #!null mouth)
+      (env:define 'say #!null say)
+      (env:define 'listen #!null listen)
+      (env:define 'ask #!null ask))
+    
     (set! view (View (this) sync))
     (set! the-view view)
+    (env:define 'the-view #!null the-view)
 
     (let* ((resources ::AndroidResources (getResources))
 	   (metrics ::DisplayMetrics
@@ -1931,20 +1932,37 @@
       #;AndroidView:SYSTEM_UI_FLAG_IMMERSIVE))
     (view:setFitsSystemWindows #t)
     (setContentView view)
-
+    (set-painter! view)
+    (view:request-redraw!)
+    
     (let* ((parent ::AndroidView (view:getParent))
 	   (span ::Rect (Rect))
 	   (observer ::ViewTreeObserver (parent:getViewTreeObserver)))
       (observer:addOnGlobalLayoutListener
        (lambda ()
 	 (parent:getWindowVisibleDisplayFrame span)
-	 (screen:set-size! (span:width) (span:height)))))
-    
-    (set-painter! view)
-    
-    (for expression in init-script
-      (safely
-       (eval expression)))
+	 (screen:set-size! (span:width) (span:height))))
+      (screen:set-size! (span:width) (span:height))
+
+      (for expression in '((import (language define-interface))
+			   (import (language define-object))
+			   (import (language define-type))
+			   (import (language define-syntax-rule))
+			   (import (language define-parameter))
+			   (import (language fundamental))
+			   (import (language examples))
+			   (import (language for))
+			   (import (editor interfaces painting))
+			   (set-painter! the-view))
+	(safely
+	 (eval expression)))
+
+      (for expression in init-script
+	(safely
+	 (eval expression)))
+      
+      (screen:set-size! (span:width) (span:height))
+      (view:request-redraw!))
     
     (let ((postpone ::Postponed (EventRunner sync view)))
       (for finger from 0 below 10
@@ -1952,7 +1970,7 @@
 		 (TouchEventProcessor finger screen
 				      postpone
 				      vicinity: 15))))
-    (set! screen:after-tap
+    #;(set! screen:after-tap
 	  (cons (lambda _
 		  (view:showKeyboard))
 		screen:after-tap))
