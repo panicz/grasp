@@ -257,3 +257,24 @@ refers to gnu.expr.ModuleManager.
 
 This stuff seems complicated, and at this moment, a call
 to eval seems inevitable.
+
+** adding the ear button
+
+I probably won't be able to make it today, because it's
+late. My minimal plan is to have two buttons
+- one with ear 👂 and another with lips 👄
+
+The whole word will be spoken whenever any of the slots
+is tapped.
+
+I also tested the current version on my daughter, and
+it seems that I need to change the strategy of fitting tiles
+to slots - a tile should be placed in a slot also if over
+a half of its area covers that slot.
+
+* Day 8 (May 24, 2024)
+
+- add ear button (to hear the solution)
+- add mouth button (to set up new solution)
+- when start dragging tiles, play letter sounds
+- when tapping tiles, play letter names

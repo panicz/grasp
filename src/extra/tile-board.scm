@@ -54,9 +54,13 @@
 	   (top-margin ::real
 		       (painter:caption-margin-top))
 	   (bottom-margin ::real
-			  (painter:caption-margin-bottom)))
-      (Extent width: (+ inner:width (* horizontal-margin 2))
-	      height: (+ inner:height (+ top-margin bottom-margin)))))
+			  (painter:caption-margin-bottom))
+	   (min-width ::real (+ inner:width (* horizontal-margin 2)))
+	   (min-height ::real (+ inner:height
+				 (+ top-margin bottom-margin)))
+	   (side ::real (max min-width min-height)))
+      (Extent width: side
+	      height: side)))
 
   (define (extent)::Extent
     outer)
@@ -114,7 +118,10 @@
   
   (LetterTile #\#))
 
-(define-object (LetterTileBoard solution ::string)::Maximizable
+(define-object (LetterTileBoard solution ::string
+				say::procedure
+				ask ::procedure)
+  ::Maximizable
   (define size ::Extent
     (let* ((slot ::Tile (LetterTileSlot #!null))
 	   (extent ::Extent (slot:extent)))
@@ -126,7 +133,7 @@
   (define (set-size! width::real height::real)::void
     (set! size:width width)
     (set! size:height height)
-    (arrange-slots-and-tiles!)
+    (arrange-content!)
     (painter:request-redraw!))
 
   (define scattered-tiles ::($bracket-apply$
@@ -139,48 +146,98 @@
 
   (define word-break-indices ::java.util.LinkedList
     (java.util.LinkedList))
+
+  (define utter-solution ::LetterTile
+    (LetterTile #\👂))
+
+  (define obtain-new-solution ::LetterTile
+    (LetterTile #\👄))
   
   (define (draw! context::Cursor)::void
+    (utter-solution:draw! context)
+    (obtain-new-solution:draw! context)
     (for slot ::LetterTileSlot in tile-slots
 	 (slot:draw! context))
     (for tile ::LetterTile in scattered-tiles
 	 (tile:draw! context)))
-
+  
   (define (tap! finger::byte x::real y::real)::boolean
-    (escape-with return
-      (for tile ::LetterTile in scattered-tiles
-	   (when (tile:below? x y)
-	     ;;(tile:utter!)
-	     (return #t)))
-      (for slot ::LetterTileSlot in tile-slots
-	   (when (and (slot:below? x y)
-		      slot:content)
-	     ;;(slot:content:utter!)
-	     (return #t)))
-      (return #f)))
+    (cond
+     ((find (lambda (tile ::LetterTile)
+	     (tile:below? x y))
+	   scattered-tiles)
+      => (lambda (tile ::LetterTile)
+	   (future (say tile:label))
+	   #t))
+
+     ((utter-solution:below? x y)
+      (future (say solution))
+      #t)
+
+     ((obtain-new-solution:below? x y)
+      (and-let* ((new-solution (ask "Podaj nowe słowo")))
+	(setup-solution! new-solution))
+      #t)
+     
+     ((and (any (lambda (slot::LetterTileSlot)
+		  (isnt slot:content eq? #!null))
+		tile-slots)
+	   (any (lambda (slot::LetterTileSlot)
+		  (slot:below? x y))
+		tile-slots))
+      (future (say (utterance)))
+      #t)
+
+     (else
+      #f)))
 
   (define (press! finger::byte x::real y::real)::boolean
-    (escape-with return
-      (for tile ::LetterTile in scattered-tiles
-	   ;;(WARN"testing "(tile:toString)" against "x" "y)
-	   (when (tile:below? x y)
-	     (screen:drag! finger (DragLetterTile tile (this)))
-	     (return #t)))
-      (for slot ::LetterTileSlot in tile-slots
-	   ;;(WARN"testing "(slot:toString)" against "x" "y)
-	   (when (and (slot:below? x y)
-		      slot:content)
-	     (scattered-tiles:addLast slot:content)
-	     (set! slot:content:left slot:left)
-	     (set! slot:content:top slot:top)
-	     (screen:drag! finger (DragLetterTile slot:content (this)))
-	     (set! slot:content #!null)
-	     (return #t)))
-      (return #f)))
+    (cond
+     ((find (lambda (tile ::LetterTile)
+	     (tile:below? x y))
+	   scattered-tiles)
+      => (lambda (tile ::LetterTile)
+	   (future (say tile:label))
+	   (screen:drag! finger (DragLetterTile tile (this)))
+	   #t))
 
+     ((find (lambda (slot ::LetterTileSlot)
+	     (and (slot:below? x y)
+		      slot:content))
+	   tile-slots)
+      => (lambda (slot ::LetterTileSlot)
+	   (future (say slot:content:label))
+	   (scattered-tiles:addLast slot:content)
+	   (set! slot:content:left slot:left)
+	   (set! slot:content:top slot:top)
+	   (screen:drag! finger (DragLetterTile slot:content (this)))
+	   (set! slot:content #!null)))
+     (else
+      #f)))
+     
   (define random ::java.util.Random (java.util.Random))
+
+  (define (utterance)::string
+    (let ((word ::int 0)
+	  (result ::string "")
+	  (letter ::int 0))
+      (for slot ::LetterTileSlot in tile-slots
+	   (cond
+	    ((= letter (word-break-indices word))
+	     (set! word (+ word 1))
+	     (set! letter (+ letter 1))
+	     (set! result (string-append result " ")))
+	    
+	    (slot:content
+	     (set! result (string-append result slot:content:label)))
+
+	    (else
+	     (set! result (string-append result " "))))
+      	   (set! letter (+ letter 1)))
+      (DUMP result)
+      result))
   
-  (define (arrange-slots-and-tiles!)::void
+  (define (arrange-content!)::void
     (unless (tile-slots:isEmpty)
       (assert (not (word-break-indices:isEmpty)))
 
@@ -196,12 +253,6 @@
 	(for word-end ::int in word-break-indices
 	     (words:add (substring solution word-start word-end))
 	     (set! word-start (+ word-end 1)))
-
-	(DUMP words word-break-indices)
-
-	(for word in words
-	  (WARN "<"word">"))
-
 	
 	(let ((lines ::java.util.List (java.util.ArrayList))
 	      (line ::java.util.List (java.util.ArrayList)))
@@ -219,7 +270,6 @@
 	  
 	  (lines:add line)
 
-	  
 	  (for word ::string in words
 	       (when (is (+ (word-width word)
 			    (line-width line)) >= max-line-width)
@@ -230,8 +280,22 @@
 	  (let* ((interline ::real (ceiling (/ slot:height 2)))
 		 (total-height ::real (+ (* slot:height (lines:size))
 					 (* interline (- (lines:size) 1))))
+		 (half-screen ::real (/ size:width 2))
 		 (top ::real (floor (/ (- size:height total-height) 2)))
 		 (slot-index ::int 0))
+
+	    (set! utter-solution:left
+		  (floor (/ (- half-screen slot:width) 2)))
+	    
+	    (set! utter-solution:top
+		  (floor (/ (- top slot:width) 2)))
+	    
+	    (set! obtain-new-solution:left
+		  (ceiling (+ half-screen (/ (- half-screen slot:width) 2))))
+
+	    (set! obtain-new-solution:top
+		  (floor (/ (- top slot:width) 2)))
+	    
 	    (for line ::java.util.List in lines
 	      (let ((left (ceiling (/ (- size:width 1 (line-width line)) 2))))
 		(for word ::string in line
@@ -258,6 +322,7 @@
   (define (setup-solution! utterance::string)::void
     (WARN "setting up "utterance)
     (set! solution utterance)
+    (future (say solution))
     (tile-slots:clear)
     (scattered-tiles:clear)
     (word-break-indices:clear)
@@ -274,7 +339,7 @@
 	     (scattered-tiles:add (LetterTile character))))))
     
     (word-break-indices:add (string-length utterance))
-    (arrange-slots-and-tiles!))
+    (arrange-content!))
   
   (define (check-move!)::void
     (WARN "check-move! not implemented for LetterTileBoard"))

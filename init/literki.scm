@@ -51,4 +51,4 @@
      (lambda args
        (apply invoke object method args)))))
 
-(screen:maximize! (LetterTileBoard "Pola"))
+(screen:maximize! (LetterTileBoard "POLA" say ask))

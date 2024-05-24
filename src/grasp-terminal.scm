@@ -502,6 +502,14 @@
     (set! (current-message-handler) (ignoring-message-handler))))
   (initialize-keymap)
   (safely
+   (eval '(define (ask . question)::string
+	    (WARN "speech recognition unavailable")
+	    #!null)))
+
+  (safely
+   (eval '(define (say . words)::void
+	    (WARN "speech synthesis umavailable"))))
+  (safely
    (let* ((input (gnu.kawa.io.InPort
 		  (java.io.InputStreamReader
 		   (load-resource "/assets/init.scm"))))
