@@ -30,15 +30,23 @@
     (set! tile:top (+ tile:top dy)))
 
   (define (drop! x::real y::real vx::real vy::real)::void
-    (escape-with break
-      (for slot ::LetterTileSlot in board:tile-slots
-	   (when (and (slot:below? x y)
-		      (not slot:content))
-	     (set! slot:content tile)
-	     (set! tile:left slot:left)
-	     (set! tile:top slot:top)
-	     (board:scattered-tiles:remove tile)
-	     (board:check-move!))))))
+    (and-let* ((slot ::LetterTileSlot
+		     (or (find (lambda (slot ::LetterTileSlot)
+				 (and (eq? slot:content #!null)
+				      (slot:below? x y)))
+			       board:tile-slots)
+			 (and-let* ((slot intersection
+					  (minimizing
+					   (lambda (slot::LetterTileSlot)
+					     (slot:intersection-extent tile))
+					   board:tile-slots))
+				    ((is intersection > 0.1)))
+			   slot))))
+      (set! slot:content tile)
+      (set! tile:left slot:left)
+      (set! tile:top slot:top)
+      (board:scattered-tiles:remove tile)
+      (board:check-move!))))
 
 (define-object (LetterTile content::gnu.text.Char)::Enchanted
   (define left ::real 0)
@@ -65,6 +73,29 @@
   (define (extent)::Extent
     outer)
 
+  (define (overlap-extent A-left ::real A-right ::real
+			  B-left ::real B-right ::real)
+    ::real
+    (assert (is A-left < A-right))
+    (assert (is B-left < B-right))
+    (if (and (is A-left <= B-right)
+	     (is A-right >= B-left))
+	(let ((overlap (/ (min (- A-right B-left)
+			       (- B-right A-left))
+			  (- (min A-right B-right)
+			     (max A-left B-left)))))
+	  (DUMP overlap)
+	  overlap)
+	0))
+
+  (define (intersection-extent other ::LetterTile)::real
+    (let ((right (+ left outer:width))
+	  (bottom (+ top outer:height))
+	  (other-right (+ other:left other:outer:width))
+	  (other-bottom (+ other:top other:outer:height)))
+      (* (overlap-extent left right other:left other-right) 
+	 (overlap-extent top bottom other:top other-bottom))))
+  
   (define (draw-border!)::void
     (painter:draw-rounded-rectangle!
      outer:width outer:height))
@@ -158,7 +189,7 @@
     (obtain-new-solution:draw! context)
     (for slot ::LetterTileSlot in tile-slots
 	 (slot:draw! context))
-    (for tile ::LetterTile in scattered-tiles
+    (for tile ::LetterTile in-reverse scattered-tiles
 	 (tile:draw! context)))
   
   (define (tap! finger::byte x::real y::real)::boolean
@@ -175,8 +206,9 @@
       #t)
 
      ((obtain-new-solution:below? x y)
-      (and-let* ((new-solution (ask "Podaj nowe słowo")))
-	(setup-solution! new-solution))
+      (future
+       (and-let* ((new-solution (ask "Podaj nowe słowo")))
+	 (setup-solution! new-solution)))
       #t)
      
      ((and (any (lambda (slot::LetterTileSlot)
@@ -198,6 +230,8 @@
 	   scattered-tiles)
       => (lambda (tile ::LetterTile)
 	   (future (say tile:label))
+	   (scattered-tiles:remove tile)
+	   (scattered-tiles:addFirst tile)
 	   (screen:drag! finger (DragLetterTile tile (this)))
 	   #t))
 
@@ -207,7 +241,7 @@
 	   tile-slots)
       => (lambda (slot ::LetterTileSlot)
 	   (future (say slot:content:label))
-	   (scattered-tiles:addLast slot:content)
+	   (scattered-tiles:addFirst slot:content)
 	   (set! slot:content:left slot:left)
 	   (set! slot:content:top slot:top)
 	   (screen:drag! finger (DragLetterTile slot:content (this)))
@@ -222,19 +256,16 @@
 	  (result ::string "")
 	  (letter ::int 0))
       (for slot ::LetterTileSlot in tile-slots
-	   (cond
-	    ((= letter (word-break-indices word))
+	   (when (= letter (word-break-indices word))
 	     (set! word (+ word 1))
 	     (set! letter (+ letter 1))
 	     (set! result (string-append result " ")))
-	    
-	    (slot:content
-	     (set! result (string-append result slot:content:label)))
-
-	    (else
-	     (set! result (string-append result " "))))
-      	   (set! letter (+ letter 1)))
-      (DUMP result)
+	   (set! result (string-append result
+				       (if slot:content
+					   slot:content:label
+					   " ")))
+	   (set! letter (+ letter 1)))
+      ;;(DUMP result)
       result))
   
   (define (arrange-content!)::void
@@ -320,7 +351,7 @@
 					  slot:height)))))))))))
   
   (define (setup-solution! utterance::string)::void
-    (WARN "setting up "utterance)
+    ;;(WARN "setting up "utterance)
     (set! solution utterance)
     (future (say solution))
     (tile-slots:clear)
@@ -342,7 +373,8 @@
     (arrange-content!))
   
   (define (check-move!)::void
-    (WARN "check-move! not implemented for LetterTileBoard"))
+    ;;(WARN "check-move! not implemented for LetterTileBoard")
+    (values))
 
   (define (value)::Object
     (cons (Atom "LetterTileBoard") (empty)))

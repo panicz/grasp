@@ -454,6 +454,30 @@
  (argmin+argmax length '(1 2) '(3) '(4 5 6))
  ===> (3) (4 5 6))
 
+(define (optimizing < limit property elements)
+  (let ((champion #!null)
+	(record limit))
+    (for x in elements
+      (let ((trial (property x)))
+	(when (is trial < record)
+	  (set! record trial)
+	  (set! champion x))))
+    (values champion record)))
+
+(define (minimizing property elements)
+  (optimizing < +inf.0 property elements))
+
+(e.g.
+ (minimizing length '(() (1 2 3) (a b)))
+ ===> () 0)
+
+(define (maximizing property elements)
+  (optimizing > -inf.0 property elements))
+
+(e.g.
+ (maximizing length '(() (1 2 3) (a b)))
+ ===> (1 2 3) 3)
+
 (define (numbers #!key
 		 (from::real 0)
 		 (to::real 0)

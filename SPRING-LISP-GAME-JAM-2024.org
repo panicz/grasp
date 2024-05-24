@@ -278,3 +278,6 @@ a half of its area covers that slot.
 - add mouth button (to set up new solution)
 - when start dragging tiles, play letter sounds
 - when tapping tiles, play letter names
+
+
+
