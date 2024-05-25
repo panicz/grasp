@@ -24,6 +24,19 @@
 (import (editor types extensions extensions))
 (import (utils print))
 
+
+(define (letter-name letter::gnu.text.Char)::string
+  (match (char-downcase letter)
+    (#\a "a") (#\b "by") (#\c "cy") (#\d "dy")
+    (#\e "e") (#\f "fy") (#\g "gy") (#\h "hy")
+    (#\i "i") (#\j "ji") (#\k "ky") (#\l "ly")
+    (#\ł "ły") (#\m "my") (#\n "ny") (#\ń "ni")
+    (#\o "o") (#\p "py") (#\q "ku") (#\r "ry")
+    (#\s "sy") (#\ś "śi") (#\t "ty") (#\u "u")
+    (#\v "wi") (#\w "wy") (#\x "ksy") (#\y "yi")
+    (#\z "zy") (#\ź "źi") (#\ż "ży")
+    (c (list->string (cons c '())))))
+
 (define-object (DragLetterTile tile::LetterTile board::LetterTileBoard)::Drag
   (define (move! x::real y::real dx::real dy::real)::void
     (set! tile:left (+ tile:left dx))
@@ -36,7 +49,7 @@
 				      (slot:below? x y)))
 			       board:tile-slots)
 			 (and-let* ((slot intersection
-					  (minimizing
+					  (maximizing
 					   (lambda (slot::LetterTileSlot)
 					     (slot:intersection-extent tile))
 					   board:tile-slots))
@@ -80,12 +93,10 @@
     (assert (is B-left < B-right))
     (if (and (is A-left <= B-right)
 	     (is A-right >= B-left))
-	(let ((overlap (/ (min (- A-right B-left)
-			       (- B-right A-left))
-			  (- (min A-right B-right)
-			     (max A-left B-left)))))
-	  (DUMP overlap)
-	  overlap)
+	(/ (min (- A-right B-left)
+		(- B-right A-left))
+	   (- (max A-right B-right)
+	      (min A-left B-left)))
 	0))
 
   (define (intersection-extent other ::LetterTile)::real
@@ -93,7 +104,7 @@
 	  (bottom (+ top outer:height))
 	  (other-right (+ other:left other:outer:width))
 	  (other-bottom (+ other:top other:outer:height)))
-      (* (overlap-extent left right other:left other-right) 
+      (* 1.0 (overlap-extent left right other:left other-right) 
 	 (overlap-extent top bottom other:top other-bottom))))
   
   (define (draw-border!)::void
@@ -133,7 +144,7 @@
   
   (Magic))
 
-(define-object (LetterTileSlot content::LetterTile)
+(define-object (LetterTileSlot index::int content::LetterTile)
 
   (define (draw-content!)::void
     (if content
@@ -145,16 +156,17 @@
   (define (fields->string)::String
     (string-append
      " content: "(if content (content:toString) "#!null")
+     " index: "(number->string index)
      (invoke-special LetterTile (this) 'common-fields->string)))
   
-  (LetterTile #\#))
+  (LetterTile (integer->char (+ index (char->integer #\0)))))
 
 (define-object (LetterTileBoard solution ::string
 				say::procedure
 				ask ::procedure)
   ::Maximizable
   (define size ::Extent
-    (let* ((slot ::Tile (LetterTileSlot #!null))
+    (let* ((slot ::Tile (LetterTileSlot 0 #!null))
 	   (extent ::Extent (slot:extent)))
       (Extent width: (* 5 extent:width)
 	      height: (* 5 extent:height))))
@@ -191,7 +203,12 @@
 	 (slot:draw! context))
     (for tile ::LetterTile in-reverse scattered-tiles
 	 (tile:draw! context)))
-  
+
+  (define (request-new-solution)
+    (future
+     (and-let* ((new-solution (ask "Podaj nowe hasło")))
+       (setup-solution! new-solution))))
+    
   (define (tap! finger::byte x::real y::real)::boolean
     (cond
      ((find (lambda (tile ::LetterTile)
@@ -202,13 +219,11 @@
 	   #t))
 
      ((utter-solution:below? x y)
-      (future (say solution))
+      (future (say "Aktualne hasło to "solution))
       #t)
 
      ((obtain-new-solution:below? x y)
-      (future
-       (and-let* ((new-solution (ask "Podaj nowe słowo")))
-	 (setup-solution! new-solution)))
+      (request-new-solution)
       #t)
      
      ((and (any (lambda (slot::LetterTileSlot)
@@ -229,7 +244,7 @@
 	     (tile:below? x y))
 	   scattered-tiles)
       => (lambda (tile ::LetterTile)
-	   (future (say tile:label))
+	   (future (say (letter-name tile:content)))
 	   (scattered-tiles:remove tile)
 	   (scattered-tiles:addFirst tile)
 	   (screen:drag! finger (DragLetterTile tile (this)))
@@ -237,15 +252,16 @@
 
      ((find (lambda (slot ::LetterTileSlot)
 	     (and (slot:below? x y)
-		      slot:content))
-	   tile-slots)
+		  slot:content))
+	    tile-slots)
       => (lambda (slot ::LetterTileSlot)
-	   (future (say slot:content:label))
-	   (scattered-tiles:addFirst slot:content)
-	   (set! slot:content:left slot:left)
-	   (set! slot:content:top slot:top)
-	   (screen:drag! finger (DragLetterTile slot:content (this)))
-	   (set! slot:content #!null)))
+	   (let ((tile ::LetterTile slot:content))
+	     (scattered-tiles:addFirst tile)
+	     (set! tile:left slot:left)
+	     (set! tile:top slot:top)
+	     (future (say (letter-name tile:content)))
+	     (screen:drag! finger (DragLetterTile tile (this)))
+	     (set! slot:content #!null))))
      (else
       #f)))
      
@@ -349,32 +365,57 @@
 				    (* (random:nextFloat)
 				       (- size:height top
 					  slot:height)))))))))))
+
+  (define round ::int 0)
+
+  (define round-won? ::boolean #f)
   
   (define (setup-solution! utterance::string)::void
-    ;;(WARN "setting up "utterance)
-    (set! solution utterance)
-    (future (say solution))
-    (tile-slots:clear)
-    (scattered-tiles:clear)
-    (word-break-indices:clear)
+    (set! round (+ round 1))
+    (set! round-won? #f)
+    (let ((utterance (if (even? round)
+			 (string-downcase utterance)
+			 (string-upcase utterance))))
+      (set! solution utterance)
+      (tile-slots:clear)
+      (scattered-tiles:clear)
+      (word-break-indices:clear)
 
-    (for i from 0 below (string-length utterance)
-	 (let ((character (utterance i)))
-	   
-	   (cond
-	    ((char-whitespace? character)
-	     (word-break-indices:add i))
-	    
-	    (else
-	     (tile-slots:add (LetterTileSlot #!null))
-	     (scattered-tiles:add (LetterTile character))))))
-    
-    (word-break-indices:add (string-length utterance))
-    (arrange-content!))
+      (for i from 0 below (string-length utterance)
+	   (let ((character (utterance i)))
+	     
+	     (cond
+	      ((char-whitespace? character)
+	       (word-break-indices:add i))
+	      
+	      (else
+	       (tile-slots:add (LetterTileSlot i #!null))
+	       (scattered-tiles:add (LetterTile character))))))
+      
+      (word-break-indices:add (string-length utterance))
+
+      (future (say "spróbuj ułożyć"
+		   (if (is (word-break-indices:size) > 1)
+		       " wyrażenie "
+		       " słowo ")
+		   solution))
+      
+      (arrange-content!)))
   
   (define (check-move!)::void
-    ;;(WARN "check-move! not implemented for LetterTileBoard")
-    (values))
+    (let ((current (utterance)))
+      (cond
+       ((and (string-ci=? solution current)
+	     (not round-won?))
+	(set! round-won? #t)
+	(say "gratulacje! udało ci się ułożyć"
+	     (if (is (word-break-indices:size) > 1)
+		 " wyrażenie "
+		 " słowo ")
+	     solution)
+	(request-new-solution))
+       (else
+	(future (say current))))))
 
   (define (value)::Object
     (cons (Atom "LetterTileBoard") (empty)))
