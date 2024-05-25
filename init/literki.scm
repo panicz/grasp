@@ -51,4 +51,7 @@
      (lambda args
        (apply invoke object method args)))))
 
-(screen:maximize! (LetterTileBoard "POLA" say ask))
+(slot-set! screen 'top (LetterTileBoard "POLA" say ask))
+(invoke (slot-ref screen 'top) 'set-size!
+	(slot-ref (slot-ref screen 'size) 'width)
+	(slot-ref (slot-ref screen 'size) 'height))

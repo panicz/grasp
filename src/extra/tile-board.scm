@@ -28,12 +28,12 @@
 (define (letter-name letter::gnu.text.Char)::string
   (match (char-downcase letter)
     (#\a "a") (#\b "by") (#\c "cy") (#\d "dy")
-    (#\e "e") (#\f "fy") (#\g "gy") (#\h "hy")
-    (#\i "i") (#\j "ji") (#\k "ky") (#\l "ly")
+    (#\e "e") (#\f "fy") (#\g "g") (#\h "h")
+    (#\i "i") (#\j "j") (#\k "k") (#\l "ly")
     (#\ł "ły") (#\m "my") (#\n "ny") (#\ń "ni")
-    (#\o "o") (#\p "py") (#\q "ku") (#\r "ry")
+    (#\o "o") (#\p "py") (#\q "ku") (#\r "re")
     (#\s "sy") (#\ś "śi") (#\t "ty") (#\u "u")
-    (#\v "wi") (#\w "wy") (#\x "ksy") (#\y "yi")
+    (#\v "wi") (#\w "wy") (#\x "ksy") (#\y "yj")
     (#\z "zy") (#\ź "źi") (#\ż "ży")
     (c (list->string (cons c '())))))
 
@@ -51,7 +51,9 @@
 			 (and-let* ((slot intersection
 					  (maximizing
 					   (lambda (slot::LetterTileSlot)
-					     (slot:intersection-extent tile))
+					     (if slot:content
+						 0
+						 (slot:intersection-extent tile)))
 					   board:tile-slots))
 				    ((is intersection > 0.1)))
 			   slot))))
@@ -205,9 +207,8 @@
 	 (tile:draw! context)))
 
   (define (request-new-solution)
-    (future
-     (and-let* ((new-solution (ask "Podaj nowe hasło")))
-       (setup-solution! new-solution))))
+    (and-let* ((new-solution (ask "Podaj nowe hasło")))
+      (setup-solution! new-solution)))
     
   (define (tap! finger::byte x::real y::real)::boolean
     (cond
@@ -215,15 +216,21 @@
 	     (tile:below? x y))
 	   scattered-tiles)
       => (lambda (tile ::LetterTile)
-	   (future (say tile:label))
+	   (future (say (letter-name tile:content)))
 	   #t))
 
      ((utter-solution:below? x y)
-      (future (say "Aktualne hasło to "solution))
-      #t)
+      (future
+       (begin
+	 (say "Aktualne hasło to "(string-downcase solution))
+	 (unless (is (word-break-indices:size) > 1)
+	   (say (string-join
+		 (string-split solution "")
+		 " ")))
+	 #t)))
 
      ((obtain-new-solution:below? x y)
-      (request-new-solution)
+      (future (request-new-solution))
       #t)
      
      ((and (any (lambda (slot::LetterTileSlot)
@@ -232,7 +239,7 @@
 	   (any (lambda (slot::LetterTileSlot)
 		  (slot:below? x y))
 		tile-slots))
-      (future (say (utterance)))
+      (future (say (string-downcase (utterance))))
       #t)
 
      (else
@@ -244,7 +251,7 @@
 	     (tile:below? x y))
 	   scattered-tiles)
       => (lambda (tile ::LetterTile)
-	   (future (say (letter-name tile:content)))
+	   (future (say tile:label))
 	   (scattered-tiles:remove tile)
 	   (scattered-tiles:addFirst tile)
 	   (screen:drag! finger (DragLetterTile tile (this)))
@@ -259,7 +266,7 @@
 	     (scattered-tiles:addFirst tile)
 	     (set! tile:left slot:left)
 	     (set! tile:top slot:top)
-	     (future (say (letter-name tile:content)))
+	     (future (say tile:label))
 	     (screen:drag! finger (DragLetterTile tile (this)))
 	     (set! slot:content #!null))))
      (else
@@ -404,18 +411,17 @@
   
   (define (check-move!)::void
     (let ((current (utterance)))
-      (cond
-       ((and (string-ci=? solution current)
-	     (not round-won?))
+      (when (and (string-ci=? solution current)
+		 (not round-won?))
 	(set! round-won? #t)
-	(say "gratulacje! udało ci się ułożyć"
-	     (if (is (word-break-indices:size) > 1)
-		 " wyrażenie "
-		 " słowo ")
-	     solution)
-	(request-new-solution))
-       (else
-	(future (say current))))))
+	(future
+	 (begin
+	   (say "gratulacje! udało ci się ułożyć"
+		(if (is (word-break-indices:size) > 1)
+		    " wyrażenie "
+		    " słowo ")
+		solution)
+	   (request-new-solution))))))
 
   (define (value)::Object
     (cons (Atom "LetterTileBoard") (empty)))
