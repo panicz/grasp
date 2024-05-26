@@ -1,3 +1,50 @@
+* 12.05.2024
+
+No dobra, zalozmy ze mamy takie cos:
+
+(parameterize ((p v))
+  (future (f ... (p) ...)))
+
+to problem tutaj jest taki, ze watek wolajacy wyjdzie z zasiegu szybciej, niz
+watek potomny.
+
+
+Zastanowmy sie, dlaczego to, co jest w Kawie, w ogole dziala.
+
+(parameterize ((p v))
+  (future (set! (p) v2))
+  )
+
+
+1. watek glowny przypisuje wartos v parametrowi p
+2. tworzymy nowy watek
+3. przywracamy stara wartosc parametru
+
+I teraz: jak to dziala z ThreadLocation?
+
+A konkretnie - dlaczego w tym przypadku mamy dostep do starej wartosci?
+
+
+No bo ogolnie chcielibysmy to miec mniej wiecej tak jak jest teraz, tylko
+ze ta wartosc to powinna byc lokacja.
+
+
+* 11.05.2024 (komputer)
+
+moze bysmy zmodyfikowali "parameterize" w Kawie
+w taki sposob, zeby zamiast ThreadLocation uzywac
+SharedLocation, i zobaczyli, jak sie zachowa taki
+oto snipet kodu:
+
+#+BEGIN_SRC scheme
+(define x (make-parameter 0))
+
+(parameterize ((x 1))
+  (force (future (set! (x) 2)))
+  (display (x)))
+
+#+END_SRC
+
 * 11.05.2024
 
 no to teraz przed game-jamem przydaloby sie skupic na nastepujacych
@@ -30,7 +77,6 @@ a, co do samych gier:
 - ukladanie wyrazow z wypowiedzi
 - czytanie wyrazow
   
-
 * 10.05.2024
 
 dzisiaj bysmy zrobili tak:
