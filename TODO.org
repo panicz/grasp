@@ -1,3 +1,36 @@
+* 11.05.2024
+
+no to teraz przed game-jamem przydaloby sie skupic na nastepujacych
+funkcjonalnosciach:
+- maksymalizacja widgetu
+- ewaluacja rozszerzen podczas parsowania
+
+pomijajac wszystko inne, wydaje sie, ze warto by bylo w koncu
+doprowadzic do sytuacji, w ktorej mozemy uzywac GRASPa do edytowania
+i budowania jego samego.
+
+Przed game jamem wydaje malo prawdopodobne, zeby dalo sie to
+calkowicie zrobic, bo raczej nie zrobimy wyszukiwania.
+
+Ale chodziloby o to, zeby miec narzedzie, ktore buduje calego
+GRASPa + plik inicjalizujacy.
+
+Wszelako trzeba bedzie pomyslec, jakie moduly maja byc
+kompilowane (dokompilowywane), zeby wszystko mialo szanse
+dzialac.
+
+Do samej gry bedziemy musieli zrobic takie oto funkcjonalnosci:
+- klocki z literkami
+- pola na klocki z literkami
+- maksymalizowalna plansze
+
+a, co do samych gier:
+- ukladanie wyrazow ze slownika
+- rysowanie liter
+- ukladanie wyrazow z wypowiedzi
+- czytanie wyrazow
+  
+
 * 10.05.2024
 
 dzisiaj bysmy zrobili tak:
