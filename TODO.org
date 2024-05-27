@@ -1,3 +1,55 @@
+* 27.05.2024
+
+no dobra, to teraz musimy troche pokombinowac.
+do tej pory uzylismy takiej strategii, ze
+po prostu sprawdzalismy nowsze pliki, i tylko
+te dodawalismy do nowej kompilacji.
+Ale to najwidoczniej nie dziala.
+
+Zatem pozadane rozwiazanie byloby takie, ze
+najpierw budujemy sobie graf zaleznosci,
+i nastepnie przebudowujemy wszystkie moduly,
+ktore zaleza od zmienionego modulu.
+
+To mogloby dzialac w taki sposob, ze w katalogu build/cache
+trzymamy wszystkie pliki .class, ale jezeli jakas zaleznosc
+sie zaktualizuje, to kasujemy te pliki, przy czym przez
+'te pliki' rozumiemy rowniez klasy pochodne, tzn. jezeli
+$m jest nazwa modulu Kawy, a $jm jej javowym odpowiednikiem,
+to wszystkie pliki o nazwach $jm\$[0-9]*.class oraz
+$jm\$frame[0-9]*.class stanowia pliki pochodne
+
+* 26.05.2024
+
+uff, mamy za soba lispowy game jam - i wydaje sie, ze w miare sie
+udalo.
+
+najwazniejszy wniosek na razie jest taki, ze musimy cos zrobic, zeby
+przyspieszyc czas kompilacji, a takze zwiekszyc elastycznosc systemu
+budowania - przynajmniej o tyle, zeby mozna bylo w rozny sposob
+nazywac pliki wynikowe (najlepiej zeby AndroidManifest.xml byl
+generowany).
+
+Moglibysmy tez uwspolnic skrypt budujacy wszystkie 3 wersje,
+poniewaz pliki .class raczej beda we wszystkich przypadkach
+takie same.
+
+Poza przyspieszeniem kompilacji chcielibysmy tez poprawic
+'developer experience' tak zeby w przyszlosci tego rodzaju
+gre dalo sie stworzyc bez wychodzenia z edytora.
+
+Warto jednak zaczac przynajmniej od tego, zeby te gre dalo sie
+odpalac bezposrednio z edytora.
+
+* 17-25.05.2024
+
+logi w pliku 'SPRING-LISP-GAME-JAM-2024.org' na branchu
+spring-lisp-game-jam-2024.
+
+* 13-16.05.2024
+
+(chyba zgubilismy jakies dane)
+
 * 12.05.2024
 
 No dobra, zalozmy ze mamy takie cos:
@@ -5,8 +57,8 @@ No dobra, zalozmy ze mamy takie cos:
 (parameterize ((p v))
   (future (f ... (p) ...)))
 
-to problem tutaj jest taki, ze watek wolajacy wyjdzie z zasiegu szybciej, niz
-watek potomny.
+to problem tutaj jest taki, ze watek wolajacy wyjdzie z zasiegu
+szybciej, niz watek potomny.
 
 
 Zastanowmy sie, dlaczego to, co jest w Kawie, w ogole dziala.
@@ -22,11 +74,12 @@ Zastanowmy sie, dlaczego to, co jest w Kawie, w ogole dziala.
 
 I teraz: jak to dziala z ThreadLocation?
 
-A konkretnie - dlaczego w tym przypadku mamy dostep do starej wartosci?
+A konkretnie - dlaczego w tym przypadku mamy dostep do starej
+wartosci?
 
 
-No bo ogolnie chcielibysmy to miec mniej wiecej tak jak jest teraz, tylko
-ze ta wartosc to powinna byc lokacja.
+No bo ogolnie chcielibysmy to miec mniej wiecej tak jak jest teraz,
+tylko ze ta wartosc to powinna byc lokacja.
 
 
 * 11.05.2024 (komputer)
@@ -120,8 +173,8 @@ No dobra. Ewaluacje w osobnym watku juz mamy - teraz jedyny problem
 jest taki, ze parametry zachowuja unikatowosc w obrebie watku, a nie
 w obrebie zasiegu, i przez to kursor sie nie aktualizuje odpowiednio.
 
-Ponadto, dobrze by bylo dorobic inwalidacje ekranu po stronie paintera,
-zeby moc to wywolywac z poziomu ewaluacji.
+Ponadto, dobrze by bylo dorobic inwalidacje ekranu po stronie
+paintera, zeby moc to wywolywac z poziomu ewaluacji.
 
 Jednak zamiast skupiac sie na tych problemach, zajmijmy sie raczej
 synchronizacja czasu ewaluacji wyrazenia z czasem wypowiedzi,
