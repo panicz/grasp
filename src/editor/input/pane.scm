@@ -40,9 +40,19 @@
 (import (editor types extensions widgets))
 (import (editor types extensions combinators))
 (import (editor input transforms))
-(import (editor input gestures))
 
 (define-alias Array java.util.Arrays)
+
+(define-type (Recognizer name: string
+			 recognizes: (maps ((sequence-of Position))
+					   to: Object)
+			 action: (maps (Recognizer (sequence-of
+						    Position) Object)
+				       to: void)))
+
+(define-early-constant the-recognizers
+  ::java.util.List
+  (java.util.ArrayList))
 
 (define-object (Point x::real y::real color::long)::Layer
   (define (render!)

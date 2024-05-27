@@ -23,17 +23,6 @@
 (import (editor input evaluation))
 (import (editor types extensions visual-stepper))
 
-(define-type (Recognizer name: string
-			 recognizes: (maps ((sequence-of Position))
-					   to: Object)
-			 action: (maps (Recognizer (sequence-of
-						    Position) Object)
-				       to: void)))
-
-(define-early-constant the-recognizers
-  ::java.util.List
-  (java.util.ArrayList))
-
 (define (distance-to-line-through p1::Position p2::Position)
   ::(maps (Position) to: real)
   (let* ((dx ::real (- p2:left p1:left))
