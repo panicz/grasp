@@ -19,6 +19,28 @@ $m jest nazwa modulu Kawy, a $jm jej javowym odpowiednikiem,
 to wszystkie pliki o nazwach $jm\$[0-9]*.class oraz
 $jm\$frame[0-9]*.class stanowia pliki pochodne
 
+W takiej sytuacji trzeba by bylo zaczac od budowania
+grafu zaleznosci. Byc moze tez przy tej okazji mozna by sie
+zastanowic nad budowa rozszerzenia do wizualizacji grafu,
+przy czym dobrze by bylo sobie ten graf posortowac w warstwy,
+takie ze:
+
+- na samej gorze sa moduly, ktore nie maja zadnych
+  zaleznosci
+- na samym dole sa moduly
+
+i dalej: "przedostatnie pietra" to moduly, ktore
+odnosza sie tylko do modulow na samej gorze;
+"przed-przedostatnie pietra" to moduly, ktore
+moga sie dodatkowo odnosic do modulow z przedostatniego
+pietra
+itd.
+
+moglibysmy zaczac od tego, ze - skoro i tak budujemy graf w narzedziu
+do analizy - sprobowalibysmy sobie dodac opcje "--layers" do tego narzedzia?
+
+
+
 * 26.05.2024
 
 uff, mamy za soba lispowy game jam - i wydaje sie, ze w miare sie
