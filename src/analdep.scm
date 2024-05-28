@@ -38,7 +38,11 @@
 		     (string-drop name 2)))
 	      (string-split (shell "find . -name *.scm") "\n")))
 
-(define list?::boolean #f)
+(define list? ::boolean #f)
+
+(define layers? ::boolean #f)
+
+(define dump? ::boolean #f)
 
 (define files
   (match (command-line)
@@ -48,6 +52,18 @@
     (`(,command "--" "--list" . ,args)
      (set! list? #t)
      args)
+    
+    (`(,command "--" "--layers" . ,args)
+     (set! layers? #t)
+     (if (null? args)
+	 (all-scm-files-from-subdirectories)
+	 args))
+
+    (`(,command "--" "--dump" . ,args)
+     (set! dump? #t)
+     (if (null? args)
+	 (all-scm-files-from-subdirectories)
+	 args))
     
     (`(,command "--" . ,args)
      args)))
@@ -114,4 +130,35 @@
 	 (display (module-file module))
 	 (display " "))))
 
+(when dump?
+  (for module in (keys files-dependency-graph)
+    (print module ": "(files-dependency-graph module))))
+
+(define (graph-layers graph)
+  (let loop ((modules (keys graph))
+	     (layers '())
+	     (allowed-dependencies '()))
+    
+    (let-values (((layer modules)
+		  (partition (is (only (isnt _ system-module?)
+				       (graph _)) subset?
+				 allowed-dependencies)
+			     modules)))
+      (cond
+       ((null? modules)
+	`(,layer . ,layers))
+       ((null? layer)
+	(print "empty layer with remaining modules: "modules)
+	layers)
+       (else
+	(loop modules
+	      `(,layer . ,layers)
+	      `(,@layer ,@allowed-dependencies)))))))
+
+(when layers?
+  (let ((layers (graph-layers files-dependency-graph)))
+    (for layer in layers
+      (print layer)
+      (newline))))
+     
 (exit)

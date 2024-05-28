@@ -844,3 +844,25 @@
 (e.g.
  (fix-list (lambda (x) (min (+ x 1) 10)) 0)
  ===> (0 1 2 3 4 5 6 7 8 9 10))
+
+(define (partition satisfying? elements)
+  (let* ((satisfying (cons #f '()))
+	 (unsatisfying (cons #f '()))
+	 (satisfying+ satisfying)
+	 (unsatisfying+ unsatisfying))
+    
+    (for element in elements
+      (cond
+       ((satisfying? element)
+	(set-cdr! satisfying+ (cons element '()))
+	(set! satisfying+ (cdr satisfying+)))
+       (else
+	(set-cdr! unsatisfying+ (cons element '()))
+	(set! unsatisfying+ (cdr unsatisfying+)))))
+    (values
+     (cdr satisfying)
+     (cdr unsatisfying))))
+
+(e.g.
+ (partition even? '(1 2 3 4 5))
+ ===> (2 4) (1 3 5))
