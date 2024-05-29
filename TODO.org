@@ -1,3 +1,48 @@
+* 28.05.2024
+
+ok, to mamy juz sobie te warstwy zaleznosci - choc na razie
+tylko w narzedziu do analizy. troche nam to porzadkuje w glowie,
+aczkolwiek duzo lepiej byloby moc je sobie jakos zwizualizowac
+na widgecie.
+
+tym niemniej, naszym celem jest usprawnienie procesu buildow,
+przy czym on powinien wygladac tak, ze:
+- po pierwszym buildzie mamy sobie katalog build/cache,
+  zawierajacy pliki .class i ewentualnie pliki .dex
+- po zmianie w jakims module wszystkie moduly, ktore
+  od niego zaleza, kasujemy, i budujemy od nowa
+  
+(jako zmiane rozumiemy to, ze timestamp pliku .scm jest
+pozniejszy od timestampu pliku .class)
+
+No dobrze, to teraz rzecz tak wyglada, ze skrypt budujacy
+powinien:
+1. przeanalizowac zaleznosci glownych modulow
+   (grasp-android, grasp-desktop, grasp-terminal)
+2. sprawdzic, ktore moduly sa nowsze od odpowiadajacych
+   im plikow .class
+3. znalezc wszystkie moduly zalezace od zmodyfikowanych
+   modulow
+4. skasowac nieaktualne pliki .class (co dotyczy
+   rowniez plikow xxx$frame[0-9]* oraz xxx$[0-9]*)
+5. w srodowisku build/cache - tak zeby Kawa miala do tego
+   dostep - nakazac zbudowanie rzeczonych modulow
+
+Byc moze proces bedzie jeszcze musial uwzglednic kopiowanie
+plikow .scm - na potrzeby kompilacji, ale rowniez na potrzeby
+dystrybucji.
+
+Jednak na razie zostawmy ten temat na boku, i raczej skupmy sie
+na samym procesie budowania.
+
+Moze bysmy to zrobili w taki sposob, ze skrypt build.sh
+tworzy katalog "build/cache" i kopiuje do niego plik
+"src/build.scm" (wraz z innymi plikami), i stamtad go
+wykonuje?
+
+Hmm, no trudno powiedziec.
+
+
 * 27.05.2024
 
 no dobra, to teraz musimy troche pokombinowac.
