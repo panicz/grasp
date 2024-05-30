@@ -1,3 +1,15 @@
+* 29.05.2024
+
+byc moze dobrym pomyslem byloby uczynienie "analdep"
+modulem ladowanym przez build.scm - albo wyodrebnienie
+wspolnej funkcjonalnosci?
+
+na razie wylane: chcemy po prostu miec dzialajacy build system.
+docelowo analdep.scm po prostu wywalimy, a funkcjonalnosc
+sprawdzania zaleznosci wyodrebmimy do skryptu budujacego.
+
+
+
 * 28.05.2024
 
 ok, to mamy juz sobie te warstwy zaleznosci - choc na razie
