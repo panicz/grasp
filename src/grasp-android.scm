@@ -1970,7 +1970,7 @@
 		 (TouchEventProcessor finger screen
 				      postpone
 				      vicinity: 15))))
-    #;(set! screen:after-tap
+    (set! screen:after-tap
 	  (cons (lambda _
 		  (view:showKeyboard))
 		screen:after-tap))

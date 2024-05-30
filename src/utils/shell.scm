@@ -9,8 +9,9 @@
 
 (define runtime ::Runtime (Runtime:getRuntime))
 
-(define (shell command::string)::string
-  (let ((process ::Process (runtime:exec command)))
+(define (shell . command-parts)::string
+  (let* ((command ::string (apply string-append command-parts))
+	 (process ::Process (runtime:exec command)))
     (process:waitFor)
     (let* ((output ::InputStream (process:getInputStream))
 	   (bytes ::int (output:available))

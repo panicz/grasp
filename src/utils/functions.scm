@@ -227,21 +227,13 @@
  ===> (a + (b + (c + (d + e)))))
 
 (define (only cool? stuff)
-  (if (null? stuff)
-      '()
-      (let ((a (car stuff)))
-	(if (cool? a)
-	    (let* ((result (cons a '()))
-		   (tip result))
-	      (let loop ((stuff (cdr stuff)))
-		(if (null? stuff)
-		    result
-		    (let ((b (car stuff)))
-		      (when (cool? b)
-			(set! (cdr tip) (cons b '()))
-			(set! tip (cdr tip)))
-		      (loop (cdr stuff))))))
-	    (only cool? (cdr stuff))))))
+  (let* ((result (cons #f '()))
+	 (cone result))
+    (for x in stuff
+      (when (cool? x)
+	(set-cdr! cone (cons x '()))
+	(set! cone (cdr cone))))
+    (cdr result)))
 
 (e.g.
  (only even? '(1 2 3 4 5 6))
