@@ -31,6 +31,24 @@
      ;; value would also be fine here.
      (error 'no-matching-pattern value))
 
+    ((match/evaluated value (pattern::type actions ...) final-clause)
+     (match-clause ((pattern::type value))
+                   (and)
+                   ()
+                   actions ...
+		   (with-compile-options
+		    warn-unreachable: #f
+                    (match/evaluated value final-clause))))
+    
+    ((match/evaluated value (pattern actions ...) final-clause)
+     (match-clause ((pattern value))
+                   (and)
+                   ()
+                   actions ...
+		   (with-compile-options
+		    warn-unreachable: #f		   
+                    (match/evaluated value final-clause))))
+    
     ((match/evaluated value (pattern::type actions ...) . clauses)
      (match-clause ((pattern::type value))
                    (and)
@@ -43,7 +61,8 @@
                    (and)
                    ()
                    actions ...
-                   (match/evaluated value . clauses)))))
+                   (match/evaluated value . clauses)))
+    ))
 
 (define-syntax match-clause
   (lambda (stx)

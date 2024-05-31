@@ -170,6 +170,8 @@
 	     methods ...)
 	   (set! (constructor 'type-name)
 		 (lambda (properties)
+		   (with-compile-options
+		    warn-unreachable: #f
 		   (let ((item (type-name)))
 		     (let init ((properties properties))
 		       (otherwise item
@@ -177,7 +179,7 @@
 				     properties))
 			   (slot-set! item (keyword->symbol key)
 				      value)
-			   (init rest)))))))))
+			   (init rest))))))))))
 
       ((_ type-name parent interfaces
 	  (slot-keyword slot-type := value . fields)

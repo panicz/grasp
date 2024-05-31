@@ -61,7 +61,10 @@
 
     ;; fin case with some _s -- generate a lambda
     ((extract-_ fin (() args body))
-     (lambda args (fin (infix/postfix . body))))
+     (lambda args
+       (with-compile-options
+	warn-unknown-member: #f
+	(fin (infix/postfix . body)))))
 
     ;; treat 'is' and 'isnt' operators specially and
     ;; don't touch their _s

@@ -2,8 +2,11 @@
 #|
 mkdir -p build/cache
 
-exec java -jar "libs/kawa.jar" -Dkawa.import.path="|:.:build/cache:src" \
-  --no-warn-unreachable --no-warn-unknown-member -f "$0"
+JARS=`ls libs/*.jar | tr '\n' ':' | sed 's/:$//'`
+
+exec java -cp "$JARS:build/cache" kawa.repl \
+  -Dkawa.import.path="|:.:build/cache:src" \
+  -f "$0"
 |#
 
 (import (kawa regex))
@@ -39,11 +42,14 @@ exec java -jar "libs/kawa.jar" -Dkawa.import.path="|:.:build/cache:src" \
 	  (walk #;from novel #;into visited))))
   (walk #;from (graph node) #;into '()))
 
+(define (file path::string)::java.io.File
+  (java.io.File (as String path)))
+
 (define (files #!key (from ::(either string java.io.File) ".")
 	       (matching ".*"))::(list-of java.io.File)
   (let ((directory ::java.io.File
 		   (if (string? from)
-		       (java.io.File (as String from))
+		       (file from)
 		       from))
 	(result '()))
     (assert (directory:isDirectory))
@@ -61,9 +67,7 @@ exec java -jar "libs/kawa.jar" -Dkawa.import.path="|:.:build/cache:src" \
      (map string->symbol (string-split core "/")))))
 
 (define (module-file module-name ::(list-of symbol))::java.io.File
-  (java.io.File
-   (as String
-       (string-append "src/" (string-join module-name "/") ".scm"))))
+  (file (string-append "src/" (string-join module-name "/") ".scm")))
 
 (define source-files ::(list-of java.io.File)
   (files from: "src" matching: "[.]scm$"))
@@ -132,8 +136,7 @@ exec java -jar "libs/kawa.jar" -Dkawa.import.path="|:.:build/cache:src" \
 	     (try "^build/cache/([^.]*)[$][0-9]*.class$")
 	     (try "^build/cache/([^.]*).class$")
 	     (error "invalid class file: "class-file))))
-    (java.io.File
-     (as String (string-append "src/"stem".scm")))))
+    (file (string-append "src/"stem".scm"))))
 
 ;; i teraz chcemy zrobic dwie rzeczy:
 ;; po pierwsze, zbudowac liste plikow .class do skasowania
@@ -218,4 +221,35 @@ exec java -jar "libs/kawa.jar" -Dkawa.import.path="|:.:build/cache:src" \
 	 (graph-layers module-dependency-graph
 		       (map module-name source-files-to-build))))))
 
-(print build-list)
+(define (target-file-name+directory source-file ::java.io.File)
+  ::(Values string java.io.File)
+  (match (regex-match "^src/([^.]*)[.]scm$" (source-file:getPath))
+    (`(,_ ,stem)
+     (match (regex-match "(.*)/([^/]*)$" stem)
+       (`(,_ ,path ,name)
+	(values
+	 (string-append name ".zip")
+	 (file (string-append "build/cache/" path))))))))
+
+
+(define (build-file source ::string directory ::string)::void
+  (let* ((messages ::gnu.text.SourceMessages
+                   (gnu.text.SourceMessages))
+         (comp ::gnu.expr.Compilation
+               (kawa.lang.CompileFile:read (source:toString)  messages)))
+    (set! comp:explicit #t)
+    (if (messages:seenErrors)
+        (primitive-throw (gnu.text.SyntaxException messages)))
+    (comp:outputClass directory)
+    (if (messages:seenErrors)
+        (primitive-throw (gnu.text.SyntaxException messages)))))
+
+
+(for file::java.io.File in build-list
+  (print "building "file)
+  (let-values (((name::string dir::java.io.File)
+		(target-file-name+directory file)))
+    (dir:mkdirs)
+    (let ((target (string-append (dir:getPath) "/" name)))
+      (compile-file (file:getPath) target))))
+

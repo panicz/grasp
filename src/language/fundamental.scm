@@ -37,8 +37,10 @@
 (define (copy object)
   (cond
    ((instance? object java.lang.Cloneable)
-    (let ((clonable ::java.lang.Cloneable object))
-      (clonable:clone)))
+    (with-compile-options
+     warn-unknown-member: #f
+     (let ((clonable ::java.lang.Cloneable object))
+       (clonable:clone))))
    ((procedure? object)
     (let ((clone (procedure-property object 'clone)))
       (if (procedure? clone)
