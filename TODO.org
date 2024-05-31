@@ -1,3 +1,16 @@
+* 30.05.2024
+
+no to dzis bysmy zrobili tak, zeby uzyskac w skrypcie
+budujacym:
+- liste modulow do skompilowania (poprzez usuniecie
+  z listy wszystkich modulow tych, dla ktorych
+  mamy nowsze pliki .class)
+- liste plikow .class do skasowania (w sklad ktorych
+  beda wchodzic te pliki .class, ktorych odpowiedniki
+  .scm sa nowsze, albo ktorych odpowiedniki .scm
+  maja wsrod swoich zaleznosci pliki .scm, ktorych
+  pliki .class powinny zostac skasowane)
+
 * 29.05.2024
 
 byc moze dobrym pomyslem byloby uczynienie "analdep"
@@ -7,8 +20,6 @@ wspolnej funkcjonalnosci?
 na razie wylane: chcemy po prostu miec dzialajacy build system.
 docelowo analdep.scm po prostu wywalimy, a funkcjonalnosc
 sprawdzania zaleznosci wyodrebmimy do skryptu budujacego.
-
-
 
 * 28.05.2024
 
