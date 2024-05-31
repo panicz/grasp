@@ -1,3 +1,13 @@
+* 31.05.2024
+
+wydaje sie, ze sledzenie zaleznosci mamy juz zrobione,
+i na razie chcemy zbudowac pliki .class.
+
+W jakiejs mierze to juz dziala, tyle ze pliki trafiaja
+do archiwow .zip. Pytanie czy jest jakis sposob, zeby
+to obejsc (mozna je rozzipowac, ale moze uda sie
+przetrzepac zrodla Kawy, zeby tego uniknac)
+
 * 30.05.2024
 
 no to dzis bysmy zrobili tak, zeby uzyskac w skrypcie
