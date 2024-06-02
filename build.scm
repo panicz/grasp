@@ -27,6 +27,8 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 (import (language for))
 (import (language define-cache))
 
+(import (utils shell))
+
 (define-syntax-rule (print elements ...)
   (display elements)
   ...
@@ -232,7 +234,7 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 	 (file (string-append "build/cache/" path))))))))
 
 
-(define (build-file source ::string directory ::string)::void
+#;(define (build-file source ::string directory ::string)::void
   (let* ((messages ::gnu.text.SourceMessages
                    (gnu.text.SourceMessages))
          (comp ::gnu.expr.Compilation
@@ -245,11 +247,61 @@ exec java -cp "$JARS:build/cache" kawa.repl \
         (primitive-throw (gnu.text.SyntaxException messages)))))
 
 
+(define (unzip archive ::string #!key (into ::string "."))::void
+  (print "decompressing "archive" into "into)
+  (let* ((dir ::java.io.File (java.io.File (as String into)))
+	 (buffer ::(array-of byte) ((array-of byte) length: 1024))
+	 (data ::java.io.FileInputStream
+	       (java.io.FileInputStream (java.io.File archive)))
+	 (source ::java.util.zip.ZipInputStream
+		 (java.util.zip.ZipInputStream data)))
+    (let next-entry ()
+      (let ((entry ::java.util.zip.ZipEntry (source:getNextEntry)))
+	(when entry
+	  (print "deflating "entry)
+	  (let ((file ::java.io.File (java.io.File dir (entry:getName))))
+	    (if (entry:isDirectory)
+		(file:mkdirs)
+		(let ((parent ::java.io.File (file:getParentFile)))
+		  (parent:mkdirs)
+		  (let ((output ::java.io.FileOutputStream
+				(java.io.FileOutputStream file)))
+		    (let rewrite-next ()
+		      (let ((n ::int (source:read buffer))) ;<
+			(when (is n > 0)
+			  (output:write buffer 0 n)
+			  (rewrite-next))))
+		    (output:close)))))
+	  (next-entry))))
+    (source:closeEntry)
+    (source:close)))
+
+(define (delete filename ::string)
+  (let ((file ::java.io.File
+	      (java.io.File (as String filename))))
+    (file:delete)))
+
+(define (file-exists? filename ::string)::java.io.File
+  (let ((file ::java.io.File
+	      (java.io.File (as String filename))))
+    (if (file:exists)
+	file
+	#!null)))
+
 (for file::java.io.File in build-list
-  (print "building "file)
   (let-values (((name::string dir::java.io.File)
 		(target-file-name+directory file)))
     (dir:mkdirs)
-    (let ((target (string-append (dir:getPath) "/" name)))
-      (compile-file (file:getPath) target))))
+    (let ((target (string-append #;(dir:getPath) "build/cache/" name)))
+      (print "building "(file:getPath)" into "target)
+      (compile-file (file:getPath) target)
+      (unzip target into: "build/cache")
+      (delete target)
+      (and-let* ((src ::java.io.File (file-exists? "build/cache/src"))
+		 ((src:isDirectory)))
+	(shell "mv build/cache/src/* build/cache")
+	(unless (delete "build/cache/src")
+	  (print "failed to remove build/cache/src")
+	  (display (shell "tree build/cache/src"))))
+      (flush-output-port))))
 
