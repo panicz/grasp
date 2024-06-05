@@ -1,3 +1,27 @@
+* 03.06.2024
+
+dzis bysmy napisali sobie funkcje do przrnoszenia plikow
+z jedbego katalogu do innego
+
+#+begin_src scheme
+  (define (as-file path::(either string java.io.File))::java.io.File
+    (if (java.io.File? path)
+	path
+	(java.io.File (as String path))))
+
+  (define (move-files #!key from to)
+    ::void
+    (let ((source-directory ::java.io.File (as-file from))
+	  (target-directory ::java.io.File (as-file to)))
+      (for file::java.io.File in (source-directory:listFiles)
+	(if (file:isDirectory)
+	    (move-files from: file to: (java.io.File target-directory
+						     (file:getName)))
+	    (file:renameTo (java.io.File target-directory
+					 (file:getName)))))))
+#+end_src
+
+
 * 01.06.2024
 
 bysmy moze sprobowali tej sciezki z odzipowywaniem
