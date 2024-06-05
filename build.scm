@@ -4,8 +4,8 @@ mkdir -p build/cache
 
 JARS=`ls libs/*.jar | tr '\n' ':' | sed 's/:$//'`
 
-exec java -cp "$JARS:build/cache" kawa.repl \
-  -Dkawa.import.path="|:.:build/cache:src" \
+exec java -cp "$JARS:./build/cache" kawa.repl \
+  -Dkawa.import.path="|:./build/cache/:.:./src" \
   -f "$0"
 |#
 
@@ -32,7 +32,8 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 (define-syntax-rule (print elements ...)
   (display elements)
   ...
-  (display #\newline))
+  (display #\newline)
+  (flush-output-port))
 
 (define (reach #;of graph #;from node)
   (define (walk #;from novel #;into visited)
@@ -44,15 +45,14 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 	  (walk #;from novel #;into visited))))
   (walk #;from (graph node) #;into '()))
 
-(define (file path::string)::java.io.File
-  (java.io.File (as String path)))
+(define (as-file path::(either string java.io.File))::java.io.File
+  (if (java.io.File? path)
+      path
+      (java.io.File (as String path))))
 
 (define (files #!key (from ::(either string java.io.File) ".")
 	       (matching ".*"))::(list-of java.io.File)
-  (let ((directory ::java.io.File
-		   (if (string? from)
-		       (file from)
-		       from))
+  (let ((directory ::java.io.File (as-file from))
 	(result '()))
     (assert (directory:isDirectory))
     (for file ::java.io.File in (directory:listFiles)
@@ -69,7 +69,7 @@ exec java -cp "$JARS:build/cache" kawa.repl \
      (map string->symbol (string-split core "/")))))
 
 (define (module-file module-name ::(list-of symbol))::java.io.File
-  (file (string-append "src/" (string-join module-name "/") ".scm")))
+  (as-file (string-append "src/" (string-join module-name "/") ".scm")))
 
 (define source-files ::(list-of java.io.File)
   (files from: "src" matching: "[.]scm$"))
@@ -111,7 +111,7 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 	       (is m in (reach module-dependency-graph m)))
 	     (keys module-dependency-graph))))
   (when (isnt circular-dependencies null?)
-    (print "circular dependencies between "
+    (print"circular dependencies between "
 	   circular-dependencies)
     (exit)))
 
@@ -138,7 +138,7 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 	     (try "^build/cache/([^.]*)[$][0-9]*.class$")
 	     (try "^build/cache/([^.]*).class$")
 	     (error "invalid class file: "class-file))))
-    (file (string-append "src/"stem".scm"))))
+    (as-file (string-append "src/"stem".scm"))))
 
 ;; i teraz chcemy zrobic dwie rzeczy:
 ;; po pierwsze, zbudowac liste plikow .class do skasowania
@@ -178,7 +178,7 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 	 (module (module-name scm)))
     (cond
      ((isnt scm in source-files)
-      (print "The cache contains a .class file"
+      (print"The cache contains a .class file"
 	     " with no .scm counterpart: "class))
      ((is (class:lastModified) <= (scm:lastModified))
       (let ((affected-modules `(,module . ,(module-users module))))
@@ -208,7 +208,7 @@ exec java -cp "$JARS:build/cache" kawa.repl \
        ((null? modules)
 	`(,layer . ,layers))
        ((null? layer)
-	(print "empty layer with remaining modules")
+	(print"empty layer with remaining modules")
 	`(,modules . ,layers))
        (else
 	(loop modules
@@ -225,13 +225,14 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 
 (define (target-file-name+directory source-file ::java.io.File)
   ::(Values string java.io.File)
+  (print source-file)
   (match (regex-match "^src/([^.]*)[.]scm$" (source-file:getPath))
     (`(,_ ,stem)
      (match (regex-match "(.*)/([^/]*)$" stem)
        (`(,_ ,path ,name)
 	(values
 	 (string-append name ".zip")
-	 (file (string-append "build/cache/" path))))))))
+	 (as-file (string-append "build/cache/" path))))))))
 
 
 #;(define (build-file source ::string directory ::string)::void
@@ -248,7 +249,7 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 
 
 (define (unzip archive ::string #!key (into ::string "."))::void
-  (print "decompressing "archive" into "into)
+  (print"decompressing "archive" into "into)
   (let* ((dir ::java.io.File (java.io.File (as String into)))
 	 (buffer ::(array-of byte) ((array-of byte) length: 1024))
 	 (data ::java.io.FileInputStream
@@ -258,7 +259,7 @@ exec java -cp "$JARS:build/cache" kawa.repl \
     (let next-entry ()
       (let ((entry ::java.util.zip.ZipEntry (source:getNextEntry)))
 	(when entry
-	  (print "deflating "entry)
+	  (print"deflating "entry)
 	  (let ((file ::java.io.File (java.io.File dir (entry:getName))))
 	    (if (entry:isDirectory)
 		(file:mkdirs)
@@ -276,12 +277,26 @@ exec java -cp "$JARS:build/cache" kawa.repl \
     (source:closeEntry)
     (source:close)))
 
+(define (move-files #!key from to)
+  ::void
+  (let ((source-directory ::java.io.File (as-file from))
+	(target-directory ::java.io.File (as-file to)))
+    (for file::java.io.File in (source-directory:listFiles)
+      (cond
+       ((file:isDirectory)
+	(move-files from: file to: (java.io.File target-directory
+						 (file:getName)))
+	(file:delete))
+       (else
+	(file:renameTo (java.io.File target-directory
+				     (file:getName))))))))
+
 (define (delete filename ::string)
   (let ((file ::java.io.File
 	      (java.io.File (as String filename))))
     (file:delete)))
 
-(define (file-exists? filename ::string)::java.io.File
+(define (existing-file filename ::string)::java.io.File
   (let ((file ::java.io.File
 	      (java.io.File (as String filename))))
     (if (file:exists)
@@ -293,15 +308,12 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 		(target-file-name+directory file)))
     (dir:mkdirs)
     (let ((target (string-append #;(dir:getPath) "build/cache/" name)))
-      (print "building "(file:getPath)" into "target)
+      (print"building "(file:getPath)" into "target)
       (compile-file (file:getPath) target)
       (unzip target into: "build/cache")
       (delete target)
-      (and-let* ((src ::java.io.File (file-exists? "build/cache/src"))
+      (and-let* ((src ::java.io.File (existing-file "build/cache/src"))
 		 ((src:isDirectory)))
-	(shell "mv build/cache/src/* build/cache")
-	(unless (delete "build/cache/src")
-	  (print "failed to remove build/cache/src")
-	  (display (shell "tree build/cache/src"))))
-      (flush-output-port))))
+	(move-files from: "build/cache/src" to: "build/cache")
+	(src:delete)))))
 
