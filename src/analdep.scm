@@ -1,3 +1,7 @@
+#!/bin/sh
+#|
+exec java -jar ../libs/kawa.jar --no-warn-unreachable -f "$0" $*
+|#
 (import (kawa regex))
 (import (only (srfi :1) filter-map))
 (import (language define-syntax-rule))
@@ -138,7 +142,6 @@
   (let loop ((modules (keys graph))
 	     (layers '())
 	     (allowed-dependencies '()))
-    
     (let-values (((layer modules)
 		  (partition (is (only (isnt _ system-module?)
 				       (graph _)) subset?
@@ -148,8 +151,8 @@
        ((null? modules)
 	`(,layer . ,layers))
        ((null? layer)
-	(print "empty layer with remaining modules: "modules)
-	layers)
+	(print "empty layer with remaining modules")
+	`(,modules . ,layers))
        (else
 	(loop modules
 	      `(,layer . ,layers)
@@ -160,5 +163,5 @@
     (for layer in layers
       (print layer)
       (newline))))
-     
+
 (exit)

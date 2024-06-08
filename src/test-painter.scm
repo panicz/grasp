@@ -93,12 +93,14 @@
 (set! painter (TextPainter))
 
 (e.g.
- (with ((painter ::TextPainter (TextPainter)))
-   (painter:draw-thick-line! 0 0 30 3)
-   (painter:draw-thick-line! 3 2 30 15)
-   (painter:draw-thick-line! 32 15 34 0)
-   (painter:draw-thick-line! 5 15 34 7)
-   (painter:toString)) ===> "
+ (with-compile-options
+  warn-unknown-member: #f
+  (with ((painter ::TextPainter (TextPainter)))
+    (painter:draw-thick-line! 0 0 30 3)
+    (painter:draw-thick-line! 3 2 30 15)
+    (painter:draw-thick-line! 32 15 34 0)
+    (painter:draw-thick-line! 5 15 34 7)
+    (painter:toString))) ===> "
 ▀▀▀▄▄▄▄▖                          ▌
        ▝▀▀▀▀▀▄▄▄▄▖                ▌
    ▀▄            ▝▀▀▀▀▀▄▄▄▄▖     ▐ 
@@ -119,12 +121,14 @@
 
 
 (e.g.
- (with ((painter ::TextPainter (TextPainter)))
-   (painter:draw-thin-line! 0 0 30 3)
-   (painter:draw-thin-line! 3 2 30 15)
-   (painter:draw-thin-line! 32 15 34 0)
-   (painter:draw-thin-line! 5 15 34 7)
-   (painter:toString)) ===> "
+ (with-compile-options
+  warn-unknown-member: #f
+  (with ((painter ::TextPainter (TextPainter)))
+    (painter:draw-thin-line! 0 0 30 3)
+    (painter:draw-thin-line! 3 2 30 15)
+    (painter:draw-thin-line! 32 15 34 0)
+    (painter:draw-thin-line! 5 15 34 7)
+    (painter:toString))) ===> "
 ⠉⠑⠒⠒⠤⠤⢄⣀⣀                         ⡇
          ⠉⠉⠑⠒⠒⠤⠤⢄⣀⣀               ⡇
    ⠑⢄              ⠉⠉⠑⠒⠒⠤⠤⢄⣀⣀    ⢸ 

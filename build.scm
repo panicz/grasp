@@ -4,8 +4,8 @@ mkdir -p build/cache
 
 JARS=`ls libs/*.jar | tr '\n' ':' | sed 's/:$//'`
 
-exec java -cp "$JARS:./build/cache" kawa.repl \
-  -Dkawa.import.path="|:./build/cache/:.:./src" \
+exec java -cp "$JARS:build/cache" kawa.repl \
+  -Dkawa.import.path="|:src:build/cache:." \
   -f "$0"
 |#
 
@@ -29,6 +29,11 @@ exec java -cp "$JARS:./build/cache" kawa.repl \
 
 (import (utils shell))
 
+(define-alias ClassFile com.sun.tools.classfile.ClassFile)
+(define-alias ClassAttribute com.sun.tools.classfile.Attribute)
+(define-alias SourceFileAttribute
+  com.sun.tools.classfile.SourceFile_attribute)
+
 (define-syntax-rule (print elements ...)
   (display elements)
   ...
@@ -50,32 +55,61 @@ exec java -cp "$JARS:./build/cache" kawa.repl \
       path
       (java.io.File (as String path))))
 
-(define (files #!key (from ::(either string java.io.File) ".")
-	       (matching ".*"))::(list-of java.io.File)
+(define (list-files #!key
+		    (from ::(either string java.io.File) ".")
+		    (such-that always)
+		    (max-depth +inf.0))
+  ::(list-of java.io.File)
   (let ((directory ::java.io.File (as-file from))
 	(result '()))
     (assert (directory:isDirectory))
     (for file ::java.io.File in (directory:listFiles)
-      (cond
-       ((file:isDirectory)
-	(set! result `(,@(files from: file matching: matching) ,@result)))
-       ((and (file:isFile) (regex-match matching (file:getPath)))
-	(set! result `(,file . ,result)))))
+	 (cond
+	  ((and (file:isDirectory)
+		(is max-depth > 0))
+	   (set! result `(,@(list-files from: file
+					such-that: such-that
+					max-depth: (- max-depth 1))
+			  ,@result)))
+	  ((and (file:isFile) (such-that file))
+	   (set! result `(,file . ,result)))))
     result))
 
-(define (module-name file ::java.io.File)::(list-of symbol)
+(define (internal-module-name file ::java.io.File)::(list-of symbol)
   (match (regex-match "^(?:./)?src/([^.]*)[.]scm$" (file:getPath))
     (`(,_ ,core)
      (map string->symbol (string-split core "/")))))
 
+(print "Gathering file list...")
+
 (define (module-file module-name ::(list-of symbol))::java.io.File
-  (as-file (string-append "src/" (string-join module-name "/") ".scm")))
+  (as-file (string-append "src/" (string-join module-name "/")
+			  ".scm")))
 
-(define source-files ::(list-of java.io.File)
-  (files from: "src" matching: "[.]scm$"))
+(define dependency-files ::(list-of java.io.File)
+  (list-files from: "src"
+	      such-that: (is "^(?:./)?src/[^/]+/.+[.]scm$"
+			     regex-match (_:getPath))))
 
+(define application-files ::(list-of java.io.File)
+  (list-files from: "src"
+	      such-that: (is "^(?:./)?src/grasp-[^/]+[.]scm"
+			     regex-match (_:getPath))
+	      max-depth: 0))
+
+(define test-files ::(list-of java.io.File)
+  (list-files from: "src"
+	      such-that: (is "^(?:./)?src/test-[^/]+[.]scm"
+			     regex-match (_:getPath))
+	      max-depth: 0))
+
+(define all-files ::(list-of java.io.File)
+  `(#;,@test-files ,@application-files ,@dependency-files))
+  
 (define source-modules ::(list-of (list-of symbol))
-  (map module-name source-files))
+  (map internal-module-name all-files))
+
+(print "Gathering dependencies...")
 
 (define (imported-modules contents)::(list-of (list-of symbol))
   (apply
@@ -99,87 +133,102 @@ exec java -cp "$JARS:./build/cache" kawa.repl \
     (for file ::java.io.File in files
       (let* ((contents (with-input-from-file (file:getPath) read-all))
 	     (imports (imported-modules contents))
-	     (source-module (module-name file)))
+	     (source-module (internal-module-name file)))
 	(set! (dependencies source-module) imports)))
     dependencies))
-  
+
+(print "Building dependency graph...")
+
 (define module-dependency-graph
-  (build-module-dependency-graph source-files))
+  (build-module-dependency-graph all-files))
+
+(define-cache (module-dependencies module ::(list-of symbol))
+  ::(list-of (list-of symbol))
+  (reach module-dependency-graph module))
+
+(print "Checking for circular dependencies...")
 
 (let ((circular-dependencies
        (only (lambda (m)
-	       (is m in (reach module-dependency-graph m)))
+	       (is m in (module-dependencies m)))
 	     (keys module-dependency-graph))))
   (when (isnt circular-dependencies null?)
     (print"circular dependencies between "
 	   circular-dependencies)
     (exit)))
 
-;; no dobra, to teraz musimy sprawdzic, ktore moduly
+(print "Gathering cache files...")
 
-(define-cache (dependencies module)
-  (reach module-dependency-graph module))
-;; maja nowsza date od ich odpowiednikow w katalogu
-;; build/cache (albo nie maja owych odpowiednikow
-;; w ogole)
-
-(define cached-files (files from: "build/cache" matching: "[.]class$"))
+(define cached-files ::(list-of java.io.File)
+  (list-files from: "build/cache"
+	      such-that: (is "[.]class$" regex-match (_:getPath))))
 
 (define (source-file class-file ::java.io.File)::java.io.File
   
-  (define (try pattern::string)::string
+  (define (try pattern::string)::(either string #f)
     (and-let* ((`(,_ ,stem) (regex-match
 			     pattern
 			     (class-file:getPath))))
       stem))
   
-  (let ((stem
-	 (or (try "^build/cache/([^.]*)[$]frame[0-9]*.class$")
-	     (try "^build/cache/([^.]*)[$][0-9]*.class$")
+  (let* ((stem
+	 (or (try "^build/cache/([^.]*)\\$frame[0-9]*.class$")
+	     (try "^build/cache/([^.]*)\\$[0-9]*.class$")
 	     (try "^build/cache/([^.]*).class$")
-	     (error "invalid class file: "class-file))))
-    (as-file (string-append "src/"stem".scm"))))
+	     (error "invalid class file: "class-file)))
+	 (fixed-stem (fold-left (lambda (stem replacement)
+				  (and-let* ((`(,pattern ,replacement)
+					      replacement))
+				    (regex-replace* pattern
+						    stem
+						    replacement)))
+				stem
+				'(("\\$Mn" "-")))))
+    (as-file (string-append "src/"fixed-stem".scm"))))
 
-;; i teraz chcemy zrobic dwie rzeczy:
-;; po pierwsze, zbudowac liste plikow .class do skasowania
-;; po drugie, chcemy zbudowac liste plikow .scm, ktore chcemy skompilowac.
-;; oczywiscie zrodlo kazdego pliku .class, ktory kasujemy, musi byc
-;; na liscie, ale beda na niej rowniez te pliki, dla ktorych pliki
-;; .class nie istnieja.
-;; Co zatem musimy zrobic?
-;; - przeiterowac przez wszystkie pliki .class, sprawdzajac, czy
-;;   sa starsze od swojego zrodla, i jesli tak, dodac je (oraz wszystko, co
-;;   od nich zalezy) do listy obiektow do skasowania, a jesli nie - usunac
-;;   pliki zrodlowe z listy
-
-(define-cache (module-dependencies module)
-  (reach module-dependency-graph module))
-
-(define-cache (module-users module)
-  (only (is _ in (module-dependencies module))
+(define-cache (module-users module ::(list-of symbol))
+  ::(list-of (list-of symbol))
+  (only (is module in (module-dependencies _))
 	(keys module-dependency-graph)))
 
-(define-mapping (module-classes module) '())
+(define-mapping (module-classes module ::(list-of symbol))
+  ::(list-of java.io.File)
+  '())
 
 (for class ::java.io.File in cached-files
      (let* ((scm ::java.io.File (source-file class))
-	    (module (module-name scm)))
+	    (module (internal-module-name scm)))
        (set! (module-classes module)
 	     `(,class . ,(module-classes module)))))
 
-(define source-files-to-build source-files)
+(define source-files-to-build ::(list-of java.io.File)
+  dependency-files)
 
-(define modules-to-regenerate '())
+(define modules-to-regenerate ::(list-of (list-of symbol))
+  '())
 
-(define class-files-to-remove '())
+(define class-files-to-remove ::(list-of java.io.File)
+  '())
+
+(define in-module-classes ::(list-of java.io.File)
+  '())
+
+(print "Checking which files need to be recompiled...")
 
 (for class::java.io.File in cached-files
   (let* ((scm ::java.io.File (source-file class))
-	 (module (module-name scm)))
+	 (module ::(list-of symbol) (internal-module-name scm)))
     (cond
-     ((isnt scm in source-files)
-      (print"The cache contains a .class file"
-	     " with no .scm counterpart: "class))
+     ((isnt scm in dependency-files)
+      (and-let* ((classfile ::ClassFile (ClassFile:read class))
+		 (attribute ::SourceFileAttribute
+			    (classfile:getAttribute
+			     ClassAttribute:SourceFile))
+		 (source (attribute:getSourceFile
+			  classfile:constant_pool)))
+	(print "the source of "class" is "source))
+      (set! in-module-classes
+	    `(,class . ,in-module-classes)))
      ((is (class:lastModified) <= (scm:lastModified))
       (let ((affected-modules `(,module . ,(module-users module))))
 	(set! modules-to-regenerate
@@ -193,8 +242,10 @@ exec java -cp "$JARS:./build/cache" kawa.repl \
 	    (difference source-files-to-build `(,scm)))))))
 
 (set! source-files-to-build
-      (union source-files-to-build
-	     (map module-file modules-to-regenerate)))
+      (intersection
+       dependency-files
+       (union source-files-to-build
+	      (map module-file modules-to-regenerate))))
 
 (define (graph-layers graph nodes)
   (let loop ((modules nodes)
@@ -208,48 +259,18 @@ exec java -cp "$JARS:./build/cache" kawa.repl \
        ((null? modules)
 	`(,layer . ,layers))
        ((null? layer)
-	(print"empty layer with remaining modules")
+	(print"empty layer with remaining modules "modules)
 	`(,modules . ,layers))
        (else
 	(loop modules
 	      `(,layer . ,layers)
 	      `(,@layer ,@allowed-dependencies)))))))
 
-(define build-list
-  (map module-file
-       (apply
-	append
-	(reverse
-	 (graph-layers module-dependency-graph
-		       (map module-name source-files-to-build))))))
-
-(define (target-file-name+directory source-file ::java.io.File)
-  ::(Values string java.io.File)
-  (print source-file)
-  (match (regex-match "^src/([^.]*)[.]scm$" (source-file:getPath))
-    (`(,_ ,stem)
-     (match (regex-match "(.*)/([^/]*)$" stem)
-       (`(,_ ,path ,name)
-	(values
-	 (string-append name ".zip")
-	 (as-file (string-append "build/cache/" path))))))))
-
-
-#;(define (build-file source ::string directory ::string)::void
-  (let* ((messages ::gnu.text.SourceMessages
-                   (gnu.text.SourceMessages))
-         (comp ::gnu.expr.Compilation
-               (kawa.lang.CompileFile:read (source:toString)  messages)))
-    (set! comp:explicit #t)
-    (if (messages:seenErrors)
-        (primitive-throw (gnu.text.SyntaxException messages)))
-    (comp:outputClass directory)
-    (if (messages:seenErrors)
-        (primitive-throw (gnu.text.SyntaxException messages)))))
-
+(define layered-modules
+  (graph-layers module-dependency-graph source-modules))
 
 (define (unzip archive ::string #!key (into ::string "."))::void
-  (print"decompressing "archive" into "into)
+  ;;(print"decompressing "archive" into "into)
   (let* ((dir ::java.io.File (java.io.File (as String into)))
 	 (buffer ::(array-of byte) ((array-of byte) length: 1024))
 	 (data ::java.io.FileInputStream
@@ -259,8 +280,9 @@ exec java -cp "$JARS:./build/cache" kawa.repl \
     (let next-entry ()
       (let ((entry ::java.util.zip.ZipEntry (source:getNextEntry)))
 	(when entry
-	  (print"deflating "entry)
-	  (let ((file ::java.io.File (java.io.File dir (entry:getName))))
+	  ;;(print"deflating "entry)
+	  (let ((file ::java.io.File (java.io.File
+				      dir (entry:getName))))
 	    (if (entry:isDirectory)
 		(file:mkdirs)
 		(let ((parent ::java.io.File (file:getParentFile)))
@@ -303,17 +325,41 @@ exec java -cp "$JARS:./build/cache" kawa.repl \
 	file
 	#!null)))
 
+(define build-list
+  (let ((modules-to-build (map internal-module-name
+			       source-files-to-build)))
+    (map module-file
+	 (fold-left
+	  (lambda (a b)
+	    (append (intersection b modules-to-build) a))
+	  '()
+	  layered-modules))))
+
+(define (target-file-name+directory source-file ::java.io.File)
+  ::(Values string java.io.File)
+  (match (regex-match "^src/([^.]*)[.]scm$" (source-file:getPath))
+    (`(,_ ,stem)
+     (match (regex-match "(.*)/([^/]*)$" stem)
+       (`(,_ ,path ,name)
+	(values
+	 (string-append name ".zip")
+	 (as-file (string-append "build/cache/" path))))))))
+
+(for class::java.io.File in class-files-to-remove
+  (print "removing "class)
+  (class:delete))
+
 (for file::java.io.File in build-list
   (let-values (((name::string dir::java.io.File)
 		(target-file-name+directory file)))
     (dir:mkdirs)
-    (let ((target (string-append #;(dir:getPath) "build/cache/" name)))
-      (print"building "(file:getPath)" into "target)
+    (let ((target (string-append  "build/cache/" name)))
+      (print"building "(file:getPath))
       (compile-file (file:getPath) target)
       (unzip target into: "build/cache")
       (delete target)
-      (and-let* ((src ::java.io.File (existing-file "build/cache/src"))
+      (and-let* ((src ::java.io.File (existing-file
+				      "build/cache/src"))
 		 ((src:isDirectory)))
 	(move-files from: "build/cache/src" to: "build/cache")
 	(src:delete)))))
-

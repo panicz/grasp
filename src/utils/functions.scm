@@ -858,3 +858,30 @@
 (e.g.
  (partition even? '(1 2 3 4 5))
  ===> (2 4) (1 3 5))
+
+(define (skip-characters #!key
+			 (from ::gnu.kawa.io.InPort
+			  (current-input-port))
+			 (until-having-read ::string ""))
+  ;;(either gnu.kawa.io.InPort #f)
+  (let* ((pattern ::string until-having-read)
+	 (n ::int (string-length pattern))
+	 (candidate ::gnu.lists.FString (gnu.lists.FString)))
+    (let loop ()
+      
+      (if (= n (string-length candidate))
+	  from
+	  (and-let* ((c ::gnu.text.Char (read-char from))
+		     ((isnt c eof-object?)))
+	    (candidate:append c)
+
+	    (while (isnt candidate string-prefix? pattern)
+	      (candidate:delete 0 1))
+	    (loop))))))
+
+(e.g.
+ (call-with-input-string "kokokokosowych"
+   (lambda (port)
+     (and-let* ((,port (skip-characters from: port
+					until-having-read: "kokos")))
+       (read-string 5 port)))) ===> "owych")
