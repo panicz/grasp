@@ -1,7 +1,135 @@
+* 07.06.2024
+
+Tematy na radarze:
+- odczytywanie pliku zrodlowego z modulow .class,
+  ktorych nie rozpoznajemy po nazwie
+- dexowanie plikow .class (za pomoca funkcji z d8.jar,
+  ktorego to tez bysmy chcieli przedexowac)
+
+dexowanie d8 byloby jednak potrzebne tylko do
+wersji pro aplikacji. Z drugiej strony skrypt do budowania
+powinien sam generowac AndroidManifest oraz wybrana
+nazwe dla projektu.
+
+#+begin_src scheme
+  (define-alias ClassFile com.sun.tools.classfile.ClassFile)
+  (define-alias ClassAttribute com.sun.tools.classfile.Attribute)
+  (define-alias SourceFileAttribute
+    com.sun.tools.classfile.SourceFile_attribute)
+  ;;(define-alias ClassConstants com.sun.tools.classfile.ConstantPool)
+
+
+  (and-let* ((classfile ::ClassFile (ClassFile:read file))
+	     (attribute ::SourceFileAttribute (classfile:getAttribute
+					       ClassAttribute:SourceFile)))
+    (attribute:getSourceFile classfile:constant_pool))
+
+#+end_src
+
+to nie dziala, bo jakichs klas tam nie ma. Ale w plikach .class
+mozemy znalezc takie cos:
+
+
+#+begin_src
+0700  00 76 01 00 0a 53 6f 75  72 63 65 46 69 6c 65 01  |.v...SourceFile.|
+0710  00 0d 66 75 6e 63 74 69  6f 6e 73 2e 73 63 6d 01  |..functions.scm.|
+0720  00 14 53 6f 75 72 63 65  44 65 62 75 67 45 78 74  |..SourceDebugExt|
+#+end_src
+
+i teraz mozemy w nich poszukac takiego czegos:
+
+"\x01\x00SourceFile\x01\x00\([^\x01]+)\x01"
+
+tyle ze wyrazenia regularne nie obaluguja danych binarnych
+
+#+begin_src scheme
+
+  (define (skip-characters #!key
+			   (from::gnu.kawa.io.InPort
+			    (current-input-port))
+			   (until-having-read:string ""))
+    ::(either gnu.kawa.io.InPort #f)
+    (let* ((pattern ::string until-having-read)
+	   (n ::int (string-length pattern))
+	   (candidate ::gnu.lists.FString (gnu.lists.FString n)))
+      (let loop ()
+	(if (= n (string-length candidate))
+	    input
+	    (and-let* ((c ::gnu.text.Char (read-char from))
+		       ((isnt c eof-object?)))
+	      (candidate:append c)
+	      (while (isnt candidate string-prefix? pattern)
+		(candidate:delete 0 1))
+	      (loop))))))
+
+  (e.g.
+   (call-with-input-string "kokokokosowycb"
+     (lambda (port)
+       (and-let* ((,port (skip-characters from: port
+					  until-having-read: "kokos")))
+	 (read-string 5 port)))) #;< ===> "owych")
+
+#+end_src
+
+
+* 06.06.2024
+
+to teraz plan jest taki, zeby:
+- skrypt listowal krok po kroku, co ma sie wydarzyv
+- jakos ogarnac entry-pointsy, tj. pliki
+  "grasp-desktop.scm", "grasp-android.scm" oraz
+  "grasp-terminal.scm"
+- i dla tych entry-pointsow budowac pliki .jar
+
+I teraz rzecz tak sie ma, ze grasp-terminal
+oraz grasp-desktop maja (module-compile-options main: #t)
+
+No dobra, to na razie bysmy zrobili tak, ze nie
+kompilujemy plikow bezposrednio z katalogu src
+
+Ogolnie wyglada na to, ze po dzisiejszych zmaganiach
+analiza zaleznosci z grubsza dziala, pomijajac to, ze
+czasem wybucha.
+
+Pomysl jest zatem taki, zebysmy sprobowali zbudowac
+najpierw klienta desktopowego i terminalowego,
+a potem tez androudowego.
+
+* 05.06.2024
+
+poniewaz wiadomosci slane na grupe mailingowa kawy pozostaja
+bez odpowiedzi, plan jest taki, zeby wywolac te funkcje,
+ktore wola sam kompilator, kiedy sie go wywoluje z opcjami
+-C i -d
+
+Opcja -d:
+
+#+begin_src java
+  ModuleManager manager = ModuleManager.getInstance();
+  manager.setCompilationDirectory(args[iArg++]);
+#+end_src
+
+opcja -C
+
+#+begin_src java
+  compileFiles(args, iArg, maxArg);
+  return -1;
+#+end_src
+
+gdzie compileFiles jest public static w kawa.repl.
+
+
+*** no dobra
+
+
+okazalo sie, ze problem byl zwiazany z nazwaniem funkcji
+"module-name".
+
 * 03.06.2024
 
 dzis bysmy napisali sobie funkcje do przrnoszenia plikow
 z jedbego katalogu do innego
+
 
 #+begin_src scheme
   (define (as-file path::(either string java.io.File))::java.io.File
