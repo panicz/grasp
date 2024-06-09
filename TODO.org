@@ -1,3 +1,69 @@
+* 08.06.2024
+
+Dzis bysmy sprobowali wydobyc atrybut SourceFile z plikow .class.
+
+#+begin_src
+
+000  ca fe ba be 00 00 00 31  00 0c 01 00 13 65 64 69  |.......1.....edi|
+010  74 6f 72 2f 4f 77 6e 43  6c 69 70 62 6f 61 72 64  |tor/OwnClipboard|
+020  07 00 01 01 00 10 6a 61  76 61 2f 6c 61 6e 67 2f  |......java/lang/|
+030  4f 62 6a 65 63 74 07 00  03 01 00 19 65 64 69 74  |Object......edit|
+040  6f 72 2f 64 6f 63 75 6d  65 6e 74 2f 43 6c 69 70  |or/document/Clip|
+050  62 6f 61 72 64 07 00 05  01 00 24 6a 61 76 61 2f  |board.....$java/|
+060  61 77 74 2f 64 61 74 61  74 72 61 6e 73 66 65 72  |awt/datatransfer|
+070  2f 43 6c 69 70 62 6f 61  72 64 4f 77 6e 65 72 07  |/ClipboardOwner.|
+080  00 07 01 00 0a 53 6f 75  72 63 65 46 69 6c 65 01  |.....SourceFile.|
+090  00 11 61 77 74 2d 63 6c  69 70 62 6f 61 72 64 2e  |..awt-clipboard.|
+0a0  73 63 6d 01 00 14 53 6f  75 72 63 65 44 65 62 75  |scm...SourceDebu|
+0b0  67 45 78 74 65 6e 73 69  6f 6e 06 01 00 02 00 04  |gExtension......|
+0c0  00 02 00 06 00 08 00 00  00 00 00 02 00 09 00 00  |................|
+0d0  00 02 00 0a 00 0b 00 00  00 61 53 4d 41 50 0a 61  |.........aSMAP.a|
+0e0  77 74 2d 63 6c 69 70 62  6f 61 72 64 2e 73 63 6d  |wt-clipboard.scm|
+0f0  0a 53 63 68 65 6d 65 0a  2a 53 20 53 63 68 65 6d  |.Scheme.*S Schem|
+100  65 0a 2a 46 0a 2b 20 31  20 61 77 74 2d 63 6c 69  |e.*F.+ 1 awt-cli|
+110  70 62 6f 61 72 64 2e 73  63 6d 0a 73 72 63 2f 65  |pboard.scm.src/e|
+120  64 69 74 6f 72 2f 61 77  74 2d 63 6c 69 70 62 6f  |ditor/awt-clipbo|
+130  61 72 64 2e 73 63 6d 0a  2a 45 0a                 |ard.scm.*E.|
+
+#+end_src
+
+#+begin_src scheme
+"\xca\xfe\xba\xbe\x00\x00\x00\x31\x00\x0c\x01\x00\x13\x65\x64\x69\
+\x74\x6f\x72\x2f\x4f\x77\x6e\x43\x6c\x69\x70\x62\x6f\x61\x72\x64\
+\x07\x00\x01\x01\x00\x10\x6a\x61\x76\x61\x2f\x6c\x61\x6e\x67\x2f\
+\x4f\x62\x6a\x65\x63\x74\x07\x00\x03\x01\x00\x19\x65\x64\x69\x74\
+\x6f\x72\x2f\x64\x6f\x63\x75\x6d\x65\x6e\x74\x2f\x43\x6c\x69\x70\
+\x62\x6f\x61\x72\x64\x07\x00\x05\x01\x00\x24\x6a\x61\x76\x61\x2f\
+\x61\x77\x74\x2f\x64\x61\x74\x61\x74\x72\x61\x6e\x73\x66\x65\x72\
+\x2f\x43\x6c\x69\x70\x62\x6f\x61\x72\x64\x4f\x77\x6e\x65\x72\x07\
+\x00\x07\x01\x00\x0a\x53\x6f\x75\x72\x63\x65\x46\x69\x6c\x65\x01\
+\x00\x11\x61\x77\x74\x2d\x63\x6c\x69\x70\x62\x6f\x61\x72\x64\x2e\
+\x73\x63\x6d\x01\x00\x14\x53\x6f\x75\x72\x63\x65\x44\x65\x62\x75\
+\x67\x45\x78\x74\x65\x6e\x73\x69\x6f\x6e\x06\x01\x00\x02\x00\x04\
+\x00\x02\x00\x06\x00\x08\x00\x00\x00\x00\x00\x02\x00\x09\x00\x00\
+\x00\x02\x00\x0a\x00\x0b\x00\x00\x00\x61\x53\x4d\x41\x50\x0a\x61\
+\x77\x74\x2d\x63\x6c\x69\x70\x62\x6f\x61\x72\x64\x2e\x73\x63\x6d\
+\x0a\x53\x63\x68\x65\x6d\x65\x0a\x2a\x53\x20\x53\x63\x68\x65\x6d\
+\x65\x0a\x2a\x46\x0a\x2b\x20\x31\x20\x61\x77\x74\x2d\x63\x6c\x69\
+\x70\x62\x6f\x61\x72\x64\x2e\x73\x63\x6d\x0a\x73\x72\x63\x2f\x65\
+\x64\x69\x74\x6f\x72\x2f\x61\x77\x74\x2d\x63\x6c\x69\x70\x62\x6f\
+\x61\x72\x64\x2e\x73\x63\x6d\x0a\x2a\x45\x0a"
+#+end_src
+
+No dobra, sie udalo wydobyc te nazwe pliku. Wydaje sie, ze
+w jakiejs mierze to pomoglo, ale jeszcze nie calkiem.
+
+Tym niemniej, nie oczekuje, ze uda mi sie ten problem rozwiazac
+samodzielnie.
+
+Dlatego co chcielibysmy zrobic dalej?
+- wybudowac klienta terminalowego
+- wybudowac klienta desktopowego
+- zaimplementowac zaleznosci do zbudowania plikow .dex na podstawie
+  plikow .class
+- wybudowac klienta androidowego (z generowaniem android manifest)
+
+
 * 07.06.2024
 
 Tematy na radarze:
