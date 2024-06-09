@@ -29,11 +29,6 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 
 (import (utils shell))
 
-(define-alias ClassFile com.sun.tools.classfile.ClassFile)
-(define-alias ClassAttribute com.sun.tools.classfile.Attribute)
-(define-alias SourceFileAttribute
-  com.sun.tools.classfile.SourceFile_attribute)
-
 (define-syntax-rule (print elements ...)
   (display elements)
   ...
@@ -163,6 +158,31 @@ exec java -cp "$JARS:build/cache" kawa.repl \
   (list-files from: "build/cache"
 	      such-that: (is "[.]class$" regex-match (_:getPath))))
 
+(define (extract-source-file class-file ::java.io.File)::java.io.File
+  (otherwise #!null
+    (and-let* ((port (open-binary-input-file class-file))
+	       (,port (skip-characters from: port
+				       until-having-read:
+				       "SourceFile"))
+	       ((isnt (read-char port) eof-object?))
+	       ((isnt (read-char port) eof-object?))
+	       ((isnt (read-char port) eof-object?))
+	       (name ::string (let ((name ::gnu.lists.FString
+					  (gnu.lists.FString)))
+				(let loop ()
+				  (let ((c (read-char port)))
+				    (cond
+				     ((or (eof-object? c)
+					  (eq? c #\x01))
+				      name)
+				     (else
+				      (name:append c)
+				      (loop)))))))
+	       (class-directory (class-file:getParentFile))
+	       (`(,_ ,path) (regex-match "^(?:./)?build/cache/(.*)$"
+					 (class-directory:getPath))))
+      (as-file (string-append "src/"path"/"name)))))
+
 (define (source-file class-file ::java.io.File)::java.io.File
   
   (define (try pattern::string)::(either string #f)
@@ -210,9 +230,6 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 (define class-files-to-remove ::(list-of java.io.File)
   '())
 
-(define in-module-classes ::(list-of java.io.File)
-  '())
-
 (print "Checking which files need to be recompiled...")
 
 (for class::java.io.File in cached-files
@@ -220,15 +237,10 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 	 (module ::(list-of symbol) (internal-module-name scm)))
     (cond
      ((isnt scm in dependency-files)
-      (and-let* ((classfile ::ClassFile (ClassFile:read class))
-		 (attribute ::SourceFileAttribute
-			    (classfile:getAttribute
-			     ClassAttribute:SourceFile))
-		 (source (attribute:getSourceFile
-			  classfile:constant_pool)))
-	(print "the source of "class" is "source))
-      (set! in-module-classes
-	    `(,class . ,in-module-classes)))
+      (and-let* ((source ::java.io.File (extract-source-file class))
+		 ((is (class:lastModified) <= (source:lastModified))))
+	(set! class-files-to-remove
+	      	      (union class-files-to-remove `(,class)))))
      ((is (class:lastModified) <= (scm:lastModified))
       (let ((affected-modules `(,module . ,(module-users module))))
 	(set! modules-to-regenerate
