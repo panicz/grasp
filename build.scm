@@ -36,6 +36,15 @@ exec java -cp "$JARS:build/cache" kawa.repl \
   (display #\newline)
   (flush-output-port))
 
+(define extra-dependencies-desktop
+  '("libs/jsvg-1.0.0.jar"))
+
+(define extra-dependencies-terminal
+  '("libs/lanterna-3.1.1.jar"))
+
+(define extra-dependencies-android
+  '("libs/androidsvg-1.4.jar"))
+
 (print "Gathering file list...")
 
 (define dependency-files ::(list-of java.io.File)
@@ -105,7 +114,7 @@ exec java -cp "$JARS:build/cache" kawa.repl \
      (let* ((scm ::java.io.File (source-file class))
 	    (module (internal-module-name scm)))
        (set! (module-classes module)
-	     `(,class . ,(module-classes module)))))
+	     (union (module-classes module) `(,class)))))
 
 (define source-files-to-build ::(list-of java.io.File)
   dependency-files)
@@ -115,10 +124,6 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 
 (define class-files-to-remove ::(list-of java.io.File)
   '())
-
-(define-mapping (in-module-classes class-file::java.io.File)
-  ::(list-of java.io.File)
-  '())
   
 (print "Checking which files need to be recompiled...")
 
@@ -127,13 +132,7 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 	 (module ::(list-of symbol) (internal-module-name scm)))
     (cond
      ((isnt scm in dependency-files)
-      (let* ((source ::java.io.File (extract-source-file class))
-	     (main-class ::java.io.File (target-class source)))
-	(set! (in-module-classes main-class)
-	      `(,class . ,(in-module-classes main-class)))
-	(when (is (class:lastModified) <= (source:lastModified))
-	  (set! class-files-to-remove
-	      	(union class-files-to-remove `(,class))))))
+      (print "Unknown source for "class": "scm))
      ((is (class:lastModified) <= (scm:lastModified))
       (let ((affected-modules `(,module . ,(module-users module))))
 	(set! modules-to-regenerate
@@ -152,20 +151,16 @@ exec java -cp "$JARS:build/cache" kawa.repl \
        (union source-files-to-build
 	      (map module-file modules-to-regenerate))))
 
-(set! class-files-to-remove
-      (union class-files-to-remove
-	     (apply append (map in-module-classes
-				class-files-to-remove))))
-
 (define build-list
   (let ((modules-to-build (map internal-module-name
 			       source-files-to-build)))
-    (map module-file
-	 (fold-left
-	  (lambda (a b)
-	    (append (intersection b modules-to-build) a))
-	  '()
-	  layered-modules))))
+    (fold-left
+     (lambda (a b)
+       (append (map module-file (intersection
+				 b modules-to-build))
+	       a))
+     (reverse application-files)
+     layered-modules)))
 
 (for class::java.io.File in class-files-to-remove
   (print "removing "class)
@@ -178,10 +173,65 @@ exec java -cp "$JARS:build/cache" kawa.repl \
     (let ((target (string-append  "build/cache/" name)))
       (print"building "(file:getPath))
       (compile-file (file:getPath) target)
-      (unzip target into: "build/cache")
-      (delete target)
+      (unless (is file in application-files)
+	(unzip target into: "build/cache")
+	(delete target))
       (and-let* ((src ::java.io.File (existing-file
 				      "build/cache/src"))
 		 ((src:isDirectory)))
 	(move-files from: "build/cache/src" to: "build/cache")
 	(src:delete)))))
+
+
+#|
+(let ((desktop-jar ::java.io.File (as-file "build/desktop.jar"))
+      (internal-dependencies (module-dependencies
+				   '(grasp-desktop))))
+    
+  ;; 1. dodac wszystkie klasy z build/cache/grasp-desktop.zip
+  ;; 2. dodac wszystkie zaleznosci z build/cache
+  ;; 3. dodac wszystkie elementy z jarow z zaleznosciami
+  ;; 4. dodac manifest
+  (when (desktop-jar:exists)
+    (desktop-jar:delete))
+  (let ((output (ZipOutputSteam (FileOutputStream desktop-jar))))
+    (append-zip-entries!
+     from: (ZipFile "build/cache/grasp-desktop.zip")
+     to: output)
+    (let* (
+
+
+
+(unless (and-let* ((kawa-dir ::java.io.File
+			     (existing-file "build/kawa")))
+	  (kawa-dir:isDirectory))
+  (print "Unzipping libs/kawa.jar into build/kawa")
+  (unzip "libs/kawa.jar" into: "build/kawa"))
+
+(unless (and-let* ((desktop-dir ::java.io.File
+				(existing-file "build/desktop")))
+	  (desktop-dir:isDirectory))
+  (for dependency in extra-dependencies-desktop
+    (print "Unzipping "dependency" into build/desktop")
+    (unzip dependency into: "build/desktop")
+    (and-let* ((module-info ::java.io.File
+			    (existing-file
+			     "build/desktop/module-info.class")))
+      (module-info:delete))))
+
+(let ((desktop-jar ::java.io.File (as-file "build/desktop.jar")))
+  (when (desktop-jar:exists)
+    (desktop-jar:delete))
+  (let ((output ...))
+    ...))
+|#
+
+;; no dobra, to teraz musimy:
+;; - skompilowac grasp-desktop.scm
+;; - rozpakowac wszystkie repozytoria
+;;   (a tak naprawde to powinny juz byc rozpakowane)
+;; - przeniesc pliki .class z kompilacji do
+;;   pdpowiedniego folderu
+;; - przekopiowac pliki "assets"
+;; - przekopiowac plik init.scm
+;; - zzipowac
