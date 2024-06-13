@@ -183,55 +183,40 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 	(src:delete)))))
 
 
-#|
-(let ((desktop-jar ::java.io.File (as-file "build/desktop.jar"))
-      (internal-dependencies (module-dependencies
-				   '(grasp-desktop))))
+(let ((desktop-jar ::java.io.File (as-file "build/grasp-desktop.jar"))
+      (internal-dependencies ::(list-of java.io.File)
+			     (append-map
+			      module-classes
+			      (module-dependencies
+			       '(grasp-desktop))))
+      (external-dependencies ::(list-of string)
+			     `("libs/kawa.jar"
+			       . ,extra-dependencies-desktop)))
+  (when (desktop-jar:exists)
+    (print "removing "desktop-jar)
+    (desktop-jar:delete))
+  (let ((output (ZipBuilder desktop-jar)))
+    (output:append-entries! (ZipFile "build/cache/grasp-desktop.zip"))
+    (for class::java.io.File in internal-dependencies
+      (output:add-file-at-level! 2 class))
+    (for library-path::string in external-dependencies
+      (output:append-entries-unless!
+       (lambda (entry::ZipEntry) ::boolean
+	       (let ((name ::string (entry:getName)))
+		 (any (is _ regex-match name)
+		      '("module-info.class$"
+			"^META-INF"
+			"MANIFEST.MF$"))))
+       (ZipFile library-path)))
+    (for asset::java.io.File in (list-files from: "assets")
+      (output:add-file-at-level! 0 asset))
     
-  ;; 1. dodac wszystkie klasy z build/cache/grasp-desktop.zip
-  ;; 2. dodac wszystkie zaleznosci z build/cache
-  ;; 3. dodac wszystkie elementy z jarow z zaleznosciami
-  ;; 4. dodac manifest
-  (when (desktop-jar:exists)
-    (desktop-jar:delete))
-  (let ((output (ZipOutputSteam (FileOutputStream desktop-jar))))
-    (append-zip-entries!
-     from: (ZipFile "build/cache/grasp-desktop.zip")
-     to: output)
-    (let* (
+    (output:add-file-as! "assets/init.scm"
+			 (as-file "init/init.scm"))
 
-
-
-(unless (and-let* ((kawa-dir ::java.io.File
-			     (existing-file "build/kawa")))
-	  (kawa-dir:isDirectory))
-  (print "Unzipping libs/kawa.jar into build/kawa")
-  (unzip "libs/kawa.jar" into: "build/kawa"))
-
-(unless (and-let* ((desktop-dir ::java.io.File
-				(existing-file "build/desktop")))
-	  (desktop-dir:isDirectory))
-  (for dependency in extra-dependencies-desktop
-    (print "Unzipping "dependency" into build/desktop")
-    (unzip dependency into: "build/desktop")
-    (and-let* ((module-info ::java.io.File
-			    (existing-file
-			     "build/desktop/module-info.class")))
-      (module-info:delete))))
-
-(let ((desktop-jar ::java.io.File (as-file "build/desktop.jar")))
-  (when (desktop-jar:exists)
-    (desktop-jar:delete))
-  (let ((output ...))
-    ...))
-|#
-
-;; no dobra, to teraz musimy:
-;; - skompilowac grasp-desktop.scm
-;; - rozpakowac wszystkie repozytoria
-;;   (a tak naprawde to powinny juz byc rozpakowane)
-;; - przeniesc pliki .class z kompilacji do
-;;   pdpowiedniego folderu
-;; - przekopiowac pliki "assets"
-;; - przekopiowac plik init.scm
-;; - zzipowac
+    (output:add-file-with-text! "\
+Manifest-Version: 1.0
+Main-Class: grasp$Mndesktop
+" "META-INF/MANIFEST.MF")
+    (output:close)
+))

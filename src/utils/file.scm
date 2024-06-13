@@ -2,6 +2,7 @@
 
 (import (language assert))
 (import (language define-type))
+(import (language while))
 (import (language for))
 (import (language infix))
 
@@ -94,7 +95,7 @@
 	file
 	#!null)))
 
-(define (copy! input-stream ::InputStream
+(define (rewrite! input-stream ::InputStream
 	       #;to output-stream ::OutputStream
 	       #;via buffer ::(array-of byte))
   (let loop ()
@@ -103,22 +104,57 @@
 	(output-stream:write buffer 0 n)
 	(loop)))))
 
-(define (append-zip-entries! #!key
-			     (such-that ::(maps (ZipEntry)
-						to: boolean)
-					always)
-			     from ::ZipFile
-			     to ::ZipOutputStream)
-  ::void
-  (let ((entries ::java.util.Enumeration
-		 (from:entries))
-	(buffer ::(array-of byte) ((array-of byte) length: 4096)))
-    (while (entries:hasNextElement)
-      (let ((entry ::ZipEntry (entries:nextElement)))
-	(to:putNextEntry entry)
-	(unless (or (entry:isDirectory)
-		    (isnt entry such-that))
-	  (copy! #;from (from:getInputStream entry)
-		 #;to to
-		 #;via buffer))
-	(to:closeEntry)))))
+(define-simple-class ZipBuilder ()
+  (file-output type: FileOutputStream)
+  (output type: ZipOutputStream)
+
+  (buffer type: (array-of byte)
+	  init-value: ((array-of byte) length: 4096))
+  
+  ((append-entries-unless! exclude::(maps (ZipEntry)
+					  to: boolean)
+			   file::ZipFile)
+   ::void
+   (let ((entries ::java.util.Enumeration
+		  (file:entries)))
+     (while (entries:hasMoreElements)
+       (let* ((entry ::ZipEntry (entries:nextElement))
+	      (input ::InputStream (file:getInputStream entry)))
+	 (unless (exclude entry)
+	   (output:putNextEntry entry)
+	   (unless (entry:isDirectory)
+	     (rewrite! #;from input #;to output #;via buffer))
+	   (input:close)
+	   (output:closeEntry))))))
+
+  ((append-entries! file::ZipFile)::void
+   (append-entries-unless! (lambda (file::ZipEntry) #f) file))
+
+  ((add-file-at-level! level::int file::java.io.File)::void
+   (let* ((source-path ::string (file:getPath))
+	  (components ::(list-of string) (string-split source-path "/"))
+	  (adjusted (drop level components))
+	  (target-path (string-join adjusted "/")))
+     (add-file-as! target-path file)))
+
+  ((add-file-as! target-name ::string file ::java.io.File)::void
+   (let* ((entry ::ZipEntry (ZipEntry target-name))
+	  (input ::FileInputStream (FileInputStream file)))
+     (output:putNextEntry entry)
+     (rewrite! input #;to output #;via buffer)
+     (input:close)
+     (output:closeEntry)))
+
+  ((add-file-with-text! text ::String file-name::string)::void
+   (let ((entry ::ZipEntry (ZipEntry file-name)))
+     (output:putNextEntry entry)
+     (output:write (text:getBytes))
+     (output:closeEntry)))
+  
+  ((close)::void
+   (output:close)
+   (file-output:close))
+  
+  ((*init* file ::java.io.File)
+   (set! file-output (FileOutputStream file))
+   (set! output (ZipOutputStream file-output))))
