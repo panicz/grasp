@@ -13,10 +13,13 @@
 
 (import (utils file))
 
-(define (internal-module-name file ::java.io.File)::(list-of symbol)
+(define (internal-module-name file ::java.io.File)
+  ::(list-of symbol)
   (match (regex-match "^(?:./)?src/([^.]*)[.]scm$" (file:getPath))
     (`(,_ ,core)
-     (map string->symbol (string-split core "/")))))
+     (map string->symbol (string-split core "/")))
+    (_
+     (error "Unable to parse file name "file))))
 
 (define (module-file module-name ::(list-of symbol))::java.io.File
   (as-file (string-append "src/" (string-join module-name "/")
@@ -55,7 +58,30 @@
 	(set! (dependencies source-module) imports)))
     dependencies))
 
-(define (extract-source-file class-file ::java.io.File)::java.io.File
+(define (guess-source-file-from-name class-file ::java.io.File)::string
+  
+  (define (try pattern::string)::(either string #f)
+    (and-let* ((`(,_ ,_ ,stem) (regex-match
+				pattern
+				(class-file:getPath))))
+      stem))
+  
+  (let* ((stem
+	  (or (try "^build/cache(.*/)([^/]+)\\$frame[0-9]*[.]class$")
+	      (try "^build/cache(.*/)([^/]+)\\$[0-9]*[.]class$")
+	      (try "^build/cache(.*/)([^/]+)[.]class$")
+	      (error "invalid class file: "class-file)))
+	 (fixed-stem (fold-left (lambda (stem replacement)
+				  (and-let* ((`(,pattern ,replacement)
+					      replacement))
+				    (regex-replace* pattern
+						    stem
+						    replacement)))
+				stem
+				'(("\\$Mn" "-")))))
+    (string-append fixed-stem".scm")))
+
+(define (source-file class-file ::java.io.File)::java.io.File
   (otherwise #!null
     (and-let* ((port (open-binary-input-file class-file))
 	       (,port (skip-characters from: port
@@ -70,42 +96,23 @@
 				  (let ((c (read-char port)))
 				    (cond
 				     ((or (eof-object? c)
-					  (eq? c #\x01))
+					  (isnt 32 < (char->integer c) < 127))
 				      name)
 				     (else
 				      (name:append c)
-				      (loop)))))))
+				      (loop)))))
+				(if (isnt "[.]scm$" regex-match name)
+				    (guess-source-file-from-name class-file)
+				    name)))
 	       (class-directory (class-file:getParentFile))
 	       (`(,_ ,path) (regex-match "^(?:./)?build/cache/(.*)$"
 					 (class-directory:getPath))))
       (as-file (string-append "src/"path"/"name)))))
 
-(define (source-file class-file ::java.io.File)::java.io.File
-  
-  (define (try pattern::string)::(either string #f)
-    (and-let* ((`(,_ ,stem) (regex-match
-			     pattern
-			     (class-file:getPath))))
-      stem))
-  
-  (let* ((stem
-	 (or (try "^build/cache/([^.]*)\\$frame[0-9]*.class$")
-	     (try "^build/cache/([^.]*)\\$[0-9]*.class$")
-	     (try "^build/cache/([^.]*).class$")
-	     (error "invalid class file: "class-file)))
-	 (fixed-stem (fold-left (lambda (stem replacement)
-				  (and-let* ((`(,pattern ,replacement)
-					      replacement))
-				    (regex-replace* pattern
-						    stem
-						    replacement)))
-				stem
-				'(("\\$Mn" "-")))))
-    (as-file (string-append "src/"fixed-stem".scm"))))
 
 (define (target-file-name+directory source-file ::java.io.File)
   ::(Values string java.io.File)
-  (match (regex-match "^src/([^.]*)[.]scm$" (source-file:getPath))
+  (match (regex-match "^src(/[^.]*)[.]scm$" (source-file:getPath))
     (`(,_ ,stem)
      (match (regex-match "(.*)/([^/]*)$" stem)
        (`(,_ ,path ,name)
