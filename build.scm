@@ -196,10 +196,13 @@ exec java -cp "$JARS:build/cache" kawa.repl \
     (print "removing "desktop-jar)
     (desktop-jar:delete))
   (let ((output (ZipBuilder desktop-jar)))
+    (print "appending build/cache/grasp-desktop.zip")
     (output:append-entries! (ZipFile "build/cache/grasp-desktop.zip"))
     (for class::java.io.File in internal-dependencies
+      (print "adding "class)
       (output:add-file-at-level! 2 class))
     (for library-path::string in external-dependencies
+      (print "appending "library-path)
       (output:append-entries-unless!
        (lambda (entry::ZipEntry) ::boolean
 	       (let ((name ::string (entry:getName)))
@@ -209,11 +212,14 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 			"MANIFEST.MF$"))))
        (ZipFile library-path)))
     (for asset::java.io.File in (list-files from: "assets")
+      (print "adding "asset)
       (output:add-file-at-level! 0 asset))
-    
+
+    (print "adding init.scm")
     (output:add-file-as! "assets/init.scm"
 			 (as-file "init/init.scm"))
 
+    (print "writing manifest")
     (output:add-file-with-text! "\
 Manifest-Version: 1.0
 Main-Class: grasp$Mndesktop
