@@ -297,6 +297,9 @@
  (concatenate '((a b) (c) (d e f)))
  ===> (a b c d e f))
 
+(define (append-map f l . ls)
+  (apply append (apply map f l ls)))
+
 (define (pass x . functions)
   (fold-left (lambda (x f) (f x)) x functions))
 
