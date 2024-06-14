@@ -182,13 +182,23 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 	(move-files from: "build/cache/src" to: "build/cache")
 	(src:delete)))))
 
+(print "Reindexing .class files...")
+(let ((classes (list-files from: "build/cache"
+			   such-that: (is "[.]class$"
+					  regex-match
+					  (_:getPath)))))
+  (for class ::java.io.File in classes
+       (let* ((scm ::java.io.File (source-file class))
+	      (module (internal-module-name scm)))
+	 (set! (module-classes module)
+	       (union (module-classes module) `(,class))))))
 
-(let ((desktop-jar ::java.io.File (as-file "build/grasp-desktop.jar"))
+(let ((desktop-jar ::java.io.File
+		   (as-file "build/grasp-desktop.jar"))
       (internal-dependencies ::(list-of java.io.File)
-			     (append-map
-			      module-classes
-			      (module-dependencies
-			       '(grasp-desktop))))
+			     (append-map module-classes
+					 (module-dependencies
+					  '(grasp-desktop))))
       (external-dependencies ::(list-of string)
 			     `("libs/kawa.jar"
 			       . ,extra-dependencies-desktop)))
@@ -197,10 +207,12 @@ exec java -cp "$JARS:build/cache" kawa.repl \
     (desktop-jar:delete))
   (let ((output (ZipBuilder desktop-jar)))
     (print "appending build/cache/grasp-desktop.zip")
-    (output:append-entries! (ZipFile "build/cache/grasp-desktop.zip"))
+    (output:append-entries! (ZipFile
+			     "build/cache/grasp-desktop.zip"))
     (for class::java.io.File in internal-dependencies
       (print "adding "class)
       (output:add-file-at-level! 2 class))
+    
     (for library-path::string in external-dependencies
       (print "appending "library-path)
       (output:append-entries-unless!
@@ -211,6 +223,7 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 			"^META-INF"
 			"MANIFEST.MF$"))))
        (ZipFile library-path)))
+    
     (for asset::java.io.File in (list-files from: "assets")
       (print "adding "asset)
       (output:add-file-at-level! 0 asset))
