@@ -31,10 +31,11 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 (import (utils build))
 
 (define-syntax-rule (print elements ...)
-  (display elements)
-  ...
-  (display #\newline)
-  (flush-output-port))
+  (synchronized (current-output-port)
+    (display elements)
+    ...
+    (display #\newline)
+    (flush-output-port)))
 
 (define extra-dependencies-desktop
   '("libs/jsvg-1.0.0.jar"))
@@ -151,42 +152,43 @@ exec java -cp "$JARS:build/cache" kawa.repl \
        (union source-files-to-build
 	      (map module-file modules-to-regenerate))))
 
-(define build-list
+(define build-layers
   (let ((modules-to-build (map internal-module-name
 			       source-files-to-build)))
     (fold-left
      (lambda (a b)
-       (append (map module-file (intersection
-				 b modules-to-build))
-	       a))
-     (reverse application-files)
+       (cons (map module-file
+		  (intersection b modules-to-build))
+	     a))
+     (list application-files)
      layered-modules)))
 
 (for class::java.io.File in class-files-to-remove
   (print "removing "class)
   (class:delete))
 
-(for file::java.io.File in build-list
-  (let-values (((name::string dir::java.io.File)
-		(target-file-name+directory file)))
-    (dir:mkdirs)
-    (let ((target (string-append  "build/cache/" name)))
-      (print"building "(file:getPath))
-      (compile-file (file:getPath) target)
-      (unless (is file in application-files)
-	(unzip target into: "build/cache")
-	(delete target))
-      (and-let* ((src ::java.io.File (existing-file
-				      "build/cache/src"))
-		 ((src:isDirectory)))
-	(move-files from: "build/cache/src" to: "build/cache")
-	(src:delete)))))
+(for build-list in build-layers
+  (for file::java.io.File in-parallel build-list
+    (let-values (((name::string dir::java.io.File)
+		  (target-file-name+directory file)))
+      (let ((target (string-append  "build/cache/" name)))
+	(print"building "(file:getPath))
+	(compile-file (file:getPath) target)
+	(unless (is file in application-files)
+	  (unzip target into: "build/cache")
+	  (delete target))
+	(and-let* ((src ::java.io.File (existing-file
+					"build/cache/src"))
+		   ((src:isDirectory)))
+	  (move-files from: "build/cache/src" to: "build/cache")
+	  (src:delete))))))
 
 (print "Reindexing .class files...")
 (let ((classes (list-files from: "build/cache"
 			   such-that: (is "[.]class$"
 					  regex-match
 					  (_:getPath)))))
+  (reset! module-classes)
   (for class ::java.io.File in classes
        (let* ((scm ::java.io.File (source-file class))
 	      (module (internal-module-name scm)))
