@@ -262,7 +262,8 @@ exec java -cp "$JARS:build/cache" kawa.repl \
     (print "writing manifest")
     (let ((content ::String (string-append "\
 Manifest-Version: 1.0
-Main-Class: "main-class-name"")))
+Main-Class: "main-class-name"
+")))
       (output:add-file-with-text! content "META-INF/MANIFEST.MF"))
     (output:close))))
 
