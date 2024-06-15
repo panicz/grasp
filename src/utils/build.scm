@@ -30,31 +30,31 @@
     (`(,_ ,core)
      (as-file (string-append "build/cache/"core".class")))))
 
-(define (imported-modules contents
-			  source-modules)
+(define (imported-modules file::java.io.File
+			  source-modules::(list-of (list-of symbol)))
   ::(list-of (list-of symbol))
-  (append-map
-   (lambda (expression)
-     (match expression
-       (`(import . ,modules)
-	(only (is _ in source-modules)
-	      (map (lambda (module-spec)
-		     (match module-spec
-		       (`(rename ,module . ,_)
-			module)
-		       (_
-			module-spec)))
-		   modules)))
-       (_
-	'())))
-   contents))
+  (let ((contents (with-input-from-file (file:getPath) read-all)))
+    (append-map
+     (lambda (expression)
+       (match expression
+	 (`(import . ,modules)
+	  (only (is _ in source-modules)
+		(map (lambda (module-spec)
+		       (match module-spec
+			 (`(rename ,module . ,_)
+			  module)
+			 (_
+			  module-spec)))
+		     modules)))
+	 (_
+	  '())))
+     contents)))
 
 (define (build-module-dependency-graph files)
   (let ((dependencies (mapping (module) '()))
 	(source-modules (map internal-module-name files)))
     (for file ::java.io.File in files
-      (let* ((contents (with-input-from-file (file:getPath) read-all))
-	     (imports (imported-modules contents source-modules))
+      (let* ((imports (imported-modules file source-modules))
 	     (source-module (internal-module-name file)))
 	(set! (dependencies source-module) imports)))
     dependencies))
