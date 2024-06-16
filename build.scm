@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh 
 #|
 mkdir -p build/cache
 
@@ -37,15 +37,6 @@ exec java -cp "$JARS:build/cache" kawa.repl \
     (display #\newline)
     (flush-output-port)))
 
-(define extra-dependencies-desktop
-  '("libs/jsvg-1.0.0.jar"))
-
-(define extra-dependencies-terminal
-  '("libs/lanterna-3.1.1.jar"))
-
-(define extra-dependencies-android
-  '("libs/androidsvg-1.4.jar"))
-
 (print "Gathering file list...")
 
 (define dependency-files ::(list-of java.io.File)
@@ -67,7 +58,7 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 
 (define all-files ::(list-of java.io.File)
   `(,@test-files ,@application-files ,@dependency-files))
-  
+
 (define source-modules ::(list-of (list-of symbol))
   (map internal-module-name all-files))
 
@@ -195,22 +186,56 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 	 (set! (module-classes module)
 	       (union (module-classes module) `(,class))))))
 
-(let ((desktop-jar ::java.io.File
-		   (as-file "build/grasp-desktop.jar"))
-      (internal-dependencies ::(list-of java.io.File)
-			     (append-map module-classes
-					 (module-dependencies
-					  '(grasp-desktop))))
-      (external-dependencies ::(list-of string)
-			     `("libs/kawa.jar"
-			       . ,extra-dependencies-desktop)))
-  (when (desktop-jar:exists)
-    (print "removing "desktop-jar)
-    (desktop-jar:delete))
-  (let ((output (ZipBuilder desktop-jar)))
-    (print "appending build/cache/grasp-desktop.zip")
+
+(define (build-jar! #!key
+		    (module-dependencies::(maps ((list-of symbol))
+						to: (list-of
+						     (list-of symbol))))
+		    (main-class::string "grasp-desktop")
+		    (extra-dependencies::(list-of string)
+					 '("libs/jsvg-1.0.0.jar"))
+		    (assets::(either string #f)"assets")
+		    (init::string "init/init.scm")
+		    output-name)
+  (let* ((output-name (or output-name
+			  (string-append "build/" main-class ".jar")))
+	 (main-class-name (fold-left (lambda (stem replacement)
+				       (and-let* ((`(,pattern ,replacement)
+						   replacement))
+					 (regex-replace* pattern
+							 stem
+							 replacement)))
+				     main-class
+				     '(("\\-" "\\$Mn"))))
+	 (output-jar ::java.io.File (as-file output-name))
+	 (init-file ::java.io.File (as-file init))
+	 (internal-dependencies ::(list-of java.io.File)
+				(append-map
+				 module-classes
+				 (fold-left
+				  (lambda (dependencies module)
+				    (union dependencies
+					   `(,module)
+					   (module-dependencies module)))
+				  (module-dependencies
+				   `(,(string->symbol main-class)))
+				  
+				  (imported-modules
+				   init-file
+				   (map internal-module-name
+					dependency-files)))))
+	 (external-dependencies ::(list-of string)
+				`("libs/kawa.jar"
+				  . ,extra-dependencies)))
+  (when (output-jar:exists)
+    (print "removing "output-jar)
+    (output-jar:delete))
+  
+  (let ((output (ZipBuilder output-jar)))
+    (print "appending build/cache/"main-class".zip")
     (output:append-entries! (ZipFile
-			     "build/cache/grasp-desktop.zip"))
+			     (string-append
+			      "build/cache/"main-class".zip")))
     (for class::java.io.File in internal-dependencies
       (print "adding "class)
       (output:add-file-at-level! 2 class))
@@ -225,19 +250,31 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 			"^META-INF"
 			"MANIFEST.MF$"))))
        (ZipFile library-path)))
-    
-    (for asset::java.io.File in (list-files from: "assets")
-      (print "adding "asset)
-      (output:add-file-at-level! 0 asset))
 
-    (print "adding init.scm")
-    (output:add-file-as! "assets/init.scm"
-			 (as-file "init/init.scm"))
+    (when assets
+      (for asset::java.io.File in (list-files from: assets)
+	(print "adding "asset)
+	(output:add-file-at-level! 0 asset)))
+
+    (print "adding "init)
+    (output:add-file-as! "assets/init.scm" init-file)
 
     (print "writing manifest")
-    (output:add-file-with-text! "\
+    (let ((content ::String (string-append "\
 Manifest-Version: 1.0
-Main-Class: grasp$Mndesktop
-" "META-INF/MANIFEST.MF")
-    (output:close)
-))
+Main-Class: "main-class-name"
+")))
+      (output:add-file-with-text! content "META-INF/MANIFEST.MF"))
+    (output:close))))
+
+ (build-jar!
+  module-dependencies: module-dependencies
+  main-class: "grasp-desktop"
+  extra-dependencies: '("libs/jsvg-1.0.0.jar"))
+
+
+ (build-jar!
+  module-dependencies: module-dependencies
+  main-class: "grasp-terminal"
+  assets: #f
+  extra-dependencies: '("libs/lanterna-3.1.1.jar"))
