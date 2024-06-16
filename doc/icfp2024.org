@@ -1,0 +1,19 @@
+* An Implementation of a Visual Stepper in the GRASP programming system
+
+GRASP is a nascent graphical development environment
+for the Scheme programming language, consisting of
+a structural editor for S-expressions, as well as
+an extension mechanism, which allows to display various
+forms of data in an arbitrary visual way.
+
+This paper presents an implementation of one such
+extension, namely -- a visual stepper, which allows
+to observe single step reductions of a purely
+functional subset of Scheme.
+
+GRASP is currently available as a desktop appication,
+a terminal applcation and an Android application.
+It is implemented in Kawa, which is a dialect
+of Scheme that runs on the JVM and provides
+extensions for interfacing with JVM classes
+and libraries.
