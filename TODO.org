@@ -1,3 +1,456 @@
+* 21.06.2024
+
+co sie dzieje, gdy wywolujemy d8?
+
+oto fragmenty r8/src/main/java/com/android/tools/r8/D8.java
+
+#+begin_src java
+    D8Command command = D8Command.parse(args, CommandLineOrigin.INSTANCE).build();
+    if (command.isPrintHelp()) {
+	//...
+    }
+    InternalOptions options = command.getInternalOptions();
+    AndroidApp app = command.getInputApp();
+    ExecutorService executor = ThreadUtils.getExecutorService(options);
+    run(app, options, executor);
+
+  
+  com.android.tools.r8.D8:run(D8Command.builder()
+	  .addProgramFiles(inputPathA, inputPathB)
+	  .setOutput(outputPath, OutputMode.DexIndexed)
+	  .build());
+
+
+#+end_src
+
+com.android.tools.r8.D8:run
+
+#+begin_src scheme
+
+  (define (dex input::java.io.File output::java.io.File)::void
+    (let* ((command ::com.android.tools.r8.D8Command.Builder
+		    (com.android.tools.r8.D8Command:builder))
+	   (command (command:addProgramFiles (input:toPath)))
+	   (command (command:setOutput (output:toPath))))
+      (com.android.tools.r8.D8:run
+       (command:build)
+       (com.android.tools.r8.OutputMode:DexFilePerClass))))
+
+#+end_src
+
+
+Cos tam pomalu zaczyna nam dzialac. Problem jest jednak taki, ze
+inkrementalne dexowannie nie dziala. Byc moze daloby aie tak
+zorkiestrowac caly proces, zeby zadzialalo, gdyby budowac moduly
+zgodnie z ich kolejnoscia w grafie zaleznosci?
+
+
+
+* 20.06.2024
+
+czyli takie cos:
+
+#+begin_src scheme
+  (define (build-file source ::string target-directory ::string)
+    (let* ((messages ::gnu.text.SourceMessages
+		     (gnu.text.SourceMessages))
+	   (parse-options ::int (+ gnu.expr.Language:PARSE_PROLOG
+				   gnu.expr.Language:PARSE_EXPLICIT))
+	   (language ::gnu.expr.Language
+		     (gnu.expr.Language:getDefaultLanguage))
+	   (module-manager ::gnu.expr.ModuleManager
+			   (gnu.expr.ModuleManager:getInstance))
+	   (module-info ::gnu.expr.ModuleInfo
+			(module-manager:findWithSourcePath source))
+	   (input ::gnu.kawa.io.InPort
+		  (open-input-file source)))
+      (module-manager:setCompilationDirectory target-directory)
+      (let ((compilation ::gnu.expr.Compilation
+			 (language:parse input messages
+					 parse-options
+					 module-info)))
+	(if (messages:seenErrors)
+	    (primitive-throw (gnu.text.SyntaxException messages)))
+	(module-info:loadByStages gnu.expr.Compilation:CLASS_WRITTEN)
+	(if (messages:seenErrors)
+	    (primitive-throw (gnu.text.SyntaxException messages))))))
+#+end_src
+
+no i to sie wydaje z grubsza dzialac.
+
+i teraz plan jest taki, zeby dodac opcjonalne parametry
+package oraz top-class
+
+nastepnie zeby generowac pliki .dex z plikow .class
+(bazujac na zrodlach d8)
+
+nastepnie zeby generowac AndroidManifest.xml i dodawac go
+do pliku .apk
+
+na razie nie wiemy, co z tym resources.arsc
+
+ale jeszcze bysmy chcieli alignowac i podpisywac ten plik apkignerem
+i zipalignem, rowniez ze zrodel.
+
+Chcielibysmy moc generowac dwa warianty aplikacji:
+pierwszy jak do tej pory, a drugi zawierajacy apksigner,
+zipalign i d8
+
+
+* 19.06.2024
+
+jak na razie rzecz wyglada nastepujaco, ze;
+- javowy zipalign wydaje sie dzialac
+- apksigner tez jest javowy
+
+Musimy tylko rozkminic co wyczynia ten aapt.
+
+Ale na razie mozemy sprobowac takie cos, zeby:
+1. zbudowac grasp-android tak-jakby byly ustawione
+   opcje -P <nazwa-pakietu> -T <nazwa-pakietu>.GRASP
+2. wygenerowac odpowiedni AndroidManifest.xml
+3. zregenerowac odpowiednie pliki .dex
+4. zbudowac plik classes.dex
+5. wygenerowac plik .apk i dodac do niego manifest,
+   classes.dex, res
+6. wyalignowac plik .apk
+7. podpisac plik .apk
+
+Domyslna nazwa pakietu do tej pory to io.github.graap.
+
+To zobaczmy najpierw w kodach Kawy co robia argumenty
+-P i -T
+
+jezeli idzie o -T, to ustawia wartosc zmiennej compilationTopname,
+ktora nastepnie jest w taki sposob uzyta:
+
+#+begin_src java
+  ModuleInfo minfo = manager.findWithSourcePath(arg);
+
+  if (compilationTopname != null) {
+      String cname
+	  = Mangling.mangleNameIfNeeded(compilationTopname);
+      if (Compilation.classPrefixDefault != null)
+	  cname = Compilation.classPrefixDefault + cname;
+      minfo.setClassName(cname);
+  }
+
+  comp = language.parse(fstream, messages,
+			defaultParseOptions, minfo);
+#+end_src
+
+Jezeli zas idzie o flage -P, to ona z kolei ustawia wartosc
+Compilation.classPrefixDefault.
+
+No to plan na razie bylby z grubsza taki, zeby stworzyc
+swoja wlasna implementacje com[ile-file, baxujaca na oryginalnej
+wersji.
+
+Mozemy tez sprobowac stworzyc implementacje bazujaca na
+wywolaniach w Kawie:
+
+#+begin_src java
+  minfo.loadByStages(Compilation.CLASS_WRITTEN);
+#+end_src
+
+bo w schemie to tak wyglada
+
+#+begin_src scheme
+  (define (build-file source ::string output ::String)
+    ::void
+    (let* ((messages ::gnu.text.SourceMessages
+		     (gnu.text.SourceMessages))
+	   (comp ::gnu.expr.Compilation
+		 (kawa.lang.CompileFile:read (source:toString)
+					     messages)))
+      (set! comp:explicit #t)
+      (if (messages:seenErrors)
+	  (primitive-throw (gnu.text.SyntaxException messages)))
+      (comp:compileToArchive (comp:getModule) output)
+      (if (messages:seenErrors)
+	  (primitive-throw (gnu.text.SyntaxException messages)))))
+#+end_src
+
+* 17.06.2024
+
+No to czas na pare eksperymentow z buildami:
+- zamiana kolejnosci podpisywania z zipalignem
+- wywalenie z apk katalogu resources.arsc
+
+* 16.06.2024
+
+na razie rownolegle sobie zaczniemy pisac pejper na
+ICFP, ale tak poza tym to:
+- musimy rozkminic dzialanie skryptu budujacego apk
+- zaimplementowac to samo po stronie naszego skryptu
+
+#+begin_src sh
+
+  java -cp tools/d8.jar com.android.tools.r8.D8 \
+       --min-api 23 --lib libs/android.jar \
+       `find build/android/obj -name '*.class'` libs/kawa.dex \
+       libs/androidsvg-1.4.dex
+
+  aapt package -I tools/android.jar -f \
+       -M AndroidManifest.xml \
+       -S res \
+       -A assets \
+       -F build/android/bin/"$PKGNAME.apk"
+
+  aapt add -f "$PKGNAME.apk" classes.dex
+
+  zipalign -p 4 "$PKGNAME.apk" "aligned-$PKGNAME.apk"
+
+  if [ ! -s ~/pland.keystore ]; then
+      keytool -genkey -v -keystore ~/pland.keystore \
+	      -alias pland -keyalg RSA -keysize 2048 -validity 10000
+  fi
+
+java -jar ../../../tools/apksigner.jar sign --ks ~/pland.keystore \
+	  --ks-key-alias pland --ks-pass pass:quack01 \
+     "aligned-$PKGNAME.apk"
+
+#+end_src
+
+
+No to po kolei:
+- musimy znalezc sposob, zeby z plikow .class budowac
+  pliki .dex
+- musimy tez sie dowiedziec, co robi aapt
+
+* 15.06.2024
+
+sledzenie zaleznosci z pliku include juz dziala. co nam teraz
+pozostaje:
+- budowanie grasp-terminal.jar
+- parametryzacja skryptu
+  - plik init
+  - nazwa pliku wyjsciowego
+  - pomijanie niektorych targetow
+  - budowanie wersji androidowej
+    (w tym generowanie manifestu)
+
+to tak: terminal juz sie buduje (choc na razie
+bardziej szeregowo, niz rownolegle), natomiast
+chcialoby sie tez budowac klienta androidowego
+
+* 14.06.2024
+
+jeszcze mamy taki problem,ze przy pierwszym wybudowaniu
+pliki .class nie sa wrzucane do archiwum.
+
+ok, to juz sie chyba udalo rozwiazac.
+
+I CO TERAZ?
+
+Teraz mamy kilka opcji:
+- zajac sie budowaniem grasp-terminal.jar
+- dodac zaleznosci pliku init do pozostalych zaleznosci
+- dokonac paralelizacji buildow (co nie powinno byc
+  trudne, zwazywszy na to, ze mamy warstwy, ktore teraz
+  splaszczamy)
+
+W dalszej kolejnosci bedziemy musieli sie zajac klientem
+androidowym, co wydaje sie o tyle klopotliwe, ze bedzie
+trzeba zintegrowac interfejsy narzedzi takich, jak aapt
+czy r8/d8 oraz zipalign i apksigner.
+
+Ale damy rade!
+
+No ale zajmijmy sie jeszcze tym wspolbieznym przetwarzaniem.
+To by moglo jakos tak wygladac:
+
+#+begin_src scheme
+
+  (define (par-for-each function collection)
+    (let* ((items ::int (length collection))
+	   (runtime (java.lang.Runtime:getRuntime))
+	   (processors ::int (max 1 (runtime:availableProcessors)))
+	   (2*processors ::int (* 2 processors)))
+      (if (is items <= 2*processors) ;>
+	  (let ((workers ::java.utils.List
+			 (java.utils.ArrayList items)))
+	    (for-each (lambda (x)
+			(workers:add (future (function x))))
+		      collection)
+	    (for-each (lambda (f)
+			(force f))
+		      workers)
+	    (workers:clear))
+	  (let* ((workers ::java.utils.List
+			  (java.utils.ArrayList 2*processors))
+		 (queue ...))
+	    (for-each (lambda (x)
+			(if (is i 
+
+
+	    (for i from 0 below 2*processors
+		 (set! (workers i)
+		       (future
+			(begin
+			  (function (collection 
+#+end_src
+
+no dobra, przetwarzanie zrownoleglone juz jako tako dziala.
+
+w przyszlosci dobrze by bylo zrobic jakis madrzejszy
+algorytm, uwzgledniajacy liczbe dostepnych rdzeni, w taki
+sposob, ze alokujemy tablice watkow, i watek glowny
+- gdy te pozostale skoncza prace - dorzucalby kolejne.
+
+  zeby to jednak mialo szanse dzialac, potrzebna bylaby kolejka
+  z indeksami: po zakonczeniu pracy kazdy watek dorzucalby
+  swoj indeks do kolejki, i watek glowny moglby tworzyc
+  kolejne watki
+
+do tego chcielibysmy tak sobie zorganizowac zakeznosci miedzy
+modulami, zeby zmaksymalizowac paralelizacje
+
+no ale na razie zostawmy to gdzies na boku - temat ciekawy,
+ale na razie niezbyt pilny
+
+to co teraz? najwazniejsze to chyba zaleznosci z pliku init.scm.
+
+* 13.06.2024
+
+generowanie grasp-desktop.jar juz dziala. Teraz:
+- to samo dla terminala
+- analogicznie dla Androida
+- parametryzacja skryptu (wybor pliku init i nazwy aplikacji,
+  pomijanie ktoregos z targetow)
+
+* 12.06.2024
+
+Zacznijmy moze od tego, zeby wypisac sobie wszystkie
+zaleznosci modulu grasp-desktop.scm na konsole.
+
+#+begin_src java
+
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Enumeration;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
+
+public class Main {
+
+    // 4MB buffer
+    private static final byte[] BUFFER = new byte[4096 * 1024];
+
+    /**
+     * copy input to output stream - available in several StreamUtils or Streams classes 
+     */    
+    public static void copy(InputStream input, OutputStream output) throws IOException {
+        int bytesRead;
+        while ((bytesRead = input.read(BUFFER))!= -1) {
+            output.write(BUFFER, 0, bytesRead);
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        // read war.zip and write to append.zip
+        ZipFile war = new ZipFile("war.zip");
+        ZipOutputStream append = new ZipOutputStream(new FileOutputStream("append.zip"));
+
+        // first, copy contents from existing war
+        Enumeration<? extends ZipEntry> entries = war.entries();
+        while (entries.hasMoreElements()) {
+            ZipEntry e = entries.nextElement();
+            System.out.println("copy: " + e.getName());
+            append.putNextEntry(e);
+            if (!e.isDirectory()) {
+                copy(war.getInputStream(e), append);
+            }
+            append.closeEntry();
+        }
+
+        // now append some extra content
+        ZipEntry e = new ZipEntry("answer.txt");
+        System.out.println("append: " + e.getName());
+        append.putNextEntry(e);
+        append.write("42\n".getBytes());
+        append.closeEntry();
+
+        // close
+        war.close();
+        append.close();
+    }
+}
+
+#+end_src
+
+* 11.06.2024
+
+no to tak:
+- po zbudowaniu wszystkich modulow powinnismy
+  stworzyc nowe archiwum - grasp-desktop.jar
+  - i dodac do niego najpierw wsxystkie pliki
+    z grasp-desktop.zip, nastepnie wszystkie
+    zaleznosci modulu "grasp-desktop.scm"
+    z katalogu "build/cache", a wreszcie
+    wsztstkie (rozpakowane wczesniej?) zaleznosci.
+
+  - stworzyc plik manifestu, i jego takze dodac
+    
+* 10.06.2024
+
+dzis moze by sie udalo zbudowac grasp-desktop.jar
+
+zaleta jest taka, ze moze uda sie to w taki sposob
+zrobic, ze nie bedzie trzeba nadmiernie kopiowac
+plikow
+
+#+begin_src java
+public class ZipMultipleFiles {
+
+    public static void main(String[] args) throws IOException {
+        String file1 = "src/main/resources/zipTest/test1.txt";
+        String file2 = "src/main/resources/zipTest/test2.txt";
+        final List<String> srcFiles = Arrays.asList(file1, file2);
+
+        final FileOutputStream fos = new FileOutputStream(Paths.get(file1).getParent().toAbsolutePath() + "/compressed.zip");
+        ZipOutputStream zipOut = new ZipOutputStream(fos);
+
+        for (String srcFile : srcFiles) {
+            File fileToZip = new File(srcFile);
+            FileInputStream fis = new FileInputStream(fileToZip);
+            ZipEntry zipEntry = new ZipEntry(fileToZip.getName());
+            zipOut.putNextEntry(zipEntry);
+
+            byte[] bytes = new byte[1024];
+            int length;//<
+            while((length = fis.read(bytes)) >= 0) {
+                zipOut.write(bytes, 0, length);
+            }
+            fis.close();
+        }
+
+        zipOut.close();
+        fos.close();
+    }
+}
+#+end_src
+
+* 09.06.2024
+
+warto mniej wiecej pomyslec nad mozliwymi opcjami naszego skryptu:
+--android=no[/yes], --terminal=no[/yes], --desktop=no[/yes]
+(w szczegolnosci ta pierwsza powodowalaby pominiecie budowania
+plikow .dex), --init=..., --app-name=..., --icon=...
+
+Chcielibysmy tez popakowac rozne funkcje uzywane przez skrypt
+budujacy w module - (utils graph), (utils files) i ewentualnie
+(utils build) - zeby kiedys w przyszlosci moc wykonywac buildy
+z wnetrza aplikacji (w szczegolnosci tej androidowej)
+
+
+No dobra, to wydaje sie, ze jeszcze trzeba zrobic cos takiego, zeby
+po zbudowaniu listy plikow .class do skasowania uzupelnic je o
+ich zaleznosci
+
 * 08.06.2024
 
 Dzis bysmy sprobowali wydobyc atrybut SourceFile z plikow .class.
