@@ -99,3 +99,13 @@
 	     actions ...
 	     (loop (+ var 1))))))
     ))
+
+(define-syntax concurrently
+  (lambda (stx)
+    (syntax-case stx ()
+      ((concurrently actions ...)
+       (with-syntax (((futures ...)
+		      (generate-temporaries #'(actions ...))))
+	 #'(let ((futures (future actions)) ...)
+	     (force futures)
+	     ...))))))

@@ -124,7 +124,8 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 	 (module ::(list-of symbol) (internal-module-name scm)))
     (cond
      ((isnt scm in dependency-files)
-      (print "Unknown source for "class": "scm))
+      (unless (is scm in application-files)
+	(print "Unknown source for "class": "scm)))
      ((is (class:lastModified) <= (scm:lastModified))
       (let ((affected-modules `(,module . ,(module-users module))))
 	(set! modules-to-regenerate
@@ -151,49 +152,130 @@ exec java -cp "$JARS:build/cache" kawa.repl \
        (cons (map module-file
 		  (intersection b modules-to-build))
 	     a))
-     (list application-files)
+     '()
      layered-modules)))
 
 (for class::java.io.File in class-files-to-remove
   (print "removing "class)
   (class:delete))
 
+(define (build-file source ::string
+		    #!key
+		    (target-directory ::string "build/cache")
+		    (package #!null)
+		    (top-class-name #!null))
+  (print"building "source)
+  (let* ((messages ::gnu.text.SourceMessages
+		   (gnu.text.SourceMessages))
+	 (parse-options ::int (+ gnu.expr.Language:PARSE_PROLOG
+				 gnu.expr.Language:PARSE_EXPLICIT))
+	 (language ::gnu.expr.Language
+		   (gnu.expr.Language:getDefaultLanguage))
+	 (module-manager ::gnu.expr.ModuleManager
+			 (gnu.expr.ModuleManager:getInstance))
+	 (module-info ::gnu.expr.ModuleInfo
+		      (module-manager:findWithSourcePath source))
+	 (input ::gnu.kawa.io.InPort
+		(open-input-file source))
+	 (class-prefix-default ::String
+			       gnu.expr.Compilation:classPrefixDefault))
+    (try-finally
+     (begin
+       (when package
+	 (set! gnu.expr.Compilation:classPrefixDefault package))
+       (when top-class-name
+	 (module-info:setClassName
+	  (string-append
+	   (or gnu.expr.Compilation:classPrefixDefault "")
+	   (gnu.expr.Mangling:mangleNameIfNeeded top-class-name))))
+       (module-manager:setCompilationDirectory target-directory)
+       (let ((compilation ::gnu.expr.Compilation
+			  (language:parse input messages
+					  parse-options
+					  module-info)))
+	 (if (messages:seenErrors)
+	     (primitive-throw (gnu.text.SyntaxException messages)))
+	 (module-info:loadByStages gnu.expr.Compilation:CLASS_WRITTEN)
+	 (if (messages:seenErrors)
+	     (primitive-throw (gnu.text.SyntaxException messages)))))
+     (set! gnu.expr.Compilation:classPrefixDefault class-prefix-default))))
+
+(define (build-zip source-file ::string target-file ::string)
+  (print "building zip "source-file)
+  (compile-file source-file target-file))
+
 (for build-list in build-layers
   (for file::java.io.File in-parallel build-list
-    (let-values (((name::string dir::java.io.File)
-		  (target-file-name+directory file)))
-      (let ((target (string-append  "build/cache/" name)))
-	(print"building "(file:getPath))
-	(compile-file (file:getPath) target)
-	(unless (is file in application-files)
-	  (unzip target into: "build/cache")
-	  (delete target))
-	(and-let* ((src ::java.io.File (existing-file
-					"build/cache/src"))
-		   ((src:isDirectory)))
-	  (move-files from: "build/cache/src" to: "build/cache")
-	  (src:delete))))))
+    (build-file (file:getPath))))
+
+(concurrently
+ (build-zip "src/grasp-desktop.scm" "build/cache/grasp-desktop.zip")
+ (build-zip "src/grasp-terminal.scm" "build/cache/grasp-terminal.zip")
+ (build-file "src/grasp-android.scm"
+	     ;;target-directory: "build/grasp-android"
+	     package: "io.github.grasp."
+	     top-class-name: "io.github.grasp.GRASP"))
 
 (print "Reindexing .class files...")
-(let ((classes (list-files from: "build/cache"
+(set! cached-files (list-files from: "build/cache"
 			   such-that: (is "[.]class$"
 					  regex-match
-					  (_:getPath)))))
-  (reset! module-classes)
-  (for class ::java.io.File in classes
-       (let* ((scm ::java.io.File (source-file class))
-	      (module (internal-module-name scm)))
-	 (set! (module-classes module)
-	       (union (module-classes module) `(,class))))))
+					  (_:getPath))))
+(reset! module-classes)
 
+(for class::java.io.File in cached-files
+  (let* ((scm ::java.io.File (source-file class))
+	 (module (internal-module-name scm)))
+    (set! (module-classes module)
+	  (union (module-classes module) `(,class)))))
+
+(define (dex input::java.io.File output::java.io.File)::void
+  (let* ((command (com.android.tools.r8.D8Command:builder))
+	 (command (command:addProgramFiles (input:toPath)))
+	 (command (command:setIntermediate #t))
+	 (command (command:setOutput
+		   (output:toPath)
+		   ;com.android.tools.r8.OutputMode:DexIndexed
+		   com.android.tools.r8.OutputMode:DexFilePerClass)))
+    (com.android.tools.r8.D8:run
+     (command:build))))
+
+(define (dex-list input::(list-of java.io.File) output::java.io.File)::void
+  (let* ((command (com.android.tools.r8.D8Command:builder))
+	 (command (command:addProgramFiles (map (lambda (file::java.io.File)
+						  ::java.nio.file.Path
+						  (file:toPath))
+						input)))
+	 (command (command:setOutput
+		   (output:toPath)
+		   com.android.tools.r8.OutputMode:DexIndexed
+		   #;com.android.tools.r8.OutputMode:DexFilePerClass)))
+    (com.android.tools.r8.D8:run
+     (command:build))))
+
+(for class-file::java.io.File in cached-files
+  (match (regex-match "^(.*)[.]class$" (class-file:getPath))
+    (`(,_ ,stem)
+     (let ((dex-file ::java.io.File (as-file (string-append stem ".dex"))))
+       (when (or (not (dex-file:exists))
+		 (is (dex-file:lastModified) <= (class-file:lastModified)))
+	 
+	 (dex class-file (as-file "build/cache")))))))
+
+#;(define dex-files ::(list-of java.io.File)
+  (list-files from: "build/cache"
+	      such-that: (is "[.]dex$" regex-match (_:getPath))))
+
+;;(dex cached-files (as-file "build/cache"))
+
+#;(dex-classes dex-files)
 
 (define (build-jar! #!key
-		    (module-dependencies::(maps ((list-of symbol))
-						to: (list-of
-						     (list-of symbol))))
-		    (main-class::string "grasp-desktop")
-		    (extra-dependencies::(list-of string)
-					 '("libs/jsvg-1.0.0.jar"))
+		    module-dependencies::(maps ((list-of symbol))
+					       to: (list-of
+						    (list-of symbol)))
+		    main-class::string
+		    extra-dependencies::(list-of string)
 		    (assets::(either string #f)"assets")
 		    (init::string "init/init.scm")
 		    output-name)
@@ -267,14 +349,14 @@ Main-Class: "main-class-name"
       (output:add-file-with-text! content "META-INF/MANIFEST.MF"))
     (output:close))))
 
+(concurrently
  (build-jar!
   module-dependencies: module-dependencies
   main-class: "grasp-desktop"
   extra-dependencies: '("libs/jsvg-1.0.0.jar"))
 
-
  (build-jar!
   module-dependencies: module-dependencies
   main-class: "grasp-terminal"
   assets: #f
-  extra-dependencies: '("libs/lanterna-3.1.1.jar"))
+  extra-dependencies: '("libs/lanterna-3.1.1.jar")))

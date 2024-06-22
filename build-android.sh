@@ -22,10 +22,10 @@ if [ -z "$INIT" ]; then
     INIT="init/init.scm"
 fi
 
-aapt package -I tools/android.jar -f -m \
-     -M "AndroidManifest.xml" \
-     -J "build/android/gen" \
-     -S "res" || exit
+# aapt package -I libs/android.jar -f -m \
+#      -M "AndroidManifest.xml" \
+#      -J "build/android/gen" \
+#      -S "res" || exit
 
 # -P $PKGNAME. -T $PKGNAME.Grasp
 
@@ -42,7 +42,7 @@ java -cp "$JARS:../build/android/obj" \
      -C grasp-android.scm || exit
 cd ..
 
-java -cp tools/d8.jar com.android.tools.r8.D8 \
+java -cp libs/d8.jar com.android.tools.r8.D8 \
      --min-api 23 --lib libs/android.jar \
    `find build/android/obj -name '*.class'` libs/kawa.dex \
     libs/androidsvg-1.4.dex || exit
@@ -63,7 +63,9 @@ cd build/android/bin
 
 aapt add -f "$PKGNAME.apk" classes.dex || exit
 
-zipalign -p 4 "$PKGNAME.apk" "aligned-$PKGNAME.apk" || exit
+java -jar ../../../libs/zipalign.jar "$PKGNAME.apk" "aligned-$PKGNAME.apk" || exit
+
+#zipalign -p 4 "$PKGNAME.apk" "aligned-$PKGNAME.apk" || exit
 
 
 if [ ! -s ~/pland.keystore ]; then
@@ -71,7 +73,7 @@ if [ ! -s ~/pland.keystore ]; then
 	    -alias pland -keyalg RSA -keysize 2048 -validity 10000
 fi
 
-java -jar ../../../tools/apksigner.jar sign --ks ~/pland.keystore \
+java -jar ../../../libs/apksigner.jar sign --ks ~/pland.keystore \
 	  --ks-key-alias pland --ks-pass pass:quack01 \
      "aligned-$PKGNAME.apk"
 

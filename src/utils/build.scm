@@ -109,14 +109,3 @@
 	       (`(,_ ,path) (regex-match "^(?:./)?build/cache/(.*)$"
 					 (class-directory:getPath))))
       (as-file (string-append "src/"path"/"name)))))
-
-
-(define (target-file-name+directory source-file ::java.io.File)
-  ::(Values string java.io.File)
-  (match (regex-match "^src(/[^.]*)[.]scm$" (source-file:getPath))
-    (`(,_ ,stem)
-     (match (regex-match "(.*)/([^/]*)$" stem)
-       (`(,_ ,path ,name)
-	(values
-	 (string-append name ".zip")
-	 (as-file (string-append "build/cache/" path))))))))
