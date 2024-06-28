@@ -1,19 +1,1021 @@
+The direct purpose of this paper - as the title suggests - is to
+present how the visual evaluator extension is implemented in the GRASP
+programming system.
+
+The indirect purpose of it is to provide a tutorial around the design
+of GRASP, and in particular - of the architecture of its extension
+mechanism.
+
+Neither GRASP nor its extension mechanisms are, at the moment of
+writing this paper, final or complete, and we are certain that some
+details of the solutions described in here will change even before the
+first release.
+
+What will not change, though, is the set of problems that need to be
+solved in order to build a system with capabilities similar to those
+of GRASP.
+
+We believe that these problems might be of interest of the Scheme
+community.
+
+
 * An Implementation of a Visual Stepper in the GRASP programming system
+  
+GRASP is a nascent graphical development environment for the Scheme
+programming language, consisting of a structural editor for
+S-expressions, as well as an extension mechanism, which allows to
+display various forms of data in an arbitrary visual way.
 
-GRASP is a nascent graphical development environment
-for the Scheme programming language, consisting of
-a structural editor for S-expressions, as well as
-an extension mechanism, which allows to display various
-forms of data in an arbitrary visual way.
+This paper presents an implementation of one such extension, namely --
+a visual stepper, which allows to observe single step reductions of a
+purely functional subset of Scheme.
 
-This paper presents an implementation of one such
-extension, namely -- a visual stepper, which allows
-to observe single step reductions of a purely
-functional subset of Scheme.
+GRASP is currently available as a desktop appication, a terminal
+applcation and an Android application.  It is implemented in Kawa,
+which is a dialect of Scheme that runs on the JVM and provides
+extensions for interfacing with JVM classes and libraries, including
+the capability of defining new classes, as well as optional checked
+monomorphic type annotations.
 
-GRASP is currently available as a desktop appication,
-a terminal applcation and an Android application.
-It is implemented in Kawa, which is a dialect
-of Scheme that runs on the JVM and provides
-extensions for interfacing with JVM classes
-and libraries.
+** The fundamental ideas of GRASP
+
+At the core of GRASP, there are two fundamental ideas.  The first one
+is that it is a generic editor for S-expressions that uses boxes to
+represent a pair of matching parentheses.
+
+Here's what the definition of the factorial function looks like
+in a GRASP representation:
+
+#+BEGIN_SRC
+╭        ╭     ╮                      ╮
+│ define │ ! n │                      │
+│        ╰     ╯                      │
+│   ╭    ╭        ╮                 ╮ │
+│   │ if │ <= n 1 │                 │ │
+│   │    ╰        ╯                 │ │
+│   │                               │ │
+│   │       1                       │ │
+│   │                               │ │
+│   │       ╭     ╭   ╭       ╮ ╮ ╮ │ │
+│   │       │ * n │ ! │ - n 1 │ │ │ │ │
+╰   ╰       ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
+#+END_SRC
+
+The boxes can be manipulated using pointing interfaces such as touch
+screens and computer mice. The left edge of a regular box can be used for
+moving it to another place in the document (or some other document),
+removing it, or copying (by using two presses). The right edge
+of the box can be used for resizing it or splicing its contents
+into its parent box.
+
+The second idea is that the user is allowed to define custom boxes
+that can be rendered and interacted with in special ways: a box then
+receives an area in the document to which it can draw; it also
+receives touch events from that area, and if the custom box is
+in the focus, it additionally receives events from the keyboard.
+
+Currently, GRASP contains a few predefined extensions. Among them,
+there is the extension called Button, which reacts to presses by
+invoking the thunk that was provided during its creation.
+
+A button is created in a GRASP document by inputting an expression
+such as
+
+#+BEGIN_SRC scheme
+(Button label: "Press me" 
+        action: (lambda () (WARN "Button pressed")))
+#+END_SRC
+
+and then either "enchanting" the expression (by pressing the
+tab key with the text cursor positioned on either opening
+on closing parenthesis of the outermost expression),
+or evaluating it (by pressing ctrl+e).
+
+The result will be displayed roughly like this:
+
+#+BEGIN_SRC
+╭──────────╮
+│ Press me │
+╰──────────╯
+#+END_SRC
+
+And of course, when the button is pressed, it causes the text
+"Button pressed" to be displayed somewhere.
+
+** The Visual Stepper Extension
+
+Another built-in extension is the visual stepper, which
+is the subject of this work. It can be instantiated by typing
+#+BEGIN_SRC scheme
+(Stepper <expression>)
+#+END_SRC
+into the editor, and pressing the tab key on the closing parenthesis
+of the expression. For example, if src_scheme{<expression>} is
+src_scheme{(! 5)}, then the corresponding stepper will look something
+like this:
+
+#+BEGIN_SRC
+╔═══════════════════════════════════╗
+║╭     ╮                            ║
+║│ ! 5 │                            ║
+║╰     ╯                            ║
+║╭─────╮╭─────╮╭─────╮╭─────╮╭─────╮║
+║│ ▮◀◀ ││ ▮◀  ││  ▶  ││  ▶▮ ││ ▶▶▮ │║
+║╰─────╯╰─────╯╰─────╯╰─────╯╰─────╯║
+╚═══════════════════════════════════╝
+#+END_SRC
+
+If the "!" symbol is bound to the factorial function as defined
+on the first picture, then pressing the ▶ or ▶▮ buttons will cause the expression
+to be reduced by means of the substitution model of procedure evaluation.
+
+In this regard, the visual stepper in GRASP is similar to the stepper
+available for the Beginner Student Language in the dr Racket programming
+environment.
+
+What makes the stepper in GRASP different, is first that it uses the representation
+of s-expressions as nested boxes, rather than text, and second, that during the
+evaluation, subsequent steps of reductions are smoothly morphed from one into
+another: the "!" will gradually morph into the body of the factorial function,
+the "5" will triple itself, and each of its occurrences will slide into the
+positions of the occurrences of "n" in the body of the definition of factorial.
+
+Eventually, we will get a something that looks like this:
+
+#+BEGIN_SRC
+╔═══════════════════════════════════╗
+║╭    ╭        ╮                 ╮  ║
+║│ if │ <= 5 1 │                 │  ║
+║│    ╰        ╯                 │  ║
+║│                               │  ║
+║│       1                       │  ║
+║│                               │  ║
+║│       ╭     ╭   ╭       ╮ ╮ ╮ │  ║
+║│       │ * 5 │ ! │ - 5 1 │ │ │ │  ║
+║╰       ╰     ╰   ╰       ╯ ╯ ╯ ╯  ║
+║╭─────╮╭─────╮╭─────╮╭─────╮╭─────╮║
+║│ ▮◀◀ ││ ▮◀  ││  ▶  ││  ▶▮ ││ ▶▶▮ │║
+║╰─────╯╰─────╯╰─────╯╰─────╯╰─────╯║
+╚═══════════════════════════════════╝
+#+END_SRC
+
+Now, on the next step, the expression src_scheme{(<= 5 1)} will morph
+into the value src_scheme{#false}:
+
+#+BEGIN_SRC
+╔═════════════════════════════════════════╗
+║╭                               ╮        ║
+║│ if #false                     │        ║
+║│                               │        ║
+║│                               │        ║
+║│       1                       │        ║
+║│                               │        ║
+║│       ╭     ╭   ╭       ╮ ╮ ╮ │        ║
+║│       │ * 5 │ ! │ - 5 1 │ │ │ │        ║
+║╰       ╰     ╰   ╰       ╯ ╯ ╯ ╯        ║
+║╭─────╮╭─────╮╭─────╮╭─────╮╭─────╮      ║
+║│ ▮◀◀ ││ ▮◀  ││  ▶  ││  ▶▮ ││ ▶▶▮ │      ║
+║╰─────╯╰─────╯╰─────╯╰─────╯╰─────╯      ║
+╚═════════════════════════════════════════╝
+#+END_SRC
+
+Subsequently the whole expression will be replaced with the "else" branch
+of the "if" expression: the content of the outermost expression will fade
+away, and the expression src_scheme{(* 5 (! (- 5 1)))} will slide into the
+top left corner of the outer box.
+
+A video recording of this process (performed in both graphical and terminal
+clients of GRASP) can be found at https://www.youtube.com/watch?v=wN8Fy5xTXeQ, 
+and the reader is encouraged to watch it before proceeding through the next
+sections of this paper.
+
+** The simplified model of the reduction
+
+Computationally, visual stepper in GRASP is currently based on an erroreous
+implementation of a small-step evaluator of an extended lambda-calculus.
+Because the implementation was meant only as a proof of concept, 
+it is only capable of processing primitive values such as numbers,
+and has problems with symbolic expressions (and lists in particular).
+
+The repository of GRASP contains a simplified model of the stepper's
+evaluator, which is defined as follows:
+
+#+BEGIN_SRC scheme
+(define (self-evaluating? x)
+  (or (and-let* ((`(lambda ,args ,body) x)))
+      (and (isnt x list?)
+	   (isnt x pair?)
+	   (isnt x symbol?))))
+
+(define-object (EvaluationContext)
+  ;;(define macro-definitions ::)
+
+  (define definitions ::java.util.Map
+    (let ((table ::java.util.Map (java.util.HashMap)))
+      (table:put '+ +)
+      (table:put '- -)
+      (table:put '* *)
+      (table:put '/ /)
+      (table:put '< <)
+      (table:put '<= <=)
+      (table:put '> >)
+      (table:put '>= >=)
+      (table:put '= =)
+      (table:put 'eq? eq?)		
+      (table:put 'eqv? eqv?)
+      table))
+
+  (define (value symbol)
+    (cond ((definitions:contains-key symbol)
+	   (definitions:get symbol))
+	  (else
+	   (error "undefined symbol: "symbol))))
+
+  (define (defines-macro? symbol)
+    #f)
+
+  (define (defines? symbol)
+    (definitions:contains-key symbol))
+
+  (define (define! name value)
+    (definitions:put name value))
+
+  (define (primitive? symbol)
+    (and (definitions:contains-key symbol)
+	 (let ((value (definitions:get symbol)))
+	   (procedure? value))))
+  )
+
+(define default-context ::EvaluationContext
+  (EvaluationContext))
+
+(define (reduce expression #!optional (context::EvaluationContext
+				       default-context))
+  (match expression
+    (`(if #f ,then ,else)
+     else)
+    (`(if ,test ,then ,else)
+     (let ((test* (reduce test context)))
+       (if (equal? test test*)
+	   then
+	   `(if ,test* ,then ,else))))
+    (`(lambda ,args ,body)
+     expression)
+    (`(quote ,_)
+     expression)
+    (`(,operator . ,operands)
+     (if (and (symbol? operator)
+	      (context:defines-macro? operator))
+	 (error "Macros not supported (yet)")
+	 (let ((operands* (reduce-operands operands context)))
+	   (if (isnt operands equal? operands*)
+	       `(,operator . ,operands*)
+	       (match operator
+		 (,@symbol?
+		  (cond ((context:primitive? operator)
+			 (apply (context:value operator)
+				operands))
+			((context:defines? operator)
+			 (reduce `(,(context:value operator)
+				   . ,operands)
+				 context))
+			(else
+			 `(,operator . ,operands))))
+		 (`(lambda ,args ,body)
+		  (substitute args #;with operands
+			      #;in body))
+		 (`(,_ . ,_)
+		  (let ((operator* (reduce operator
+					   context)))
+		    `(,operator* . ,operands)))
+		 (_
+		  `(,operator . ,operands)))))))
+    (_
+     (if (and (symbol? expression)
+	      (context:defines? expression))
+	 (context:value expression)
+	 expression))))
+
+(define (reduce-operands operands #!optional (context::EvaluationContext
+			      		      default-context))
+  (match operands
+    (`(,first . ,rest)
+     (let ((first* (reduce first context)))
+       (if (equal? first first*)
+	   `(,first . ,(reduce-operands rest context))
+	   `(,first* . ,rest))))
+    ('()
+     '())
+    (_
+     (reduce operands context))))
+
+(define (any. satisfying? elements)
+  (match elements
+    (`(,h . ,t)
+     (or (satisfying? h)
+	 (any. satisfying? t)))
+    ('()
+     #f)
+    (x
+     (satisfying? x))))
+
+(define (in. element collection)
+  (any. (is _ eq? element) collection))
+
+(define (substitute variables #;with values #;in expression)
+  (match expression
+    (`(quote ,_)
+     expression)
+    (`(lambda ,args ,body)
+     (let-values (((variables* values*) (only. (isnt _ in. args)
+					       variables values)))
+       `(lambda ,args
+	  ,(substitute variables* #;with values*
+		       #;in body))))
+    (`(,operator . ,operands)
+     `(,(substitute variables #;with values #;in operator)
+       . ,(substitute variables #;with values #;in operands)))
+    (_
+     (if (symbol? expression)
+	 (counterpart #;of expression #;from variables
+			   #;in values)
+	 expression))))
+
+(define (counterpart #;of variable #;from variables
+			  #;in values)
+  (match variables
+    (`(,,variable . ,_)
+     (let ((result (car values)))
+       (if (self-evaluating? result)
+	   result
+	   `',result)))
+    (,variable
+     `',values)
+    (`(,_ . ,rest)
+     (counterpart #;of variable #;from rest
+		       #;in (cdr values)))
+    (_
+     variable)))
+
+#+END_SRC
+
+The src_scheme{is} and src_scheme{isnt} forms are defined in SRFI-156. The src_scheme{match}
+form is derived from the sample implementation in the (withdrawn) SRFI-200 document. The
+src_scheme{and-let*} form is defined in the SRFI-202 document. The code uses Kawa's syntactic
+extensions for accessing classes' properties and metods, as well as for defining DSSSL style
+optional arguments. It also makes use of some classes and interfaces provided by the JVM
+platform. The src_scheme{only.} function is a counterpart of SRFI-1's src_scheme{filter},
+but it also supports improper lists (and replaces the improper tail with src_scheme{'()}
+if it doesn't satisfy the predicate argument).
+
+If we provide the definition of the factorial function to the context
+
+#+BEGIN_SRC scheme
+(default-context:define! '!
+  '(lambda (n)
+     (if (<= n 1)
+	 1
+	 (* n (! (- n 1))))))
+#+END_SRC
+
+and unfold the src_scheme{reduce} function from the expression src_scheme{(! 5)} until
+it reaches a fix point, we'll get the following sequence of expansions:
+
+#+BEGIN_SRC scheme
+  (! 5)
+  
+  (if (<= 5 1)
+      1
+      (* 5 (! (- 5 1))))
+  
+  (if #f
+      1
+      (* 5 (! (- 5 1))))
+  
+  (* 5 (! (- 5 1)))
+  
+  (* 5 (! 4))
+  
+  (* 5 (if (<= 4 1)
+	   1
+	   (* 4 (! (- 4 1)))))
+  
+  (* 5 (if #f
+	   1
+	   (* 4 (! (- 4 1)))))
+  
+  (* 5 (* 4 (! (- 4 1))))
+  
+  (* 5 (* 4 (! 3)))
+  
+  (* 5 (* 4 (if (<= 3 1)
+		1
+		(* 3 (! (- 3 1))))))
+  
+  (* 5 (* 4 (if #f
+		1
+		(* 3 (! (- 3 1))))))
+  
+  (* 5 (* 4 (* 3 (! (- 3 1)))))
+  
+  (* 5 (* 4 (* 3 (! 2))))
+  
+  (* 5 (* 4 (* 3 (if (<= 2 1)
+		     1
+		     (* 2 (! (- 2 1)))))))
+  
+  (* 5 (* 4 (* 3 (if #f
+		     1
+		     (* 2 (! (- 2 1)))))))
+  
+  (* 5 (* 4 (* 3 (* 2 (! (- 2 1))))))
+  
+  (* 5 (* 4 (* 3 (* 2 (! 1)))))
+  
+  (* 5 (* 4 (* 3 (* 2 (if (<= 1 1)
+			  1
+			  (* 1 (! (- 1 1))))))))
+  
+  (* 5 (* 4 (* 3 (* 2 (if #t
+			  1
+			  (* 1 (! (- 1 1))))))))
+
+  (* 5 (* 4 (* 3 (* 2 1))))
+
+  (* 5 (* 4 (* 3 2)))
+
+  (* 5 (* 4 6))
+
+  (* 5 24)
+
+  120
+#+END_SRC
+
+Likewise, if we extend the set of primitive operators - for example, with the following
+defintions
+
+#+BEGIN_SRC scheme
+      (default-context:define! 'cons 
+       (lambda args
+         (match args
+	   (`(',a ',b)
+	    `',(cons a b))
+	   (`(,a ',b)
+	    `',(cons a b))
+	   (`(',a ,b)
+	    `',(cons a b))
+	   (`(,a ,b)
+	    `',(cons a b)))))
+
+      (default-context:define! 'car 
+       (lambda (x)
+        (match x
+ 	 (`'(,a . ,b)
+	  (if (self-evaluating? a)
+	      a
+	      `',a)))))
+
+      (default-context:define! 'cdr 
+       (lambda (x)
+        (match x
+	 (`'(,a . ,b)
+	  (if (self-evaluating? b)
+	       b
+	       `',b)))))
+
+      (default-context:define! 'pair? 
+       (lambda (x)
+        (and-let* ((`'(,_ . ,_) x)))))
+
+      (default-context:define! 'null? 
+       (lambda (x)
+        (and-let* ((`'() x)))))
+
+#+END_SRC
+
+then we can define the src_scheme{append} function like this:
+
+#+BEGIN_SRC scheme
+(default-context:define! 'append
+  '(lambda (a b)
+     (if (null? a)
+	 b
+	 (cons (car a) (append (cdr a) b)))))
+#+END_SRC
+
+And while we admit that the set of primitives for working with cons-cells feels
+a bit complicated (or even simply wrong), it does allow to obtain the proper sequence
+of expansions of the expression src_scheme{(append '(1 2) '(3 4 5))}:
+
+#+BEGIN_SRC scheme
+  (append '(1 2) '(3 4 5))
+
+  (if (null? '(1 2))
+      '(3 4 5)
+      (cons (car '(1 2)) (append (cdr '(1 2)) '(3 4 5))))
+  
+  (if #f
+      '(3 4 5)
+      (cons (car '(1 2)) (append (cdr '(1 2)) '(3 4 5))))
+  
+ (cons (car '(1 2)) (append (cdr '(1 2)) '(3 4 5)))
+
+ (cons 1 (append (cdr '(1 2)) '(3 4 5)))
+
+ (cons 1 (append '(2) '(3 4 5)))
+
+ (cons 1 (if (null? '(2))
+	     '(3 4 5)
+	     (cons (car '(2)) (append (cdr '(2)) '(3 4 5)))))
+ (cons 1 (if #f
+	     '(3 4 5)
+	     (cons (car '(2)) (append (cdr '(2)) '(3 4 5)))))
+ 
+ (cons 1 (cons (car '(2)) (append (cdr '(2)) '(3 4 5))))
+ 
+ (cons 1 (cons 2 (append (cdr '(2)) '(3 4 5))))
+ 
+ (cons 1 (cons 2 (append '() '(3 4 5))))
+ 
+ (cons 1 (cons 2 (if (null? '())
+		     '(3 4 5)
+		     (cons (car '()) (append (cdr '()) '(3 4 5))))))
+ 
+ (cons 1 (cons 2 (if #t
+		     '(3 4 5)
+		     (cons (car '()) (append (cdr '()) '(3 4 5))))))
+ 
+ (cons 1 (cons 2 '(3 4 5)))
+
+ (cons 1 '(2 3 4 5))
+
+ '(1 2 3 4 5)
+
+#+END_SRC
+
+** Requirements for the visual stepper
+
+The stepper presented in the previous section used the classical
+cons-cells, symbols and numbers to represent expressions. All it did
+was performing substitution in nested lists.
+
+However, this is insufficient for the purpose of the visual evaluator
+presented at the beginning of this paper. In addition to simply obtaining
+new expressions, we also need to track the origins of the components
+of its subexpressions. Consider the reduction from the expression
+
+#+BEGIN_SRC scheme
+(! 1)
+#+END_SRC
+
+to
+
+#+BEGIN_SRC scheme
+(if (<= 1 1)
+    1
+   (* 1 (! (- 1 1))))
+#+END_SRC
+
+There are six occurrences of src_scheme{1} in this expression, but only
+three of them originate from argument substitution. Therefore, we need
+to be able to track their identity using other means than the equality
+predicates that are provided by Scheme.
+
+Moreover, cons-cells themselves carry no information about line breaks
+and indentation structure. This limitation has traditionally been circumvented
+by pretty-printing, which can be confusing when the indentation of
+the expression obtained from substitution changes compared to the original
+expression. The source code can also contain comments, and it can be
+desirable to preserve them in the process of substitution.
+
+** The representation of expressions in GRASP
+
+Some of the requirements from the previous section are already satisfied
+by the representation of expressions that was developed for representing
+documents in GRASP.
+
+We do not claim, that the current representation of expressions of GRASP
+is particularly good, and we are open to better alternatives.
+
+First off, GRASP represents documents by subclassing the src_scheme{pair}
+class provided by Kawa. Originally the reason for it was that Kawa
+defined an src_scheme{equal?}-like src_java{equals} method on cons-cells,
+which didn't allow to use cons-cells' pointer (src-scheme{eq?}-like)
+equality in the context of hash tables.
+
+Intially GRASP used a number of hash tables, named src_scheme{pre-head-space},
+src_scheme{post-head-space}, src_scheme{pre-tail-space} and 
+src_scheme{post-tail-space}, as well as src_scheme{null-head-space}
+and src_scheme{null-tail-space} hash tables for representing spaces
+and comments between elements of the list.
+
+However, there was a problem with editable representation of symbols:
+given that the Scheme's src_scheme{eq?} corresponds directly to the
+object idenity in Kawa, it was impossible to modify only a signle
+occurrence of a symbol, leaving the remaining ones intact. Moreover,
+it is impossible to change object's type in runtime, and in Scheme
+even some very similar expressions (such as 1 and 1-) have different
+types (a number and a symbol, respectively).
+
+Therefore a new class called src_scheme{Atom} was devised, that contained an
+editable representation of atoms. A (SRFI-39-like) parameter called 
+src_scheme{cell-access-mode} was introduced, and the src_scheme{getCar}
+and src_scheme{getCdr} methods of the src_scheme{cons} cell were
+overridden, so that if the value of src_scheme{(cell-access-mode)}
+was src_scheme{CellAccessMode:Editing}, they would be returning
+src_scheme{Atom} objects, and otherwise if the parameter's value
+was src_scheme{CellAccessMode:Evaluating}, they would return the
+parsed content of src_scheme{Atom} object's internal buffer.
+
+Overriding the accessor methods also allowed to solve the problem
+with the lack of identity of empty lists, and an object called
+src_scheme{EmptyListProxy} was introduced which held the internal
+space of various instances of empty list. This allowed to remove
+the src_scheme{null-head-space} and src_scheme{null-tail-space}
+hash tables. Furthermore, some of the remaining tables were moved from
+hash tables to the property list of the src_scheme{cons} object
+with the hope of optimizing the performance.
+
+GRASP uses this representation to this day, although in retrospect
+having two different access modes turned out to be very confusing,
+and it would probably be better to have a different structure for
+editing and a different one for evaluation, and conversion functions
+that would transform between those two representations.
+
+** The model of reduction that tracks origins of expressions
+
+The new variant of the src_scheme{reduce} function will take
+two additional arguments. One of them, called src_scheme{progeny},
+will be a mutable hash-table that maps a source element to all
+the subexpressions that were created by substituting that element
+with them. The second additional argument, called src_scheme{origin},
+will map the other way around, from an expression to all the 
+expressions that were used to create it.
+
+Although according to the reduction rules of lambda-calculus every
+expression can have at most one origin element, we will represent 
+both tables as mappings from an element to a list of elements.
+
+By default, the hash table of an element e will return a list
+containing only that element (which essentially means that
+by default every element is its own origin/progeny).
+
+Otherwise, an element can have many elements in its progeny list.
+This corresponds to the argument substitution of arguments with values.
+It is also possible for an expression to have an empty progeny list,
+which means that the expression disappears in the course of reduction.
+
+Both tables are populated with data as the reduction proceeds.
+They are also returned as additional values from the src_scheme{reduce}
+function.
+
+#+BEGIN_SRC scheme
+(define (reduce expression
+		#!optional
+		(origin::(!maps (Element) to: (list-of Element))
+			 (property (e::Element)::(list-of Element)
+				   (recons e '())))
+		(progeny::(!maps (Element) to: (list-of Element))
+			  (property (e::Element)::(list-of Element)
+				    (recons e '())))
+		#!key
+		(context::EvaluationContext (default-context)))
+  
+  (define (mark-origin! newborn parent)
+    (set! (origin newborn) (recons parent '()))
+    (set! (progeny parent) (recons newborn '())))
+
+  (define (add-origin! newborn parent)
+    (and-let* ((`(,default) (origin newborn))
+	       ((eq? newborn default)))
+      (set! (origin newborn) '()))
+    (and-let* ((`(,default) (progeny parent))
+	       ((eq? parent default)))
+      (set! (progeny parent) '()))
+    (unless (any (is _ eq? parent) (origin newborn))
+      (set! (origin newborn) (cons parent (origin newborn))))
+    (unless (any (is _ eq? newborn) (progeny parent))
+      (set! (progeny parent) (cons newborn (progeny parent)))))
+  
+  (define (dissolve! item #!key (when? ::predicate
+				       (lambda (item)
+					 (and-let* ((`(,i) (progeny item))
+						    ((eq? i item)))))))
+    (when (when? item)
+      (for child in (progeny item)
+	(set! (origin child) (only (isnt _ eq? item) (origin child))))
+      (set! (progeny item) '()))
+    
+    (when (gnu.lists.LList? item)
+      (traverse
+       item
+       doing:
+       (lambda (e::Element t::Traversal)
+	 (dissolve! e when?: when?)))))
+
+  (define (eradicate! item #!key (when? ::predicate
+					(lambda (item)
+					  (and-let* ((`(,i) (origin item))
+						     ((eq? i item)))))))
+    (when (when? item)
+      (for child in (origin item)
+	(set! (progeny child) (only (isnt _ eq? item) (progeny child))))     
+      (set! (origin item) '()))
+    
+    (when (gnu.lists.LList? item)
+      (traverse
+       item
+       doing:
+       (lambda (e::Element t::Traversal)
+	 (eradicate! e when?: when?)))))
+  
+  (define (substitute variables #;with values #;in expression)
+    (match expression
+      (`(quote ,_)
+       expression)
+      (`(lambda ,args ,body)
+       (let*-values (((variables* values*) (only. (isnt _ in. args)
+						  variables values))
+		     ((result) (cons* (car expression) args
+				      (substitute variables* #;with values*
+						  #;in body))))
+	 (copy-properties cell-display-properties
+			  (cdr expression) (cdr result))
+	 (copy-properties cell-display-properties
+			  expression result)
+	 result))
+      (`(,operator . ,operands)
+       (let ((result (cons (substitute variables #;with values
+				       #;in operator)
+			   (substitute variables #;with values
+				       #;in operands))))
+	 (mark-origin! result expression)
+	 (copy-properties cell-display-properties expression
+			  result)))
+      (_
+       (if (Atom? expression)
+	   (counterpart #;of expression #;from variables
+					    #;in values)
+	   expression))))
+
+  (define (counterpart #;of variable #;from variables
+			    #;in values)
+    (match variables
+      (`(,,variable . ,_)
+       (let* ((result (deep-copy (car values)))
+	      (result (if (self-evaluating? result)
+			  result
+			  (cons (Atom "quote") result))))
+	 (eradicate! result when?: always)
+	 (add-origin! result (car variables))
+	 result))
+      (,variable
+       (let ((result (cons (Atom "quote") (copy values))))
+	 (add-origin! result variable)
+	 result))
+      (`(,_ . ,rest)
+       (counterpart #;of variable #;from rest
+			 #;in (cdr values)))
+      (_
+       variable)))
+  
+  (define (reduce-operands operands)
+    (match operands
+      (`(,first . ,rest)
+       (let ((first* (reduce first)))
+	 (if (match/equal? first first*)
+	     (let ((result (cons first (reduce-operands rest))))
+	       (mark-origin! result operands)
+	       (copy-properties cell-display-properties operands result))
+	     (let ((result (cons first* rest)))
+	       (mark-origin! result operands)
+	       (copy-properties cell-display-properties operands result)))))
+      (`()
+       operands)
+      (_
+       (reduce operands))))
+
+  (define (deep-copy expression)
+    (match expression
+      (`(,h . ,t)
+       (let ((result (cons (deep-copy h) (deep-copy t))))
+	 (mark-origin! result expression)
+	 (copy-properties cell-display-properties expression result)
+	 result))
+      (_
+       (let ((result (copy expression)))
+	 (mark-origin! result expression)
+	 result))))
+
+  (define (transfer-heritage! args vals)
+    (match args
+      (`(,arg . ,args*)
+       (let ((val (car vals))
+	     (vals* (cdr vals))
+	     (children (progeny arg)))
+	 (set! (progeny val) children)
+	 (for p in children
+	   (set! (car (origin p)) val))
+	 (transfer-heritage! args* vals*)))
+      ('()
+       (values))
+      (arg
+       (let ((children (progeny arg)))
+	 (set! (progeny vals) children)
+	 (for p in children
+	   (set! (car (origin p)) vals))))))
+	 
+  (define (reduce expression)
+    (match expression
+      (`(if #f ,then ,else)
+       (dissolve! expression)
+       (let ((result (deep-copy else)))
+	 (mark-origin! result else)
+	 result))
+      (`(if ,test ,then ,else)
+       (let ((test* (reduce test))
+	     (if* (car expression)))
+	 (cond ((match/equal? test test*)
+		(dissolve! expression)
+		(let ((result (deep-copy then)))
+		  (mark-origin! result then)
+		  result))
+	       (else
+		(let ((result (cons* if* test* then else '())))
+		  (mark-origin! result expression)
+		  (mark-origin! test* test)
+		  (copy-properties* cell-display-properties expression result)
+		  result)))))
+      (`(lambda ,args ,body)
+       expression)
+      (`(quote ,_)
+       expression)
+      (`(,operator . ,operands)
+       (if (and (Atom? operator)
+		(context:defines-macro? operator))
+	   (error "Macros not supported (yet)")
+	   (let ((operands* (reduce-operands operands)))
+	     (if (isnt operands match/equal? operands*)
+		 (let* ((operator* (copy operator))
+			(result (cons operator* operands*)))
+		   (mark-origin! operator* operator)
+		   (mark-origin! operands* operands)
+		   (mark-origin! result expression)
+		   (copy-properties cell-display-properties expression
+				    result))
+		 (match operator
+		   (,@Atom?		    
+		    (cond ((context:primitive? operator)
+			   (let* ((result
+				   (grasp
+				    (parameterize ((cell-access-mode
+						    CellAccessMode:Evaluating))
+				      (apply (context:value operator)
+					     (map (lambda (x) x) operands))))))
+			     (mark-origin! result expression)
+			     result))
+			  ((context:defines? operator)
+			   (let ((operator* (context:value operator)))
+			     (match operator*
+			       (`(lambda ,args ,body)
+				(let ((result (substitute args #;with operands
+							  #;in body)))
+				  (transfer-heritage! args operands)
+				  (dissolve! expression)
+				  (mark-origin! result operator)
+				  result))
+			       (_
+				`(,operator* . ,operands)))))
+			  (else
+			   expression)))
+		   (`(lambda ,args ,body)
+		    (dissolve! expression)
+		    (let ((result (substitute args #;with operands
+					      #;in body)))
+		      result))
+		   (`(,_ . ,_)
+		    (let* ((operator* (reduce operator))
+			   (result (cons operator* operands)))
+		      (mark-origin! result expression)
+		      (mark-origin! operator* operator)
+		      (copy-properties cell-display-properties expression
+				       result)))
+		   (_
+		    expression))))))
+      (_
+       (if (and (Atom? expression)
+		(context:defines? expression))
+	   (let ((result (copy (context:value expression))))
+	     (dissolve! expression)
+	     (mark-origin! result expression)
+	     result)
+	   expression))))
+
+  (values (reduce expression)
+	  origin
+	  progeny))
+#+END_SRC
+
+
+The src_scheme{traverse} function is used for iterating over subsequent elements
+in the document, where even elements are spaces/comments, and odd elements are actual data.
+The src_scheme{cell-display-properties} variable points to a list with references to
+src_scheme{pre-head-space}, src_scheme{post-head-space}, src_scheme{pre-tail-space} and
+src_scheme{post-tail-space}.
+
+** Rendering transitions between expressions
+
+The most spectacular part of the visual stepper are transitions. They are expressed
+using the src_scheme{Morph} object, which - among other things - contains the src_scheme{progress}
+property, which is a real number between 0 and 1, where 0 means that we should only render
+the source expression, while 1 means that we should only render the target expression.
+
+For every other value in that range, we should get an interpolation between those two
+expressions.
+
+The src_scheme{Morph} class is defined in the following way:
+
+#+BEGIN_SRC scheme
+(define-object (Morph initial::Tile
+		      final::Tile
+		      origin::(maps (Element) to: (list-of
+						   Element))
+		      progeny::(maps (Element) to: (list-of
+						    Element)))
+  ::Enchanted
+  (define progress ::float 0.0)
+
+  (define initial-position ::(maps (Element) to: Position)
+    (measure-positions! initial))
+
+  (define initial-extent ::Extent
+    (extent+ initial))
+
+  (define final-position ::(maps (Element) to: Position)
+    (measure-positions! final))
+
+  (define final-extent ::Extent
+    (extent+ final))
+
+  (define maximum-extent ::Extent
+    (Extent width: (max initial-extent:width
+			final-extent:width)
+	    height: (max initial-extent:height
+			 final-extent:height)))
+
+  (define (extent) ::Extent maximum-extent)
+
+  (define shift ::(maps (Element) to: Position)
+    (property+ (element::Element)::Position
+	       (Position left: 0 top: 0)))
+
+  (define (draw! context::Cursor)::void
+    (cond ((is progress <= 0.5) ;>
+	   (render-background! final origin final-position
+			       progress)
+	   (render-foreground! initial
+			       progeny
+			       initial-position
+			       final-position
+			       (- 1.0 progress)))
+	  (else
+	   (render-background! initial progeny
+			       initial-position
+			       (- 1.0 progress))
+	   (render-foreground! final
+			       origin
+			       final-position
+			       initial-position
+			       progress))))
+  (Magic))
+#+END_SRC
+
+As we can see, it takes two arguments - the src_scheme{initial} expression, the
+src_scheme{final} expression and the two maps returned by tye src_scheme{reduce}
+function.
+
+Upon initialization, it measures the positions of all sub-expressions of
+the src_scheme{initial} and src_scheme{final} expressions.
+
+The class is defined as a subclass of src_scheme{Magic} that defines
+the src_scheme{Enchanted} interface, which is required by the extension system
+of GRASP.
+
+The src_scheme{draw!} method is defined so that if src_scheme{progress} is
+no greater than 0.5, then we render the final expression as the background,
+and then - on top of it - we draw the initial expression in the foreground.
+But once the progress of 0.5 is exceeded, we first draw the initial expression,
+and then we draw the final expression on top of it.
+
+
+** The extension mechanism of GRASP
+
+
+** Limitations and the future work
+
+
+** Related work
+
+
+** Biography
+
