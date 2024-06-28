@@ -386,25 +386,18 @@
        (counterpart #;of variable #;from rest
 			 #;in (cdr values)))
       (_
-       variable
-       #;(let ((result (copy variable)))
-	 (add-origin! result variable)
-	 result))))
+       variable)))
   
   (define (reduce-operands operands)
     (match operands
       (`(,first . ,rest)
        (let ((first* (reduce first)))
 	 (if (match/equal? first first*)
-	     (let* (#;(first+ (if (eq? first first*)
-				(copy first)
-				first*))
-		    (result (cons first (reduce-operands rest))))
+	     (let ((result (cons first (reduce-operands rest))))
 	       (mark-origin! result operands)
 	       (copy-properties cell-display-properties operands result))
 	     (let ((result (cons first* rest)))
 	       (mark-origin! result operands)
-	       ;;(mark-origin! first* first)
 	       (copy-properties cell-display-properties operands result)))))
       (`()
        operands)
@@ -545,16 +538,6 @@
   (let*-values (((reduced origins progenies) (reduce expression))
 		((result) (Morph expression reduced origins progenies)))
     
-    #;(with ((painter text-painter))
-      (text-painter:clear!)
-      (WARN "vvvvvv")
-      (draw! expression)
-      (WARN (text-painter:toString))
-      (text-painter:clear!)
-      (WARN "======")
-      (draw! reduced)
-      (WARN (text-painter:toString))
-      (WARN "^^^^^^"))
     (unless (match/equal? expression reduced)
       (set! (morph-to reduced) result))
     result))
@@ -638,19 +621,7 @@
       (when (is current-morph:progress >= 1.0)
 	(set! current-morph (morph-from current-morph:final))
 	(set! current-morph:progress 0.0))
-      (painter:play! (this)))
-
-    #;(begin
-      (set! current-morph:progress (+ current-morph:progress 0.1))
-      (WARN current-morph:progress)
-      (when (is current-morph:progress > 1.0)
-	(let ((final current-morph:final))
-	  (set! current-morph (morph-from final))
-	  (set! current-morph:progress 0.0)
-
-	  ))
-      )
-    )
+      (painter:play! (this))))
       
   (define (fast-forward!)::void
     (WARN "fast-forward not implemented for Stepper")
