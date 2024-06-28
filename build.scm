@@ -1,6 +1,7 @@
 #!/bin/sh 
 #|
 mkdir -p build/cache
+rm -rf build/cache/io/github
 
 JARS=`ls libs/*.jar | tr '\n' ':' | sed 's/:$//'`
 
@@ -229,38 +230,115 @@ exec java -cp "$JARS:build/cache" kawa.repl \
     (set! (module-classes module)
 	  (union (module-classes module) `(,class)))))
 
-(define (dex input::java.io.File output::java.io.File)::void
-  (let* ((command (com.android.tools.r8.D8Command:builder))
-	 (command (command:addProgramFiles (input:toPath)))
-	 (command (command:setIntermediate #t))
-	 (command (command:setOutput
-		   (output:toPath)
-		   ;com.android.tools.r8.OutputMode:DexIndexed
-		   com.android.tools.r8.OutputMode:DexFilePerClass)))
+(define (file->path file::java.io.File)::java.nio.file.Path
+  (file:toPath))
+
+(define (update-dex-cache input::(list-of java.io.File)
+			  output::java.io.File)
+  ::void
+  (let ((command ::com.android.tools.r8.D8Command:Builder
+		 (com.android.tools.r8.D8Command:builder)))
+    (command:setMinApiLevel 23)
+    (command:addProgramFiles (map file->path input))
+    (command:addLibraryFiles (map file->path
+				  (list
+ 				   (as-file "libs/kawa.jar")
+				   (as-file "libs/android.jar")
+				   (as-file "build/cache"))))
+    (command:setIntermediate #t)
+    (command:setOutput (output:toPath)
+		       ;;com.android.tools.r8.OutputMode:DexIndexed
+		       com.android.tools.r8.OutputMode:DexFilePerClassFile)
     (com.android.tools.r8.D8:run
      (command:build))))
 
-(define (dex-list input::(list-of java.io.File) output::java.io.File)::void
-  (let* ((command (com.android.tools.r8.D8Command:builder))
-	 (command (command:addProgramFiles (map (lambda (file::java.io.File)
-						  ::java.nio.file.Path
-						  (file:toPath))
-						input)))
-	 (command (command:setOutput
-		   (output:toPath)
-		   com.android.tools.r8.OutputMode:DexIndexed
-		   #;com.android.tools.r8.OutputMode:DexFilePerClass)))
+(print"building a list of classes to dex")
+
+(define classes-to-dex ::(list-of java.io.File)
+  (only
+   (lambda (class-file::java.io.File)
+     (match (regex-match "^(.*)[.]class$" (class-file:getPath))
+       (`(,_ ,stem)
+	(let ((dex-file ::java.io.File (as-file
+					(string-append stem ".dex"))))
+	  (or (not (dex-file:exists))
+	      (is (dex-file:lastModified) <= (class-file:lastModified)))))))
+   cached-files))
+
+(print"dexing "classes-to-dex)
+
+(update-dex-cache classes-to-dex (as-file "build/cache"))
+
+(print"Generating the .dex index")
+
+(define dex-files
+  (list-files from: "build/cache"
+	      such-that: (is "[.]dex$" regex-match
+			     (_:getPath))))
+
+(define dex-libraries
+  (list-files from: "libs"
+	      such-that: (is "[.]dex$" regex-match
+			     (_:getPath))))
+
+(define (integrate-dex input::(list-of java.io.File)
+		       output::java.io.File)
+  ::void
+  (let ((command ::com.android.tools.r8.D8Command:Builder
+		 (com.android.tools.r8.D8Command:builder)))
+    (command:addProgramFiles (map file->path input))
+    (command:setMinApiLevel 23)
+    
+    #;(command:addLibraryFiles (map file->path
+				  (list
+ 				   (as-file "libs/kawa.jar")
+				   (as-file "libs/android.jar")
+				   (as-file "build/cache"))))
+    (command:setOutput (output:toPath)
+		       com.android.tools.r8.OutputMode:DexIndexed)
     (com.android.tools.r8.D8:run
      (command:build))))
 
-(for class-file::java.io.File in cached-files
-  (match (regex-match "^(.*)[.]class$" (class-file:getPath))
-    (`(,_ ,stem)
-     (let ((dex-file ::java.io.File (as-file (string-append stem ".dex"))))
-       (when (or (not (dex-file:exists))
-		 (is (dex-file:lastModified) <= (class-file:lastModified)))
-	 
-	 (dex class-file (as-file "build/cache")))))))
+(print "Integrating the .dex files")
+
+(integrate-dex `(,@dex-libraries ,@dex-files) (as-file "build/cache"))
+
+(let* ((apk-file ::java.io.File (as-file "build/grasp.apk"))
+       (resources  (list-files from: "res"))
+       (assets (list-files from: "assets"))
+       (output (ZipBuilder apk-file)))
+  (for resource in resources
+    (output:add-file-at-level! 0 resource))
+  (for asset in assets
+    (output:add-file-at-level! 0 asset))
+  (output:add-file-at-level! 0 (as-file "AndroidManifest.xml"))
+  (output:add-file-at-level! 0 (as-file "resources.arsc"))
+  (output:add-file-at-level! 2 (as-file "build/cache/classes.dex"))
+  (output:close)
+  (com.iyxan23.zipalignjava.ZipAlign:alignZip
+   (java.io.RandomAccessFile apk-file "r")
+   (FileOutputStream (as java.io.File (as-file "build/grasp-aligned.zip"))))
+
+  (let ((args ::(array-of String)
+	      ((array-of String) "sign"
+	       "--ks" "/data/data/com.termux/files/home/pland.keystore"
+	       "--ks-key-alias" "pland"
+	       "--ks-pass" "pass:quack01"
+	       "--min-sdk-version" "23"
+	       "build/grasp-aligned.zip")))
+  (com.android.apksigner.ApkSignerTool:main args))
+  
+  #;(let ((params ::com.android.apksigner.SignerParams
+		(com.android.apksigner.SignerParams)))
+    (params:setKeystoreFile "~/pland.keystore")
+    (params:setKeystoreKeyAlias "pland")
+    (params:setKeystorePasswordSpec "pass:quack01")
+    (let ((signer ::com.android.apksig.ApkSigner:Builder
+		  (com.android.apksig.ApkSigner:Builder params)))
+      (signer:setInputApk (as java.io.File (as-file "build/grasp-aligned.zip")))
+      (signer:setOutputApk (as java.io.File (as-file "build/grasp-signed.zip")))
+      (let ((signer ::com.android.apksig.ApkSigner (signer:build)))
+	(signer:sign)))))
 
 #;(define dex-files ::(list-of java.io.File)
   (list-files from: "build/cache"
@@ -349,7 +427,7 @@ Main-Class: "main-class-name"
       (output:add-file-with-text! content "META-INF/MANIFEST.MF"))
     (output:close))))
 
-(concurrently
+#;(concurrently
  (build-jar!
   module-dependencies: module-dependencies
   main-class: "grasp-desktop"
