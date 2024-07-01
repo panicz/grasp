@@ -311,6 +311,8 @@ exec java -cp "$JARS:build/cache" kawa.repl \
     (output:add-file-at-level! 0 resource))
   (for asset in assets
     (output:add-file-at-level! 0 asset))
+  (output:add-file-as! "assets/init.scm" (as-file "init/init.scm"))
+  ;;(output:add-file-at-level! 0 (as-file "AndroidManifest.xml"))
   (output:add-file-at-level! 1 (as-file "binary/AndroidManifest.xml"))
   (output:add-file-at-level! 1 (as-file "binary/resources.arsc"))
   (output:add-file-at-level! 2 (as-file "build/cache/classes.dex"))
