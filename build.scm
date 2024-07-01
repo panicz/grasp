@@ -311,7 +311,6 @@ exec java -cp "$JARS:build/cache" kawa.repl \
     (output:add-file-at-level! 0 resource))
   (for asset in assets
     (output:add-file-at-level! 0 asset))
-  ;;(output:add-file-at-level! 0 (as-file "AndroidManifest.xml"))
   (output:add-file-at-level! 1 (as-file "binary/AndroidManifest.xml"))
   (output:add-file-at-level! 1 (as-file "binary/resources.arsc"))
   (output:add-file-at-level! 2 (as-file "build/cache/classes.dex"))
@@ -322,32 +321,12 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 
   (let ((args ::(array-of String)
 	      ((array-of String) "sign"
-	       "--ks" "/data/data/com.termux/files/home/pland.keystore"
-	       "--ks-key-alias" "pland"
-	       "--ks-pass" "pass:quack01"
+	       "--ks" "binary/keystore"
+	       "--ks-key-alias" "grasp-public"
+	       "--ks-pass" "pass:untrusted"
 	       "--min-sdk-version" "23"
 	       "build/grasp-aligned.zip")))
-  (com.android.apksigner.ApkSignerTool:main args))
-  
-  #;(let ((params ::com.android.apksigner.SignerParams
-		(com.android.apksigner.SignerParams)))
-    (params:setKeystoreFile "~/pland.keystore")
-    (params:setKeystoreKeyAlias "pland")
-    (params:setKeystorePasswordSpec "pass:quack01")
-    (let ((signer ::com.android.apksig.ApkSigner:Builder
-		  (com.android.apksig.ApkSigner:Builder params)))
-      (signer:setInputApk (as java.io.File (as-file "build/grasp-aligned.zip")))
-      (signer:setOutputApk (as java.io.File (as-file "build/grasp-signed.zip")))
-      (let ((signer ::com.android.apksig.ApkSigner (signer:build)))
-	(signer:sign)))))
-
-#;(define dex-files ::(list-of java.io.File)
-  (list-files from: "build/cache"
-	      such-that: (is "[.]dex$" regex-match (_:getPath))))
-
-;;(dex cached-files (as-file "build/cache"))
-
-#;(dex-classes dex-files)
+  (com.android.apksigner.ApkSignerTool:main args)))
 
 (define (build-jar! #!key
 		    module-dependencies::(maps ((list-of symbol))
