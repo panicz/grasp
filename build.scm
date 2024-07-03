@@ -303,32 +303,47 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 
 (integrate-dex `(,@dex-libraries ,@dex-files) (as-file "build/cache"))
 
-(let* ((apk-file ::java.io.File (as-file "build/grasp.apk"))
-       (resources  (list-files from: "res"))
-       (assets (list-files from: "assets"))
-       (output (ZipBuilder apk-file)))
-  (for resource in resources
-    (output:add-file-at-level! 0 resource))
-  (for asset in assets
-    (output:add-file-at-level! 0 asset))
-  (output:add-file-as! "assets/init.scm" (as-file "init/init.scm"))
-  ;;(output:add-file-at-level! 0 (as-file "AndroidManifest.xml"))
-  (output:add-file-at-level! 1 (as-file "binary/AndroidManifest.xml"))
-  (output:add-file-at-level! 1 (as-file "binary/resources.arsc"))
-  (output:add-file-at-level! 2 (as-file "build/cache/classes.dex"))
-  (output:close)
-  (com.iyxan23.zipalignjava.ZipAlign:alignZip
-   (java.io.RandomAccessFile apk-file "r")
-   (FileOutputStream (as java.io.File (as-file "build/grasp-aligned.zip"))))
+(define (build-apk! #!key
+		    (init ::string "init/init.scm")
+		    ;; jeszcze ikone bysmy dodali
+		    (keystore ::string "binary/keystore")
+		    (password ::string "untrusted")
+		    (key-alias ::string "grasp-public")
+		    (output-name ::string "build/grasp.apk"))
+  (let* ((apk-file ::java.io.File (as-file output-name))
+	 (temp-file ::java.io.File (java.io.File:createTempFile
+				    "grasp-" ".apk"
+				    (as-file "build")))
+	 (resources  (list-files from: "res"))
+	 (assets (list-files from: "assets"))
+	 (output (ZipBuilder temp-file)))
+    (for resource in resources
+      (print "adding "resource)
+      (output:add-file-at-level! 0 resource))
+    (for asset in assets
+      (print "adding "asset)
+      (output:add-file-at-level! 0 asset))
+    (output:add-file-as! "assets/init.scm" (as-file init))
+    ;;(output:add-file-at-level! 0 (as-file "AndroidManifest.xml"))
+    (output:add-file-at-level! 1 (as-file "binary/AndroidManifest.xml"))
+    (output:add-file-at-level! 1 (as-file "binary/resources.arsc"))
+    (output:add-file-at-level! 2 (as-file "build/cache/classes.dex"))
+    (output:close)
+    (com.iyxan23.zipalignjava.ZipAlign:alignZip
+     (java.io.RandomAccessFile temp-file "r")
+     (FileOutputStream (as java.io.File apk-file)))
+    (temp-file:delete)
+    (print "signing "apk-file)
+    (let ((args ::(array-of String)
+		((array-of String) "sign"
+		 "--ks" keystore
+		 "--ks-key-alias" key-alias
+		 "--ks-pass" (string-append "pass:" password)
+		 "--min-sdk-version" "23"
+		 apk-file)))
+      (com.android.apksigner.ApkSignerTool:main args))))
 
-  (let ((args ::(array-of String)
-	      ((array-of String) "sign"
-	       "--ks" "binary/keystore"
-	       "--ks-key-alias" "grasp-public"
-	       "--ks-pass" "pass:untrusted"
-	       "--min-sdk-version" "23"
-	       "build/grasp-aligned.zip")))
-  (com.android.apksigner.ApkSignerTool:main args)))
+(build-apk! output-name: "build/grasp.apk")
 
 (define (build-jar! #!key
 		    module-dependencies::(maps ((list-of symbol))
