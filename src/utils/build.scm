@@ -10,6 +10,7 @@
 (import (language match))
 (import (language mapping))
 (import (language for))
+(import (language define-cache))
 
 (import (utils file))
 
@@ -109,3 +110,120 @@
 	       (`(,_ ,path) (regex-match "^(?:./)?build/cache/(.*)$"
 					 (class-directory:getPath))))
       (as-file (string-append "src/"path"/"name)))))
+
+(define (build-file source ::string
+		    #!key
+		    (target-directory ::string "build/cache")
+		    (package #!null)
+		    (top-class-name #!null))
+  (let* ((messages ::gnu.text.SourceMessages
+		   (gnu.text.SourceMessages))
+	 (parse-options ::int (+ gnu.expr.Language:PARSE_PROLOG
+				 gnu.expr.Language:PARSE_EXPLICIT))
+	 (language ::gnu.expr.Language
+		   (gnu.expr.Language:getDefaultLanguage))
+	 (module-manager ::gnu.expr.ModuleManager
+			 (gnu.expr.ModuleManager:getInstance))
+	 (module-info ::gnu.expr.ModuleInfo
+		      (module-manager:findWithSourcePath source))
+	 (input ::gnu.kawa.io.InPort
+		(open-input-file source))
+	 (class-prefix-default ::String
+			       gnu.expr.Compilation:classPrefixDefault))
+    (try-finally
+     (begin
+       (when package
+	 (set! gnu.expr.Compilation:classPrefixDefault package))
+       (when top-class-name
+	 (module-info:setClassName
+	  (string-append
+	   (or gnu.expr.Compilation:classPrefixDefault "")
+	   (gnu.expr.Mangling:mangleNameIfNeeded top-class-name))))
+       (module-manager:setCompilationDirectory target-directory)
+       (let ((compilation ::gnu.expr.Compilation
+			  (language:parse input messages
+					  parse-options
+					  module-info)))
+	 (if (messages:seenErrors)
+	     (primitive-throw (gnu.text.SyntaxException messages)))
+	 (module-info:loadByStages gnu.expr.Compilation:CLASS_WRITTEN)
+	 (if (messages:seenErrors)
+	     (primitive-throw (gnu.text.SyntaxException messages)))))
+     (set! gnu.expr.Compilation:classPrefixDefault class-prefix-default))))
+
+(define (build-zip source-file ::string target-file ::string)
+  (compile-file source-file target-file))
+
+(define (build-jar! #!key
+		    module-dependencies::(maps ((list-of symbol))
+					       to: (list-of
+						    (list-of symbol)))
+		    module-classes::(maps ((list-of symbol))
+					  to: (list-of java.io.File))
+		    main-class::string
+		    extra-dependencies::(list-of string)
+		    (assets::(either string #f)"assets")
+		    (init::string "init/init.scm")
+		    output-name)
+  (let* ((output-name (or output-name
+			  (string-append "build/" main-class ".jar")))
+	 (main-class-name (fold-left (lambda (stem replacement)
+				       (and-let* ((`(,pattern ,replacement)
+						   replacement))
+					 (regex-replace* pattern
+							 stem
+							 replacement)))
+				     main-class
+				     '(("\\-" "\\$Mn"))))
+	 (output-jar ::java.io.File (as-file output-name))
+	 (init-file ::java.io.File (as-file init))
+	 (internal-dependencies ::(list-of java.io.File)
+				(append-map
+				 module-classes
+				 (fold-left
+				  (lambda (dependencies module)
+				    (union dependencies
+					   `(,module)
+					   (module-dependencies module)))
+				  (module-dependencies
+				   `(,(string->symbol main-class)))
+				  
+				  (imported-modules
+				   init-file
+				   (map internal-module-name
+					dependency-files)))))
+	 (external-dependencies ::(list-of string)
+				`("libs/kawa.jar"
+				  . ,extra-dependencies)))
+  (when (output-jar:exists)
+    (output-jar:delete))
+  
+  (let ((output (ZipBuilder output-jar)))
+    (output:append-entries! (ZipFile
+			     (string-append
+			      "build/cache/"main-class".zip")))
+    (for class::java.io.File in internal-dependencies
+      (output:add-file-at-level! 2 class))
+    
+    (for library-path::string in external-dependencies
+      (output:append-entries-unless!
+       (lambda (entry::ZipEntry) ::boolean
+	       (let ((name ::string (entry:getName)))
+		 (any (is _ regex-match name)
+		      '("module-info.class$"
+			"^META-INF"
+			"MANIFEST.MF$"))))
+       (ZipFile library-path)))
+
+    (when assets
+      (for asset::java.io.File in (list-files from: assets)
+	(output:add-file-at-level! 0 asset)))
+
+    (output:add-file-as! "assets/init.scm" init-file)
+
+    (let ((content ::String (string-append "\
+Manifest-Version: 1.0
+Main-Class: "main-class-name"
+")))
+      (output:add-file-with-text! content "META-INF/MANIFEST.MF"))
+    (output:close))))

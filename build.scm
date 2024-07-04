@@ -157,53 +157,7 @@ exec java -cp "$JARS:build/cache" kawa.repl \
      layered-modules)))
 
 (for class::java.io.File in class-files-to-remove
-  (print "removing "class)
   (class:delete))
-
-(define (build-file source ::string
-		    #!key
-		    (target-directory ::string "build/cache")
-		    (package #!null)
-		    (top-class-name #!null))
-  (print"building "source)
-  (let* ((messages ::gnu.text.SourceMessages
-		   (gnu.text.SourceMessages))
-	 (parse-options ::int (+ gnu.expr.Language:PARSE_PROLOG
-				 gnu.expr.Language:PARSE_EXPLICIT))
-	 (language ::gnu.expr.Language
-		   (gnu.expr.Language:getDefaultLanguage))
-	 (module-manager ::gnu.expr.ModuleManager
-			 (gnu.expr.ModuleManager:getInstance))
-	 (module-info ::gnu.expr.ModuleInfo
-		      (module-manager:findWithSourcePath source))
-	 (input ::gnu.kawa.io.InPort
-		(open-input-file source))
-	 (class-prefix-default ::String
-			       gnu.expr.Compilation:classPrefixDefault))
-    (try-finally
-     (begin
-       (when package
-	 (set! gnu.expr.Compilation:classPrefixDefault package))
-       (when top-class-name
-	 (module-info:setClassName
-	  (string-append
-	   (or gnu.expr.Compilation:classPrefixDefault "")
-	   (gnu.expr.Mangling:mangleNameIfNeeded top-class-name))))
-       (module-manager:setCompilationDirectory target-directory)
-       (let ((compilation ::gnu.expr.Compilation
-			  (language:parse input messages
-					  parse-options
-					  module-info)))
-	 (if (messages:seenErrors)
-	     (primitive-throw (gnu.text.SyntaxException messages)))
-	 (module-info:loadByStages gnu.expr.Compilation:CLASS_WRITTEN)
-	 (if (messages:seenErrors)
-	     (primitive-throw (gnu.text.SyntaxException messages)))))
-     (set! gnu.expr.Compilation:classPrefixDefault class-prefix-default))))
-
-(define (build-zip source-file ::string target-file ::string)
-  (print "building zip "source-file)
-  (compile-file source-file target-file))
 
 (for build-list in build-layers
   (for file::java.io.File in-parallel build-list
@@ -255,15 +209,32 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 (print"building a list of classes to dex")
 
 (define classes-to-dex ::(list-of java.io.File)
-  (only
-   (lambda (class-file::java.io.File)
-     (match (regex-match "^(.*)[.]class$" (class-file:getPath))
-       (`(,_ ,stem)
-	(let ((dex-file ::java.io.File (as-file
-					(string-append stem ".dex"))))
-	  (or (not (dex-file:exists))
-	      (is (dex-file:lastModified) <= (class-file:lastModified)))))))
-   cached-files))
+  (let ((android-dependencies ::(list-of java.io.File)
+			      (append-map
+			       module-classes
+			       (fold-left
+				(lambda (dependencies module)
+				  (union dependencies
+					 `(,module)
+					 (module-dependencies module)))
+				 (module-dependencies '(grasp-android))
+				(imported-modules
+				 (as-file "init/init.scm")
+				 (map internal-module-name
+				      dependency-files))))))
+    (only
+     (lambda (class-file::java.io.File)
+       (let ((path ::String (class-file:getPath)))
+	 (match (regex-match "^(.*)[.]class$" path)
+	   (`(,_ ,stem)
+	    (let ((dex-file ::java.io.File (as-file
+					    (string-append stem ".dex"))))
+	      (and
+	       (or (not (dex-file:exists))
+		   (is (dex-file:lastModified) <= (class-file:lastModified)))
+	       (or (is class-file in android-dependencies)
+		   (is "io.github" regex-match path))))))))
+     cached-files)))
 
 (print"dexing "classes-to-dex)
 
@@ -318,10 +289,8 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 	 (assets (list-files from: "assets"))
 	 (output (ZipBuilder temp-file)))
     (for resource in resources
-      (print "adding "resource)
       (output:add-file-at-level! 0 resource))
     (for asset in assets
-      (print "adding "asset)
       (output:add-file-at-level! 0 asset))
     (output:add-file-as! "assets/init.scm" (as-file init))
     ;;(output:add-file-at-level! 0 (as-file "AndroidManifest.xml"))
@@ -333,7 +302,6 @@ exec java -cp "$JARS:build/cache" kawa.repl \
      (java.io.RandomAccessFile temp-file "r")
      (FileOutputStream (as java.io.File apk-file)))
     (temp-file:delete)
-    (print "signing "apk-file)
     (let ((args ::(array-of String)
 		((array-of String) "sign"
 		 "--ks" keystore
@@ -343,95 +311,20 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 		 apk-file)))
       (com.android.apksigner.ApkSignerTool:main args))))
 
+(print "generating build/grasp.apk")
 (build-apk! output-name: "build/grasp.apk")
 
-(define (build-jar! #!key
-		    module-dependencies::(maps ((list-of symbol))
-					       to: (list-of
-						    (list-of symbol)))
-		    main-class::string
-		    extra-dependencies::(list-of string)
-		    (assets::(either string #f)"assets")
-		    (init::string "init/init.scm")
-		    output-name)
-  (let* ((output-name (or output-name
-			  (string-append "build/" main-class ".jar")))
-	 (main-class-name (fold-left (lambda (stem replacement)
-				       (and-let* ((`(,pattern ,replacement)
-						   replacement))
-					 (regex-replace* pattern
-							 stem
-							 replacement)))
-				     main-class
-				     '(("\\-" "\\$Mn"))))
-	 (output-jar ::java.io.File (as-file output-name))
-	 (init-file ::java.io.File (as-file init))
-	 (internal-dependencies ::(list-of java.io.File)
-				(append-map
-				 module-classes
-				 (fold-left
-				  (lambda (dependencies module)
-				    (union dependencies
-					   `(,module)
-					   (module-dependencies module)))
-				  (module-dependencies
-				   `(,(string->symbol main-class)))
-				  
-				  (imported-modules
-				   init-file
-				   (map internal-module-name
-					dependency-files)))))
-	 (external-dependencies ::(list-of string)
-				`("libs/kawa.jar"
-				  . ,extra-dependencies)))
-  (when (output-jar:exists)
-    (print "removing "output-jar)
-    (output-jar:delete))
-  
-  (let ((output (ZipBuilder output-jar)))
-    (print "appending build/cache/"main-class".zip")
-    (output:append-entries! (ZipFile
-			     (string-append
-			      "build/cache/"main-class".zip")))
-    (for class::java.io.File in internal-dependencies
-      (print "adding "class)
-      (output:add-file-at-level! 2 class))
-    
-    (for library-path::string in external-dependencies
-      (print "appending "library-path)
-      (output:append-entries-unless!
-       (lambda (entry::ZipEntry) ::boolean
-	       (let ((name ::string (entry:getName)))
-		 (any (is _ regex-match name)
-		      '("module-info.class$"
-			"^META-INF"
-			"MANIFEST.MF$"))))
-       (ZipFile library-path)))
-
-    (when assets
-      (for asset::java.io.File in (list-files from: assets)
-	(print "adding "asset)
-	(output:add-file-at-level! 0 asset)))
-
-    (print "adding "init)
-    (output:add-file-as! "assets/init.scm" init-file)
-
-    (print "writing manifest")
-    (let ((content ::String (string-append "\
-Manifest-Version: 1.0
-Main-Class: "main-class-name"
-")))
-      (output:add-file-with-text! content "META-INF/MANIFEST.MF"))
-    (output:close))))
 
 #;(concurrently
  (build-jar!
   module-dependencies: module-dependencies
+  module-classes: module-classes
   main-class: "grasp-desktop"
   extra-dependencies: '("libs/jsvg-1.0.0.jar"))
 
  (build-jar!
   module-dependencies: module-dependencies
+  module-classes: module-classes
   main-class: "grasp-terminal"
   assets: #f
   extra-dependencies: '("libs/lanterna-3.1.1.jar")))
