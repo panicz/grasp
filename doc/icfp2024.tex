@@ -92,7 +92,7 @@ community.
 %\onecolumn
 
 \keywords{visual stepper, interactive programming,
-structual editing}
+structural editing}
 
 
 \section{Introduction}
@@ -107,8 +107,8 @@ This paper presents an implementation of one such extension, namely --
 a visual stepper, which allows to observe single step reductions of a
 purely functional subset of Scheme.
 
-GRASP is currently available as a desktop appication, a terminal
-applcation and an Android application.  It is implemented in Kawa,
+GRASP is currently available as a desktop application, a terminal
+application and an Android application.  It is implemented in Kawa,
 which is a dialect of Scheme that runs on the JVM and provides
 extensions for interfacing with JVM classes and libraries, including
 the capability of defining new classes, as well as optional checked
@@ -207,7 +207,7 @@ expression to be reduced by means of the substitution model of
 procedure evaluation.
 
 In this regard, the visual stepper in GRASP is similar to the stepper
-available for the Beginner Student Language in the dr Racket
+available for the Beginner Student Language in the Dr Racket
 programming environment.
 
 What makes the stepper in GRASP different, is first that it uses the
@@ -271,7 +271,7 @@ sections of this paper.
 \label{sec:org159e5f7}
 
 Computationally, visual stepper in GRASP is currently based on an
-erroreous implementation of a small-step evaluator of extended
+erroneous implementation of a small-step evaluator of extended
 lambda-calculus.
 
 It uses a wrapper around Java's hash tables to represent
@@ -336,7 +336,7 @@ functions, we need to make them available to the evaluator:
 \end{Snippet}
 
 The main interface to the evaluator, i.e. the \texttt{reduce} procedure,
-dispatches on the language's primite forms: the \texttt{if} expression,
+dispatches on the language's primitive forms: the \texttt{if} expression,
 the \texttt{lambda} expression, the \texttt{quote} operator, combinations
 and simple values (i.e. symbols and literals). The function
 is designed so that it performs a single reduction in every step:
@@ -501,7 +501,7 @@ was performing substitution in nested lists.
 However, this is insufficient for the purpose of the visual evaluator
 presented at the beginning of this paper. In addition to simply obtaining
 new expressions, we also need to track the origins of the components
-of its subexpressions. Consider the reduction from the expression
+of its sub-expressions. Consider the reduction from the expression
 
 \begin{Snippet}
 (! 1)
@@ -543,7 +543,7 @@ an \texttt{equal?}-like \texttt{equals} method on cons-cells, which
 do not allow to use cons-cells' pointer equality (\texttt{eq?}-like)
 in the context of hash tables.
 
-Intially GRASP used a number of hash tables, named
+Initially GRASP used a number of hash tables, named
 \texttt{pre\-/head\-/space}, \texttt{post\-/head\-/space},
 \texttt{pre\-/tail\-/space} and \texttt{post\-/tail\-/space} for
 representing spaces and comments between elements of the list.  It
@@ -553,9 +553,9 @@ within empty lists.
 
 There was a problem with editable representation of symbols:
 given that the Scheme's \texttt{eq?} corresponds directly to the object
-idenity on the JVM, it was impossible to modify only a signle occurrence
+identity on the JVM, it was impossible to modify only a single occurrence
 of a symbol, leaving the remaining ones intact. Moreover, it is
-impossible to change object's type in runtime, and in Scheme even some
+impossible to change object's type in run time, and in Scheme even some
 very similar expressions (such as 1 and 1-) have different types (a
 number and a symbol, respectively).
 
@@ -589,7 +589,7 @@ would transform between those two representations.
 
 The extended variant of the \texttt{reduce} function will take two additional
 arguments. One of them, called \texttt{progeny}, will be a mutable hash-table
-that maps a source element to all the subexpressions that were created
+that maps a source element to all the sub-expressions that were created
 by substituting that element with them. The second additional
 argument, called \texttt{origin}, will map the other way around, from an
 expression to all the expressions that were used to create it.
@@ -939,19 +939,22 @@ which is responsible for drawing things on the screen and measuring their
 sizes.
 
 The \texttt{Painter} interface is not simple, mainly because it needs
-to compensate for the peculiarities of rendering graphics into the terminal.
+to compensate for the peculiarities of rendering graphics into the
+terminal.
 
-So in addition to drawing things such as lines and rectangles, it needs
-to know how to write things like buttons and parentheses (box edges).
+So in addition to drawing things such as lines and rectangles, it
+needs to know how to write things like buttons and parentheses (box
+edges).
 
-While the extension system of GRASP should allow for drawing a wide variety
-of things, at the current stage of the project it can turn out that
-that the rendering functions required for rendering those things are
-not provided by the \texttt{Painter} interface, and that the author
-of extension needs to add a new set of functons to that interface
-(which also means providing three implementations). Although this
-solution is not ideal, the hope is that over time the interface will
-accumulate enough functions for drawing all the desired extensions.
+While the extension system of GRASP should allow for drawing a wide
+variety of things, at the current stage of the project it can turn out
+that that the rendering functions required for rendering those things
+are not provided by the \texttt{Painter} interface, and that the
+author of extension needs to add a new set of functions to that
+interface (which also means providing three implementations). Although
+this solution is not ideal, the hope is that over time the interface
+will accumulate enough functions for drawing all the desired
+extensions.
 
 In particular, for the purpose of the visual evaluator, we have
 extended the \texttt{Painter} interface with the following methods:
@@ -961,10 +964,10 @@ extended the \texttt{Painter} interface with the following methods:
 (with-stretch horizontal::float vertical::float action::(maps () to: void))::void
 \end{Snippet}
 
-The first of those methods, \texttt{with-intensity}, decreases
-the intensity of rendered objects by multiplying it by \texttt{i},
-which is meant to be a number between 0 and 1 (where 1 means full
-intensity, and 0 means that an object is invisible)
+The first of those methods, \texttt{with-intensity}, decreases the
+intensity of rendered objects by multiplying it by \texttt{i}, which
+is meant to be a number between 0 and 1 (where 1 means full intensity,
+and 0 means that an object is invisible)
 
 The second one, called \texttt{with-stretch}, takes two floating point
 numbers and scales the rendered object along the horizontal and the
@@ -972,7 +975,8 @@ vertical axis, accordingly.
 
 The visual stepper will also need another method that is used
 extensively for rendering GRASP documents, namely \texttt{translate!},
-which shifts the origin of the drawing, and is used by the following macro:
+which shifts the origin of the drawing, and is used by the following
+macro:
 
 \begin{Snippet}
 (define-syntax-rule (with-translation (x y)
@@ -993,10 +997,11 @@ to the application's implementation of the \texttt{Painter} interface.
 \label{sec:orgd8f76bf}
 
 The most spectacular part of the visual stepper are transitions. They
-are expressed using the \texttt{Morph} object, which - among other things -
-contains the \texttt{progress} property, which is a real number between 0 and
-1, where 0 means that we should only render the source expression,
-while 1 means that we should only render the target expression.
+are expressed using the \texttt{Morph} object, which - among other
+things - contains the \texttt{progress} property, which is a real
+number between 0 and 1, where 0 means that we should only render the
+source expression, while 1 means that we should only render the target
+expression.
 
 For every other value in that range, we should get an interpolation
 between those two expressions.
@@ -1054,28 +1059,32 @@ The \texttt{Morph} class is defined in the following way:
   (Magic))
 \end{Snippet}
 
-As we can see, it takes two arguments - the \texttt{initial} expression, the
-\texttt{final} expression and the two maps returned by the \texttt{reduce} function.
+As we can see, it takes two arguments - the \texttt{initial}
+expression, the \texttt{final} expression and the two maps returned by
+the \texttt{reduce} function.
 
 Upon initialization, it measures the positions of all sub-expressions
 of the \texttt{initial} and \texttt{final} expressions.
 
 The class is defined as a subclass of \texttt{Magic} that defines the
-\texttt{Enchanted} interface, which is required by the extension system of
-GRASP.
+\texttt{Enchanted} interface, which is required by the extension
+system of GRASP.
 
-The \texttt{draw!} method is defined so that if \texttt{progress} is no greater than
-0.5, then we render the final expression as the background, and then -
-on top of it - we draw the initial expression in the foreground.  But
-once the progress of 0.5 is exceeded, we first draw the initial
-expression, and then we draw the final expression on top of it.
+The \texttt{draw!} method is defined so that if \texttt{progress} is
+no greater than 0.5, then we render the final expression as the
+background, and then - on top of it - we draw the initial expression
+in the foreground.  But once the progress of 0.5 is exceeded, we first
+draw the initial expression, and then we draw the final expression on
+top of it.
 
-This allows to achieve satisfying visual effects even in the terminal client
-of GRASP, which does not provide any mechanisms for transparency.
+This allows to achieve satisfying visual effects even in the terminal
+client of GRASP, which does not provide any mechanisms for
+transparency.
 
-The \texttt{draw-tween!} function has to support two cases: the first one is
-when the list of the rendered expression's counterparts is empty. In
-such a case, we want this expression to dissolve into background.
+The \texttt{draw-tween!} function has to support two cases: the first
+one is when the list of the rendered expression's counterparts is
+empty. In such a case, we want this expression to dissolve into
+background.
 
 Otherwise we want to morph the expression into each of its counterparts.
 
@@ -1264,7 +1273,7 @@ it passes \texttt{expression} directly to the \texttt{Stepper} constructor
 without evaluating it.
 
 The \texttt{define-simple-extension} form is just a wrapper that compensates
-for some shorcomings of the object system implemented for GRASP:
+for some shortcomings of the object system implemented for GRASP:
 
 \begin{Snippet}
 (define-syntax define-simple-extension
@@ -1284,11 +1293,11 @@ for some shorcomings of the object system implemented for GRASP:
        (SimpleExtension body)))))
 \end{Snippet}
 
-where the \texttt{typename} method is simply used for retrieving the name
-of a type, and the \texttt{value} method is used for transforming the enchanted
-object back to its source form. The \texttt{SimpleExtension} superclass
-defines an object that passes all the touch events to its argument
-(which must be an enchanted object).
+where the \texttt{typename} method is simply used for retrieving the
+name of a type, and the \texttt{value} method is used for transforming
+the enchanted object back to its source form. The
+\texttt{SimpleExtension} superclass defines an object that passes all
+the touch events to its argument (which must be an enchanted object).
 
 The \texttt{PlayerWithControls} procedure is defines in the following way:
 
@@ -1392,25 +1401,80 @@ or simply \texttt{width} and \texttt{height}:
   (extent)::Extent)
 \end{Snippet}
 
-\texttt{Element} is probably the most fundamental class in GRASP,
-and it represents every visible component of the document, including
+\texttt{Element} is probably the most fundamental class in GRASP, and
+it represents every visible component of the document, including
 lists, atoms and spaces (with comments). In fact, spaces are the only
 \texttt{Element}s in GRASP that aren't \texttt{Tile}s.
 
-Covering the entire \texttt{Element} interface is beyond the scope
-of this work. From our perspective, the most important aspect
-is that it requires the \texttt{draw!} method that is used for
-executing the rendering code.
+Covering the entire \texttt{Element} interface is beyond the scope of
+this work. From our perspective, the most important aspect is that it
+requires the \texttt{draw!} method that is used for executing the
+rendering code.
 
-\section{Limitations and the future work}
+\section{Limitations and future work}
 
-Currently, the biggest problem 
+Currently the visual stepper works only on a very limited subset of
+the Scheme programming language, namely - on purely functional
+programs that operate on numbers. The ▶▶▮ button is a complete fake
+and doesn't even pretend to do anything (other than looking nice and
+symmetrical).
 
+Some work needs to be done in order to support programs that operate
+on lists, and on programs whose execution is non-deterministic.
+
+It is known, that the substitution model of procedure evaluation is
+not suitable to all classes of Scheme programs. It would therefore be
+desirable to have a stepper that is able to choose an adequate
+visualization method for particular programs.
+
+Another thing is that the stepper is not meta-circular. It is
+implemented in Kawa Scheme, which uses a Java-like object system built
+around the notion of interfaces, and it is not obvious how such
+programs should be visualized.
+
+From the functional point of view, it would probably be desirable to be
+able to point to the stepper, which reductions should be considered
+primitive, and which ones should be tracked. There is also an issue
+of macro expansion.
+
+We believe that such a tool would be invaluable for learning new
+code bases.
+
+Another issue is the GRASP editor itself. While it admittedly does
+look slick and impressive, the only impression that one can get from
+actually trying to use it beyond toy examples, is irritation.
+
+While GRASP was first demoed during the Scheme workshop in 2021, and
+its author has certainly made a lot of progress (including rewriting
+the editor from Java to Scheme, and making it work on platforms other
+than Android), it still gives an impression of a work-in-progress,
+rather than a well-polished project.
 
 \section{(Un)related work}
 
+The name ``GRASP'' doesn't seem to be particularly original in the
+realm of software development tools. In the context of Scheme, the
+name ``GRASP'' has been used by Franklyn Turbak in his 1986 master
+thesis titled \textit{GRASP: A Visible and Manipulable Model for
+  Procedural Programs}. In the context of Java, there exists a project
+called ``jGRASP'', which is ``a lightweight development environment,
+created specifically to provide automatic generation of software
+visualizations to improve the comprehensibility of software''.
 
+While the descriptions of both these works may sound like they are
+having similar goals to the project described in this paper, they are
+actually completely unrelated.
 
+In some ways, GRASP is reminiscent of Andrea diSessa's Boxer project,
+which describes a new computational medium, as well as Bochser, which
+is a Boxer spin-off built around the Scheme programming language.
 
+The extension capabilities of GRASP are similar to the ones that can
+be found in Hazel, Polytope and Interactive Visual Syntax (as
+implemented for the Dr Racket programming environment).
+
+The concept of visual stepper isn't new either. It is available, for
+example, in the Dr Racket environment for the Beginner Student
+Language.
 
 \end{document}
