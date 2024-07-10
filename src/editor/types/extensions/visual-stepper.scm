@@ -34,16 +34,16 @@
 
 (define text-painter ::Painter (TextPainter))
 
-(define (render-foreground! expression::Element
-			    counterparts::(maps (Element)
-						to: (list-of
-						     Element))
-			    source-position::(maps (Element)
-						   to: Position)
-			    target-position::(maps (Element)
-						   to: Position)
-			    intensity::float
-			    #!key (only-with-relatives? ::boolean #f))
+(define (draw-tween! expression::Element
+		     counterparts::(maps (Element)
+					 to: (list-of
+					      Element))
+		     source-position::(maps (Element)
+					    to: Position)
+		     target-position::(maps (Element)
+					    to: Position)
+		     intensity::float
+		     #!key (only-with-relatives ::boolean #f))
   ::void
   (let ((links (counterparts expression)))
     (cond
@@ -56,18 +56,19 @@
 	 expression
 	 doing:
 	 (lambda (sub::Element t::Traversal)
-	   (render-foreground! sub counterparts
+	   (draw-tween! sub counterparts
 			       source-position
 			       target-position
 			       intensity
-			       only-with-relatives?: only-with-relatives?)))))
+			       only-with-relatives:
+			       only-with-relatives)))))
      (else
       (for x in links
 	(draw-morph! expression x counterparts
 		     source-position
 		     target-position
 		     intensity
-		     only-with-relatives?: only-with-relatives?))))))
+		     only-with-relatives: only-with-relatives))))))
 
 (define (draw-morph! foreground::Element
 		     background::Element
@@ -79,7 +80,7 @@
 		     target-position::(maps (Element)
 					    to: Position)
 		     progress::float
-		     #!key (only-with-relatives? ::boolean #f))
+		     #!key (only-with-relatives ::boolean #f))
   ::void
   (let* ((p0 ::Position (source-position foreground))
 	 (p1 ::Position (target-position background))
@@ -93,7 +94,7 @@
      ((match/equal? foreground background)
       ;; here we just draw the foreground
       ;; with full intensity
-      (unless (and only-with-relatives?
+      (unless (and only-with-relatives
 		   (eq? foreground background))
 	(with-translation (left top)
 	  (draw! foreground))))
@@ -121,19 +122,19 @@
 	     (height ::real (linear-interpolation
 			     from: e0:height to: e1:height
 			     at: (- 1 progress))))
-	(unless only-with-relatives?
+	(unless only-with-relatives
 	  (with-translation (left top)
 	    (painter:draw-box! width height '())))
 	(traverse
 	 foreground
 	 doing:
 	 (lambda (item::Element t::Traversal)
-	   (render-foreground! item
-			       counterparts
-			       source-position
-			       target-position
-			       progress
-			       only-with-relatives?: only-with-relatives?)))))
+	   (draw-tween! item
+			  counterparts
+			  source-position
+			  target-position
+			  progress
+			  only-with-relatives: only-with-relatives)))))
      ((and (Tile? foreground)
 	   (Tile? background))
       (let* ((e0 ::Extent (extent+ foreground))
@@ -159,11 +160,11 @@
 	(traverse foreground
 		  doing:
 		  (lambda (element::Element traverse::Traversal)
-		    (render-foreground! element counterparts
-					source-position
-					target-position
-					progress
-					only-with-relatives?: #t)))))
+		    (draw-tween! element counterparts
+				   source-position
+				   target-position
+				   progress
+				   only-with-relatives: #t)))))
      )))
 
 (define (draw-emerging! expression::Element p::Position
@@ -176,24 +177,6 @@
 	    (let ((outer ::Extent (extent+ expression)))
 	      (painter:draw-box! outer:width outer:height '()))
 	    (draw! expression))))))
-
-(define (render-background! expression::Element
-			    counterparts::(maps (Element)
-						to: (list-of
-						     Element))
-			    position::(maps (Element)
-					    to: Position)
-			    intensity::float)
-  ::void
-  (when (empty? (counterparts expression))
-    (draw-emerging! expression (position expression) intensity))
-  (when (gnu.lists.LList? expression)
-    (traverse
-     expression
-     doing:
-     (lambda (sub::Element t::Traversal)
-       (render-background! sub counterparts position
-			   intensity)))))
 
 (define/kw (measure-positions!
 	    expression
@@ -261,22 +244,25 @@
 
   (define (draw! context::Cursor)::void
     (cond ((is progress <= 0.5) ;>
-	   (render-background! final origin final-position
-			       progress)
-	   (render-foreground! initial
-			       progeny
-			       initial-position
-			       final-position
-			       (- 1.0 progress)))
+	   (draw-tween! final origin
+			final-position
+			initial-position
+			progress)
+	   (draw-tween! initial
+			progeny
+			initial-position
+			final-position
+			(- 1.0 progress)))
 	  (else
-	   (render-background! initial progeny
-			       initial-position
-			       (- 1.0 progress))
-	   (render-foreground! final
-			       origin
-			       final-position
-			       initial-position
-			       progress))))
+	   (draw-tween! initial progeny
+			initial-position
+			final-position
+			(- 1.0 progress))
+	   (draw-tween! final
+			origin
+			final-position
+			initial-position
+			progress))))
   (Magic))
 
 (define (reduce expression
@@ -625,7 +611,6 @@
       
   (define (fast-forward!)::void
     (WARN "fast-forward not implemented for Stepper")
-    ;; to zasadniczo nie wiemy, jak zaimplementowac
     (values))
 
   (define now-playing? ::boolean #f)
