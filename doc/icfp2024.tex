@@ -23,7 +23,6 @@
 
 \newenvironment{Snippet}{\Verbatim[samepage=true]}{\endVerbatim}
 
-
 \DefineVerbatimEnvironment{verbatim}{Verbatim}{samepage=true}
 \newunicodechar{─}{\textSFx}
 \newunicodechar{│}{\textSFxi}
@@ -40,7 +39,7 @@
 \newunicodechar{◀}{$\triangleleft$}
 \newunicodechar{▶}{$\triangleright$}
 \newunicodechar{▮}{\hspace{0.6pt}|\hspace{0.6pt}}
-\author{Panicz Maciej Godek}
+\author{Anonymized for Review}
 \date{\today}
 
 \setcopyright{acmcopyright}
@@ -48,14 +47,14 @@
 \acmYear{2024}
 
 
-\acmConference[ICFP'24]{the 24th Scheme Workshop}{September 7 2024}{Milano, Italy}
+\acmConference[ICFP'24]{the 24th Scheme Workshop}{September 7 2024}{Milan, Italy}
 
 \setcopyright{rightsretained}
 
 \title{An Implementation of a Visual Stepper in the GRASP Programming System}
 
 \hypersetup{
- pdfauthor={Panicz Maciej Godek},
+ pdfauthor={Anonymized for Review},
  pdftitle={An Implementation of a Visual Stepper in the GRASP programming system},
  pdfkeywords={},
  pdfsubject={},
@@ -66,12 +65,13 @@
 % \tableofcontents
 
 \begin{abstract}
-The direct purpose of this paper - as its title suggests - is to
-present how the visual evaluator extension is implemented in the GRASP
-programming system.
+The direct purpose of this paper -- as its title suggests -- is to
+present how the visual evaluator extension is implemented in the
+GRASP\footnote{GRASP is an open source project, available at
+\url{https://github.com/panicz/grasp}} programming system.
 
-The indirect purpose of it is to provide a tutorial around the design
-of GRASP, and in particular - of the architecture of its extension
+The indirect purpose is to provide a tutorial around the design
+of GRASP, and in particular -- around the architecture of its extension
 mechanism.
 
 Neither GRASP nor its extension mechanisms are, at the moment of
@@ -81,26 +81,52 @@ first release.
 
 What will not change, though, is the set of problems that need to be
 solved in order to build a system with capabilities similar to those
-of GRASP.
-
-We believe that these problems might be of interest of the Scheme
-community.
+of GRASP. We believe that these problems might be of interest to the
+Scheme community.
 
 \end{abstract}
 
-\maketitle
-%\onecolumn
+\begin{CCSXML}
+  <ccs2012>
+  <concept>
+  <concept_id>10011007.10011006.10011066.10011069</concept_id>
+  <concept_desc>Software and its engineering~Integrated and visual development environments</concept_desc>
+  <concept_significance>500</concept_significance>
+  </concept>
+  <concept>
+  <concept_id>10003120.10003145.10003151.10011771</concept_id>
+  <concept_desc>Human-centered computing~Visualization toolkits</concept_desc>
+  <concept_significance>300</concept_significance>
+  </concept>
+  <concept>
+  <concept>
+  <concept_id>10003120.10003138.10003140</concept_id>
+  <concept_desc>Human-centered computing~Ubiquitous and mobile computing systems and tools</concept_desc>
+  <concept_significance>300</concept_significance>
+  </concept>
+  <concept_id>10010147.10010371.10010387.10010391</concept_id>
+  <concept_desc>Computing methodologies~Graphics input devices</concept_desc>
+  <concept_significance>100</concept_significance>
+  </concept>
+  </ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Software and its engineering~Integrated and visual development environments}
+\ccsdesc[300]{Human-centered computing~Visualization toolkits}
+\ccsdesc[300]{Human-centered computing~Ubiquitous and mobile computing systems and tools}
+\ccsdesc[100]{Computing methodologies~Graphics input devices}
 
 \keywords{visual stepper, interactive programming,
 structural editing}
 
+\maketitle
+%\onecolumn
 
 \section{Introduction}
-\label{sec:org12c787a}
 
-GRASP is a nascent graphical development environment for the Scheme
-programming language, consisting of a structural editor for
-S-expressions, as well as an extension mechanism, which allows to
+GRASP\cite{Godek2023} is a nascent graphical development environment
+for the Scheme programming language, consisting of a structural editor
+for S-expressions, as well as an extension mechanism, which allows to
 display various forms of data in an arbitrary visual way.
 
 This paper presents an implementation of one such extension, namely --
@@ -108,20 +134,20 @@ a visual stepper, which allows to observe single step reductions of a
 purely functional subset of Scheme.
 
 GRASP is currently available as a desktop application, a terminal
-application and an Android application.  It is implemented in Kawa,
+application and as an Android application.  It is implemented in Kawa,
 which is a dialect of Scheme that runs on the JVM and provides
 extensions for interfacing with JVM classes and libraries, including
 the capability of defining new classes, as well as optional checked
-monomorphic type annotations.
+monomorphic type
+annotations\footnote{\url{https://www.gnu.org/software/kawa/}}.
 
 \section{The fundamental ideas of GRASP}
-\label{sec:org9d4d4a3}
 
 At the core of GRASP, there are two fundamental ideas.  The first one
 is that it is a generic editor for S-expressions that uses boxes to
 represent a pair of matching parentheses.
 
-Here's what the definition of the factorial function looks like
+This is what the definition of the factorial function looks like
 in the GRASP representation:
 
 \begin{Snippet}
@@ -153,7 +179,7 @@ receives touch events from that area, and if the custom box is in the
 focus, it additionally receives events from the keyboard.
 
 Currently, GRASP contains a few predefined extensions. Among them,
-there is the extension called Button, which reacts to presses by
+there is the extension called \texttt{Button}, which reacts to presses by
 invoking the thunk that was provided during its creation.
 
 A button is created in a GRASP document by inputting an expression
@@ -165,9 +191,9 @@ such as
 \end{Snippet}
 
 and then either "enchanting" the expression (by pressing the
-tab key with the text cursor positioned on either opening
+\textit{tab} key with the text cursor positioned on either opening
 on closing parenthesis of the outermost expression),
-or evaluating it (by pressing ctrl+e).
+or evaluating it (by pressing \textit{ctrl+e}).
 
 The result will be displayed roughly like this:
 
@@ -177,18 +203,18 @@ The result will be displayed roughly like this:
 ╰──────────╯
 \end{Snippet}
 
-And of course, when the button is pressed, it causes the text "Button
-pressed" to be displayed somewhere in the application log.
+When the button is pressed, it causes the text "Button pressed" to be
+displayed somewhere in the application log.
 
 \section{The Visual Stepper Extension}
-\label{sec:org02f9edd}
 
-Another built-in extension is the visual stepper, which
-is the subject of this work. It can be instantiated by typing
-\texttt{(Stepper <expression>)} into the editor, and pressing the tab
-key on the closing parenthesis of the expression. For example, 
-if \texttt{<expression>} is \texttt{(! 5)}, then the corresponding stepper
-will look something like this:
+
+Another built-in extension is the visual stepper, which is the subject
+of this work. It can be instantiated by typing \texttt{(Stepper
+  \textit{<expression>})} into the editor, and pressing the tab key on
+the closing parenthesis of the expression. For example, if
+\texttt{\textit{<expression>}} is \texttt{(! 5)}, then the
+corresponding stepper will look something like this:
 
 \begin{Snippet}
 ╔═══════════════════════════════════╗
@@ -204,11 +230,12 @@ will look something like this:
 If the "!" symbol is bound to the factorial function as defined on the
 first picture, then pressing the ▶ or ▶▮ buttons will cause the
 expression to be reduced by means of the substitution model of
-procedure evaluation.
+procedure evaluation\cite{SICP}.
 
 In this regard, the visual stepper in GRASP is similar to the stepper
 available for the Beginner Student Language in the Dr Racket
-programming environment.
+programming environment\footnote{see
+\url{https://docs.racket-lang.org/stepper/index.html}}.
 
 What makes the stepper in GRASP different, is first that it uses the
 representation of s-expressions as nested boxes, rather than text, and
@@ -259,20 +286,18 @@ value \texttt{\#false}:
 
 Subsequently the whole expression will be replaced with the "else"
 branch of the "if" expression: the content of the outermost expression
-will fade away, and the expression \texttt{(* 5 (! (- 5 1)))} will slide into
-the top left corner of the outer box.
-
-A video recording of this process (performed in both graphical and terminal
-clients of GRASP) can be found at \url{https://www.youtube.com/watch?v=wN8Fy5xTXeQ}, 
-and the reader is encouraged to watch it before proceeding through the next
-sections of this paper.
+will fade away, and the expression \texttt{(* 5 (! (- 5 1)))} will
+slide into the top left corner of the outer box.\footnote{A video
+recording of this process (performed in both graphical and terminal
+clients of GRASP) can be found at
+\url{https://www.youtube.com/watch?v=wN8Fy5xTXeQ}, and the reader is
+encouraged to watch it before proceeding through the next sections of
+this paper.}
 
 \section{The simplified model of the reduction}
-\label{sec:org159e5f7}
 
 Computationally, visual stepper in GRASP is currently based on an
-erroneous implementation of a small-step evaluator of extended
-lambda-calculus.
+implementation of a small-step evaluator of extended lambda-calculus.
 
 It uses a wrapper around Java's hash tables to represent
 environments (herein called \texttt{EvaluationContext}s):
@@ -461,10 +486,10 @@ and the \texttt{lambda} operator (which can shadow some of the free variables):
 	 expression))))
 \end{Snippet}
 
-Picking a counterpart of a variable given a list of variables
-and values requires going through of both lists simultaneously,
-until we run into the variable that we're looking for. (We also
-want to handle dotted lists properly):
+Picking a counterpart of a variable given a list of variables and
+values requires going through both lists simultaneously, until we run
+into the variable that we're looking for. (We also want to handle
+dotted lists properly):
 
 \begin{Snippet}
 (define (counterpart #;of variable #;from variables #;in values)
@@ -492,7 +517,6 @@ Values that are not self-evaluating are wrapped around in the
 \texttt{quote} operator to prevent their further evaluation.
 
 \section{Requirements for the visual stepper}
-\label{sec:org9359294}
 
 The stepper presented in the previous section used the classical
 cons-cells, symbols and literals to represent expressions. All it did
@@ -529,13 +553,12 @@ comments, and it can be desirable to preserve them in the process of
 substitution.
 
 \section{The representation of expressions in GRASP}
-\label{sec:orgcbb0d3f}
 
 Some of the requirements from the previous section are already
 satisfied by the representation of expressions that was developed for
-representing documents in GRASP. (We do not claim, that the described
+representing documents in GRASP.\footnote{We do not claim, that the described
 representation of expressions is particularly good, and we are open to
-better alternatives.)
+better alternatives.}
 
 GRASP represents documents by subclassing the \texttt{pair} class
 provided by Kawa. Originally the reason for it was that Kawa defines
@@ -585,7 +608,6 @@ and a different one for evaluation, and conversion functions that
 would transform between those two representations.
 
 \section{The extended model of reduction}
-\label{sec:org4ec7019}
 
 The extended variant of the \texttt{reduce} function will take two additional
 arguments. One of them, called \texttt{progeny}, will be a mutable hash-table
@@ -994,7 +1016,6 @@ to the application's implementation of the \texttt{Painter} interface.
 
 
 \section{Rendering transitions between expressions}
-\label{sec:orgd8f76bf}
 
 The most spectacular part of the visual stepper are transitions. They
 are expressed using the \texttt{Morph} object, which - among other
@@ -1444,11 +1465,11 @@ Another issue is the GRASP editor itself. While it admittedly does
 look slick and impressive, the only impression that one can get from
 actually trying to use it beyond toy examples, is irritation.
 
-While GRASP was first demoed during the Scheme workshop in 2021, and
-its author has certainly made a lot of progress (including rewriting
-the editor from Java to Scheme, and making it work on platforms other
-than Android), it still gives an impression of a work-in-progress,
-rather than a well-polished project.
+While GRASP was first demoed during the Scheme workshop in
+2021\cite{Godek2021}, and its author has certainly made a lot of
+progress (including rewriting the editor from Java to Scheme, and
+making it work on platforms other than Android), it still gives an
+impression of a work-in-progress, rather than a well-polished project.
 
 \section{(Un)related work}
 
@@ -1456,25 +1477,85 @@ The name ``GRASP'' doesn't seem to be particularly original in the
 realm of software development tools. In the context of Scheme, the
 name ``GRASP'' has been used by Franklyn Turbak in his 1986 master
 thesis titled \textit{GRASP: A Visible and Manipulable Model for
-  Procedural Programs}. In the context of Java, there exists a project
-called ``jGRASP'', which is ``a lightweight development environment,
-created specifically to provide automatic generation of software
-visualizations to improve the comprehensibility of software''.
+  Procedural Programs}\cite{Turbak}. In the context of Java, there
+exists a project called ``jGRASP'', which is ``a lightweight
+development environment, created specifically to provide automatic
+generation of software visualizations to improve the comprehensibility
+of software''\footnote{\url{https://jgrasp.org}}.
 
 While the descriptions of both these works may sound like they are
 having similar goals to the project described in this paper, they are
-actually completely unrelated.
+not related in any direct way.
 
-In some ways, GRASP is reminiscent of Andrea diSessa's Boxer project,
-which describes a new computational medium, as well as Bochser, which
-is a Boxer spin-off built around the Scheme programming language.
+In some ways, GRASP is reminiscent of Andrea diSessa's Boxer
+project\cite{Boxer}, which describes a new computational medium, as
+well as Bochser\cite{Bochser}, which is a Boxer spin-off built around
+the Scheme programming language.
 
 The extension capabilities of GRASP are similar to the ones that can
-be found in Hazel, Polytope and Interactive Visual Syntax (as
-implemented for the Dr Racket programming environment).
+be found in Hazel\footnote{\url{https://hazel.org}},
+Polytope\footnote{\url{https://elliot.website/editor/}} and
+Interactive Visual Syntax (as implemented for the Dr Racket
+programming environment and a ClojureScript online IDE
+\url{https://visr.pl})\cite{Andersen}.
 
-The concept of visual stepper isn't new either. It is available, for
-example, in the Dr Racket environment for the Beginner Student
-Language.
+\section*{Acknowledgements}
+
+\textit{Left out for the review process}
+
+%% The author would like to express his gratitude to Pawel Pawlowski for
+%% reviewing the first draft of this paper, and to countless souls on the
+%% Internet for their spiritual support, including Scislaw Dercz,
+%% Amirouche Bobekki, Andrew Blinn, Kartik Agaram, Oleksandr Kryvonos,
+%% Jonas Winje, Jack Rusher, Tony Garnock-Jones, and the whole
+%% \textit{Future of Coding} community.
+
+\begin{thebibliography}{8}
+
+\bibitem{SICP}
+  Harold Abelson and Gerald Jay Sussman with Julie Sussman,
+  \emph{Structure and Interpretation of Computer Programs},
+  Second Edition, MIT Press, 1996, ISBN 0-262-01153-0 \\
+  \url{https://mitpress.mit.edu/sicp/full-text/book/book.html}
+  
+\bibitem{Andersen}
+  Leif Andersen, Michael Ballantyne, Mathias Felleisen,
+  \emph{Adding Interactive Visual Syntax to Textual Code},
+  Proceedings of the ACM on Programming Languages, Volume 4, Issue OOPSLA,
+  Article No.: 222, pp 1–28, \url{https://doi.org/10.1145/3428290}, \\
+  presentation: \url{https://www.youtube.com/watch?v=8htgAxJuK5c} \\ 
+  defense talk: \url{https://www.youtube.com/watch?v=l0GfMs82PvU} \\
+  online IDE: \url{https://visr.pl}
+
+\bibitem{Bochser}
+  Michael Eisenberg, \emph{Bochser: An Integrated Scheme Programming System},
+  MIT 1985, \url{https://boxer-project.github.io/boxer-literature/theses/Bochser, An Integrated Scheme Programming System (Eisenberg, MIT MSc, 1985).pdf}
+  
+\bibitem{Boxer}
+  Andrea DiSessa, Harold Abelson,
+  \emph{Boxer: A Reconstructible Computational Medium},
+  MIT 1986, \url{https://web.media.mit.edu/~mres/papers/boxer.pdf}
+
+\bibitem{BoxerSunrise}
+  Antranig Basman, Steven Ghitens, \emph{Boxer Sunrise Project} \\
+  \url{https://github.com/boxer-project/boxer-sunrise}
+
+\bibitem{Godek2021} Panicz Maciej Godek, \emph{GRASP: A GRAphical
+Scheme Programming environment (lightning talk)}, Scheme Workshop,
+  ICFP 2021, \url{https://www.youtube.com/watch?v=FlOghAlCDA4}
+  
+\bibitem{Godek2023} Panicz Maciej Godek, \emph{GRASP: An Extensible
+Tactile Interface for Editing S-expressions}, in Proceedings of the
+  16th European Lisp Symposium, Amsterdam 2023
+  \url{https://doi.org/10.5281/zenodo.7816633}
+  
+
+\bibitem{Turbak} Franklyn Turbak, \emph{GRASP: A Visible and
+Manipulable Model for Procedural Programs}, MIT 1986
+  \url{https://cs.wellesley.edu/~fturbak/pubs/turbak-masters-thesis.pdf}
+  
+\end{thebibliography}
+
 
 \end{document}
+
