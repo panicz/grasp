@@ -9,10 +9,10 @@
   (syntax-rules (::)
     ((mapping (object::key-type)::value-type default)
      (let* ((entries (make-hash-table[key-type value-type]))
-            (getter (lambda (object)
-                      (hash-ref entries object
-				(lambda () default)))))
-       (set! (setter getter) (lambda (arg value)
+            (getter (lambda (object::key-type)::value-type
+			  (hash-ref entries object
+				    (lambda ()::value-type default)))))
+       (set! (setter getter) (lambda (arg::key-type value::value-type)::void
                                (hash-set! entries arg value)))
        (set-procedure-property! getter 'table entries)
        getter))
@@ -34,18 +34,18 @@
     ((bimapping (object::key-type)::value-type default)
      (let* ((entries (make-hash-table[key-type value-type]))
 	    (inverse-entries (make-hash-table[value-type key-type]))
-            (getter (lambda (object)
+            (getter (lambda (object::key-type)::value-type
                       (hash-ref entries object
 				(lambda () default))))
-            (inverse-getter (lambda (object)
+            (inverse-getter (lambda (object::value-type)::key-type
 			      (hash-ref inverse-entries object
-					(lambda ()
+					(lambda ()::key-type
 					  (hash-ref entries object
 						    (lambda () default)))))))
-       (set! (setter getter) (lambda (arg value)
+       (set! (setter getter) (lambda (arg::key-type value::value-type)::void
                                (hash-set! entries arg value)
 			       (hash-set! inverse-entries value arg)))
-       (set! (setter inverse-getter) (lambda (arg value)
+       (set! (setter inverse-getter) (lambda (arg::value-type value::key-type)::void
 				       (hash-set! entries arg value)
 				       (hash-set! inverse-entries value arg)))
        (set-procedure-property! getter 'table entries)
