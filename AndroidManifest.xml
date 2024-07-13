@@ -29,7 +29,7 @@
   <application
       android:requestLegacyExternalStorage="true"
       android:label="GRASP"
-      android:icon="@drawable/grasp">
+      android:icon="@drawable/icon">
     <profileable android:shell="true" />
     <activity
 	android:name=".GRASP"
