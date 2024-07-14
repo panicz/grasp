@@ -274,9 +274,118 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 
 (integrate-dex `(,@dex-libraries ,@dex-files) (as-file "build/cache"))
 
+(define (resources-arsc package-name ::string)::bytevector
+  (list->u8vector
+   (append!
+    (list
+     #x02 #x00 #x0c #x00 #x50 #x02 #x00 #x00
+     #x01 #x00 #x00 #x00 #x01 #x00 #x1c #x00 
+     #x38 #x00 #x00 #x00 #x01 #x00 #x00 #x00
+     #x00 #x00 #x00 #x00 #x00 #x01 #x00 #x00 
+     #x20 #x00 #x00 #x00 #x00 #x00 #x00 #x00
+     #x00 #x00 #x00 #x00 #x15 #x15 #x72 #x65
+     #x73 #x2f #x64 #x72 #x61 #x77 #x61 #x62
+     #x6c #x65 #x2f #x69 #x63 #x6f #x6e #x2e
+     #x70 #x6e #x67 #x00 #x00 #x02 #x20 #x01
+     #x0c #x02 #x00 #x00 #x7f #x00 #x00 #x00)
+    (concatenate!
+     (map (lambda (c)
+	    `(,(char->integer c) ,#x00))
+	  package-name))
+    (make-list (- 256 (* 2 (length package-name))) 0)
+    (list
+     #x20 #x01 #x00 #x00 #x02 #x00 #x00 #x00
+     #x58 #x01 #x00 #x00 #x01 #x00 #x00 #x00
+     #x00 #x00 #x00 #x00 #x01 #x00 #x1c #x00
+     #x38 #x00 #x00 #x00 #x02 #x00 #x00 #x00
+     #x00 #x00 #x00 #x00 #x00 #x01 #x00 #x00
+     #x24 #x00 #x00 #x00 #x00 #x00 #x00 #x00
+     #x00 #x00 #x00 #x00 #x07 #x00 #x00 #x00
+     #x04 #x04 #x61 #x74 #x74 #x72 #x00 #x08
+     #x08 #x64 #x72 #x61 #x77 #x61 #x62 #x6c
+     #x65 #x00 #x00 #x00 #x01 #x00 #x1c #x00
+     #x28 #x00 #x00 #x00 #x01 #x00 #x00 #x00
+     #x00 #x00 #x00 #x00 #x00 #x01 #x00 #x00
+     #x20 #x00 #x00 #x00 #x00 #x00 #x00 #x00
+     #x00 #x00 #x00 #x00 #x04 #x04 #x69 #x63
+     #x6f #x6e #x00 #x00 #x02 #x02 #x10 #x00
+     #x10 #x00 #x00 #x00 #x01 #x00 #x00 #x00
+     #x00 #x00 #x00 #x00 #x02 #x02 #x10 #x00
+     #x14 #x00 #x00 #x00 #x02 #x00 #x00 #x00
+     #x01 #x00 #x00 #x00 #x00 #x00 #x00 #x00
+     #x01 #x02 #x54 #x00 #x68 #x00 #x00 #x00
+     #x02 #x00 #x00 #x00 #x01 #x00 #x00 #x00
+     #x58 #x00 #x00 #x00 #x40 #x00 #x00 #x00
+     #x00 #x00 #x00 #x00 #x00 #x00 #x00 #x00
+     #x00 #x00 #x00 #x00 #x00 #x00 #x00 #x00
+     #x00 #x00 #x00 #x00 #x00 #x00 #x00 #x00
+     #x00 #x00 #x00 #x00 #x00 #x00 #x00 #x00
+     #x00 #x00 #x00 #x00 #x00 #x00 #x00 #x00
+     #x00 #x00 #x00 #x00 #x00 #x00 #x00 #x00
+     #x00 #x00 #x00 #x00 #x00 #x00 #x00 #x00
+     #x00 #x00 #x00 #x00 #x00 #x00 #x00 #x00
+     #x08 #x00 #x00 #x00 #x00 #x00 #x00 #x00
+     #x08 #x00 #x00 #x03 #x00 #x00 #x00 #x00))))
+
+(define (android-manifest
+	 #!key
+	 (package ::string "systems.grasp")
+	 (min-sdk ::integer 23)
+	 (target-sdk ::integer 29)
+	 (permissions ::(list-of string) '("WAKE_LOCK"
+					   "READ_EXTERNAL_STORAGE"
+					   "WRITE_EXTERNAL_STORAGE"
+					   "MANAGE_EXTERNAL_STORAGE"
+					   "RECORD_AUDIO"
+					   "INTERNET"))
+	 (request-legacy-external-storage ::boolean #t)
+	 (application-name ::string "GRASP"))
+  ::String
+  (string-append "\
+<?xml version=\"1.0\" encoding=\"utf-8\"?>
+<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\"
+package=\""package"\" android:versionCode=\"1\" android:versionName=\"1.0\">
+<uses-sdk android:minSdkVersion=\""(number->string min-sdk)"\"
+	  android:targetSdkVersion=\""(number->string target-sdk)"\" />
+"(string-join (map (lambda (permission)
+		     (string-append "\
+<uses-permission android:name=\"android.permission."permission"\" />"))
+		   permissions)
+	      "\n")"
+  <application "(if request-legacy-external-storage
+		    "android:requestLegacyExternalStorage=\"true\""
+		    "")"
+      android:label=\""application-name"\"
+      android:icon=\"@drawable/icon\">
+    <profileable android:shell=\"true\" />
+    <activity android:name=\".GRASP\"
+        android:label=\""application-name"\"
+	android:theme=\"@android:style/Theme.NoTitleBar\"
+	android:configChanges=\"keyboard|keyboardHidden|orientation\">
+      <intent-filter>
+        <action android:name=\"android.intent.action.MAIN\" />
+        <category android:name=\"android.intent.category.LAUNCHER\" />
+      </intent-filter>
+    </activity>
+
+  </application>
+
+  <queries>
+    <intent>
+      <action android:name=\"android.intent.action.TTS_SERVICE\" />
+    </intent>
+    <intent>
+      <action android:name=\"android.speech.RecognitionService\" />
+    </intent>
+  </queries>
+
+</manifest>
+"))
+
 (define (build-apk! #!key
 		    (init ::string "init/init.scm")
-		    ;; jeszcze ikone bysmy dodali
+		    (package ::string "io.github.grasp")
+		    (icon ::string "icons/grasp.png")
 		    (keystore ::string "binary/keystore")
 		    (password ::string "untrusted")
 		    (key-alias ::string "grasp-public")
@@ -285,17 +394,24 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 	 (temp-file ::java.io.File (java.io.File:createTempFile
 				    "grasp-" ".apk"
 				    (as-file "build")))
-	 (resources  (list-files from: "res"))
 	 (assets (list-files from: "assets"))
 	 (output (ZipBuilder temp-file)))
-    (for resource in resources
-      (output:add-file-at-level! 0 resource))
+    (output:add-file-as! "res/drawable/icon.png" (as-file icon))
     (for asset in assets
       (output:add-file-at-level! 0 asset))
     (output:add-file-as! "assets/init.scm" (as-file init))
-    ;;(output:add-file-at-level! 0 (as-file "AndroidManifest.xml"))
-    (output:add-file-at-level! 1 (as-file "binary/AndroidManifest.xml"))
-    (output:add-file-at-level! 1 (as-file "binary/resources.arsc"))
+    #;(let* ((manifest ::String (android-manifest
+			       package: package
+			       application-name: "GRASP"))
+	   (encoder ::com.bigzhao.xml2axml.Encoder
+		    (com.bigzhao.xml2axml.Encoder))
+	   (axml ::(array-of byte) (encoder:encodeString
+				    (android.content.Context)
+				    manifest)))
+          (output:add-file-with-bytes! axml
+				       (as-file "AndroidManifest.xml")))
+    (output:add-file-with-binary-content! (resources-arsc package)
+					  (as-file "resources.arsc"))
     (output:add-file-at-level! 2 (as-file "build/cache/classes.dex"))
     (output:close)
     (com.iyxan23.zipalignjava.ZipAlign:alignZip
