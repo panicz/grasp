@@ -970,13 +970,12 @@ edges).
 
 While the extension system of GRASP should allow for drawing a wide
 variety of things, at the current stage of the project it can turn out
-that that the rendering functions required for rendering those things
-are not provided by the \texttt{Painter} interface, and that the
-author of extension needs to add a new set of functions to that
-interface (which also means providing three implementations). Although
-this solution is not ideal, the hope is that over time the interface
-will accumulate enough functions for drawing all the desired
-extensions.
+that the functions required for rendering those things are not
+provided by the \texttt{Painter} interface, and that the author of
+extension needs to add a new set of functions to that interface (which
+also means providing three implementations). Although this solution is
+not ideal, the hope is that over time the interface will accumulate
+enough functions for drawing all the desired extensions.
 
 In particular, for the purpose of the visual evaluator, we have
 extended the \texttt{Painter} interface with the following methods:
@@ -1018,8 +1017,8 @@ to the application's implementation of the \texttt{Painter} interface.
 \section{Rendering transitions between expressions}
 
 The most spectacular part of the visual stepper are transitions. They
-are expressed using the \texttt{Morph} object, which - among other
-things - contains the \texttt{progress} property, which is a real
+are expressed using the \texttt{Morph} object, which -- among other
+things -- contains the \texttt{progress} property, which is a real
 number between 0 and 1, where 0 means that we should only render the
 source expression, while 1 means that we should only render the target
 expression.
@@ -1080,7 +1079,7 @@ The \texttt{Morph} class is defined in the following way:
   (Magic))
 \end{Snippet}
 
-As we can see, it takes two arguments - the \texttt{initial}
+As we can see, it takes two arguments -- the \texttt{initial}
 expression, the \texttt{final} expression and the two maps returned by
 the \texttt{reduce} function.
 
@@ -1093,7 +1092,7 @@ system of GRASP.
 
 The \texttt{draw!} method is defined so that if \texttt{progress} is
 no greater than 0.5, then we render the final expression as the
-background, and then - on top of it - we draw the initial expression
+background, and then -- on top of it -- we draw the initial expression
 in the foreground.  But once the progress of 0.5 is exceeded, we first
 draw the initial expression, and then we draw the final expression on
 top of it.
@@ -1435,7 +1434,7 @@ rendering code.
 \section{Limitations and future work}
 
 Currently the visual stepper works only on a very limited subset of
-the Scheme programming language, namely - on purely functional
+the Scheme programming language, namely -- on purely functional
 programs that operate on numbers. The ▶▶▮ button is a complete fake
 and doesn't even pretend to do anything (other than looking nice and
 symmetrical).
@@ -1481,7 +1480,7 @@ thesis titled \textit{GRASP: A Visible and Manipulable Model for
 exists a project called ``jGRASP'', which is ``a lightweight
 development environment, created specifically to provide automatic
 generation of software visualizations to improve the comprehensibility
-of software''\footnote{\url{https://jgrasp.org}}.
+of software''\cite{jGRASP}.
 
 While the descriptions of both these works may sound like they are
 having similar goals to the project described in this paper, they are
@@ -1545,11 +1544,17 @@ Scheme Programming environment (lightning talk)}, Scheme Workshop,
   ICFP 2021, \url{https://www.youtube.com/watch?v=FlOghAlCDA4}
   
 \bibitem{Godek2023} Panicz Maciej Godek, \emph{GRASP: An Extensible
-Tactile Interface for Editing S-expressions}, in Proceedings of the
+Tactile Interface for Editing S-expressions} (demo), in Proceedings of the
   16th European Lisp Symposium, Amsterdam 2023
-  \url{https://doi.org/10.5281/zenodo.7816633}
-  
+  \url{https://doi.org/10.5281/zenodo.7816633}, recording available at
+  \url{https://www.youtube.com/watch?v=TymwS5N95aY}
 
+\bibitem{jGRASP} T. Dean Hendrix, James H. Cross II, and Larry
+  A. Barowski, \emph{An Extensible Framework for Providing Dynamic
+  Data Structure Visualizations in a Lightweight IDE},  SIGCSE'04,
+  March 3-7, 2004, Norfolk, Virginia, USA,
+  \url{https://jgrasp.org/papers/sigcse2004paper.hendrix.cross.barowski.pdf}
+  
 \bibitem{Turbak} Franklyn Turbak, \emph{GRASP: A Visible and
 Manipulable Model for Procedural Programs}, MIT 1986
   \url{https://cs.wellesley.edu/~fturbak/pubs/turbak-masters-thesis.pdf}
