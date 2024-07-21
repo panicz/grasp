@@ -327,60 +327,6 @@ exec java -cp "$JARS:build/cache" kawa.repl \
      #x08 #x00 #x00 #x00 #x00 #x00 #x00 #x00
      #x08 #x00 #x00 #x03 #x00 #x00 #x00 #x00))))
 
-(define (android-manifest
-	 #!key
-	 (package ::string "systems.grasp")
-	 (min-sdk ::integer 23)
-	 (target-sdk ::integer 29)
-	 (permissions ::(list-of string) '("WAKE_LOCK"
-					   "READ_EXTERNAL_STORAGE"
-					   "WRITE_EXTERNAL_STORAGE"
-					   "MANAGE_EXTERNAL_STORAGE"
-					   "RECORD_AUDIO"
-					   "INTERNET"))
-	 (request-legacy-external-storage ::boolean #t)
-	 (application-name ::string "GRASP"))
-  ::String
-  (string-append "\
-<?xml version=\"1.0\" encoding=\"utf-8\"?>
-<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\"
-package=\""package"\" android:versionCode=\"1\" android:versionName=\"1.0\">
-<uses-sdk android:minSdkVersion=\""(number->string min-sdk)"\"
-	  android:targetSdkVersion=\""(number->string target-sdk)"\" />
-"(string-join (map (lambda (permission)
-		     (string-append "\
-<uses-permission android:name=\"android.permission."permission"\" />"))
-		   permissions)
-	      "\n")"
-  <application "(if request-legacy-external-storage
-		    "android:requestLegacyExternalStorage=\"true\""
-		    "")"
-      android:label=\""application-name"\"
-      android:icon=\"@drawable/icon\">
-    <profileable android:shell=\"true\" />
-    <activity android:name=\".GRASP\"
-        android:label=\""application-name"\"
-	android:theme=\"@android:style/Theme.NoTitleBar\"
-	android:configChanges=\"keyboard|keyboardHidden|orientation\">
-      <intent-filter>
-        <action android:name=\"android.intent.action.MAIN\" />
-        <category android:name=\"android.intent.category.LAUNCHER\" />
-      </intent-filter>
-    </activity>
-
-  </application>
-
-  <queries>
-    <intent>
-      <action android:name=\"android.intent.action.TTS_SERVICE\" />
-    </intent>
-    <intent>
-      <action android:name=\"android.speech.RecognitionService\" />
-    </intent>
-  </queries>
-
-</manifest>
-"))
 
 (define (build-apk! #!key
 		    (init ::string "init/init.scm")

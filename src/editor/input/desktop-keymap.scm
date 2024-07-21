@@ -3,8 +3,8 @@
 (import (editor input input))
 (define-alias KeyEvent java.awt.event.KeyEvent)
 
-(define (set-key-code-name! key-code name)
-  (set! (key-code-name (as long key-code)) name))
+(define (set-key-code-name! key-code::long name::symbol)
+  (set! (key-code-name key-code) name))
   
 (define (initialize-keymap)
   (set-key-code-name! KeyEvent:VK_ACCEPT 'accept)

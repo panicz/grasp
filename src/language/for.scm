@@ -40,6 +40,11 @@
     ((_ var :: type in collection . actions)
      (for-each (lambda (var :: type) . actions) collection))
 
+    ((_ (vars ...) in collection . actions)
+     (for-each (lambda (var)
+		 (apply (lambda (vars ...) . actions) var))
+	       collection))
+    
     ((_ var in collection . actions)
      (for-each (lambda (var) . actions) collection))
 

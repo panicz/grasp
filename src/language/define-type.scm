@@ -21,6 +21,9 @@
 (define-syntax-rule (list-of type)
   list)
 
+(define-syntax-rule (vector-of type)
+  vector)
+
 (define-syntax-rule (sequence-of type)
   sequence)
 
