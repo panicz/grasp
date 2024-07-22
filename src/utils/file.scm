@@ -144,11 +144,24 @@
      (rewrite! input #;to output #;via buffer)
      (input:close)
      (output:closeEntry)))
-
+  
   ((add-file-with-text! text ::String file-name::string)::void
    (let ((entry ::ZipEntry (ZipEntry file-name)))
      (output:putNextEntry entry)
      (output:write (text:getBytes))
+     (output:closeEntry)))
+
+  ((add-file-with-bytes! bytes ::(array-of byte) file-name::string)::void
+   (let ((entry ::ZipEntry (ZipEntry file-name)))
+     (output:putNextEntry entry)
+     (output:write bytes)
+     (output:closeEntry)))
+
+  ((add-file-with-binary-content! content ::bytevector
+				  file-name ::string)::void
+   (let ((entry ::ZipEntry (ZipEntry file-name)))
+     (output:putNextEntry entry)
+     (output:write (content:getBuffer) 0 (length content))
      (output:closeEntry)))
   
   ((close)::void

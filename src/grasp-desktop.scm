@@ -42,7 +42,7 @@
 (import (editor input touch-event-processor))
 (import (editor types extensions visual-stepper))
 (import (editor types extensions testing))
-
+(import (editor input gestures))
 (import (editor awt-clipboard))
 
 (define-alias Font java.awt.Font)

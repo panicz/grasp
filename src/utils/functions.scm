@@ -31,10 +31,10 @@
 
 (define (drop k::integer #;elements-from s::list)::list
   (if (and (pair? s)
-	   (> k 0))
+	   (is k > 0))
       (let loop ((result (cdr s))
 		 (k (- k 1)))
-	(if (or (<= k 0) (null? result))
+	(if (or (is k <= 0) (null? result))
 	    result
 	    (loop (cdr result) (- k 1))))
       s))
@@ -82,12 +82,12 @@
 
 (define (take k::integer #;elements-from s::list)::list
   (if (and (pair? s)
-	   (> k 0))
+	   (is k > 0))
       (let ((result (cons (car s) '())))
 	(let loop ((input (cdr s))
 		   (tip result)
 		   (k (- k 1)))
-	  (if (or (<= k 0) (null? input))
+	  (if (or (is k <= 0) (null? input))
 	      result
 	      (begin
 		(set! (cdr tip) (cons (car input) (cdr tip)))
@@ -298,7 +298,7 @@
  ===> (a b c d e f))
 
 (define (append-map f l . ls)
-  (apply append (apply map f l ls)))
+  (concatenate (apply map f l ls)))
 
 (define (pass x . functions)
   (fold-left (lambda (x f) (f x)) x functions))
@@ -347,27 +347,21 @@
 	  (read-into result)))))
 
 (define (char-digit? c::char)::boolean
-  (<= (char->integer #\0)
-      (char->integer c)
-      (char->integer #\9)))
+  (is (char->integer #\0) <= (char->integer c) <= (char->integer #\9)))
 
 (define (char-hex-digit? c::char)::boolean
   (or (char-digit? c)
-      (<= (char->integer #\a)
-	  (char->integer c)
-	  (char->integer #\f))
-      (<= (char->integer #\A)
-	  (char->integer c)
-	  (char->integer #\F))))
+      (is (char->integer #\a) <= (char->integer c) <= (char->integer #\f))
+      (is (char->integer #\A) <= (char->integer c) <= (char->integer #\F))))
 
 (define (char-hex-value c::char)::int
   (let ((code (char->integer c)))
     (cond ((char-digit? c)
 	   (- code (char->integer #\0)))
-	  ((<= (char->integer #\a) code (char->integer #\f))
+	  ((is (char->integer #\a) <= code <= (char->integer #\f))
 	   (+ 10 (- code (char->integer #\a))))
 	  (else
-	   (assert (<= (char->integer #\A) code (char->integer #\F)))
+	   (assert (is (char->integer #\A) <= code <= (char->integer #\F)))
 	   (+ 10 (- code (char->integer #\A)))))))
 
 (e.g.
@@ -476,15 +470,15 @@
 (define (numbers #!key
 		 (from::real 0)
 		 (to::real 0)
-		 (by::real (if (> from to) -1 1)))
-  (if (or (and (> from to) (>= by 0))
-	  (and (< from to) (<= by 0)))
+		 (by::real (if (is from > to) -1 1)))
+  (if (or (and (is from > to) (is by >= 0))
+	  (and (is from < to) (is by <= 0)))
       '()
       (let ((result (cons from '())))
 	(let loop ((tip result)
 		   (from (+ from by)))
-	  (if (or (and (> from to) (>= by 0))
-		  (and (< from to) (<= by 0)))
+	  (if (or (and (is from > to) (is by >= 0))
+		  (and (is from < to) (is by <= 0)))
 	      result
 	      (begin
 		(set! (cdr tip) (cons from (cdr tip)))
@@ -512,9 +506,9 @@
 (define (split! list #!key (at::int 1))
   (let loop ((input list)
 	     (pivot at))
-    (if (<= pivot 0)
+    (if (is pivot <= 0)
 	'()
-	(if (= pivot 1)
+	(if (is pivot = 1)
 	    (let ((suffix (cdr input)))
 	      (set! (cdr input) '())
 	      suffix)

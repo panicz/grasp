@@ -37,7 +37,8 @@
       (and (isnt x list?)
 	   (isnt x pair?)
 	   (if (Atom? x)
-	       (isnt (x:value) symbol?)
+	       (let* ((x ::Atom (as Atom x)))
+		 (isnt (x:value) symbol?))
 	       #t))))
 
 (define-property (preserve-identity? item::Tile)::boolean
