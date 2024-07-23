@@ -50,6 +50,11 @@
 		(arithmetic-shift b2 16)
 		(arithmetic-shift b3 24)))))
 
+(define (read-u16le #!optional (port (current-input-port)))::ushort
+  (let* ((b0 ::ubyte (read-u8))
+	 (b1 ::ubyte (read-u8)))
+    (as uint (bitwise-ior b0 (arithmetic-shift b1 8)))))
+
 (define (bytevector-u32le-ref b::bytevector i::integer)::uint
   (as uint (bitwise-ior
 	    (b i)
@@ -68,3 +73,7 @@
     ,(as ubyte (bitwise-and (arithmetic-shift number -8) #xFF))
     ,(as ubyte (bitwise-and (arithmetic-shift number -16) #xFF))
     ,(as ubyte (bitwise-and (arithmetic-shift number -24) #xFF))))
+
+(define (little-endian-bytes-u16 number::uint)::list ;of ubyte
+  `(,(as ubyte (bitwise-and number #xFF))
+    ,(as ubyte (bitwise-and (arithmetic-shift number -8) #xFF))))

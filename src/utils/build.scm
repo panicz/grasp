@@ -268,11 +268,12 @@ Main-Class: "main-class-name"
 			'(0)
 			content))))
 
-  ((strings)::(list ubyte)
-   (append!
+  ((strings)::(list-of ubyte)
+   (concatenate!
     (map (lambda (s::string)
 	   `(,(string-length s) ,0
-	     ,@(append! (map (lambda (c::char) `(,(char->integer c) ,0)) s))
+	     ,@(concatenate! (map (lambda (c::char)
+			       `(,(char->integer c) ,0)) s))
 	     ,0 ,0))
 	 content)))
   
@@ -303,7 +304,7 @@ Main-Class: "main-class-name"
 	       (return i))
 	     (set! i (+ i 1)))
 	   (return #xffffffff)))
-       #xffffff))
+       #xffffffff))
   
   ((parse input-port)::BinaryXML
    (let* ((read-u32le (lambda () (read-u32le input-port)))
@@ -337,11 +338,12 @@ Main-Class: "main-class-name"
    
      (this))))
 
-(define-type (AndroidXMLResourceTable content: (sequence-of uint)
-				      := '(#x101021b #x101021c #x1010572 #x1010573
-						     #x101020c #x1010270 #x1010003
-						     #x1010603 #x1010001 #x1010002
-						     #x1010594 #x1010000 #x101001f))
+(define-type (AndroidXMLResourceTable
+	      content: (sequence-of uint)
+	      := '(#x101021b #x101021c #x1010572 #x1010573
+			     #x101020c #x1010270 #x1010003
+			     #x1010603 #x1010001 #x1010002
+			     #x1010594 #x1010000 #x101001f))
   implementing BinaryXML
   with
   ((tag)::uint AndroidXMLResourceTableTag)
@@ -349,7 +351,8 @@ Main-Class: "main-class-name"
   ((parse input-port)::BinaryXML
    (let* ((read-u32le (lambda () (read-u32le input-port)))
 	  (chunk-size (read-u32le))
-	  (number-of-resources ::uint (/ (- chunk-size (header-size)) word-size)))
+	  (number-of-resources ::uint (/ (- chunk-size (header-size))
+					 word-size)))
      (set! content (java.util.ArrayList number-of-resources))
      (for i from 0 below number-of-resources
 	  (content:add (read-u32le))))
@@ -358,8 +361,9 @@ Main-Class: "main-class-name"
   ((serialize)::(list-of ubyte)
    (append!
     (little-endian-bytes-u32 (tag))
-    (little-endian-bytes-u32 (+ (* (length content) word-size) (header-size)))
-    (map little-endian-bytes-u32 content))))
+    (little-endian-bytes-u32 (+ (* (length content) word-size)
+				(header-size)))
+    (concatenate! (map little-endian-bytes-u32 content)))))
 
 (define-bimapping (AndroidXMLAttributeTypeName code::uint)::symbol
   (error "Unknown AndroidXMLAttribute type" code))
@@ -378,7 +382,8 @@ Main-Class: "main-class-name"
 
 (define-type (AndroidXMLNamespace prefix: string
 				  uri: string
-				  line: uint := 0)
+				  line: uint := 0
+				  closing-line: uint := 0)
   implementing BinaryXML
   with
   (parent ::AndroidXML)
@@ -403,17 +408,30 @@ Main-Class: "main-class-name"
     (little-endian-bytes-u32 (header-size))
     (little-endian-bytes-u32 line)
     (little-endian-bytes-u32 #xffffffff #;comment)
-    (parent:string-table:index prefix)
-    (parent:string-table:index uri)))
+    (little-endian-bytes-u32 (parent:string-table:index prefix))
+    (little-endian-bytes-u32 (parent:string-table:index uri))))
   
-  ((serialize/close)::(list ubyte)
+  ((serialize/close)::(list-of ubyte)
    (append!
-    (little-endian-bytes-u32 AndroidXMLNamespaceStartTag)
+    (little-endian-bytes-u32 AndroidXMLNamespaceEndTag)
     (little-endian-bytes-u32 (header-size))
-    (little-endian-bytes-u32 line)
+    (little-endian-bytes-u32 closing-line)
     (little-endian-bytes-u32 #xffffffff #;comment)
-    (parent:string-table:index prefix)
-    (parent:string-table:index uri)))
+    (little-endian-bytes-u32 (parent:string-table:index prefix))
+    (little-endian-bytes-u32 (parent:string-table:index uri))))
+
+  ((parse/close input-port)::BinaryXML
+   (let* ((next-word (lambda () (read-u32le input-port)))
+	  (chunk-size (next-word))
+	  (line-number (next-word))
+	  (comment (next-word))
+	  (prefix-index (next-word))
+	  (uri-index (next-word)))
+     (assert (= chunk-size (header-size)))
+     (assert (string=? prefix (parent:string-table:content prefix-index)))
+     (assert (string=? uri (parent:string-table:content uri-index)))
+     (set! closing-line line-number)
+     (this)))
    )
 
 (define-type (AndroidXMLTagAttribute
@@ -446,13 +464,15 @@ Main-Class: "main-class-name"
      (set! value-type (AndroidXMLAttributeTypeName type))
      (set! resource data))
    (this))
-  ((serialize)::(list ubyte)
-   (append!
-    (little-endian-bytes-u32 (parent:string-table:index namespace))
-    (little-endian-bytes-u32 (parent:string-table:index name))
-    (little-endian-bytes-u32 (parent:string-table:index value))
-    (little-endian-bytes-u32 ((inverse AndroidXMLAttributeTypeName) value-type))
-    (little-endian-bytes-u32 resource)))
+  ((serialize)::(list-of ubyte)
+   (let ((result
+	  (append!
+	   (little-endian-bytes-u32 (parent:string-table:index namespace))
+	   (little-endian-bytes-u32 (parent:string-table:index name))
+	   (little-endian-bytes-u32 (parent:string-table:index value))
+	   (little-endian-bytes-u32 ((inverse AndroidXMLAttributeTypeName) value-type))
+	   (little-endian-bytes-u32 resource))))
+     result))
   )
 
 (define-type (AndroidXMLTagClose name: string
@@ -474,19 +494,22 @@ Main-Class: "main-class-name"
      (set! name (parent:string-table:content element-name-index))
      (set! namespace-uri (if (= namespace-uri-index #xffffffff)
 			     #!null
-			     (parent:string-table:content namespace-uri-index)))
+			     (parent:string-table:content
+			      namespace-uri-index)))
      (this)))
   ((serialize)::(list-of ubyte)
-   (append!
-    (little-endian-bytes-u32 (tag))
-    (little-endian-bytes-u32 (header-size))
-    (little-endian-bytes-u32 line)
-    (little-endian-bytes-u32 #xffffffff #;comment)
-    (little-endian-bytes-u32 (if namespace-uri
-				 (parent:string-table:index namespace-uri)
-				 #xffffffff))
-    (little-endian-bytes-u32 (parent:string-table:index name)))))
-
+   (let ((result 
+	  (append!
+	   (little-endian-bytes-u32 (tag))
+	   (little-endian-bytes-u32 (header-size))
+	   (little-endian-bytes-u32 line)
+	   (little-endian-bytes-u32 #xffffffff #;comment)
+	   (little-endian-bytes-u32 (if namespace-uri
+					(parent:string-table:index
+					 namespace-uri)
+					#xffffffff))
+	   (little-endian-bytes-u32 (parent:string-table:index name)))))
+     result)))
 
 (define-type (AndroidXMLTag name: string
 			    line: uint := 0
@@ -504,40 +527,47 @@ Main-Class: "main-class-name"
 	  (comment (next-word))
 	  (namespace-uri-index (next-word))
 	  (element-name-index (next-word))
-	  (attributes-size (next-word))
+	  (_ (next-word))
 	  (number-of-attributes (next-word))
-	  (id-attribute-index (next-word)))
+	  (_ (next-word)))
      (set! attributes (java.util.ArrayList))
      (set! line line-number)
      (set! name (parent:string-table:content element-name-index))
      (set! namespace-uri (if (= namespace-uri-index #xffffffff)
 			     #!null
-			     (parent:string-table:content namespace-uri-index)))
+			     (parent:string-table:content
+			      namespace-uri-index)))
      (for i from 0 below number-of-attributes
-	  (let ((attribute ::AndroidXMLTagAttribute (AndroidXMLTagAttribute parent: parent)))
+	  (let ((attribute ::AndroidXMLTagAttribute (AndroidXMLTagAttribute
+						     parent: parent)))
 	    (attribute:parse input-port)
 	    (attributes:add attribute))))
    (this))
   ((serialize)::(list-of ubyte)
-   (let ((serialized-attributes (append!
-				 (map (lambda (attribute ::AndroidXMLTagAttribute)
-					::(list-of ubyte)
-					(attribute:serialize))
-				      attributes))))
-				   
-     (append!
-      (little-endian-bytes-u32 (tag))
-      (little-endian-bytes-u32 (+ (header-size) (length serialized-attributes)))
-      (little-endian-bytes-u32 line)
-      (little-endian-bytes-u32 #xffffffff #;comment)
-      (little-endian-bytes-u32 (if namespace-uri
-				   (parent:string-table:index namespace-uri)
-				   #xffffffff))
-      (little-endian-bytes-u32 (parent:string-table:index name))
-      (little-endian-bytes-u32 (length serialized-attributes))
-      (little-endian-bytes-u32 (length attributes))
-      (little-endian-bytes-u32 #xffffffff #;id-attribute-index)
-      serialized-attributes))))
+   (let* ((serialized-attributes
+	   (concatenate!
+	    (map (lambda (attribute ::AndroidXMLTagAttribute)
+		   ::(list-of ubyte)
+		   (attribute:serialize))
+		 attributes)))
+	  (result
+	   (append!
+	    (little-endian-bytes-u32 (tag))
+	    (little-endian-bytes-u32 (+ (header-size)
+					(length
+					 serialized-attributes)))
+	    (little-endian-bytes-u32 line)
+	    (little-endian-bytes-u32 #xffffffff #;comment)
+	    (little-endian-bytes-u32 (if namespace-uri
+					 (parent:string-table:index
+					  namespace-uri)
+					 #xffffffff))
+	    (little-endian-bytes-u32 (parent:string-table:index name))
+	    (little-endian-bytes-u32 #x140014)
+	    (little-endian-bytes-u32 (length attributes))
+	    (little-endian-bytes-u32 0)
+	    serialized-attributes)))
+     result)))
 
 
 (define-type (AndroidXML string-table: AndroidXMLStringTable
@@ -576,6 +606,7 @@ Main-Class: "main-class-name"
        (let ((tag (read-u32le)))
 	 (match tag
 	   (,AndroidXMLNamespaceEndTag
+	    (namespace:parse/close input-port)
 	    (this))
 	   (,AndroidXMLOpenTag
 	    (let ((tag ::AndroidXMLTag (AndroidXMLTag parent: (this))))
@@ -583,22 +614,28 @@ Main-Class: "main-class-name"
 	      (tags:add tag)
 	      (loop)))
 	   (,AndroidXMLCloseTag
-	    (let ((tag ::AndroidXMLTagClose (AndroidXMLTagClose parent: (this))))
+	    (let ((tag ::AndroidXMLTagClose (AndroidXMLTagClose
+					     parent: (this))))
 	      (tag:parse input-port)
 	      (tags:add tag)
 	      (loop))))))))
   ((serialize)::(list-of ubyte)
-   (let ((content (append!
-		   (string-table:serialize)
-		   (resource-table:serialize)
-		   (namespace:serialize)
-		   (append! (map (lambda (tag::BinaryXML)
+   (let* ((strings (string-table:serialize))
+	  (resources (resource-table:serialize))
+	  (provision (namespace:serialize))
+	  (tags (concatenate! (map (lambda (tag::BinaryXML)
 					(tag:serialize))
-				      tags))
-		   (namespace:serialize/close))))
-     (append!
-      (little-endian-bytes-u32 (tag))
-      (little-endian-bytes-u32 (+ (header-size) (length content)))
-      content)))
+				   tags)))
+	  (end-namespace (namespace:serialize/close)))
+     (let ((content (append!
+		     strings
+		     resources
+		     provision
+		     tags
+		     end-namespace)))
+       (append!
+	(little-endian-bytes-u32 (tag))
+	(little-endian-bytes-u32 (+ (header-size) (length content)))
+	content))))
   )
  

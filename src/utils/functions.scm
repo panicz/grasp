@@ -108,6 +108,16 @@
 (e.g.
  (is '(4 5) suffix? '(1 2 3 4 5)))
 
+
+(define (prefix? candidate::list stem::list)::boolean
+  (or (null? candidate)
+      (and-let* ((`(,c . ,c*) candidate)
+		 (`(,,c . ,s*) stem))
+	(prefix? c* s*))))
+
+(e.g.
+ (is '(1 2) prefix? '(1 2 3 4)))
+
 (define predicate procedure)
 
 (define (any satisfying? elements)
