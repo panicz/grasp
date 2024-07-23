@@ -1476,10 +1476,10 @@ realm of software development tools. In the context of Scheme, the
 name ``GRASP'' has been used by Franklyn Turbak in his 1986 master
 thesis titled \textit{GRASP: A Visible and Manipulable Model for
   Procedural Programs}\cite{Turbak}. In the context of Java, there
-exists a project called ``jGRASP'', which is ``a lightweight
-development environment, created specifically to provide automatic
-generation of software visualizations to improve the comprehensibility
-of software''\cite{jGRASP}.
+exists a project called \textit{jGRASP}, which is \textit{a
+  lightweight development environment, created specifically to provide
+  automatic generation of software visualizations to improve the
+  comprehensibility of software}\cite{jGRASP}.
 
 While the descriptions of both these works may sound like they are
 having similar goals to the project described in this paper, they are
@@ -1497,6 +1497,14 @@ Interactive Visual Syntax (as implemented for the Dr Racket
 programming environment and a ClojureScript online IDE
 \url{https://visr.pl})\cite{Andersen}.
 
+The work that is closest to GRASP's visual stepper is probably the
+algebraic stepper that can be found in the dr Racket programming
+environment\cite{Clements}. However, the latter uses a very different
+implementation technique, based on the notion of \textit{continuation
+  marks}, while the stepper in GRASP is currently based on a
+substitution-based evaluator, reminescent of the ones that can be
+found in \cite{Maritime}, \cite{Meyer} or \cite{Pedersen}.
+
 \section*{Acknowledgements}
 
 \textit{Left out for the review process}
@@ -1508,7 +1516,7 @@ programming environment and a ClojureScript online IDE
 %% Jonas Winje, Jack Rusher, Tony Garnock-Jones, and the whole
 %% \textit{Future of Coding} community.
 
-\begin{thebibliography}{10}
+\begin{thebibliography}{12}
 
 \bibitem{SICP}
   Harold Abelson and Gerald Jay Sussman with Julie Sussman,
@@ -1534,10 +1542,6 @@ programming environment and a ClojureScript online IDE
   \emph{Boxer: A Reconstructible Computational Medium},
   MIT 1986, \url{https://web.media.mit.edu/~mres/papers/boxer.pdf}
 
-\bibitem{BoxerSunrise}
-  Antranig Basman, Steven Ghitens, \emph{Boxer Sunrise Project} \\
-  \url{https://github.com/boxer-project/boxer-sunrise}
-
 \bibitem{Clements}
   John Clements, Matthew Flatt, and Matthias Felleisen,
   \emph{Modeling an Algebraic Stepper.} In \emph{Proc. European
@@ -1554,6 +1558,19 @@ Scheme Programming environment (lightning talk)}, Scheme Workshop,
   \url{https://doi.org/10.5281/zenodo.7816633} \\ recording
   available at \url{https://www.youtube.com/watch?v=TymwS5N95aY}
 
+\bibitem{Maritime} Abraham Aaron Maritime, \emph{An Efficient
+Substitution Model Scheme Evaluator}, MIT 1997 (Master thesis)\\
+  \url{https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=5222083d9e0717225e3edba0cb4e85acc50c285d}
+
+\bibitem{Meyer} Albert R. Meyer, \emph{A Substitution Model for Scheme},
+  MIT 2005 (lecture notes) \\
+  \url{https://courses.csail.mit.edu/6.844/spring05-6844/handouts/submodel.pdf}
+  
+\bibitem{Pedersen} Matt Pedersen, \emph{Implementing a simple
+substitution evaluator for a Scheme-like $\lambda$-calculus language
+in Scheme}, University of Nevada, Las Vegas, 2007. \\
+  \url{http://www.egr.unlv.edu/~matt/teaching/CSC789/SchemeEvaluatorSubst.pdf}
+  
 \bibitem{jGRASP} T. Dean Hendrix, James H. Cross II, and Larry
   A. Barowski, \emph{An Extensible Framework for Providing Dynamic
   Data Structure Visualizations in a Lightweight IDE},  SIGCSE'04,
