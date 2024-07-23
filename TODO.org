@@ -1,3 +1,10 @@
+* 22.07.2024
+
+plan jest teraz taki, zeby zbadac wzajemna odwrotnosc metod parse/serialize
+klasy AndroidXML (i prawdopodobnie ja naprawic)
+
+
+
 * 12.07.2024
 
 #+BEGIN_SRC
