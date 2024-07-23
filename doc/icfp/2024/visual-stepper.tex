@@ -234,8 +234,7 @@ procedure evaluation\cite{SICP}.
 
 In this regard, the visual stepper in GRASP is similar to the stepper
 available for the Beginner Student Language in the Dr Racket
-programming environment\footnote{see
-\url{https://docs.racket-lang.org/stepper/index.html}}.
+programming environment\cite{Clements}.
 
 What makes the stepper in GRASP different, is first that it uses the
 representation of s-expressions as nested boxes, rather than text, and
@@ -294,13 +293,13 @@ clients of GRASP) can be found at
 encouraged to watch it before proceeding through the next sections of
 this paper.}
 
-\section{The simplified model of the reduction}
+\section{The simplified model of reduction}
 
 Computationally, visual stepper in GRASP is currently based on an
 implementation of a small-step evaluator of extended lambda-calculus.
 
 It uses a wrapper around Java's hash tables to represent
-environments (herein called \texttt{EvaluationContext}s):
+environments (herein called \texttt{Evalu\-ation\-Con\-text}s):
 
 \begin{Snippet}
 (define-object (EvaluationContext)
@@ -1509,7 +1508,7 @@ programming environment and a ClojureScript online IDE
 %% Jonas Winje, Jack Rusher, Tony Garnock-Jones, and the whole
 %% \textit{Future of Coding} community.
 
-\begin{thebibliography}{8}
+\begin{thebibliography}{10}
 
 \bibitem{SICP}
   Harold Abelson and Gerald Jay Sussman with Julie Sussman,
@@ -1518,17 +1517,17 @@ programming environment and a ClojureScript online IDE
   \url{https://mitpress.mit.edu/sicp/full-text/book/book.html}
   
 \bibitem{Andersen}
-  Leif Andersen, Michael Ballantyne, Mathias Felleisen,
-  \emph{Adding Interactive Visual Syntax to Textual Code},
-  Proceedings of the ACM on Programming Languages, Volume 4, Issue OOPSLA,
-  Article No.: 222, pp 1–28, \url{https://doi.org/10.1145/3428290}, \\
+  Leif Andersen, Michael Ballantyne, and Matthias
+  Felleisen. 2020. \emph{Adding Interactive Visual Syntax to Textual
+  Code.} Proc. ACM Program. Lang. 4, OOPSLA, Article 222 (November
+  2020), 28 pages. \url{https://doi.org/10.1145/3428290}, \\
   presentation: \url{https://www.youtube.com/watch?v=8htgAxJuK5c} \\ 
   defense talk: \url{https://www.youtube.com/watch?v=l0GfMs82PvU} \\
   online IDE: \url{https://visr.pl}
 
-\bibitem{Bochser}
-  Michael Eisenberg, \emph{Bochser: An Integrated Scheme Programming System},
-  MIT 1985, \url{https://boxer-project.github.io/boxer-literature/theses/Bochser, An Integrated Scheme Programming System (Eisenberg, MIT MSc, 1985).pdf}
+\bibitem{Bochser}Michael Eisenberg, \emph{Bochser: An Integrated Scheme Programming System},
+  MIT 1985, \\
+  \url{https://boxer-project.github.io/boxer-literature/theses/Bochser, An Integrated Scheme Programming System (Eisenberg, MIT MSc, 1985).pdf}
   
 \bibitem{Boxer}
   Andrea DiSessa, Harold Abelson,
@@ -1539,15 +1538,21 @@ programming environment and a ClojureScript online IDE
   Antranig Basman, Steven Ghitens, \emph{Boxer Sunrise Project} \\
   \url{https://github.com/boxer-project/boxer-sunrise}
 
+\bibitem{Clements}
+  John Clements, Matthew Flatt, and Matthias Felleisen,
+  \emph{Modeling an Algebraic Stepper.} In \emph{Proc. European
+  Symposium on Programming}, 2001. \\
+  \url{https://www2.ccs.neu.edu/racket/pubs/esop2001-cff.pdf}
+  
 \bibitem{Godek2021} Panicz Maciej Godek, \emph{GRASP: A GRAphical
 Scheme Programming environment (lightning talk)}, Scheme Workshop,
   ICFP 2021, \url{https://www.youtube.com/watch?v=FlOghAlCDA4}
-  
-\bibitem{Godek2023} Panicz Maciej Godek, \emph{GRASP: An Extensible
-Tactile Interface for Editing S-expressions} (demo), in Proceedings of the
-  16th European Lisp Symposium, Amsterdam 2023
-  \url{https://doi.org/10.5281/zenodo.7816633}, recording available at
-  \url{https://www.youtube.com/watch?v=TymwS5N95aY}
+
+\bibitem{Godek2023} Panicz Maciej Godek. 2023. GRASP: An Extensible
+  Tactile Interface for Editing S-expressions. In Proceedings of the
+  16th European Lisp Symposium (ELS’23). 
+  \url{https://doi.org/10.5281/zenodo.7816633} \\ recording
+  available at \url{https://www.youtube.com/watch?v=TymwS5N95aY}
 
 \bibitem{jGRASP} T. Dean Hendrix, James H. Cross II, and Larry
   A. Barowski, \emph{An Extensible Framework for Providing Dynamic
@@ -1558,7 +1563,7 @@ Tactile Interface for Editing S-expressions} (demo), in Proceedings of the
 \bibitem{Turbak} Franklyn Turbak, \emph{GRASP: A Visible and
 Manipulable Model for Procedural Programs}, MIT 1986
   \url{https://cs.wellesley.edu/~fturbak/pubs/turbak-masters-thesis.pdf}
-  
+
 \end{thebibliography}
 
 
