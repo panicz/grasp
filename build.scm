@@ -20,6 +20,7 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 (import (language keyword-arguments))
 (import (language define-object))
 (import (language curry))
+(import (utils conversions))
 (import (utils functions))
 (import (language infix))
 (import (language match))
@@ -29,6 +30,7 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 (import (language define-cache))
 (import (utils file))
 (import (utils graph))
+(import (utils android))
 (import (utils build))
 
 (define-syntax-rule (print elements ...)
@@ -160,7 +162,7 @@ exec java -cp "$JARS:build/cache" kawa.repl \
   (class:delete))
 
 (for build-list in build-layers
-  (for file::java.io.File in-parallel build-list
+  (for file::java.io.File in #;-parallel build-list
     (build-file (file:getPath))))
 
 (concurrently
@@ -274,60 +276,6 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 
 (integrate-dex `(,@dex-libraries ,@dex-files) (as-file "build/cache"))
 
-(define (resources-arsc package-name ::string)::bytevector
-  (list->u8vector
-   (append!
-    (list
-     #x02 #x00 #x0c #x00 #x50 #x02 #x00 #x00
-     #x01 #x00 #x00 #x00 #x01 #x00 #x1c #x00 
-     #x38 #x00 #x00 #x00 #x01 #x00 #x00 #x00
-     #x00 #x00 #x00 #x00 #x00 #x01 #x00 #x00 
-     #x20 #x00 #x00 #x00 #x00 #x00 #x00 #x00
-     #x00 #x00 #x00 #x00 #x15 #x15 #x72 #x65
-     #x73 #x2f #x64 #x72 #x61 #x77 #x61 #x62
-     #x6c #x65 #x2f #x69 #x63 #x6f #x6e #x2e
-     #x70 #x6e #x67 #x00 #x00 #x02 #x20 #x01
-     #x0c #x02 #x00 #x00 #x7f #x00 #x00 #x00)
-    (concatenate!
-     (map (lambda (c)
-	    `(,(char->integer c) ,#x00))
-	  package-name))
-    (make-list (- 256 (* 2 (length package-name))) 0)
-    (list
-     #x20 #x01 #x00 #x00 #x02 #x00 #x00 #x00
-     #x58 #x01 #x00 #x00 #x01 #x00 #x00 #x00
-     #x00 #x00 #x00 #x00 #x01 #x00 #x1c #x00
-     #x38 #x00 #x00 #x00 #x02 #x00 #x00 #x00
-     #x00 #x00 #x00 #x00 #x00 #x01 #x00 #x00
-     #x24 #x00 #x00 #x00 #x00 #x00 #x00 #x00
-     #x00 #x00 #x00 #x00 #x07 #x00 #x00 #x00
-     #x04 #x04 #x61 #x74 #x74 #x72 #x00 #x08
-     #x08 #x64 #x72 #x61 #x77 #x61 #x62 #x6c
-     #x65 #x00 #x00 #x00 #x01 #x00 #x1c #x00
-     #x28 #x00 #x00 #x00 #x01 #x00 #x00 #x00
-     #x00 #x00 #x00 #x00 #x00 #x01 #x00 #x00
-     #x20 #x00 #x00 #x00 #x00 #x00 #x00 #x00
-     #x00 #x00 #x00 #x00 #x04 #x04 #x69 #x63
-     #x6f #x6e #x00 #x00 #x02 #x02 #x10 #x00
-     #x10 #x00 #x00 #x00 #x01 #x00 #x00 #x00
-     #x00 #x00 #x00 #x00 #x02 #x02 #x10 #x00
-     #x14 #x00 #x00 #x00 #x02 #x00 #x00 #x00
-     #x01 #x00 #x00 #x00 #x00 #x00 #x00 #x00
-     #x01 #x02 #x54 #x00 #x68 #x00 #x00 #x00
-     #x02 #x00 #x00 #x00 #x01 #x00 #x00 #x00
-     #x58 #x00 #x00 #x00 #x40 #x00 #x00 #x00
-     #x00 #x00 #x00 #x00 #x00 #x00 #x00 #x00
-     #x00 #x00 #x00 #x00 #x00 #x00 #x00 #x00
-     #x00 #x00 #x00 #x00 #x00 #x00 #x00 #x00
-     #x00 #x00 #x00 #x00 #x00 #x00 #x00 #x00
-     #x00 #x00 #x00 #x00 #x00 #x00 #x00 #x00
-     #x00 #x00 #x00 #x00 #x00 #x00 #x00 #x00
-     #x00 #x00 #x00 #x00 #x00 #x00 #x00 #x00
-     #x00 #x00 #x00 #x00 #x00 #x00 #x00 #x00
-     #x08 #x00 #x00 #x00 #x00 #x00 #x00 #x00
-     #x08 #x00 #x00 #x03 #x00 #x00 #x00 #x00))))
-
-
 (define (build-apk! #!key
 		    (init ::string "init/init.scm")
 		    (package ::string "io.github.grasp")
@@ -346,18 +294,14 @@ exec java -cp "$JARS:build/cache" kawa.repl \
     (for asset in assets
       (output:add-file-at-level! 0 asset))
     (output:add-file-as! "assets/init.scm" (as-file init))
-    #;(let* ((manifest ::String (android-manifest
-			       package: package
-			       application-name: "GRASP"))
-	   (encoder ::com.bigzhao.xml2axml.Encoder
-		    (com.bigzhao.xml2axml.Encoder))
-	   (axml ::(array-of byte) (encoder:encodeString
-				    (android.content.Context)
-				    manifest)))
-          (output:add-file-with-bytes! axml
-				       (as-file "AndroidManifest.xml")))
+    (let* ((manifest ::AndroidXML
+		     (AndroidManifest package: package
+				      label: "GRASP"))
+	   (axml ::bytevector (list->u8vector (manifest:serialize))))
+      (output:add-file-with-binary-content!
+       axml "AndroidManifest.xml"))
     (output:add-file-with-binary-content! (resources-arsc package)
-					  (as-file "resources.arsc"))
+					  "resources.arsc")
     (output:add-file-at-level! 2 (as-file "build/cache/classes.dex"))
     (output:close)
     (com.iyxan23.zipalignjava.ZipAlign:alignZip

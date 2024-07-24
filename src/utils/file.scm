@@ -151,7 +151,7 @@
      (output:write (text:getBytes))
      (output:closeEntry)))
 
-  ((add-file-with-bytes! bytes ::(array-of byte) file-name::string)::void
+  ((add-file-with-bytes! bytes ::(array-of byte) file-name ::string)::void
    (let ((entry ::ZipEntry (ZipEntry file-name)))
      (output:putNextEntry entry)
      (output:write bytes)
