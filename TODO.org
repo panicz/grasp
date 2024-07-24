@@ -1,3 +1,7 @@
+* 24.07.2024
+
+to dzis bysmy sprobowali zbudowac plik apk z build.scm
+
 * 23.07.2024
 
 chyba udalo sie doprowadzic te axmle do ladu. jeszcze przydaloby sie
