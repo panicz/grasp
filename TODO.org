@@ -1,9 +1,15 @@
+* 23.07.2024
+
+chyba udalo sie doprowadzic te axmle do ladu. jeszcze przydaloby sie
+pozbyc tego pola 'parent' tam, gdzie ono wystepuje, i przekazywac
+parent jako argument, a jak to bedziemy mieli, to bysmy sprobowali
+wygenerowac binarny axml, ktoremu bysmy mogli nadawac nazwe pakietu
+i aplikacji
+
 * 22.07.2024
 
 plan jest teraz taki, zeby zbadac wzajemna odwrotnosc metod parse/serialize
 klasy AndroidXML (i prawdopodobnie ja naprawic)
-
-
 
 * 12.07.2024
 
