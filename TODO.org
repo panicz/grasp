@@ -1,3 +1,88 @@
+* 25.07.2024
+
+jupi, udalo sie!
+
+no to teraz musimy sie zajac nastepujacymi kwestiami:
+- idempotencja build.scm na androidzie (kolejne wywolania
+  nie powinny nic psuc)
+- zapamietywanie ostatnio uzywanej nazwy pakietu
+- sprawienie, zeby zmiana tylko pliku init nie powodowala
+  przebudowy plikow .class ani plikow .dex
+- interfejs wywolania
+
+#+BEGIN_SRC scheme
+  (build targets: '(android desktop terminal)
+         name: Literky
+	 icon: icons/crossword.png
+	 init: init/literki.scm
+	 package: systems.grasp
+	 keystore: binary/keystore
+	 key: ...
+	 password: ...)
+#+END_SRC
+
+natomiast jak by to musialo wygladac po stronie basha?
+
+#+BEGIN_SRC bash
+  ./build.scm --help
+  ./build.scm
+  ./build.scm --targets=android,desktop
+  ./build.scm --name=literki --target=android,desktop \
+	      --package=io.itch.panicz --icon=icons/literki.png \
+	      --keystore=binary/keystore --key=... \
+	      --password=...
+
+#+END_SRC
+
+To plan na teraz jest taki, zeby:
+- opisac jak teraz wyglada proces budowania
+- zdefiniowac, jak powinien wygladac ten proces
+- (a na koniec zrobic adapter, ktory nam dostosowuje
+  interfejs basha do kawy, usunac stare skrypty,
+  i zaktualizowac README)
+
+No to tak. Aktualny proces budowania:
+
+1. gromadzimy liste wszystkich plikow ".scm"
+   z katalogu "src"
+2. analizujac ich liste importow, budujemy
+   graf zaleznosci
+3. sprawdzamy, czy w grafie nie wystepuja
+   zaleznosci cykliczne
+4. gromadzimy liste wszystkich plikow ".class"
+   z katalogu build/cache
+5. sprawdzamy, ktore pliki .class pochodza z jakich
+   modulow
+6. sprawdzamy, ktore pliki .class sa starsze od
+   swoich zrodlowych modulow, albo od zaleznosci
+   tych modulow, i na tej podstawie tworzymy
+   liste plikow do przebudowania i do skasowania
+7. wyodrebniamy warstwy grafu zaleznosci,
+   i budujemy moduly rownolegle
+8. budujemy (rownolegle) klasy dla glownych
+   aplikacji (android, terminal i desktop)
+   - przy czym klient androidowy buduje sie
+     z nazwa pakietu
+9. ponownie indeksujemy pliki .class na potrzeby
+   dexowania
+10. na podstawie zaleznosci (w tym pliku init)
+    budujemy liste klas do przedexowania
+11. dexujemy pliki .class
+12. scalamy pliki .dex z bibliotekami do classes.dex
+13. generujemy pliki .apk i .jar
+
+i teraz bysmy chcieli wprowadzic takie zmiany, zeby:
+1. jezeli nie budujemy na androida, to omijamy
+   dexowanie
+2. jezeli jedyne, co sie zmienilo, to plik init,
+   i lista jego zaleznosci nie ulegla zmianie,
+   to nie chcemy dotykac plikow .class ani .dex
+3. jezeli budujemy na androida, to przed zbudowaniem
+   plikow .class chcielibysmy skasowac folder
+   build/class/<previous-package>, gdzie
+   <previous-package> to zawartosc pliku
+   build/previous-package (o ile istnieje).
+
 * 24.07.2024
 
 to dzis bysmy sprobowali zbudowac plik apk z build.scm
@@ -15,7 +100,7 @@ i aplikacji
 plan jest teraz taki, zeby zbadac wzajemna odwrotnosc metod parse/serialize
 klasy AndroidXML (i prawdopodobnie ja naprawic)
 
-* 12.07.2024
+* 12.07.2024\\
 
 #+BEGIN_SRC
 000  03 00 08 00 64 0e 00 00  01 00 1c 00 60 07 00 00  |....d.......`...|
