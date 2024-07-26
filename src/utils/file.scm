@@ -5,6 +5,7 @@
 (import (language while))
 (import (language for))
 (import (language infix))
+(import (language mapping))
 
 (define-alias ZipEntry java.util.zip.ZipEntry)
 (define-alias ZipFile java.util.zip.ZipFile)
@@ -19,6 +20,33 @@
   (if (java.io.File? path)
       path
       (java.io.File (as String path))))
+
+(define (load-mapping filename ::string
+		      #!key
+		      (into (mapping (any::Object) #!null)))
+  ::(maps (Object) to: Object)
+  (when (file-exists? filename)
+    (call-with-input-file filename
+      (lambda (port)
+	(let loop ()
+	  (let* ((key (read port))
+		 (value (read port)))
+	    (unless (or (eof-object? key)
+			(eof-object? value))
+	      (set! (into key) value)
+	      (loop)))))))
+  into)
+
+(define (save-mapping mapping ::(maps (Object) to: Object)
+		      filename ::string)
+  ::void
+  (call-with-output-file filename
+    (lambda (port)
+      (for key in (keys mapping)
+	(write key port)
+	(display #\space port)
+	(write (mapping key) port)
+	(newline port)))))
 
 (define (list-files #!key
 		    (from ::(either string java.io.File) ".")
