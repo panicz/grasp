@@ -1,3 +1,32 @@
+* 26.07.2024
+
+jak zapewnic, zeby nie przebudowywac plikow .class (i .dex)
+jeezeli tylko zmienil sie init?
+
+no to tak: jezeli lista plikow do przebudowania jest pusta,
+a ponadto nazwa pakietu i nazwa aplikacji nie ulegly zmianie,
+to nie kasujemy plikow classes.dex, grasp-desktop.zip,
+grasp-terminal.zip ani katalogu <package>, tylko z istniejacych
+plikow budujemy archiwa z nowymi initami.
+
+ale wydaje sie, ze o ile tylko zapiszemy sobie poprzednie
+zaleznosci pliku init, i potwierdzimy, ze one nie ulegly
+zmianie, to nawet nie powinnismy musiec budowac grafu zaleznosci,
+bo wtedy wyatarczy nam, ze:
+- grasp-desktop.zip istnieje
+- grasp-terminal.zip istnieje
+- classes.dex istnieje
+- wszystkie te pliki sa nowsze od plikow .scm z katalogu .src
+- (previous 'package) jest taki sam, jak package
+- zaleznosci init.scm sa podzbiorem (previous 'init-dependencies) 
+
+Natomiast jezeli jedyna roznica to nazwa pakietu, to wtedy musimy
+- skasowac folder odpowiadajacy (previous 'package)
+- skasowac classes.dex
+- ponownie skompilowac dla androida
+- przedexowac nowe pliki
+- zintegrowac classes.dex
+
 * 25.07.2024
 
 jupi, udalo sie!
