@@ -16,14 +16,29 @@
 (define-alias InputStream java.io.InputStream)
 (define-alias OutputStream java.io.OutputStream)
 
-(define (as-file path::(either string java.io.File))::java.io.File
-  (if (java.io.File? path)
+(define (as-file path . fragments)::java.io.File
+  (if (and (java.io.File? path)
+	   (null? fragments))
       path
-      (java.io.File (as String path))))
+      (java.io.File (as String
+			(string-join `(,path . ,fragments)
+				     java.io.File:separator)))))
+
+(define (save-mapping mapping ::(maps (Object)
+				      to: Object)
+		      filename ::string)
+  ::void
+  (call-with-output-file filename
+    (lambda (port)
+      (for key in (keys mapping)
+	(write key port)
+	(display #\space port)
+	(write (mapping key) port)
+	(newline port)))))
 
 (define (load-mapping filename ::string
-		      #!key
-		      (into (mapping (any::Object) #!null)))
+		      #!key (into (mapping (any)
+				    #!null)))
   ::(maps (Object) to: Object)
   (when (file-exists? filename)
     (call-with-input-file filename
@@ -36,17 +51,6 @@
 	      (set! (into key) value)
 	      (loop)))))))
   into)
-
-(define (save-mapping mapping ::(maps (Object) to: Object)
-		      filename ::string)
-  ::void
-  (call-with-output-file filename
-    (lambda (port)
-      (for key in (keys mapping)
-	(write key port)
-	(display #\space port)
-	(write (mapping key) port)
-	(newline port)))))
 
 (define (list-files #!key
 		    (from ::(either string java.io.File) ".")
@@ -110,11 +114,6 @@
        (else
 	(file:renameTo (java.io.File target-directory
 				     (file:getName))))))))
-
-(define (delete filename ::string)
-  (let ((file ::java.io.File
-	      (java.io.File (as String filename))))
-    (file:delete)))
 
 (define (existing-file filename ::string)::java.io.File
   (let ((file ::java.io.File
@@ -199,3 +198,8 @@
   ((*init* file ::java.io.File)
    (set! file-output (FileOutputStream file))
    (set! output (ZipOutputStream file-output))))
+
+
+(define (delete-if-exists filename)
+  (when (file-exists? filename)
+    (delete-file filename)))
