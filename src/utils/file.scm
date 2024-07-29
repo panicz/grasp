@@ -16,6 +16,9 @@
 (define-alias InputStream java.io.InputStream)
 (define-alias OutputStream java.io.OutputStream)
 
+(define (file->path file::java.io.File)::java.nio.file.Path
+  (file:toPath))
+
 (define (as-file path . fragments)::java.io.File
   (if (and (java.io.File? path)
 	   (null? fragments))

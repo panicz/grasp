@@ -32,13 +32,7 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 (import (utils graph))
 (import (utils android))
 (import (utils build))
-
-(define-syntax-rule (print elements ...)
-  (synchronized (current-output-port)
-    (display elements)
-    ...
-    (display #\newline)
-    (flush-output-port)))
+(import (utils print))
 
 (print "Gathering file list...")
 
@@ -94,7 +88,8 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 
 (define cached-files ::(list-of java.io.File)
   (list-files from: "build/cache"
-	      such-that: (is "[.]class$" regex-match (_:getPath))))
+	      such-that: (is "[.]class$" regex-match
+			     (_:getPath))))
 
 (define-cache (module-users module ::(list-of symbol))
   ::(list-of (list-of symbol))
@@ -124,7 +119,8 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 
 (for class::java.io.File in cached-files
   (let* ((scm ::java.io.File (source-file class))
-	 (module ::(list-of symbol) (internal-module-name scm)))
+	 (module ::(list-of symbol)
+		 (internal-module-name scm)))
     (cond
      ((isnt scm in dependency-files)
       (unless (is scm in application-files)
@@ -159,15 +155,20 @@ exec java -cp "$JARS:build/cache" kawa.repl \
      layered-modules)))
 
 (for class::java.io.File in class-files-to-remove
-  (class:delete))
+  (class:delete)
+  (match (regex-match "^(.*)[.]class$" (class:getPath))
+    (`(,_ ,stem)
+     (delete-if-exists (string-append stem ".dex")))))
 
 (for build-list in build-layers
   (for file::java.io.File in #;-parallel build-list
     (build-file (file:getPath))))
 
 (concurrently
- (build-zip "src/grasp-desktop.scm" "build/cache/grasp-desktop.zip")
- (build-zip "src/grasp-terminal.scm" "build/cache/grasp-terminal.zip")
+ (build-zip "src/grasp-desktop.scm"
+	    "build/cache/grasp-desktop.zip")
+ (build-zip "src/grasp-terminal.scm"
+	    "build/cache/grasp-terminal.zip")
  (build-file "src/grasp-android.scm"
 	     ;;target-directory: "build/grasp-android"
 	     package: "io.github.grasp."
@@ -185,28 +186,6 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 	 (module (internal-module-name scm)))
     (set! (module-classes module)
 	  (union (module-classes module) `(,class)))))
-
-(define (file->path file::java.io.File)::java.nio.file.Path
-  (file:toPath))
-
-(define (update-dex-cache input::(list-of java.io.File)
-			  output::java.io.File)
-  ::void
-  (let ((command ::com.android.tools.r8.D8Command:Builder
-		 (com.android.tools.r8.D8Command:builder)))
-    (command:setMinApiLevel 23)
-    (command:addProgramFiles (map file->path input))
-    (command:addLibraryFiles (map file->path
-				  (list
- 				   (as-file "libs/kawa.jar")
-				   (as-file "libs/android.jar")
-				   (as-file "build/cache"))))
-    (command:setIntermediate #t)
-    (command:setOutput (output:toPath)
-		       ;;com.android.tools.r8.OutputMode:DexIndexed
-		       com.android.tools.r8.OutputMode:DexFilePerClassFile)
-    (com.android.tools.r8.D8:run
-     (command:build))))
 
 (print"building a list of classes to dex")
 
@@ -254,27 +233,10 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 	      such-that: (is "[.]dex$" regex-match
 			     (_:getPath))))
 
-(define (integrate-dex input::(list-of java.io.File)
-		       output::java.io.File)
-  ::void
-  (let ((command ::com.android.tools.r8.D8Command:Builder
-		 (com.android.tools.r8.D8Command:builder)))
-    (command:addProgramFiles (map file->path input))
-    (command:setMinApiLevel 23)
-    
-    #;(command:addLibraryFiles (map file->path
-				  (list
- 				   (as-file "libs/kawa.jar")
-				   (as-file "libs/android.jar")
-				   (as-file "build/cache"))))
-    (command:setOutput (output:toPath)
-		       com.android.tools.r8.OutputMode:DexIndexed)
-    (com.android.tools.r8.D8:run
-     (command:build))))
-
 (print "Integrating the .dex files")
 
-(integrate-dex `(,@dex-libraries ,@dex-files) (as-file "build/cache"))
+(integrate-dex `(,@dex-libraries ,@dex-files)
+	       (as-file "build/cache"))
 
 (define (build-apk! #!key
 		    (init ::string "init/init.scm")
@@ -290,19 +252,23 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 				    (as-file "build")))
 	 (assets (list-files from: "assets"))
 	 (output (ZipBuilder temp-file)))
-    (output:add-file-as! "res/drawable/icon.png" (as-file icon))
+    (output:add-file-as! "res/drawable/icon.png"
+			 (as-file icon))
     (for asset in assets
       (output:add-file-at-level! 0 asset))
     (output:add-file-as! "assets/init.scm" (as-file init))
     (let* ((manifest ::AndroidXML
 		     (AndroidManifest package: package
 				      label: "GRASP"))
-	   (axml ::bytevector (list->u8vector (manifest:serialize))))
+	   (axml ::bytevector (list->u8vector
+			       (manifest:serialize))))
       (output:add-file-with-binary-content!
        axml "AndroidManifest.xml"))
-    (output:add-file-with-binary-content! (resources-arsc package)
+    (output:add-file-with-binary-content! (resources-arsc
+					   package)
 					  "resources.arsc")
-    (output:add-file-at-level! 2 (as-file "build/cache/classes.dex"))
+    (output:add-file-at-level!
+     2 (as-file "build/cache/classes.dex"))
     (output:close)
     (com.iyxan23.zipalignjava.ZipAlign:alignZip
      (java.io.RandomAccessFile temp-file "r")
@@ -317,11 +283,9 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 		 apk-file)))
       (com.android.apksigner.ApkSignerTool:main args))))
 
-(print "generating build/grasp.apk")
-(build-apk! output-name: "build/grasp.apk")
-
-
-#;(concurrently
+(concurrently
+ (build-apk! output-name: "build/grasp.apk")
+ 
  (build-jar!
   module-dependencies: module-dependencies
   module-classes: module-classes

@@ -1,6 +1,7 @@
 (module-name (utils build))
 
 (import (kawa regex))
+(import (language assert))
 (import (language define-interface))
 (import (language define-type))
 (import (language define-property))
@@ -94,20 +95,21 @@
 	       ((isnt (read-char port) eof-object?))
 	       ((isnt (read-char port) eof-object?))
 	       ((isnt (read-char port) eof-object?))
-	       (name ::string (let ((name ::gnu.lists.FString
-					  (gnu.lists.FString)))
-				(let loop ()
-				  (let ((c (read-char port)))
-				    (cond
-				     ((or (eof-object? c)
-					  (isnt 32 < (char->integer c) < 127))
-				      name)
-				     (else
-				      (name:append c)
-				      (loop)))))
-				(if (isnt "[.]scm$" regex-match name)
-				    (guess-source-file-from-name class-file)
-				    name)))
+	       (name ::string
+		     (let ((name ::gnu.lists.FString
+				 (gnu.lists.FString)))
+		       (let loop ()
+			 (let ((c (read-char port)))
+			   (cond
+			    ((or (eof-object? c)
+				 (isnt 32 < (char->integer c) < 127))
+			     name)
+			    (else
+			     (name:append c)
+			     (loop)))))
+		       (if (isnt "[.]scm$" regex-match name)
+			   (guess-source-file-from-name class-file)
+			   name)))
 	       (class-directory (class-file:getParentFile))
 	       (`(,_ ,path) (regex-match "^(?:./)?build/cache/(.*)$"
 					 (class-directory:getPath))))
@@ -153,6 +155,44 @@
 	 (if (messages:seenErrors)
 	     (primitive-throw (gnu.text.SyntaxException messages)))))
      (set! gnu.expr.Compilation:classPrefixDefault class-prefix-default))))
+
+(define (update-dex-cache input::(list-of java.io.File)
+			  output::java.io.File)
+  ::void
+  (let ((command ::com.android.tools.r8.D8Command:Builder
+		 (com.android.tools.r8.D8Command:builder)))
+    (command:setMinApiLevel 23)
+    (command:addProgramFiles (map file->path input))
+    (command:addLibraryFiles (map file->path
+				  (list
+ 				   (as-file "libs/kawa.jar")
+				   (as-file "libs/android.jar")
+				   (as-file "build/cache"))))
+    (command:setIntermediate #t)
+    (command:setOutput
+     (output:toPath)
+     ;;com.android.tools.r8.OutputMode:DexIndexed
+     com.android.tools.r8.OutputMode:DexFilePerClassFile)
+    (com.android.tools.r8.D8:run
+     (command:build))))
+
+(define (integrate-dex input::(list-of java.io.File)
+		       output::java.io.File)
+  ::void
+  (let ((command ::com.android.tools.r8.D8Command:Builder
+		 (com.android.tools.r8.D8Command:builder)))
+    (command:addProgramFiles (map file->path input))
+    (command:setMinApiLevel 23)
+    
+    #;(command:addLibraryFiles (map file->path
+				  (list
+ 				   (as-file "libs/kawa.jar")
+				   (as-file "libs/android.jar")
+				   (as-file "build/cache"))))
+    (command:setOutput (output:toPath)
+		       com.android.tools.r8.OutputMode:DexIndexed)
+    (com.android.tools.r8.D8:run
+     (command:build))))
 
 (define (build-zip source-file ::string target-file ::string)
   (compile-file source-file target-file))
@@ -230,3 +270,113 @@ Main-Class: "main-class-name"
 ")))
       (output:add-file-with-text! content "META-INF/MANIFEST.MF"))
     (output:close))))
+
+#;(define (build #!key
+	       (targets ::(list-of (either 'android
+					  'terminal
+					  'desktop))
+		       '(android desktop terminal))
+	       (name ::string "GRASP")
+	       (icon ::string "icons/grasp.png")
+	       (init ::string "init/init.scm")
+	       (package ::string "io.github.panicz")
+	       (keystore ::string "binary/keystore")
+	       (key ::string "grasp-public")
+	       (password ::string "untrusted"))
+
+  (assert (or (is 'android in targets)
+	      (is 'desktop in targets)
+	      (is 'terminal in targets)))
+  
+  (define package-components (string-split package "."))
+  
+  (define previous (load-mapping "build/previous.map"))
+
+  (define previous-package (previous 'package))
+  
+  (define dependency-files ::(list-of java.io.File)
+    (list-files from: "src"
+		such-that: (is "^(?:./)?src/[^/]+/.+[.]scm$"
+			       regex-match (_:getPath))))
+  
+  (define application-files ::(list-of java.io.File)
+    (list-files from: "src"
+		such-that: (is "^(?:./)?src/grasp-[^/]+[.]scm"
+			       regex-match (_:getPath))
+		max-depth: 0))
+
+  (define test-files ::(list-of java.io.File)
+    (list-files from: "src"
+		such-that: (is "^(?:./)?src/test-[^/]+[.]scm"
+			       regex-match (_:getPath))
+		max-depth: 0))
+
+  (define all-files ::(list-of java.io.File)
+    `(,@test-files ,@application-files ,@dependency-files))
+
+  (define (main-class-file target)::java.io.File
+    (match target
+      ('desktop (as-file "build/cache/grasp-desktop.zip"))
+      ('terminal (as-file "build/cache/grasp-terminal.zip"))
+      ('android (as-file "build/cache/classes.dex"))))
+  
+  (define main-class-files (map main-class-file targets))
+
+  (unless (and previous-package
+	       (string=? package previous-package)
+	       ;; jeszcze trzeba tu dodac warunek, ze zaleznosci
+	       ;; w init.scm sie nie zwiekszyly wzgledem
+	       ;; poprzednich
+	       (every file-exists? main-class-files)
+	       (let ((main-class-update
+		      (apply min (map (lambda (class::java.io.File)
+					(class:lastModified))
+				      main-class-files))))
+		 (every (lambda (source::java.io.File)
+			  (is (source:lastModified) < main-class-update))
+			`(,@application-files ,@dependency-files))))
+    (when previous-package
+      (let* ((previous-package-components
+	      (string-split previous-package "."))
+	     (previous-package-path
+	      (string-join previous-package-components
+			   java.io.File:separator))
+	     (files-to-remove (list-files from: previous-package-path
+					  such-that: 
+					  (lambda (file::java.io.File)
+					    (file:isFile)))))
+	(for file::java.io.File in files-to-remove
+	  (file:delete))
+	(for depth from (length previous-package-components) to 1 by -1
+	     (delete-file
+	      (string-join (take depth previous-package-components)
+			   "/")))))
+
+    (delete-if-exists "build/cache/classes.dex")
+
+    )
+  
+  (concurrently
+   (when (is 'android in targets)
+     (build-apk! output-name: "build/grasp.apk"))
+   
+   (when (is 'desktop in targets)
+     (build-jar!
+      module-dependencies: module-dependencies
+      module-classes: module-classes
+      main-class: "grasp-desktop"
+      extra-dependencies: '("libs/jsvg-1.0.0.jar")))
+
+   (when (is 'terminal in targets)
+     (build-jar!
+      module-dependencies: module-dependencies
+      module-classes: module-classes
+      main-class: "grasp-terminal"
+      assets: #f
+      extra-dependencies:
+      '("libs/lanterna-3.1.1.jar"))))
+  
+  (set! (previous 'name) name)
+  (set! (previous 'init) init)
+  (set! (previous 'package) package)
+  (save-mapping previous "build/previous.map"))
