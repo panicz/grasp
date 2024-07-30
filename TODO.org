@@ -1,3 +1,13 @@
+* 29.07.2024
+
+dobrze by bylo chociaz przeniesc caly proces ze skryptu do
+biblioteki, i zbudowac interfejs wywolan ze skryptu powloki
+
+* 28.07.2024
+
+no dobra, to nasz cel na ten tydzien jest taki, zeby skonczyc
+system buildow
+
 * 26.07.2024
 
 jak zapewnic, zeby nie przebudowywac plikow .class (i .dex)
