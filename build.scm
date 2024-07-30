@@ -168,11 +168,14 @@ exec java -cp "$JARS:build/cache" kawa.repl \
  (build-zip "src/grasp-desktop.scm"
 	    "build/cache/grasp-desktop.zip")
  (build-zip "src/grasp-terminal.scm"
-	    "build/cache/grasp-terminal.zip")
- (build-file "src/grasp-android.scm"
-	     ;;target-directory: "build/grasp-android"
-	     package: "io.github.grasp."
-	     top-class-name: "io.github.grasp.GRASP"))
+	    "build/cache/grasp-terminal.zip"))
+
+;; this needs to be called last, because it changes
+;; some of the global properties of the Kawa compiler
+(build-file "src/grasp-android.scm"
+	    ;;target-directory: "build/grasp-android"
+	    package: "io.github.grasp."
+	    top-class-name: "io.github.grasp.GRASP")
 
 (print "Reindexing .class files...")
 (set! cached-files (list-files from: "build/cache"
@@ -238,63 +241,24 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 (integrate-dex `(,@dex-libraries ,@dex-files)
 	       (as-file "build/cache"))
 
-(define (build-apk! #!key
-		    (init ::string "init/init.scm")
-		    (package ::string "io.github.grasp")
-		    (icon ::string "icons/grasp.png")
-		    (keystore ::string "binary/keystore")
-		    (password ::string "untrusted")
-		    (key-alias ::string "grasp-public")
-		    (output-name ::string "build/grasp.apk"))
-  (let* ((apk-file ::java.io.File (as-file output-name))
-	 (temp-file ::java.io.File (java.io.File:createTempFile
-				    "grasp-" ".apk"
-				    (as-file "build")))
-	 (assets (list-files from: "assets"))
-	 (output (ZipBuilder temp-file)))
-    (output:add-file-as! "res/drawable/icon.png"
-			 (as-file icon))
-    (for asset in assets
-      (output:add-file-at-level! 0 asset))
-    (output:add-file-as! "assets/init.scm" (as-file init))
-    (let* ((manifest ::AndroidXML
-		     (AndroidManifest package: package
-				      label: "GRASP"))
-	   (axml ::bytevector (list->u8vector
-			       (manifest:serialize))))
-      (output:add-file-with-binary-content!
-       axml "AndroidManifest.xml"))
-    (output:add-file-with-binary-content! (resources-arsc
-					   package)
-					  "resources.arsc")
-    (output:add-file-at-level!
-     2 (as-file "build/cache/classes.dex"))
-    (output:close)
-    (com.iyxan23.zipalignjava.ZipAlign:alignZip
-     (java.io.RandomAccessFile temp-file "r")
-     (FileOutputStream (as java.io.File apk-file)))
-    (temp-file:delete)
-    (let ((args ::(array-of String)
-		((array-of String) "sign"
-		 "--ks" keystore
-		 "--ks-key-alias" key-alias
-		 "--ks-pass" (string-append "pass:" password)
-		 "--min-sdk-version" "23"
-		 apk-file)))
-      (com.android.apksigner.ApkSignerTool:main args))))
 
 (concurrently
- (build-apk! output-name: "build/grasp.apk")
+ (build-apk! output-name: "build/grasp.apk"
+	     package: "io.github.grasp")
  
  (build-jar!
   module-dependencies: module-dependencies
   module-classes: module-classes
+  available-modules: (map internal-module-name
+			  dependency-files)
   main-class: "grasp-desktop"
   extra-dependencies: '("libs/jsvg-1.0.0.jar"))
 
  (build-jar!
   module-dependencies: module-dependencies
   module-classes: module-classes
+  available-modules: (map internal-module-name
+			  dependency-files)
   main-class: "grasp-terminal"
   assets: #f
   extra-dependencies: '("libs/lanterna-3.1.1.jar")))

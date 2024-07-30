@@ -3,7 +3,7 @@
 (import (editor input input))
 (define-alias KeyEvent java.awt.event.KeyEvent)
 
-(define (set-key-code-name! key-code::long name::symbol)
+(define (set-key-code-name! key-code::long name)
   (set! (key-code-name key-code) name))
   
 (define (initialize-keymap)
