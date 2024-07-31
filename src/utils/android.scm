@@ -1,5 +1,6 @@
 (module-name (utils android))
 
+(import (language assert))
 (import (language define-interface))
 (import (language define-type))
 (import (language define-property))

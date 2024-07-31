@@ -3,6 +3,7 @@
 (import (kawa regex))
 (import (language assert))
 (import (language define-interface))
+(import (language define-syntax-rule))
 (import (language define-type))
 (import (language define-property))
 (import (language keyword-arguments))
@@ -13,9 +14,17 @@
 (import (language while))
 (import (language for))
 (import (language define-cache))
+(import (utils hash-table))
 (import (utils android))
+(import (utils graph))
 (import (utils file))
-(import (utils print))
+
+(define-syntax-rule (print elements ...)
+  (synchronized (current-output-port)
+    (display elements)
+    ...
+    (display #\newline)
+    (flush-output-port)))
 
 (define (internal-module-name file ::java.io.File)
   ::(list-of symbol)
@@ -200,9 +209,9 @@
 (define (build-jar! #!key
 		    module-dependencies ::(maps ((list-of symbol))
 					       to: (list-of
-						    (list-of symbol)))
+						    (list-of symbol))) 
 		    module-classes ::(maps ((list-of symbol))
-					  to: (list-of java.io.File))
+					  to: (list-of java.io.File)) 
 		    main-class ::string
 		    available-modules ::(list-of (list-of symbol))
 		    extra-dependencies ::(list-of string)
@@ -325,7 +334,7 @@ Main-Class: "main-class-name"
 	       (name ::string "GRASP")
 	       (icon ::string "icons/grasp.png")
 	       (init ::string "init/init.scm")
-	       (package ::string "io.github.panicz")
+	       (package ::string "io.github.grasp")
 	       (keystore ::string "binary/keystore")
 	       (key ::string "grasp-public")
 	       (password ::string "untrusted"))
@@ -365,7 +374,7 @@ Main-Class: "main-class-name"
   (define source-modules ::(list-of (list-of symbol))
     (map internal-module-name all-files))
   
-  (define (main-class-file target)::atring
+  (define (main-class-file target)::string
     (match target
       ('desktop "build/cache/grasp-desktop.zip")
       ('terminal "build/cache/grasp-terminal.zip")
@@ -373,7 +382,7 @@ Main-Class: "main-class-name"
   
   (define main-class-files (map main-class-file targets))
 
-  (unless (and previous-package
+    #;(and previous-package
 	       (string=? package previous-package)
 	       ;; jeszcze trzeba tu dodac warunek, ze zaleznosci
 	       ;; w init.scm sie nie zwiekszyly wzgledem
@@ -388,213 +397,221 @@ Main-Class: "main-class-name"
 		 (every (lambda (source::java.io.File)
 			  (is (source:lastModified) < main-class-update))
 			`(,@application-files ,@dependency-files))))
-    (when previous-package
-      (let* ((previous-package-components
-	      (string-split previous-package "."))
-	     (previous-package-path
-	      (string-join previous-package-components
-			   java.io.File:separator))
-	     (files-to-remove (list-files from: previous-package-path
-					  such-that: 
-					  (lambda (file::java.io.File)
-					    (file:isFile)))))
-	(for file::java.io.File in files-to-remove
-	  (file:delete))
-	(for depth from (length previous-package-components) to 1 by -1
-	     (delete-file
-	      (string-join (take depth previous-package-components)
-			   "/")))))
 
-    (delete-if-exists "build/cache/classes.dex")
+  (when previous-package
+    (let* ((previous-package-components
+	    (string-split previous-package "."))
+	   (previous-package-path
+	    (string-append
+	     "build/cache/"
+	     (string-join previous-package-components
+			  java.io.File:separator)))
+	   (files-to-remove (list-files from: previous-package-path
+					such-that: 
+					(lambda (file::java.io.File)
+					  (file:isFile)))))
+      (for file::java.io.File in files-to-remove
+	(print "deleting "file)
+	(file:delete))
+      (for depth from (length previous-package-components) to 1 by -1
+	   (let ((directory (string-append
+			     "build/cache/"
+			     (string-join
+			      (take depth previous-package-components)
+			      "/"))))
+	     (print "deleting directory "directory)
+	     (delete-file directory)))))
 
-    (print "Building dependency graph...")
+  (delete-if-exists "build/cache/classes.dex")
 
-    (define module-dependency-graph
-      (build-module-dependency-graph all-files))
+  (print "Building dependency graph...")
 
-    (define-cache (module-dependencies module ::(list-of symbol))
-      ::(list-of (list-of symbol))
-      (reach module-dependency-graph module))
+  (define module-dependency-graph
+    (build-module-dependency-graph all-files))
 
-    (print "Checking for circular dependencies...")
+  (define-cache (module-dependencies module ::(list-of symbol))
+    ::(list-of (list-of symbol))
+    (reach module-dependency-graph module))
 
-    (let ((circular-dependencies
-	   (only (lambda (m)
-		   (is m in (module-dependencies m)))
-		 (keys module-dependency-graph))))
-      (when (isnt circular-dependencies null?)
-	(print"circular dependencies between "
-	      circular-dependencies)
-	(exit)))
+  (print "Checking for circular dependencies...")
 
-    (print "Layering the dependency graph...")
+  (let ((circular-dependencies
+	 (only (lambda (m)
+		 (is m in (module-dependencies m)))
+	       (keys module-dependency-graph))))
+    (when (isnt circular-dependencies null?)
+      (print"circular dependencies between "
+	    circular-dependencies)
+      (exit)))
 
-    (define layered-modules
-      (graph-layers module-dependency-graph source-modules))
+  (print "Layering the dependency graph...")
 
-    (print "Gathering cache files...")
+  (define layered-modules
+    (graph-layers module-dependency-graph source-modules))
 
-    (define cached-files ::(list-of java.io.File)
-      (list-files from: "build/cache"
-		  such-that: (is "[.]class$" regex-match
-				 (_:getPath))))
+  (print "Gathering cache files...")
 
-    (define-cache (module-users module ::(list-of symbol))
-      ::(list-of (list-of symbol))
-      (only (is module in (module-dependencies _))
-	    (keys module-dependency-graph)))
+  (define cached-files ::(list-of java.io.File)
+    (list-files from: "build/cache"
+		such-that: (is "[.]class$" regex-match
+			       (_:getPath))))
 
-    (define-mapping (module-classes module ::(list-of symbol))
-      ::(list-of java.io.File)
-      '())
+  (define-cache (module-users module ::(list-of symbol))
+    ::(list-of (list-of symbol))
+    (only (is module in (module-dependencies _))
+	  (keys module-dependency-graph)))
 
-    (for class ::java.io.File in cached-files
-	 (let* ((scm ::java.io.File (source-file class))
-		(module (internal-module-name scm)))
-	   (set! (module-classes module)
-		 (union (module-classes module) `(,class)))))
+  (define-mapping (module-classes module ::(list-of symbol))
+    ::(list-of java.io.File)
+    '())
 
-    (define source-files-to-build ::(list-of java.io.File)
-      dependency-files)
+  (for class ::java.io.File in cached-files
+       (let* ((scm ::java.io.File (source-file class))
+	      (module (internal-module-name scm)))
+	 (set! (module-classes module)
+	       (union (module-classes module) `(,class)))))
 
-    (define modules-to-regenerate ::(list-of (list-of symbol))
-      '())
+  (define source-files-to-build ::(list-of java.io.File)
+    dependency-files)
 
-    (define class-files-to-remove ::(list-of java.io.File)
-      '())
+  (define modules-to-regenerate ::(list-of (list-of symbol))
+    '())
 
-    (print "Checking which files need to be recompiled...")
+  (define class-files-to-remove ::(list-of java.io.File)
+    '())
 
-    (for class::java.io.File in cached-files
-      (let* ((scm ::java.io.File (source-file class))
-	     (module ::(list-of symbol)
-		     (internal-module-name scm)))
-	(cond
-	 ((isnt scm in dependency-files)
-	  (unless (is scm in application-files)
-	    (print "Unknown source for "class": "scm)))
-	 ((is (class:lastModified) <= (scm:lastModified))
-	  (let ((affected-modules `(,module . ,(module-users module))))
-	    (set! modules-to-regenerate
-		  (union modules-to-regenerate affected-modules))
-	    (set! class-files-to-remove
-		  (union class-files-to-remove
-			 (apply append (map module-classes
-					    affected-modules))))))
-	 (else
-	  (set! source-files-to-build
-		(difference source-files-to-build `(,scm)))))))
+  (print "Checking which files need to be recompiled...")
 
-    (set! source-files-to-build
-	  (intersection
-	   dependency-files
-	   (union source-files-to-build
-		  (map module-file modules-to-regenerate))))
+  (for class::java.io.File in cached-files
+    (let* ((scm ::java.io.File (source-file class))
+	   (module ::(list-of symbol)
+		   (internal-module-name scm)))
+      (cond
+       ((isnt scm in dependency-files)
+	(unless (is scm in application-files)
+	  (print "Unknown source for "class": "scm)))
+       ((is (class:lastModified) <= (scm:lastModified))
+	(let ((affected-modules `(,module . ,(module-users module))))
+	  (set! modules-to-regenerate
+		(union modules-to-regenerate affected-modules))
+	  (set! class-files-to-remove
+		(union class-files-to-remove
+		       (apply append (map module-classes
+					  affected-modules))))))
+       (else
+	(set! source-files-to-build
+	      (difference source-files-to-build `(,scm)))))))
 
-    (define build-layers
-      (let ((modules-to-build (map internal-module-name
-				   source-files-to-build)))
-	(fold-left
-	 (lambda (a b)
-	   (cons (map module-file
-		      (intersection b modules-to-build))
-		 a))
-	 '()
-	 layered-modules)))
+  (set! source-files-to-build
+	(intersection
+	 dependency-files
+	 (union source-files-to-build
+		(map module-file modules-to-regenerate))))
 
-    (for class::java.io.File in class-files-to-remove
-      (class:delete)
-      (match (regex-match "^(.*)[.]class$" (class:getPath))
-	(`(,_ ,stem)
-	 (delete-if-exists (string-append stem ".dex")))))
+  (define build-layers
+    (let ((modules-to-build (map internal-module-name
+				 source-files-to-build)))
+      (fold-left
+       (lambda (a b)
+	 (cons (map module-file
+		    (intersection b modules-to-build))
+	       a))
+       '()
+       layered-modules)))
 
-    (for build-list in build-layers
-      (for file::java.io.File in-parallel build-list
-	(build-file (file:getPath))))
-    
-    (concurrently
-     (when (is 'desktop in targets)
-       (build-zip "src/grasp-desktop.scm"
-		  (main-class-file 'desktop)))
+  (for class::java.io.File in class-files-to-remove
+    (class:delete)
+    (match (regex-match "^(.*)[.]class$" (class:getPath))
+      (`(,_ ,stem)
+       (delete-if-exists (string-append stem ".dex")))))
 
-     (when (is 'terminal in targets)
-       (build-zip "src/grasp-terminal.scm"
-		  (main-class-file 'terminal)))
+  (for build-list in build-layers
+    (for file::java.io.File in-parallel build-list
+      (build-file (file:getPath))))
+  
+  (concurrently
+   (when (is 'desktop in targets)
+     (build-zip "src/grasp-desktop.scm"
+		(main-class-file 'desktop)))
 
-    ;; this needs to be called last, because it changes
-    ;; some of the global properties of the Kawa compiler
-    (when (is 'android in targets)
-      (build-file "src/grasp-android.scm"
-		  ;;target-directory: "build/grasp-android"
-		  package: (string-append package ".")
-		  top-class-name: (string-append package ".GRASP"))
+   (when (is 'terminal in targets)
+     (build-zip "src/grasp-terminal.scm"
+		(main-class-file 'terminal)))
 
-      (print "Reindexing .class files...")
-      (set! cached-files (list-files from: "build/cache"
-				     such-that: (is "[.]class$"
-						    regex-match
-						    (_:getPath))))
-      (reset! module-classes)
+   ;; this needs to be called last, because it changes
+   ;; some of the global properties of the Kawa compiler
+   (when (is 'android in targets)
+     (build-file "src/grasp-android.scm"
+		 ;;target-directory: "build/grasp-android"
+		 package: (string-append package ".")
+		 top-class-name: (string-append package ".GRASP"))
 
-      (for class::java.io.File in cached-files
-	(let* ((scm ::java.io.File (source-file class))
-	       (module (internal-module-name scm)))
-	  (set! (module-classes module)
-		(union (module-classes module) `(,class)))))
-      
-      (print"building a list of classes to dex")
+     (print "Reindexing .class files...")
+     (set! cached-files (list-files from: "build/cache"
+				    such-that: (is "[.]class$"
+						   regex-match
+						   (_:getPath))))
+     (reset! module-classes)
 
-      (define classes-to-dex ::(list-of java.io.File)
-	(let ((android-dependencies ::(list-of java.io.File)
-				    (append-map
-				     module-classes
-				     (fold-left
-				      (lambda (dependencies module)
-					(union dependencies
-					       `(,module)
-					       (module-dependencies module)))
-				      (module-dependencies '(grasp-android))
-				      (imported-modules
-				       (as-file init)
-				       (map internal-module-name
-					    dependency-files))))))
-	  (only
-	   (lambda (class-file::java.io.File)
-	     (let ((path ::String (class-file:getPath)))
-	       (match (regex-match "^(.*)[.]class$" path)
-		 (`(,_ ,stem)
-		  (let ((dex-file ::java.io.File (as-file
-						  (string-append stem
-								 ".dex"))))
-		    (and
-		     (or (not (dex-file:exists))
-			 (is (dex-file:lastModified)
-			     <= (class-file:lastModified)))
-		     (or (is class-file in android-dependencies)
-			 (is package regex-match path))))))))
-	   cached-files)))
+     (for class::java.io.File in cached-files
+       (let* ((scm ::java.io.File (source-file class))
+	      (module (internal-module-name scm)))
+	 (set! (module-classes module)
+	       (union (module-classes module) `(,class)))))
+     
+     (print"building a list of classes to dex")
 
-      (print"dexing "classes-to-dex)
+     (define classes-to-dex ::(list-of java.io.File)
+       (let ((android-dependencies ::(list-of java.io.File)
+				   (append-map
+				    module-classes
+				    (fold-left
+				     (lambda (dependencies module)
+				       (union dependencies
+					      `(,module)
+					      (module-dependencies module)))
+				     (module-dependencies '(grasp-android))
+				     (imported-modules
+				      (as-file init)
+				      (map internal-module-name
+					   dependency-files))))))
+	 (only
+	  (lambda (class-file::java.io.File)
+	    (let ((path ::String (class-file:getPath)))
+	      (match (regex-match "^(.*)[.]class$" path)
+		(`(,_ ,stem)
+		 (let ((dex-file ::java.io.File (as-file
+						 (string-append stem
+								".dex"))))
+		   (and
+		    (or (not (dex-file:exists))
+			(is (dex-file:lastModified)
+			    <= (class-file:lastModified)))
+		    (or (is class-file in android-dependencies)
+			(is package regex-match path))))))))
+	  cached-files)))
 
-      (update-dex-cache classes-to-dex (as-file "build/cache"))
+     (print"dexing "classes-to-dex)
 
-      (print"Generating the .dex index")
+     (update-dex-cache classes-to-dex (as-file "build/cache"))
 
-      (define dex-files
-	(list-files from: "build/cache"
-		    such-that: (is "[.]dex$" regex-match
-				   (_:getPath))))
+     (print"Generating the .dex index")
 
-      (define dex-libraries
-	(list-files from: "libs"
-		    such-that: (is "[.]dex$" regex-match
-				   (_:getPath))))
+     (define dex-files
+       (list-files from: "build/cache"
+		   such-that: (is "[.]dex$" regex-match
+				  (_:getPath))))
 
-      (print "Integrating the .dex files")
+     (define dex-libraries
+       (list-files from: "libs"
+		   such-that: (is "[.]dex$" regex-match
+				  (_:getPath))))
 
-      (integrate-dex `(,@dex-libraries ,@dex-files)
-		     (as-file "build/cache"))
-    )))
+     (print "Integrating the .dex files")
+
+     (integrate-dex `(,@dex-libraries ,@dex-files)
+		    (as-file "build/cache"))
+     ))
   
   (concurrently
    (when (is 'android in targets)
@@ -616,6 +633,8 @@ Main-Class: "main-class-name"
 	output-name: file-name
 	module-dependencies: module-dependencies
 	module-classes: module-classes
+	available-modules: (map internal-module-name
+				dependency-files)
 	init: init
 	main-class: "grasp-desktop"
 	extra-dependencies: '("libs/jsvg-1.0.0.jar"))))
@@ -628,6 +647,8 @@ Main-Class: "main-class-name"
 	output-name: file-name
 	module-dependencies: module-dependencies
 	module-classes: module-classes
+	available-modules: (map internal-module-name
+				dependency-files)
 	init: init
 	main-class: "grasp-terminal"
 	assets: #f
@@ -638,3 +659,45 @@ Main-Class: "main-class-name"
   (set! (previous 'init) init)
   (set! (previous 'package) package)
   (save-mapping previous "build/previous.map"))
+
+(define-syntax-rule (with-command-line-arguments arg-list
+			 ((name help default)
+			  ...)
+		       . actions)
+  (let ((name ::string default)
+	...)
+    (let process ((args arg-list))
+      (match args
+	(`(,,@(is _ string=? (string-append
+			      "--" (symbol->string 'name)))
+	   ,value . ,rest)
+	 (set! name value)
+	 (process rest))
+	...
+	('() . actions)
+	(_
+	 (print "Invalid argument: "args)
+	 (print "Available options:")
+	 (print "  --"(symbol->string 'name)" "help" ["default"]")
+	 ...
+	 (exit))))))
+
+(define (build-with command-line-args::(list-of string))
+  (with-command-line-arguments (cdr command-line-args)
+      ((targets "<comma-separated list of targets>"
+		"android,desktop,terminal")
+       (name "<target application name>" "GRASP")
+       (icon "<path to icon file>" "icons/grasp.png")
+       (init "<path to init file>" "init/init.scm")
+       (package "<top class package>" "io.github.grasp")
+       (keystore "<path to keystore>" "binary/keystore")
+       (key "<key alias>" "grasp-public")
+       (password "<key password>" "untrusted"))
+    (build targets: (map string->symbol (string-split targets ","))
+	   name: name
+	   icon: icon
+	   init: init
+	   package: package
+	   keystore: keystore
+	   key: key
+	   password: password)))

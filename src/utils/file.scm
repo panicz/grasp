@@ -6,6 +6,7 @@
 (import (language for))
 (import (language infix))
 (import (language mapping))
+(import (utils functions))
 
 (define-alias ZipEntry java.util.zip.ZipEntry)
 (define-alias ZipFile java.util.zip.ZipFile)
