@@ -1,3 +1,11 @@
+* 30.07.2024
+
+no dobra, skrypt wydaje sie z grubsza przeniesiony - tyle ze
+sa nowe warningi, ktore wygladaja ciut niepokojaco (i pewnie maja sens).
+
+wiec trzeba z nimi sie uporac,  i wtedy zastapic skrypt wywolaniem
+procedury, i przemapowac argumenty na slowa kluczowe
+
 * 29.07.2024
 
 dobrze by bylo chociaz przeniesc caly proces ze skryptu do
