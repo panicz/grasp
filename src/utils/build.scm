@@ -345,10 +345,6 @@ Main-Class: "main-class-name"
   
   (define package-components (string-split package "."))
   
-  (define previous (load-mapping "build/previous.map"))
-
-  (define previous-package (previous 'package))
-
   (print "Gathering file list...")
   
   (define dependency-files ::(list-of java.io.File)
@@ -368,6 +364,12 @@ Main-Class: "main-class-name"
 			       regex-match (_:getPath))
 		max-depth: 0))
 
+  (define dependency-modules ::(list-of (list-of symbol))
+    (map internal-module-name dependency-files))
+  
+  (define init-dependencies 
+    (imported-modules (as-file init) dependency-modules))
+  
   (define all-files ::(list-of java.io.File)
     `(,@test-files ,@application-files ,@dependency-files))
 
@@ -381,48 +383,6 @@ Main-Class: "main-class-name"
       ('android "build/cache/classes.dex")))
   
   (define main-class-files (map main-class-file targets))
-
-    #;(and previous-package
-	       (string=? package previous-package)
-	       ;; jeszcze trzeba tu dodac warunek, ze zaleznosci
-	       ;; w init.scm sie nie zwiekszyly wzgledem
-	       ;; poprzednich
-	       (every file-exists? main-class-files)
-	       (let ((main-class-update
-		      (apply min (map (lambda (name::string)
-					(let ((file ::java.io.File
-						    (as-file name)))
-					  (file:lastModified)))
-				      main-class-files))))
-		 (every (lambda (source::java.io.File)
-			  (is (source:lastModified) < main-class-update))
-			`(,@application-files ,@dependency-files))))
-
-  (when previous-package
-    (let* ((previous-package-components
-	    (string-split previous-package "."))
-	   (previous-package-path
-	    (string-append
-	     "build/cache/"
-	     (string-join previous-package-components
-			  java.io.File:separator)))
-	   (files-to-remove (list-files from: previous-package-path
-					such-that: 
-					(lambda (file::java.io.File)
-					  (file:isFile)))))
-      (for file::java.io.File in files-to-remove
-	(print "deleting "file)
-	(file:delete))
-      (for depth from (length previous-package-components) to 1 by -1
-	   (let ((directory (string-append
-			     "build/cache/"
-			     (string-join
-			      (take depth previous-package-components)
-			      "/"))))
-	     (print "deleting directory "directory)
-	     (delete-file directory)))))
-
-  (delete-if-exists "build/cache/classes.dex")
 
   (print "Building dependency graph...")
 
@@ -480,6 +440,10 @@ Main-Class: "main-class-name"
   (define class-files-to-remove ::(list-of java.io.File)
     '())
 
+  (define previous (load-mapping "build/previous.map"))
+
+  (define previous-package (previous 'package))
+  
   (print "Checking which files need to be recompiled...")
 
   (for class::java.io.File in cached-files
@@ -488,7 +452,10 @@ Main-Class: "main-class-name"
 		   (internal-module-name scm)))
       (cond
        ((isnt scm in dependency-files)
-	(unless (is scm in application-files)
+	(unless (or (is scm in application-files)
+		    (regex-match package (scm:toString))
+		    (and previous-package
+			 (regex-match previous-package (scm:toString))))
 	  (print "Unknown source for "class": "scm)))
        ((is (class:lastModified) <= (scm:lastModified))
 	(let ((affected-modules `(,module . ,(module-users module))))
@@ -528,7 +495,7 @@ Main-Class: "main-class-name"
   (for build-list in build-layers
     (for file::java.io.File in-parallel build-list
       (build-file (file:getPath))))
-  
+
   (concurrently
    (when (is 'desktop in targets)
      (build-zip "src/grasp-desktop.scm"
@@ -540,7 +507,46 @@ Main-Class: "main-class-name"
 
    ;; this needs to be called last, because it changes
    ;; some of the global properties of the Kawa compiler
-   (when (is 'android in targets)
+   
+   (unless (or (isnt 'android in targets)
+	       (and-let* (((equal? previous-package package))
+			  (classes-dex (existing-file
+					"build/cache/classes.dex"))
+			  (classes-dex-update (classes-dex:lastModified))
+			  ((every (is (_:lastModified) < classes-dex-update)
+				  `(,@application-files
+				    ,@dependency-files)))
+			  (previous-init-dependencies (previous
+						       'init-dependencies))
+			  ((is init-dependencies
+			       subset? previous-init-dependencies)))))
+     (and-let* ((previous-package)
+		(previous-package-components
+		 (string-split previous-package "."))
+		(previous-package-path
+		 (string-append
+		  "build/cache/"
+		  (string-join previous-package-components
+			       java.io.File:separator)))
+		((file-exists? previous-package-path))
+		(files-to-remove (list-files from: previous-package-path
+					     such-that: 
+					     (lambda (file::java.io.File)
+					       (file:isFile)))))
+       (for file::java.io.File in files-to-remove
+	 (print "deleting "file)
+	 (file:delete))
+       (for depth from (length previous-package-components) to 1 by -1
+	    (let ((directory (string-append
+			      "build/cache/"
+			      (string-join
+			       (take depth previous-package-components)
+			       "/"))))
+	      (print "deleting directory "directory)
+	      (delete-file directory))))
+     
+     (delete-if-exists "build/cache/classes.dex")
+
      (build-file "src/grasp-android.scm"
 		 ;;target-directory: "build/grasp-android"
 		 package: (string-append package ".")
@@ -633,8 +639,7 @@ Main-Class: "main-class-name"
 	output-name: file-name
 	module-dependencies: module-dependencies
 	module-classes: module-classes
-	available-modules: (map internal-module-name
-				dependency-files)
+	available-modules: dependency-modules
 	init: init
 	main-class: "grasp-desktop"
 	extra-dependencies: '("libs/jsvg-1.0.0.jar"))))
@@ -642,19 +647,18 @@ Main-Class: "main-class-name"
    (when (is 'terminal in targets)
      (let ((file-name (string-append "build/" name"-terminal.jar")))
        (print "building "file-name)
-
        (build-jar!
 	output-name: file-name
 	module-dependencies: module-dependencies
 	module-classes: module-classes
-	available-modules: (map internal-module-name
-				dependency-files)
+	available-modules: dependency-modules
 	init: init
 	main-class: "grasp-terminal"
 	assets: #f
 	extra-dependencies:
 	'("libs/lanterna-3.1.1.jar")))))
-  
+
+  (set! (previous 'init-dependencies) init-dependencies)
   (set! (previous 'name) name)
   (set! (previous 'init) init)
   (set! (previous 'package) package)
