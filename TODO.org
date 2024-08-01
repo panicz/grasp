@@ -1,3 +1,15 @@
+* 31.07.2024
+
+dzis bysmy sprobowali zaimplementowac szybka sciezke przy braku
+zmian w plikach scm (podmiane pliku init.scm) i obsluzyc kompilacje
+z innym pakietem niz io.github.grasp, np. io.itch.panicz1
+
+No to tak: gdy dlugosc nazwy pakietu sie zgadza, to jest git,
+a jak sie nie zgadza, to jest nie-git.
+
+Trzeba rozpoznac gdzie jest problem (w manifescie czy arsc)
+i go rozwiazac.
+
 * 30.07.2024
 
 no dobra, skrypt wydaje sie z grubsza przeniesiony - tyle ze
