@@ -116,13 +116,17 @@
 			content))))
 
   ((strings)::(list-of ubyte)
-   (concatenate!
-    (map (lambda (s::string)
-	   `(,(string-length s) ,0
-	     ,@(concatenate! (map (lambda (c::char)
-			       `(,(char->integer c) ,0)) s))
-	     ,0 ,0))
-	 content)))
+   (let* ((table (concatenate!
+		  (map (lambda (s::string)
+			 `(,(string-length s) ,0
+			   ,@(concatenate! (map (lambda (c::char)
+						  `(,(char->integer c) ,0)) s))
+			   ,0 ,0))
+		       content)))
+	  (n (modulo (length table) 4)))
+     (if (= n 0)
+	 table
+	 (append! table (make-list (- 4 n) 0)))))
   
   ((serialize)::(list-of ubyte)
    (let* ((offset-table (offsets))
