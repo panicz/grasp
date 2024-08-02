@@ -1,15 +1,15 @@
 * GRASP: The GRAphical Scheme Programming Environment
 
-This is the repository of the GRASP project, which
-is intended to be an extensible editor of s-expressions
-optimized for interacting via touch screen.
+This is the repository of the GRASP project, which is intended to be
+an extensible editor of s-expressions optimized for interacting via
+touch screen.
 
-GRASP is still work in progress, and isn't yet mature
-enough to perform even the most basic editing tasks
-(but each day this moment is getting closer).
+GRASP is still work in progress, and isn't yet mature enough to
+perform even the most basic editing tasks (but each day this moment is
+getting closer).
 
-If you'd like to see a more detailed explanation,
-you may want to watch [[https://www.youtube.com/watch?v=bedP4m9FV8k][a demo]].
+If you'd like to see a more detailed explanation, you may want to
+watch [[https://www.youtube.com/watch?v=bedP4m9FV8k][a demo]].
 
 GRASP comes in three flavours: an Android client,
 
@@ -23,42 +23,40 @@ and a terminal client
 
 [[./doc/img/grasp-terminal.png]]
 
-** Building the Android client
+** Building
 
-The Android client can be built in the Termux app on Android 
-devices. It requires the tools that are installed for the
-[[https://github.com/BuildAPKs/buildAPKs][buildAPKs]] project (you can review the ~build-android.sh~
-script for the details).
+In order to be built, GRASP requires a Java Runtime Environment and a
+POSIX shell. All the other dependencies are included in the =libs=
+directory.
 
-If the termux storage is set up properly,the script tries 
-to copy the APK to the ~Download/GRASP~ directory of the Android
-
-If those dependencies are satisfied, it should be sufficient
-to type in the terminal:
+Once both these requirements are met, GRASP can be built by typing
 
 #+BEGIN_SRC bash
-./build-android.sh
+./build.scm
 #+END_SRC
 
-On the first run, it generates and stores a key for signing
-the package - if you want to be serious about it, you'd
-probably need to update the credentials (or something).
+in the repository's main directory. By default, the script will
+build all three clients (=android=, =terminal= and =desktop=),
+and the resulting =jar/apk= files will be contained in the =build=
+directory. The generated files contain all the required dependencies.
 
-The script should also work on most other systems, but
-- in addition to JVM runtime - it requires tools such as
-~aapt~ and ~zipalign~ (other, JVM-based tools such as
-~d8~ or ~apksigner~ are included in the ~tools~ directory).
+The particular targets can be selected by passing the =--targets=
+argument, followed by a comma-separated list of desired targets.
 
-** Running and/or building the desktop/terminal client
+To get a list of all possible options, you can type
 
-Both terminal and desktop clients can either be run
-directly from source, or precompiled to ~.jar~ files.
+#+BEGIN_SRC bash
+./build.scm --help
+#+END_SRC
 
-In both cases, they require the Java Runtime Environment
-to be present on the system.
+In particular, the =--init= option can be used to pass in the =init=
+file, which is executed during GRASP's startup. (In case of the =.jar=
+packages, this file can also be later replaced/edited in the archives.)
 
-In order to run the clients directly from the source,
-it should be sufficient to run
+** Running the desktop/terminal client directly from source
+
+Both terminal and desktop clients can be run without (explicit)
+compilation. This can be achieved by typing
 
 #+BEGIN_SRC bash
 ./grasp-terminal
@@ -70,83 +68,40 @@ to run the terminal client, or
 ./grasp-desktop
 #+END_SRC
 
-to run the desktop client. 
-
-This operation recompiles all the sources every time
-it is run, so it can take considerable amount of time,
-especially on slower machines. Therefore it can make sense
-to pre-compile all the sources before running.
-
-This can be achieved by running
-
-#+BEGIN_SRC bash
-./build-terminal.sh
-#+END_SRC
-
-for the terminal client, and
-
-#+BEGIN_SRC bash
-./build-desktop.sh
-#+END_SRC
-
-for the desktop client.
-
-After the operation is done, the terminal client can be invoked
-by running
-
-#+BEGIN_SRC bash
-java -jar build/grasp-terminal.jar
-#+END_SRC
-
-and the desktop client - by running
-
-#+BEGIN_SRC bash
-java -jar build/grasp-desktop.jar
-#+END_SRC
-
-The ~.jar~ files generated this way contain all the required
-dependencies, which - in the case of the desktop client - means
-just the [[https://www.gnu.org/software/kawa/][Kawa]] compiler, and in the case of the terminal client - also
-the [[https://github.com/mabe02/lanterna][Lanterna]] library for terminal rendering.
-
-(Both dependencies are included in the ~libs~ directory.)
+to run the desktop client. This way of running the project is not
+recommended, except for the purpose of development.
 
 ** Debugging the Android client
 
-Some builds of Android are capable of printing
-complete stack traces on application crash.
+Some builds of Android are capable of printing complete stack traces
+on application crash.
 
-However, this usually isn't the case, so it is
-required to enable 'programmer options' on the
-Android device, and then enable USB debugging
-on the device in order to access that information.
+However, this usually isn't the case, so it is required to enable
+'programmer options' on the Android device, and then enable USB
+debugging on the device in order to access that information.
 
-It also requires `adb` application to be installed
-on an external computer. If all these prerequisites
-are satisfied, the crash logs can be fetched using
-the following command:
+It also requires `adb` application to be installed on an external
+computer. If all these prerequisites are satisfied, the crash logs can
+be fetched using the following command:
 
 #+BEGIN_SRC bash
 adb logcat --buffer=crash
 #+END_SRC
 
-If you happen to know how to access the crash
-information from the Android device itself and
-wouldn't mind sharing that information with me,
-I'd be grateful.
+If you happen to know how to access the crash information from the
+Android device itself and wouldn't mind sharing that information with
+me, I'd be grateful.
 
 ** Running the desktop client on Android
 
-While it might seem ridiculous from the usability
-perspective, it may sometimes be convenient to be
-able to test the desktop client from Android.
+While it might seem ridiculous from the usability perspective, it may
+sometimes be convenient to be able to test the desktop client from
+Android.
 
-The exact tutorial on running the X11 server in Termux
-can be found at
-https://wiki.termux.com/wiki/Graphical_Environment
-but once all the packages and apps are installed
-and configured, the VNC server can be run by typing
-(in Termux)
+The exact tutorial on running the X11 server in Termux can be found at
+https://wiki.termux.com/wiki/Graphical_Environment but once all the
+packages and apps are installed and configured, the VNC server can be
+run by typing (in Termux)
 
 #+BEGIN_SRC bash
 vncserver -localhost
@@ -158,15 +113,14 @@ Once this is done, it is also required to type
 export DISPLAY=":1"
 #+END_SRC
 
-to be able to run the desktop client from a particular bash
-session.
+to be able to run the desktop client from a particular bash session.
 
 ** Older prototypes
 
-The older prototypes of GRASP (for Android only) can be found
-in the [[https://github.com/panicz/grasp-android]] repository
-(which is now archived).
+The older prototypes of GRASP (for Android only) can be found in the
+[[https://github.com/panicz/grasp-android]] repository (which is now
+archived).
 
-There is an even older prototype which runs in Racket, and
-which can be found in the [[https://github.com/panicz/sracket]]
-repository (the ~5.rkt~ file).
+There is an even older prototype which runs in Racket, and which can
+be found in the [[https://github.com/panicz/sracket]] repository (the
+~5.rkt~ file).
