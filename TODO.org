@@ -1,3 +1,50 @@
+* 02.07.2024
+
+to teraz bysmy sie zajeli modyfikacja pliku init w taki sposob,
+zeby ladowal ostatni workspace
+
+a w kazdym razie bysmy chcieli przeniesc zawartosc glownego
+pliku do czegos w rodzaju intro.scm
+
+(tylko musimy pamietac, ze klient terminalowy nie posiada
+katalogu assets)
+
+No dobra, to musimy ustalic, w jaki sposob rozne srodowiska
+widza rozne systemy plikow.
+
+Na desktopie (i w terminalu pewnie tez) mamy sobie funkcje
+load-resource
+
+No to tak: na Androidzie mamy getFilesDir, getCacheDir,
+getExfernalFilesDir, getExternalCacheDir, natomiast na
+PC mamy albo katalog domowy uzytkownika, albo katalog,
+w ktorym znajduje sie uruchamiany plik .jar.
+
+Ten ostatni dostajemy za pomoca
+
+(java.lang.System:getProperty "user.dir")
+
+
+
+* 01.07.2024
+
+cel nadrzedny na dzisiaj to poprawic generowanie plikow .axml
+w taki sposob, zeby nie bylo roznicy pomiedzy nami a aapt
+dla io.itch.panicz (a jak to sie powiedzie, to wyprobowac
+rowniez inne dlugosci pakietu)
+
+Na poczatek zaczelibysmy od tego, zeby wyrownac dlugosc
+bloku z tabela stringow tak, zeby byla podzielna przez 4.
+
+Ale moze tak naprawde nalezaloby zaczac od tego, zeby
+przywrocic plik test-axml?
+
+No dobra chyba udalo sie naprawic. To jeszcze tak:
+- usunac warningi
+- skasowac stare skrypty do budowania
+- zaktualizowac README
+- dodac ikone dla Litetek
+
 * 31.07.2024
 
 dzis bysmy sprobowali zaimplementowac szybka sciezke przy braku
