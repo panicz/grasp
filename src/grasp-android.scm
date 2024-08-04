@@ -1912,10 +1912,17 @@
 	(say question)
 	(listen question))
 
+      (define (application-directory)
+	(*:toString (invoke-special
+		     android.content.Context
+		     (this) 'getFilesDir)))
+      
       (env:define 'mouth #!null mouth)
       (env:define 'say #!null say)
       (env:define 'listen #!null listen)
-      (env:define 'ask #!null ask))
+      (env:define 'ask #!null ask)
+      (env:define 'app-directory #!null app-directory)
+      )
     
     (set! view (View (this) sync))
     (set! the-view view)

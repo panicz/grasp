@@ -1503,12 +1503,17 @@ by the AWT framework."))
 	 (for expression in `((define (ask . question)::string
 				#;(WARN "speech recognition unavailable")
 				#!null)
+			      
+			      (define (application-directory)
+				(invoke-static
+				 java.lang.System
+				 'getProperty "user.dir"))
+			      
 			      (define (say . words)::void
 				#;(WARN "speech synthesis umavailable")
 				(values))
 			      . ,init-script)
 	   (eval expression))))
-
 
       (screen:set-size! (window:getWidth) (window:getHeight))
       (window:repaint))))

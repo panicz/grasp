@@ -479,8 +479,6 @@
   (start-animating!)
   )
 
-
-
 (define (run-in-terminal
 	 #!optional
 	 (io :: LanternaScreen (make-terminal-screen
@@ -510,6 +508,12 @@
      (for expression in `((define (ask . question)::string
 			    ;;(WARN "speech recognition unavailable")
 			    #!null)
+
+			  (define (application-directory)
+			    (invoke-static
+			     java.lang.System
+			     'getProperty "user.dir"))
+			  
 			  (define (say . words)::void
 			    ;;(WARN "speech synthesis umavailable")
 			    (values))
