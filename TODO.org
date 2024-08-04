@@ -1,3 +1,24 @@
+* 03.07.2024
+
+mamy funkcje (application-directory), i teraz bysmy chcieli
+zzrobic cos takiego, zeby przy uruchomieniu sprawdzac czy
+w (application-directory) istnieje plik "workspace.grasp",
+a jesli tak, to na jego podstawie odtworzylibysmy zawartosc
+widoku.
+
+I to by musialo wygladac tak, ze przechowujemy:
+- liste wszystkich otwartych plikow (razem z lista edycji
+  od czasu ostatniego zapisania)
+- strukture opisujaca podzial ekranu
+
+Natomiast jezeli nie ma tego pliku, to ladujemy plik
+z helpem.
+
+No dobra, ale oprocz (application-directory) chcielibysmy
+jeszcze miec (projects-directory), w ktorym bysmy trzemali
+repozytoria, i ktore w przypadku androida byloby w external
+storage, a w przypadku GRASP gdzies w katalogu domowym.
+
 * 02.07.2024
 
 to teraz bysmy sie zajeli modyfikacja pliku init w taki sposob,
@@ -23,8 +44,6 @@ w ktorym znajduje sie uruchamiany plik .jar.
 Ten ostatni dostajemy za pomoca
 
 (java.lang.System:getProperty "user.dir")
-
-
 
 * 01.07.2024
 
