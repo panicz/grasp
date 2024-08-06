@@ -216,7 +216,7 @@
 		    main-class ::string
 		    available-modules ::(list-of (list-of symbol))
 		    extra-dependencies ::(list-of string)
-		    (assets ::(either string #f)"assets")
+		    (assets ::(list-of java.io.File) '())
 		    (init ::string "init/init.scm")
 		    output-name)
   (let* ((output-name (or output-name
@@ -267,10 +267,9 @@
 			"^META-INF"
 			"MANIFEST.MF$"))))
        (ZipFile library-path)))
-
-    (when assets
-      (for asset::java.io.File in (list-files from: assets)
-	(output:add-file-at-level! 0 asset)))
+    
+    (for asset::java.io.File in assets
+      (output:add-file-at-level! 0 asset))
 
     (output:add-file-as! "assets/init.scm" init-file)
 
@@ -648,6 +647,7 @@ Main-Class: "main-class-name"
 	available-modules: dependency-modules
 	init: init
 	main-class: "grasp-desktop"
+	assets: (list-files from: "assets")
 	extra-dependencies: '("libs/jsvg-1.0.0.jar"))))
 
    (when (is 'terminal in targets)
@@ -660,7 +660,9 @@ Main-Class: "main-class-name"
 	available-modules: dependency-modules
 	init: init
 	main-class: "grasp-terminal"
-	assets: #f
+	assets: (list-files from: "assets"
+			    such-that: (is ".scm$" regex-match
+					   (_:getPath)))
 	extra-dependencies:
 	'("libs/lanterna-3.1.1.jar")))))
 
