@@ -1476,8 +1476,25 @@ by the AWT framework."))
 
 (set! (default-transform) (lambda () (Isogonal)))
 
+(define save-state ::procedure
+  (lambda () (values)))
+
+(define (before-possible-exit action ::procedure)::void
+  (set! save-state action))
+
+(define (open-asset file-name ::string)::gnu.kawa.io.InPort
+  (gnu.kawa.io.InPort
+   (java.io.InputStreamReader
+    (load-resource (string-append "/assets/" file-name)))))
+
 (define (run-in-AWT-window)::void
-  (let ((application ::GRASP (GRASP)))
+  (let ((application ::GRASP (GRASP))
+	(runtime ::java.lang.Runtime
+		 (java.lang.Runtime:getRuntime)))
+
+    (runtime:addShutdownHook (object (java.lang.Thread)
+			       ((run)::void
+				(save-state))))
     
     (set! (the-system-clipboard) application:clipboard)
  
@@ -1495,25 +1512,46 @@ by the AWT framework."))
       (window:setVisible #t)
       (application:repaint)
       
-      (safely
-       (let* ((input (gnu.kawa.io.InPort
-		      (java.io.InputStreamReader
-		       (load-resource "/assets/init.scm"))))
-	      (init-script (read-all input)))
-	 (for expression in `((define (ask . question)::string
-				#;(WARN "speech recognition unavailable")
-				#!null)
-			      
-			      (define (application-directory)
-				(invoke-static
-				 java.lang.System
-				 'getProperty "user.dir"))
-			      
-			      (define (say . words)::void
-				#;(WARN "speech synthesis umavailable")
-				(values))
-			      . ,init-script)
-	   (eval expression))))
+      (let* ((input (gnu.kawa.io.InPort
+		     (java.io.InputStreamReader
+		      (load-resource "/assets/init.scm"))))
+	     (init-script (read-all input))
+	     (scheme kawa.standard.Scheme:instance)
+	     (env (scheme:getEnvironment)))
+
+	(env:define 'ask #!null
+		    (lambda question ::string
+			    ;;(WARN "speech recognition unavailable")
+			    #!null))
+	(env:define 'application-directory #!null
+		    (lambda ()::string
+			    (invoke-static
+			     java.lang.System
+			     'getProperty "user.dir")))
+
+	(env:define 'projects-directory #!null
+		    (lambda ()::string
+			    (invoke-static
+			     java.lang.System
+			     'getProperty "user.home")))
+
+	(env:define 'show-keyboard! #!null
+		    (lambda ()::void
+			    (values)))
+	
+	(env:define 'say #!null
+		    (lambda words ::void
+			    ;;(WARN "speech synthesis umavailable")
+			    (values)))
+
+	(env:define 'before-possible-exit #!null
+		    (lambda (action::procedure)::void
+			    (set! save-state action)))
+	
+	(env:define 'open-asset #!null open-asset)
+
+	(for expression in init-script
+	  (safely (eval expression))))
 
       (screen:set-size! (window:getWidth) (window:getHeight))
       (window:repaint))))
