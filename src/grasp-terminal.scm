@@ -479,6 +479,13 @@
   (start-animating!)
   )
 
+(define save-state ::procedure (lambda () (values)))
+
+(define (open-asset file-name ::string)::gnu.kawa.io.InPort
+  (gnu.kawa.io.InPort
+   (java.io.InputStreamReader
+    (load-resource (string-append "/assets/" file-name)))))
+  
 (define (run-in-terminal
 	 #!optional
 	 (io :: LanternaScreen (make-terminal-screen
@@ -500,24 +507,51 @@
     (set! (current-message-handler) (ignoring-message-handler))))
   (initialize-keymap)
 
-  (safely
-   (let* ((input (gnu.kawa.io.InPort
-		  (java.io.InputStreamReader
-		   (load-resource "/assets/init.scm"))))
-	  (init-script (read-all input)))
-     (for expression in `((define (ask . question)::string
-			    ;;(WARN "speech recognition unavailable")
-			    #!null)
+  (let* ((input (gnu.kawa.io.InPort
+		 (java.io.InputStreamReader
+		  (load-resource "/assets/init.scm"))))
+	 (init-script (read-all input))
+	 (runtime ::java.lang.Runtime
+		  (java.lang.Runtime:getRuntime))
+	 (scheme kawa.standard.Scheme:instance)
+	 (env (scheme:getEnvironment)))
+    (runtime:addShutdownHook (object (java.lang.Thread)
+			       ((run)::void
+				(save-state))))
+    
+    (env:define 'ask #!null
+		(lambda question ::string
+			;;(WARN "speech recognition unavailable")
+			#!null))
+    (env:define 'application-directory #!null
+		(lambda ()::string
+			(invoke-static
+			 java.lang.System
+			 'getProperty "user.dir")))
 
-			  (define (application-directory)
-			    (invoke-static
-			     java.lang.System
-			     'getProperty "user.dir"))
-			  
-			  (define (say . words)::void
-			    ;;(WARN "speech synthesis umavailable")
-			    (values))
-			  . ,init-script)
+    (env:define 'projects-directory #!null
+		(lambda ()::string
+			(invoke-static
+			 java.lang.System
+			 'getProperty "user.home")))
+
+    (env:define 'show-keyboard! #!null
+		(lambda ()::void
+			(values)))
+    
+    (env:define 'say #!null
+		(lambda words ::void
+			;;(WARN "speech synthesis umavailable")
+			(values)))
+
+    (env:define 'before-possible-exit #!null
+		(lambda (action::procedure)::void
+			(set! save-state action)))
+
+    (env:define 'open-asset #!null open-asset)
+    
+    (for expression in init-script
+      (safely
        (eval expression))))
   (let ((event-queue ::BlockingQueue (ArrayBlockingQueue 16)))
     (with ((painter (TerminalPainter io event-queue)))

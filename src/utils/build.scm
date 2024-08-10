@@ -216,7 +216,7 @@
 		    main-class ::string
 		    available-modules ::(list-of (list-of symbol))
 		    extra-dependencies ::(list-of string)
-		    (assets ::(either string #f)"assets")
+		    (assets ::(list-of java.io.File) '())
 		    (init ::string "init/init.scm")
 		    output-name)
   (let* ((output-name (or output-name
@@ -267,10 +267,9 @@
 			"^META-INF"
 			"MANIFEST.MF$"))))
        (ZipFile library-path)))
-
-    (when assets
-      (for asset::java.io.File in (list-files from: assets)
-	(output:add-file-at-level! 0 asset)))
+    
+    (for asset::java.io.File in assets
+      (output:add-file-at-level! 0 asset))
 
     (output:add-file-as! "assets/init.scm" init-file)
 
@@ -518,110 +517,112 @@ Main-Class: "main-class-name"
 
    (when (is 'terminal in targets)
      (build-zip "src/grasp-terminal.scm"
-		(main-class-file 'terminal))))
+		(main-class-file 'terminal)))
 
-   ;; this needs to be called last, because it changes
-   ;; some of the global properties of the Kawa compiler
-  (unless skip-android-class-update?
-    (and-let* ((previous-package)
-	       (previous-package-components
-		(string-split previous-package "."))
-	       (previous-package-path
-		(string-append
-		 "build/cache/"
-		 (string-join previous-package-components
-			      java.io.File:separator)))
-	       ((file-exists? previous-package-path))
-	       (files-to-remove (list-files from: previous-package-path
-					    such-that: 
-					    (lambda (file::java.io.File)
-					      (file:isFile)))))
-      (for file::java.io.File in files-to-remove
-	(print "deleting "file)
-	(file:delete))
-      (for depth from (length previous-package-components) to 1 by -1
-	   (let ((directory (string-append
-			     "build/cache/"
-			     (string-join
-			      (take depth previous-package-components)
-			      "/"))))
-	     (print "deleting directory "directory)
-	     (delete-file directory))))
-    
-    (delete-if-exists "build/cache/classes.dex")
+   (begin
+     ;; this needs to be called last, because it changes
+     ;; some of the global properties of the Kawa compiler
+     (unless skip-android-class-update?
+       (and-let* ((previous-package)
+		  (previous-package-components
+		   (string-split previous-package "."))
+		  (previous-package-path
+		   (string-append
+		    "build/cache/"
+		    (string-join previous-package-components
+				 java.io.File:separator)))
+		  ((file-exists? previous-package-path))
+		  (files-to-remove (list-files from: previous-package-path
+					       such-that: 
+					       (lambda (file::java.io.File)
+						 (file:isFile)))))
+	 (for file::java.io.File in files-to-remove
+	   (print "deleting "file)
+	   (file:delete))
+	 (for depth from (length previous-package-components) to 1 by -1
+	      (let ((directory (string-append
+				"build/cache/"
+				(string-join
+				 (take depth previous-package-components)
+				 "/"))))
+		(print "deleting directory "directory)
+		(delete-file directory))))
+       
+       (delete-if-exists "build/cache/classes.dex")
 
-    (build-file "src/grasp-android.scm"
-		;;target-directory: "build/grasp-android"
-		package: (string-append package ".")
-		top-class-name: (string-append package ".GRASP")))
+       (build-file "src/grasp-android.scm"
+		   ;;target-directory: "build/grasp-android"
+		   package: (string-append package ".")
+		   top-class-name: (string-append package ".GRASP")))
 
-  (print "Reindexing .class files...")
-  (set! cached-files (list-files from: "build/cache"
-				 such-that: (is "[.]class$"
-						regex-match
-						(_:getPath))))
-  (reset! module-classes)
+     (print "Reindexing .class files...")
+     (set! cached-files (list-files from: "build/cache"
+				    such-that: (is "[.]class$"
+						   regex-match
+						   (_:getPath))))
+     (reset! module-classes)
 
-  (for class::java.io.File in cached-files
-    (let* ((scm ::java.io.File (source-file class))
-	   (module (internal-module-name scm)))
-      (set! (module-classes module)
-	    (union (module-classes module) `(,class)))))
+     (for class::java.io.File in cached-files
+       (let* ((scm ::java.io.File (source-file class))
+	      (module (internal-module-name scm)))
+	 (set! (module-classes module)
+	       (union (module-classes module) `(,class)))))
 
-  (unless skip-android-class-update?
-    (print"building a list of classes to dex")
+     (unless skip-android-class-update?
+       (print"building a list of classes to dex")
 
-    (define classes-to-dex ::(list-of java.io.File)
-      (let ((android-dependencies ::(list-of java.io.File)
-				  (append-map
-				   module-classes
-				   (fold-left
-				    (lambda (dependencies module)
-				      (union dependencies
-					     `(,module)
-					     (module-dependencies module)))
-				    (module-dependencies '(grasp-android))
-				    (imported-modules
-				     (as-file init)
-				     (map internal-module-name
-					  dependency-files))))))
-	(only
-	 (lambda (class-file::java.io.File)
-	   (let ((path ::String (class-file:getPath)))
-	     (match (regex-match "^(.*)[.]class$" path)
-	       (`(,_ ,stem)
-		(let ((dex-file ::java.io.File (as-file
-						(string-append stem
-							       ".dex"))))
-		  (and
-		   (or (not (dex-file:exists))
-		       (is (dex-file:lastModified)
-			   <= (class-file:lastModified)))
-		   (or (is class-file in android-dependencies)
-		       (is package regex-match path))))))))
-	 cached-files)))
+       (define classes-to-dex ::(list-of java.io.File)
+	 (let ((android-dependencies ::(list-of java.io.File)
+				     (append-map
+				      module-classes
+				      (fold-left
+				       (lambda (dependencies module)
+					 (union dependencies
+						`(,module)
+						(module-dependencies
+						 module)))
+				       (module-dependencies '(grasp-android))
+				       (imported-modules
+					(as-file init)
+					(map internal-module-name
+					     dependency-files))))))
+	   (only
+	    (lambda (class-file::java.io.File)
+	      (let ((path ::String (class-file:getPath)))
+		(match (regex-match "^(.*)[.]class$" path)
+		  (`(,_ ,stem)
+		   (let ((dex-file ::java.io.File (as-file
+						   (string-append stem
+								  ".dex"))))
+		     (and
+		      (or (not (dex-file:exists))
+			  (is (dex-file:lastModified)
+			      <= (class-file:lastModified)))
+		      (or (is class-file in android-dependencies)
+			  (is package regex-match path))))))))
+	    cached-files)))
 
-    (print"dexing "classes-to-dex)
+       (print"dexing "classes-to-dex)
 
-    (update-dex-cache classes-to-dex (as-file "build/cache"))
+       (update-dex-cache classes-to-dex (as-file "build/cache"))
 
-    (print"Generating the .dex index")
+       (print"Generating the .dex index")
 
-    (define dex-files
-      (list-files from: "build/cache"
-		  such-that: (is "[.]dex$" regex-match
-				 (_:getPath))))
+       (define dex-files
+	 (list-files from: "build/cache"
+		     such-that: (is "[.]dex$" regex-match
+				    (_:getPath))))
 
-    (define dex-libraries
-      (list-files from: "libs"
-		  such-that: (is "[.]dex$" regex-match
-				 (_:getPath))))
+       (define dex-libraries
+	 (list-files from: "libs"
+		     such-that: (is "[.]dex$" regex-match
+				    (_:getPath))))
 
-    (print "Integrating the .dex files")
+       (print "Integrating the .dex files")
 
-    (integrate-dex `(,@dex-libraries ,@dex-files)
-		   (as-file "build/cache"))
-    )
+       (integrate-dex `(,@dex-libraries ,@dex-files)
+		      (as-file "build/cache"))
+       )))
   
   (concurrently
    (when (is 'android in targets)
@@ -646,6 +647,7 @@ Main-Class: "main-class-name"
 	available-modules: dependency-modules
 	init: init
 	main-class: "grasp-desktop"
+	assets: (list-files from: "assets")
 	extra-dependencies: '("libs/jsvg-1.0.0.jar"))))
 
    (when (is 'terminal in targets)
@@ -658,7 +660,9 @@ Main-Class: "main-class-name"
 	available-modules: dependency-modules
 	init: init
 	main-class: "grasp-terminal"
-	assets: #f
+	assets: (list-files from: "assets"
+			    such-that: (is ".scm$" regex-match
+					   (_:getPath)))
 	extra-dependencies:
 	'("libs/lanterna-3.1.1.jar")))))
 

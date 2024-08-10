@@ -1736,6 +1736,12 @@
   (define env ::gnu.mapping.Environment #!null)
 
   (define scheme ::gnu.expr.Language #!null)
+
+  (define save-state ::procedure (lambda () (values)))
+
+  (define (onPause)::void
+    (invoke-special AndroidActivity (this) 'onPause)
+    (save-state))
   
   (define (onCreate savedState::Bundle)::void
     (invoke-special AndroidActivity (this) 'onCreate
@@ -1839,6 +1845,9 @@
 		       (s:flush)
 		       (s:close)))))))))
     ;;(set! (save-file) external-save-file)
+        
+    (set! view (View (this) sync))
+    (set! the-view view)
 
     (letrec* ((random ::java.util.Random
 		      (java.util.Random))
@@ -1890,6 +1899,9 @@
 	    (,Mouth:ERROR
 	     (signal:remove id)))))
 
+      (define (before-possible-exit action::procedure)::void
+	(set! save-state action))
+      
       (define (listen . prompt)::string
 	(let ((recognized ::BlockingQueue (ArrayBlockingQueue 1)))
 	  (with-intent (recognize-speech
@@ -1912,22 +1924,39 @@
 	(say question)
 	(listen question))
 
-      (define (application-directory)
+      (define (application-directory)::string
 	(*:toString (invoke-special
 		     android.content.Context
 		     (this) 'getFilesDir)))
-      
-      (env:define 'mouth #!null mouth)
-      (env:define 'say #!null say)
-      (env:define 'listen #!null listen)
-      (env:define 'ask #!null ask)
-      (env:define 'app-directory #!null app-directory)
-      )
-    
-    (set! view (View (this) sync))
-    (set! the-view view)
-    (env:define 'the-view #!null the-view)
 
+      (define (projects-directory)::string
+	(*:toString (invoke-special
+		     android.content.Context
+		     (this) 'getExternalFilesDir #!null)))
+
+      (define (show-keyboard!)::void
+	(view:showKeyboard))
+
+      (define (open-asset filename ::string)::gnu.kawa.io.InPort
+	(let* ((assets ::AssetManager (invoke (this) 'getAssets)))
+	  (gnu.kawa.io.InPort
+	   (java.io.InputStreamReader
+	    (assets:open filename)))))
+
+      (let-syntax ((export (syntax-rules ()
+			     ((_ identifier ...)
+			      (begin
+				(env:define 'identifier #!null identifier)
+				...)))))
+	(export mouth say listen ask
+		application-directory
+		projects-directory
+		show-keyboard!
+		the-view
+		before-possible-exit
+		open-asset
+		)))
+    
     (let* ((resources ::AndroidResources (getResources))
 	   (metrics ::DisplayMetrics
 		    (resources:getDisplayMetrics)))
@@ -1977,10 +2006,7 @@
 		 (TouchEventProcessor finger screen
 				      postpone
 				      vicinity: 15))))
-    (set! screen:after-tap
-	  (cons (lambda _
-		  (view:showKeyboard))
-		screen:after-tap))
     )
+  
 
   (AndroidActivity))
