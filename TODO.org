@@ -1,3 +1,184 @@
+* 10.07.2024
+
+Na razie udalo sie sprawic, zeby Screen byl Embeddable
+
+Teraz bysmy sie zajeli tym, zeby Embeddable byl przekazywany
+jako argumenr do recognizerow, zeby przeniesc the-recognizers
+do gestures
+
+Ale wyglada na to, ze nie mozemy tego zrobic, bo cos w gestures
+uzywa DocumentEditor.
+
+To kolejne pytanie: czy mamy szanse wyekstrahowac DocumentEditor
+z (editor input pane)?
+(a w drugiej kolejnosci splity)
+
+
+No to ogolnie tak: chcielibysmy uczynic Screen interfejsem
+w (editor interfaces elements), natomiast Screen bysmy przemianowali
+na ActualScreen - czy to dobry pomysl?
+
+Ogolnie wydaje sie umiarkowany.
+
+* 09.07.2024
+
+trzeba w jakis sposob zaprojektowac zaleznosci.
+
+Przede wszystkim byloby niezle, gdyby screen zostal interfejsem
+i byl przeniesiony do innego modulu
+
+podobnie do DocumentEditor raczej powinnismy sie odnosic tylko
+za posrednictwem interfejsu Editor z (editor interfaces elements).
+
+A moze nie? Moze przegladarki plikow powinny sie znalezc
+razem z DocumentEditor?
+
+Na razie zrobmy tak, zeby
+- dodac dodatkowy argument do Recognizerow
+- przeniesc definicje the-recognizer do (editor input gestures)
+
+* 08.07.2024
+
+na razie jakos tak doszlo do tego, ze rozbijamy
+=(editor input pane)= na mniejsze moduly, i w zwiazku z tym
+powinnismy sobie wypisac zaleznosci (i problemy)
+
+no to mamy:
+** (editor input pane):
+Screen, Overlay, Recognizer, the-recognizers, screen
+
+** (editor input splits)
+SplitFocus, the-split-path, Split, ResizeSplitAt, SplitBeside, SplitBelow
+
+** (editor input document-editor)
+Selected, DragAround, Translate, Resize, CursorMarker, DocumentEditor
+
+** (editor input scrolling)
+Scroll
+
+** (editor input pop-ups)
+PopUp
+
+** (editor input file-browsers)
+<same funkcje>
+
+** (editor input drawings)
+Point, Stroke, Drawing
+
+I teraz tak: te refaktoryzacje z pewnoscia trzrba zrobic, byc moze
+nawet w takim ksztalcie, ale pomalu
+
+* 07.07.2024
+
+#+BEGIN_SRC scheme
+  (before-possible-exit
+   (lambda ()
+     ...))
+
+  (screen:set-content!
+   (let* ((workspace-file (string-append
+			   (application-directory)
+			   "/.grasp.workspace"))
+	  (scratch-file (string-append
+			 (projects-directory)
+			 "/.scratch.scm")))
+     (otherwise
+	 (otwórz albo stwórz scratch-file
+		 i spróbuj załadować asset "intro.scm")
+       (and-let* ((workspace (load-mapping workspace-file))
+		  (open-documents (workspace 'open-documents))
+		  (main-view (workspace 'main-view)))
+	 ...))))
+
+#+END_SRC
+
+Moze dzisiaj skupmy sie na tym fragmencie:
+
+#+BEGIN_SRC scheme
+  (otwórz albo stwórz scratch-file
+	  i spróbuj załadować asset "intro.scm")
+#+END_SRC
+
+Musimy miec taka reprezentacje dla dokumentu, ktora by trzymala
+informacje o tym, czy dany plik pochodzi z "assets". Moze taki
+prefix:
+
+"file://"
+"assets://"
+
+Ale na razie moze sprobujmy rozbic =(editor input pane)=
+na mniejsze moduly?
+
+Z kolei chcielibysmy tez polaczyc moduly
+(language for), (language while), (language match) i (language infix)
+w jeden wiekszy modul, nazwijmy go (language extensions)
+
+Ale nie, tego na razie nie robmy. Zrobimy to jak zbudujemy sobie
+narzedzie do wizualizacji i scalania modulow,
+
+* 06.07.2024
+
+dzis bysmy zaczeli od tego, zeby przeniesc zawartosc pliku
+poczatkowego do =assets/intro.scm= i dodac funkcje =open-asset=.
+
+No dobra, to teraz kiedy juz to mamy, to bysmy popracowali nad tym,
+zeby:
+- przy uruchamianiu sprawdzac workspace.grasp i jesli istnieje,
+  to go ladowac
+- przy zamykaniu zapisywac workspace.grasp
+
+No ale na razie chcemy sie upewnic, ze:
+- najpierw otwiera sie assets/intro.scm
+- oprocz niego otwiera sie (projects-directory)/scratch.scm
+- scratch.scm jest zapisywany razem z workspace'em
+- scratch.scm jest niezamykalny
+
+
+* 05.07.2024
+
+chcemy dodac nowa metode, ale jak sie powinnaa nazywac?
+- before-termination
+- at-exit
+- before-possible-termination
+- save-state
+- on-save-state
+- add-save-state-handler!
+
+w koncu zrobilismy before-possible-exit
+
+i teraz trzeba wymyslic jak zapisac i zaladowac stan
+przestrzeni roboczej
+
+czyli z jednej strony przy zaladowywaniu chcemy sprawdzic,
+czy plik workspace.grasp istnieje - a jesli tak, zaladowac
+z niego odpowiednie pola
+
+przy okazji chcemy sprawic, zeby help byl ladowany jako
+osobny plik, na ktorego chcemy moc przelaczac.
+
+Chcielibtsmy tez od razu - i to zawsze - otwierac plik
+=scratch.grasp=, ktorego nie powinno sie dawac zamknac,
+a ktory powinien sie zapisywac zawsze przy zamknieciu
+
+* 04.07.2024
+
+musimy sie zastanowic nad struktura workspace'u.
+
+Chcemy miec takie pola, jak:
+- =open-documents=
+- =unsaved-document-changes=
+- =main-view=
+- =editor/document-transform=
+- =editor/document-cursor=
+
+Ok. I teraz tak:
+- na JVM chcemy wywolac
+  (...Runtime:getRuntime:addShutdownHook
+   (lambda ()
+    ... zapisz plik workspace.grasp ...))
+- na Androidzie chcemy zrobic to samo
+  tylko w metodzie onStop
+
 * 03.07.2024
 
 mamy funkcje (application-directory), i teraz bysmy chcieli
