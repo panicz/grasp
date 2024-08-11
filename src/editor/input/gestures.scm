@@ -15,11 +15,10 @@
 (import (editor document parse))
 (import (editor document documents))
 (import (editor document cursor))
-(import (editor input pane))
 (import (editor interfaces elements))
 (import (editor types primitive))
 (import (editor types extensions extensions))
-
+(import (editor input pane))
 (import (editor input evaluation))
 (import (editor types extensions visual-stepper))
 
@@ -97,7 +96,7 @@
   (Recognizer
    name: "horizontal-line"
    recognizes:
-   (lambda (points::(sequence-of Position))
+   (lambda (points::(sequence-of Position) screen::ResizableEmbeddable)
      (let* ((vicinity ::real
 		      (painter:line-simplification-resolution))
 	    (simplified ::java.util.List
@@ -114,14 +113,15 @@
    action:
    (lambda (own::Recognizer
 	    points::(sequence-of Position)
-	    line::Area)
+	    line::Area
+	    screen::ResizableEmbeddable)
      (screen:split-below! line))))
 
 (define-early-constant split-pane-by-vertical-line
   (Recognizer
    name: "vertical-line"
    recognizes:
-   (lambda (points::(sequence-of Position))
+   (lambda (points::(sequence-of Position) screen::ResizableEmbeddable)
      (let* ((vicinity ::real
 		      (painter:line-simplification-resolution))
 	    (simplified ::java.util.List
@@ -138,14 +138,15 @@
    action:
    (lambda (own::Recognizer
 	    points::(sequence-of Position)
-	    line::Area)
+	    line::Area
+	    screen::ResizableEmbeddable)
      (screen:split-beside! line))))
 
 (define-early-constant evaluate-expression-by-wedge ::Recognizer
   (Recognizer
    name: "eval"
    recognizes:
-   (lambda (points ::(sequence-of Position))
+   (lambda (points ::(sequence-of Position) screen::ResizableEmbeddable)
      (and-let* ((vicinity ::real
 			  (painter:line-simplification-resolution))
 		(simplified ::java.util.List
@@ -181,5 +182,6 @@
    (lambda (self::Recognizer
 	    points::(sequence-of Position)
 	    cursor
-	    document)
+	    document
+	    screen::ResizableEmbeddable)
      (evaluate-expression! at: cursor in: document))))

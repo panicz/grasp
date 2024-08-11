@@ -428,4 +428,4 @@ operate on cursors.
   (set-size! width::real height::real)::void
   )
 
-(define-interface ResizablePane (Resizable Pane))
+(define-interface ResizableEmbeddable (Resizable Embeddable))

@@ -118,7 +118,7 @@
 (e.g.
  (is '(1 2) prefix? '(1 2 3 4)))
 
-(define predicate procedure)
+(define-alias predicate procedure)
 
 (define (any satisfying? elements)
   (escape-with return

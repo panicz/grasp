@@ -36,18 +36,22 @@
 
 (import (editor types spaces))
 (import (editor input input))
+
 (import (editor document history-tracking))
 (import (editor types extensions widgets))
 (import (editor types extensions combinators))
 (import (editor input transforms))
-
+(import (editor input overlays))
 (define-alias Array java.util.Arrays)
 
 (define-type (Recognizer name: string
-			 recognizes: (maps ((sequence-of Position))
+			 recognizes: (maps ((sequence-of Position)
+					    ResizableEmbeddable)
 					   to: Object)
-			 action: (maps (Recognizer (sequence-of
-						    Position) Object)
+			 action: (maps (Recognizer
+					(sequence-of Position)
+					Object
+					ResizableEmbeddable)
 				       to: void)))
 
 (define-early-constant the-recognizers
@@ -59,7 +63,7 @@
     (painter:draw-point! x y color))
   (IgnoreInput))
 
-(define-object (Screen)::ResizablePane
+(define-object (Screen)::ResizableEmbeddable
   (define overlay ::Overlay (Overlay))
   (define dragging ::(maps byte to: Drag)
     (mapping (finger::byte)::Drag #!null))
@@ -182,14 +186,16 @@
   (define (can-split-beside? line::Area)::boolean
     (top:can-split-beside? line))
 
-  (define (split-beside! line::Area)::void
-    (set! top (top:split-beside! line)))
+  (define (split-beside! line::Area)::Embeddable
+    (set! top (top:split-beside! line))
+    (this))
 
   (define (can-split-below? line::Area)::boolean
     (top:can-split-below? line))
 
-  (define (split-below! line::Area)::void
-    (set! top (top:split-below! line)))
+  (define (split-below! line::Area)::Embeddable
+    (set! top (top:split-below! line))
+    (this))
 
   (define (scroll-up! x::real y::real)::boolean
     (parameterize ((the-pane-width size:width)
@@ -238,6 +244,16 @@
 		   (the-pane-height size:height))
       (or (overlay:rotate-right! x y)
 	  (top:rotate-right! x y))))
+
+  (define (outside-in x::real y::real)::(Values real real)
+    (values x y))
+
+  (define (pane-under x::real y::real)::Embeddable
+    (this))
+
+  (define (drop-at! x::real y::real expression::pair)::boolean
+    #f)
+
   )
 
 (define-object (Stroke finger ::byte source-pane ::Pane)::Layer
@@ -265,12 +281,12 @@
        (for recognizer::Recognizer in the-recognizers
 	 (call-with-values
 	     (lambda ()
-	       (recognizer:recognizes stroke:points))
+	       (recognizer:recognizes stroke:points screen))
 	   (lambda result
 	     (and-let* ((`(,value . ,rest) result)
 			(value))
 	       (apply recognizer:action recognizer
-		      stroke:points result)
+		      stroke:points result screen)
 	       (break)))))))
     (screen:overlay:remove! stroke))
 
@@ -340,105 +356,6 @@
   #;(screen:overlay:add! p)
   )
 
-(define-object (Overlay)::Pane
-  (define layers ::($bracket-apply$ List Layer)
-    (($bracket-apply$ ArrayList Layer)))
-
-  (define cursor ::(maps (Layer) to: Cursor)
-    (property+ (layer::Layer)::Cursor
-	       (cursor-climb-front '() layer)))
-
-  (define (render!)::void
-    (for layer::Layer in-reverse layers
-      (parameterize ((the-cursor (cursor layer)))
-	(layer:render!))))
-
-  (define (add! element::Layer)::void
-    (layers:add 0 element))
-
-  (define (remove! element::Layer)::void
-    (layers:remove element))
-
-  (define (clear!)::void
-    (layers:clear))
-
-  (define (tap! finger::byte #;at x::real y::real)::boolean
-    (any (lambda (layer::Layer)
-	   (layer:tap! finger x y))
-	 layers))
-
-  (define (press! finger::byte #;at x::real y::real)::boolean
-    (any (lambda (layer::Layer)
-	   (layer:press! finger x y))
-	 layers))
-
-  (define (second-press! finger::byte #;at x::real y::real)::boolean
-    (any (lambda (layer::Layer)
-	   (layer:second-press! finger x y))
-	 layers))
-
-  (define (double-tap! finger::byte x::real y::real)::boolean
-    (any (lambda (layer::Layer)
-	   (layer:double-tap! finger x y))
-	 layers))
-
-  (define (long-press! finger::byte x::real y::real)::boolean
-    (any (lambda (layer::Layer)
-	   (layer:long-press! finger x y))
-	 layers))
-
-  (define (key-typed! key-code::long context::Cursor)::boolean
-    (let ((n ::int (+ 1 (* 2 (length layers)))))
-      (escape-with return
-	(for layer::Layer in layers
-	  (parameterize/update-sources ((the-cursor (cursor
-						     layer)))
-	    (when (layer:key-typed! key-code context)
-	      (return #t))
-	    (set! n (- n 2))))
-	#f)))
-
-  (define (scroll-up! left::real top::real)::boolean
-    (any (lambda (layer::Layer)
-	   (layer:scroll-up! left top))
-	 layers))
-
-  (define (scroll-down! left::real top::real)::boolean
-    (any (lambda (layer::Layer)
-	   (layer:scroll-down! left top))
-	 layers))
-
-  (define (scroll-left! left::real top::real)::boolean
-    (any (lambda (layer::Layer)
-	   (layer:scroll-left! left top))
-	 layers))
-
-  (define (scroll-right! left::real top::real)::boolean
-    (any (lambda (layer::Layer)
-	   (layer:scroll-right! left top))
-	 layers))
-
-  (define (zoom-in! left::real top::real)::boolean
-    (any (lambda (layer::Layer)
-	   (layer:zoom-in! left top))
-	 layers))
-
-  (define (zoom-out! left::real top::real)::boolean
-    (any (lambda (layer::Layer)
-	   (layer:zoom-out! left top))
-	 layers))
-
-  (define (rotate-left! left::real top::real)::boolean
-    (any (lambda (layer::Layer)
-	   (layer:rotate-left! left top))
-	 layers))
-
-  (define (rotate-right! left::real top::real)::boolean
-    (any (lambda (layer::Layer)
-	   (layer:rotate-right! left top))
-	 layers))
-
-  )
 
 (define-enum SplitFocus (First Last))
 
