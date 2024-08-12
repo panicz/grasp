@@ -428,4 +428,19 @@ operate on cursors.
   (set-size! width::real height::real)::void
   )
 
-(define-interface ResizableEmbeddable (Resizable Embeddable))
+(define-interface Screen (Resizable Embeddable)
+  (drag! finger::byte action::Drag)::void
+  (undrag! finger::byte)::void
+  
+  (add-overlay! layer::Layer)::void
+  (remove-overlay! layer::Layer)::void
+  (clear-overlay!)::void
+  (overlay-cursor layer::Layer)::Cursor
+  (set-overlay-cursor! layer::Layer cursor::Cursor)::void
+  (has-layer satisfying::predicate)::Layer
+  
+  (bottom)::Embeddable
+  (set-bottom! content::Embeddable)::void
+  (width)::real
+  (height)::real
+  )

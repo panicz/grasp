@@ -63,12 +63,32 @@
     (painter:draw-point! x y color))
   (IgnoreInput))
 
-(define-object (Screen)::ResizableEmbeddable
+(define-object (ActualScreen)::Screen
   (define overlay ::Overlay (Overlay))
+
+  (define (overlay-cursor layer::Layer)::Cursor
+    (overlay:cursor layer))
+
+  (define (set-overlay-cursor! layer::Layer cursor::Cursor)::void
+    (set! (overlay:cursor layer) cursor))
+
+  (define (has-layer satisfying::predicate)::Layer
+    (let ((result (any satisfying screen:overlay:layers)))
+      (if result
+	  (as Layer result)
+	  #!null)))
+  
   (define dragging ::(maps byte to: Drag)
     (mapping (finger::byte)::Drag #!null))
 
   (define top ::Embeddable (NullPane))
+
+  (define (bottom)::Embeddable
+    ;; everything depends on the perspective
+    top)
+
+  (define (set-bottom! content::Embeddable)::void
+    (set! top content))
 
   (define content-stack ::java.util.Stack
     (java.util.Stack))
@@ -95,6 +115,9 @@
   (define (drag! finger::byte action::Drag)::void
     (set! (dragging finger) action))
 
+  (define (undrag! finger::byte)::void
+    (unset! (dragging finger)))
+
   (define (set-size! width::real height::real)::void
     (set! size:width width)
     (set! size:height height)
@@ -103,6 +126,12 @@
     (and-let* ((widget ::Maximizable top))
       (widget:set-size! width height))
     )
+
+  (define (width)::real
+    size:width)
+    
+  (define (height)::real
+    size:height)
 
   (define (extent)::Extent size)
 
@@ -252,8 +281,17 @@
     (this))
 
   (define (drop-at! x::real y::real expression::pair)::boolean
-    #f)
+    (top:drop-at! x y expression))
 
+  (define (add-overlay! layer::Layer)::void
+    (overlay:add! layer))
+    
+  (define (remove-overlay! layer::Layer)::void
+    (overlay:remove! layer))
+
+  (define (clear-overlay!)::void
+    (overlay:clear!))
+  
   )
 
 (define-object (Stroke finger ::byte source-pane ::Pane)::Layer
@@ -288,9 +326,9 @@
 	       (apply recognizer:action recognizer
 		      stroke:points result screen)
 	       (break)))))))
-    (screen:overlay:remove! stroke))
+    (screen:remove-overlay! stroke))
 
-  (screen:overlay:add! stroke))
+  (screen:add-overlay! stroke))
 
 (define-object (Selected items::cons position::Position)::Layer
 
@@ -311,11 +349,11 @@
   (define (drop! x::real y::real vx::real vy::real)::void
     ;; musimy sobie przetransformowac wspolrzedne
     ;; do wspolrzednych edytora oraz wybrac dokument
-    (screen:overlay:remove! selected)
-    (screen:top:drop-at! x y selected:items)
+    (screen:remove-overlay! selected)
+    (screen:drop-at! x y selected:items)
     )
 
-  (screen:overlay:add! selected))
+  (screen:add-overlay! selected))
 
 (define-object (Resize box::cons path::Cursor anchor::real
 		       left::real top::real
@@ -345,7 +383,7 @@
        (resize! box width height ending))))
 
   (define (drop! x::real y::real vx::real vy::real)::void
-    #;(screen:overlay:remove! p)
+    #;(screen:remove-overlay! p)
     (let ((final ::Extent (extent+ box))
 	  (history ::History (history (the-document))))
       (when (isnt final equal? initial)
@@ -353,7 +391,7 @@
 				    from: initial
 				    to: (copy final)
 				    with-anchor: anchor)))))
-  #;(screen:overlay:add! p)
+  #;(screen:add-overlay! p)
   )
 
 
@@ -639,18 +677,18 @@
 
 (define (split-ref split-path)::Embeddable
   (match split-path
-    ('() screen:top)
+    ('() (screen:bottom))
     (`(,head . ,tail)
      (let ((parent ::Split (split-ref tail)))
        (parent:part head)))))
 
 (define/kw (screen-area split-path::(list-of SplitFocus)
-			pane::Embeddable := screen:top)
+			pane::Embeddable := (screen:top))
   ::(Values Embeddable real real real real)
   (match split-path
     ('()
      (values pane
-             0 0 screen:size:width screen:size:height))
+             0 0 (screen:width) (screen:height)))
     (`(,head . ,tail)
      (let-values (((parent::Embeddable
 		    x::real y::real
@@ -677,8 +715,8 @@
 (define/kw (merge-split! at: split-path with: focus::SplitFocus)
   ::boolean
   (if (null? split-path)
-    (and-let* ((split ::Split screen:top))
-      (set! screen:top (split:part focus)))
+    (and-let* ((split ::Split (screen:bottom)))
+      (screen:set-bottom! (split:part focus)))
     (and-let* ((`(,tip . ,root) split-path)
                (parent ::Split (split-ref root))
 	       (split ::Split (parent:part tip)))
@@ -692,7 +730,7 @@
 		   left::real top::real
 		   width::real height::real) (screen-area
 					      split-path
-					      screen:top)))
+					      (screen:bottom))))
       (split:resize! x y left top width height)))
 
   (define (drop! x::real y::real vx::real vy::real)::void
@@ -869,7 +907,7 @@
      outside:
      (lambda (pop-up::PopUp finger::byte x::real y::real)
        ::boolean
-       (screen:overlay:remove! pop-up))))
+       (screen:remove-overlay! pop-up))))
 
   ((second-press! finger::byte #;at x::real y::real)::boolean
    (pop-up-action (this) finger x y
@@ -1154,17 +1192,17 @@
 	   (file-list directory
 		      (lambda (file::java.io.File)
 			::void
-			(screen:overlay:clear!)
+			(screen:clear-overlay!)
 			(editor:load-file file))
 		      (lambda (directory::java.io.File)
 			::void
-			(screen:overlay:remove! window)
+			(screen:remove-overlay! window)
 			(let ((new-window (open-file-browser directory
 							     editor))
 			      (position ::Position
 					(last-known-pointer-position 0)))
 			  (new-window:center-around! position:left position:top)
-			  (screen:overlay:add! new-window))))))
+			  (screen:add-overlay! new-window))))))
     window))
 
 (define (save-file-browser directory::java.io.File
@@ -1175,7 +1213,7 @@
          (text-field ::Scroll (text-field 0 name-hint))
          (button (Button label: "Save"
 	                 action: (lambda _
-			           (screen:overlay:clear!)
+			           (screen:clear-overlay!)
 				   (save-document!
 				    editor:document
 				    (java.io.File
@@ -1187,7 +1225,7 @@
 					 (text-input
 					  (file:getName))))
 			   (lambda (dir::java.io.File)::void
-				   (screen:overlay:remove!
+				   (screen:remove-overlay!
 				    window)
 				   (let ((new-window (save-file-browser
 						      dir
@@ -1198,7 +1236,7 @@
 						    0)))
 				     (new-window:center-around! position:left
 								position:top)
-				     (screen:overlay:add! new-window)))))
+				     (screen:add-overlay! new-window)))))
 	 (inner ::Extent (extent+ files))
 	 (browser ::Scroll (Scroll content: files
 				   width: inner:width
@@ -1221,9 +1259,9 @@
     (set! text-field:width (- browser:width
 			      button-size:width))
     (set! window popup)
-    (and-let* ((`(,tip . ,root) (screen:overlay:cursor popup)))
-      (set! (screen:overlay:cursor popup)
-	    (recons (text-field:content:last-index) root)))
+    (and-let* ((`(,tip . ,root) (screen:overlay-cursor popup)))
+      (screen:set-overlay-cursor!
+       popup (recons (text-field:content:last-index) root)))
     window))
 
 (define (builtin-open-file finger::byte editor::Editor)
@@ -1238,7 +1276,7 @@
 			 (last-known-pointer-position
 			  finger)))
 	   (window:center-around! position:left position:top)
-	   (screen:overlay:add! window)))))))
+	   (screen:add-overlay! window)))))))
 
 (define-parameter (open-file)::(maps (byte java.io.File Editor)
 				     to: (maps _ to: void))
@@ -1259,7 +1297,7 @@
 			    (last-known-pointer-position
 			     finger)))
 	      (window:center-around! position:left position:top)
-	      (screen:overlay:add! window))))))
+	      (screen:add-overlay! window))))))
       #t))
 
 (define-parameter (save-file)::(maps (byte java.io.File Editor)
@@ -1275,7 +1313,7 @@
 				    "(unnamed)"))
 			       on-tap:
 			       (lambda _
-				 (screen:overlay:clear!)
+				 (screen:cleat-overlay!)
 				 (editor:switch-to!
 				  document)
 				 #t)))
@@ -1531,14 +1569,14 @@
 	      (WARN "should start scrolling or zooming "
 	      (keys dragging)))
 
-	      ((any (lambda (layer::Layer)
-		      (and-let* (((Stroke source-pane: ,(this))
-				  layer))
-			layer))
-		    screen:overlay:layers)
+	      ((screen:has-layer
+		(lambda (layer::Layer)
+		  (and-let* (((Stroke source-pane: ,(this))
+			      layer))
+		    layer)))
 	       => (lambda (stroke::Stroke)
-		    (screen:overlay:remove! stroke)
-		    (unset! (screen:dragging stroke:finger))
+		    (screen:remove-overlay! stroke)
+		    (screen:undrag! stroke:finger)
 		    (let ((p0 ::Position (Position left: xe top: ye))
 			  (p1 ::Position (stroke:points
 					  (- (length stroke:points)
@@ -1703,13 +1741,12 @@
 	       (Transition of: transform
 			   from: (copy transform)
 			   to: (let ((target ::Transform (copy transform))
-				     (document ::Extent (extent+ document))
-				     (screen ::Extent (screen:extent)))
+				     (document ::Extent (extent+ document)))
 				 (target:set-left! 0.0)
 				 (target:set-top! 0.0)
 				 (target:set-scale!
-				  (min (/ screen:width document:width)
-				       (/ screen:height document:height)))
+				  (min (/ (screen:width) document:width)
+				       (/ (screen:height) document:height)))
 				 target)
 			   duration/ms: 500))
 	      #t)
@@ -1741,7 +1778,7 @@
 			       on-tap:
 			       (lambda _
 				 (safely
-				  (screen:overlay:add!
+				  (screen:add-overlay!
 				   (document-switcher (this))))
 				 #t))))
 		     ,(Link content: (Caption "Save as...")
@@ -1751,7 +1788,7 @@
 		     )))
 		 (window ::PopUp (PopUp content: content)))
 	    (window:center-around! x y)
-	    (screen:overlay:add! window))))
+	    (screen:add-overlay! window))))
        ;; dodanie menu kontekstowego
        #t)))
 
@@ -1906,8 +1943,8 @@
 
   (CursorMarker))
 
-(define-early-constant screen ::Screen
-  (Screen))
+(define-early-constant screen ::ActualScreen
+  (ActualScreen))
 
 (define (adjust-view!)
   (and-let* ((editor ::DocumentEditor (the-editor))
