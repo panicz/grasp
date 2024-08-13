@@ -438,9 +438,11 @@ operate on cursors.
   (overlay-cursor layer::Layer)::Cursor
   (set-overlay-cursor! layer::Layer cursor::Cursor)::void
   (has-layer satisfying::predicate)::Layer
+
+  (after-tap action::(maps (byte real real) to: void))::void
   
-  (bottom)::Embeddable
-  (set-bottom! content::Embeddable)::void
+  (content)::Embeddable
+  (set-content! content::Embeddable)::void
   (width)::real
   (height)::real
   )

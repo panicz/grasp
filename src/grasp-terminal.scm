@@ -44,6 +44,8 @@
 (import (editor types extensions testing))
 (import (editor input input))
 (import (editor input pane))
+(import (editor input splits))
+(import (editor input document-editor))
 (import (editor input terminal-keymap))
 (import (editor interfaces delayed))
 (import (editor input touch-event-processor))

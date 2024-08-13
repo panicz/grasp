@@ -113,8 +113,9 @@
    action:
    (lambda (own::Recognizer
 	    points::(sequence-of Position)
-	    line::Area
-	    screen::Screen)
+	    screen::Screen
+	    line::Area)
+     (WARN "splitting by "own:name)
      (screen:split-below! line))))
 
 (define-early-constant split-pane-by-vertical-line
@@ -138,8 +139,8 @@
    action:
    (lambda (own::Recognizer
 	    points::(sequence-of Position)
-	    line::Area
-	    screen::Screen)
+	    screen::Screen
+	    line::Area)
      (screen:split-beside! line))))
 
 (define-early-constant evaluate-expression-by-wedge ::Recognizer
@@ -181,7 +182,7 @@
    action:
    (lambda (self::Recognizer
 	    points::(sequence-of Position)
+	    screen::Screen
 	    cursor
-	    document
-	    screen::Screen)
+	    document)
      (evaluate-expression! at: cursor in: document))))
