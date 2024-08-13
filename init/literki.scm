@@ -28,7 +28,7 @@
 (import (editor types extensions extensions))
 (import (editor interfaces painting))
 (import (editor document editor-operations))
-(import (editor input pane))
+(import (editor input screen))
 (import (editor document parse))
 (import (editor document documents))
 (import (editor document cursor))

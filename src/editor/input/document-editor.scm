@@ -30,7 +30,7 @@
 
 (import (editor document parse))
 (import (editor document document-operations))
-(import (editor input pane))
+(import (editor input screen))
 
 (define-object (Stroke finger ::byte source-pane ::Pane)::Layer
   (define points ::List[Position] (ArrayList[Position]))

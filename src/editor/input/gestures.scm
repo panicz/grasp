@@ -18,7 +18,7 @@
 (import (editor interfaces elements))
 (import (editor types primitive))
 (import (editor types extensions extensions))
-(import (editor input pane))
+(import (editor input screen))
 (import (editor input evaluation))
 (import (editor types extensions visual-stepper))
 

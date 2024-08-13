@@ -19,7 +19,7 @@
 (import (editor interfaces painting))
 (import (editor interfaces elements))
 (import (editor input transforms))
-(import (editor input pane))
+(import (editor input screen))
 
 (define-enum SplitFocus (First Last))
 

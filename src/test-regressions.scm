@@ -38,7 +38,7 @@
  (editor types extensions testing)
  (editor types extensions visual-stepper)
 
- (editor input pane)
+ (editor input screen)
  )
 
 (parameterize  ((the-document (call-with-input-string

@@ -1,4 +1,4 @@
-(module-name (editor input pane))
+(module-name (editor input screen))
 
 (import (language define-property))
 (import (language define-syntax-rule))

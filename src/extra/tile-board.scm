@@ -19,7 +19,7 @@
 (import (editor types spaces))
 (import (editor document cursor))
 (import (editor input transforms))
-(import (editor input pane))
+(import (editor input screen))
 
 (import (editor types extensions extensions))
 (import (utils print))
@@ -428,3 +428,13 @@
   
   (MaximizableWidget)
   (setup-solution! solution))
+
+(set! (extension 'LetterTileBoard)
+      (object (Extension)
+	((enchant source::cons)::Enchanted
+	 (try-catch
+	  (or (as LetterTileBoard (eval source)) #!null)
+	  (ex java.lang.Throwable
+	      (WARN "Unable to create LetterTileBoard from "source": "
+		    (java.lang.String:valueOf ex))
+	      #!null)))))

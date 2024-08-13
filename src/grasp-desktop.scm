@@ -36,7 +36,7 @@
 (import (editor input desktop-keymap))
 (import (editor types extensions extensions))
 (import (editor input transforms))
-(import (editor input pane))
+(import (editor input screen))
 (import (editor input splits))
 (import (editor input document-editor))
 (import (editor types extensions widgets))

@@ -16,7 +16,7 @@
 (import (editor types spaces))
 (import (editor document cursor))
 (import (editor input transforms))
-(import (editor input pane))
+(import (editor input screen))
 
 (import (editor types extensions extensions))
 (import (utils print))
