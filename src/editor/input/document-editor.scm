@@ -21,7 +21,11 @@
 (import (editor interfaces painting))
 (import (editor interfaces elements))
 (import (editor input transforms))
+(import (editor input input))
+
 (import (editor types extensions widgets))
+(import (editor types extensions combinators))
+
 (import (editor document history-tracking))
 (import (editor types spaces))
 
@@ -31,6 +35,8 @@
 (import (editor document parse))
 (import (editor document document-operations))
 (import (editor input screen))
+(import (editor input splits))
+
 
 (define-object (Stroke finger ::byte source-pane ::Pane)::Layer
   (define points ::List[Position] (ArrayList[Position]))
@@ -608,7 +614,7 @@
 				    "(unnamed)"))
 			       on-tap:
 			       (lambda _
-				 (screen:cleat-overlay!)
+				 (screen:clear-overlay!)
 				 (editor:switch-to!
 				  document)
 				 #t)))

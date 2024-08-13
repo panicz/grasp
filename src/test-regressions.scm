@@ -37,8 +37,10 @@
  (editor types extensions widgets)
  (editor types extensions testing)
  (editor types extensions visual-stepper)
-
+ (editor types spaces)
  (editor input screen)
+ (editor input document-editor)
+
  )
 
 (parameterize  ((the-document (call-with-input-string

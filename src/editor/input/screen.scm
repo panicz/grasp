@@ -27,6 +27,7 @@
 (import (editor document cursor))
 (import (editor input input))
 (import (editor types extensions extensions))
+(import (editor types spaces))
 
 (import (editor input overlays))
 

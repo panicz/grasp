@@ -19,6 +19,7 @@
 (import (editor types primitive))
 (import (editor types extensions extensions))
 (import (editor input screen))
+(import (editor input document-editor))
 (import (editor input evaluation))
 (import (editor types extensions visual-stepper))
 

@@ -428,7 +428,16 @@ operate on cursors.
   (set-size! width::real height::real)::void
   )
 
-(define-interface Screen (Resizable Embeddable)
+(define-interface Enchanted (Interactive ShadowedTile)
+  ;; in the case of extension, the "value" method
+  ;; of the Shadowed interface should return a cons-cell
+  )
+
+(define-interface ResizableEnchanted (Resizable Enchanted))
+
+(define-interface Maximizable (Embeddable ResizableEnchanted))
+
+(define-interface Screen (Resizable Embeddable Interactive)
   (drag! finger::byte action::Drag)::void
   (undrag! finger::byte)::void
   
@@ -440,9 +449,13 @@ operate on cursors.
   (has-layer satisfying::predicate)::Layer
 
   (after-tap action::(maps (byte real real) to: void))::void
+
+  (maximize! tile ::Maximizable)::void
+  (unmaximize!)::void
   
   (content)::Embeddable
   (set-content! content::Embeddable)::void
   (width)::real
   (height)::real
+
   )
