@@ -45,11 +45,6 @@
   ::java.util.List
   (java.util.ArrayList))
 
-(define-object (Point x::real y::real color::long)::Layer
-  (define (render!)
-    (painter:draw-point! x y color))
-  (IgnoreInput))
-
 (define-object (Overlay)::Pane
   (define layers ::($bracket-apply$ List Layer)
     (($bracket-apply$ ArrayList Layer)))
