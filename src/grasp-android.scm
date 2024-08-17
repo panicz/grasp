@@ -24,7 +24,9 @@
 (import (editor interfaces delayed))
 
 (import (editor input transforms))
-(import (editor input pane))
+(import (editor input screen))
+(import (editor input splits))
+(import (editor input document-editor))
 (import (editor types primitive))
 (import (editor types spaces))
 
@@ -46,6 +48,7 @@
 (import (editor types texts))
 (import (editor input evaluation))
 (import (editor input gestures))
+
 
 (define-alias BlockingQueue java.util.concurrent.BlockingQueue)
 (define-alias ArrayBlockingQueue
@@ -1738,7 +1741,7 @@
   (define scheme ::gnu.expr.Language #!null)
 
   (define save-state ::procedure (lambda () (values)))
-
+  
   (define (onPause)::void
     (invoke-special AndroidActivity (this) 'onPause)
     (save-state))
@@ -1746,6 +1749,7 @@
   (define (onCreate savedState::Bundle)::void
     (invoke-special AndroidActivity (this) 'onCreate
 		    savedState)
+
     (set! (default-transform) (lambda () (Isogonal)))
     (set! (current-message-handler) (ScreenLogger 100))
     
@@ -1755,7 +1759,7 @@
     (set! env (scheme:getEnvironment))
     (kawa.standard.Scheme:loadClass "kawa.lib.kawa.base" env)    
     (gnu.mapping.Environment:setCurrent env)
-
+    
     (let* ((window ::AndroidWindow (invoke-special
 				    AndroidActivity
 				    (this) 'getWindow))
@@ -1942,7 +1946,7 @@
 	  (gnu.kawa.io.InPort
 	   (java.io.InputStreamReader
 	    (assets:open filename)))))
-
+      
       (let-syntax ((export (syntax-rules ()
 			     ((_ identifier ...)
 			      (begin
@@ -1989,6 +1993,7 @@
 			   (import (language examples))
 			   (import (language for))
 			   (import (editor interfaces painting))
+			   (import (editor interfaces elements))
 			   (set-painter! the-view))
 	(safely
 	 (eval expression)))

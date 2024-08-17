@@ -5,7 +5,7 @@
 (import (language match))
 (import (language infix))
 (import (language assert))
-(import (editor input pane))
+(import (editor interfaces elements))
 (import (editor input input))
 (import (utils functions))
 (import (editor interfaces delayed))

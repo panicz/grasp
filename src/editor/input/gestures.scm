@@ -18,7 +18,8 @@
 (import (editor interfaces elements))
 (import (editor types primitive))
 (import (editor types extensions extensions))
-(import (editor input pane))
+(import (editor input screen))
+(import (editor input document-editor))
 (import (editor input evaluation))
 (import (editor types extensions visual-stepper))
 
@@ -96,7 +97,7 @@
   (Recognizer
    name: "horizontal-line"
    recognizes:
-   (lambda (points::(sequence-of Position) screen::ResizableEmbeddable)
+   (lambda (points::(sequence-of Position) screen::Screen)
      (let* ((vicinity ::real
 		      (painter:line-simplification-resolution))
 	    (simplified ::java.util.List
@@ -113,15 +114,16 @@
    action:
    (lambda (own::Recognizer
 	    points::(sequence-of Position)
-	    line::Area
-	    screen::ResizableEmbeddable)
+	    screen::Screen
+	    line::Area)
+     (WARN "splitting by "own:name)
      (screen:split-below! line))))
 
 (define-early-constant split-pane-by-vertical-line
   (Recognizer
    name: "vertical-line"
    recognizes:
-   (lambda (points::(sequence-of Position) screen::ResizableEmbeddable)
+   (lambda (points::(sequence-of Position) screen::Screen)
      (let* ((vicinity ::real
 		      (painter:line-simplification-resolution))
 	    (simplified ::java.util.List
@@ -138,15 +140,15 @@
    action:
    (lambda (own::Recognizer
 	    points::(sequence-of Position)
-	    line::Area
-	    screen::ResizableEmbeddable)
+	    screen::Screen
+	    line::Area)
      (screen:split-beside! line))))
 
 (define-early-constant evaluate-expression-by-wedge ::Recognizer
   (Recognizer
    name: "eval"
    recognizes:
-   (lambda (points ::(sequence-of Position) screen::ResizableEmbeddable)
+   (lambda (points ::(sequence-of Position) screen::Screen)
      (and-let* ((vicinity ::real
 			  (painter:line-simplification-resolution))
 		(simplified ::java.util.List
@@ -181,7 +183,7 @@
    action:
    (lambda (self::Recognizer
 	    points::(sequence-of Position)
+	    screen::Screen
 	    cursor
-	    document
-	    screen::ResizableEmbeddable)
+	    document)
      (evaluate-expression! at: cursor in: document))))

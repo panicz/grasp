@@ -28,7 +28,9 @@
 (import (editor types extensions extensions))
 (import (editor interfaces painting))
 (import (editor document editor-operations))
-(import (editor input pane))
+(import (editor input splits))
+(import (editor input document-editor))
+(import (editor input screen))
 (import (editor document parse))
 (import (editor document documents))
 (import (editor document cursor))
@@ -42,6 +44,8 @@
 (import (editor types spaces))
 (import (editor document copy-paste))
 (import (editor types extensions combinators))
+
+(import (extra tile-board))
 
 (define-syntax $lookup$
   (syntax-rules ()
@@ -176,10 +180,10 @@
    (display "exitting?\n")
    (flush-output-port)))
 
-(slot-set! screen 'after-tap
-	   (cons (lambda _
-		   (show-keyboard!))
-		 (slot-ref screen 'after-tap)))
+(invoke screen
+ 'after-tap
+ (lambda _
+   (show-keyboard!)))
 
 (screen:set-content!
  (DocumentEditor
