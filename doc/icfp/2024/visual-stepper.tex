@@ -39,7 +39,7 @@
 \newunicodechar{◀}{$\triangleleft$}
 \newunicodechar{▶}{$\triangleright$}
 \newunicodechar{▮}{\hspace{0.6pt}|\hspace{0.6pt}}
-\author{Anonymized for Review}
+\author{Panicz Maciej Godek}
 \date{\today}
 
 \setcopyright{acmcopyright}
@@ -54,7 +54,7 @@
 \title{An Implementation of a Visual Stepper in the GRASP Programming System}
 
 \hypersetup{
- pdfauthor={Anonymized for Review},
+ pdfauthor={Panicz Maciej Godek},
  pdftitle={An Implementation of a Visual Stepper in the GRASP programming system},
  pdfkeywords={},
  pdfsubject={},
@@ -124,7 +124,7 @@ structural editing}
 
 \section{Introduction}
 
-GRASP\cite{Godek2023} is a nascent graphical development environment
+GRASP \cite{Godek2023} is a nascent graphical development environment
 for the Scheme programming language, consisting of a structural editor
 for S-expressions, as well as an extension mechanism, which allows to
 display various forms of data in an arbitrary visual way.
@@ -192,7 +192,7 @@ such as
 
 and then either "enchanting" the expression (by pressing the
 \textit{tab} key with the text cursor positioned on either opening
-on closing parenthesis of the outermost expression),
+or closing parenthesis of the outermost expression),
 or evaluating it (by pressing \textit{ctrl+e}).
 
 The result will be displayed roughly like this:
@@ -230,11 +230,11 @@ corresponding stepper will look something like this:
 If the "!" symbol is bound to the factorial function as defined on the
 first picture, then pressing the ▶ or ▶▮ buttons will cause the
 expression to be reduced by means of the substitution model of
-procedure evaluation\cite{SICP}.
+procedure evaluation \cite{SICP}.
 
 In this regard, the visual stepper in GRASP is similar to the stepper
 available for the Beginner Student Language in the Dr Racket
-programming environment\cite{Clements}.
+programming environment \cite{Clements}.
 
 What makes the stepper in GRASP different, is first that it uses the
 representation of s-expressions as nested boxes, rather than text, and
@@ -244,7 +244,7 @@ into the body of the factorial function, the "5" will triple itself,
 and each of its occurrences will slide into the positions of the
 occurrences of "n" in the body of the definition of factorial.
 
-Eventually, we will get a something that looks like this:
+Eventually, we will get something that looks like this:
 
 \begin{Snippet}
 ╔═══════════════════════════════════╗
@@ -296,7 +296,8 @@ this paper.}
 \section{The simplified model of reduction}
 
 Computationally, visual stepper in GRASP is currently based on an
-implementation of a small-step evaluator of extended lambda-calculus.
+implementation of a small-step evaluator of an extended
+lambda-calculus.
 
 It uses a wrapper around Java's hash tables to represent
 environments (herein called \texttt{Evalu\-ation\-Con\-text}s):
@@ -487,7 +488,7 @@ and the \texttt{lambda} operator (which can shadow some of the free variables):
 
 Picking a counterpart of a variable given a list of variables and
 values requires going through both lists simultaneously, until we run
-into the variable that we're looking for. (We also want to handle
+into the variable that we're looking for (we also want to handle
 dotted lists properly):
 
 \begin{Snippet}
@@ -1464,7 +1465,7 @@ look slick and impressive, the only impression that one can get from
 actually trying to use it beyond toy examples, is irritation.
 
 While GRASP was first demoed during the Scheme workshop in
-2021\cite{Godek2021}, and its author has certainly made a lot of
+2021 \cite{Godek2021}, and its author has certainly made a lot of
 progress (including rewriting the editor from Java to Scheme, and
 making it work on platforms other than Android), it still gives an
 impression of a work-in-progress, rather than a well-polished project.
@@ -1475,19 +1476,19 @@ The name ``GRASP'' doesn't seem to be particularly original in the
 realm of software development tools. In the context of Scheme, the
 name ``GRASP'' has been used by Franklyn Turbak in his 1986 master
 thesis titled \textit{GRASP: A Visible and Manipulable Model for
-  Procedural Programs}\cite{Turbak}. In the context of Java, there
+  Procedural Programs} \cite{Turbak}. In the context of Java, there
 exists a project called \textit{jGRASP}, which is \textit{a
   lightweight development environment, created specifically to provide
   automatic generation of software visualizations to improve the
-  comprehensibility of software}\cite{jGRASP}.
+  comprehensibility of software} \cite{jGRASP}.
 
 While the descriptions of both these works may sound like they are
 having similar goals to the project described in this paper, they are
 not related in any direct way.
 
 In some ways, GRASP is reminiscent of Andrea diSessa's Boxer
-project\cite{Boxer}, which describes a new computational medium, as
-well as Bochser\cite{Bochser}, which is a Boxer spin-off built around
+project \cite{Boxer}, which describes a new computational medium, as
+well as Bochser \cite{Bochser}, which is a Boxer spin-off built around
 the Scheme programming language.
 
 The extension capabilities of GRASP are similar to the ones that can
@@ -1495,11 +1496,11 @@ be found in Hazel\footnote{\url{https://hazel.org}},
 Polytope\footnote{\url{https://elliot.website/editor/}} and
 Interactive Visual Syntax (as implemented for the Dr Racket
 programming environment and a ClojureScript online IDE
-\url{https://visr.pl})\cite{Andersen}.
+\url{https://visr.pl}) \cite{Andersen}.
 
 The work that is closest to GRASP's visual stepper is probably the
 algebraic stepper that can be found in the dr Racket programming
-environment\cite{Clements}. However, the latter uses a very different
+environment \cite{Clements}. However, the latter uses a very different
 implementation technique, based on the notion of \textit{continuation
   marks}, while the stepper in GRASP is currently based on a
 substitution-based evaluator, reminescent of the ones that can be
@@ -1509,12 +1510,12 @@ found in \cite{Maritime}, \cite{Meyer} or \cite{Pedersen}.
 
 \textit{Left out for the review process}
 
-%% The author would like to express his gratitude to Pawel Pawlowski for
-%% reviewing the first draft of this paper, and to countless souls on the
-%% Internet for their spiritual support, including Scislaw Dercz,
-%% Amirouche Bobekki, Andrew Blinn, Kartik Agaram, Oleksandr Kryvonos,
-%% Jonas Winje, Jack Rusher, Tony Garnock-Jones, and the whole
-%% \textit{Future of Coding} community.
+The author would like to express his gratitude to Pawel Pawlowski for
+reviewing the first draft of this paper, and to countless souls on the
+Internet for their spiritual support, including Scislaw Dercz,
+Amirouche Bobekki, Andrew Blinn, Kartik Agaram, Oleksandr Kryvonos,
+Jonas Winje, Jack Rusher, Tony Garnock-Jones, and the whole
+\textit{Future of Coding} community.
 
 \begin{thebibliography}{12}
 
