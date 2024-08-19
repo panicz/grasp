@@ -1,3 +1,73 @@
+* 14.07.2024
+
+wszystko sie tu udalo jak na razie.
+
+jeszcze nastepujace rzeczy nam pozostaja:
+- znalezc miejsce dla the-recognizers
+- wyodrebnic modul (editor input file-browsers)
+- a co za tym idzie, stworzyc pod-interfejs dla
+  DocumentEditor
+
+to zacznijmy moze od wypisania wsxystkich metod
+z klasy Editor uzywanych przez przegladarki plikow
+
+to jest zasadniczo load-file oraz pole document
+
+* 13.07.2024
+
+wczoraj udalo sie wyodrebnic modul, tyle ze problem z nim jest
+taki, ze nie dziala.
+
+wiec dzisiaj trzeba zrobic tak, zeby dzialalo.
+
+no to teraz dziala. Dalsze kroki to:
+- przemianowac (editor input pane) na (editor input screen)
+- z powrotem scalic (editor input overlays) do moddulu screen
+- z modulu (editor input document-editor) sprobowac wyodrebnic
+  (editor input pop-ups)
+
+* 12.07.2024
+
+to co teraz? chyba bedziemy kontynuowac dzielo rozbijania
+(editor input pane)
+
+to mamy wyestrahowany interfejs Screen. I teraz bysmy sprobowali
+zrobic tak, zeby przeniesc zmienna screen do
+(editor interfaces elements)
+
+no ale to sie niestety nie uda, bo android jest zbyt kaprysny
+
+dlatego na razie sprobujemy wyodrebnic modul (editor input splits).
+
+* 11.07.2024
+
+No dobra, to plan na ten tydzien jest taki, zeby:
+- uczynic Screen interfejsem
+- przemianowac aktualny Screen na ActualScreen
+- rozbic modul (editor input pane) na mniejsze
+
+Jak to skonczymy, to bysmy sprobowali uporzadkowac
+kwestie otwierania i przelaczania plikow, i kiedy
+to bedziemy mieli, to bysmy zrobili to zapisywanie
+workspace'u.
+
+A jak to bedzie gotowe, to wtedy tak:
+- scroll bar, autoscroll i auto-resize
+- poprawki w edycji i pozycjonowaniu kursora
+- poprawki w renderowaniu/wymiarowaniu na klientach
+  graficznych
+- poprawki w ewaluatorze (obsluga list)
+- algorytm A* z wizualizacja
+
+A pozniej:
+- wydanie wersji 1.0
+- wyszukiwanie
+- widok projektu (graf zaleznosci)
+- przegladanie historii commitow
+
+Ale gdzies w tym wszystkim musi jeszcze byc edycja GRASPa w GRASPie
+(i to im szybciej tym lepiej)
+
 * 10.07.2024
 
 Na razie udalo sie sprawic, zeby Screen byl Embeddable
