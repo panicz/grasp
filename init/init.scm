@@ -187,9 +187,10 @@
 
 (screen:set-content!
  (DocumentEditor
-  document: (Document (car (with-input-from-port (open-asset "intro.scm")
-			     parse-document))
-			     #!null)))
+  document:
+  (load-document-from-port
+   (open-asset "intro.scm")
+   (java.io.File "intro.scm"))))
 
 (WARN "loaded init.scm")
 
