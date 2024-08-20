@@ -40,6 +40,8 @@
 \newunicodechar{▶}{$\triangleright$}
 \newunicodechar{▮}{\hspace{0.6pt}|\hspace{0.6pt}}
 \author{Panicz Maciej Godek}
+\email{godek.maciek@gmail.com}
+
 \date{\today}
 
 \setcopyright{acmcopyright}
@@ -1525,8 +1527,8 @@ Jonas Winje, Jack Rusher, Tony Garnock-Jones, and the whole
   Second Edition, MIT Press, 1996, ISBN 0-262-01153-0 \\
   \url{https://mitpress.mit.edu/sicp/full-text/book/book.html}
   
-\bibitem{Andersen}
-  Leif Andersen, Michael Ballantyne, and Matthias
+\bibitem{Andersen} 
+ Leif Andersen, Michael Ballantyne, and Matthias
   Felleisen. 2020. \emph{Adding Interactive Visual Syntax to Textual
   Code.} Proc. ACM Program. Lang. 4, OOPSLA, Article 222 (November
   2020), 28 pages. \url{https://doi.org/10.1145/3428290}, \\
@@ -1583,6 +1585,166 @@ Manipulable Model for Procedural Programs}, MIT 1986
   \url{https://cs.wellesley.edu/~fturbak/pubs/turbak-masters-thesis.pdf}
 
 \end{thebibliography}
+
+\appendix
+\section{The Kawa Scheme language and its use in GRASP}
+
+As mentioned in the paper, GRASP is implemented in the Kawa Scheme programming language.
+Kawa is a superset of Scheme, and it extends the core language with:
+\begin{enumerate}
+\item optional (checked) type annotations to variables and procedure return types
+\item the ability to define new Java-style classes
+\item interoperability with the features available on the JVM platform
+\end{enumerate}
+
+\subsection*{Type annotations}
+
+The type annotations are marked with the \texttt{::} symbol. Kawa's
+reader is designed in such a way that it will read two subsequent
+colons as a separate token. Therefore the expression
+\texttt{(call\-/with\-/input\-/string "(a::b)" read)} will evaluate
+to a list of three elements: the symbol \texttt{a}, the symbol
+\texttt{::} and the symbol \texttt{b}.
+
+An example of an annotated function might look like this:
+
+\begin{Snippet}
+  (define (string-length s::string)::integer
+     #| body of the definition omitted |#)
+\end{Snippet}
+
+The expressions in the type position are macro-expanded.
+
+Kawa also provides a DSSSL-style (or Common Lisp-style) syntax for
+defining optional arguments and keyword arguments, which additionally
+allow to annotate types of such arguments.
+
+\subsection*{Class definitions}
+
+Another extension to the reader provided by Kawa is the colon
+syntax. The evaluation of the expression
+\texttt{(call\-/with\-/input\-/string "a:b" read)} produces the list
+\texttt{(\$lookup\$ a (quasiquote b))}, and \texttt{\$lookup\$} is
+defined as a method invocation or a property retrieval.
+
+Kawa provides an interface for defining Java classes in the form of
+the \texttt{define\-/simple\-/class} syntax, which is used in the
+following way:
+
+\begin{Snippet}
+  (define-simple-class <class-name> (<super-classes> ...)
+    <methods-and-properties>
+    ...)
+\end{Snippet}
+
+where a slot definition in its simplest incarnation can have a form
+
+\begin{Snippet}
+  (<slot-name> ::<type> init-value: <value>)
+\end{Snippet}
+
+
+and a method definition has a form
+
+\begin{Snippet}
+  ((<method-name> <arguments>...)::<return-type> . <body>)
+\end{Snippet}
+
+If a method body consists of a single token, \texttt{\#!abstract},
+then it is an abstract method, and a whole class becomes abstract.
+A special method name, \texttt{*init*}, is reserved for defining
+constructors.
+
+\subsection*{GRASP wrappers for defining classes}
+
+Kawa also provides its own object system built on top of
+that of Java, which -- according to the manual -- allows for true
+multiple inheritance, and is available through the
+\texttt{define\-/class} form. However, this system is never used in
+GRASP, which instead defines its own macros that wrap the
+\texttt{define\-/simple\-/class} form around.
+
+\subsubsection*{\texttt{\textbf{define-type}}} \ \\
+
+The first such macro is \texttt{define\-/type} defined in the
+\texttt{(language define\-/type)} module. It allows to define records
+of form
+
+\begin{Snippet}
+  (define-type (TypeName field1: type1 
+                         field2: type2 := initial-value))
+\end{Snippet}
+
+The record fields can be accessed using the colon notation, as in
+
+\begin{Snippet}
+  (define instance ::TypeName
+    (TypeName field1: value1
+              field2: value2))
+
+  instance:field1 ; should return value1
+\end{Snippet}
+
+The \texttt{(language match)} module also contains the definition
+of a \texttt{match} form that allows to pattern-match against records:
+
+\begin{Snippet}
+  (match instance
+    ((TypeName field1: ,particular-value
+               field2: any-value)
+     ;; if instance has type TypeName, and its field1's value is
+     ;; match/equal? to particular-value, the any-value identifier will
+     ;; be bound to instance's field2 value in here
+     ...)
+    ...)          
+\end{Snippet}
+
+The records can additionally extend existing classes and implement
+interface methods.
+
+\subsubsection*{\texttt{\textbf{define-interface}}} \ \\
+
+The \texttt{(language define\-/interface)} module defines a macro called
+\texttt{define\-/interface}, which is used as
+
+\begin{Snippet}
+  (define-interface InterfaceName (SuperInterfaces ...)
+    (method1-name args ...)::return-type1
+    (method2-name other-args ...)::return-type2
+    ...)
+\end{Snippet}
+
+Note that the last ellipsis is meant to generalize over triples, so
+its semantics does not conform to that of the \texttt{syntax\-/rules}
+pattern language.
+
+\subsubsection*{\texttt{\textbf{define-object}}} \ \\
+
+The third wrapper around \texttt{define\-/simple\-/class} is called
+\texttt{define\-/object}, and is used as
+
+\begin{Snippet}
+  (define-object (ObjectName constructor-args...)::ImplementedInterface
+  
+    (define (method args ...)::return-type (body ...))
+  
+    (define property ::type init-expression)
+  
+    (SuperClass optional-constructor-args ...)
+
+    initialization-code ...)
+\end{Snippet}
+
+This syntax imposes the following limitations on the way in which
+the \texttt{define\-/object} system can be used:
+\begin{itemize}
+\item it only allows for a single constructor
+\item it only allows for a single super-class constructor call
+\item it only allows a class to implement a single interface
+\end{itemize}
+
+If we need to have a class that implements more than one interface,
+an interface aggregate needs to be created first.
 
 
 \end{document}
