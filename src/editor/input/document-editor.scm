@@ -244,10 +244,13 @@
          (popup (PopUp content: content))
 	 (outer ::Extent (extent+ popup))
 	 (available ::Extent (screen:extent))
-	 (button-size ::Extent (extent+ button)))
-    (set! browser:width (- browser:width
-                           (max 0 (- outer:width
-			             available:width))))
+	 (button-size ::Extent (extent+ button))
+	 (min-width ::real (+ (* 7 (painter:space-width))
+			      button-size:width)))
+    (set! browser:width (max min-width
+			     (- browser:width
+				(max 0 (- outer:width
+					  available:width)))))
     (set! browser:height (- browser:height
                             (max 0 (- outer:height
 				      (- upper:height)

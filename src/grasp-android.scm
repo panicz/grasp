@@ -304,13 +304,13 @@
   (define the-cursor-extent ::(parameter-of Extent)
     (make-parameter (Extent width: 2 height: 32)))
 
-  (define parenthesis-color ::(parameter-of long)
+  (define parenthesis-color ::(parameter-of integer)
     (make-parameter #xffcccccc))
 
-  (define focused-parenthesis-color ::(parameter-of long)
+  (define focused-parenthesis-color ::(parameter-of integer)
     (make-parameter #xff555555))
 
-  (define matching-parenthesis-color ::(parameter-of long)
+  (define matching-parenthesis-color ::(parameter-of integer)
     (make-parameter #xff888888))
 
   (define top-left-paren ::Path2D
@@ -665,11 +665,9 @@
      (action)
      (canvas:scale (/ horizontal) (/ vertical))))
   
-  (define (horizontal-split-height)::real
-    30)
+  (define (horizontal-split-height)::real 30)
 
-  (define (vertical-split-width)::real
-    30)
+  (define (vertical-split-width)::real 30)
 
   (define text-color ::long #xff555555)
 
@@ -684,16 +682,17 @@
        (action)
        (set! intensity previous))))
   
-  (define (set-color! c::long)::void
-    (let* ((RGB ::long (bitwise-and c #xffffff))
-	   (a ::long (bitwise-and #xff
-				  (bitwise-arithmetic-shift
-				    c -24)))
-				  
-	   (a* ::long (clamp 0 (nearby-int (* intensity a)) 255))
-	   (c* ::long (bitwise-ior RGB
+  (define (set-color! c::integer)::void
+    (let* ((c ::ulong (as ulong c))
+	   (RGB ::ulong (bitwise-and c #xffffff))
+	   (a ::ulong (bitwise-and #xff
 				   (bitwise-arithmetic-shift
-				    a* 24))))
+				    c -24)))
+	   
+	   (a* ::ulong (clamp 0 (nearby-int (* intensity a)) 255))
+	   (c* ::ulong (bitwise-ior RGB
+				    (bitwise-arithmetic-shift
+				     a* 24))))
       (paint:setColor c*)))
   
   (define (draw-horizontal-split! top::real)::void
@@ -814,11 +813,9 @@
   (define (request-redraw!)::void
     (invalidate))
   
-  (define (vertical-bar-width)::real
-    10)
+  (define (vertical-bar-width)::real 10)
 
-  (define (horizontal-bar-height)::real
-    10)
+  (define (horizontal-bar-height)::real 10)
 
   (define (draw-horizontal-bar! width::real
 				highlighted?::boolean)
@@ -1820,7 +1817,7 @@
 				p (Named thing: uri
 					 name: name))))
 			(c:close))))))))))
-    (set! (open-file) external-open-file)
+    #;(set! (open-file) external-open-file)
     (set! external-save-file
 	  (lambda (finger::byte editor::DocumentEditor)
 	    (lambda _

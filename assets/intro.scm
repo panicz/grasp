@@ -31,11 +31,12 @@ here is a string, which - unlike comments
 - can be passed to functions and bound to
 variables."
 
-#|You can navigate around the code by using keyboard
-arrows and page-up/page-down keys. The whole
-document is editable in a straightforward manner.
-In particular, you can use ctrl+x for cutting
-the expression to a clipboard, ctrl+v for pasting it,
+#|You can navigate around the code by using
+keyboard arrows and page-up/page-down keys.
+The whole document is editable
+in a straightforward manner. In particular,
+you can use ctrl+x for cutting the expression
+to a clipboard, ctrl+v for pasting it,
 ctrl+z for undo etc.
 
 Note that all keyboard shortcuts are customizable,

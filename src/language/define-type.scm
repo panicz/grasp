@@ -70,7 +70,7 @@
   )
 
 (define-simple-class Base (Struct)
-  ((typename)::String #!abstract)
+  ((typename)::String "Base")
   ((fields->string)::String "")
   ((toString)::String
    (string-append "["(typename) (fields->string)"]"))

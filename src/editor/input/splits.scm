@@ -23,6 +23,10 @@
 
 (define-enum SplitFocus (First Last))
 
+(define-parameter (the-split-context)
+  ::(list-of SplitFocus)
+  '())
+
 (define-parameter (the-split-path)
   ::(list-of SplitFocus)
   '())
@@ -86,16 +90,16 @@
 	     (lambda ()
 	       (with-pane-size last-size
 		 (lambda ()
-		   (parameterize ((the-split-path (recons
-						   SplitFocus:Last
-						   (the-split-path))))
+		   (parameterize ((the-split-context
+				   (recons SplitFocus:Last
+					   (the-split-context))))
 		     (with-clip ((the-pane-width) (the-pane-height))
 		       (last:render!))))))))))
      (with-pane-size first-size
        (lambda ()
-	 (parameterize ((the-split-path (recons
-					 SplitFocus:First
-					 (the-split-path))))
+	 (parameterize ((the-split-context
+			 (recons SplitFocus:First
+				 (the-split-context))))
 	   (with-clip ((the-pane-width) (the-pane-height))
 	     (first:render!)))))))
 
@@ -103,20 +107,22 @@
    (let-values (((first-size line-size last-size) (part-sizes))
 		((pos) (varying-dimension x y)))
      (cond ((is pos < first-size)
+	    (set! focus SplitFocus:First)
 	    (with-pane-size first-size
 	      (lambda ()
-		(parameterize ((the-split-path (recons
-						SplitFocus:First
-						(the-split-path))))
+		(parameterize ((the-split-context
+				(recons SplitFocus:First
+					(the-split-context))))
 		  (action first x y)))))
 	   ((is (+ first-size line-size) < pos)
 	    (set-translation! (+ first-size line-size))
+	    (set! focus SplitFocus:Last)
 	    (with-post-transform translation
 	      (with-pane-size last-size
 		(lambda ()
-		  (parameterize ((the-split-path (recons
-						  SplitFocus:Last
-						  (the-split-path))))
+		  (parameterize ((the-split-context
+				  (recons SplitFocus:Last
+					  (the-split-context))))
 		    (let-values (((x* y*) (transformed-dimension
 					   x y (+ first-size
 						  line-size))))
@@ -136,9 +142,9 @@
        (,SplitFocus:First
 	(with-pane-size first-size
 	  (lambda ()
-	    (parameterize ((the-split-path (recons
-					    SplitFocus:First
-					    (the-split-path))))
+	    (parameterize ((the-split-context
+			    (recons SplitFocus:First
+				    (the-split-context))))
 	      (first:key-typed! key-code
 				(recons SplitFocus:First
 					context))))))
@@ -147,9 +153,10 @@
 	(with-post-transform translation
 	  (with-pane-size last-size
 	    (lambda ()
-	      (parameterize ((the-split-path (recons
-					      SplitFocus:Last
-					      (the-split-path))))
+	      (parameterize ((the-split-context
+			      (recons
+			       SplitFocus:Last
+			       (the-split-context))))
 		(last:key-typed! key-code
 				 (recons SplitFocus:Last
 					 context))))))))))
@@ -184,7 +191,7 @@
 	      x y
 	      (lambda (self::Embeddable x::real y::real)
 		(screen:drag! finger (ResizeSplitAt
-				      (the-split-path)))
+				      (the-split-context)))
 		#t)))
 
   ((second-press! finger::byte #;at x::real y::real)::boolean
