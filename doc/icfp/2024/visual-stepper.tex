@@ -1,14 +1,14 @@
 % Created 2024-07-05 Fri 00:12
 % Intended LaTeX compiler: pdflatex
-\documentclass[acmsmall]{acmart}
+\documentclass[acmsmall,nonacm]{acmart}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage{graphicx}
-\usepackage{grffile}
-\usepackage{longtable}
-\usepackage{wrapfig}
-\usepackage{rotating}
-\usepackage[normalem]{ulem}
+%\usepackage{graphicx}
+%\usepackage{grffile}
+%\usepackage{longtable}
+%\usepackage{wrapfig}
+%\usepackage{rotating}
+%\usepackage[normalem]{ulem}
 \usepackage{amsmath}
 \usepackage{textcomp}
 \usepackage{capt-of}
@@ -21,7 +21,7 @@
 \usepackage{fancyvrb}
 \usepackage[shortcuts]{extdash}
 
-\newenvironment{Snippet}{\Verbatim[samepage=true]}{\endVerbatim}
+\newenvironment{Snippet}{\Verbatim[samepage=true,fontsize=\small]}{\endVerbatim}
 
 \DefineVerbatimEnvironment{verbatim}{Verbatim}{samepage=true}
 \newunicodechar{─}{\textSFx}
@@ -49,7 +49,7 @@
 \acmYear{2024}
 
 
-\acmConference[ICFP'24]{the 24th Scheme Workshop}{September 7 2024}{Milan, Italy}
+\acmConference[Scheme'24]{the 24th Scheme Workshop}{September 7 2024}{Milan, Italy}
 
 \setcopyright{rightsretained}
 
@@ -63,7 +63,7 @@
  pdfcreator={Emacs 27.1 (Org mode 9.3)}, 
  pdflang={English}}
 \begin{document}
-
+\pagenumbering{gobble}
 % \tableofcontents
 
 \begin{abstract}
@@ -1510,8 +1510,6 @@ found in \cite{Maritime}, \cite{Meyer} or \cite{Pedersen}.
 
 \section*{Acknowledgements}
 
-\textit{Left out for the review process}
-
 The author would like to express his gratitude to Pawel Pawlowski for
 reviewing the first draft of this paper, and to countless souls on the
 Internet for their spiritual support, including Scislaw Dercz,
@@ -1553,7 +1551,7 @@ Jonas Winje, Jack Rusher, Tony Garnock-Jones, and the whole
   
 \bibitem{Godek2021} Panicz Maciej Godek, \emph{GRASP: A GRAphical
 Scheme Programming environment (lightning talk)}, Scheme Workshop,
-  ICFP 2021, \url{https://www.youtube.com/watch?v=FlOghAlCDA4}
+  2021, \url{https://www.youtube.com/watch?v=FlOghAlCDA4}
 
 \bibitem{Godek2023} Panicz Maciej Godek. 2023. GRASP: An Extensible
   Tactile Interface for Editing S-expressions. In Proceedings of the
