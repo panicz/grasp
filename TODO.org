@@ -1,17 +1,125 @@
+
+* 21.07.2024
+
+sprobowalibysmy moze poprawic obsluge klawiatury w taki sposob,
+zeby tapniecie na splita powodowalo poprawna aktualizacje
+=the-split-path=
+
+No to aktualnie rzecz wyglada tak, ze the-split-path jest
+przekazywane w instrukcjach render i key-typed poszczegolnych
+splitow, i to chyba zasadniczo niepotrzebnie.
+
+A moze potrzebnie?
+
+Moze powinnismy przemianowac the-split-path na the-split-context?
+
+No dobra, niewazne juz XD
+
+To bysmy sie z powrotem zajeli nawigacja z klawiatury w menu.
+i moze jeszcze tym, zeby sie to menu pokazywalo w odpowiednim
+miejscu.
+
+i moze jeszcze tez zeby menu bylo przywiazane do dokumentu
+(splita), a nie do ekranu?
+
+Ech. Tyle jeszcze do zrobienia...
+
+No ale na jutro commity juz mamy, i na piatek tez.
+Stad propozycja jest taka, zeby:
+- na razie sie skupic na algorytmie A*
+- w kolejnym tygodniu - niezaleznie od wynikow - robimy tak:
+  - nawigacja klawiatura po menu
+  - przycisk close
+  - zapisywanie i odtwarzanie workspace'ow
+
+* 20.07.2024
+
+no to co chcemy:
+1. przy (niemalze?) zamykaniu edytora zapisywac workspace
+2. przy otwieraniu edytora (probowac) ladowac workspace
+3. otwierac plik scratch.scm (automatycznie zapisywany)
+4. na androidzie chcemy moc przelaczac miedzy internal
+   i external storage
+5. zrobmy chociaz to, zeby pole tekstowe mialo minimalna
+   szerokosc
+
+przynajmniej to ostatnie jakos sie udalo.
+No ale teraz tak: przede wszystkim nawigacja kursorem
+i klawisz backspace w polu tekstowym nie dzialaja na Androidzie.
+
+Czy dzialaja w innych klientach - tego nie wiemy.
+
+Ponadto: chcielibysmy miec jakas nawigacje za pomoca strzalek,
+np. tak:
+
+ctrl+spacja otwiera nam menu kontekstowe. Za jego pomoca
+poruszamy sie w gore i w dol. Klawisz "back" albo "escape"
+powoduje zamkniecie okna. Klawisz enter ma takie samo dzialanie,
+jak klikniecie na przycisk.
+
+W menu "save file" mamy klawisz "tab", ktorym mozemy przelaczac
+pomiedzy przyciskiem "save", polem tekstowym oraz lista plikow.
+
+No to tak:
+
+#+BEGIN_SRC scheme
+  (Below top: (Beside left: text-field
+		      right: button)
+	 bottom: browser)
+#+END_SRC
+
+I teraz to albo elementy Beside i Below musza zarzadzac tym,
+w jaki sposob przekazywac input z klawiatury, albo musimy
+stworzyc jakiegos managera, ktory bedzie o tym decydowal.
+
+* 19.07.2024
+
+na razie decyzja jest taka, ze nie wydzielamy przegladarek
+plikow z =(editor input document-editor)= - choc niewykluczone
+ze kiedys w przyszlosci to zrobimy
+
+na razie nasze dwa glowne tematy to:
+- aktualizacja artykulu na ICFP
+- zapisywanie i przywracanie workspace'u
+
+Co do artykulu, to warto by bylo napisac dwa appendixy:
+- wprowadzenie do Kawa Scheme
+- wyjasnienie funkcji, ktote nie zostaly zdefiniowane
+
+teraz jednak skupmy sie na workspasie
+
+Zacznijmy od tego, zeby zgromadzic informacje o tym, co i jak
+jest reprezentowane.
+
+Ladowanie dokumentu w pliku =init.scm= wyglada tak:
+
+#+BEGIN_SRC scheme
+(screen:set-content!
+ (DocumentEditor
+  document: (Document
+	     (car (with-input-from-port
+		      (open-asset "intro.scm")
+		    parse-document))
+	     #!null)))
+#+END_SRC
+
+w pliku =(editor document documents)= mamy sobie parametr
+=(open-documents)=
+
 * 14.07.2024
 
 wszystko sie tu udalo jak na razie.
 
 jeszcze nastepujace rzeczy nam pozostaja:
 - znalezc miejsce dla the-recognizers
-- wyodrebnic modul (editor input file-browsers)
+- wyodrebnic modul =(editor input file-browsers)=
 - a co za tym idzie, stworzyc pod-interfejs dla
   DocumentEditor
 
 to zacznijmy moze od wypisania wsxystkich metod
 z klasy Editor uzywanych przez przegladarki plikow
 
-to jest zasadniczo load-file oraz pole document
+to jest zasadniczo =load-file= oraz pole =document=
 
 * 13.07.2024
 
@@ -21,30 +129,30 @@ taki, ze nie dziala.
 wiec dzisiaj trzeba zrobic tak, zeby dzialalo.
 
 no to teraz dziala. Dalsze kroki to:
-- przemianowac (editor input pane) na (editor input screen)
-- z powrotem scalic (editor input overlays) do moddulu screen
-- z modulu (editor input document-editor) sprobowac wyodrebnic
-  (editor input pop-ups)
+- przemianowac =(editor input pane)= na =(editor input screen)=
+- z powrotem scalic =(editor input overlays)= do moddulu screen
+- z modulu =(editor input document-editor)= sprobowac wyodrebnic
+  =(editor input pop-ups)=
 
 * 12.07.2024
 
 to co teraz? chyba bedziemy kontynuowac dzielo rozbijania
-(editor input pane)
+=(editor input pane)=
 
 to mamy wyestrahowany interfejs Screen. I teraz bysmy sprobowali
 zrobic tak, zeby przeniesc zmienna screen do
-(editor interfaces elements)
+=(editor interfaces elements)=
 
 no ale to sie niestety nie uda, bo android jest zbyt kaprysny
 
-dlatego na razie sprobujemy wyodrebnic modul (editor input splits).
+dlatego na razie sprobujemy wyodrebnic modul =(editor input splits)=.
 
 * 11.07.2024
 
 No dobra, to plan na ten tydzien jest taki, zeby:
 - uczynic Screen interfejsem
 - przemianowac aktualny Screen na ActualScreen
-- rozbic modul (editor input pane) na mniejsze
+- rozbic modul =(editor input pane)= na mniejsze
 
 Jak to skonczymy, to bysmy sprobowali uporzadkowac
 kwestie otwierania i przelaczania plikow, i kiedy
@@ -77,16 +185,16 @@ jako argumenr do recognizerow, zeby przeniesc the-recognizers
 do gestures
 
 Ale wyglada na to, ze nie mozemy tego zrobic, bo cos w gestures
-uzywa DocumentEditor.
+uzywa =DocumentEditor=.
 
-To kolejne pytanie: czy mamy szanse wyekstrahowac DocumentEditor
-z (editor input pane)?
+To kolejne pytanie: czy mamy szanse wyekstrahowac =DocumentEditor=
+z =(editor input pane)=?
 (a w drugiej kolejnosci splity)
 
 
-No to ogolnie tak: chcielibysmy uczynic Screen interfejsem
-w (editor interfaces elements), natomiast Screen bysmy przemianowali
-na ActualScreen - czy to dobry pomysl?
+No to ogolnie tak: chcielibysmy uczynic =Screen= interfejsem
+w =(editor interfaces elements)=, natomiast =Screen= bysmy
+przemianowali na =ActualScreen= - czy to dobry pomysl?
 
 Ogolnie wydaje sie umiarkowany.
 
