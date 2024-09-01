@@ -631,6 +631,9 @@
   (HeadTailSeparator)
   (set! width width0))
 
+(define-property+ (horizontal-bar width)
+  (HorizontalBar (as real width)))
+
 (define-object (VerticalBar height0::real)::Tile
 
   (define height :: real 0)
@@ -654,11 +657,8 @@
   (HeadTailSeparator)
   (set! height height0))
 
-(define-cache (horizontal-bar width)
-  (HorizontalBar (as real width)))
-
-(define-cache (vertical-bar height)
-  (VerticalBar (as real height)))
+(define-property+ (vertical-bar height)
+    (VerticalBar (as real height)))
 
 (define-property (head-tail-separator cell)
   head/tail-separator)
@@ -761,3 +761,5 @@
 	     ((and (pair? parent)
 		   (integer? tip))
 	      (part-at (- tip 1) parent)))))))
+
+
