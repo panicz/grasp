@@ -1,5 +1,225 @@
+* 31.08.2024
 
-* 21.07.2024
+teraz to warto sie chyba skupic na rzeczach do warsztatow,
+na przyklad na tym, dlaczego listy nie dzialaja w ewaluatorze
+
+* 27.08.2024
+
+no to teraz kilka zagwozdek:
+- chcemy wyswietlac kod (Link node: ... weight: ...)
+  jako kolko ze strzalka
+- ale wartosc tego wyrazenia po ewaluacji chcemy
+  wyswietlac jako sciezke na grafie
+
+Ponadto chcemy na grafie wyswietlac odwiedzone wezly.
+Co wiecej, przy samym podstawieniu/zmaczowaniu patternu
+chcemy miec animacje tranzycji pomiedzy wezlami z patternu
+a wezlami z grafu/sciezki
+
+🏁
+
+* 26.08.2024
+
+w tym tygodniu skupiamy sie raczej na A*
+
+i mamy tutaj dwa orzechy do zgryzienia:
+- po pierwsze, sam zapis algorytmu
+- po dugie, animacja z jego wykonania
+
+zapis algorytmu wydaje sie prosty: definiujemy jak
+maja wygladac linki i sciezki, zeby moc na ich
+podstawie rysowac patterny
+
+tym, co wymaga uwagi, jest przejscie od zapisu algorytmu
+do animacji jego wykonania
+
+czyli z jednej strony, od rysowania abstrakcyjnych sciezek
+chcemy przejsc do rysowania sciezek na grafie
+- czyli nalezaloby zrobic tak, ze jezeli pole "on"
+  sciezki jest faktycznie grafem, to rysujemy sciezke
+  jako sciezke na grafie?
+
+hmmm
+
+tutaj chodzi o cos takiego, ze mamy jakby dwie supozycje
+uzycia sciezki:
+- jako pattern
+- jako wartosc
+
+no to wyobrazmy sobie, ze mamy juz zakodowany A*
+
+po co sobie wyobrazac? lepiej go narysujmy!
+
+kroki:
+- zaczynamy od sciezki z oszacowaniem +oo zawierajacej
+  tylko start, oraz liste odwiedzonych wierzcholkow zawierajaca
+  tylko start
+- w kazdym kroku:
+  - bierzemy sciezke, ktora aktualnie uwazamy za optymalna
+  - z jej wierzcholka wyliczamy wszystkich sasiadow (ktorych
+    jeszcze nie odwiedzilismy), i na ich podstawie
+    konstruujemy kolejne sciezki
+  - sciezki te 'wmasowujemy' (zgodnie z priorytetem)
+    w istniejace sciezki
+
+#+BEGIN_SRC scheme
+  (define (merge path paths <) ;>
+    (match paths
+      (`(,first . ,remaining)
+       (if (is path < #;> first)
+	   `(,path . ,paths)
+	   `(,first . ,(merge path remaining))))
+      ('()
+       `(,path))))
+
+  (fold-left (lambda (paths new-path)
+	       (merge paths new-path
+		      (is _:estimated-cost < #;> _:estimated-cost)))
+	     remaining-paths
+	     ...)
+#+END_SRC
+
+#+BEGIN_SRC scheme
+
+  (define (optimial-path on: graph ::Graph
+			 from: start ::Node
+			 until: success? ::(maps (Node) to: boolean)
+			 guided-by: estimate ::(maps (Node) to: real))
+
+    (define (walk paths ::(list-of Path)
+		  visited-nodes ::(set-of Node))
+      (match paths
+	(`(,(Path steps: `(,(Link node: tip
+				  weight: w1) . ,remaining-steps)
+		  cost-so-far: c) . ,remaining-paths)
+	 (if (success? tip)
+	     ...
+	     (let* ((links (only (isnt _:node in visited-nodes)
+				 (graph:neighbours-of tip)))
+		    (fronts
+		     (map (lambda ((Link node: node weight: w))
+			    (Path steps:
+				  `(,(Link node: node
+					   weight: w)
+				    ,(Link node: tip
+					   weight: w1)
+				    . ,remaining-steps)
+				  cost-so-far: (+ c w)
+				  estimated-cost:
+				  (+ c w (estimate node))))
+			  links)))
+	       (walk (fold-left (lambda (paths front)
+				  (merge
+				   paths front
+				   (is _:estimated-cost < ;>
+				       _:estimated-cost)))
+				remaining-paths
+				fronts)
+		     (union visited-nodes
+			    (map (lambda ((Link node: n)) n)
+				 links))))))
+	('() #!null)))
+
+    (walk `(,(Path steps: `(,(Link node: start))
+		   estimated-cost: (estimate start)))
+	  `(,start)))
+
+#+END_SRC
+
+no dobra, mamy juz wyobrazenie, ze Link mozna rysowac
+jako
+
+(beside (encircled node:label) (below (boxed weight) left-arrow))
+
+a Path jako
+
+(underbrace
+  (beside (enclouded finish-flag)
+    dotted-left-arrow
+    (underbrace
+      (apply beside steps)
+      cost-so-far))
+   estimated-cost)
+
+* 22-23.08.2024
+
+czy teraz sie chcemy zajac juz tym algorytmem A*?
+(zostal nam wszakze jeszcze commit jutro, i moze moglibysmy
+zrobic do tego czasu cos bardziej przyziemnie pozytecznego?)
+
+#+BEGIN_SRC scheme
+
+  (define-type (Node label: string))
+
+  (define-type (Link weight: real
+		     target: Node))
+
+  (define-type (Graph nodes: (set-of Node)
+		      neighbours-of: (maps (Node) to:
+					   (list-of Link))))
+
+  (define-type (Path steps: (sequence-of Link)
+		     cost-so-far: real
+		     estimated-total-cost: real))
+
+  (define (probably-shorter? a ::Path b ::Path)::boolean
+    (is a:estimated-total-cost < #;> b:estimated-total-cost))
+
+  (define (optimial-path on: graph ::Graph
+			 from: initial-state ::Node
+			 until: success? ::(maps (Node) to: boolean)
+			 guided-by: estimate ::(maps (Node) to: real))
+    ::Path
+
+    (define (walk paths ::(list-of Path)
+		  visited-nodes ::(set-of Node))
+      ::Path
+      (and-let* ((`(,(Path steps: `(,(Link node: tip) . ,_)
+			   cost-so-far: cost-so-far)
+		    . ,remaining-paths) paths)
+		 (`(,current-node . ,_) path))
+	(define (estimate-total-cost `(,node ,weight))
+	  (let* ((total-cost (+ cost-so-far weight))
+		 (estimate (+ total-cost
+			      (remaining-cost-estimate node))))
+	    `(,estimate ,total-cost ,node)))
+
+	(define (update-paths paths `(,estimate
+				      ,alternative-cost
+				      ,node))
+	  (let ((new-path `(,estimate
+			    ,alternative-cost
+			    (,node . ,path))))
+
+	    (match (find (lambda (`(,_ ,_ (,end . ,_)))
+			   (equal? end node))
+			 paths)
+	      (`(,previous-estimate ,established-cost ,_)
+	       (if (is established-cost <= alternative-cost)
+		   paths
+		   (let ((paths (only (lambda (`(,_ ,_ (,end . ,_)))
+					(isnt end equal? node))
+				      paths)))
+		     (merge `(,new-path) paths probably-shorter?))))
+	      (_
+	       (merge `(,new-path) paths probably-shorter?)))))
+
+	(if (success? current-node)
+	    (values (reverse path) cost-so-far)
+	    (let* ((neighbors (weighted-graph current-node))
+		   (new-neighbors (only (lambda (`(,node ,weight))
+					  (isnt node member visited-nodes))
+					neighbors))
+		   (judged-neighbors (map estimate-total-cost new-neighbors))
+		   (paths (fold-left update-paths paths judged-neighbors)))
+	      (walk paths (union `(,current-node)
+				 visited-nodes))))))
+
+    (walk `((+inf.0 0 (,initial-state))) '()))
+
+#+END_SRC
+
+* 21.08.2024
 
 sprobowalibysmy moze poprawic obsluge klawiatury w taki sposob,
 zeby tapniecie na splita powodowalo poprawna aktualizacje
@@ -32,7 +252,7 @@ Stad propozycja jest taka, zeby:
   - przycisk close
   - zapisywanie i odtwarzanie workspace'ow
 
-* 20.07.2024
+* 20.08.2024
 
 no to co chcemy:
 1. przy (niemalze?) zamykaniu edytora zapisywac workspace
@@ -72,7 +292,7 @@ I teraz to albo elementy Beside i Below musza zarzadzac tym,
 w jaki sposob przekazywac input z klawiatury, albo musimy
 stworzyc jakiegos managera, ktory bedzie o tym decydowal.
 
-* 19.07.2024
+* 19.08.2024
 
 na razie decyzja jest taka, ze nie wydzielamy przegladarek
 plikow z =(editor input document-editor)= - choc niewykluczone
@@ -121,7 +341,7 @@ z klasy Editor uzywanych przez przegladarki plikow
 
 to jest zasadniczo =load-file= oraz pole =document=
 
-* 13.07.2024
+* 13.08.2024
 
 wczoraj udalo sie wyodrebnic modul, tyle ze problem z nim jest
 taki, ze nie dziala.
@@ -134,7 +354,7 @@ no to teraz dziala. Dalsze kroki to:
 - z modulu =(editor input document-editor)= sprobowac wyodrebnic
   =(editor input pop-ups)=
 
-* 12.07.2024
+* 12.08.2024
 
 to co teraz? chyba bedziemy kontynuowac dzielo rozbijania
 =(editor input pane)=
@@ -147,7 +367,7 @@ no ale to sie niestety nie uda, bo android jest zbyt kaprysny
 
 dlatego na razie sprobujemy wyodrebnic modul =(editor input splits)=.
 
-* 11.07.2024
+* 11.08.2024
 
 No dobra, to plan na ten tydzien jest taki, zeby:
 - uczynic Screen interfejsem
@@ -176,7 +396,7 @@ A pozniej:
 Ale gdzies w tym wszystkim musi jeszcze byc edycja GRASPa w GRASPie
 (i to im szybciej tym lepiej)
 
-* 10.07.2024
+* 10.08.2024
 
 Na razie udalo sie sprawic, zeby Screen byl Embeddable
 
@@ -198,7 +418,7 @@ przemianowali na =ActualScreen= - czy to dobry pomysl?
 
 Ogolnie wydaje sie umiarkowany.
 
-* 09.07.2024
+* 09.08.2024
 
 trzeba w jakis sposob zaprojektowac zaleznosci.
 
@@ -215,7 +435,7 @@ Na razie zrobmy tak, zeby
 - dodac dodatkowy argument do Recognizerow
 - przeniesc definicje the-recognizer do (editor input gestures)
 
-* 08.07.2024
+* 08.08.2024
 
 na razie jakos tak doszlo do tego, ze rozbijamy
 =(editor input pane)= na mniejsze moduly, i w zwiazku z tym
@@ -246,7 +466,7 @@ Point, Stroke, Drawing
 I teraz tak: te refaktoryzacje z pewnoscia trzrba zrobic, byc moze
 nawet w takim ksztalcie, ale pomalu
 
-* 07.07.2024
+* 07.08.2024
 
 #+BEGIN_SRC scheme
   (before-possible-exit
@@ -294,7 +514,7 @@ w jeden wiekszy modul, nazwijmy go (language extensions)
 Ale nie, tego na razie nie robmy. Zrobimy to jak zbudujemy sobie
 narzedzie do wizualizacji i scalania modulow,
 
-* 06.07.2024
+* 06.08.2024
 
 dzis bysmy zaczeli od tego, zeby przeniesc zawartosc pliku
 poczatkowego do =assets/intro.scm= i dodac funkcje =open-asset=.
@@ -312,7 +532,7 @@ No ale na razie chcemy sie upewnic, ze:
 - scratch.scm jest niezamykalny
 
 
-* 05.07.2024
+* 05.08.2024
 
 chcemy dodac nowa metode, ale jak sie powinnaa nazywac?
 - before-termination
@@ -338,7 +558,7 @@ Chcielibtsmy tez od razu - i to zawsze - otwierac plik
 =scratch.grasp=, ktorego nie powinno sie dawac zamknac,
 a ktory powinien sie zapisywac zawsze przy zamknieciu
 
-* 04.07.2024
+* 04.08.2024
 
 musimy sie zastanowic nad struktura workspace'u.
 
@@ -357,7 +577,7 @@ Ok. I teraz tak:
 - na Androidzie chcemy zrobic to samo
   tylko w metodzie onStop
 
-* 03.07.2024
+* 03.08.2024
 
 mamy funkcje (application-directory), i teraz bysmy chcieli
 zzrobic cos takiego, zeby przy uruchomieniu sprawdzac czy
@@ -378,7 +598,7 @@ jeszcze miec (projects-directory), w ktorym bysmy trzemali
 repozytoria, i ktore w przypadku androida byloby w external
 storage, a w przypadku GRASP gdzies w katalogu domowym.
 
-* 02.07.2024
+* 02.08.2024
 
 to teraz bysmy sie zajeli modyfikacja pliku init w taki sposob,
 zeby ladowal ostatni workspace
@@ -404,7 +624,7 @@ Ten ostatni dostajemy za pomoca
 
 (java.lang.System:getProperty "user.dir")
 
-* 01.07.2024
+* 01.08.2024
 
 cel nadrzedny na dzisiaj to poprawic generowanie plikow .axml
 w taki sposob, zeby nie bylo roznicy pomiedzy nami a aapt
