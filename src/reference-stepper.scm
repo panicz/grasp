@@ -5,6 +5,7 @@
 (import (language match))
 (import (utils functions))
 (import (language examples))
+(import (utils print))
 
 ;; This is a reference stepper module, from which
 ;; the actual stepper is derived. The difference
@@ -14,6 +15,7 @@
 
 (define (self-evaluating? x)
   (or (and-let* ((`(lambda ,args ,body) x)))
+      (and-let* ((`(quote ,_) x)))
       (and (isnt x list?)
 	   (isnt x pair?)
 	   (isnt x symbol?))))
@@ -34,32 +36,11 @@
       (table:put '= =)
       (table:put 'eq? eq?)		
       (table:put 'eqv? eqv?)
-      (table:put 'cons (lambda args
-			 (match args
-			   (`(',a ',b)
-			    `',(cons a b))
-			   (`(,a ',b)
-			    `',(cons a b))
-			   (`(',a ,b)
-			    `',(cons a b))
-			   (`(,a ,b)
-			    `',(cons a b)))))
-      (table:put 'car (lambda (x)
-			(match x
-			  (`'(,a . ,b)
-			   (if (self-evaluating? a)
-			       a
-			       `',a)))))
-      (table:put 'cdr (lambda (x)
-			(match x
-			  (`'(,a . ,b)
-			   (if (self-evaluating? b)
-			       b
-			       `',b)))))
-      (table:put 'pair? (lambda (x)
-			  (and-let* ((`'(,_ . ,_) x)))))
-      (table:put 'null? (lambda (x)
-			  (and-let* ((`'() x)))))
+      (table:put 'cons cons)
+      (table:put 'car car)
+      (table:put 'cdr cdr)
+      (table:put 'pair? pair?)
+      (table:put 'null? null?)
       table))
 
   (define (value symbol)
@@ -98,6 +79,18 @@
 	 b
 	 (cons (car a) (append (cdr a) b)))))
 
+(define (apply-primitive operator operands)
+  (let* ((operands (map (lambda (arg)
+			  (match arg
+			    (`(quote ,value) value)
+			    (_               arg)))
+			operands))
+	 (result (apply operator operands)))
+    (if (or (pair? result)
+	    (list? result))
+	`(quote ,result)
+	result)))
+
 (define (reduce expression #!optional (context::EvaluationContext
 				       default-context))
   (match expression
@@ -122,8 +115,9 @@
 	       (match operator
 		 (,@symbol?
 		  (cond ((context:primitive? operator)
-			 (apply (context:value operator)
-				operands))
+			 (apply-primitive
+			  (context:value operator)
+			  operands))
 			((context:defines? operator)
 			 (reduce `(,(context:value operator)
 				   . ,operands)
@@ -145,8 +139,9 @@
 	 (context:value expression)
 	 expression))))
 
-(define (reduce-operands operands #!optional (context::EvaluationContext
-			      		      default-context))
+(define (reduce-operands operands
+			 #!optional
+			 (context::EvaluationContext default-context))
   (match operands
     (`(,first . ,rest)
      (let ((first* (reduce first context)))
