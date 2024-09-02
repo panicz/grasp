@@ -1,3 +1,19 @@
+* 01.09.2024
+
+to bysmy zaczeli od reference steppera, tak zeby aplikacja
+funkcji pierwotnej dzialala w taki sposob:
+
+#+BEGIN_SRC scheme
+(map (lambda (arg)
+       (match arg
+         (`(quote ,value) value)
+	 (_               arg)))
+     args)
+#+END_SRC
+
+i zeby wartosc zwracana byla owijana w 'quote', jezeli
+jest lista.
+
 * 31.08.2024
 
 teraz to warto sie chyba skupic na rzeczach do warsztatow,
