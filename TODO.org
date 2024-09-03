@@ -1,3 +1,12 @@
+* 02.09.2024
+
+wczorajsza zmiana w ewaluarorze wydaje sie OK
+(chociaz consowanie lambdy zdaje sie zdeczka
+zepsute bo utozsamiamy (lambda ...) z '(lambda ...)).
+
+
+
+
 * 01.09.2024
 
 to bysmy zaczeli od reference steppera, tak zeby aplikacja
