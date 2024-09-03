@@ -33,7 +33,8 @@
 
 (define (self-evaluating? x)
   (or (and (pair? x)
-	   (match/equal? (car x) 'lambda))
+	   (or (match/equal? (car x) 'lambda)
+	       (match/equal? (car x) 'quote)))
       (and (isnt x list?)
 	   (isnt x pair?)
 	   (if (Atom? x)
@@ -63,37 +64,15 @@
       (add "=" =)
       (add "eq?" eq?)		
       (add "eqv?" eqv?)
-      (add "cons"
-	   (lambda args
-	     (match args
-	       (`(',a ',b)
-		(cons (Atom "quote") (cons a b)))
-	       (`(,a ',b)
-		(cons (Atom "quote") (cons a b)))
-	       (`(',a ,b)
-		(cons (Atom "quote") (cons a b)))
-	       (`(,a ,b)
-		(cons (Atom "quote") (cons a b))))))
-      (add "car"
-	   (lambda (x)
-	     (match x
-	       (`'(,a . ,b)
-		(if (self-evaluating? a)
-		    a
-		    (cons (Atom "quote") a))))))
-      (add "cdr"
-	   (lambda (x)
-	     (match x
-	       (`'(,a . ,b)
-		(if (self-evaluating? b)
-		    b
-		    (cons (Atom "quote") b))))))
-      (add "pair?"
-	   (lambda (x)
-	     (and-let* ((`'(,_ . ,_) x)))))
-      (add "null?"
-	   (lambda (x)
-	     (and-let* ((`'() x)))))
+      (add "cons" pair)
+      (add "car" car)
+      (add "cdr" cdr)
+      (add "pair?" pair? #;(lambda (x)
+		     (and-let* ((`(,_ . ,_) x)))))
+      (add "null?" (lambda (x)
+		     (or (null? x) (EmptyListProxy? x)))
+	   #;(lambda (x)
+	     (and-let* (('() x)))))
       table))
 
   (define (value atom::Atom)
@@ -114,7 +93,8 @@
   (define (primitive? atom::Atom)
     (and (definitions:contains-key atom:name)
 	 (let ((value (definitions:get atom:name)))
-	   (procedure? value))))
+	   (or (procedure? value)
+	       (type? value)))))
   )
 
 (define-parameter (default-context) ::EvaluationContext
@@ -144,10 +124,26 @@
 	(Atom "#false")))
    ((Enchanted? expression)
     expression)
+   ((eq? expression #!null)
+    (Atom "#!null"))
    (else
     (WARN "dont know what to do with "expression)
     (Atom (show->string expression)))))
-  
+
+(define (apply-primitive operator operands)
+  (grasp
+   (parameterize ((cell-access-mode CellAccessMode:Evaluating))
+     (let* ((operands (map (lambda (arg)
+			     (match arg
+			       (`(quote ,value) value)
+			       (_               arg)))
+			   operands))
+	    (result (apply operator operands)))
+       (if (or (pair? result)
+	       (list? result))
+	   `',result
+	   result)))))
+
 (define/kw (evaluate-expression! at: source ::Cursor := (the-cursor)
 				 in: document ::Document := (the-document))
   (let*-values (((terminal stem) (cursor-terminal+stem source

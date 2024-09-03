@@ -184,30 +184,35 @@
 	    top::real := 0
 	    into:
 	    measurements::(!maps (Element) to: Position)
-	    := (property+ (element::Element)::Position
+	    := (property+ (element ::Element)::Position
 			  (Position left: 0 top: 0)))
   ::(maps (Element) to: Position)
+  ;;(WARN "measuring "(expression:getClass)" "expression)
   (let* ((p ::Position (measurements expression))
 	 (paren-width ::real (painter:paren-width)))
     (set! p:left left)
     (set! p:top top)
-    (if (gnu.lists.LList? expression)
-	(traverse
-	 expression
-	 doing:
-	 (lambda (item::Element t::Traversal)
-	   (let ((p ::Position (measurements item)))
-	     (set! p:left (+ t:left left paren-width))
-	     (set! p:top (+ t:top top))
-	     (when (gnu.lists.LList? item)
-	       (measure-positions! item
-				   p:left
-				   p:top
-				   into: measurements))))
-	 returning:
-	 (lambda (t::Traversal)
-	   measurements))
-	measurements)))
+    (if (isnt expression Element?)
+	(begin
+	  (WARN "attempted to measure a non-element: "expression)
+	  measurements)
+	(if (gnu.lists.LList? expression)
+	    (traverse
+	     expression
+	     doing:
+	     (lambda (item::Element t::Traversal)
+	       (let ((p ::Position (measurements item)))
+		 (set! p:left (+ t:left left paren-width))
+		 (set! p:top (+ t:top top))
+		 (when (gnu.lists.LList? item)
+		   (measure-positions! item
+				       p:left
+				       p:top
+				       into: measurements))))
+	     returning:
+	     (lambda (t::Traversal)
+	       measurements))
+	    measurements))))
 
 (define-object (Morph initial::Tile
 		      final::Tile
@@ -243,7 +248,7 @@
 	       (Position left: 0 top: 0)))
 
   (define (draw! context::Cursor)::void
-    (cond ((is progress <= 0.5) ;>
+    (cond ((is progress <= 0.5)
 	   (draw-tween! final origin
 			final-position
 			initial-position
@@ -268,10 +273,10 @@
 (define (reduce expression
 		#!optional
 		(origin::(!maps (Element) to: (list-of Element))
-			 (property (e::Element)::(list-of Element)
+			 (property (e)::(list-of Element)
 				   (recons e '())))
 		(progeny::(!maps (Element) to: (list-of Element))
-			  (property (e::Element)::(list-of Element)
+			  (property (e)::(list-of Element)
 				    (recons e '())))
 		#!key
 		(context::EvaluationContext (default-context)))
@@ -332,8 +337,9 @@
        (let*-values (((variables* values*) (only. (isnt _ in. args)
 						  variables values))
 		     ((result) (cons* (car expression) args
-				      (substitute variables* #;with values*
-						  #;in body))))
+				      (substitute variables*
+						  #;with values*
+							 #;in body))))
 	 (copy-properties cell-display-properties
 			  (cdr expression) (cdr result))
 	 (copy-properties cell-display-properties
@@ -381,10 +387,12 @@
 	 (if (match/equal? first first*)
 	     (let ((result (cons first (reduce-operands rest))))
 	       (mark-origin! result operands)
-	       (copy-properties cell-display-properties operands result))
+	       (copy-properties cell-display-properties
+				operands result))
 	     (let ((result (cons first* rest)))
 	       (mark-origin! result operands)
-	       (copy-properties cell-display-properties operands result)))))
+	       (copy-properties cell-display-properties
+				operands result)))))
       (`()
        operands)
       (_
@@ -439,7 +447,8 @@
 		(let ((result (cons* if* test* then else '())))
 		  (mark-origin! result expression)
 		  (mark-origin! test* test)
-		  (copy-properties* cell-display-properties expression result)
+		  (copy-properties* cell-display-properties
+				    expression result)
 		  result)))))
       (`(lambda ,args ,body)
        expression)
@@ -456,33 +465,52 @@
 		   (mark-origin! operator* operator)
 		   (mark-origin! operands* operands)
 		   (mark-origin! result expression)
-		   (copy-properties cell-display-properties expression
+		   (copy-properties cell-display-properties
+				    expression
 				    result))
 		 (match operator
-		   (,@Atom?		    
-		    (cond ((context:primitive? operator)
-			   (let* ((result
-				   (grasp
-				    (parameterize ((cell-access-mode
-						    CellAccessMode:Evaluating))
-				      (apply (context:value operator)
-					     (map (lambda (x) x) operands))))))
-			     (mark-origin! result expression)
+		   (atom::Atom
+		    (cond
+		     ((context:primitive? operator)
+		      (let* ((result
+			      (apply-primitive
+			       (context:value operator)
+			       operands)))
+			(mark-origin! result expression)
+			(and-let* ((`(car (quote (,a . ,b)))
+				    expression))
+			  (mark-origin! result a))
+
+			(and-let* ((`(cdr (quote (,a . ,b)))
+				    expression)
+				   (`(quote ,b*) result))
+			  (mark-origin! b* b)
+			  (mark-origin! (car result)
+					(caadr expression)))
+
+			(and-let* ((`(cons ,a ',b) expression)
+				   (`(quote (,a* . ,b*)) result))
+			  (mark-origin! a* a)
+			  (mark-origin! b* b)
+			  (mark-origin! (car result)
+					(caaddr expression)))
+			
+			result))
+		     ((context:defines? operator)
+		      (let ((operator* (context:value operator)))
+			(match operator*
+			  (`(lambda ,args ,body)
+			   (let ((result (substitute args
+						     #;with operands
+						     #;in body)))
+			     (transfer-heritage! args operands)
+			     (dissolve! expression)
+			     (mark-origin! result operator)
 			     result))
-			  ((context:defines? operator)
-			   (let ((operator* (context:value operator)))
-			     (match operator*
-			       (`(lambda ,args ,body)
-				(let ((result (substitute args #;with operands
-							  #;in body)))
-				  (transfer-heritage! args operands)
-				  (dissolve! expression)
-				  (mark-origin! result operator)
-				  result))
-			       (_
-				`(,operator* . ,operands)))))
-			  (else
-			   expression)))
+			  (_
+			   `(,operator* . ,operands)))))
+		     (else
+		      expression)))
 		   (`(lambda ,args ,body)
 		    (dissolve! expression)
 		    (let ((result (substitute args #;with operands
@@ -493,7 +521,8 @@
 			   (result (cons operator* operands)))
 		      (mark-origin! result expression)
 		      (mark-origin! operator* operator)
-		      (copy-properties cell-display-properties expression
+		      (copy-properties cell-display-properties
+				       expression
 				       result)))
 		   (_
 		    expression))))))
@@ -522,7 +551,8 @@
 
 (define/memoized (morph-from expression::Tile)::Morph
   (let*-values (((reduced origins progenies) (reduce expression))
-		((result) (Morph expression reduced origins progenies)))
+		((result) (Morph expression reduced
+				 origins progenies)))
     
     (unless (match/equal? expression reduced)
       (set! (morph-to reduced) result))
@@ -551,32 +581,33 @@
   (define playing-backwards? ::boolean #f)
   
   (define (advance! timestep/ms::int)::boolean
-    (let ((change (/ timestep/ms duration/ms)))
-      (if playing-backwards?
-	  (let ((new-progress (- current-morph:progress change)))
-	    (cond
-	     ((is new-progress <= 0.0)
-	      (let ((initial current-morph:initial))
-		(set! current-morph (morph-to initial))
-		(set! current-morph:progress 1.0)
-		(when (match/equal? initial current-morph:initial)
-		  (set! now-playing? #f)))
-	      now-playing?)
-	     (else
-	      (set! current-morph:progress new-progress)
-	      #t)))
-	  (let ((new-progress (+ current-morph:progress change)))
-	    (cond
-	     ((is new-progress >= 1.0)
-	      (let ((final current-morph:final))
-		(set! current-morph (morph-from final))
-		(set! current-morph:progress 0.0)
-		(when (match/equal? final current-morph:final)
-		  (set! now-playing? #f)))
-	      now-playing?)
-	     (else
-	      (set! current-morph:progress new-progress)
-	      #t))))))
+    (safely
+     (let ((change (/ timestep/ms duration/ms)))
+       (if playing-backwards?
+	   (let ((new-progress (- current-morph:progress change)))
+	     (cond
+	      ((is new-progress <= 0.0)
+	       (let ((initial current-morph:initial))
+		 (set! current-morph (morph-to initial))
+		 (set! current-morph:progress 1.0)
+		 (when (match/equal? initial current-morph:initial)
+		   (set! now-playing? #f)))
+	       now-playing?)
+	      (else
+	       (set! current-morph:progress new-progress)
+	       #t)))
+	   (let ((new-progress (+ current-morph:progress change)))
+	     (cond
+	      ((is new-progress >= 1.0)
+	       (let ((final current-morph:final))
+		 (set! current-morph (morph-from final))
+		 (set! current-morph:progress 0.0)
+		 (when (match/equal? final current-morph:final)
+		   (set! now-playing? #f)))
+	       now-playing?)
+	      (else
+	       (set! current-morph:progress new-progress)
+	       #t)))))))
   
   (define (rewind!)::void
     (set! current-morph (morph-from initial-expression))

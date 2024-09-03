@@ -88,7 +88,7 @@
 	 (result (apply operator operands)))
     (if (or (pair? result)
 	    (list? result))
-	`(quote ,result)
+	`',result
 	result)))
 
 (define (reduce expression #!optional (context::EvaluationContext
