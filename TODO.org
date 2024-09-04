@@ -1,11 +1,49 @@
+* 03.09.2024
+
+po wczorajszych zmianach ewaluacja wyrazen z consami zaczelea juz
+nawet jako tako dzialac, tylko ze sledzenie consowanych, carowanych i
+cdrowanych wyrazen jeszcze nie idzie najlepiej - i tym bysmy sie
+zajeli dzisiaj, natomiast jutro bysmy moze sprobowali zrobic tak, zeby
+quote'y sie zamienialy na rozszerzenia (czy moze szerzej, zeby
+wszystkie wyrazenia, ktore moga zostac zamienione na rozszerzenia,
+byly na nie zamieniane)
+
+No to jak na razie problem jest taki, ze jak mamy np.
+
+#+BEGIN_SRC scheme
+(cdr (quote (2)))
+#+END_SRC
+
+to wynik tego - mianowicie () - ma przypisana pozycje 0.
+
+Hipoteza bylaby jednak taka, ze owo wyrazenie nie ma
+przypisanej pozycji w ogole, i ze gdybysmy to sprawdzili,
+i w tego rodzaju sytuacjach przypisywali obiektom jako
+pozycje ich pozycje koncowa, to moze by bylo git?
+
+Ale nie, to sie moze jednak nie udac, poniewaz pozycje
+sa mierzone przy tworzeniu obiektu "Morph"
+
+Pytanie zatem pozostaje takie: dlaczego ta pozycja
+jest zle wyznaczana, podczas gdy pozycje "normalnych"
+wartosci funkcji sa wyznaczane dobrze?
+
+Czy to ma zwiazek z tym, ze ten obiekt jest lista?
+Czy moze zgubiona zostaje informacja o proweniencji
+tego obiektu?
+
+No, ale skoro dochodzi do zmorphowania, to znaczy,
+ze ewaluator wie, ze ma do czynienia z wynikiem
+ewaluowanego wyrazenia.
+
+Jak sobie za to robimy rozszerzenia, to cos
+temu ewaluatorowi nie pyka
+
 * 02.09.2024
 
 wczorajsza zmiana w ewaluarorze wydaje sie OK
 (chociaz consowanie lambdy zdaje sie zdeczka
-zepsute bo utozsamiamy (lambda ...) z '(lambda ...)).
-
-
-
+zepsute bo utozsamiamy (lambda ...) z '(lambda ...))
 
 * 01.09.2024
 
