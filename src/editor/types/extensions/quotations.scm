@@ -166,7 +166,10 @@
 
   (define (toString)::String
     (string-append "'" (show->string expression)))
-  
+
+  (define (clone)::java.lang.Object
+    (Quote (expression:clone)))
+
   (Quotation expression))
 
 (define-object (Quasiquote expression ::Tile)::Enchanted
@@ -195,6 +198,9 @@
 
   (define (toString)::String
     (string-append "`" (show->string expression)))
+
+  (define (clone)::java.lang.Object
+    (Quasiquote (expression:clone)))
   
   (Quotation expression))
 
@@ -224,6 +230,9 @@
 
   (define (toString)::String
     (string-append "," (show->string expression)))
+
+  (define (clone)::java.lang.Object
+    (Unquote (expression:clone)))
   
   (Quotation expression))
 
@@ -254,6 +263,9 @@
 
   (define (toString)::String
     (string-append ",@" (show->string expression)))
+
+  (define (clone)::java.lang.Object
+    (UnquoteSplicing (expression:clone)))
   
   (Quotation expression))
 

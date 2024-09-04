@@ -106,8 +106,15 @@
 	 (preserve-identity? expression))
     expression)
    ((pair? expression)
-    (cons (grasp (car expression))
-	  (grasp (cdr expression))))
+    (let ((grasped (cons (grasp (car expression))
+			 (grasp (cdr expression)))))
+      (or
+       (parameterize ((cell-access-mode
+		       CellAccessMode:Evaluating))
+	 (and-let* ((`(,keyword::symbol . ,data) grasped)
+		    (magic ::Extension (extension keyword)))
+	   (magic:enchant grasped)))
+       grasped)))
    ((empty? expression)
     (empty))
    ((string? expression)
