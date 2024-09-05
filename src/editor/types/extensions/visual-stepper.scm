@@ -70,6 +70,15 @@
 		     intensity
 		     only-with-relatives: only-with-relatives))))))
 
+(define (from-primary/secondary-table primary-table
+				      primary-key
+				      secondary-table
+				      secondary-key)
+  (if (or (is primary-table overridden-at? primary-key)
+	  (isnt secondary-table overridden-at? secondary-key))
+      (primary-table primary-key)
+      (secondary-table secondary-key)))
+
 (define (draw-morph! foreground::Element
 		     background::Element
 		     counterparts::(maps (Element)
@@ -81,9 +90,13 @@
 					    to: Position)
 		     progress::float
 		     #!key (only-with-relatives ::boolean #f))
-  ::void
-  (let* ((p0 ::Position (source-position foreground))
-	 (p1 ::Position (target-position background))
+  ::void	     
+  (let* ((p0 ::Position (from-primary/secondary-table
+			 source-position foreground
+			 target-position background))
+	 (p1 ::Position (from-primary/secondary-table
+			 target-position background
+			 source-position foreground))
 	 (left ::real (linear-interpolation
 		       from: p0:left to: p1:left
 		       at: (- 1 progress)))
@@ -182,37 +195,34 @@
 	    expression
 	    left::real := 0
 	    top::real := 0
+	    at: level::int := 0
 	    into:
 	    measurements::(!maps (Element) to: Position)
 	    := (property+ (element ::Element)::Position
 			  (Position left: 0 top: 0)))
   ::(maps (Element) to: Position)
-  ;;(WARN "measuring "(expression:getClass)" "expression)
   (let* ((p ::Position (measurements expression))
 	 (paren-width ::real (painter:paren-width)))
     (set! p:left left)
     (set! p:top top)
-    (if (isnt expression Element?)
-	(begin
-	  (WARN "attempted to measure a non-element: "expression)
-	  measurements)
-	(if (gnu.lists.LList? expression)
-	    (traverse
-	     expression
-	     doing:
-	     (lambda (item::Element t::Traversal)
-	       (let ((p ::Position (measurements item)))
-		 (set! p:left (+ t:left left paren-width))
-		 (set! p:top (+ t:top top))
-		 (when (gnu.lists.LList? item)
-		   (measure-positions! item
-				       p:left
-				       p:top
-				       into: measurements))))
-	     returning:
-	     (lambda (t::Traversal)
-	       measurements))
-	    measurements))))
+    (if (gnu.lists.LList? expression)
+	(traverse
+	 expression
+	 doing:
+	 (lambda (item::Element t::Traversal)
+	   (let ((p ::Position (measurements item)))
+	     (set! p:left (+ t:left left paren-width))
+	     (set! p:top (+ t:top top))
+	     (when #t ;;(gnu.lists.LList? item)
+	       (measure-positions! item
+				   p:left
+				   p:top
+				   at: (+ level 1)
+				   into: measurements))))
+	 returning:
+	 (lambda (t::Traversal)
+	   measurements))
+	measurements)))
 
 (define-object (Morph initial::Tile
 		      final::Tile
@@ -500,9 +510,10 @@
 		      (let ((operator* (context:value operator)))
 			(match operator*
 			  (`(lambda ,args ,body)
-			   (let ((result (substitute args
-						     #;with operands
-						     #;in body)))
+			   (let ((result (substitute
+					  args
+					  #;with operands
+						 #;in body)))
 			     (transfer-heritage! args operands)
 			     (dissolve! expression)
 			     (mark-origin! result operator)
@@ -513,8 +524,10 @@
 		      expression)))
 		   (`(lambda ,args ,body)
 		    (dissolve! expression)
-		    (let ((result (substitute args #;with operands
-					      #;in body)))
+		    (let ((result (substitute
+				   args
+				   #;with operands
+					  #;in body)))
 		      result))
 		   (`(,_ . ,_)
 		    (let* ((operator* (reduce operator))
