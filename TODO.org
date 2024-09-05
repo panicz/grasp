@@ -1,3 +1,13 @@
+* 04.09.2024
+
+jak na razie wszystko pyka, z tym, ze moze bysmy chcieli,
+zeby sie ten cons lepiej zachowywal
+
+i przy okazji zeby poprawic zachowanie komentarzy
+
+ale to od komentarzy zaczniemy
+
+
 * 03.09.2024
 
 po wczorajszych zmianach ewaluacja wyrazen z consami zaczelea juz
