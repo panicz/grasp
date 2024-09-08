@@ -1,3 +1,38 @@
+* 06.09.2024
+
+na razie moze zrobmy osobnego brancha, zeby moc synchronizowac
+pomiedzy laptopem a telefonem
+
+* 05.09.2024
+
+od komentarzy zaczelismy, i na tym zasadniczo sie
+skonczylo. Wydaje sie, ze zeby dobrze obsluzyc
+consa, trzeba by bylo sporo przemyslec i dokonac wielu
+zmian, tzn. przy
+
+#+BEGIN_SRC scheme
+(cons 1 (quote (2)))
+#+END_SRC
+
+powinno byc tak, ze:
+- zewnetrzne nawiasy znikaja
+- cons znika
+- lewy nawias wewnatrz quote sie rozszerza
+- jedynka przesuwa sie do jego wnetrza
+
+natomiast przy
+
+#+BEGIN_SRC scheme
+(cdr (quote (2 3)))
+#+END_SRC
+
+powinno byc tak, ze znikaja zewnetrzne nawiasy, cdr oraz
+liczba 2 z wnetrza
+
+Czyli co?
+
+Powinnismy wywolac 'dissolve!' na wyrazeniach.
+
 * 04.09.2024
 
 jak na razie wszystko pyka, z tym, ze moze bysmy chcieli,
