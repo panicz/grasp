@@ -185,12 +185,19 @@
  (lambda _
    (show-keyboard!)))
 
-(screen:set-content!
- (DocumentEditor
-  document:
-  (load-document-from-port
-   (open-asset "intro.scm")
-   (java.io.File "intro.scm"))))
+(if (null? input-files)
+    (screen:set-content!
+      (DocumentEditor
+       document:
+       (load-document-from-port
+	(open-asset "intro.scm")
+	(java.io.File "intro.scm"))))
+    
+    (screen:set-content!
+     (open-beside (map (lambda (file-name ::java.lang.String)
+			 ::java.io.File
+			 (java.io.File file-name))
+		       input-files))))
 
 (WARN "loaded init.scm")
 

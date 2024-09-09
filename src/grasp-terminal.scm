@@ -495,8 +495,11 @@
 	 (io :: LanternaScreen (make-terminal-screen
 				background: (letter #\space))))
   ::void
+  (define input-files (cdr (command-line)))
+  
   (cond
-   ((and-let* ((`(,command "-p" ,port) (command-line))
+   ((and-let* ((`(,command "-p" ,port . ,remaining-args)
+		(command-line))
 	       (port (string->number port))
 	       ((integer? port)))
       port) =>
@@ -505,6 +508,7 @@
 	(let ((tcp-server (tcp-output-server port)))
 	  (set! (current-output-port) tcp-server)
 	  (set! (current-error-port) tcp-server)
+	  (set! input-files remaining-args)
 	  (WARN "Debug server started on port "port))))
    (else
     (set! (current-display-procedure) nothing)
@@ -522,6 +526,8 @@
     (runtime:addShutdownHook (object (java.lang.Thread)
 			       ((run)::void
 				(save-state))))
+
+    (env:define 'input-files #!null input-files)
     
     (env:define 'ask #!null
 		(lambda question ::string

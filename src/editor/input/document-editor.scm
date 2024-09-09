@@ -936,6 +936,25 @@
 
   (CursorMarker))
 
+(define (open-beside !file-names::(list-of java.io.File))::Embeddable
+  ;;(assert (isnt file-names null?))
+  (let ((n (length !file-names)))
+    (cond
+     ((= n 1)
+      (DocumentEditor
+       document:
+       (open-document-file (car !file-names))))
+     ((even? n)
+      (let ((other-file-names (split! !file-names at: (/ n 2))))
+	(SplitBeside first: (open-beside !file-names)
+		     last: (open-beside other-file-names))))
+     ((odd? n)
+      (SplitBeside at: (/ 1.0 n)
+		   first: (DocumentEditor
+			   document:
+			   (open-document-file (car !file-names)))
+		   last: (open-beside (cdr !file-names)))))))
+
 (define (adjust-view!)
   (and-let* ((editor ::DocumentEditor (the-editor))
 	     (cursor ::Position (editor:cursor-position))

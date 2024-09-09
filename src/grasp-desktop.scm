@@ -1521,6 +1521,8 @@ by the AWT framework."))
 	     (scheme kawa.standard.Scheme:instance)
 	     (env (scheme:getEnvironment)))
 
+	(env:define 'input-files #!null (cdr (command-line)))
+
 	(env:define 'ask #!null
 		    (lambda question ::string
 			    ;;(WARN "speech recognition unavailable")

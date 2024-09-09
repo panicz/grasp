@@ -1943,6 +1943,8 @@
 	  (gnu.kawa.io.InPort
 	   (java.io.InputStreamReader
 	    (assets:open filename)))))
+
+      (define input-files '())
       
       (let-syntax ((export (syntax-rules ()
 			     ((_ identifier ...)
@@ -1956,6 +1958,7 @@
 		the-view
 		before-possible-exit
 		open-asset
+		input-files
 		)))
     
     (let* ((resources ::AndroidResources (getResources))
