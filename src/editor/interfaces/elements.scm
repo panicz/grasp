@@ -181,7 +181,7 @@ that provide the default values to some functions that
 operate on cursors.
 |#
 
-(define-parameter (the-cursor) ::Cursor '())
+(define-parameter (the-cursor) ::Cursor '(#\[ 1))
 
 (define-parameter (the-document) ::pair
   (cons (cons '() '()) '()))

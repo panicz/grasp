@@ -372,6 +372,11 @@
     column)
   )
 
+(define-type (DocumentEditingContext
+	      cursor: Cursor := '(#\[ 1)
+	      selection-range: int := 0
+	      transform: Transform := ((default-transform))))
+
 (define-object (DocumentEditor)::Editor
 
   (define (pane-under x::real y::real)::Embeddable
@@ -384,7 +389,7 @@
     (post-draw-actions:add (post-draw-actions:size) action))
 
   (define document ::Document (Document (empty) #!null))
-  (define cursor ::Cursor '())
+  (define cursor ::Cursor '(#\[ 1))
 
   (define transform ::Transform ((default-transform)))
 
@@ -439,42 +444,48 @@
 	    first)
 	  document)))
 
-  (define document-transform
+  (define editing-context
     (property+ (document::Document)
-	       ::Transform
-	       ((default-transform))))
+      ::DocumentEditingContext
+      (DocumentEditingContext)))
 
   (define (clone)
-    (let* ((new-document-transform (copy document-transform))
-	   (new-transform ::Transform (new-document-transform
-				       document)))
+    (let* ((new-editing-context (copy editing-context))
+	   (new-context ::DocumentEditingContext
+			(new-editing-context document)))
+      (set! new-context:cursor cursor)
+      (set! new-context:transform (copy transform))
+      (set! new-context:selection-range selection-range)
       (DocumentEditor document: document
-		      cursor: cursor
-		      selection-range: selection-range
+		      cursor: new-context:cursor
+		      selection-range: new-context:selection-range
 		      previously-edited: (copy previously-edited)
-		      transform: new-transform
-		      document-transform: new-document-transform)))
+		      transform: new-context:transform
+		      editing-context: new-editing-context)))
 
   (define (switch-to! target::Document)::void
     (unless (eq? target document)
       (set! (previously-edited target) document)
-      (set! (document-transform document) transform)
+      (let ((previous-context ::DocumentEditingContext
+			      (editing-context document)))
+	(set! previous-context:transform transform)
+	(set! previous-context:cursor cursor)
+	(set! previous-context:selection-range selection-range))
       (set! document target)
-      (set! transform (document-transform target))))
+      (let ((next-context ::DocumentEditingContext
+			      (editing-context target)))
+	(set! transform next-context:transform)
+	(set! cursor next-context:cursor)
+	(set! selection-range next-context:selection-range))
+      ))
 
   (define (load-file file::java.io.File)::void
     (safely
-     (select-document! (open-document-file file))))
+     (switch-to! (open-document-file file))))
 
   (define (load-from-port port::gnu.kawa.io.InPort source)::void
     (safely
-     (select-document! (load-document-from-port port source))))
-
-  (define (select-document! doc::Document)::void
-    (set! (document-transform document) transform)
-    (set! (previously-edited doc) document)
-    (set! transform (document-transform doc))
-    (set! document doc))
+     (switch-to! (load-document-from-port port source))))
 
   (define (draw-debug-cursor-points!)
     (safely
