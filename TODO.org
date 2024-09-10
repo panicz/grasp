@@ -1,3 +1,29 @@
+* 09.09.2024
+
+sprobujemy dzis popracowac z pustym dokumentem, i wdrozyc
+stosowne poprawki
+
+No to tak:
+- kursor otwierajacy powinien byc ([ 1), a zamykajacy (] 1)
+  ( (  ) )
+  
+OK. widzimy, ze mamy pewien problem z tym, ze kursor przechowujemy
+w edytorze, i ze przy zmianie dokumentu nie zmieniamy tego kursora.
+
+Stad pomysl bylby taki, zeby:
+- stworzyc klase DocumentEditingContext
+- w dokumencie trzymac mape, ktora pelnilaby role analogiczna
+  do document-transform
+- mape document-transform usunac
+
+#+BEGIN_SRC scheme
+  (define-type (DocumentEditingContext
+		cursor: Cursor
+		selection-range: int
+		transform: Transform))
+#+END_SRC
+
+
 * 08.09.2024
 
 no i po warsztatach.
