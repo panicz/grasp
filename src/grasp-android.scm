@@ -3,7 +3,7 @@
 (import (language define-interface))
 (import (language define-type))
 (import (language define-object))
-(import (language define-property))
+(import (language attributes))
 (import (language define-cache))
 (import (language define-parameter))
 (import (language keyword-arguments))
@@ -1566,7 +1566,7 @@
 (define-object (GRASP)::Keeper
   
   (define reaction-to-request-response
-    (property (request-code::int)::(maps (Object) to: void)
+    (attribute (request-code::int)::(maps (Object) to: void)
       nothing))
 
   (define last-request-code ::int 0)

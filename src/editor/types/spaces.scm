@@ -4,7 +4,7 @@
 (import (language assert))
 (import (language define-type))
 (import (language define-interface))
-(import (language define-property))
+(import (language attributes))
 (import (language define-object))
 (import (language define-cache))
 (import (language keyword-arguments))
@@ -631,7 +631,7 @@
   (HeadTailSeparator)
   (set! width width0))
 
-(define-property+ (horizontal-bar width)
+(define-attribute+ (horizontal-bar width)
   (HorizontalBar (as real width)))
 
 (define-object (VerticalBar height0::real)::Tile
@@ -657,10 +657,10 @@
   (HeadTailSeparator)
   (set! height height0))
 
-(define-property+ (vertical-bar height)
+(define-attribute+ (vertical-bar height)
     (VerticalBar (as real height)))
 
-(define-property (head-tail-separator cell)
+(define-attribute (head-tail-separator cell)
   head/tail-separator)
 
 (define (empty? x)::boolean

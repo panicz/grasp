@@ -5,7 +5,7 @@
 (import (language define-interface))
 (import (language define-object))
 (import (utils hash-table))
-(import (language define-property))
+(import (language attributes))
 (import (language define-type))
 (import (language keyword-arguments))
 (import (language fundamental))

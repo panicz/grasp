@@ -3,13 +3,13 @@
 (import (srfi :17))
 (import (language define-syntax-rule))
 (import (utils hash-table))
-(import (language define-property))
+(import (language attributes))
 (import (language keyword-arguments))
 (import (language define-object))
 (import (language match))
 (import (language curry))
 
-(define-synonym cache property+)
+(define-synonym cache attribute+)
 
 (define-syntax define-cache
   (syntax-rules (::)

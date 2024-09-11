@@ -5,7 +5,7 @@
 (import (language define-object))
 (import (language define-type))
 (import (language define-interface))
-(import (language define-property))
+(import (language attributes))
 (import (language define-parameter))
 (import (language define-cache))
 (import (language keyword-arguments))
@@ -198,7 +198,7 @@
 	    at: level::int := 0
 	    into:
 	    measurements::(!maps (Element) to: Position)
-	    := (property+ (element ::Element)::Position
+	    := (attribute+ (element ::Element)::Position
 			  (Position left: 0 top: 0)))
   ::(maps (Element) to: Position)
   (let* ((p ::Position (measurements expression))
@@ -254,7 +254,7 @@
   (define (extent) ::Extent maximum-extent)
 
   (define shift ::(maps (Element) to: Position)
-    (property+ (element::Element)::Position
+    (attribute+ (element::Element)::Position
 	       (Position left: 0 top: 0)))
 
   (define (draw! context::Cursor)::void
@@ -283,11 +283,11 @@
 (define (reduce expression
 		#!optional
 		(origin::(!maps (Element) to: (list-of Element))
-			 (property (e)::(list-of Element)
-				   (recons e '())))
+			 (attribute (e)::(list-of Element)
+			   (recons e '())))
 		(progeny::(!maps (Element) to: (list-of Element))
-			  (property (e)::(list-of Element)
-				    (recons e '())))
+			  (attribute (e)::(list-of Element)
+			    (recons e '())))
 		#!key
 		(context::EvaluationContext (default-context)))
   
@@ -557,10 +557,10 @@
 
 (define-mapping (morph-to expression::Tile)::Morph
   (Morph expression expression
-	 (property (e::Element)::(list-of Element)
-		   (recons e '()))
-	 (property (e::Element)::(list-of Element)
-				    (recons e '()))))
+	 (attribute (e::Element)::(list-of Element)
+	   (recons e '()))
+	 (attribute (e::Element)::(list-of Element)
+	   (recons e '()))))
 
 (define/memoized (morph-from expression::Tile)::Morph
   (let*-values (((reduced origins progenies) (reduce expression))

@@ -7,7 +7,7 @@
 (import (language match))
 (import (language examples))
 (import (language infix))
-(import (language define-property))
+(import (language attributes))
 (import (language fundamental))
 (import (language keyword-arguments))
 (import (language for))

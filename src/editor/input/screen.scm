@@ -1,6 +1,6 @@
 (module-name (editor input screen))
 
-(import (language define-property))
+(import (language attributes))
 (import (language define-syntax-rule))
 (import (language assert))
 (import (language define-interface))
@@ -50,7 +50,7 @@
     (($bracket-apply$ ArrayList Layer)))
 
   (define cursor ::(maps (Layer) to: Cursor)
-    (property+ (layer::Layer)::Cursor
+    (attribute+ (layer::Layer)::Cursor
 	       (cursor-climb-front '() layer)))
 
   (define (render!)::void

@@ -1,7 +1,7 @@
 (module-name (editor input document-editor))
 
 (import (language define-object))
-(import (language define-property))
+(import (language attributes))
 (import (language define-type))
 (import (language define-parameter))
 
@@ -433,7 +433,7 @@
     (transform:outside-in x y))
 
   (define previously-edited
-    (property (document::Document)
+    (attribute (document::Document)
       ::Document
       (or (and-let* ((`(,_ ,next . ,_)
 		      (first-cell (is (car _) eq? document)
@@ -445,7 +445,7 @@
 	  document)))
 
   (define editing-context
-    (property+ (document::Document)
+    (attribute+ (document::Document)
       ::DocumentEditingContext
       (DocumentEditingContext)))
 

@@ -6,7 +6,7 @@
 (import (language define-object))
 (import (language define-type))
 (import (language define-interface))
-(import (language define-property))
+(import (language attributes))
 (import (language define-parameter))
 (import (language define-cache))
 (import (language keyword-arguments))
@@ -42,7 +42,7 @@
 		 (isnt (x:value) symbol?))
 	       #t))))
 
-(define-property (preserve-identity? item::Tile)::boolean
+(define-attribute (preserve-identity? item::Tile)::boolean
   #f)
 
 (define-object (EvaluationContext)

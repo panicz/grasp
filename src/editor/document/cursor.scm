@@ -5,7 +5,7 @@
 (import (language define-interface))
 (import (language define-type))
 (import (language define-cache))
-(import (language define-property))
+(import (language attributes))
 (import (language define-parameter))
 (import (language keyword-arguments))
 (import (language infix))

@@ -2,7 +2,7 @@
 
 (import (language define-syntax-rule))
 (import (language define-interface))
-(import (language define-property))
+(import (language attributes))
 (import (language define-type))
 (import (language define-object))
 (import (language keyword-arguments))
@@ -334,4 +334,4 @@
 	     (WARN "no extension for "keyword)
 	     #f)))
 
-(define-property (origin enchanted) enchanted)
+(define-attribute (origin enchanted) enchanted)

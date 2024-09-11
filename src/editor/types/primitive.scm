@@ -6,7 +6,7 @@
 (import (language define-interface))
 (import (language define-type))
 (import (language define-object))
-(import (language define-property))
+(import (language attributes))
 (import (language define-cache))
 (import (language define-parameter))
 (import (language keyword-arguments))
@@ -27,7 +27,7 @@
 (import (utils conversions))
 (import (editor types texts))
 
-(define-property+ (id x)::int
+(define-attribute+ (id x)::int
   (override-size id))
 
 ;; we override Pair with Object's default equality and hash functions

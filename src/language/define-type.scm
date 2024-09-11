@@ -4,7 +4,7 @@
 (import (language define-syntax-rule))
 (import (language assert))
 (import (language define-interface))
-(import (language define-property))
+(import (language attributes))
 (import (language match))
 (import (language fundamental))
 
@@ -98,8 +98,8 @@
     ))
 
 (define-early-constant constructor
-  (property (type-name::symbol)
-	    (lambda (_) #!null)))
+  (attribute (type-name::symbol)
+      (lambda (_) #!null)))
 
 (define (construct struct-spec::list)::Struct
   ((constructor (car struct-spec)) (cdr struct-spec)))

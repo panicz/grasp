@@ -7,7 +7,7 @@
 (import (language define-interface))
 (import (language define-type))
 (import (language define-object))
-(import (language define-property))
+(import (language attributes))
 (import (language define-parameter))
 (import (language keyword-arguments))
 (import (language mapping))
@@ -540,8 +540,11 @@
 				  (car fronts)))))
     ))
 
-(define-property+ (history document::pair)::History
+(define-attribute+ (history document::pair)::History
   (History document))
+
+(define-attribute (last-save-point document)::list
+  '())
 
 (define/kw (last-operation document::pair := (the-document))::Edit
   (or (and-let* ((history ::History (history document))

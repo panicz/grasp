@@ -5,7 +5,7 @@
 (import (language define-interface))
 (import (language define-type))
 (import (language define-object))
-(import (language define-property))
+(import (language attributes))
 (import (language define-parameter))
 (import (language keyword-arguments))
 (import (language match))
@@ -21,10 +21,10 @@
 (import (language fundamental))
 (import (editor interfaces painting))
 
-(define-property (extent-cached? tile::Tile)::boolean
+(define-attribute (extent-cached? tile::Tile)::boolean
   #f)
 
-(define-property+ (cached-extent tile::Tile)::Extent
+(define-attribute+ (cached-extent tile::Tile)::Extent
   (Extent width: 0 height: 0))
 
 (define (extent+ tile::Tile)::Extent

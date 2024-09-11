@@ -3,7 +3,7 @@
 (import (language define-type))
 (import (language define-object))
 (import (language define-parameter))
-(import (language define-property))
+(import (language attributes))
 (import (language infix))
 (import (language match))
 (import (srfi :11))

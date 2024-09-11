@@ -1,7 +1,7 @@
 (module-name (editor input splits))
 
 (import (language define-object))
-(import (language define-property))
+(import (language attributes))
 (import (language define-type))
 (import (language define-parameter))
 

@@ -3,7 +3,7 @@
 (import (language assert))
 (import (language define-interface))
 (import (language define-type))
-(import (language define-property))
+(import (language attributes))
 (import (language keyword-arguments))
 (import (utils functions))
 (import (language infix))
