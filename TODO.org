@@ -1,3 +1,31 @@
+* 10.09.2024
+
+dzis moze by sie udalo zaimplementowac "new" oraz ewentualnie
+"close"?
+
+jezeli idzie o "close", to bysmy dodali do dokumentu
+"last-save-point", i przed zamknieciem sprawdzali, czy
+sa niezapisane zmiany, a jesli tak, to bysmy pytali
+uzytkownika, czy zmiany zapisac.
+
+Aha no i trzeba jeszcze przemianowac 'property' na 'attribute',
+aczkolwiek to moze jakos pod koniec tygodnia?
+
+A moze wlasnie teraz?
+
+No dobra, to to mamy. To teraz mozemy sie na spokojnie zajac
+koncepcja implementacji close'a (i tworzenia nowych plikow).
+
+No to tak:
+- dodajemy atrybut =last-save-point=
+  do =(editor document history-tracking)=
+- w momencie, kiedy robimy "save", to powinnmy
+  (jezeli pliki sie zgadzaja) ustawic jako
+  =last-save-point= aktualny front
+- przy wywolywaniu "close" powinnismy sprawdzic,
+  czy last-save-point jest zgodny z biezacym frontem
+  - jezeli nie, to wyswietlamy dialog "czy zapisac zmiany"
+
 * 09.09.2024
 
 sprobujemy dzis popracowac z pustym dokumentem, i wdrozyc
