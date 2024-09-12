@@ -1,3 +1,18 @@
+* 11.09.2024
+
+na razie poprawilismy sktypt do budowania, tak zeby pozbyc
+sie z niego wyscigu (moze bysmy dzis jeszcze poprawili
+te warningi przy kompilacji)
+
+ale po tym bysmy sie zajeli tymi save-pointami
+
+no dobra, to build script poprawiony. czyli teraz tak:
+
+- przegladarka pliku wywoluje przy zapisie procedure =save-document!=
+- to wlasnie ta funkcja powinna (o ile pliki sie zgadzaja)
+  zaktualizowac wartosc =last-save-point=
+
+  
 * 10.09.2024
 
 dzis moze by sie udalo zaimplementowac "new" oraz ewentualnie
