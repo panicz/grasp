@@ -127,7 +127,6 @@
 (define (build-file source ::string
 		    #!key
 		    (target-directory ::string "build/cache")
-		    (package #!null)
 		    (top-class-name #!null))
   (let* ((messages ::gnu.text.SourceMessages
 		   (gnu.text.SourceMessages))
@@ -146,8 +145,6 @@
     (print"building "source)
     (try-finally
      (begin
-       (when package
-	 (set! gnu.expr.Compilation:classPrefixDefault package))
        (when top-class-name
 	 (module-info:setClassName
 	  (string-append
@@ -168,7 +165,7 @@
 (define (update-dex-cache input::(list-of java.io.File)
 			  output::java.io.File)
   ::void
-  (let ((command ::com.android.tools.r8.D8Command:Builder
+  (let ((command ::com.android.tools.r8.D8Command$Builder
 		 (com.android.tools.r8.D8Command:builder)))
     (command:setMinApiLevel 23)
     (command:addProgramFiles (map file->path input))
@@ -188,7 +185,7 @@
 (define (integrate-dex input::(list-of java.io.File)
 		       output::java.io.File)
   ::void
-  (let ((command ::com.android.tools.r8.D8Command:Builder
+  (let ((command ::com.android.tools.r8.D8Command$Builder
 		 (com.android.tools.r8.D8Command:builder)))
     (command:addProgramFiles (map file->path input))
     (command:setMinApiLevel 23)
@@ -213,22 +210,28 @@
 						    (list-of symbol))) 
 		    module-classes ::(maps ((list-of symbol))
 					  to: (list-of java.io.File)) 
-		    main-class ::string
-		    available-modules ::(list-of (list-of symbol))
-		    extra-dependencies ::(list-of string)
+		    main-class ::(maybe string)
+		    (available-modules ::(list-of(list-of symbol))'())
+		    (extra-dependencies ::(list-of string) '())
 		    (assets ::(list-of java.io.File) '())
 		    (init ::string "init/init.scm")
+		    (package ::string "")
 		    output-name)
   (let* ((output-name (or output-name
 			  (string-append "build/" main-class ".jar")))
 	 (main-class-name (fold-left (lambda (stem replacement)
-				       (and-let* ((`(,pattern ,replacement)
+				       (and-let* ((`(,pattern
+						     ,replacement)
 						   replacement))
 					 (regex-replace* pattern
 							 stem
 							 replacement)))
 				     main-class
 				     '(("\\-" "\\$Mn"))))
+	 (main-class-name (if (string=? package "")
+			      main-class-name
+			      (string-append
+			       package "." main-class-name)))
 	 (output-jar ::java.io.File (as-file output-name))
 	 (init-file ::java.io.File (as-file init))
 	 (internal-dependencies ::(list-of java.io.File)
@@ -509,6 +512,9 @@ Main-Class: "main-class-name"
 						'init-dependencies))
 		   ((is init-dependencies
 			subset? previous-init-dependencies))))))
+
+  (set! gnu.expr.Compilation:classPrefixDefault
+	(string-append package "."))
   
   (concurrently
    (when (is 'desktop in targets)
@@ -552,7 +558,6 @@ Main-Class: "main-class-name"
 
        (build-file "src/grasp-android.scm"
 		   ;;target-directory: "build/grasp-android"
-		   package: (string-append package ".")
 		   top-class-name: (string-append package ".GRASP")))
 
      (print "Reindexing .class files...")
@@ -646,6 +651,7 @@ Main-Class: "main-class-name"
 	module-classes: module-classes
 	available-modules: dependency-modules
 	init: init
+	package: package
 	main-class: "grasp-desktop"
 	assets: (list-files from: "assets")
 	extra-dependencies: '("libs/jsvg-1.0.0.jar"))))
@@ -659,6 +665,7 @@ Main-Class: "main-class-name"
 	module-classes: module-classes
 	available-modules: dependency-modules
 	init: init
+	package: package
 	main-class: "grasp-terminal"
 	assets: (list-files from: "assets"
 			    such-that: (is ".scm$" regex-match
