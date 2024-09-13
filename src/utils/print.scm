@@ -138,6 +138,11 @@
 
 (define-parameter (debugging?) #f)
 
+(define (as-string object)::String
+  (if (eq? object #!null)
+      "#!null"
+      (object:toString)))
+
 (define (DEBUG . msg)
   (when (debugging?)
     (apply WARN msg)))
