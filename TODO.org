@@ -1,3 +1,18 @@
+* 13.09.2024
+
+trzeba pomyslec, co robic, jezeli dokument jest
+otwarty w wielu edytorach na raz
+
+na pewno bedzie trzeba dodac "scratch file", na ktorym
+nie bedzie sie dalo zrobic "Close", ale na ktorym bedzie
+sie dalo zrobic "Clear"
+
+* 12.09.2024
+
+zapisywanie last-save-point wydaje sie, ze juz mamy.
+teraz bysmy chcieli zrobic tak, zeby przycisk close
+zaczal dzialac
+
 * 11.09.2024
 
 na razie poprawilismy sktypt do budowania, tak zeby pozbyc
