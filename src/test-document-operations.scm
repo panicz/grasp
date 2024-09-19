@@ -21,7 +21,20 @@
   (editor types texts)
   )
 
-#|
+ (let* ((document (string->document "a (a (a a))")))
+   (e.g. (find-next (is _ match/equal? 'a) in: document)
+	 ===> (1 1))
+   (e.g. (find-next (is _ match/equal? 'a) in: document after: '(1 1))
+	 ===> (1 3 1))
+   (e.g. (find-next (is _ match/equal? 'a) in: document after: '(2 1))
+	 ===> (1 3 1))
+   (e.g. (find-next (is _ match/equal? 'a) in: document after: '(1 3 1))
+	 ===> (1 3 3 1))
+   (e.g. (find-next (is _ match/equal? 'a) in: document after: '(1 3 3 1))
+	 ===> (3 3 3 1))
+   (e.g. (find-next (is _ match/equal? 'a) in: document after: '(3 3 3 1))
+	 ===> #!null))
+
 (e.g.
  (let* ((document (string->document "1 3 5"))
 	(taken (extract! at: '(3 1) from: document)))
@@ -53,34 +66,6 @@
    "1")
 
 (e.g.
- (let* ((document (call-with-input-string "(1 . 5)"
-		    parse-document))
-	(taken (extract! at: '(3 1 1) from: document)))
-   (assert (head/tail-separator? taken))
-   (document->string document))
- ===> "(1  5)")
-
-(e.g.
- (let* ((document (call-with-input-string "(1 . 5)"
-		    parse-document))
-	(taken (extract! at: '(1 1 1) from: document)))
-   (values (document->string document)
-	   (pair->string taken)))
- ===>
- "(  5)"
- "1")
-
-(e.g.
- (let* ((document (call-with-input-string "(1 . 5)"
-		    parse-document))
-	(taken (extract! at: '(5 1 1) from: document)))
-   (values (document->string document)
-	   (pair->string taken)))
- ===>
- "(1 )"
- "5")
-
-(e.g.
  (parameterize ((the-document (string->document "\
 #;0 1 #|2|# 3 ;4
 5 ;6")))
@@ -94,7 +79,6 @@
 	     (show->string 6th)
 	     (document->string (the-document)))))
  ===> "#;0" "#|2|#" ";4\n" ";6\n" "  1  3 \n5 \n")
-
 
 (e.g.
  (parameterize ((the-document
@@ -131,13 +115,44 @@
    (insert! (parse-string "1 3") into: document at: '(0 0 1))
    (document->string document)) ===> "1 3 5 7")
 
+
+#|
+(e.g.
+ (let* ((document (call-with-input-string "(1 . 5)"
+		    parse-document))
+	(taken (extract! at: '(3 1 1) from: document)))
+   (assert (head/tail-separator? taken))
+   (document->string document))
+ ===> "(1  5)")
+
+(e.g.
+ (let* ((document (call-with-input-string "(1 . 5)"
+		    parse-document))
+	(taken (extract! at: '(1 1 1) from: document)))
+   (values (document->string document)
+	   (pair->string taken)))
+ ===>
+ "(  5)"
+ "1")
+
+(e.g.
+ (let* ((document (call-with-input-string "(1 . 5)"
+		    parse-document))
+	(taken (extract! at: '(5 1 1) from: document)))
+   (values (document->string document)
+	   (pair->string taken)))
+ ===>
+ "(1 )"
+ "5")
+
+
 (e.g.
  (let ((document (string->document "1   5")))
    (insert! head/tail-separator
 	    into: document at: '(1 2 1))
    (document->string document)) ===> "1 . 5")
-|#
 
+|#
 
 #|
 (e.g.
