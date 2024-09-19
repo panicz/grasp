@@ -360,7 +360,7 @@
 		 (else
 		  (WARN "to the top!"))))))))
 
-  (define (cursor-position)::Position
+  (define (marked-cursor-position)::Position
     marked)
 
   (define column ::real 0)
@@ -489,7 +489,8 @@
 
   (define (draw-debug-cursor-points!)
     (safely
-     (and-let* ((position ::Position (invoke (this) 'cursor-position))
+     (and-let* ((position ::Position (invoke (this)
+					     'marked-cursor-position))
 		(left ::real position:left)
 		(top ::real position:top)
 		(column ::real (invoke-special CursorMarker (this)
@@ -968,7 +969,7 @@
 
 (define (adjust-view!)
   (and-let* ((editor ::DocumentEditor (the-editor))
-	     (cursor ::Position (editor:cursor-position))
+	     (cursor ::Position (editor:marked-cursor-position))
 	     (cursor-height ::real (painter:cursor-height))
 	     (editor-left ::real (the-pane-left))
 	     (editor-top ::real (the-pane-top))

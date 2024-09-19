@@ -25,7 +25,7 @@
 
 
 (define (update-cursor-column!)
-  (let* ((cursor-position ::Position (painter:cursor-position))
+  (let* ((cursor-position ::Position (painter:marked-cursor-position))
 	 (editor ::Editor (the-editor)))
     (editor:add-post-draw-action!
      (lambda ()
@@ -69,7 +69,7 @@
 
 (define (move-cursor-up!)
   (let* ((editor ::Editor (the-editor))
-	 (current ::Position (editor:cursor-position)))
+	 (current ::Position (editor:marked-cursor-position)))
     (set! (the-cursor)
 	  (cursor-under (editor:cursor-column)
 			(- current:top
@@ -78,7 +78,7 @@
 
 (define (move-cursor-down!)
   (let* ((editor ::Editor (the-editor))
-	 (current ::Position (editor:cursor-position)))
+	 (current ::Position (editor:marked-cursor-position)))
     (set! (the-cursor)
 	  (cursor-under (editor:cursor-column)
 			(+ current:top

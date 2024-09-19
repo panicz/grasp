@@ -13,7 +13,7 @@
 
 (define-interface WithCursor ()
   (mark-cursor! left::real top::real)::void
-  (cursor-position)::Position
+  (marked-cursor-position)::Position
 
   (set-cursor-column! left::real)::void
   (cursor-column)::real
@@ -144,7 +144,7 @@ def") ===> [Extent width: 3 height: 2])
   ;; the functions should only pass (the-editor) as the
   ;; last arguments of the functions above
   (mark-cursor! +left::real +top::real)::void
-  (cursor-position)::Position
+  (marked-cursor-position)::Position
 
   (cursor-height)::real
 
@@ -521,7 +521,7 @@ def") ===> [Extent width: 3 height: 2])
     ::void
     (values))
 
-  (define (cursor-position)::Position
+  (define (marked-cursor-position)::Position
     (Position left: 0
 	      top: 0))
 

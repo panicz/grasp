@@ -354,7 +354,7 @@
     ::void
     (invoke-special CharPainter (this)
 		    'mark-editor-cursor! +left +top editor)
-    (let* ((position ::Position (editor:cursor-position))
+    (let* ((position ::Position (editor:marked-cursor-position))
 	   (x ::real position:left)
 	   (y ::real position:top)
 	   (screen ::Extent (screen:extent)))

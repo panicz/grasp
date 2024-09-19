@@ -405,7 +405,7 @@ operate on cursors.
   (define (to-previous-line)::real
     0)
   
-  (define (cursor-position)::Position
+  (define (marked-cursor-position)::Position
     marked)
   
   (define (set-cursor-column! left::real)::void
