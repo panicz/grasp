@@ -44,16 +44,16 @@
   (IgnoreInput))
 
 (define-object (Stroke finger ::byte source-pane ::Pane)::Layer
-  (define points ::List[Position] (ArrayList[Position]))
+  (define points ::($bracket-apply$ List Position) (ArrayList))
 
   (define (add-point! p::Position)::void
     (points:add p))
 
   (define (render!)::void
     (for i from 1 below (points:size)
-        (let ((p0 ::Position (points (- i 1)))
-	      (p1 ::Position (points i)))
-          (painter:draw-thick-line! p0:left p0:top p1:left p1:top))))
+         (let ((p0 ::Position (points (- i 1)))
+	       (p1 ::Position (points i)))
+           (painter:draw-thick-line! p0:left p0:top p1:left p1:top))))
 
   (IgnoreInput))
 
@@ -83,7 +83,7 @@
 
   (define (render!)::void
     (parameterize ((the-document items))
-     (with-translation (position:left position:top)
+      (with-translation (position:left position:top)
 	(draw-sequence! items))))
 
   (IgnoreInput))
@@ -108,40 +108,40 @@
 		       left::real top::real
 		       editor::Editor)::Drag
 
-  (define initial ::Extent (copy (extent+ box)))
+		       (define initial ::Extent (copy (extent+ box)))
 
-  (define width ::real initial:width)
-  (define height ::real initial:height)
+		       (define width ::real initial:width)
+		       (define height ::real initial:height)
 
-  (define ending ::LineEnding
-    (line-ending-embracing anchor #;from box))
+		       (define ending ::LineEnding
+			 (line-ending-embracing anchor #;from box))
 
-  #;(define p ::Point
-    (let-values (((xe ye) (the-transform-stack:inside-out
-			   (+ left ending:reach
-			      (painter:paren-width))
-			   (+ top anchor))))
-      (Point xe ye #xff0000)))
+		       #;(define p ::Point
+		       (let-values (((xe ye) (the-transform-stack:inside-out
+		       (+ left ending:reach
+		       (painter:paren-width))
+		       (+ top anchor))))
+		       (Point xe ye #xff0000)))
 
-  (define (move! x::real y::real dx::real dy::real)::void
-    (safely
-     (let*-values (((zx zy) (editor:outside-in 0 0))
-		   ((dx* dy*) (editor:outside-in dx dy)))
-       (set! width (+ width (- dx* zx)))
-       (set! height (+ height (- dy* zy)))
-       (resize! box width height ending))))
+		       (define (move! x::real y::real dx::real dy::real)::void
+			 (safely
+			  (let*-values (((zx zy) (editor:outside-in 0 0))
+					((dx* dy*) (editor:outside-in dx dy)))
+			    (set! width (+ width (- dx* zx)))
+			    (set! height (+ height (- dy* zy)))
+			    (resize! box width height ending))))
 
-  (define (drop! x::real y::real vx::real vy::real)::void
-    #;(screen:remove-overlay! p)
-    (let ((final ::Extent (extent+ box))
-	  (history ::History (history (the-document))))
-      (when (isnt final equal? initial)
-	(history:record! (ResizeBox at: path
-				    from: initial
-				    to: (copy final)
-				    with-anchor: anchor)))))
-  #;(screen:add-overlay! p)
-  )
+		       (define (drop! x::real y::real vx::real vy::real)::void
+			 #;(screen:remove-overlay! p)
+			 (let ((final ::Extent (extent+ box))
+			       (history ::History (history (the-document))))
+			   (when (isnt final equal? initial)
+			     (history:record! (ResizeBox at: path
+							 from: initial
+							 to: (copy final)
+							 with-anchor: anchor)))))
+		       #;(screen:add-overlay! p)
+		       )
 
 (define-object (Translate target::Transform)::Drag
   (define (move! x::real y::real dx::real dy::real)::void
@@ -159,19 +159,19 @@
 		    (directory:list))
          (n ::int (length filenames))
          (buttons ::(array-of FileButton)
-		 ((array-of FileButton)
-		  length: (+ n 1))))
+		  ((array-of FileButton)
+		   length: (+ n 1))))
     (set! (buttons 0) (ParentDirectoryButton
                        target: (directory:getParentFile)
 		       action: directory-action))
     (for i from 0 below n
-      (let ((file (java.io.File directory (filenames i))))
-        (set! (buttons (+ i 1))
-	     (if (file:isDirectory)
-	       (DirectoryButton target: file
-	                        action: directory-action)
-               (FileButton target: file
-                            action: file-action)))))
+	 (let ((file (java.io.File directory (filenames i))))
+           (set! (buttons (+ i 1))
+		 (if (file:isDirectory)
+		     (DirectoryButton target: file
+				      action: directory-action)
+		     (FileButton target: file
+				 action: file-action)))))
     (Array:sort buttons)
     (ColumnGrid buttons)))
 
@@ -200,15 +200,13 @@
 			  (screen:add-overlay! new-window))))))
     window))
 
-(define (save-file-browser directory::java.io.File
-                           name-hint::string
-			   editor::DocumentEditor)
-  ::PopUp
+(define (save-file-browser directory::java.io.File name-hint::string editor::DocumentEditor)::PopUp 
+  
   (let* ((window ::PopUp #!null)
          (text-field ::Scroll (text-field 0 name-hint))
          (button (Button label: "Save"
-	                 action: (lambda _
-			           (screen:clear-overlay!)
+			 action: (lambda _
+				   (screen:clear-overlay!)
 				   (save-document!
 				    editor:document
 				    (java.io.File
@@ -216,7 +214,7 @@
 				     text-field:content)))))
 	 (files (file-list
 		 directory
-	         (lambda (file::java.io.File)::void
+		 (lambda (file::java.io.File)::void
 			 (set! text-field:content
 			       (text-input
 				(file:getName))))
@@ -254,7 +252,7 @@
     (set! browser:height (- browser:height
                             (max 0 (- outer:height
 				      (- upper:height)
-			              available:height))))
+				      available:height))))
     (set! text-field:width (- browser:width
 			      button-size:width))
     (set! window popup)
@@ -283,21 +281,21 @@
 
 (define (builtin-save-file finger::byte editor::Editor)
   (lambda _
-      (let ((keeper ::Keeper
-		    (the-keeper)))
-	(keeper:with-write-permission
-	 (lambda _
-	   (safely
-	    (let ((window ::PopUp (save-file-browser
-				   (keeper:initial-directory)
-				   "filename.scm"
-				   editor))
-		  (position ::Position
-			    (last-known-pointer-position
-			     finger)))
-	      (window:center-around! position:left position:top)
-	      (screen:add-overlay! window))))))
-      #t))
+    (let ((keeper ::Keeper
+		  (the-keeper)))
+      (keeper:with-write-permission
+       (lambda _
+	 (safely
+	  (let ((window ::PopUp (save-file-browser
+				 (keeper:initial-directory)
+				 "filename.scm"
+				 editor))
+		(position ::Position
+			  (last-known-pointer-position
+			   finger)))
+	    (window:center-around! position:left position:top)
+	    (screen:add-overlay! window))))))
+    #t))
 
 (define-parameter (save-file)::(maps (byte java.io.File Editor)
 				     to: (maps _ to: void))
@@ -316,7 +314,7 @@
 				 (editor:switch-to!
 				  document)
 				 #t)))
-		       (open-documents))))
+		       open-documents)))
     (popup-scroll (ColumnGrid choices))))
 
 (define-object (CursorMarker)::WithCursor
@@ -434,20 +432,20 @@
 
   (define previously-edited
     (attribute (document::Document)
-      ::Document
-      (or (and-let* ((`(,_ ,next . ,_)
-		      (first-cell (is (car _) eq? document)
-				  (open-documents))))
-	    next)
-	  (and-let* ((`(,first . ,_) (open-documents))
-		     ((isnt first eq? document)))
-	    first)
-	  document)))
+	       ::Document
+	       (or (and-let* ((`(,_ ,next . ,_)
+			       (first-cell (is (car _) eq? document)
+					   open-documents )))
+		     next)
+		   (and-let* ((`(,first . ,_) open-documents)
+			      ((isnt first eq? document)))
+		     first)
+		   document)))
 
   (define editing-context
     (attribute+ (document::Document)
-      ::DocumentEditingContext
-      (DocumentEditingContext)))
+		::DocumentEditingContext
+		(DocumentEditingContext)))
 
   (define (clone)
     (let* ((new-editing-context (copy editing-context))
@@ -473,7 +471,7 @@
 	(set! previous-context:selection-range selection-range))
       (set! document target)
       (let ((next-context ::DocumentEditingContext
-			      (editing-context target)))
+			  (editing-context target)))
 	(set! transform next-context:transform)
 	(set! cursor next-context:cursor)
 	(set! selection-range next-context:selection-range))
@@ -548,167 +546,167 @@
   (define (press! finger::byte #;at xe::real ye::real)::boolean
     (with-post-transform transform
       (with-view-edges-transformed transform
-       (parameterize/update-sources ((the-document document)
-				     (the-cursor cursor)
-				     (the-editor (this))
-				     (the-selection-range
-				      selection-range))
-	 (let-values (((selection-start selection-end)
-		       (the-selection))
-		      ((x y) (transform:outside-in xe ye)))
-	   (and-let* ((path (cursor-under x y))
-		      (xd yd (document-position-of-element-pointed-by
-			      path (car document)))
-		      (`(,tip . ,subpath) path)
-		      (parent ::Element (the-expression
-					 at: subpath))
-		      (target ::Element (parent:part-at tip)))
-	     (cond
-	      #;((isnt parent eq? target)
-	      (WARN "reached non-final item on press"))
+	(parameterize/update-sources ((the-document document)
+				      (the-cursor cursor)
+				      (the-editor (this))
+				      (the-selection-range
+				       selection-range))
+	  (let-values (((selection-start selection-end)
+			(the-selection))
+		       ((x y) (transform:outside-in xe ye)))
+	    (and-let* ((path (cursor-under x y))
+		       (xd yd (document-position-of-element-pointed-by
+			       path (car document)))
+		       (`(,tip . ,subpath) path)
+		       (parent ::Element (the-expression
+					  at: subpath))
+		       (target ::Element (parent:part-at tip)))
+	      (cond
+	       #;((isnt parent eq? target)
+	       (WARN "reached non-final item on press"))
 
-	      #;((isnt dragging clean?)
-	      (WARN "should start scrolling or zooming "
-	      (keys dragging)))
+	       #;((isnt dragging clean?)
+	       (WARN "should start scrolling or zooming "
+	       (keys dragging)))
 
-	      ((screen:has-layer
-		(lambda (layer::Layer)
-		  (and-let* (((Stroke source-pane: ,(this))
-			      layer))
-		    layer)))
-	       => (lambda (stroke::Stroke)
-		    (screen:remove-overlay! stroke)
-		    (screen:undrag! stroke:finger)
-		    (let ((p0 ::Position (Position left: xe top: ye))
-			  (p1 ::Position (stroke:points
-					  (- (length stroke:points)
-					     1)))
-			  (editor ::DocumentEditor (this)))
-		      (screen:drag!
-		       stroke:finger
-		       (object (Drag)
-			 ((move! x::real y::real
-				 dx::real dy::real)
-			  ::void
-			  (let ((p1x ::real (+ p1:left dx))
-				(p1y ::real (+ p1:top dy)))
-			    (editor:transform:stretch!
-			     p0:left p0:top p1:left p1:top
-			     p0:left p0:top p1x  p1y)
-			    (set! p1:left p1x)
-			    (set! p1:top p1y)))
-			 ((drop! x::real y::real
-				 dx::real dy::real)
-			  ::void
-			  (values))))
+	       ((screen:has-layer
+		 (lambda (layer::Layer)
+		   (and-let* (((Stroke source-pane: ,(this))
+			       layer))
+		     layer)))
+		=> (lambda (stroke::Stroke)
+		     (screen:remove-overlay! stroke)
+		     (screen:undrag! stroke:finger)
+		     (let ((p0 ::Position (Position left: xe top: ye))
+			   (p1 ::Position (stroke:points
+					   (- (length stroke:points)
+					      1)))
+			   (editor ::DocumentEditor (this)))
+		       (screen:drag!
+			stroke:finger
+			(object (Drag)
+			  ((move! x::real y::real
+				  dx::real dy::real)
+			   ::void
+			   (let ((p1x ::real (+ p1:left dx))
+				 (p1y ::real (+ p1:top dy)))
+			     (editor:transform:stretch!
+			      p0:left p0:top p1:left p1:top
+			      p0:left p0:top p1x  p1y)
+			     (set! p1:left p1x)
+			     (set! p1:top p1y)))
+			  ((drop! x::real y::real
+				  dx::real dy::real)
+			   ::void
+			   (values))))
 
-		      (screen:drag!
-		       finger
-		       (object (Drag)
-			 ((move! x::real y::real
-				 dx::real dy::real)
-			  ::void
-			  (let ((p0x ::real (+ p0:left dx))
-				(p0y ::real (+ p0:top dy)))
-			    (editor:transform:stretch!
-			     p0:left p0:top p1:left p1:top
-			     p0x  p0y  p1:left p1:top)
-			    (set! p0:left p0x)
-			    (set! p0:top p0y)))
-			 ((drop! x::real y::real
-				 dx::real dy::real)
-			  ::void
-			  (values)))))))
+		       (screen:drag!
+			finger
+			(object (Drag)
+			  ((move! x::real y::real
+				  dx::real dy::real)
+			   ::void
+			   (let ((p0x ::real (+ p0:left dx))
+				 (p0y ::real (+ p0:top dy)))
+			     (editor:transform:stretch!
+			      p0:left p0:top p1:left p1:top
+			      p0x  p0y  p1:left p1:top)
+			     (set! p0:left p0x)
+			     (set! p0:top p0y)))
+			  ((drop! x::real y::real
+				  dx::real dy::real)
+			   ::void
+			   (values)))))))
 
-	      ((Enchanted? target)
-	       (let ((target ::Enchanted target))
-		 (target:press! finger (- x xd) (- y yd))))
-	      
-	      ((is target Space?)
-	       (screen:drag! finger
-			     (Drawing (Stroke finger (this)))))
+	       ((Enchanted? target)
+		(let ((target ::Enchanted target))
+		  (target:press! finger (- x xd) (- y yd))))
+	       
+	       ((is target Space?)
+		(screen:drag! finger
+			      (Drawing (Stroke finger (this)))))
 
-	      ((is selection-start cursor< path
-		   cursor< selection-end)
-	       (WARN "should move selection"))
+	       ((is selection-start cursor< path
+		    cursor< selection-end)
+		(WARN "should move selection"))
 
-	      ((or (is target Atom?)
-		   (and (or (is target cons?)
-			    (is target EmptyListProxy?))
-			(eqv? tip (target:first-index))))
-	       ;; powinnismy powiekszyc spacje poprzedzajaca
-	       ;; wydobywany element o szerokosc tego elementu
-	       ;; podzielona przez (painter:space-width)
-	       (set! (the-cursor) (cursor-climb-back
-				   (cursor-retreat (tail path))))
-	       (let* ((removed ::Remove (remove-element!
-					 at: subpath))
-		      (selection (Selected
-				  removed:element
-				  (copy
-				   (last-known-pointer-position
-				    finger)))))
-		 (screen:drag! finger (DragAround selection))))
+	       ((or (is target Atom?)
+		    (and (or (is target cons?)
+			     (is target EmptyListProxy?))
+			 (eqv? tip (target:first-index))))
+		;; powinnismy powiekszyc spacje poprzedzajaca
+		;; wydobywany element o szerokosc tego elementu
+		;; podzielona przez (painter:space-width)
+		(set! (the-cursor) (cursor-climb-back
+				    (cursor-retreat (tail path))))
+		(let* ((removed ::Remove (remove-element!
+					  at: subpath))
+		       (selection (Selected
+				   removed:element
+				   (copy
+				    (last-known-pointer-position
+				     finger)))))
+		  (screen:drag! finger (DragAround selection))))
 
-	      ((and (is target cons?)
-		    (eqv? tip (target:last-index)))
-	       (let ((extent ::Extent (extent+ target)))
-		 (screen:drag! finger
-			       (Resize target subpath
-				       (- y yd
-					  (painter:min-line-height))
-				       xd yd (this)))))
-	      (else
-	       (screen:drag! finger
-			     (Drawing (Stroke finger (this))))
-	       ;;(set! (the-cursor) path)
-	       )))
-	   #t)))))
+	       ((and (is target cons?)
+		     (eqv? tip (target:last-index)))
+		(let ((extent ::Extent (extent+ target)))
+		  (screen:drag! finger
+				(Resize target subpath
+					(- y yd
+					   (painter:min-line-height))
+					xd yd (this)))))
+	       (else
+		(screen:drag! finger
+			      (Drawing (Stroke finger (this))))
+		;;(set! (the-cursor) path)
+		)))
+	    #t)))))
 
   (define (second-press! finger::byte #;at xe::real ye::real)
     ::boolean
     (with-post-transform transform
       (with-view-edges-transformed transform
-       (parameterize/update-sources ((the-document document)
-				     (the-cursor cursor)
-				     (the-editor (this))
-				     (the-selection-range
-				      selection-range))
-	 (let-values (((selection-start selection-end)
-		       (the-selection))
-		      ((x y) (transform:outside-in xe ye)))
-	   (and-let* ((path (cursor-under x y))
-		      (xd yd (document-position-of-element-pointed-by
-			      path (car document)))
-		      (`(,tip . ,subpath) path)
-		      (parent ::Element (the-expression
-					 at: subpath))
-		      (target ::Element (parent:part-at tip)))
-	     (cond
-	      ((or (isnt parent eq? target)
-		   (is target Space?))
-	       (screen:drag! finger
-			     (Translate transform)))
+	(parameterize/update-sources ((the-document document)
+				      (the-cursor cursor)
+				      (the-editor (this))
+				      (the-selection-range
+				       selection-range))
+	  (let-values (((selection-start selection-end)
+			(the-selection))
+		       ((x y) (transform:outside-in xe ye)))
+	    (and-let* ((path (cursor-under x y))
+		       (xd yd (document-position-of-element-pointed-by
+			       path (car document)))
+		       (`(,tip . ,subpath) path)
+		       (parent ::Element (the-expression
+					  at: subpath))
+		       (target ::Element (parent:part-at tip)))
+	      (cond
+	       ((or (isnt parent eq? target)
+		    (is target Space?))
+		(screen:drag! finger
+			      (Translate transform)))
 
-	      #;((isnt dragging clean?)
-	      (WARN "should start scrolling or zooming "
-	      (keys dragging)))
+	       #;((isnt dragging clean?)
+	       (WARN "should start scrolling or zooming "
+	       (keys dragging)))
 
-	      ((Enchanted? target)
-	       (let ((target ::Enchanted target))
-		 (target:second-press! finger (- x xd) (- y yd))))
+	       ((Enchanted? target)
+		(let ((target ::Enchanted target))
+		  (target:second-press! finger (- x xd) (- y yd))))
 
-	      ((or (is target Atom?)
-		   (and (or (is target cons?)
-			    (is target EmptyListProxy?))
-			(eqv? tip (target:first-index))))
-	       (let* ((selection (Selected
-				  (cons (copy target) (empty))
-				  (copy
-				   (last-known-pointer-position
-				    finger)))))
-		 (screen:drag! finger (DragAround selection))))))
-	   #t)))))
+	       ((or (is target Atom?)
+		    (and (or (is target cons?)
+			     (is target EmptyListProxy?))
+			 (eqv? tip (target:first-index))))
+		(let* ((selection (Selected
+				   (cons (copy target) (empty))
+				   (copy
+				    (last-known-pointer-position
+				     finger)))))
+		  (screen:drag! finger (DragAround selection))))))
+	    #t)))))
 
   (define (double-tap! finger::byte xe::real ye::real)::boolean
     (with-post-transform transform
@@ -760,144 +758,144 @@
   (define (long-press! finger::byte x::real y::real)::boolean
     (with-post-transform transform
       (with-view-edges-transformed transform
-       (parameterize/update-sources ((the-document document)
-				     (the-cursor cursor)
-				     (the-editor (this))
-				     (the-selection-range
-				      selection-range))
-	 (safely
-	  (invoke (current-message-handler) 'clear-messages!)
-	  (let* ((content
-		  ::Enchanted
-		  (ColumnGrid
-		   `(,(Link content: (Caption "New")
-			    on-tap: (lambda _ (WARN "New") #t))
-		     ,(Link content: (Caption "Open...")
-			    on-tap: ((open-file) finger (this)))
-		     ,@(if (is (length (open-documents)) < 1)
-			   '()
-			   `(,(Link
-			       content:
-			       (Caption "Switch to...")
-			       on-tap:
-			       (lambda _
-				 (safely
-				  (screen:add-overlay!
-				   (document-switcher (this))))
-				 #t))))
-		     ,(Link content: (Caption "Save as...")
-			    on-tap: ((save-file) finger (this)))
-		     ,(Link content: (Caption "Close")
-			    on-tap: (lambda _ (WARN "Close") #t))
-		     )))
-		 (window ::PopUp (PopUp content: content)))
-	    (window:center-around! x y)
-	    (screen:add-overlay! window))))
-       ;; dodanie menu kontekstowego
-       #t)))
+	(parameterize/update-sources ((the-document document)
+				      (the-cursor cursor)
+				      (the-editor (this))
+				      (the-selection-range
+				       selection-range))
+	  (safely
+	   (invoke (current-message-handler) 'clear-messages!)
+	   (let* ((content
+		   ::Enchanted
+		   (ColumnGrid
+		    `(,(Link content: (Caption "New")
+			     on-tap: (lambda _ (WARN "New") #t))
+		      ,(Link content: (Caption "Open...")
+			     on-tap: ((open-file) finger (this)))
+		      ,@(if (is (length open-documents) < 1)
+			    '()
+			    `(,(Link
+				content:
+				(Caption "Switch to...")
+				on-tap:
+				(lambda _
+				  (safely
+				   (screen:add-overlay!
+				    (document-switcher (this))))
+				  #t))))
+		      ,(Link content: (Caption "Save as...")
+			     on-tap: ((save-file) finger (this)))
+		      ,(Link content: (Caption "Close")
+			     on-tap: (lambda _ (WARN "Close") #t))
+		      )))
+		  (window ::PopUp (PopUp content: content)))
+	     (window:center-around! x y)
+	     (screen:add-overlay! window))))
+	;; dodanie menu kontekstowego
+	#t)))
 
   (define (scroll-up! x::real y::real)::boolean
     (with-post-transform transform
       (with-view-edges-transformed transform
-       (parameterize/update-sources ((the-document document)
-				     (the-cursor cursor)
-				     (the-editor (this))
-				     (the-selection-range
-				      selection-range))
-	 (let* ((h ::real (painter:min-line-height)))
-	   (transform:translate! 0 h)
-	   #t)))))
+	(parameterize/update-sources ((the-document document)
+				      (the-cursor cursor)
+				      (the-editor (this))
+				      (the-selection-range
+				       selection-range))
+	  (let* ((h ::real (painter:min-line-height)))
+	    (transform:translate! 0 h)
+	    #t)))))
 
   (define (scroll-down! x::real y::real)::boolean
     (with-post-transform transform
       (with-view-edges-transformed transform
-       (parameterize/update-sources ((the-document document)
-				     (the-cursor cursor)
-				     (the-editor (this))
-				     (the-selection-range
-				      selection-range))
-	 (let* ((h ::real (painter:min-line-height)))
-	   (transform:translate! 0 (- h))
-	   #t)))))
+	(parameterize/update-sources ((the-document document)
+				      (the-cursor cursor)
+				      (the-editor (this))
+				      (the-selection-range
+				       selection-range))
+	  (let* ((h ::real (painter:min-line-height)))
+	    (transform:translate! 0 (- h))
+	    #t)))))
 
   (define (scroll-left! x::real y::real)::boolean
     (with-post-transform transform
       (with-view-edges-transformed transform
-       (parameterize/update-sources ((the-document document)
-				     (the-cursor cursor)
-				     (the-editor (this))
-				     (the-selection-range
-				      selection-range))
-	 (let* ((w ::real (painter:space-width)))
-	   (transform:translate! w 0)
-	   #t)))))
+	(parameterize/update-sources ((the-document document)
+				      (the-cursor cursor)
+				      (the-editor (this))
+				      (the-selection-range
+				       selection-range))
+	  (let* ((w ::real (painter:space-width)))
+	    (transform:translate! w 0)
+	    #t)))))
 
   (define (scroll-right! x::real y::real)::boolean
     (with-post-transform transform
       (with-view-edges-transformed transform
-       (parameterize/update-sources ((the-document document)
-				     (the-cursor cursor)
-				     (the-editor (this))
-				     (the-selection-range
-				      selection-range))
-	 (let* ((w ::real (painter:space-width)))
-	  (transform:translate! (- w) 0))
-	 #t))))
+	(parameterize/update-sources ((the-document document)
+				      (the-cursor cursor)
+				      (the-editor (this))
+				      (the-selection-range
+				       selection-range))
+	  (let* ((w ::real (painter:space-width)))
+	    (transform:translate! (- w) 0))
+	  #t))))
 
   (define (zoom-in! x::real y::real)::boolean
     (with-post-transform transform
       (with-view-edges-transformed transform
-       (parameterize/update-sources ((the-document document)
-				     (the-cursor cursor)
-				     (the-editor (this))
-				     (the-selection-range
-				      selection-range))
-	 (transform:scale! 1.25 0 0)
-	 #t))))
+	(parameterize/update-sources ((the-document document)
+				      (the-cursor cursor)
+				      (the-editor (this))
+				      (the-selection-range
+				       selection-range))
+	  (transform:scale! 1.25 0 0)
+	  #t))))
 
   (define (zoom-out! x::real y::real)::boolean
     (with-post-transform transform
       (with-view-edges-transformed transform
-       (parameterize/update-sources ((the-document document)
-				     (the-cursor cursor)
-				     (the-editor (this))
-				     (the-selection-range
-				      selection-range))
-	 (transform:scale! 0.8 0 0)
-	 #t))))
+	(parameterize/update-sources ((the-document document)
+				      (the-cursor cursor)
+				      (the-editor (this))
+				      (the-selection-range
+				       selection-range))
+	  (transform:scale! 0.8 0 0)
+	  #t))))
 
   (define (rotate-left! x::real y::real)::boolean
     (with-post-transform transform
       (with-view-edges-transformed transform
-       (parameterize/update-sources ((the-document document)
-				     (the-cursor cursor)
-				     (the-editor (this))
-				     (the-selection-range
-				      selection-range))
-	 (transform:rotate! -5.0 x y)
-	 #t))))
+	(parameterize/update-sources ((the-document document)
+				      (the-cursor cursor)
+				      (the-editor (this))
+				      (the-selection-range
+				       selection-range))
+	  (transform:rotate! -5.0 x y)
+	  #t))))
 
   (define (rotate-right! x::real y::real)::boolean
     (with-post-transform transform
       (with-view-edges-transformed transform
-       (parameterize/update-sources ((the-document document)
-				     (the-cursor cursor)
-				     (the-editor (this))
-				     (the-selection-range
-				      selection-range))
-	 (transform:rotate! 5.0 x y)
-	 #t))))
+	(parameterize/update-sources ((the-document document)
+				      (the-cursor cursor)
+				      (the-editor (this))
+				      (the-selection-range
+				       selection-range))
+	  (transform:rotate! 5.0 x y)
+	  #t))))
 
   (define (key-typed! key-code::long context::Cursor)::boolean
     (with-post-transform transform
       (with-view-edges-transformed transform
-       (parameterize/update-sources ((the-document document)
-				     (the-cursor cursor)
-				     (the-editor (this))
-				     (the-selection-range
-				      selection-range))
-	 ((keymap key-code))
-	 #t))))
+	(parameterize/update-sources ((the-document document)
+				      (the-cursor cursor)
+				      (the-editor (this))
+				      (the-selection-range
+				       selection-range))
+	  ((keymap key-code))
+	  #t))))
 
   (define (can-split-beside? line::Area)::boolean
     (let* ((vicinity ::real
@@ -933,8 +931,8 @@
   (define (split-below! line::Area)::Embeddable
     (if (can-split-below? line)
 	(let*-values (((ratio::real) (/ (/ (+ line:top line:bottom)
-					  2)
-				       (the-pane-height)))
+					   2)
+					(the-pane-height)))
 		      ((new::DocumentEditor) (copy (this)))
 		      ((split::Split) (SplitBelow first: (this)
 						  last: new
