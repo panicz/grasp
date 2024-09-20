@@ -249,46 +249,89 @@
  (only even? '(1 2 3 4 5 6))
  ===> (2 4 6))
 
-(define (in element list)
-  (any (is _ equal? element) list))
+(define-simple-class set (java.util.HashSet)
+  ((toString)::String
+   (let ((builder ::java.lang.StringBuilder (java.lang.StringBuilder)))
+     (builder:append "[set")
+     (for item in (this)
+       (builder:append " ")
+       (cond
+	((or (string? item) (String? item))
+	 (builder:append "\"")
+	 (builder:append (item:toString))
+	 (builder:append "\""))
+	((char? item)
+	 (builder:append "#\\")
+	 (builder:append (as char item)))
+	(else
+	 (builder:append (item:toString)))))
+     (builder:append "]")
+     (builder:toString))))
+
+(define (in element collection)
+  (if (instance? collection java.util.Set)
+      (let ((set ::java.util.Set (as java.util.Set collection)))
+	(set:contains element))
+      (any (is _ equal? element) collection)))
 
 (define (union set . sets)
-  (define (union a b)
+  (define (list-union a b)
     (fold-left (lambda (set element)
 		 (if (is element in set)
 		     set
 		     `(,element . ,set)))
 	       a b))
-  (fold-left union set sets))
+  (if (and (instance? set java.util.Set)
+	   (instance? set java.lang.Cloneable))
+      (let ((clone ::java.util.Set (set:clone)))
+	(for collection ::java.util.Collection in sets
+	  (clone:addAll collection))
+	clone)
+      (fold-left list-union set sets)))
 
 (e.g.
  (union '(a b c) '(b c d e))
  ===> (e d a b c))
 
 (define (intersection set . sets)
-  (define (intersection a b)
+  (define (list-intersection a b)
     (only (is _ in b) a))
-  (fold-left intersection set sets))
+  (if (and (instance? set java.util.Set)
+	   (instance? set java.lang.Cloneable))
+      (let ((clone ::java.util.Set (set:clone)))
+	(for collection ::java.util.Collection in sets
+	     (clone:retainAll collection))
+	clone)
+      (fold-left list-intersection set sets)))
 
 (e.g.
  (intersection '(a b c) '(b c d) '(c d e))
  ===> (c))
 
 (define (difference set . sets)
-  (define (difference a b)
+  (define (list-difference a b)
     (fold-left (lambda (set element)
 		 (if (is element in set)
 		     (only (isnt _ equal? element) set)
 		     set))
 	       a b))
-  (fold-left difference set sets))
+  (if (and (instance? set java.util.Set)
+	   (instance? set java.lang.Cloneable))
+      (let ((clone ::java.util.Set (set:clone)))
+	(for collection ::java.util.Collection in sets
+	     (clone:removeAll collection))
+	clone)
+      (fold-left list-difference set sets)))
 
 (e.g.
  (difference '(a b c) '(b c d))
  ===> (a))
 
 (define (subset? a b)
-  (every (is _ in b) a))
+  (if (instance? b java.util.Set)
+      (let ((set ::java.util.Set (as java.util.Set b)))
+	(set:containsAll a))
+      (every (is _ in b) a)))
 
 (e.g.
  (is '(a b) subset? '(b a c)))
