@@ -256,6 +256,58 @@
 				    position)))
 	  (set! (cdr cell) (cons 0 (cdr cell))))))
 
+  (define (measure-position #;of cursor::Cursor
+				 #;into target::Position
+					#;within context::Cursor)
+    ::Position
+    (let* ((aspiration ::int (length cursor))
+	   (level ::int (length context))
+	   (suffix ::Cursor (drop (- aspiration level 1) cursor))
+	   (index ::int (as int (car suffix)))
+	   (space-width ::real (painter:space-width))
+	   (traversal ::Traversal (the-traversal))
+	   (t ::Traversal (traversal:clone)))
+      (let skip ((input ::list fragments)
+		 (i ::int 0))
+	 (match input
+	   (`(,comment::Comment . ,rest)
+	    (cond
+	     ((= index i)
+	      (set! target:left (+ target:left t:left))
+	      (set! target:top (+ target:top t:top))
+	      (comment:measure-position
+	       #;of cursor #;into target
+		    #;within (hash-cons index context)))
+	     (else
+	       (comment:expand! t)
+	       (skip rest (+ i 1)))))
+
+	   (`(,width::integer . ,rest)
+	    (cond
+	     ((is index <= (+ i width))
+	      (t:expand-by! (* space-width (- (+ i width) index)))
+	      (set! target:left (+ target:left t:left))
+	      (set! target:top (+ target:top t:top))
+	      target)
+	     (else
+	      (match rest
+		(`(,next::integer . ,_)
+		 (t:new-line!)
+		 (skip rest (+ i width)))
+		(`()
+		 (set! target:left (+ target:left t:left))
+		 (set! target:top (+ target:top t:top))
+		 target)
+		(_
+		 (t:expand-by! (* space-width width))
+		 (skip rest (+ i width)))
+		))))
+	   (`()
+	    (set! target:left (+ target:left t:left))
+	    (set! target:top (+ target:top t:top))
+	    target)
+	   ))))
+		
   (define (draw! context::Cursor)::void
    (let-values (((selection-start selection-end) (the-selection)))
      (let* ((enters-selection-drawing-mode?::boolean
@@ -282,8 +334,8 @@
 						 width)))
 		 (with-translation ((- t:left left
 				       (* space-width
-					  (- total tip))) (- t:top top -1))
-
+					  (- total tip)))
+				    (- t:top top -1))
 		   (set! t:parent-left (+ t:parent-left t:left
 					  (* space-width
 					     (- tip total))))
@@ -292,17 +344,14 @@
 		   (set! t:parent-left (- t:parent-left t:left
 					  (* space-width
 					     (- tip total))))
-		   (set! t:parent-top (- t:parent-top t:top))
-		   ))
+		   (set! t:parent-top (- t:parent-top t:top))))
 	       (when (and enters-selection-drawing-mode?
-			  (is total <= (car
-					selection-start) <= (+ total
-							       width)))
+			  (is total <= (car selection-start)
+			      <= (+ total width)))
 		 (painter:enter-selection-drawing-mode!))
 	       (when (and exits-selection-drawing-mode?
-			  (is total <= (car
-					selection-end) <= (+ total
-							     width)))
+			  (is total <= (car selection-end)
+			      <= (+ total width)))
 		 (painter:exit-selection-drawing-mode!)))
 	     (t:expand-by! (* width space-width)))
 
@@ -363,8 +412,8 @@
 	     (else
 	      (t:expand-by! (* space-width width))
 	      (unless (eq? t:on-end-line nothing)
-		(WARN "overridden on-end-line invoked from cursor-under in"
-		      (this)))
+		(WARN "overridden on-end-line invoked"
+		      " from cursor-under in " (this)))
 	      (t:new-line!)
 	      (skip (cdr input)
 		    (as int (+ total width 1))))))
@@ -599,6 +648,11 @@
   (define (next-index index::Index)::Index #\|)
   (define (previous-index index::Index)::Index #\|)
   (define (index< a::Index b::Index) #f)
+  (define (measure-position #;of cursor::Cursor
+				 #;into target::Position
+					#;within context::Cursor)
+    ::Position
+    target)
 
   (define (toString)::String "|"))
 
@@ -709,6 +763,14 @@
 		   (else
 		    #!null))))))
 
+  (define (measure-position #;of cursor::Cursor
+				 #;into target::Position
+					#;within context::Cursor)
+    ::Position
+    (if (equal? cursor context)
+	target
+	(space:measure-position cursor target (hash-cons 0 context))))
+  
   (define (index< a::Index b::Index)
     (or (and (eqv? a #\[) (or (eqv? b 0)
 			      (eqv? b #\])))

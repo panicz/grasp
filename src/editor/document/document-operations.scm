@@ -10,6 +10,7 @@
 (import (language attributes))
 (import (language fundamental))
 (import (language keyword-arguments))
+(import (language while))
 (import (language for))
 
 (import (utils functions))
@@ -330,3 +331,36 @@
     (replace-expression! at: cursor with: expression
 			 in: document)
     expression))
+
+(define/kw (find-next satisfying? ::(maps (Element) to: boolean)
+		      in: document ::Indexable := (the-document)
+		      after: cursor ::Cursor := (the-cursor)
+		      context: context ::Cursor := '())
+  ::(maybe Cursor)
+  (escape-with return
+    (let* ((current-level ::int (length context))
+	   (reference-level ::int (length cursor))
+	   (pressure (- reference-level current-level 1))
+	   (index (if (is pressure #;< >= 0)
+		      (let ((initial-index (cursor pressure)))
+			(if (= pressure 0)
+			    (document:next-index initial-index)
+			    initial-index))
+		      (document:next-index
+		       (document:first-index))))
+	   (limit (document:last-index)))
+      (while (isnt index eqv? limit)
+	(let ((item (document:part-at index)))
+	  (when (and (isnt item eq? document)
+		     (is item satisfying?))
+	    (return (recons index context)))
+	  (when (gnu.lists.LList? item)
+	    (let ((result (find-next satisfying?
+				     in: item
+				     after: cursor
+				     context: (recons index
+						      context))))
+	      (when result
+		(return result)))))
+	(set! index (document:next-index index)))
+      (return #!null))))

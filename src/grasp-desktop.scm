@@ -942,9 +942,9 @@
     (mark-editor-cursor! +left +top (the-editor)))
   
   (define (editor-cursor-position editor::WithCursor)::Position
-    (editor:cursor-position))
+    (editor:marked-cursor-position))
 
-  (define (cursor-position)::Position
+  (define (marked-cursor-position)::Position
     (editor-cursor-position (the-editor)))
 
   (define (cursor-height)::real

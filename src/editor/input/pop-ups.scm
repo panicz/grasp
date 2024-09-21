@@ -127,6 +127,21 @@
     ('edge (this))
     ('content content)))
 
+  ((measure-position #;of cursor::Cursor
+			  #;into target::Position
+				 #;within context::Cursor)
+   ::Position
+   (let* ((aspiration ::int (length cursor))
+	  (level ::int (length context))
+	  (suffix ::Cursor (drop (- aspiration level 1) cursor))
+	  (index (car suffix)))
+     (match index
+       ('content
+	(content:measure-position #;of cursor
+				       #;into target
+					      #;within context))
+       (_ target))))
+
   ((first-index)::Index 'content)
   ((last-index)::Index 'edge)
 
@@ -257,6 +272,23 @@
   ((extent)::Extent
    (Extent width: width
            height: height))
+
+  ((measure-position #;of cursor::Cursor
+			  #;into target::Position
+				 #;within context::Cursor)
+   ::Position
+   (let* ((aspiration ::int (length cursor))
+	  (level ::int (length context))
+	  (suffix ::Cursor (drop (- aspiration level 1) cursor))
+	  (index (car suffix)))
+     (match index
+       ('content
+	(set! target:left (+ targer:left left))
+	(set! target:top (+ targer:left top))
+	(content:measure-position #;of cursor
+				       #;into target
+					      #;within context))
+       (_ target))))
 
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
    (content:cursor-under* (- x left) (- y top) (recons 0 path)))

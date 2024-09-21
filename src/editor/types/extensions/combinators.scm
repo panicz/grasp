@@ -54,7 +54,19 @@
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
    (let* ((border ::real (painter:border-size)))
      (element:cursor-under* (- x border) (- y border)
-			    (recons 'element path))))
+			    (hash-cons 'element path))))
+
+  ((measure-position #;of cursor::Cursor
+				 #;into target::Position
+					#;within context::Cursor)
+   ::Position
+   (let* ((border ::real (painter:border-size)))
+     (set! target:left (+ target:left border))
+     (set! target:top (+ target:top border))
+     (element:measure-position cursor
+				 target
+				 (hash-cons 'element
+					    context))))
   
   ((tap! finger::byte #;at x::real y::real)::boolean
    (let* ((border ::real (painter:border-size)))
@@ -163,6 +175,20 @@
 	   (path* (recons 'element path)))
       (or (element:cursor-under* x* y* path*)
 	  path*)))
+
+  (define (measure-position #;of cursor::Cursor
+				 #;into target::Position
+					#;within context::Cursor)
+    ::Position
+    (let ((p ::Position (element:measure-position
+			 cursor (Position)
+			 (hash-cons 'element context)))
+	  (w ::real (/ size:width inner:width))
+	  (h ::real (/ size:height inner:height)))
+      ;; this code has never been tested and is probably wrong
+      (set! target:left (+ target:left (* p:left w)))
+      (set! target:top (+ target:top (* p:top h)))
+      target))
   
   (define (tap! finger::byte #;at x::real y::real)::boolean
     (let* ((inner ::Extent (extent+ element))
@@ -273,6 +299,29 @@
      (,(last-index) front)
      (_ (this))))
 
+  ((measure-position #;of cursor::Cursor
+				 #;into target::Position
+					#;within context::Cursor)
+    ::Position
+    (let* ((aspiration ::int (length cursor))
+	   (level ::int (length context))
+	   (suffix ::Cursor (drop (- aspiration level 1) cursor)))
+      (match suffix
+	(`(,,(first-index) . ,_)
+	   (back:measure-position #;of cursor
+				 #;into target
+					#;within (hash-cons
+						  (first-index)
+						  context)))
+	(`(,,(last-index) . ,_)
+	   (front:measure-position #;of cursor
+				 #;into target
+					#;within (hash-cons
+						  (last-index)
+						  context)))
+
+	(_ target))))
+  
   ((first-index)::Index
    'back)
 
@@ -395,6 +444,31 @@
      (,(last-index) bottom)
      (_ (this))))
 
+  ((measure-position #;of cursor::Cursor
+			  #;into target::Position
+				 #;within context::Cursor)
+   ::Position
+   (let* ((aspiration ::int (length cursor))
+	  (level ::int (length context))
+	  (suffix ::Cursor (drop (- aspiration level 1) cursor)))
+     (match suffix
+       (`(,,(first-index) . ,_)
+	(top:measure-position #;of cursor
+				   #;into target
+					  #;within (hash-cons
+						    (first-index)
+						    context)))
+       (`(,,(last-index) . ,_)
+	(let ((top-extent ::Extent (extent+ top)))
+	  (set! target:top (+ target:top top-extent:height))
+	  (bottom:measure-position #;of cursor
+					#;into target
+					       #;within (hash-cons
+							 (last-index)
+							 context))))
+
+       (_ target))))
+  
   ((first-index)::Index
    'top)
 
@@ -545,6 +619,31 @@
      (,(last-index) right)
      (_ (this))))
 
+  ((measure-position #;of cursor::Cursor
+			  #;into target::Position
+				 #;within context::Cursor)
+   ::Position
+   (let* ((aspiration ::int (length cursor))
+	  (level ::int (length context))
+	  (suffix ::Cursor (drop (- aspiration level 1) cursor)))
+     (match suffix
+       (`(,,(first-index) . ,_)
+	(left:measure-position #;of cursor
+				    #;into target
+					   #;within (hash-cons
+						     (first-index)
+						     context)))
+       (`(,,(last-index) . ,_)
+	(let ((left-extent ::Extent (extent+ left)))
+	  (set! target:left (+ target:left left-extent:width))
+	  (right:measure-position #;of cursor
+				       #;into target
+					      #;within (hash-cons
+							(last-index)
+							context))))
+
+       (_ target))))
+  
   ((first-index)::Index
    'left)
 
