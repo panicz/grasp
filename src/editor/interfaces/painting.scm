@@ -169,9 +169,20 @@ def") ===> [Extent width: 3 height: 2])
   
   (draw-quoted-text! s::CharSequence context::Cursor)
   ::void
+
+  (measure-quoted-text-index-position-into! target::Position
+					    text::CharSequence
+					    index::int)
+  ::Position
+
   (draw-string! s::CharSequence context::Cursor)
   ::void
 
+  (measure-string-index-position-into! target::Position
+				       text::CharSequence
+				       index::int)
+  ::Position
+  
   (draw-caption! caption::CharSequence)::void
   (caption-extent caption::CharSequence)::Extent
   (caption-margin-top)::real
@@ -180,9 +191,13 @@ def") ===> [Extent width: 3 height: 2])
 
   (quoted-text-extent text::CharSequence)::Extent
 
-  (draw-atom! text::CharSequence context::Cursor)
-  ::void
+  (draw-atom! text::CharSequence context::Cursor)::void
 
+  (measure-atom-index-position-into! target::Position
+				     text::CharSequence
+				     index::int)
+  ::Position
+  
   (atom-character-index-under x::real y::real
 			      text::CharSequence)
   ::int
@@ -292,6 +307,10 @@ def") ===> [Extent width: 3 height: 2])
   (draw-line-comment! text::CharSequence
 		      context::Cursor)
   ::void
+  (measure-line-comment-index-position-into! target::Position
+					     text::CharSequence
+					     index::int)
+  ::Position
 
   (line-comment-extent text::CharSequence)::Extent
 
@@ -304,6 +323,11 @@ def") ===> [Extent width: 3 height: 2])
 		    context::Cursor)
   ::void
 
+  (measure-text-input-index-position-into! target::Position
+					   text::CharSequence
+					   index::int)
+  ::Position
+
   (text-input-extent text::CharSequence)::Extent
 
   (text-input-character-index-under
@@ -315,6 +339,11 @@ def") ===> [Extent width: 3 height: 2])
 		       context::Cursor)
   ::void
 
+  (measure-block-comment-index-position-into! target::Position
+					      text::CharSequence
+					      index::int)
+  ::Position
+  
   (block-comment-extent text::CharSequence)::Extent
 
   (block-comment-character-index-under
@@ -326,7 +355,6 @@ def") ===> [Extent width: 3 height: 2])
   (draw-vertical-grid! height::real)::void
   (grid-border)::real
   (fill-grid-cell! width::real height::real)::void
-
 
   (draw-point! left::real top::real
 	       color-rgba::int)::void
@@ -665,7 +693,43 @@ def") ===> [Extent width: 3 height: 2])
 
   (define (draw-point! left::real top::real
 		       color-rgba::int)::void
-    (values))
+		       (values))
+
+  (define (measure-quoted-text-index-position-into! target::Position
+						    text::CharSequence
+						    index::int)
+    ::Position
+    target)
+
+  (define (measure-string-index-position-into! target::Position
+					       text::CharSequence
+					       index::int)
+    ::Position
+    target)
+
+  (define (measure-atom-index-position-into! target::Position
+					     text::CharSequence
+					     index::int)
+    ::Position
+    target)
+
+  (define (measure-line-comment-index-position-into! target::Position
+						     text::CharSequence
+						     index::int)
+    ::Position
+    target)
+
+  (define (measure-block-comment-index-position-into! target::Position
+						      text::CharSequence
+						      index::int)
+    ::Position
+    target)
+
+  (define (measure-text-input-index-position-into! target::Position
+						   text::CharSequence
+						   index::int)
+    ::Position
+    target)
   )
 
 

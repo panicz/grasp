@@ -32,6 +32,13 @@
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
    (expression:cursor-under* x y (hash-cons #\; path)))
 
+  (define (measure-position #;of cursor::Cursor
+				 #;into target::Position
+					#;within context::Cursor)
+    ::Position
+    (expression:measure-position cursor target
+				 (hash-cons #\; context)))
+  
   (define (extent)::Extent
    (expression:extent))
 
@@ -78,6 +85,15 @@
 	    (let ((index (painter:block-comment-character-index-under
 			  x y content)))
 	      (hash-cons index path))))))
+
+  (define (measure-position #;of cursor::Cursor
+				 #;into target::Position
+					#;within context::Cursor)
+    ::Position
+    (match cursor
+      (`(,index::integer . ,_)
+       (painter:measure-block-comment-index-position-into!
+	target name index))))
   
   (define (extent)::Extent
    (painter:block-comment-extent content))
@@ -179,6 +195,15 @@
 			x y content)
 		       path)))))
 
+  (define (measure-position #;of cursor::Cursor
+				 #;into target::Position
+					#;within context::Cursor)
+    ::Position
+    (match cursor
+      (`(,index::integer . ,_)
+       (painter:measure-line-comment-index-position-into!
+	target name index))))
+  
   (define (breaks-line?)::boolean #t)
   
   (define (print out::gnu.lists.Consumer)::void

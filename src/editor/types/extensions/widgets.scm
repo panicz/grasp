@@ -387,6 +387,12 @@
 	    (painter:text-input-character-index-under
 	     x y (this))))
 
+  (define (measure-position #;of cursor::Cursor
+				 #;into target::Position
+					#;within context::Cursor)
+    ::Position
+    target)
+    
   (define (part-at index::Index)::Indexable* (this))
 
   (define (first-index)::Index (as int 0))

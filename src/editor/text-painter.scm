@@ -684,6 +684,36 @@
       (put! #\❞ (+ extent:height 1)
 	    (+ extent:width 3))))
 
+  (define (measure-quoted-text-index-position-into! target::Position
+						    text::CharSequence
+						    index::int)
+    ::Position
+    (set! target:left (+ target:left 2))
+    (set! target:top (+ target:top 1))
+    (measure-string-index-position-into! target text index))
+
+  
+  (define (measure-string-index-position-into! target::Position
+					       text::CharSequence
+					       index::int)
+    ::Position
+    (let ((line ::int 0)
+	  (column ::int 0)
+	  (i ::int 0))
+      (escape-with break
+	(for c in text
+	  (when (= i index)
+	    (break))
+	  (set! i (+ i 1))
+          (cond ((eq? c #\newline)
+		 (set! line (+ line 1))
+		 (set! column 0))
+		(else
+		 (set! column (+ column 1))))))
+      (set! target:left (+ target:left column))
+      (set! target:top (+ target:top line))
+      target))
+  
   (define (draw-string! text::CharSequence
 			context::Cursor)
     ::void
@@ -787,6 +817,13 @@
     ::void
     (draw-string! text context))
 
+  (define (measure-text-input-index-position-into! target::Position
+						   text::CharSequence
+						   index::int)
+    ::Position
+    (measure-string-index-position-into! target text index))
+
+  
   (define (text-input-extent text::CharSequence)::Extent
     (string-extent text))
 
@@ -822,6 +859,13 @@
     (with-translation (0 1)
       (draw-string! text context)))
 
+  (define (measure-atom-index-position-into! target::Position
+					     text::CharSequence
+					     index::int)
+    ::Position
+    (set! target:top (+ target:top 1))
+    (measure-string-index-position-into! target text index))
+  
   (define (atom-extent text::CharSequence)
     ::Extent
     (let ((inner ::Extent (string-extent text)))
@@ -911,6 +955,28 @@
 	  (draw-string! (substring text skip end)
 			 context))))
 
+  (define (measure-line-comment-index-position-into!
+	   target::Position
+	   text::CharSequence
+	   index::int)
+    ::Position
+    (let*-values (((semicolons)
+		   (count-while (is _ eqv? #\;)
+				text))
+		  ((shift skip)
+		   (match semicolons
+		     (0 (put! #\⸾ 0 0)
+			(values 1 0))
+		     (1 (put! #\┃ 0 0)
+			(values 1 1))
+		     (n (put! #\┣ 0 0)
+			(for i from 1 below n
+			     (put! #\━ 0 i))
+			(values (- n 1) n))))
+		  ((end) (string-length text)))
+      (set! target:left (+ target:left shift))
+      (measure-string-index-position-into! target text index)))
+
   (define (line-comment-extent
 	   text::CharSequence)
     ::Extent
@@ -940,6 +1006,15 @@
       (with-translation (1 1)
 	  (draw-string! text context))))
 
+  (define (measure-block-comment-index-position-into!
+	   target::Position
+	   text::CharSequence
+	   index::int)
+    ::Position
+    (set! target:left (+ target:left 1))
+    (set! target:top (+ target:top 1))
+    (measure-string-index-position-into! target text index))
+  
   (define (block-comment-extent
 	   text::CharSequence)
     ::Extent

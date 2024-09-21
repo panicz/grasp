@@ -16,6 +16,7 @@
 (import (utils hash-table))
 
 (import (editor interfaces elements))
+(import (editor interfaces painting))
 (import (editor types primitive))
 (import (editor document cursor))
 (import (editor types texts))
@@ -72,6 +73,11 @@
   (define (value)::Object
     (cons (Atom "Magic") (empty)))
 
+  (define (measure-position #;of cursor::Cursor
+				 #;into target::Position
+					#;within context::Cursor)
+    ::Position
+    target)
 
   (define (part-at index::Index)::Indexable* (this))
 
@@ -101,6 +107,12 @@
 
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
     (and path (recons 0 path)))
+
+  (define (measure-position #;of cursor::Cursor
+				 #;into target::Position
+					#;within context::Cursor)
+    ::Position
+    target)
   
   (define (index< a::Index b::Index)::boolean #f)
 

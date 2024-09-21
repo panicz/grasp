@@ -116,6 +116,8 @@
   (draw! context::Cursor)::void
   (cursor-under* x::real y::real path::Cursor)::Cursor*
   (clone)::Element
+  (measure-position #;of cursor::Cursor #;into target::Position
+			 #;within context::Cursor)::Position
   #|
   (cursor-above* path::Cursor)::Cursor*
   (cursor-below* path::Cursor)::Cursor*

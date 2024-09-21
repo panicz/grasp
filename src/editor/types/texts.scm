@@ -72,6 +72,17 @@
 			path)
 	     ))))
 
+  (define (measure-position #;of cursor::Cursor
+				 #;into target::Position
+					#;within context::Cursor)
+    ::Position
+    (match cursor
+      (`(,index::integer . ,_)
+       (painter:measure-quoted-text-index-position-into!
+	target name index))
+      (_
+       target)))
+  
   (define (insert-char! c::char index::int)::void
     (insert index c #t))
   

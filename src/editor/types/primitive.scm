@@ -80,7 +80,8 @@
 ;; edited objects, even though the "value" of
 ;; those atoms can be a different kind of object
 ;; on every query.
-(define-interface MatchableShadowedTextualTile (Matchable ShadowedTextualTile))
+(define-interface MatchableShadowedTextualTile
+  (Matchable ShadowedTextualTile))
 
 (define-object (Atom name::String)::MatchableShadowedTextualTile
 
@@ -101,6 +102,16 @@
        ;;(string-append name "/" (number->string (id (this))))
        context))
 
+  (define (measure-position #;of cursor::Cursor
+				 #;into target::Position
+					#;within context::Cursor)
+    ::Position
+    (match cursor
+      (`(,index::integer . ,_)
+       (painter:measure-atom-index-position-into! target
+						  name
+						  index))))
+  
   (define (extent)::Extent
     (painter:atom-extent
      name
@@ -200,6 +211,30 @@
 
 (define-interface MatchableTile (Matchable Tile))
 
+(define/kw (cursor-position cursor ::Cursor := (the-cursor)
+			    in: document := (the-document)
+			    context: ::Cursor := '()
+			    into: target ::Position := (Position))
+  ::Position
+  (escape-with return
+    (let* ((aspiration ::int (length cursor))
+	   (level ::int (length context))
+	   (suffix (drop (- aspiration level 1) cursor)))
+
+      (define (action item ::Element t::Traversal)
+	(let ((context* (hash-cons t:index context)))
+	  (when (equal? context* suffix)
+	    (set! target:left (+ target:left t:left))
+	    (set! target:top (+ target:top t:top))
+	    (return (item:measure-position
+		     #;of cursor #;into target
+			  #;within context*)))))
+
+      (define (result t ::Traversal)
+	(error "Cursor "cursor"not found in "document))
+
+      (traverse elems doing: action returning: result))))
+
 (define-object (cons car cdr)::MatchableTile
 
   (define (matches? x)::boolean
@@ -227,6 +262,26 @@
 	 (draw-sequence! (this) context: context)
 	 (set! t:parent-left (- t:parent-left paren-width))))))
 
+  (define (measure-position #;of cursor::Cursor
+				 #;into target::Position
+					#;within context::Cursor)
+    ::Position
+    (set! target:left (+ target:left painter:paren-width))
+    (match cursor
+      (`(#\[ . ,,context)
+       target)
+      (`(#\] . ,,context)
+       (traverse
+	(this)
+	returning:
+	(lambda (t::Traversal)
+	  (set! target:left (+ target:left t:left))
+	  (set! target:top (+ target:top t:top))
+	  target)))
+      (_
+       (cursor-position cursor in: (this) context: context
+			into: target))))
+    
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
     (otherwise #!null
       (let* ((inner ::Extent (sequence-extent (this)))
