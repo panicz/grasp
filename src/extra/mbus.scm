@@ -815,23 +815,30 @@
          (dll `(#x44 ,@man ,@id ,ver ,(MBUS-DEVICE-TYPE:00-OTHER:ordinal)))
          (stl `(#x7a ,access-number ,MBUS-STL-STATUS-00
                      ,@(MBus-STL-conf-word #x10 #xa5)))
-         (payload `(#x2f #x2f ,CONFIG-FRAME-IDENTIFIER-52
-                         ,@(little-endian-32 (number/base
-                                              16 (digits/base
-                                                  10 target-serial-number)))
-                         ,@(unsigned-little-endian-32 (bitwise-and #xffffffff
-                                                                   timestamp))
-                         ,@config-frame-payload))
-         (padded (let* ((n ::int (length payload))
-                        (unpadded ::int (modulo n 16)))
-                   (if (= unpadded 0)
-                       payload
-                       (append! payload (make-list (- 16 unpadded) #x2f)))))
-         (aes-initial-vector `(,@man ,@id ,ver ,(MBUS-DEVICE-TYPE:00-OTHER:ordinal)
-                                     ,@(make-list 8 access-number)))
-         (encrypted-payload (aes-cbc-encrypt padded key: aes-key
-                                             iv: aes-initial-vector))
-         (content `(,@dll ,@stl ,@encrypted-payload)))
+         (payload `(,CONFIG-FRAME-IDENTIFIER-52
+                    ,@(little-endian-32 (number/base
+                                         16 (digits/base
+                                             10 target-serial-number)))
+                    ,@(unsigned-little-endian-32 (bitwise-and #xffffffff
+                                                              timestamp))
+                    ,@config-frame-payload))
+         (final-payload (if (null? aes-key)
+                            payload
+                            (let* ((prefixed-payload `(,#x2f ,#x2f . ,payload))
+                                   (n ::int (length prefixed-payload))
+                                   (unpadded ::int (modulo n 16))
+                                   (padded (if (= unpadded 0)
+                                               prefixed-payload
+                                               (append! prefixed-payload
+                                                        (make-list (- 16 unpadded) #x2f))))
+                                   (aes-initial-vector `(,@man
+                                                         ,@id
+                                                         ,ver
+                                                         ,(MBUS-DEVICE-TYPE:00-OTHER:ordinal)
+                                                         ,@(make-list 8 access-number))))
+                              (aes-cbc-encrypt padded key: aes-key
+                                               iv: aes-initial-vector))))
+         (content `(,@dll ,@stl ,@final-payload)))
     (map (lambda (x) (as int x))
          `(,(length content) ,@content))))
 
@@ -862,7 +869,7 @@
 
 (define-type (MBusBlock value: (either number string)
                         type: MBUS-DATA-TYPE
-                        unit: MBUS-UNIT
+                        unit: (either MBUS-UNIT string)
                         scale: (either real MBUS-TIME-UNITS)
                         storage: int
                         tariff: int
@@ -936,7 +943,16 @@
                                (`(,VIFE0 . ,VIFE**)
                                 (mbus-VIFED-unit+scale VIFE0))))
                             (_
-                             (values unit scale)))))
+                             (values unit scale))))
+              (ascii-unit data+ (match unit
+                                  (,MBUS-UNIT:ASCII
+                                   (match data+
+                                     (`(,n . ,_)
+                                      (values (take (+ n 1) data+)
+                                              (drop (+ n 1) data+)))))
+                                  (_
+                                   (values '() data+))))
+              )
      (match type
        (,MBUS-DATA-TYPE:D-LVAR
         (match data+
@@ -945,19 +961,23 @@
                   (data (take size data+)))
              (MBusBlock value: (mbus-value data type unit storage)
                         type: type
-                        unit: unit
+                        unit: (if (null? ascii-unit)
+                                  unit
+                                  (list->string (map integer->char
+                                                     (cdr ascii-unit))))
                         scale: scale
                         storage: storage
                         tariff: tariff
                         subunit: subunit
                         DIB-size: (length DIB)
-                        VIB-size: (length VIB)
+                        VIB-size: (+ (length VIB) (length ascii-unit))
                         data-size: (length data)
                         total-size: (+ (length DIB)
                                        (length VIB)
+                                       (length ascii-unit)
                                        1 ;; lvar
                                        (length data))
-                        source: `(,@DIB ,@VIB ,lvar ,@data))))))
+                        source: `(,@DIB ,@VIB ,@ascii-unit ,lvar ,@data))))))
 
        (,MBUS-DATA-TYPE:8-READOUT
         (error "Unsupported MBus data type: "type))
@@ -970,18 +990,22 @@
                (data (take size data+)))
           (MBusBlock value: (mbus-value data type unit storage)
                      type: type
-                     unit: unit
+                     unit: (if (null? ascii-unit)
+                               unit
+                               (list->string (map integer->char
+                                                  (cdr ascii-unit))))
                      scale: scale
                      storage: storage
                      tariff: tariff
                      subunit: subunit
                      DIB-size: (length DIB)
-                     VIB-size: (length VIB)
+                     VIB-size: (+ (length VIB) (length ascii-unit))
                      data-size: (length data)
                      total-size: (+ (length DIB)
+                                    (length ascii-unit)
                                     (length VIB)
                                     (length data))
-                     source: `(,@DIB ,@VIB ,@data))))))))
+                     source: `(,@DIB ,@VIB ,@ascii-unit ,@data))))))))
 
 (define (mbus-parse-data-blocks input::(list-of ubyte))::(list-of (either MBusBlock
                                                                           ubyte))
@@ -1013,14 +1037,7 @@
                                   ,id1 ,id2 ,id3 ,id4
                                   ,version
                                   ,type
-                                  ,access-number
-                                  ,access-number
-                                  ,access-number
-                                  ,access-number
-                                  ,access-number
-                                  ,access-number
-                                  ,access-number
-                                  ,access-number))
+                                  ,@(make-list 8 access-number)))
             (decrypted-payload (aes-cbc-decrypt encrypted-payload
                                                 key: aes-key
                                                 iv: aes-initial-vector)))
