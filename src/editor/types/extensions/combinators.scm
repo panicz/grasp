@@ -4,6 +4,7 @@
 (import (language infix))
 (import (language define-type))
 (import (language define-object))
+(import (language define-cache))
 (import (language fundamental))
 (import (utils functions))
 (import (editor types primitive))
