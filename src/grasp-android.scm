@@ -1204,6 +1204,24 @@
      (unquote-splicing-marker-width)
      width height context))
 
+  (define (measure-text-index-position-into!
+	   target::Position text::CharSequence index::int
+	   font::Font)
+    ::Position
+    (let ((segment-start 0)
+	  (string-end (text:length)))
+      (escape-with break
+	(for i from 0 below string-end
+	     (when (eq? (text:charAt i) #\newline)
+	       (set! target:top (+ target:top font:size))
+	       (set! segment-start i))
+	     (when (= i index)
+	       (let ((line (text:subSequence segment-start i)))
+		 (set! target:left (+ target:left
+				      (text-width line font))))
+	       (break))))
+      target))
+  
   (define (draw-text! text::CharSequence
 		      font::Font
 		      context::Cursor)
@@ -1287,9 +1305,26 @@
     ::void
     (draw-text! text (the-string-font) context))
 
+  (define (measure-string-index-position-into!
+	   target::Position text::CharSequence index::int)
+    ::Position
+    (measure-text-index-position-into! target
+				       text
+				       index
+				       (the-string-font)))
+  
   (define quoted-text-cursor-offset::Position
     (Position left: -1 top: 2))
 
+  (define (measure-quoted-text-index-position-into!
+	   target::Position text::CharSequence index::int)
+    ::Position
+    (set! target:left (+ target:left
+			 (* 2 single-quote-extent:width)))
+    (set! target:top (+ target:top
+			single-quote-extent:height))
+    (measure-string-index-position-into! target text index))
+  
   (define (draw-quoted-text! text::CharSequence
 			     context::Cursor)
     ::void
@@ -1391,6 +1426,14 @@
     ::void
     (draw-text! text (the-text-input-font) context))
 
+  (define (measure-text-input-index-position-into!
+	   target::Position text::CharSequence index::int)
+    ::Position
+    (measure-text-index-position-into! target
+				       text
+				       index
+				       (the-text-input-font)))
+  
   (define (text-input-extent text::CharSequence)::Extent
     (text-extent text (the-text-input-font)))
 
@@ -1422,6 +1465,16 @@
 	(parameterize ((the-cursor-offset
 			atom-cursor-offset))
 	  (draw-text! text font context)))))
+
+  (define (measure-atom-index-position-into!
+	   target::Position text::CharSequence index::int)
+    ::Position
+    (set! target:left (+ target:left 6))
+    (set! target:top (+ target:top 4))
+    (measure-text-index-position-into! target
+				       text
+				       index
+				       (the-atom-font)))
   
   (define (text-character-index-under x::real y::real
 				      text::CharSequence
@@ -1460,6 +1513,14 @@
     ::void
     (draw-text! text (the-comment-font) context))
 
+  (define (measure-line-comment-index-position-into!
+	   target::Position text::CharSequence index::int)
+    ::Position
+    (measure-text-index-position-into! target
+				       text
+				       index
+				       (the-comment-font)))
+  
   (define (line-comment-extent text::CharSequence)
     ::Extent
     (text-extent text (the-comment-font)))
@@ -1477,7 +1538,17 @@
 	   (margin ::real (the-block-comment-margin)))
       (draw-rectangle! outer:width outer:height)
       (with-translation (margin (* 0.4 font:size))
-	  (draw-text! text font context))))
+	(draw-text! text font context))))
+
+  (define (measure-block-comment-index-position-into!
+	   target::Position text::CharSequence index::int)
+    ::Position
+    (let ((font ::Font (the-block-comment-font)))
+      (set! target:left (+ target:left
+			   (the-block-comment-margin)))
+      (set! target:top (+ target:top (* 0.4 font:size)))
+      (measure-text-index-position-into! target text index
+					 font)))
 
   (define (block-comment-extent text::CharSequence)::Extent
     (let* ((font ::Font (the-block-comment-font))

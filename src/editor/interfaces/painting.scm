@@ -695,39 +695,33 @@ def") ===> [Extent width: 3 height: 2])
 		       color-rgba::int)::void
 		       (values))
 
-  (define (measure-quoted-text-index-position-into! target::Position
-						    text::CharSequence
-						    index::int)
+  (define (measure-quoted-text-index-position-into!
+	   target::Position text::CharSequence index::int)
     ::Position
     target)
 
-  (define (measure-string-index-position-into! target::Position
-					       text::CharSequence
-					       index::int)
+  (define (measure-string-index-position-into!
+	   target::Position text::CharSequence index::int)
     ::Position
     target)
 
-  (define (measure-atom-index-position-into! target::Position
-					     text::CharSequence
-					     index::int)
+  (define (measure-atom-index-position-into!
+	   target::Position text::CharSequence index::int)
     ::Position
     target)
 
-  (define (measure-line-comment-index-position-into! target::Position
-						     text::CharSequence
-						     index::int)
+  (define (measure-line-comment-index-position-into!
+	   target::Position text::CharSequence index::int)
     ::Position
     target)
 
-  (define (measure-block-comment-index-position-into! target::Position
-						      text::CharSequence
-						      index::int)
+  (define (measure-block-comment-index-position-into!
+	   target::Position text::CharSequence index::int)
     ::Position
     target)
 
-  (define (measure-text-input-index-position-into! target::Position
-						   text::CharSequence
-						   index::int)
+  (define (measure-text-input-index-position-into!
+	   target::Position text::CharSequence index::int)
     ::Position
     target)
   )
