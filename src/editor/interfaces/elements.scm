@@ -444,6 +444,7 @@ operate on cursors.
   (undrag! finger::byte)::void
   
   (add-overlay! layer::Layer)::void
+  (contains-overlay? satisfying?::predicate)::(maybe Layer)
   (remove-overlay! layer::Layer)::void
   (clear-overlay!)::void
   (overlay-cursor layer::Layer)::Cursor
