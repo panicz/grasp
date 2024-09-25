@@ -919,7 +919,8 @@
 				      (the-editor (this))
 				      (the-selection-range
 				       selection-range))
-	  ((hash-ref keymap key-code insert-character-input!))
+	  ((hash-ref keymap key-code
+		     (lambda () insert-character-input!)))
 	  #t))))
 
   (define (can-split-beside? line::Area)::boolean
