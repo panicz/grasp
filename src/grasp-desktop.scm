@@ -1056,6 +1056,26 @@
 		       (as int (round y0))
 		       (as int (round x1))
 		       (as int (round y1))))
+
+  (define (measure-text-index-position-into!
+	   target::Position text::CharSequence index::int
+	   font::Font)
+    ::Position
+    (let ((segment-start 0)
+	  (metrics ::FontMetrics (graphics:getFontMetrics font))
+	  (height ::float (metrics:getHeight))
+	  (string-end (text:length)))
+      (escape-with break
+	(for i from 0 below string-end
+	     (when (eq? (text:charAt i) #\newline)
+	       (set! target:top (+ target:top height))
+	       (set! segment-start i))
+	     (when (= i index)
+	       (let ((line (text:subSequence segment-start i)))
+		 (set! target:left (+ target:left
+				      (metrics:stringWidth line))))
+	       (break))))
+      target))
   
   (define (draw-text! text::CharSequence
 		      font::Font
@@ -1131,6 +1151,14 @@
   (define (draw-string! text::CharSequence context::Cursor)::void
     (draw-text! text (the-string-font) context))
 
+  (define (measure-string-index-position-into!
+	   target::Position text::CharSequence index::int)
+    ::Position
+    (measure-text-index-position-into! target
+				       text
+				       index
+				       (the-string-font)))
+  
   (define quoted-text-cursor-offset::Position
     (Position left: -1 top: 2))
   
@@ -1139,6 +1167,15 @@
      1 BasicLineDecoration:CAP_BUTT
      BasicLineDecoration:JOIN_BEVEL
      0 ((array-of float) 9) 0))
+
+  (define (measure-quoted-text-index-position-into!
+	   target::Position text::CharSequence index::int)
+    ::Position
+    (set! target:left (+ target:left
+			 (* 2 single-quote-extent:width)))
+    (set! target:top (+ target:top
+			single-quote-extent:height))
+    (measure-string-index-position-into! target text index))
   
   (define (draw-quoted-text! text::CharSequence context::Cursor)::void
     (let* ((e ::Extent (text-extent text
@@ -1224,6 +1261,14 @@
 		       i
 		       (loop (+ i 1) (+ left width) top))))))))))
 
+  (define (measure-text-input-index-position-into!
+	   target::Position text::CharSequence index::int)
+    ::Position
+    (measure-text-index-position-into! target
+				       text
+				       index
+				       (the-text-input-font)))
+  
   (define (draw-text-input! text::CharSequence
 			    context::Cursor)
     ::void
@@ -1259,6 +1304,16 @@
 
   (define atom-frame-color ::Color (Color #xdddddd))
 
+  (define (measure-atom-index-position-into!
+	   target::Position text::CharSequence index::int)
+    ::Position
+    (set! target:left (+ target:left 4))
+    (set! target:top (+ target:top 8))
+    (measure-text-index-position-into! target
+				       text
+				       index
+				       (the-atom-font)))
+  
   (define (draw-atom! text::CharSequence context::Cursor)::void
     (let* ((extent (atom-extent text))
 	   (font (the-atom-font)))
@@ -1293,6 +1348,14 @@
   (define line-comment-cursor-offset::Position
     (Position left: 0 top: 0))
 
+  (define (measure-line-comment-index-position-into!
+	   target::Position text::CharSequence index::int)
+    ::Position
+    (measure-text-index-position-into! target
+				       text
+				       index
+				       (the-comment-font)))
+  
   (define (draw-line-comment! text::CharSequence context::Cursor)
     ::void
     (parameterize ((the-cursor-offset line-comment-cursor-offset))
@@ -1307,6 +1370,18 @@
     ::int
     (text-character-index-under x y text (the-comment-font)))
 
+  (define (measure-block-comment-index-position-into!
+	   target::Position text::CharSequence index::int)
+    ::Position
+    (let* ((font ::Font (the-block-comment-font))
+	   (metrics ::FontMetrics (graphics:getFontMetrics font))
+	   (font-size ::real (metrics:getHeight)))
+      (set! target:left (+ target:left
+			   (the-block-comment-margin)))
+      (set! target:top (+ target:top (/ font-size 4)))
+      (measure-text-index-position-into! target text index
+					 font)))
+  
   (define (draw-block-comment! text::CharSequence context::Cursor)
     ::void
     (let* ((font ::Font (the-block-comment-font))

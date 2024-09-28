@@ -11,6 +11,7 @@
 (import (language for))
 (import (utils functions))
 (import (utils conversions))
+(import (utils hash-table))
 (import (editor document editor-operations))
 (import (editor interfaces painting))
 (import (utils print))
@@ -32,14 +33,8 @@
 	   #t)
 	 (insert-character! c))))
 
-(define-early-constant keymap
-  (mapping (key-code::long)::(maps () to: boolean)
-	   insert-character-input!))
-
-(define-early-constant key-code-name
-  (bimapping (key-code::long)
-    ;; this table should be populated by particular clients
-    'unknown-key))
+(define-early-constant keymap ::java.util.HashMap
+  (java.util.HashMap))
 
 (define-early-constant last-known-pointer-position
   ;; here we initialize 10 values, because Android can support
@@ -59,7 +54,12 @@
 
 (define (char-code c::char)::long
   (as long (char->integer c)))
-     
+
+(define-early-constant key-code-name
+  (bimapping (key-code::long)
+    ;; this table should be populated by particular clients
+    'unknown-key))
+
 (define (keychord-code combination)::long
   (match combination
     (`(shift . ,rest)
@@ -74,4 +74,4 @@
      ((inverse key-code-name) combination))))
   
 (define (set-key! combination action::(maps () to: boolean))
-  (set! (keymap (keychord-code combination)) action))
+  (hash-set! keymap (keychord-code combination) action))

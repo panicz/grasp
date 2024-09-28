@@ -79,7 +79,7 @@
 (set-key! '(ctrl x) cut-selection!)
 (set-key! '(ctrl c) copy-selection!)
 (set-key! '(ctrl v) paste-selection!)
-
+(set-key! '(ctrl f) open-search-window)
 (set-key! '(ctrl q) exit)
 
 (set-key! 'page-up

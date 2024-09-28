@@ -58,7 +58,9 @@
 	  (else
 	   (boundary-action pop-up finger (- x left) (- y top))))))
 
-(define-type (PopUp left: real := 0 top: real := 0
+(define-type (PopUp left: real := 0
+		    top: real := 0
+		    name: string := ""
                     content: Enchanted)
   implementing Layer
   with

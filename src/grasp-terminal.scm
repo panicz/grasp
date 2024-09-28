@@ -502,14 +502,13 @@
 		(command-line))
 	       (port (string->number port))
 	       ((integer? port)))
-      port) =>
-      (lambda (port::integer)
 	(WARN "Starting debug server on port "port)
 	(let ((tcp-server (tcp-output-server port)))
 	  (set! (current-output-port) tcp-server)
 	  (set! (current-error-port) tcp-server)
 	  (set! input-files remaining-args)
-	  (WARN "Debug server started on port "port))))
+	  (WARN "Debug server started on port "port))
+	#t))
    (else
     (set! (current-display-procedure) nothing)
     (set! (current-message-handler) (ignoring-message-handler))))

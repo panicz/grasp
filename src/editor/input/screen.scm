@@ -61,6 +61,10 @@
   (define (add! element::Layer)::void
     (layers:add 0 element))
 
+  (define (contains-layer? satisfying?::predicate)
+    ::(maybe Layer)
+    (any satisfying? layers))
+  
   (define (remove! element::Layer)::void
     (layers:remove element))
 
@@ -364,7 +368,11 @@
 
   (define (add-overlay! layer::Layer)::void
     (overlay:add! layer))
-    
+
+  (define (contains-overlay? satisfying?::predicate)
+    ::(maybe Layer)
+    (overlay:contains-layer? satisfying?))
+  
   (define (remove-overlay! layer::Layer)::void
     (overlay:remove! layer))
 

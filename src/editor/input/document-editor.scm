@@ -15,6 +15,7 @@
 (import (language parameterize-up))
 (import (utils functions))
 (import (utils print))
+(import (utils hash-table))
 
 (import (editor types primitive))
 (import (editor document cursor))
@@ -316,6 +317,29 @@
 				 #t)))
 		       open-documents)))
     (popup-scroll (ColumnGrid choices))))
+
+(define (open-search-window)
+  (WARN "search not implemented")
+  ;; no to tak: tutaj musimy zlokalizowac biezacy edytor
+  ;; dokumentu, i dodac
+  (cond
+   ((screen:contains-overlay?
+     (lambda (x)
+       (and-let* (((PopUp name: "search") x)))))
+    => (lambda (search::PopUp)
+	 (WARN "find next")))
+   (else
+    (screen:add-overlay!
+     (PopUp
+      name: "search"
+      content:
+      (beside
+       (text-field (* (painter:space-width) 20) "")
+       (below
+	(Button label: "⤴"
+		action: (lambda _ (WARN "previous")))
+	(Button label: "⤵"
+		action: (lambda _ (WARN "next"))))))))))
 
 (define-object (CursorMarker)::WithCursor
   (define marked ::Position
@@ -895,7 +919,8 @@
 				      (the-editor (this))
 				      (the-selection-range
 				       selection-range))
-	  ((keymap key-code))
+	  ((hash-ref keymap key-code
+		     (lambda () insert-character-input!)))
 	  #t))))
 
   (define (can-split-beside? line::Area)::boolean

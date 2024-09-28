@@ -424,7 +424,7 @@
 
   (define (key-typed! key-code::long context::Cursor)::boolean
     (let ((input ::gnu.text.Char (unicode-input))
-	  (key-name (key-code-name (java.lang.Integer key-code))))
+	  (key-name (key-code-name key-code)))
       (cond
        ((eq? key-name 'backspace)
 	(and-let* ((`(,index . ,stem) (the-cursor))
