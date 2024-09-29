@@ -1,3 +1,651 @@
+* 28.09.2024
+
+No to teraz plan jest taki:
+1. dodac enuma Highlight do modulu painting
+2. przerobic ~enter/exit-selection-drawing-mode!~
+   na ~begin/end-highlight!~
+3. zmodyfikowac interfejs funkcji tak, zeby
+   mogl przyjmowac wiele rodzajow podswietlen
+   (i tutaj trzeba jeszcze sporo przemyslec)
+4. zmodyfikowac definicje funkcji tak, zeby
+   zamiast jednego podswietlenia przyjmowal
+   wiele podswietlen
+5. zintegrowac wyswietlanie z wynikami
+   wyszukiwania
+   - w szczegolnosci, nasza funkcja powinna
+     zamiast kursorow zwracac pary kursorow
+
+
+a w szerszej perspektywie:
+- wyszukiwanie
+- serializacja zmian
+- wszystkie funkcje do edycji dokumentow
+  (zamknij, nowy)
+- 
+
+* 27.09.2024
+
+Garsc wnioskow ze wczorajszej analizy:
+1. na pewno chcemy przeksztalcic
+   ~enter-selection-drawing-mode!~
+   oraz
+   ~exit-selection-drawing-mode!~
+   w cos innego,
+   na przyklad
+   ~begin-highlight! mode~
+   oraz
+   ~end-highlight! mode~
+
+2. w tej chwili selekcja w terminalu dziala tak,
+   ze odwraca kolor tla i kolor tekstu, natomiast
+   selekcja w klientach graficznych ustawia
+   okreslone kolory
+
+3. byc moze "mode" powinien byc jednym z elementow
+   skonczonego zbioru (enuma?)
+
+   Ale jakie uzycia przychodza nam do glowy?
+   Moze na przyklad: Highlight
+   Selection - odwrocenie tekstu i tla
+   CurrentFinding - pomaranczowy
+   OtherFinding - zolty
+   LikeTarget
+
+   MarkerOrange
+   MarkerPink
+   MarkerGreen
+   MarkerRed
+   MarkerBlue
+
+   Mo dobra. Na razie zrobmy
+
+#+BEGIN_SRC scheme
+
+  (define-enum Highlight
+    (Selection
+     CurrentFinding
+     OtherFinding
+     #;LikeTarget))
+
+#+END_SRC
+
+To bysmy sprobowali wymyslic (jutro albo pojutrze)
+jak zaimplementowac nowe metody w painterze i usunac
+stare.
+
+* 26.09.2024
+
+No dobra, to wyglada na to, ze chcemy chyba
+ogolnie przyjac nieco inna strategie obslugi
+podswietlania: chcielibysmy miec cos w rodzaju
+
+#+BEGIN_SRC scheme
+(define-type (Highlight start: Cursor end: Cursor color: uint))
+#+END_SRC
+
+i miec sobie sekwencje
+
+#+BEGIN_SRC scheme
+(define-parameter (the-highlights) ::(sequence-of Highlight) '())
+#+END_SRC
+
+I tak jak mamy sobie
+
+#+BEGIN_SRC scheme
+  (define (draw-text! text::CharSequence
+		      font::Font
+		      context::Cursor)
+    ::void
+    (let-values (((selection-start selection-end) (the-selection)))
+      (let* ((focused? (and (pair? (the-cursor))
+			    (equal? context (cdr (the-cursor)))))
+	     (enters-selection-drawing-mode?
+	      (and (pair? selection-start)
+		   (equal? (tail selection-start) context)))
+	     (exits-selection-drawing-mode?
+	      (and (pair? selection-end)
+		   (equal? (tail selection-end) context)))
+	     (metrics ::FontMetrics (graphics:getFontMetrics font))
+	     (parent ::Traversal (the-traversal))
+	     (height ::float (metrics:getHeight))
+	     (traversal ::Traversal
+		       (Traversal
+			max-line-height: height
+			parent-left: (+ parent:parent-left
+					parent:left)
+			parent-top: (+ parent:parent-top
+				       parent:top)
+			parent: parent))	     
+	     (segment-start 0)
+	     (string-end (text:length)))
+	(parameterize ((the-cursor-extent (Extent width: 2
+						  height: height))
+		       (the-traversal traversal))
+	  (define (render-fragment! segment-end::int)
+	    (let* ((fragment (text:subSequence segment-start
+					       segment-end))
+		   (width (metrics:stringWidth fragment)))
+	      (set-color! background-color)
+	      (graphics:fillRect traversal:left traversal:top
+				 width height)
+	      (set-color! text-color)
+	      (graphics:drawString fragment (as float traversal:left)
+				   (as float (+ traversal:top height)))
+	      (traversal:expand-by! width)))
+
+	  (graphics:setFont font)
+	  (for i from 0 below string-end
+	       (when (and focused? (eqv? (head (the-cursor)) i))
+		 (render-fragment! i)
+		 (set! segment-start i)
+		 (mark-cursor! traversal:left traversal:top))
+
+	       (when (and enters-selection-drawing-mode?
+			  (eqv? (head selection-start) i))
+		 (render-fragment! i)
+		 (set! segment-start i)
+		 (enter-selection-drawing-mode!))
+
+	       (when (and exits-selection-drawing-mode?
+			  (eqv? (head selection-end) i))
+		 (render-fragment! i)
+		 (set! segment-start i)
+		 (exit-selection-drawing-mode!))
+
+	       (when (eq? (text:charAt i) #\newline)
+		 (render-fragment! i)
+		 (traversal:on-end-line #t)
+		 (traversal:new-line!)
+		 (set! traversal:max-line-height height)
+		 (set! segment-start (+ i 1))))
+	  (render-fragment! string-end)
+	  (when (and focused? (eqv? (head (the-cursor)) string-end))
+	    (mark-cursor! traversal:left traversal:top))
+	  (traversal:on-end-line #f)))))
+#+END_SRC
+
+albo
+
+#+BEGIN_SRC scheme
+  (define (draw-string! text::CharSequence
+			context::Cursor)
+    ::void
+    (let-values (((selection-start selection-end)
+		  (the-selection))
+		 ((parent) (the-traversal)))
+      (let ((focused?
+	     (and (pair? (the-cursor))
+		  (equal? context
+			  (cdr (the-cursor)))))
+	    (enters-selection-drawing-mode?
+	     (and (pair? selection-start)
+		  (equal? (tail selection-start)
+			  context)))
+	    (exits-selection-drawing-mode?
+	     (and (pair? selection-end)
+		  (equal?
+		   (tail selection-end)
+		   context)))
+	    (traversal ::Traversal
+		       (Traversal
+			max-line-height: 1
+			parent-left: (+ parent:parent-left
+					parent:left)
+			parent-top: (+ parent:parent-top
+				       parent:top)
+			parent: parent)))
+
+	(define (handle-cursor-and-selection!)
+	  (when (and enters-selection-drawing-mode?
+		     (eqv? traversal:index (head selection-start)))
+	    (enter-selection-drawing-mode!))
+	  (when (and exits-selection-drawing-mode?
+		     (eqv? traversal:index (head selection-end)))
+	    (exit-selection-drawing-mode!))
+	  (when (and focused? (eqv? traversal:index (car (the-cursor))))
+	    (mark-cursor! traversal:left traversal:top)))
+
+	(parameterize ((the-traversal traversal))
+	  (for c in text
+	    (handle-cursor-and-selection!)
+            (cond ((eq? c #\newline)
+		   (traversal:on-end-line #t)
+		   (traversal:new-line!)
+		   (set! traversal:max-line-height 1))
+		  ((eq? c #\return)
+		   ;; this seems to solve a bug on Windows/WSL1
+		   (set! traversal:index (- traversal:index 1)))
+		  ;; jeszcze chcemy combining-character
+		  ;; po prostu dopisac do biezacego znaku
+		  (else
+		   (put! c traversal:top traversal:left)
+		   (traversal:expand-by! 1)))
+	    (set! traversal:index (+ traversal:index 1)))
+	  (handle-cursor-and-selection!)
+	  (traversal:on-end-line #f)))))
+#+END_SRC
+
+to chcielibysmy zamiast tego sprawdzac, czy sa jakies highlighty, ktore
+stosuja sie do naszego fragmentu.
+
+Poniewaz teraz bedziemy mogli miec kilka kolorow na raz, musimy przemyslec
+jakas strategie blenowania ich.
+
+Na razie w kliencie terminalowym mamy obsuge kolorow tak zrobiona
+
+#+BEGIN_SRC scheme
+  (define (enter-selection-drawing-mode!)::void
+    (invoke-special CharPainter (this)
+		    'enter-selection-drawing-mode!)
+    (let ((text-color (the-text-color)))
+      (set! (the-text-color) (the-background-color))
+      (set! (the-background-color) text-color)))
+
+  (define (exit-selection-drawing-mode!)::void
+    (let ((text-color (the-text-color)))
+      (set! (the-text-color) (the-background-color))
+      (set! (the-background-color) text-color))
+    (invoke-special CharPainter (this)
+		    'exit-selection-drawing-mode!))
+#+END_SRC
+
+a w kliencie graficznym tak:
+
+#+BEGIN_SRC scheme
+  (define (enter-selection-drawing-mode!)::void
+    (set! selection-drawing-mode? #t)
+    (set! text-color #xffffffff)
+    (set! background-color #xff555555))
+
+  (define (exit-selection-drawing-mode!)::void
+    (set! selection-drawing-mode? #f)
+    (set! text-color #xff555555)
+    (set! background-color transparent))
+#+END_SRC
+
+
+* 25.09.2024
+
+Ogolnie wydaje sie, ze z kwestia obslugi klawiszy
+nie ma tragedii - po prostu mielismy buga.
+
+Buga mamy chyba tez w obsludze dotykania, i nim
+rowniez byloby dobrze sie zajac
+
+Ale na razie skupiamy sie na wyszukiwaniu.
+
+To co musi sie wydarzyc, zeby ctrl+f powodowalo
+wyszukanie kolejnego elementu?
+
+Tzn. ogolnie jak wciskamy ctrl+f, to bysmy chcieli, zeby
+podswietlily sie nam wszystkie wystapienia wyszukiwanego
+patternu. Czyli musimy jakos zmodyfikowac wyswietlanie,
+zeby uwzglednialo liste indeksow.
+
+No i teraz pytanie, jak chcemy to zrobic?
+
+W kliencie androidowym i desktopowym mamy
+
+#+BEGIN_SRC scheme
+  (define (draw-text! text::CharSequence
+		      font::Font
+		      context::Cursor)
+    ...)
+#+END_SRC
+
+#+BEGIN_SRC scheme
+  (define (draw-string! text::CharSequence
+			context::Cursor)
+    ::void
+    ...)
+#+END_SRC
+
+Obie te funkcje charakteryzuja sie tym, ze pobieraja
+selekcje z funkcji ~(the-selection)~, ktora zwraca
+pare kursorow.
+
+Mamy tez funkcje, ktora sobie niedawno napisalismy,
+ktora zwraca nam wszystkie indeksy, pod ktorymi elementy
+spelniaja okreslony predykat.
+
+I teraz rzeczy do zrobienia mamy zasadniczo dwie:
+po pierwsze, w jakis sposob skonstruowac predykat
+ze stringa.
+
+Po drugie, chcielibysmy okreslic, w ktorym miejscu
+nasz indeks powinien sie konczyc.
+
+Gdybysmy to mieli, mozemy sobie wyobrazic, ze
+bysmy mogli miec funkcje (the-findings), zwracajaca
+liste par postaci (finding-start . finding-end).
+
+Dodatkowo bysmy chcieli miec w painterze metody
+"enter-finding-drawing-mode!" oraz "exit-finding-drawing-mode!".
+
+Czyli na razie najwieksza trudnosc tkwi w tym, jak
+okreslic dlugosc naszego matcha - i to na tym powinnismy
+sie skupic.
+
+* 24.09.2024
+
+To dzisiaj bysmy zaczeli od okienka z polem tekstowym do
+wpisywania tekstu do wyszukiwania
+
+w takim sensie, ze wciskamy ctrl+f, i wtedy pojawia sie
+okienko przypisane do aktualnego editora.
+
+Aha no i wlasnie. Warto zastanowic sie od razu nad kwestia
+obslugi klawiszy. W takim sensie, ze mamy aktualnie globalna
+tablice klawiszy, natomiast docelowo raczej chcielibysmy
+miec hierarchiczna obsluge, tzn. wszystkie klawisze, ktorych
+nie obsluzylismy, przekazujemy do edytora, i edytor przekazuje
+je do widgetu itd.
+
+Byc moze nawet bedzie to trzeba zrobic szybciej niz pozniej,
+bo juz teraz widzimy, ze jest problem z kasowaniem zawartosci
+pola tekstowego i poruszaniem strzalkami.
+
+No dobra, to jak ten system powinien dzialac?
+
+Chyba najpierw musimy opisac, jak dziala teraz. Na potrzeby
+analizy rozwazmybklienta Androidowego.
+
+Mamy takie cos:
+
+#+BEGIN_SRC scheme
+  ;; grasp-android.scm
+  (define (onKeyDown keyCode::int event::KeyEvent)::boolean
+    (safely
+     (parameterize ((unicode-input #;< (integer->char
+				    (event:getUnicodeChar))))
+       (invalidating
+	(screen:key-typed!
+	 (as long
+	     (bitwise-ior
+	      (as long keyCode)
+	      (if (event:ctrl-pressed?) CTRL_MASK 0)
+	      (if (event:alt-pressed?) ALT_MASK 0)
+	      (if (event:shift-pressed?) SHIFT_MASK 0)
+	      ))
+	 '())))))
+
+  ;; screen.scm
+  (define (key-typed! key-code::long context::Cursor)::boolean
+    (assert (empty? context))
+    (if (and (is top Maximizable?)
+	     (is (key-code-name key-code) in '(escape back)))
+	(screen:unmaximize!)
+	(parameterize ((the-pane-width size:width)
+		       (the-pane-height size:height))
+	  (or (overlay:key-typed! key-code context)
+	      (top:key-typed! key-code context)))))
+
+  ;; document-editor
+  (define (key-typed! key-code::long context::Cursor)::boolean
+    (with-post-transform transform
+      (with-view-edges-transformed transform
+	(parameterize/update-sources ((the-document document)
+				      (the-cursor cursor)
+				      (the-editor (this))
+				      (the-selection-range
+				       selection-range))
+	  ((keymap key-code))
+	  #t))))
+
+#+END_SRC
+
+* 23.09.2024
+
+Na razie mamy implementacje funkcji wymiarujacych dla klienta
+androidowego, i teraz zostal nam klient desktopowy (choc juz teraz
+mamy sygnaly, ze cos nie do konca pyka, i trzeba bedzie odczytac stack
+trace'a na na komputerze)
+
+Dobra, klient desktopowy juz obsluzony. W kazdym razie tak sie nam
+wydaje. Teraz zas bysmy chcieli miec takie zachowanie:
+
+1. jak wciskamy ctrl+f, to nam sie pojawia okenko z polem tekstowym
+2. jak cos wpisujemy w to okienko, to sie podswietlaja wszystkie
+   znalezione uzycia tego patternu
+3. jak naciskamy ctrl+f, to nawiguje nas do kolejnego znalezionego
+   uzycia
+
+* 22.09.2024
+
+teraz musimy napisac funkcje wymiarujace pozycje kursora
+w obrebie tekstu dla klientow graficznych, zeby znowu
+zaczely dzialac.
+
+Jednak zamiast od razu rozwiazywac problem,
+lepiej zastanowmy sie, jakie funkcjonalnosci
+by sie nam przydaly do rozwiazania go.
+
+Chcielibysmy miec 'widok planistyczny',
+w ktorym bysmy sobie pisali z grubsza to,
+co piszemy w tym README, ale dodatkowo
+bysmy chcieli moc wskazywac na lokalizacje
+w poszczegolnych modulach.
+
+I tak bysmy sobie wskazali na:
+- koncowke modulu ~(editor interfaces painting)~
+- metody w ~(editor text-painter)~
+
+* 21.09.2024
+
+Wydaje sie, ze mamy juz jakos-tam zaimplementowane
+measure position dla cons, Space i Atom. Teraz bysmy
+sobie sprobowali zaimplementowac to dla quote'ow
+oraz dla rzeczy tekstowych, a na koniec dla kombinatorow
+i czarodziejstw.
+
+* 20.09.2024
+
+No dobra, to mamy juz jakis zalazek naszej funkcji do pomiaru
+pozycji kursora.
+
+Teraz czeka nas nieco wieksze zadanie, bo musimy dodac funkcje
+"measure-position" do wszystkich implementacji interfejsu
+Element. Zasadniczo wiemy, jak to robic dla spacji. Dla elementow
+Beside i Below rowniez mamy pomsl, jak mozna to zrobic.
+
+No dobra, to podciagamy rekawy i dzialamy.
+
+Jezeli idzie o "cons", sprawa jest prosta.
+W kwestii Atom, trzeba bedzie chyba dodac
+nowe funkcje do paintera.
+
+Natomiast moze zbudujmy sobie - albo poszukajmy - listy
+implementacji interfejsu Element.
+
+- Space
+- Atom
+- cons
+- Text
+- BlockComment
+- LineComment
+- ExpressionComment
+- HorizontalBar
+- VerticalBar
+- Beside
+- Below
+- Bordered
+- Over
+- Stretched
+- Quote
+- Magic
+
+
+* 19.09.2024
+
+Teraz bysmy dodali funkcje "cursor-position", ktora pobiera kursor
+i zwraca jego polozenie
+
+#+BEGIN_SRC scheme
+
+  (define/kw (cursor-position cursor ::Cursor := (the-cursor)
+			      in: document := (the-document)
+			      context: ::Cursor := '()
+			      into: target ::Position := (Position))
+    ::Position
+    (escape-with return
+      (let* ((aspiration ::int (length cursor))
+	     (level ::int (length context))
+	     (suffix ::Cursor (drop (- aspiration level 1) cursor)))
+
+	(define (action item ::Element t::Traversal)
+	  (let ((context* (recons t:index context)))
+	    (when (equal? context* suffix)
+	      (set! target:left (+ target:left t:left))
+	      (set! target:top (+ target:top t:top))
+	      (return (item:measure-position
+		       #;of cursor #;into target
+			    #;within context*)))))
+
+	(define (result t ::Traversal)
+	  (error "Cursor "cursor"not found in "document))
+
+	(traverse elems doing: action returning: result))))
+
+#+END_SRC
+
+
+no i teraz jak ona musi dzialac, ta nasza funkcja?
+
+- przemierzamy sobie liste elementow
+- jezeli ~(is (recons t:index context) equal? cursor)~,
+  to zwracamy polozenie wynikajace z aktualnego traverse'a
+
+- jezeli ~(is (recons t:index context) suffix? cursor)~,
+  to rekurencyjnie wywolujemy
+
+No to teraz tak:
+
+
+* 18.09.2024
+
+no i super: mozemy wyznaczyc zbior indeksow, pod ktorymi
+znajduja sie poszukiwane przez nas wyrazenia
+
+teraz trudnosc polega na tym, zeby:
+- wycentrowac widok wokol kursora
+- podswietlic znalezione wyrazenia
+
+Ale tak ogolnie to bysmy zaczeli od tego, zeby
+przemianowac cursor-position na marked-cursor-position
+
+* 16-17.09.2024
+
+No dobra, to wyglada na to, ze funkcja wyszukujaca jako tako dziala
+
+Teraz by sie ja chcialo jakos zintegrowac z interfejsem.
+Ale zeby moglo do tego dojsc, musimy miec jakis sposob na to,
+zeby wskazac na miejsce w dokumencie, na ktorym znajduje sie
+biezacy kursor.
+
+Bo na razie mamy tak, ze jezeli stwierdzamy, ze nasza funkcja rysujaca
+nie widzi dalszej czesci dokumentu, to po prostu przerywamy.
+
+Pytanie, czy powinnismy wyznaczac pozycje kursora podczas rysowania,
+czy moze raczej powinnismy miec funkcje, ktora dla zadanego kursora
+zwraca nam jego pozycje w dokumencie.
+
+A nasza koslawa definicja to tak sobie wyglada:
+
+#+BEGIN_SRC scheme
+  (define (find-next satisfying? ::(maps (Element) to: boolean)
+		     in: document ::Indexable
+		     after: cursor ::Cursor := '()
+		     context: context ::Cursor := '())
+    ::(maybe Cursor)
+    (escape-with return
+      (let* ((current-level ::int (length context))
+	     (reference-level ::int (length cursor))
+	     (pressure (- reference-level current-level 1))
+	     (index (if (is pressure #;< >= 0)
+			(let ((initial-index (cursor pressure)))
+			  (if (= pressure 0)
+			      (document:next-index initial-index)
+			      initial-index))
+			(document:next-index
+			 (document:first-index))))
+	     (limit (document:last-index)))
+	(while (isnt index eqv? limit)
+	  (let ((item (document:part-at index)))
+	    (when (and (isnt item eq? document)
+		       (is item satisfting?))
+	      (return (recons index context)))
+	    (when (gnu.lists.LList? item)
+	      (let ((result (find-next satisfying?
+				       in: item
+				       context: (recons index
+							context))))
+		(when result
+		  (return result)))))
+	  (set! index (document:next-index index)))
+	(return #!null))))
+
+  (a ; (1)
+   (a ; (1 3)
+    (a ; (1 3 3)
+     a ; (3 3 3)
+     )))
+#+END_SRC
+
+no to to musi dzialac mniej wiecej tak, ze:
+- jezeli kursor jes
+
+#+BEGIN_SRC scheme
+
+  (e.g.
+    (find-next (is _ eq? 'a) in: '(a (a (a a))))
+    #;< ===> (1))
+
+  (e.g.
+    (find-next (is _ eq? 'a) in: '(a (a (a a))) after: '(1))
+    #;< ===> (1 3))
+
+  (e.g.
+    (find-next (is _ eq? 'a) in: '(a (a (a a))) after: '(1 3))
+    #;< ===> (1 3 3))  
+
+  (e.g.
+    (find-next (is _ eq? 'a) in: '(a (a (a a))) after: '(1 3 3))
+    #;< ===> (3 3 3))
+  
+  (e.g.
+    (find-next (is _ eq? 'a) in: '(a (a (a a))) after: '(3 3 3))
+    #;< ===> #!null)
+
+#+END_SRC
+
+
+#+BEGIN_SRC
+
+context = '() #0
+cursor = '(1) #1
+-------------
+index = 1 ++ @(1-1)
+
+
+context = '() #0
+cursor = '(1 3 3) #3 
+-----------------
+index = 3 @(3-1)
+
+
+context = '(3) #1
+cursor = '(1 3 3) #3
+-----------------
+index = 3 @(3-2)
+
+context = '(3 3) #2
+cursor = '(1 3 3) #3
+-----------------
+index = 1 ++ @(3-3)
+
+#+END_SRC
+
+
 * 13.09.2024
 
 trzeba pomyslec, co robic, jezeli dokument jest
