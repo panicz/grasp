@@ -774,20 +774,24 @@
 	  (extent ::Extent (the-cursor-extent)))
       (+ offset:top extent:height)))
 
-  (define selection-drawing-mode? ::boolean #f)
+  (define highlight-count::(array-of byte)
+    ((array-of byte) (length (HighlightType:values))))
 
-  (define (enter-selection-drawing-mode!)::void
-    (set! selection-drawing-mode? #t)
-    (set! text-color #xffffffff)
-    (set! background-color #xff555555))
+  (define (begin-highlight! type::HighlightType)::void
+    (assert (eq? type HighlightType:Selection))
+    (let ((type-index (type:ordinal)))
+      (set! (highlight-count type-index)
+	    (+ (highlight-count type-index) 1))
+      (set! text-color #xffffffff)
+      (set! background-color #xff555555)))
 
-  (define (exit-selection-drawing-mode!)::void
-    (set! selection-drawing-mode? #f)
-    (set! text-color #xff555555)
-    (set! background-color transparent))
-
-  (define (in-selection-drawing-mode?)::boolean
-    selection-drawing-mode?)
+  (define (end-highlight! type::HighlightType)::void
+    (assert (eq? type HighlightType:Selection))
+    (let ((type-index (type:ordinal)))
+      (set! (highlight-count type-index)
+	    (- (highlight-count type-index) 1))
+      (set! text-color #xff555555)
+      (set! background-color transparent)))
 
   (define current-comment-level ::int 0)
 
@@ -1281,13 +1285,13 @@
 			  (eqv? (car selection-start) i))
 		 (render-fragment! i)
 		 (set! segment-start i)
-		 (enter-selection-drawing-mode!))
-
+		 (begin-highlight! HighlightType:Selection))
+	       
 	       (when (and exits-selection-drawing-mode?
 			  (eqv? (car selection-end) i))
 		 (render-fragment! i)
 		 (set! segment-start i)
-		 (exit-selection-drawing-mode!))
+		 (end-highlight! HighlightType:Selection))
 
 	       (when (eq? (text:charAt i) #\newline)
 		 (render-fragment! i)

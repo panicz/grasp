@@ -366,19 +366,21 @@
 	(io:setCursorPosition
 	 (TerminalPosition x y)))))
 
-  (define (enter-selection-drawing-mode!)::void
+  (define (begin-highlight! type::HighlightType)::void
+    (assert (eq? type HighlightType:Selection))
     (invoke-special CharPainter (this)
-		    'enter-selection-drawing-mode!)
+		    'begin-highlight! type)
     (let ((text-color (the-text-color)))
       (set! (the-text-color) (the-background-color))
       (set! (the-background-color) text-color)))
 
-  (define (exit-selection-drawing-mode!)::void
+  (define (end-highlight! type::HighlightType)::void
+    (assert (eq? type HighlightType:Selection))
     (let ((text-color (the-text-color)))
       (set! (the-text-color) (the-background-color))
       (set! (the-background-color) text-color))
     (invoke-special CharPainter (this)
-		    'exit-selection-drawing-mode!))
+		    'end-highlight! type))
 
   (define (get row::real col::real)::char
     (let ((x (+ shiftLeft

@@ -1,6 +1,7 @@
 (module-name (editor text-painter))
 
 (import (srfi :11))
+(import (language assert))
 (import (language for))
 (import (language fundamental))
 (import (language infix))
@@ -130,12 +131,12 @@
 				horizontal-stretch))))
       (when highlighted?
 	(mark-cursor! 0 1)
-	(enter-selection-drawing-mode!))
+	(begin-highlight! HighlightType:Selection))
       (for i from 0 below width
            (when (eq? (get -1 i) #\space)
              (put! #\_ -1 i)))
       (when highlighted?
-	(exit-selection-drawing-mode!))))
+	(end-highlight! HighlightType:Selection))))
 
   (define (draw-vertical-bar! height::real
 			      highlighted?::boolean)
@@ -144,13 +145,13 @@
 				 horizontal-stretch))))
       (when highlighted?
 	(mark-cursor! 0 1)
-	(enter-selection-drawing-mode!))
+	(begin-highlight! HighlightType:Selection))
       (put! #\╷ 0 0)
       (for i from 1 below (- height 1)
 	   (put! #\│ i 0))
       (put! #\╵ (- height 1) 0)
       (when highlighted?
-	(exit-selection-drawing-mode!))))
+	(end-highlight! HighlightType:Selection))))
  
   (define icon-size ::Extent
     (Extent width: 2
@@ -233,7 +234,7 @@
       (when (and (pair? selection-start)
 		 (equal? (tail selection-start) context)
 		 (is (head selection-start) in '(#\[ #\])))
-	(enter-selection-drawing-mode!))
+	(begin-highlight! HighlightType:Selection))
       (put! top-left 0 0)
       (for i from 1 to (- height 2)
            (put! bar i 0))
@@ -247,7 +248,7 @@
       (when (and (pair? selection-end)
 		 (equal? (tail selection-end) context)
 		 (is (head selection-end) in '(#\[ #\])))
-	(exit-selection-drawing-mode!))
+	(end-highlight! HighlightType:Selection))
       ))
 
   (define (draw-box! width::real height::real
@@ -305,7 +306,7 @@
       (when (and (pair? selection-start)
 		 (equal? (tail selection-start) context)
 		 (is (head selection-start) in '(#\[ #\])))
-	(enter-selection-drawing-mode!))
+	(begin-highlight! HighlightType:Selection))
 
       (put! #\▗ #;◢ #;◤ 0 0)
       ;;(put! #\▖ #;◣ #;◥ 0 (+ width 1))
@@ -313,7 +314,7 @@
       (when (and (pair? selection-end)
 		 (equal? (tail selection-end) context)
 		 (is (head selection-end) in '(#\[ #\])))
-	(exit-selection-drawing-mode!))))
+	(end-highlight! HighlightType:Selection))))
 
   (define (quote-marker-width)::real 1)
 
@@ -344,7 +345,7 @@
       (when (and (pair? selection-start)
 		 (equal? (tail selection-start) context)
 		 (is (head selection-start) in '(#\[ #\])))
-	(enter-selection-drawing-mode!))
+	(begin-highlight! HighlightType:Selection))
 
       (put! #\┌ 0 0)
       ;;(put! #\╵ 1 0)
@@ -354,7 +355,7 @@
       (when (and (pair? selection-end)
 		 (equal? (tail selection-end) context)
 		 (is (head selection-end) in '(#\[ #\])))
-	(exit-selection-drawing-mode!))))
+	(end-highlight! HighlightType:Selection))))
 
   (define (quasiquote-marker-width)::real 1)
 
@@ -388,7 +389,7 @@
       (when (and (pair? selection-start)
 		 (equal? (tail selection-start) context)
 		 (is (head selection-start) in '(#\[ #\])))
-	(enter-selection-drawing-mode!))
+	(begin-highlight! HighlightType:Selection))
 
       ;;(put! #\╷ (- height 2) 0)
       (put! #\└ (- height 1) 0)
@@ -398,7 +399,7 @@
       (when (and (pair? selection-end)
 		 (equal? (tail selection-end) context)
 		 (is (head selection-end) in '(#\[ #\])))
-	(exit-selection-drawing-mode!))))
+	(end-highlight! HighlightType:Selection))))
 
   (define (unquote-marker-width)::real 1)
 
@@ -417,7 +418,7 @@
 			 context)
 		 (is (head selection-start)
 		     in '(#\[ #\])))
-	(enter-selection-drawing-mode!))
+	(begin-highlight! HighlightType:Selection))
 
       (put! #\┈ (- height 2) 0)
       (put! #\┤ (- height 2) 1)
@@ -430,7 +431,7 @@
 			 context)
 		 (is (head selection-end)
 		     in '(#\[ #\])))
-	(exit-selection-drawing-mode!))))
+	(end-highlight! HighlightType:Selection))))
 
   (define (unquote-splicing-paren-width)::real 3)
 
@@ -450,7 +451,7 @@
       (when (and (pair? selection-start)
 		 (equal? (tail selection-start) context)
 		 (is (head selection-start) in '(#\[ #\])))
-	(enter-selection-drawing-mode!))
+	(begin-highlight! HighlightType:Selection))
 
       (put! #\┈ (- height 2) 0)
       (put! #\┐ (- height 2) 1)
@@ -464,7 +465,7 @@
 			 context)
 		 (is (head selection-end)
 		     in '(#\[ #\])))
-	(exit-selection-drawing-mode!))))
+	(end-highlight! HighlightType:Selection))))
 
   (define (unquote-splicing-marker-width)::real 2)
 
@@ -745,10 +746,10 @@
 	(define (handle-cursor-and-selection!)
 	  (when (and enters-selection-drawing-mode?
 		     (eqv? traversal:index (head selection-start)))
-	    (enter-selection-drawing-mode!))
+	    (begin-highlight! HighlightType:Selection))
 	  (when (and exits-selection-drawing-mode?
 		     (eqv? traversal:index (head selection-end)))
-	    (exit-selection-drawing-mode!))
+	    (end-highlight! HighlightType:Selection))
 	  (when (and focused? (eqv? traversal:index (car (the-cursor))))
 	    (mark-cursor! traversal:left traversal:top)))
 
@@ -910,16 +911,23 @@
 
   (define (current-height)::real #!abstract)
 
-  (define inSelectionDrawingMode ::boolean #f)
-
-  (define (enter-selection-drawing-mode!)::void
-    (set! inSelectionDrawingMode #t))
-
-  (define (exit-selection-drawing-mode!)::void
-    (set! inSelectionDrawingMode #f))
+  (define highlight-count::(array-of byte)
+    ((array-of byte) (length (HighlightType:values))))
 
   (define (in-selection-drawing-mode?)::boolean
-    inSelectionDrawingMode)
+    (is (highlight-count (HighlightType:Selection:ordinal)) > 0))
+  
+  (define (begin-highlight! type::HighlightType)::void
+    (assert (eq? type HighlightType:Selection))
+    (let ((type-index (type:ordinal)))
+      (set! (highlight-count type-index)
+	    (+ (highlight-count type-index) 1))))
+
+  (define (end-highlight! type::HighlightType)::void
+    (assert (eq? type HighlightType:Selection))
+    (let ((type-index (type:ordinal)))
+      (set! (highlight-count type-index)
+	    (- (highlight-count type-index) 1))))
 
   (define current-comment-level ::int 0)
 
@@ -1180,7 +1188,8 @@
 	  (set! (data n) c)
 	  (when current-modifier
 	    (set! (modifier n) current-modifier)))
-	(when (and inSelectionDrawingMode
+	(when (and (invoke-special CharPainter (this)
+				   'in-selection-drawing-mode?)
 		   (is (+ y 1) < height))
 	  (set! (data (+ (* width (+ y 1)) x)) #\~))
 	)))
