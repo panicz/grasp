@@ -175,14 +175,6 @@ def") ===> [Extent width: 3 height: 2])
 					    index::int)
   ::Position
 
-  (draw-string! s::CharSequence context::Cursor)
-  ::void
-
-  (measure-string-index-position-into! target::Position
-				       text::CharSequence
-				       index::int)
-  ::Position
-  
   (draw-caption! caption::CharSequence)::void
   (caption-extent caption::CharSequence)::Extent
   (caption-margin-top)::real
