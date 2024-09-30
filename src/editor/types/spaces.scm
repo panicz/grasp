@@ -348,11 +348,11 @@
 	       (when (and enters-selection-drawing-mode?
 			  (is total <= (car selection-start)
 			      <= (+ total width)))
-		 (painter:enter-selection-drawing-mode!))
+		 (painter:begin-highlight! HighlightType:Selection))
 	       (when (and exits-selection-drawing-mode?
 			  (is total <= (car selection-end)
 			      <= (+ total width)))
-		 (painter:exit-selection-drawing-mode!)))
+		 (painter:end-highlight! HighlightType:Selection)))
 	     (t:expand-by! (* width space-width)))
 
 	   (match input

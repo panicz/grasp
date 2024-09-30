@@ -233,7 +233,7 @@
       (define (result t ::Traversal)
 	(error "Cursor "cursor"not found in "document))
 
-      (traverse elems doing: action returning: result))))
+      (traverse document doing: action returning: result))))
 
 (define-object (cons car cdr)::MatchableTile
 
@@ -650,10 +650,10 @@
 	    (let ((context (recons traversal:index
 				   context)))
 	      (when (equal? context selection-start)
-		(painter:enter-selection-drawing-mode!))
+		(painter:begin-highlight! HighlightType:Selection))
 	      (item:draw! context)
 	      (when (equal? context selection-end)
-		(painter:exit-selection-drawing-mode!))))))
+		(painter:end-highlight! HighlightType:Selection))))))
       (traverse elems doing: action returning: after-end-line))))
   
 (define (draw! object #!key

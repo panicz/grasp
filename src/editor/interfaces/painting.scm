@@ -120,6 +120,16 @@ def") ===> [Extent width: 3 height: 2])
    (begin . actions)
    (the-transform-stack:removeFirst)))
 
+(define-enum HighlightType
+  (Selection
+   CurrentFinding
+   OtherFinding
+   LikeTarget))
+
+(define-type (Highlight start: Cursor
+			end: Cursor
+			type: HighlightType))
+
 (define-interface Painter ()
   
   (translate! x::real y::real)::void
@@ -230,10 +240,10 @@ def") ===> [Extent width: 3 height: 2])
   (draw-thin-line! x0::real y0::real x1::real y1::real)
   ::void
 
-  (enter-selection-drawing-mode!)::void
-  (exit-selection-drawing-mode!)::void
-  (in-selection-drawing-mode?)::boolean
 
+  (begin-highlight! type::HighlightType)::void
+  (end-highlight! type::HighlightType)::void
+  
   (enter-comment-drawing-mode!)::void
   (exit-comment-drawing-mode!)::void
   (in-comment-drawing-mode?)::boolean
@@ -545,14 +555,11 @@ def") ===> [Extent width: 3 height: 2])
     (Position left: 0
 	      top: 0))
 
-  (define (enter-selection-drawing-mode!)::void
+  (define (begin-highlight! type::HighlightType)::void
     (values))
 
-  (define (exit-selection-drawing-mode!)::void
+  (define (end-highlight! type::HighlightType)::void
     (values))
-
-  (define (in-selection-drawing-mode?)::boolean
-    #f)
 
   (define (enter-comment-drawing-mode!)::void
     (values))
