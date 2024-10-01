@@ -957,23 +957,35 @@
   (define background-color ::Color transparent)
 
   (define highlight-count::(array-of byte)
-    ((array-of byte) (length (HighlightType:values))))
+    ((array-of byte) length: (length (HighlightType:values))))
+
+  (define (set-highlight-color!)
+    (cond
+     ((is (highlight-count (HighlightType:CurrentFinding:ordinal)) > 0)
+      (set! text-color Color:WHITE)
+      (set! background-color Color:ORANGE))
+     ((is (highlight-count (HighlightType:OtherFinding:ordinal)) > 0)
+      (set! text-color Color:WHITE)
+      (set! background-color Color:YELLOW))
+     ((is (highlight-count (HighlightType:Selection:ordinal)) > 0)
+      (set! text-color Color:WHITE)
+      (set! background-color Color:DARK_GRAY))
+     (else
+      (set! text-color Color:DARK_GRAY)
+      (set! background-color transparent))
+     ))
 
   (define (begin-highlight! type::HighlightType)::void
-    (assert (eq? type HighlightType:Selection))
     (let ((type-index (type:ordinal)))
       (set! (highlight-count type-index)
 	    (+ (highlight-count type-index) 1))
-      (set! text-color Color:WHITE)
-      (set! background-color Color:DARK_GRAY)))
+      (set-highlight-color!)))
 
   (define (end-highlight! type::HighlightType)::void
-    (assert (eq? type HighlightType:Selection))
     (let ((type-index (type:ordinal)))
       (set! (highlight-count type-index)
 	    (- (highlight-count type-index) 1))
-      (set! text-color Color:DARK_GRAY)
-      (set! background-color transparent)))
+      (set-highlight-color!)))
   
   (define current-comment-level ::int 0)
 

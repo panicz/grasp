@@ -367,20 +367,26 @@
 	 (TerminalPosition x y)))))
 
   (define (begin-highlight! type::HighlightType)::void
-    (assert (eq? type HighlightType:Selection))
     (invoke-special CharPainter (this)
 		    'begin-highlight! type)
-    (let ((text-color (the-text-color)))
-      (set! (the-text-color) (the-background-color))
-      (set! (the-background-color) text-color)))
+    (let ((highlight-count ::(array-of byte)
+			     (slot-ref (as CharPainter (this))
+				       'highlight-count)))
+      (when (any (is _ > 0) highlight-count)
+	(let ((text-color (the-text-color)))
+	  (set! (the-text-color) (the-background-color))
+	  (set! (the-background-color) text-color)))))
 
   (define (end-highlight! type::HighlightType)::void
-    (assert (eq? type HighlightType:Selection))
-    (let ((text-color (the-text-color)))
-      (set! (the-text-color) (the-background-color))
-      (set! (the-background-color) text-color))
     (invoke-special CharPainter (this)
-		    'end-highlight! type))
+		    'end-highlight! type)
+    (let ((highlight-count ::(array-of byte)
+			     (slot-ref (as CharPainter (this))
+				       'highlight-count)))
+      (when (every (is _ = 0) highlight-count)
+	(let ((text-color (the-text-color)))
+	  (set! (the-text-color) (the-background-color))
+	  (set! (the-background-color) text-color)))))
 
   (define (get row::real col::real)::char
     (let ((x (+ shiftLeft

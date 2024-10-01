@@ -912,19 +912,17 @@
   (define (current-height)::real #!abstract)
 
   (define highlight-count::(array-of byte)
-    ((array-of byte) (length (HighlightType:values))))
+    ((array-of byte) length: (length (HighlightType:values))))
 
   (define (in-selection-drawing-mode?)::boolean
     (is (highlight-count (HighlightType:Selection:ordinal)) > 0))
   
   (define (begin-highlight! type::HighlightType)::void
-    (assert (eq? type HighlightType:Selection))
     (let ((type-index (type:ordinal)))
       (set! (highlight-count type-index)
 	    (+ (highlight-count type-index) 1))))
 
   (define (end-highlight! type::HighlightType)::void
-    (assert (eq? type HighlightType:Selection))
     (let ((type-index (type:ordinal)))
       (set! (highlight-count type-index)
 	    (- (highlight-count type-index) 1))))

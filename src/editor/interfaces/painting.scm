@@ -123,8 +123,7 @@ def") ===> [Extent width: 3 height: 2])
 (define-enum HighlightType
   (Selection
    CurrentFinding
-   OtherFinding
-   LikeTarget))
+   OtherFinding))
 
 (define-type (Highlight start: Cursor
 			end: Cursor
