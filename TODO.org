@@ -1,4 +1,4 @@
-* 30.09.2024
+* 30.09-01.10.2024
 
 To dzisiaj tak:
 - zrobic slajdy, a przynajmniej zebrac zdjecia
@@ -16,16 +16,20 @@ To dzisiaj tak:
 		      font::Font
 		      context::Cursor)
     ::void
-    (let-values (((selection-start selection-end) (the-selection)))
+    (let-values (((selection-start selection-end)
+		  (the-selection)))
       (let* ((focused? (and (pair? (the-cursor))
-			    (equal? context (cdr (the-cursor)))))
+			    (equal? context
+				    (cdr (the-cursor)))))
 	     (enters-selection-drawing-mode?
 	      (and (pair? selection-start)
-		   (equal? (tail selection-start) context)))
+		   (equal? (tail selection-start)
+			   context)))
 	     (exits-selection-drawing-mode?
 	      (and (pair? selection-end)
 		   (equal? (tail selection-end) context)))
-	     (metrics ::FontMetrics (graphics:getFontMetrics font))
+	     (metrics ::FontMetrics
+		      (graphics:getFontMetrics font))
 	     (parent ::Traversal (the-traversal))
 	     (height ::float (metrics:getHeight))
 	     (traversal ::Traversal
@@ -38,19 +42,26 @@ To dzisiaj tak:
 			parent: parent))	     
 	     (segment-start 0)
 	     (string-end (text:length)))
-	(parameterize ((the-cursor-extent (Extent width: 2
-						  height: height))
+	(parameterize ((the-cursor-extent
+			(Extent width: 2
+				height: height))
 		       (the-traversal traversal))
 	  (define (render-fragment! segment-end::int)
-	    (let* ((fragment (text:subSequence segment-start
-					       segment-end))
+	    (let* ((fragment (text:subSequence
+			      segment-start
+			      segment-end))
 		   (width (metrics:stringWidth fragment)))
 	      (set-color! background-color)
-	      (graphics:fillRect traversal:left traversal:top
+	      (graphics:fillRect traversal:left
+				 traversal:top
 				 width height)
 	      (set-color! text-color)
-	      (graphics:drawString fragment (as float traversal:left)
-				   (as float (+ traversal:top height)))
+	      (graphics:drawString fragment
+				   (as float
+				       traversal:left)
+				   (as float
+				       (+ traversal:top
+					  height)))
 	      (traversal:expand-by! width)))
 
 	  (graphics:setFont font)
@@ -79,22 +90,31 @@ To dzisiaj tak:
 		 (set! traversal:max-line-height height)
 		 (set! segment-start (+ i 1))))
 	  (render-fragment! string-end)
-	  (when (and focused? (eqv? (head (the-cursor)) string-end))
+	  (when (and focused? (eqv? (head (the-cursor))
+				    string-end))
 	    (mark-cursor! traversal:left traversal:top))
 	  (traversal:on-end-line #f)))))
 #+END_SRC
 
 No to mamy sobie takie cudo. I co?
 
-Ogolnie ten algorytm dziala tak, ze najpierw wyliczamy selekcje,
-ktora ma postac: (kursor-poczatkowy, kurso-koncowy).
+Ogolnie ten algorytm dziala tak, ze najpierw wyliczamy
+selekcje, ktora ma postac:
+(kursor-poczatkowy, kurso-koncowy).
 
-Nastepnie okreslamy, czy biezacy tekst jest wprowadzany w tryb
-rysowania selekcji, albo wyprowadzany z tego trybu, poprzez
-porownanie przyrownanie lodygi kursora poczatkowego i koncowego
-do aktualnego kontekstu.
+Nastepnie okreslamy, czy biezacy tekst jest wprowadzany
+w tryb rysowania selekcji, albo wyprowadzany z tego
+trybu, poprzez porownanie przyrownanie lodygi kursora
+poczatkowego i koncowego do aktualnego kontekstu.
 
+I wowczas iterujemy po stringu znak po znaku,
+i po kazdym znaku sprawdzamy, czy dochodzi do zmiany
+trybu - a jesli tak, wywolujemy stosowna metode
+paintera.
 
+No i teraz tak: zamiast jednego kursora poczatkowego
+i jednego kursora koncowego mielibysmy liste kursorow
+poczatkowych i koncowych
 
 * 29.09.2024
 
