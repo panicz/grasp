@@ -1242,80 +1242,90 @@
 		      font::Font
 		      context::Cursor)
     ::void
-    (let-values (((selection-start selection-end)
-		  (the-selection)))
-      (let* ((focused? (and (pair? (the-cursor))
-			    (equal? context
-				    (cdr (the-cursor)))))
-	     (enters-selection-drawing-mode?
-	      (and (pair? selection-start)
-		   (equal? (cdr selection-start) context)))
-	     (exits-selection-drawing-mode?
-	      (and (pair? selection-end)
-		   (equal? (cdr selection-end) context)))
-	     (parent ::Traversal (the-traversal))
-	     (height ::float font:size)
-	     (traversal ::Traversal
-		       (Traversal
-			max-line-height: height
-			parent-left: (+ parent:parent-left
-					parent:left)
-			parent-top: (+ parent:parent-top
-				       parent:top)
-			parent: parent))
-	     (segment-start 0)
-	     (string-end (text:length)))
-	(parameterize ((the-cursor-extent (Extent
-					   width: 2
-					   height: height))
-		       (the-traversal traversal))
-	  (define (render-fragment! segment-end::int)
-	    (let* ((fragment (text:subSequence segment-start
-					       segment-end))
-		   (width (text-width fragment font)))
-	      (set-color! background-color)
-	      (canvas:drawRect traversal:left traversal:top
-			       (+ traversal:left width)
-			       (+ traversal:top height)
-			       paint)
-	      (set-color! text-color)
-	      (canvas:drawText fragment traversal:left
-			       (+ traversal:top height)
-			       paint)
-	      (traversal:expand-by! width)))
+    (let* ((focused? (and (pair? (the-cursor))
+			  (equal? context
+				  (cdr (the-cursor)))))
+	   (highlights (the-highlights))
+	   (highlight-starts
+	    ::(list-of Highlight)
+	    (only (lambda (highlight::Highlight)
+		    (and-let* ((`(,_ . ,,context)
+				highlight:start))))
+		  highlights))
+	   (highlight-ends
+	    ::(list-of Highlight)
+	    (only (lambda (highlight::Highlight)
+		    (and-let* ((`(,_ . ,,context)
+				highlight:end))))
+		  highlights))
+	   (parent ::Traversal (the-traversal))
+	   (height ::float font:size)
+	   (traversal ::Traversal
+		      (Traversal
+		       max-line-height: height
+		       parent-left: (+ parent:parent-left
+				       parent:left)
+		       parent-top: (+ parent:parent-top
+				      parent:top)
+		       parent: parent))	     
+	   (segment-start 0)
+	   (string-end (text:length)))
+      (parameterize ((the-cursor-extent
+		      (Extent width: 2
+			      height: height))
+		     (the-traversal traversal))
+	(define (render-fragment! segment-end::int)
+	  (let* ((fragment (text:subSequence
+			    segment-start
+			    segment-end))
+		 (width (text-width fragment font)))
+	    (set-color! background-color)
+	    (canvas:drawRect traversal:left traversal:top
+			     (+ traversal:left width)
+			     (+ traversal:top height)
+			     paint)
+	    (set-color! text-color)
+	    (canvas:drawText fragment traversal:left
+			     (+ traversal:top height)
+			     paint)
+	    (traversal:expand-by! width)))
 
-	  (paint:setTypeface font:face)
-	  (paint:setTextSize font:size)
-	  (for i from 0 below string-end
-	       (when (and focused? (eqv? (car (the-cursor)) i))
-		 (render-fragment! i)
-		 (set! segment-start i)
-		 (mark-cursor! traversal:left
-			       traversal:top))
+	(paint:setTypeface font:face)
+	(paint:setTextSize font:size)
+	(for i from 0 below string-end
+	     (when (and focused? (eqv? (head (the-cursor))
+				       i))
+	       (render-fragment! i)
+	       (set! segment-start i)
+	       (mark-cursor! traversal:left traversal:top))
 
-	       (when (and enters-selection-drawing-mode?
-			  (eqv? (car selection-start) i))
-		 (render-fragment! i)
-		 (set! segment-start i)
-		 (begin-highlight! HighlightType:Selection))
-	       
-	       (when (and exits-selection-drawing-mode?
-			  (eqv? (car selection-end) i))
-		 (render-fragment! i)
-		 (set! segment-start i)
-		 (end-highlight! HighlightType:Selection))
+	     (when (any (is (car _:start) eqv? i)
+			highlight-starts)
+	       (render-fragment! i)
+	       (set! segment-start i)
+	       (for highlight::Highlight in highlight-starts
+		 (when (eqv? (car highlight:start) i)
+		   (begin-highlight! highlight:type))))
 
-	       (when (eq? (text:charAt i) #\newline)
-		 (render-fragment! i)
-		 (traversal:on-end-line #t)
-		 (traversal:new-line!)
-		 (set! traversal:max-line-height height)
-		 (set! segment-start (+ i 1))))
-	  (render-fragment! string-end)
-	  (when (and focused? (eqv? (car (the-cursor))
-				    string-end))
-	    (mark-cursor! traversal:left traversal:top))
-	  (traversal:on-end-line #f)))))
+	     (when (any (is (car _:end) eqv? i)
+			highlight-ends)
+	       (render-fragment! i)
+	       (set! segment-start i)
+	       (for highlight::Highlight in highlight-ends
+		 (when (eqv? (car highlight:end) i)
+		   (end-highlight! highlight:type))))
+
+	     (when (eq? (text:charAt i) #\newline)
+	       (render-fragment! i)
+	       (traversal:on-end-line #t)
+	       (traversal:new-line!)
+	       (set! traversal:max-line-height height)
+	       (set! segment-start (+ i 1))))
+	(render-fragment! string-end)
+	(when (and focused? (eqv? (head (the-cursor))
+				  string-end))
+	  (mark-cursor! traversal:left traversal:top))
+	(traversal:on-end-line #f))))
 
   (define (draw-string! text::CharSequence context::Cursor)
     ::void
@@ -1451,7 +1461,10 @@
 				       (the-text-input-font)))
   
   (define (text-input-extent text::CharSequence)::Extent
-    (text-extent text (the-text-input-font)))
+    (let ((extent ::Extent (text-extent
+			    text (the-text-input-font))))
+      (set! extent:height (* 1.2 extent:height))
+      extent))
 
   (define (text-input-character-index-under
 	   x::real y::real text::CharSequence)

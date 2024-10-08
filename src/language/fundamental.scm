@@ -146,3 +146,8 @@ or symbols.
 The specific functions that operate on cursor are
 defined in the (editor document cursor) module.
 |#
+
+(define-enum HighlightType
+  (Selection
+   CurrentFinding
+   OtherFinding))

@@ -685,18 +685,77 @@
       (put! #\❞ (+ extent:height 1)
 	    (+ extent:width 3))))
 
-  (define (measure-quoted-text-index-position-into! target::Position
-						    text::CharSequence
-						    index::int)
+  (define (measure-quoted-text-index-position-into!
+	   target::Position text::CharSequence index::int)
     ::Position
     (set! target:left (+ target:left 2))
     (set! target:top (+ target:top 1))
     (measure-string-index-position-into! target text index))
-
   
-  (define (measure-string-index-position-into! target::Position
-					       text::CharSequence
-					       index::int)
+  (define (draw-string! text::CharSequence
+			context::Cursor)
+    ::void
+    (let* ((focused? (and (pair? (the-cursor))
+			  (equal? context
+				  (cdr (the-cursor)))))
+	   (parent (the-traversal))
+	   (highlights (the-highlights))
+	   (highlight-starts
+	    ::(list-of Highlight)
+	    (only (lambda (highlight::Highlight)
+		    (and-let* ((`(,_ . ,,context)
+				highlight:start))))
+		  highlights))
+	   (highlight-ends
+	    ::(list-of Highlight)
+	    (only (lambda (highlight::Highlight)
+		    (and-let* ((`(,_ . ,,context)
+				highlight:end))))
+		  highlights))
+	   (traversal ::Traversal
+		      (Traversal
+		       max-line-height: 1
+		       parent-left: (+ parent:parent-left
+				       parent:left)
+		       parent-top: (+ parent:parent-top
+				      parent:top)
+		       parent: parent)))
+
+      (define (handle-cursor-and-selection!)
+	(for highlight::Highlight in highlight-starts
+	  (when (eqv? (car highlight:start)
+		      traversal:index)
+	    (begin-highlight! highlight:type)))
+	(for highlight::Highlight in highlight-ends
+	  (when (eqv? (car highlight:end)
+		      traversal:index)
+	    (end-highlight! highlight:type)))
+	(when (and focused? (eqv? traversal:index
+				  (car (the-cursor))))
+	  (mark-cursor! traversal:left traversal:top)))
+
+      (parameterize ((the-traversal traversal))
+	(for c in text
+	  (handle-cursor-and-selection!)
+	  (cond ((eq? c #\newline)
+		 (traversal:on-end-line #t)
+		 (traversal:new-line!)
+		 (set! traversal:max-line-height 1))
+		((eq? c #\return)
+		 ;; this seems to solve a bug on Windows/WSL1
+		 (set! traversal:index
+		       (- traversal:index 1)))
+		;; jeszcze chcemy combining-character
+		;; po prostu dopisac do biezacego znaku
+		(else
+		 (put! c traversal:top traversal:left)
+		 (traversal:expand-by! 1)))
+	  (set! traversal:index (+ traversal:index 1)))
+	(handle-cursor-and-selection!)
+	(traversal:on-end-line #f))))
+
+  (define (measure-string-index-position-into!
+	   target::Position text::CharSequence index::int)
     ::Position
     (let ((line ::int 0)
 	  (column ::int 0)
@@ -715,63 +774,6 @@
       (set! target:top (+ target:top line))
       target))
   
-  (define (draw-string! text::CharSequence
-			context::Cursor)
-    ::void
-    (let-values (((selection-start selection-end)
-		  (the-selection))
-		 ((parent) (the-traversal)))
-      (let ((focused?
-	     (and (pair? (the-cursor))
-		  (equal? context
-			  (cdr (the-cursor)))))
-	    (enters-selection-drawing-mode?
-	     (and (pair? selection-start)
-		  (equal? (tail selection-start)
-			  context)))
-	    (exits-selection-drawing-mode?
-	     (and (pair? selection-end)
-		  (equal?
-		   (tail selection-end)
-		   context)))
-	    (traversal ::Traversal
-		       (Traversal
-			max-line-height: 1
-			parent-left: (+ parent:parent-left
-					parent:left)
-			parent-top: (+ parent:parent-top
-				       parent:top)
-			parent: parent)))
-
-	(define (handle-cursor-and-selection!)
-	  (when (and enters-selection-drawing-mode?
-		     (eqv? traversal:index (head selection-start)))
-	    (begin-highlight! HighlightType:Selection))
-	  (when (and exits-selection-drawing-mode?
-		     (eqv? traversal:index (head selection-end)))
-	    (end-highlight! HighlightType:Selection))
-	  (when (and focused? (eqv? traversal:index (car (the-cursor))))
-	    (mark-cursor! traversal:left traversal:top)))
-
-	(parameterize ((the-traversal traversal))
-	  (for c in text
-	    (handle-cursor-and-selection!)
-            (cond ((eq? c #\newline)
-		   (traversal:on-end-line #t)
-		   (traversal:new-line!)
-		   (set! traversal:max-line-height 1))
-		  ((eq? c #\return)
-		   ;; this seems to solve a bug on Windows/WSL1
-		   (set! traversal:index (- traversal:index 1)))
-		  ;; jeszcze chcemy combining-character
-		  ;; po prostu dopisac do biezacego znaku
-		  (else
-		   (put! c traversal:top traversal:left)
-		   (traversal:expand-by! 1)))
-	    (set! traversal:index (+ traversal:index 1)))
-	  (handle-cursor-and-selection!)
-	  (traversal:on-end-line #f)))))
-
   (define (string-character-index-under
 	   x::real y::real
 	   text::CharSequence)
