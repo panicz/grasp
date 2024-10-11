@@ -130,7 +130,7 @@ def") ===> [Extent width: 3 height: 2])
 			type: HighlightType))
 
 (define-interface Painter ()
-  
+
   (translate! x::real y::real)::void
   (rotate! angle::real)::void
   (with-clip w::real h::real action::(maps () to: void))::void
@@ -175,7 +175,7 @@ def") ===> [Extent width: 3 height: 2])
   (clear!)::void
 
   (request-redraw!)::void
-  
+
   (draw-quoted-text! s::CharSequence context::Cursor)
   ::void
 
@@ -183,9 +183,6 @@ def") ===> [Extent width: 3 height: 2])
 					    text::CharSequence
 					    index::int)
   ::Position
-
-  (monospace-character-width)::real
-  (monospace-character-height)::real
 
   (draw-caption! caption::CharSequence)::void
   (caption-extent caption::CharSequence)::Extent
@@ -201,7 +198,7 @@ def") ===> [Extent width: 3 height: 2])
 				     text::CharSequence
 				     index::int)
   ::Position
-  
+
   (atom-character-index-under x::real y::real
 			      text::CharSequence)
   ::int
@@ -245,7 +242,7 @@ def") ===> [Extent width: 3 height: 2])
 
   (begin-highlight! type::HighlightType)::void
   (end-highlight! type::HighlightType)::void
-  
+
   (enter-comment-drawing-mode!)::void
   (exit-comment-drawing-mode!)::void
   (in-comment-drawing-mode?)::boolean
@@ -347,7 +344,7 @@ def") ===> [Extent width: 3 height: 2])
 					      text::CharSequence
 					      index::int)
   ::Position
-  
+
   (block-comment-extent text::CharSequence)::Extent
 
   (block-comment-character-index-under
@@ -407,7 +404,7 @@ def") ===> [Extent width: 3 height: 2])
 
   (define (request-redraw!)::void
     (values))
-  
+
   (define (translate! x::real y::real)::void
     (values))
 
@@ -461,10 +458,6 @@ def") ===> [Extent width: 3 height: 2])
 			context::Cursor)
     ::void
     (values))
-
-  (define (monospace-character-width)::real 1)
-
-  (define (monospace-character-height)::real 1)
 
   (define (draw-caption! caption::CharSequence)::void
     (values))

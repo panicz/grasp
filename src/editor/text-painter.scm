@@ -772,10 +772,6 @@
 	  (handle-cursor-and-selection!)
 	  (traversal:on-end-line #f)))))
 
-  (define (monospace-character-width)::real 1)
-
-  (define (monospace-character-height)::real 1)
-
   (define (string-character-index-under
 	   x::real y::real
 	   text::CharSequence)
