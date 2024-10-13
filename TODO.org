@@ -1,3 +1,427 @@
+* 11.10.2024
+
+To bysmy przepisali funkcje next-match tak, zeby zamiast
+predykatu pobierala liste patternow, i probowala
+zmatchowac cala liste
+
+#+BEGIN_SRC scheme
+  (define/kw (next-match pattern ::list
+			 in: document ::Indexable
+			 := (the-document)
+			 after: cursor ::Cursor := (the-cursor)
+			 context: context ::Cursor := '())
+    ::(maybe Highlight)
+    (escape-with return
+      (let* ((current-level ::int (length context))
+	     (reference-level ::int (length cursor))
+	     (pressure (- reference-level current-level 1))
+	     (index (if (is pressure >= 0)
+			(let ((initial-index (cursor
+					      pressure)))
+			  (if (= pressure 0)
+			      (document:next-index
+			       initial-index)
+			      initial-index))
+			(document:next-index
+			 (document:first-index))))
+	     (limit (document:last-index)))
+	(while (isnt index eqv? limit)
+	  (and-let* ((result ::Highlight (match-highlight
+					  pattern
+					  at: index
+					  in: document
+					  within: context)))
+	    (return result))
+	  (when (gnu.lists.LList? item)
+	    (let ((result (next-match pattern
+				      in: item
+				      after: cursor
+				      context: (recons
+						index
+						context))))
+	      (when result
+		(return result)))))
+	(set! index (document:next-index index)))
+      (return #!null)))
+
+  (define/kw (match-highlight pattern ::list
+			      at: index ::int
+			      in: document ::Indexable
+			      within: context ::Cursor)
+    ::(maybe Highlight)
+    ...)
+
+#+END_SRC
+
+
+* 10.10.2024
+
+no dobra, mamy jakies prototypy funkcji maczujacych,
+ale warto by bylo moze sobie takie funkcje napisac
+
+w sumie to bysmy chcieli obsluzyc takie przypadki:
+1. kiedy poszukiwany element jest lista
+2. kiedy wyszukiwany element to po prostu ciag znakow
+3. kiedy wyszukiwany element jest ciagiem elementow
+
+Plan jest z grubsza taki, ze jak sobie mamy pole tekstowe,
+to na jego zawartosci wywolujemy "read-all" (albo "parse"),
+i teraz:
+- jezeli w wyniku otrzymamy liste jednoelementowa,
+5 to jezeli jedyny element jest atomem, to wyszukujemy
+  teksty, ktore ow atom zawieraja (i mozemy wymyslic
+  tu jakas skladnie wyrazen regularnych)
+- jezeli jedyny element jest lista, to probujemy
+  zmaczowac liste
+- jezeli mamy liste wieloelementowa, to probujemy ja
+  po prostu zmaczowac
+
+
+Z tych rozwazan wylania sie taki obraz, ze tak alismy - pojedynczego
+elementu),p
+
+
+* 09.10.2024
+
+Wydaje sie, ze warto by bylo podejsc do implementacji
+z
+,perspektywy przykladow.
+
+Rzeczy, ktore bysmy chcieli lapac, to:
+- caly atom
+- fragment atomu (albo stringu, albo ewentualnie
+  komentarza)
+- kawalek listy
+- cala liste
+
+i teraz albo mozemy zrobic tak, ze zwracamy cala
+dopasowana strukture, albo - ze zwracamy jakos
+wyrazona dlugosc tej struktury.
+
+Ta druga opcja wydaje sie nieco mniej kosztowna.
+
+No dobra, czyli mamy sobie juz jeden kawalek funkcji
+do wyszukiwania. Drugi kawalek, ktory bysmy chcieli znalezc,
+to sama funkcja dopasowujaca.
+
+I w sumie rzecz wydaje sie banalna:
+- jezeli mamy atom, to szukamy pasujacego atomu
+  (i zwracamy dlugosc dopasowania)
+- jezeli mamy liste, to probujemy ja rekurencyjnie
+  dopasowac, i jezeli sie to uda, zwracamy po prostu
+  jej dlugosc
+
+#+BEGIN_SRC scheme
+
+  (define-type (Range start: int end: int))
+
+  (define ((match-string s::string) item::Tile)::(maybe Range)
+    ...)
+
+  (define ((match-list l::list) item::Tile)::(maybe Range)
+    ...)
+  
+  (define-type (Match position: Cursor
+		      length: int))
+
+  (define/kw (next-match satisfying ::(maps (Tile)
+					    to: (maybe Range))
+			 in: document ::Indexable
+			 := (the-document)
+			 after: cursor ::Cursor := (the-cursor)
+			 context: context ::Cursor := '())
+    ::(maybe Match)
+    (escape-with return
+      (let* ((current-level ::int (length context))
+	     (reference-level ::int (length cursor))
+	     (pressure (- reference-level current-level 1))
+	     (index (if (is pressure >= 0)
+			(let ((initial-index (cursor
+					      pressure)))
+			  (if (= pressure 0)
+			      (document:next-index
+			       initial-index)
+			      initial-index))
+			(document:next-index
+			 (document:first-index))))
+	     (limit (document:last-index)))
+	(while (isnt index eqv? limit)
+	  (let ((item (document:part-at index)))
+	    (and-let* (((isnt item eq? document))
+		       (range ::Range (satisfying item)))
+	      (return (Match position: (recons index context)
+			     length: value)))
+	    (when (gnu.lists.LList? item)
+	      (let ((result (next-match pattern
+					in: item
+					after: cursor
+					context: (recons
+						  index
+						  context))))
+		(when result
+		  (return result)))))
+	  (set! index (document:next-index index)))
+	(return #!null))))
+
+#+END_SRC
+
+
+* 08.10.2024
+
+Dobra, to na razie udalo sie podmienic stare funkcje
+na nowe, ale to jeszcze za malo, zeby zaobserwowac
+jakiekolwiek roznice w dzialaniu.
+
+To teraz bysmy chcieli zintegrowac te nowa
+funkcjonalnosc z mozliwoscia wyszukiwania.
+
+No dobra, to co musimy zrobic?
+
+- po pierwsze, zamiast/obok ~find-next~ dodac funkcje
+  ~find-next-match~, ktora pobiera nie funkcje boole'owska,
+  tylko funkcje zwracajaca (maybe list)
+- po drugie, wyniki dzialania tej funkcji chcielibysmy
+  zaisywac do obiektu (the-findings)
+- po trzecie, obiekt (the-findings) chcielibysmy doklejac
+  do wartosci zwracanej przez (the-highlights)
+- po czwarte, chcielibysmy miec mozliwosc centrowania
+  na kolejnych znalezionych wartosciach (ale to oczywiscie
+  zrobimy w kolejnym etapie)
+- po piate, chcielibysmy moc zamieniac znalezione wartosci
+  na okreslone patterny (i tutaj sie raczej nie obejdzie
+  bez evala)
+- po szoste, jak ta funkcjonalnosc bedzie gotowa, to moze
+  warto by bylo nagrac jutubowe demo pt.
+  "GRASPing Indiana Dan's"
+
+No dobra, ale na razie zastanowmy sie jeszcze moze nieco
+nad tym, jak powinien wygladac ten nasz czarodzejski
+interfejs do pattern-matchowania.
+
+I otoz pejper "Macro by Example", ktory niedawno przypadkiem
+sobie przeczytalismy, dekomponowal sobie patterny w nastepujacy
+sposob:
+- predykat, ktory mowi nam, czy dany pattern jest spelniony
+- funkcje, ktora pobiera pattern i wyrazenie, i zwraca srodowisko
+- funkcje, ktora pobiera srodowisko i pattern, i zwraca wyrazenie
+
+I to sie wydaje piekne.
+
+Natomiast u nas problem jest taki, ze chcemy sobie miec te kursory,
+i chcemy wiedziec, jak duza porcje tekstu stanowi zmaczowany pattern.
+
+#+BEGIN_SRC scheme
+
+  (define-interface Template ()
+    (captures? expression ::Expression)::boolean
+    (bindings expression ::Expression)::Environment
+    (substitution environment ::Environment)::Expression
+    )
+  
+#+END_SRC
+
+Czy cos takiego?
+
+Nie wiadomo. Bo w zasadzie to jednym aspektem tego
+procesu jest wiazanie zmiennych z wartosciami - i tutaj
+w rezultacie moglibysmy dostawac jakies odwzorowanie.
+
+Natomiast drugi aspekt jest taki, ze bedziemy konsumowac
+jakis kawalek inputu, i fajnie by bylo wiedziec, jaki
+kawalek inputu skonsumowalismy.
+
+* 07.10.2024
+
+No dobra, to mamy (niby)obsluzone podswietlanie
+dla klienta desktopowego, ale chyba warto by bylo:
+1. napisac analogiczny kod dla klienta androidowego
+2. zastanowic sie nad klientem terminalowym
+   
+#+BEGIN_SRC scheme
+
+  (define (draw-text! text::CharSequence
+		      font::Font
+		      context::Cursor)
+    ::void
+    (let* ((focused? (and (pair? (the-cursor))
+			  (equal? context
+				  (cdr (the-cursor)))))
+	   (highlights (the-highlights))
+	   (highlight-starts
+	    ::(list-of Highlight)
+	    (only (lambda (highlight::Highlight)
+		    (and-let* ((`(,_ . ,,context)
+				highlight:start))))
+		  highlights))
+	   (highlight-ends
+	    ::(list-of Highlight)
+	    (only (lambda (highlight::Highlight)
+		    (and-let* ((`(,_ . ,,context)
+				highlight:end))))
+		  highlights))
+	   (parent ::Traversal (the-traversal))
+	   (height ::float font:size)
+	   (traversal ::Traversal
+		      (Traversal
+		       max-line-height: height
+		       parent-left: (+ parent:parent-left
+				       parent:left)
+		       parent-top: (+ parent:parent-top
+				      parent:top)
+		       parent: parent))	     
+	   (segment-start 0)
+	   (string-end (text:length)))
+      (parameterize ((the-cursor-extent
+		      (Extent width: 2
+			      height: height))
+		     (the-traversal traversal))
+	(define (render-fragment! segment-end::int)
+	  (let* ((fragment (text:subSequence
+			    segment-start
+			    segment-end))
+		 (width (text-width fragment font)))
+	    (set-color! background-color)
+	    (canvas:drawRect traversal:left traversal:top
+			     (+ traversal:left width)
+			     (+ traversal:top height)
+			     paint)
+	    (set-color! text-color)
+	    (canvas:drawText fragment traversal:left
+			     (+ traversal:top height)
+			     paint)
+	    (traversal:expand-by! width)))
+
+	(paint:setTypeface font:face)
+	(paint:setTextSize font:size)
+	(for i from 0 below string-end
+	     (when (and focused? (eqv? (head (the-cursor))
+				       i))
+	       (render-fragment! i)
+	       (set! segment-start i)
+	       (mark-cursor! traversal:left traversal:top))
+
+	     (when (any (is (car _:start) eqv? i)
+			highlight-starts)
+	       (render-fragment! i)
+	       (set! segment-start i)
+	       (for highlight::Highlight in highligh-starts
+		 (when (eqv? (car highlight:start) i)
+		   (begin-highlight! highlight:type))))
+
+	     (when (any (is (car _:end) eqv? i)
+			highlight-ends)
+	       (render-fragment! i)
+	       (set! segment-start i)
+	       (for highlight::Highlight in highligh-starts
+		 (when (eqv? (car highlight:end) i)
+		   (end-highlight! highlight:type))))
+
+	     (when (eq? (text:charAt i) #\newline)
+	       (render-fragment! i)
+	       (traversal:on-end-line #t)
+	       (traversal:new-line!)
+	       (set! traversal:max-line-height height)
+	       (set! segment-start (+ i 1))))
+	(render-fragment! string-end)
+	(when (and focused? (eqv? (head (the-cursor))
+				  string-end))
+	  (mark-cursor! traversal:left traversal:top))
+	(traversal:on-end-line #f))))
+
+#+END_SRC
+
+No dobra, to sie wydaje, ze wariant dla Androida juz mamy,
+i teraz wypadaloby sie zastanowic nad klientem tekstowym
+i terminalowym.
+
+No dobra, to widzimy, ze w kliencie tekstowym
+znajdziemy 7 uzyc:
+- ~draw-custom-box!~
+- ~draw-quote-markers!~
+- ~draw-quasiquote-markers!~
+- ~draw-unquote-markers!~
+- ~draw-unquote-splicing-box!~
+- ~draw-unquote-splicing-markers!~
+- ~draw-string!~
+
+Pierwsze pytanie byloby zatem takie,
+czy nie moglibysmy w jakis sposob uogolnic
+rysowania tych quote'ow?
+
+Pewnie bysmy mogli. Ale komu by sie chcialo.
+
+(Moze komus sie kiedys bedzie chcialo, ale na pewno
+nie mnie i nie teraz).
+
+To zaczniemy moze od poprawy tej funkcji
+~draw-string!~.
+
+#+BEGIN_SRC scheme
+  (define (draw-string! text::CharSequence
+			context::Cursor)
+    ::void
+    (let* ((focused?
+	  (and (pair? (the-cursor))
+	       (equal? context
+		       (cdr (the-cursor)))))
+	   (parent (the-traversal))
+	   (highlights (the-highlights))
+	   (highlight-starts
+	    ::(list-of Highlight)
+	    (only (lambda (highlight::Highlight)
+		    (and-let* ((`(,_ . ,,context)
+				highlight:start))))
+		  highlights))
+	   (highlight-ends
+	    ::(list-of Highlight)
+	    (only (lambda (highlight::Highlight)
+		    (and-let* ((`(,_ . ,,context)
+				highlight:end))))
+		  highlights))
+	   (traversal ::Traversal
+		      (Traversal
+		       max-line-height: 1
+		       parent-left: (+ parent:parent-left
+				       parent:left)
+		       parent-top: (+ parent:parent-top
+				      parent:top)
+		       parent: parent)))
+
+      (define (handle-cursor-and-selection!)
+	(for highlight::Highlight in highligh-starts
+	  (when (eqv? (car highlight:start)
+		      traversal:index)
+	    (begin-highlight! highlight:type)))
+	(for highlight::Highlight in highligh-starts
+	  (when (eqv? (car highlight:end)
+		      traversal:index)
+	    (end-highlight! highlight:type)))
+	(when (and focused? (eqv? traversal:index
+				  (car (the-cursor))))
+	  (mark-cursor! traversal:left traversal:top)))
+
+      (parameterize ((the-traversal traversal))
+	(for c in text
+	  (handle-cursor-and-selection!)
+	  (cond ((eq? c #\newline)
+		 (traversal:on-end-line #t)
+		 (traversal:new-line!)
+		 (set! traversal:max-line-height 1))
+		((eq? c #\return)
+		 ;; this seems to solve a bug on Windows/WSL1
+		 (set! traversal:index
+		       (- traversal:index 1)))
+		;; jeszcze chcemy combining-character
+		;; po prostu dopisac do biezacego znaku
+		(else
+		 (put! c traversal:top traversal:left)
+		 (traversal:expand-by! 1)))
+	  (set! traversal:index (+ traversal:index 1)))
+	(handle-cursor-and-selection!)
+	(traversal:on-end-line #f))))
+
+#+END_SRC
+
 * 04.10.2024
 
 Dzisiaj Causal Islands, sie za bardzo narobilem.
@@ -17,7 +441,6 @@ to plan na dzisiaj jest taki, zeby:
 		      font::Font
 		      context::Cursor)
     ::void
-
     (let* ((focused? (and (pair? (the-cursor))
 			  (equal? context
 				  (cdr (the-cursor)))))
@@ -25,12 +448,14 @@ to plan na dzisiaj jest taki, zeby:
 	   (highlight-starts
 	    ::(list-of Highlight)
 	    (only (lambda (highlight::Highlight)
-		    (and-let* ((`(,_ . ,,context) highlight:start))))
+		    (and-let* ((`(,_ . ,,context)
+				highlight:start))))
 		  highlights))
 	   (highlight-ends
 	    ::(list-of Highlight)
 	    (only (lambda (highlight::Highlight)
-		    (and-let* ((`(,_ . ,,context) highlight:end))))
+		    (and-let* ((`(,_ . ,,context)
+				highlight:end))))
 		  highlights))
 	   (metrics ::FontMetrics
 		    (graphics:getFontMetrics font))
@@ -80,7 +505,7 @@ to plan na dzisiaj jest taki, zeby:
 	       (render-fragment! i)
 	       (set! segment-start i)
 	       (for highlight::Highlight in highligh-starts
-		 (when (eqv? highlight:start i)
+		 (when (eqv? (car highlight:start) i)
 		   (begin-highlight! highlight:type))))
 
 	     (when (any (is (car _:end) eqv? i)
@@ -88,7 +513,7 @@ to plan na dzisiaj jest taki, zeby:
 	       (render-fragment! i)
 	       (set! segment-start i)
 	       (for highlight::Highlight in highligh-starts
-		 (when (eqv? highlight:end i)
+		 (when (eqv? (car highlight:end) i)
 		   (end-highlight! highlight:type))))
 
 	     (when (eq? (text:charAt i) #\newline)

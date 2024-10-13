@@ -21,6 +21,10 @@
 (import (language fundamental))
 (import (editor interfaces painting))
 
+(define-type (Highlight start: Cursor
+			end: Cursor
+			type: HighlightType))
+
 (define-attribute (extent-cached? tile::Tile)::boolean
   #f)
 

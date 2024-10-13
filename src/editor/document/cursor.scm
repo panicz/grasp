@@ -301,33 +301,58 @@
 	      (next updated))
 	    updated))))
 
-(define (selection-start+end cursor::Cursor range::integer)
+(define (selection-start+end cursor::Cursor
+			     range::integer
+			     #!optional
+			     (document (the-document)))
   ::(Values Cursor Cursor)
-  (cond
-   ((is range < 0)
-    (values
-     (iterations (- range)
-		 cursor-retreat
-		 cursor)
-     cursor))
+  (parameterize ((the-document document))
+    (cond
+     ((is range < 0)
+      (values
+       (iterations (- range)
+		   cursor-retreat
+		   cursor)
+       cursor))
 
-   ((is range > 0) 
-    (values
-     cursor
-     (iterations range
-		 cursor-advance
-		 cursor)))
-   (else
-    (values cursor cursor))))
+     ((is range > 0) 
+      (values
+       cursor
+       (iterations ranges
+		   cursor-advance
+		   cursor)))
+     (else
+      (values cursor cursor)))))
 
-(define-single-cache (cached-selection-start+end cursor::Cursor
-						 range::integer)
+(define-single-cache (cached-selection-start+end
+		      cursor::Cursor
+		      range::integer
+		      document)
   ::(Values Cursor Cursor)
-  (selection-start+end cursor range))
+  (selection-start+end cursor range document))
 
 (define (the-selection)::(Values Cursor Cursor)
   (cached-selection-start+end (the-cursor)
-			      (the-selection-range)))
+			      (the-selection-range)
+			      (the-document)))
+
+(define-single-cache (cached-highlights cursor::Cursor
+					range::integer
+					document)
+  ::(list-of Highlight)
+  (let-values (((selection-start selection-end)
+		(selection-start+end cursor
+				     range
+				     document)))
+    `(,(Highlight start: selection-start
+		  end: selection-end
+		  type: HighlightType:Selection))))
+
+(define (the-highlights)
+  ::(list-of Highlight)
+  (cached-highlights (the-cursor)
+		     (the-selection-range)
+		     (the-document)))
 
 (define (within-selection? context::Cursor)::boolean
   ;; implicitly parameterized with (the-document),

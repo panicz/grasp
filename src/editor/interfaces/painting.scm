@@ -120,15 +120,6 @@ def") ===> [Extent width: 3 height: 2])
    (begin . actions)
    (the-transform-stack:removeFirst)))
 
-(define-enum HighlightType
-  (Selection
-   CurrentFinding
-   OtherFinding))
-
-(define-type (Highlight start: Cursor
-			end: Cursor
-			type: HighlightType))
-
 (define-interface Painter ()
   
   (translate! x::real y::real)::void
