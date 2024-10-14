@@ -1,0 +1,23 @@
+(import
+  (language define-interface)
+  (language define-type)
+  (language define-object)
+  (utils conversions)
+  (editor interfaces elements)
+  (language infix)
+  (language match)
+  (editor types primitive)
+  (editor types spaces)
+  (editor document parse)
+  (language examples)
+  (utils conversions)
+  (srfi :11)
+  (language assert)
+  (utils print)
+  (editor document cursor)
+  )
+
+(let ((query (parse-string "#/x y")))
+  (show query)
+  (with-eval-access
+   (show query)))
