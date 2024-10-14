@@ -1,3 +1,60 @@
+* 13.10.2024
+
+#+BEGIN_SRC scheme
+
+
+
+  (define (match-space pattern ::Space subject ::Space)
+    ::(maybe `(,number . ,number))
+    (define (match-fragments patterns ::list subjects)
+      ::(maybe number)
+      ...)
+
+    (cond 
+      ((every number? pattern:fragments)
+      `(,(template:first-index) . ,(template:last-index)))
+      (
+       
+       
+       
+
+
+  (define/kw (match-highlight pattern ::list
+			      at: index ::int
+			      in: document ::Indexable
+			      within: context ::Cursor)
+    ::(maybe Highlight)
+    ;; musimy sobie teraz wymyslic jak to powinno dzialac
+    ;; ale chyba z grubsza tak, ze:
+    ;; - musimy dopasowac pierwszy element w patternie,
+    ;; i na tej podstawie wyznaczymy sobie Highlight:start
+    ;; - muisimy tez dopasowac ostatni element w patternie,
+    ;; i na tej podstawie mozemy sobie wyznaczyc Highlight:end
+    ;; - wszystkie elementy pomiedzy pierwszym a ostatnim elementem
+    ;; patternu powinny sie zgadzac
+    ;; (czy rowniez powinnismy uwzgledniac spacje?)
+    ;; 
+    ;; No to moze zacznijmy od przypadku, w ktorym
+    ;; (= (length pattern) 1), (car pattern) to atom/regex.
+    ;; W takim przypadku sprawdzamy, czy (document:part-at index)
+    ;; jest "textual", i probujemy zmatchowac pattern za pomoca
+    ;; regex-match-positions. Kiedy sie to nam uda, to zwracamy
+    ;; (recons* start index context) (recons* stop index context)
+    ;; 
+    ;; mamy jednak do rozwazenia jeszcze prostszy przypadek, mianowicie
+    ;; gdy (= (length pattern) 0)  - bo w takim przypadku wymagamy,
+    ;; zeby (document:part-at index) to bylo Space, i zeby
+    ;; wowczas albo "pattern" byl spacja, ktorej fragmenty to same
+    ;; liczby - i wowczas jako dopasowanie zwrocimy (chyba?) cala
+    ;; spacje, albo w przeciwnym razie szukamy spacji, ktora zawiera
+    ;; sekwencje tekstu.
+    
+    
+    ...)
+
+#+END_SRC
+
+
 * 11.10.2024
 
 To bysmy przepisali funkcje next-match tak, zeby zamiast
@@ -421,6 +478,56 @@ To zaczniemy moze od poprawy tej funkcji
 	(traversal:on-end-line #f))))
 
 #+END_SRC
+
+* 06.10.2024 (komputer, ale i pociag)
+
+No to pierwszy pomysl jest taki, zeby sprobowac przekopiowac
+te zmiany, ktore ostatnio napisalismy, do pliku grasp-desktop.scm,
+oraz - z odpowiednimi modyfikacjami - do grasp-android.scm.
+
+Natomiast natychmiast rodzi to pytanie, co zrobic z klientem
+terminalowym.
+
+Zreszta w sumie nie musimy sie z tym wszystkim az tak spieszyc,
+bo teraz mamy przed soba caly tydzien nie-commitowania.
+
+A moze warto by bylo poczynic troche refleksji zwiazanej
+z konferencja.
+
+Wydaje sie, ze odbior mojej prezentacji byl bardzo dobry,
+ale rowniez ze zainteresowanie samym narzedniem bylo spore.
+
+Ogonie wydaje sie, ze to wydarzenie bylo doskonale pod tym
+wzgledem, ze jednoczy rozmaitych freakow, ktorzy po pierwsze
+byliby sklonni sprobowac GRASPa, gdyby ich przycisnac,
+a po drugie sami sa tworcami narzedzi, i potencjalnie mogliby
+owo narzedzie wspoltworzyc.
+
+Stad tez wydaje sie, ze kolejne takie wydarzenie mogloby
+byc dobra okazja do zaprezentowania juz w pelni sprawnej
+wersji GRASPa (przy czym moze okreslenie "w pelni sprawniej"
+nie jest do konca zrozumiale - moze lepiej by bylo po prostu
+powiedziec "uzywalnej").
+
+Stad tytul kolejnej prezentacji: "Grazing GRASP", w ktorej
+chcielibysmy przedstawic:
+- dzialajacy algorytm A*
+- dzialajaca przegladarke modulow
+
+Dodatkowo chcielibysmy byc w stanie budowac GRASPa z GRASPa,
+miec wyszukiwanie/zastepowanie, suwaki do scrollowania,
+nie miec bledow w edycji, miec "wyciaganie obrusa".
+
+Pytanie, czy jestesmy w stanie osiagnac takie cos jeszcze
+w tym roku?
+
+Zostalo nam na to 12 tygodni, z czego chyba 4 intensywniejsze.
+
+Czy taki plan mialby sens?
+1. skonczyc to wyszukiwanie i zamienianie (zalozmy, ze 2 tygodnie)
+2. zajac sie bledami w edycji i ruszaniu kursorem (zalozmy, ze
+   4 tygodnie)
+3. ????
 
 * 04.10.2024
 
