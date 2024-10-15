@@ -1,22 +1,34 @@
-* 13.10.2024
+* 13-14.10.2024
 
 #+BEGIN_SRC scheme
 
-
+  ;; dopasowywanie spacji:
+  ;; 1. szukamy piereszego i ostatniego fragmentu wzorca,
+  ;;    ktory nie jest liczba
+  ;; 2. jezeli takiego nie ma, to zwracamy
+  ;;    `(,(subject:first-index) . ,(subject:last-index))
+  ;; 3. w przeciwnym razie probujemy po kolei dopasowywac
+  ;;    poszczegolne nie-liczby do kolejnych elementow
+  ;;    patternu, az natrafimy na ostatni
+  ;; 4. jezeli cokolwiek w kroku 3 sie nie powiedzie,
+  ;;    zwracamy #!null
+  ;; 5. w przeciwnym razie zwracamy zakres od poczatku
+  ;;    pierwszego dopasowania do konca ostatniego dopasowania
+  ;; (pytanie, czy w zwiazku z tym nie powinnismy raczej
+  ;; zamiast pary liczb zwracac pare kursorow?)
 
   (define (match-space pattern ::Space subject ::Space)
     ::(maybe `(,number . ,number))
-    (define (match-fragments patterns ::list subjects)
+    (define (match-fragments pattern-fragments ::list
+			     subject-fragments ::list)
       ::(maybe number)
       ...)
 
     (cond 
       ((every number? pattern:fragments)
-      `(,(template:first-index) . ,(template:last-index)))
-      (
-       
-       
-       
+      `(,(subject:first-index) . ,(subject:last-index)))
+
+      ))
 
 
   (define/kw (match-highlight pattern ::list
@@ -30,30 +42,85 @@
     ;; i na tej podstawie wyznaczymy sobie Highlight:start
     ;; - muisimy tez dopasowac ostatni element w patternie,
     ;; i na tej podstawie mozemy sobie wyznaczyc Highlight:end
-    ;; - wszystkie elementy pomiedzy pierwszym a ostatnim elementem
-    ;; patternu powinny sie zgadzac
+    ;; - wszystkie elementy pomiedzy pierwszym a ostatnim
+    ;; elementem patternu powinny sie zgadzac
     ;; (czy rowniez powinnismy uwzgledniac spacje?)
     ;; 
     ;; No to moze zacznijmy od przypadku, w ktorym
     ;; (= (length pattern) 1), (car pattern) to atom/regex.
-    ;; W takim przypadku sprawdzamy, czy (document:part-at index)
-    ;; jest "textual", i probujemy zmatchowac pattern za pomoca
-    ;; regex-match-positions. Kiedy sie to nam uda, to zwracamy
-    ;; (recons* start index context) (recons* stop index context)
+    ;; W takim przypadku sprawdzamy, czy
+    ;; (document:part-at index) jest "textual", i probujemy
+    ;; zmatchowac pattern za pomoca regex-match-positions.
+    ;; Kiedy sie to nam uda, to zwracamy
+    ;; (recons* start index context)
+    ;; (recons* stop index context)
     ;; 
-    ;; mamy jednak do rozwazenia jeszcze prostszy przypadek, mianowicie
-    ;; gdy (= (length pattern) 0)  - bo w takim przypadku wymagamy,
-    ;; zeby (document:part-at index) to bylo Space, i zeby
-    ;; wowczas albo "pattern" byl spacja, ktorej fragmenty to same
-    ;; liczby - i wowczas jako dopasowanie zwrocimy (chyba?) cala
-    ;; spacje, albo w przeciwnym razie szukamy spacji, ktora zawiera
-    ;; sekwencje tekstu.
-    
-    
+    ;; mamy jednak do rozwazenia jeszcze prostszy przypadek,
+    ;; mianowicie gdy (= (length pattern) 0)  - bo w takim
+    ;; przypadku wymagamy, zeby (document:part-at index)
+    ;; to bylo Space, i zeby wowczas albo "pattern" byl
+    ;; spacja, ktorej fragmenty to same liczby - i
+    ;; wowczas jako dopasowanie zwrocimy (chyba?) cala
+    ;; spacje, albo w przeciwnym razie szukamy spacji, ktora
+    ;; zawiera sekwencje tekstu.
+
+
     ...)
 
 #+END_SRC
 
+no dobra, to w sumie sprawa jest ciezka, i moze trzeba by
+bylo zaczac od napisania funkcji do matchowania tekstu:
+
+#+BEGIN_SRC scheme
+
+  (define (textual=? a ::Textual b ::Textual)::boolean
+    (escape-with return
+      (let ((n ::int (a:text-length)))
+	(cond
+	 ((= n (b:text-length))
+	  (for i::int from 0 below n
+	       (when (isnt (a:char-ref i) eq?
+			   (b:char-ref i))
+		 (return #false)))
+	  (return #true))
+	 (else
+	  (return #false))))))
+
+  (define (textual-prefix? prefix-candidate ::Textual
+			   subject ::Textual)
+    ::(maybe int)
+    (escape-with return
+      (let ((n ::int (prefix-candidate:text-length))
+	    (m ::int (subject:text-length)))
+	(cond
+	 ((is n <= m) ;>
+	  (for i::int from 0 below n
+	       (when (isnt (prefix-candidate:char-ref i) eq?
+			   (subject:char-ref i))
+		 (return #!null)))
+	  (return n))
+	 (else
+	  (return #!null))))))
+
+  (define (textual-suffix? suffix-candidate ::Textual
+			   subject ::Textual)
+    ::(maybe int)
+    (escape-with return
+      (let* ((n ::int (suffix-candidate:text-length))
+	     (m ::int (subject:text-length))
+	     (d ::int (- m n)))
+	(cond
+	 ((is n <= m) ;>
+	  (for i::int from 0 below n
+	       (when (isnt (suffix-candidate:char-ref i) eq?
+			   (subject:char-ref (+ i d)))
+		 (return #!null)))
+	  (return d))
+	 (else
+	  (return #!null))))))
+
+#+END_SRC
 
 * 11.10.2024
 
