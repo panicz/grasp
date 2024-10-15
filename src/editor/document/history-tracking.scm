@@ -543,9 +543,6 @@
 (define-attribute+ (history document::pair)::History
   (History document))
 
-(define-attribute (last-save-point document)::list
-  '())
-
 (define/kw (last-operation document::pair := (the-document))::Edit
   (or (and-let* ((history ::History (history document))
 		 (`(,front . ,_) history:fronts)

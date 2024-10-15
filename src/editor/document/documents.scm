@@ -16,6 +16,7 @@
 (import (utils conversions))
 (import (editor document parse))
 (import (utils print))
+(import (editor document history-tracking))
 
 (define  open-documents ::(list-of Document)
   '())
@@ -44,8 +45,23 @@
 		  (cons document open-documents))         
 	    document)))))
 
-(define (save-document! document::Document file::java.io.File)
+(define-attribute (last-save-point document)::list
+  '())
+
+(define (save-document! document::Document file::java.io.File)::void
+  (and-let* ((source ::java.io.File document:source)
+	     ((string=? (source:getCanonicalPath)
+			(file:getCanonicalPath)))
+	     (document-history ::History (history document))
+	     (`(,front . ,_) document-history:fronts))
+    (set! (last-save-point document) front))
   (call-with-output-file (file:getAbsolutePath)
     (lambda (port)
       (parameterize ((current-output-port port))
 	(show-document document)))))
+
+(define (document-saved? document::Document)::boolean
+  (let ((document-history ::History (history document)))
+    (or (null? document-history:fronts)
+	(and-let* ((`(,front . ,_) document-history:fronts))
+	  (eq? front (last-saved-point document))))))

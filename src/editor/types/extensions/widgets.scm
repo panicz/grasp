@@ -431,36 +431,29 @@
 		   ((integer? index))
 		   ((is (first-index) < index <= (last-index))))
 	  (delete (previous-index index) index)
-	  (set! (the-cursor) (recons (previous-index index) stem))
-	  #t))
+	  (set! (the-cursor) (recons (previous-index index) stem))))
 
        ((eq? key-name 'left)
         (and-let* ((`(,index . ,stem) (the-cursor)))
-          (set! (the-cursor) (recons (previous-index index) stem))
-          #t))
+          (set! (the-cursor) (recons (previous-index index) stem))))
 
        ((eq? key-name 'right)
         (and-let* ((`(,index . ,stem) (the-cursor)))
-          (set! (the-cursor) (recons (next-index index) stem))
-          #t))
+          (set! (the-cursor) (recons (next-index index) stem))))
 
        ((eq? key-name 'delete)
 	(and-let* ((`(,index . ,_) (the-cursor))
 		   ((integer? index))
 		   ((is (first-index) <= index < (last-index))))
-	  (delete index (next-index index))
-	  #t))
-
-       ((eq? key-name 'enter)
-	#f)
+	  (delete index (next-index index))))
 
        ((isnt input eq? #\null)
 	(and-let* ((`(,index . ,stem) (the-cursor))
 		   ((integer? index))
 		   ((is (first-index) <= index <= (last-index))))
 	  (insert index (input:intValue) #t)
-          (set! (the-cursor) (recons (next-index index) stem))
-	  #t)))))
+          (set! (the-cursor) (recons (next-index index) stem)))))
+      #t))
 
   (define (value)::Object
     (cons (Atom "text-input")

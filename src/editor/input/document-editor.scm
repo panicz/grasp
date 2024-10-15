@@ -319,27 +319,17 @@
     (popup-scroll (ColumnGrid choices))))
 
 (define (open-search-window)
-  (WARN "search not implemented")
-  ;; no to tak: tutaj musimy zlokalizowac biezacy edytor
-  ;; dokumentu, i dodac
-  (cond
-   ((screen:contains-overlay?
-     (lambda (x)
-       (and-let* (((PopUp name: "search") x)))))
-    => (lambda (search::PopUp)
-	 (WARN "find next")))
-   (else
-    (screen:add-overlay!
-     (PopUp
-      name: "search"
-      content:
-      (beside
-       (text-field (* (painter:space-width) 20) "")
-       (below
-	(Button label: "⤴"
-		action: (lambda _ (WARN "previous")))
-	(Button label: "⤵"
-		action: (lambda _ (WARN "next"))))))))))
+  (screen:add-overlay!
+   (PopUp
+    name: "search"
+    content:
+    (beside
+     (text-field (* (painter:space-width) 20) "")
+     (below
+      (Button label: "⬑"
+	      action: (lambda _ (WARN "previous")))
+      (Button label: "⬎"
+	      action: (lambda _ (WARN "next"))))))))
 
 (define-object (CursorMarker)::WithCursor
   (define marked ::Position
@@ -811,7 +801,37 @@
 		      ,(Link content: (Caption "Save as...")
 			     on-tap: ((save-file) finger (this)))
 		      ,(Link content: (Caption "Close")
-			     on-tap: (lambda _ (WARN "Close") #t))
+			     on-tap:
+			     (lambda _
+			       (if (document-saved? document)
+				   (close-document! document)
+				   ;; tutaj powinnismy wyswietlic
+				   (screen:add-overlay!
+				    (PopUp
+				     content:
+				     (below
+				      (Caption
+				       (string-append
+					"Do you want to save "
+					(as-string document:source)
+					"?"))
+				      (beside
+				       (Button
+					label: "yes"
+					action:
+					(lambda _
+					  (and-let* ((f::java.io.File
+						      document:source))
+					    (save-document!
+					     document f))
+					  (close-document! document)))
+				       (Button
+					label: "no"
+					action:
+					(lambda _
+					  (close-document!
+					   document))))))))
+			       #t))
 		      )))
 		  (window ::PopUp (PopUp content: content)))
 	     (window:center-around! x y)
