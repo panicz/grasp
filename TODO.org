@@ -1,8 +1,85 @@
-* 13-14.10.2024
+* 15.10.2024
 
 #+BEGIN_SRC scheme
 
-  ;; dopasowywanie spacji:
+  (define (textual-infix? infix-candidate ::Textual
+			  subject ::Textual)
+    ::(maybe `(,int . ,int))
+    (escape-with return
+      (let* ((n ::int (infix-candidate:text-length))
+	     (m ::int (subject:text-length))
+	     (d ::int (- m n)))
+	(when (is n <= m) ;>
+	  (for k from 0 below d
+	       (escape-with continue
+		 (for i from 0 below n
+		      (when (isnt (infix-candidate:char-ref i)
+				  eq? (subject:char-ref (+ i k)))
+			(continue)))
+		 (return `(,k . ,(+ k n))))))
+	(return #!null))))
+
+#+END_SRC
+
+No to mamy sobie te nasze funkcje do dopasowywania
+stringow: prefix-end, suffix-start, infix-start.
+
+Jezeli chcemy znalezc dopasowanie, to:
+- jezeli probujemy dopasowac pojedynczy element, to
+  wolamy ~infix-start~
+- jezeli probujemy dopasowac pierwszy element, to
+  wolamy =suffix-start=
+- jezeli probujemy dopasowac ostatni element, to
+  wolamy =prefix-end=
+- jezeli probujemy dopasowac srodkowe elementy,
+  to wolamy ~textual=?~
+  
+No ale ogolnie, to zamysl jest taki, ze wczytujemy
+pattern za pomoca funkcji =parse-string=
+
+No dobra, to to juz mamy. I teraz co dalej?
+
+Teraz musimy sprawdzic, czy nasz pattern pasuje
+do naszego templejtu.
+
+#+BEGIN_SRC scheme
+
+  (define/kw (next-highlight pattern ::list
+			     in: document ::Indexable
+			     := (the-document)
+			     after: cursor ::Cursor := (the-cursor)
+			     context: context ::Cursor := '())
+    ::(maybe Highlight)
+    ... (match-highlight pattern at: (recons index context)
+			 in: document) ...)
+
+
+  (define/kw (match-highlight pattern ::Indexable
+			      at: cursor ::Cursor
+			      in: document ::Indexable)
+    ::(maybe Highlight)
+    (let ((pattern-index ::int 0)
+	  (item-index (car cursor))
+	  (context (cdr cursor)))
+      ;; no dobra, to tutaj bedziemy sobie mieli kolejne
+      ;; nowinki:  po pierwsze, musimy sprawdzic, czy
+      ;; (document:part-at item-index) to spacja.
+      ;; Ogolnie musimy rozwazyc takie przypadki:
+      ;; 1. mamy w patternie tylko spacje
+      ;;    - w takim przypadku wymagamy, zeby
+      ;;     spacja sie znam zgadzala i jezeli spacja
+      ;;     jest pusta, to zwracamy
+      ;;     (Highlight start: (recons (subject:first-index) cusor)
+      ;;                end: (recons (subject:last-index) cursor))
+
+
+      ))
+
+#+END_SRC
+
+* 13-14.10.2024
+
+#+BEGIN_SRC scheme
   ;; 1. szukamy piereszego i ostatniego fragmentu wzorca,
   ;;    ktory nie jest liczba
   ;; 2. jezeli takiego nie ma, to zwracamy
@@ -152,9 +229,8 @@ zmatchowac cala liste
 	(while (isnt index eqv? limit)
 	  (and-let* ((result ::Highlight (match-highlight
 					  pattern
-					  at: index
-					  in: document
-					  within: context)))
+					  at: (recons index context)
+					  in: document)))
 	    (return result))
 	  (when (gnu.lists.LList? item)
 	    (let ((result (next-match pattern
