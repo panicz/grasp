@@ -11,6 +11,7 @@
 (import (language match))
 (import (language infix))
 (import (language assert))
+(import (language while))
 (import (language for))
 (import (language examples))
 (import (language define-cache))
@@ -140,6 +141,69 @@
 
 (define (text-length item::Textual)::int
   (item:text-length))
+
+(define (textual=? a ::Textual b ::Textual)::boolean
+  (escape-with return
+    (let ((n ::int (a:text-length)))
+      (cond
+       ((= n (b:text-length))
+	(for i::int from 0 below n
+	     (when (isnt (a:char-ref i) eq?
+			 (b:char-ref i))
+	       (return #false)))
+	(return #true))
+       (else
+	(return #false))))))
+
+(define (prefix-end prefix-candidate ::Textual
+		    subject ::Textual)
+  ::(maybe int)
+  (escape-with return
+    (let ((n ::int (prefix-candidate:text-length))
+	  (m ::int (subject:text-length)))
+      (cond
+       ((is n <= m) ;>
+	(for i::int from 0 below n
+	     (when (isnt (prefix-candidate:char-ref i) eq?
+			 (subject:char-ref i))
+	       (return #!null)))
+	(return n))
+       (else
+	(return #!null))))))
+
+(define (suffix-start suffix-candidate ::Textual
+		      subject ::Textual)
+  ::(maybe int)
+  (escape-with return
+    (let* ((n ::int (suffix-candidate:text-length))
+	   (m ::int (subject:text-length))
+	   (d ::int (- m n)))
+      (cond
+       ((is n <= m) ;>
+	(for i::int from 0 below n
+	     (when (isnt (suffix-candidate:char-ref i) eq?
+			 (subject:char-ref (+ i d)))
+	       (return #!null)))
+	(return d))
+       (else
+	(return #!null))))))
+
+(define (infix-start infix-candidate ::Textual
+		     subject ::Textual)
+  ::(maybe int)
+  (escape-with return
+    (let* ((n ::int (infix-candidate:text-length))
+	   (m ::int (subject:text-length))
+	   (d ::int (- m n)))
+      (when (is n <= m) ;>
+	(for k::int from 0 below d
+	     (escape-with continue
+	       (for i::int from 0 below n
+		    (when (isnt (infix-candidate:char-ref i)
+				eq? (subject:char-ref (+ i k)))
+		      (continue)))
+	       (return k))))
+      (return #!null))))
 
 (define-object (Simple)::Indexable
   (define (typename)::String "Simple")
