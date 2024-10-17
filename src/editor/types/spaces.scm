@@ -641,6 +641,9 @@
     (_
      (Space '(0)))))
 
+(define (whitespace? space::Space)::boolean
+  (every integer? space:fragments))
+
 (define-object (HeadTailSeparator)::Indexable
   (define (part-at index::Index)::Indexable* (this))
   (define (first-index)::Index #\|)
