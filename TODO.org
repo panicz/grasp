@@ -1,3 +1,57 @@
+* 16.10.2024
+
+#+BEGIN_SRC scheme
+
+  (define/kw (match-highlight pattern ::Indexable
+			      at: cursor ::Cursor
+			      in: document ::Indexable)
+    ::(maybe Highlight)
+    (let* ((pattern-index ::int 0)
+	   (n ::int (length pattern))
+	   (item-index (car cursor))
+	   (context (cdr cursor)))
+      (match n
+	(0 (highlight-space
+	    (pattern:part-at 0)
+	    (document:part-at item-index)
+	    cursor))
+	(1 )
+	(2 ...)
+	(n ...))))
+
+  (define (highlight-space pattern ::Space
+			   subject ::Space
+			   context ::Cursor)
+    ::(maybe Highlight)
+    (let ((n (count (isnt _ integer?) pattern:fragments)))
+      (if (= n 0)
+	 (Highlight start: (recons (subject:first-index)
+				   context)
+		    end: (recons (subject:last-index)
+				 context)
+		    type: HighlightType:OtherFinding)
+	 (let ((m (count (isnt _ integer?) subject:fragments)))
+	   (if (isnt m = n)
+	       #!null
+	       (match n
+		 (1
+		  ...)
+		 (2
+		  ...)
+		 (n
+
+		  ...)))))))
+
+
+  (define (whitespace? space::Space)::boolean
+    (every integer? space:fragments))
+
+#+END_SRC
+
+No dobra, to kilka uwag mamy:
+1. 
+
+
 * 15.10.2024
 
 #+BEGIN_SRC scheme
@@ -241,7 +295,9 @@ zmatchowac cala liste
 						context))))
 	      (when result
 		(return result)))))
-	(set! index (document:next-index index)))
+	;; we skip by two indices to make sure that
+	(set! index (document:next-index
+		     (document:next-index index))))
       (return #!null)))
 
   (define/kw (match-highlight pattern ::list
