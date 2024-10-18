@@ -32,6 +32,17 @@
      0)
     ))
 
+(define (space-fragment-comment+index fragments::list)
+  ::(maybe (Values list int))
+  (let loop ((input ::list fragments)
+	     (index ::int 0))
+    (match input
+      ('() #!null)
+      (`(,first::integer . ,rest)
+       (loop rest (+ index first 1)))
+      (`(,first . ,rest)
+       (values input index)))))
+
 (define (space-fragment-index fragments::list index::int)
   (cond
    ((zero? index)
@@ -52,12 +63,13 @@
 				 (fragment-size
 				  (car fragments))
 				 1))))))
-
-;; in the following examples the symbol 'comment' stands for
-;; comments, because the functions defined in this module
-;; treat everything that is not a number as a comment - but
-;; in practice, a comment must implement the Comment interface
-;; from the (editor interfaces elements) module
+#|
+in the following examples the symbol 'comment' stands for
+comments, because the functions defined in this module
+treat everything that is not a number as a comment - but
+in practice, a comment must implement the Comment interface
+from the (editor interfaces elements) module
+|#
 
 (e.g.
  (space-fragment-index '(comment 0 0) 0)
@@ -131,6 +143,14 @@
  (space-fragment-index '(3 5) 10)
  ===> () 0)
 
+(e.g.
+ (space-fragment-index '(3 comment 5) 4)
+ ===> (comment 5) 0)
+
+(e.g.
+ (space-fragment-comment+index '(3 comment 5))
+ ===> (comment 5) 4)
+ 
 (define (delete-space-fragment! fragments::pair
 				position::int)
   ::pair
