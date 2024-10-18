@@ -1,4 +1,4 @@
-* 16.10.2024
+* 16-17.10.2024
 
 #+BEGIN_SRC scheme
 
@@ -23,33 +23,58 @@
 			   subject ::Space
 			   context ::Cursor)
     ::(maybe Highlight)
-    (let ((n (count (isnt _ integer?) pattern:fragments)))
-      (if (= n 0)
-	 (Highlight start: (recons (subject:first-index)
-				   context)
-		    end: (recons (subject:last-index)
-				 context)
-		    type: HighlightType:OtherFinding)
-	 (let ((m (count (isnt _ integer?) subject:fragments)))
-	   (if (isnt m = n)
-	       #!null
-	       (match n
-		 (1
-		  ...)
-		 (2
-		  ...)
-		 (n
+    (otherwise #!null    
+      (let ((n (count (isnt _ integer?) pattern:fragments)))
+	(or (and (= n 0)
+		 (Highlight start: (recons
+				    (subject:first-index)
+				    context)
+			    end: (recons
+				  (subject:last-index)
+				  context)
+			    type: HighlightType:OtherFinding))
+	    (let ((m (count (isnt _ integer?)
+			    subject:fragments)))
+	      (and (= m n)
+		   (match n
+		     (1
+		      (and-let*
+			  ((`(,pattern-comment . ,_)
+			    pattern-index
+			    (space-fragment-comment+index
+			     pattern:fragments))
+			   (`(,subject-comment . ,_)
+			    subject-index 
+			    (space-fragment-comment+index
+			     subject:fragments)))
+			(highlight-comment-infix
+			 pattern-comment
+			 subject-comment
+			 (recons subject-index context))))
+		     (n
+		      ;; tutaj najpierw maczujemy pierwszy
+		      ;; element jakp suffix, a nastepnie
+		      ;; n-2 elementy dokladnie, a wreszcie
+		      ;; ostatni element jako prefix
+		      (match-comment-suffix ...)
+		      ))))))))
 
-		  ...)))))))
-
-
-  (define (whitespace? space::Space)::boolean
-    (every integer? space:fragments))
+    (define (whitespace? space::Space)::boolean
+      (every integer? space:fragments))
 
 #+END_SRC
 
-No dobra, to kilka uwag mamy:
-1. 
+Rzecz wyglada nieco trudnawo, poniewaz spacje moga miec
+w sobie ExpressionComment, ale generalnie zasada jest taka,
+ze zeby doszlo do dopasowania, to:
+- jezeli pattern jest "whitespace?", to zawsze dopasowujemy
+  (ale to szczegolny przypadek, w ktorym pattern w ogole
+  pomijamy pietro wyzej)
+- jezeli pattern ma jeden element, to musimy go dopasowac
+  infixem
+- jezeli pattern (po odsianiu liczb) ma co najmniej dwa
+  elementy, to pierwszy musimy dopasowac suffixem, ostatni
+  prefixem, a wszystko pomiedzy - tozsamosciowo/dokladnie
 
 
 * 15.10.2024
