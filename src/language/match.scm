@@ -385,6 +385,14 @@
                   (and-let* rest
 		    . body)))))
 
+      ((_ ((name :: type) . rest) . body)
+       (identifier? #'name)
+       #'(and (instance? name type)
+	      value
+	      (let ((name ::type name))
+                (and-let* rest
+		  . body))))
+
       ((_ ((value binding) . rest) . body)
        #'(match binding
            (value
