@@ -1,4 +1,4 @@
-* 16-17.10.2024
+* 16-18.10.2024
 
 #+BEGIN_SRC scheme
 
@@ -23,44 +23,137 @@
 			   subject ::Space
 			   context ::Cursor)
     ::(maybe Highlight)
-    (otherwise #!null    
+    (otherwise #!null
       (let ((n (count (isnt _ integer?) pattern:fragments)))
-	(or (and (= n 0)
-		 (Highlight start: (recons
-				    (subject:first-index)
-				    context)
-			    end: (recons
-				  (subject:last-index)
-				  context)
-			    type: HighlightType:OtherFinding))
-	    (let ((m (count (isnt _ integer?)
-			    subject:fragments)))
-	      (and (= m n)
-		   (match n
-		     (1
+	(and-let* ((,n (count (isnt _ integer?)
+			      subject:fragments))
+		   (`(,pattern-comment . ,pattern-fragments)
+		    pattern-index
+		    (space-fragment-comment+index
+		     pattern:fragments))
+		   (`(,subject-comment . ,subject-fragments)
+		    subject-index 
+		    (space-fragment-comment+index
+		     subject:fragments)))
+	  (or
+	   (and
+	    (= n 0)
+	    (Highlight start: (recons
+			       (subject:first-index)
+			       context)
+		       end: (recons
+			     (subject:last-index)
+			     context)))
+	   (match n
+	     (1
+	      (highlight-comment-infix
+	       pattern-comment
+	       subject-comment
+	       (recons subject-index context)))
+	     (n
+	      (and-let* ((start ::Cursor
+				(comment-suffix-start
+				 pattern-comment
+				 subject-comment
+				 (recons subject-index
+					 context))))
+		(let loop ((subpattern 1)
+			   (index subject-index)
+			   (pattern-fragments
+			    pattern-fragments)
+			   (subject-fragments
+			    subject-fragments))
+		  (if (is subpattern >= (- n 1)) ;>
 		      (and-let*
-			  ((`(,pattern-comment . ,_)
+			  ((`(,pattern-comment
+			      . ,pattern-fragments)
 			    pattern-index
 			    (space-fragment-comment+index
-			     pattern:fragments))
-			   (`(,subject-comment . ,_)
+			     pattern-fragments))
+			   (`(,subject-comment
+			      . ,subject-fragments)
 			    subject-index 
 			    (space-fragment-comment+index
-			     subject:fragments)))
-			(highlight-comment-infix
-			 pattern-comment
-			 subject-comment
-			 (recons subject-index context))))
-		     (n
-		      ;; tutaj najpierw maczujemy pierwszy
-		      ;; element jakp suffix, a nastepnie
-		      ;; n-2 elementy dokladnie, a wreszcie
-		      ;; ostatni element jako prefix
-		      (match-comment-suffix ...)
-		      ))))))))
+			     subject-fragments))
+			   (end ::Cursor
+				(comment-suffix-start
+				 pattern-comment
+				 subject-comment
+				 (recons (+ index
+					    subject-index)
+					 context))))
+			(Highlight start: start
+				   end: end))
+		      (and-let*
+			  ((`(,pattern-comment
+			      . ,pattern-fragments)
+			    pattern-index
+			    (space-fragment-comment+index
+			     pattern-fragments))
+			   (`(,subject-comment
+			      . ,subject-fragments)
+			    subject-index 
+			    (space-fragment-comment+index
+			     subject-fragments))
+			   ((comment-matches?
+			     pattern-comment
+			     subject-comment)))
+			(loop (+ subpattern 1)
+			      (+ index
+				 subject-index*)
+			      pattern-fragments
+			      subject-fragments))))))))))))
 
-    (define (whitespace? space::Space)::boolean
-      (every integer? space:fragments))
+  (define (highlight-comment-infix pattern ::Comment
+				   subject ::Comment
+				   context ::Cursor)
+    ::(maybe Highlight)
+    (otherwise #!null
+      (and-let* ((pattern ::TextualComment)
+		 (subject ::TextualComment)
+		 (start ::int (infix-start pattern
+					   subject))
+		 (end ::int (+ start (pattern:text-length))))
+	(Highlight start: (recons start context)
+		   end: (recons end context)))
+      (and-let* ((pattern ::ExpressionComment)
+		 (subject ::ExpressionComment)
+		 (index ::Index (pattern:first-index)))
+	(highlight-infix pattern:expression
+			 subject:expression
+			 (recons (pattern:first-index)
+				 context)))))
+
+  (define (highlight-infix pattern ::Tile
+			   subject ::Tile
+			   context ::Cursor)
+    ::(maybe Highlight)
+    (otherwise #!null
+      (match-highlight pattern at: context in: subject)
+      (and-let* ((pattern ::Textual)
+		 (subject ::Textual)
+		 (start ::int (infix-start pattern
+					   subject))
+		 (end ::int (+ start (pattern:text-length))))
+	(Highlight start: (recons start context)
+		   end: (recons end context)))))
+
+  (define (comment-matches? pattern ::Comment
+			    subject ::Comment)
+    ::boolean
+    ...)
+
+  (define (comment-suffix-start pattern ::Comment
+				subject ::Comment
+				context ::Cursor)
+    ::(maybe Cursor)
+    ...)
+
+  (define (comment-prefix-end pattern ::Comment
+			      subject ::Comment
+			      context ::Cursor)
+    ::(maybe Cursor)
+    ...)
 
 #+END_SRC
 
