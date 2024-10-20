@@ -1,4 +1,4 @@
-* 16-18.10.2024
+* 16-19.10.2024
 
 #+BEGIN_SRC scheme
 
@@ -141,21 +141,75 @@
   (define (comment-matches? pattern ::Comment
 			    subject ::Comment)
     ::boolean
-    ...)
+    (or
+     (and-let* ((pattern ::TextualComment)
+		(subject ::TextualComment))
+       (textual=? pattern subject))
+     (and-let* ((pattern ::ExpressionComment)
+		(subject ::ExpressionComment))
+       (matches? pattern:expression subject:expression))))
 
   (define (comment-suffix-start pattern ::Comment
 				subject ::Comment
 				context ::Cursor)
     ::(maybe Cursor)
-    ...)
+    (otherwise #!null
+      (and-let* ((pattern ::TextualComment)
+		 (subject ::TextualComment)
+		 (start ::int (suffix-start pattern subject)))
+	(recons start context))
+
+      (and-let* ((pattern ::ExpressionComment)
+		 (subject ::ExpressionComment))
+	(match-suffix-start pattern:expression
+			    subject:expression
+			    (recons (subject:first-index)
+				    context)))))
 
   (define (comment-prefix-end pattern ::Comment
 			      subject ::Comment
 			      context ::Cursor)
     ::(maybe Cursor)
-    ...)
+    (otherwise #!null
+      (and-let* ((pattern ::TextualComment)
+		 (subject ::TextualComment)
+		 (end ::int (prefix-end pattern subject)))
+	(recons end context))
+      (and-let* ((pattern ::ExpressionComment)
+		 (subject ::ExpressionComment))
+	(match-prefix-end pattern:expression
+			  subject:expression
+			  (recons (subject:first-index)
+				  context)))))
+
+  (define (match-prefix-end pattern ::Tile
+			    subject ::Tile
+			    context ::Cursor)
+    ::(maybe Cursor)
+    (otherwise #!null
+      (and (matches? pattern subject)
+	   (recons (subject:last-index) context))
+      (and-let* ((pattern ::Textual)
+		 (subject ::Textual)
+		 (end ::int (prefix-end pattern subject)))
+	(recons end context))))
+
+  (define (match-suffix-start pattern ::Tile
+			      subject ::Tile
+			      context ::Cursor)
+    ::(maybe Cursor)
+    (otherwise #!null
+      (and (matches? pattern subject)
+	   (recons (subject:first-index) context))
+      (and-let* ((pattern ::Textual)
+		 (subject ::Textual)
+		 (start ::int (suffix-start pattern subject)))
+	(recons start context))))
+
 
 #+END_SRC
+
+** Dopasowywanie spacji/komentarzy
 
 Rzecz wyglada nieco trudnawo, poniewaz spacje moga miec
 w sobie ExpressionComment, ale generalnie zasada jest taka,
@@ -163,11 +217,18 @@ ze zeby doszlo do dopasowania, to:
 - jezeli pattern jest "whitespace?", to zawsze dopasowujemy
   (ale to szczegolny przypadek, w ktorym pattern w ogole
   pomijamy pietro wyzej)
-- jezeli pattern ma jeden element, to musimy go dopasowac
+- jezeli pattern ma jeden element, to musimy go dopasowac/
   infixem
 - jezeli pattern (po odsianiu liczb) ma co najmniej dwa
   elementy, to pierwszy musimy dopasowac suffixem, ostatni
   prefixem, a wszystko pomiedzy - tozsamosciowo/dokladnie
+
+*** Dopasowywanie ExpressionComments na poczatku i na koncu
+
+Wydaje sie, ze jezeli idzie o komentarze wyrazeniowe,
+to chcemy je dopasowywac tak samo, jak wyrazenia
+(czyli bez prefixow, suffixow i infixow)
+
 
 
 * 15.10.2024
