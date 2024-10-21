@@ -1,3 +1,44 @@
+* 20.10.2024
+
+Jezeli idzie o dopasowywanue patternow, to ono powinno
+dzialac na takiej zasadzie, jakby wczytane symbole byly
+implicite zaquasiquote'owane
+
+#+BEGIN_SRC scheme
+  (define (matches pattern
+		   subject
+		   #!optional
+		   (bindings::(!maps (Object)
+				     to: Object)
+			      (mapping (Object) #!null)))
+    ::(maybe (maps (Object) to: Object))
+    (match pattern
+      (`(,,@(is _ match/equal? 'unquote) identifier)
+       (cond
+	((and (isnt identifier Atom?)
+	      (isnt identifier symbol?))
+	 (and (match/equal? identifier subject)
+	      bindings))
+	((is identifier match/equal? '_)
+	 bindings)
+	((is bindings overridden-at? identifier)
+	 (and (match/equal? (bindings identifier) subject)
+	      bindings))
+	(else
+	 (set! (bindings identifier) subject)
+	 bindings)))
+
+      (`(,head-pattern . ,tail-pattern)
+       (and-let* ((`(,head-subject . ,tail-subject) subject)
+		  (bindings* (matches head-pattern
+				      head-subject
+				      bindings)))
+	 (matches tail-pattern tail-subject bindings*)))))
+
+
+
+#+END_SRC
+
 * 16-19.10.2024
 
 #+BEGIN_SRC scheme
