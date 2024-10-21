@@ -57,3 +57,5 @@
    (`(,pattern ,subject)
     (suffix-start pattern subject)))
  ===> #!null)
+
+(e.g. (length (empty)) ===> 0)
