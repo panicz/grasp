@@ -15,6 +15,9 @@
   (language assert)
   (utils print)
   (editor document cursor)
+  (utils hash-table)
+  (language mapping)
+  (editor utils search)
   )
 
 (e.g.
@@ -59,3 +62,11 @@
  ===> #!null)
 
 (e.g. (length (empty)) ===> 0)
+
+
+(let* ((pattern (parse-string "(a b ,c)"))
+       (subject (parse-string "(a b d)"))
+       (bindings (matches pattern subject))
+       (bound-keys (keys bindings)))
+  (print bound-keys (map bindings bound-keys)))
+
