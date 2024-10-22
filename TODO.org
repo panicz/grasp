@@ -1,6 +1,6 @@
-* 20.10.2024
+* 20-21.10.2024
 
-Jezeli idzie o dopasowywanue patternow, to ono powinno
+Jezeli idzie o dopasowywanie patternow, to ono powinno
 dzialac na takiej zasadzie, jakby wczytane symbole byly
 implicite zaquasiquote'owane
 
@@ -8,36 +8,43 @@ implicite zaquasiquote'owane
   (define (matches pattern
 		   subject
 		   #!optional
-		   (bindings::(!maps (Object)
+		   (bindings::(!maps (symbol-name ::String)
 				     to: Object)
 			      (mapping (Object) #!null)))
     ::(maybe (maps (Object) to: Object))
-    (match pattern
-      (`(,,@(is _ match/equal? 'unquote) identifier)
-       (cond
-	((and (isnt identifier Atom?)
-	      (isnt identifier symbol?))
+    (otherwise #!null
+      (match pattern
+	(`(,,@(is _ match/equal? 'unquote) identifier)
+	 (cond
+	  ((and (isnt identifier Atom?)
+		(isnt identifier symbol?))
+	   (and (match/equal? identifier subject)
+		bindings))
+	  ((is identifier match/equal? '_)
+	   bindings)
+	  ((is bindings overridden-at? (identifier:toString))
+	   (and (match/equal? (bindings (identifier:toString))
+			      subject)
+		bindings))
+	  (else
+	   (set! (bindings (identifier:toString)) subject)
+	   bindings)))
+
+	(`(,head-pattern . ,tail-pattern)
+	 (and-let* ((`(,head-subject . ,tail-subject) subject)
+		    (bindings* (matches head-pattern
+					head-subject
+					bindings)))
+	   (matches tail-pattern tail-subject bindings*)))
+	(_
 	 (and (match/equal? identifier subject)
-	      bindings))
-	((is identifier match/equal? '_)
-	 bindings)
-	((is bindings overridden-at? identifier)
-	 (and (match/equal? (bindings identifier) subject)
-	      bindings))
-	(else
-	 (set! (bindings identifier) subject)
-	 bindings)))
-
-      (`(,head-pattern . ,tail-pattern)
-       (and-let* ((`(,head-subject . ,tail-subject) subject)
-		  (bindings* (matches head-pattern
-				      head-subject
-				      bindings)))
-	 (matches tail-pattern tail-subject bindings*)))))
-
-
-
+	      bindings)))))
 #+END_SRC
+
+No dobra, to moze bysmy chcieli przeniesc matcher do kodu
+i napisac dla niego pare testow jednostkowych, a kiedy to
+bedzie gotowe, to bysmy wrocili do naszego sercza.
+
 
 * 16-19.10.2024
 
