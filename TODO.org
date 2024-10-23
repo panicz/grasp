@@ -1,3 +1,27 @@
+* 22.10.2024
+
+No to teraz tak:
+- chcielibysmy, zeby pattern matcher obslugiwal spacje
+- i bysmy tez sprobowali go zintegrowac z dotychczasowymi pracami
+- a nadto bysmy sie postarali, zeby lodczas jedneho wyszukiwania
+  alokowac co najwyzej jedna haszmape (a nawet moglibysmy ja
+  miec pre-alokowana i zawsze ja czyscic przrd wywolaniem)
+
+
+no to sprobujmy moze sobie skonstatowac co mamy zrobione do tej pory:
+- glowna funkcja to match-highlight, w ramach ktorej mamy
+  obsluzony jeden przypadek (czyli sama spacje)
+- w ramach tego przypadku, mamy funkcje 'highlight-space',
+  ktora dzoala tak, ze
+  - jezeli pattern jest pusta spacja, to zwraca poczatek i koniec
+    podmiotu
+  - jezeli pattern ma pojedynczy komentarz, to probuje
+    dopasowac jako comment-highlight-infix
+  - jezeli pattern ma wiecej niz jeden komentarz, to
+    pierwszy komentarz probuje dopasowac jako suffix pierwszego
+    komentarza podmiotu, ostatni jako prefix ostatniego,
+    a wszystko pomiedzy musi spelniac predykat 'comment-matches?'
+
 * 20-21.10.2024
 
 Jezeli idzie o dopasowywanie patternow, to ono powinno
@@ -44,7 +68,6 @@ implicite zaquasiquote'owane
 No dobra, to moze bysmy chcieli przeniesc matcher do kodu
 i napisac dla niego pare testow jednostkowych, a kiedy to
 bedzie gotowe, to bysmy wrocili do naszego sercza.
-
 
 * 16-19.10.2024
 
@@ -111,7 +134,7 @@ bedzie gotowe, to bysmy wrocili do naszego sercza.
 			    pattern-fragments)
 			   (subject-fragments
 			    subject-fragments))
-		  (if (is subpattern >= (- n 1)) ;>
+		  (if (is subpattern #;< >= (- n 1)) 
 		      (and-let*
 			  ((`(,pattern-comment
 			      . ,pattern-fragments)
