@@ -37,7 +37,7 @@
   java.lang.Object)
 
 (define-syntax-rule (maybe type)
-  (either type #f))
+  (either type #!null))
 
 (define-syntax-rule (Values type ...)
   java.lang.Object)

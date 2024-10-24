@@ -39,7 +39,7 @@
     (instance? object Magic))
 
   (define (assign source::Struct)::Struct
-    (this))
+    (as Struct (this)))
 
   (define (tap! finger::byte  x::real y::real)::boolean #f)
   (define (press! finger::byte x::real y::real)::boolean #f)
@@ -106,7 +106,8 @@
   (define (previous-index index::Index)::Index 0)
 
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
-    (and path (recons 0 path)))
+    (otherwise #!null
+      (and path (recons 0 path))))
 
   (define (measure-position #;of cursor::Cursor
 				 #;into target::Position

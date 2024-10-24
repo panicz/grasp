@@ -333,7 +333,7 @@
     expression))
 
 (define/kw (find-next satisfying? ::(maps (Element) to: boolean)
-		      in: document ::Indexable := (the-document)
+		      in: document ::cons := (the-document)
 		      after: cursor ::Cursor := (the-cursor)
 		      context: context ::Cursor := '())
   ::(maybe Cursor)

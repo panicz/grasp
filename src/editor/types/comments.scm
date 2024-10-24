@@ -93,7 +93,7 @@
     (match cursor
       (`(,index::integer . ,_)
        (painter:measure-block-comment-index-position-into!
-	target name index))))
+	target content index))))
   
   (define (extent)::Extent
    (painter:block-comment-extent content))
@@ -202,7 +202,7 @@
     (match cursor
       (`(,index::integer . ,_)
        (painter:measure-line-comment-index-position-into!
-	target name index))))
+	target content index))))
   
   (define (breaks-line?)::boolean #t)
   

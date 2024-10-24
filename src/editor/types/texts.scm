@@ -79,7 +79,7 @@
     (match cursor
       (`(,index::integer . ,_)
        (painter:measure-quoted-text-index-position-into!
-	target name index))
+	target (this) index))
       (_
        target)))
   

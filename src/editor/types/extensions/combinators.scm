@@ -181,11 +181,12 @@
 				 #;into target::Position
 					#;within context::Cursor)
     ::Position
-    (let ((p ::Position (element:measure-position
-			 cursor (Position)
-			 (hash-cons 'element context)))
-	  (w ::real (/ size:width inner:width))
-	  (h ::real (/ size:height inner:height)))
+    (let* ((p ::Position (element:measure-position
+			  cursor (Position)
+			  (hash-cons 'element context)))
+	   (inner ::Extent (extent+ element))
+	   (w ::real (/ size:width inner:width))
+	   (h ::real (/ size:height inner:height)))
       ;; this code has never been tested and is probably wrong
       (set! target:left (+ target:left (* p:left w)))
       (set! target:top (+ target:top (* p:top h)))

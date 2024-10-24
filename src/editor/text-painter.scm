@@ -2,6 +2,7 @@
 
 (import (srfi :11))
 (import (language assert))
+(import (language while))
 (import (language for))
 (import (language fundamental))
 (import (language infix))

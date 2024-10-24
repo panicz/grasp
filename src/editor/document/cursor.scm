@@ -318,7 +318,7 @@
      ((is range > 0) 
       (values
        cursor
-       (iterations ranges
+       (iterations range
 		   cursor-advance
 		   cursor)))
      (else

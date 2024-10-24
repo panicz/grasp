@@ -55,7 +55,7 @@
   ((advance! element::Element)::void
    (cond
     ((Expandable? element)
-     (let ((x ::Expandable element))
+     (let ((x ::Expandable (as Expandable element)))
        (x:expand! (this))))
     ((Tile? element)
      (expand! (extent+ (as Tile element))))

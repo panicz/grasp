@@ -138,7 +138,7 @@
 	      to: from
 	      with-anchor: with-anchor)))
 
-(define (resize! box::pair
+(define (resize! box::cons
 		 width::real
 		 height::real
 		 ending::LineEnding)::void

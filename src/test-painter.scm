@@ -83,7 +83,8 @@
 ;; moc "opowiadac historie"
 
 (define (grasped program-text::string)::String
-  (let ((document (call-with-input-string program-text
+  (let ((document ::Document
+		  (call-with-input-string program-text
 					  parse-document)))
     (with ((painter (TextPainter)))
       (parameterize ((the-document document))

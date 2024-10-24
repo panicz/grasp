@@ -664,17 +664,7 @@
 	   (element:draw! context)))
 
 	((null? object)
-	 (values))
-
-	(else
-	 (with-translation (0 1)
-	   (painter:draw-string!
-	    (with-output-to-string
-	      (lambda () (write object)))
-	    (otherwise #!null
-	      (and (pair? (the-cursor))
-		   (equal? (cdr (the-cursor)) context)
-		   (car (the-cursor)))))))))
+	 (values))))
 
 (define (cursor-under left::real top::real
 		      #!optional
