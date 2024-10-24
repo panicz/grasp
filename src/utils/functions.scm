@@ -4,8 +4,9 @@
 (import (language match))
 (import (language examples))
 (import (language infix))
-(import (language for))
 (import (language while))
+(import (language for))
+
 
 (define (nearby-int x::real)::int
   (as int (round x)))
@@ -283,10 +284,12 @@
 	       a b))
   (if (and (instance? set java.util.Set)
 	   (instance? set java.lang.Cloneable))
-      (let ((clone ::java.util.Set (set:clone)))
-	(for collection ::java.util.Collection in sets
-	  (clone:addAll collection))
-	clone)
+      (with-compile-options
+       warn-unknown-member: #f
+       (let ((clone ::java.util.Set (set:clone)))
+	 (for collection ::java.util.Collection in sets
+	      (clone:addAll collection))
+	 clone))
       (fold-left list-union set sets)))
 
 (e.g.
@@ -298,10 +301,12 @@
     (only (is _ in b) a))
   (if (and (instance? set java.util.Set)
 	   (instance? set java.lang.Cloneable))
-      (let ((clone ::java.util.Set (set:clone)))
-	(for collection ::java.util.Collection in sets
-	     (clone:retainAll collection))
-	clone)
+      (with-compile-options
+       warn-unknown-member: #f
+       (let ((clone ::java.util.Set (set:clone)))
+	 (for collection ::java.util.Collection in sets
+	      (clone:retainAll collection))
+	 clone))
       (fold-left list-intersection set sets)))
 
 (e.g.
@@ -317,10 +322,12 @@
 	       a b))
   (if (and (instance? set java.util.Set)
 	   (instance? set java.lang.Cloneable))
-      (let ((clone ::java.util.Set (set:clone)))
-	(for collection ::java.util.Collection in sets
-	     (clone:removeAll collection))
-	clone)
+      (with-compile-options
+       warn-unknown-member: #f
+       (let ((clone ::java.util.Set (set:clone)))
+	 (for collection ::java.util.Collection in sets
+	      (clone:removeAll collection))
+	 clone))
       (fold-left list-difference set sets)))
 
 (e.g.
@@ -812,18 +819,32 @@
    l) ===> (1 3 5 7))
 
 (define (count-while satisfying?::predicate s::sequence)::int
-  (let ((l ::int (length s)))
-    (let loop ((n ::int 0))
-      (if (or (is n >= l)
-	      (isnt (s n) satisfying?))
-	  n
-	  (loop (+ n 1))))))
+  (escape-with return
+    (let ((n ::int 0))
+      (for x in s
+	(if (satisfying? x)
+	    (set! n (+ n 1))
+	    (return n)))
+      n)))
 
 (e.g.
  (count-while even? '(2 4 6 7 8)) ===> 3)
 
 (e.g.
  (count-while char-upper-case? "ABcDEf") ===> 2)
+
+(define (count satisfying?::predicate elements::sequence)::int
+  (let ((n ::int 0))
+      (for x in elements
+	(when (satisfying? x)
+	  (set! n (+ n 1))))
+      n))
+
+(e.g.
+ (count even? '(1 2 3 4 5)) ===> 2)
+
+(e.g.
+ (count odd? '(1 2 3 4 5)) ===> 3)
 
 (define (byte-ref value::integer index::ubyte)::ubyte
   (as ubyte

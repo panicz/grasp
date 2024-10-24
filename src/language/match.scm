@@ -388,8 +388,8 @@
       ((_ ((name :: type) . rest) . body)
        (identifier? #'name)
        #'(and (instance? name type)
-	      value
-	      (let ((name ::type name))
+	      name
+	      (let ((name ::type (as type name)))
                 (and-let* rest
 		  . body))))
 

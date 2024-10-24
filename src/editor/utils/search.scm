@@ -153,7 +153,7 @@
 				     subject-comment
 				     bindings)))
 			  (loop (+ subpattern 1)
-				(+ index subject-index*)
+				(+ index subject-index)
 				pattern-fragments
 				subject-fragments)))))))))))
 
@@ -162,7 +162,7 @@
 				 context ::Cursor
 				 bindings ::Bindings)
   ::(maybe Highlight)
-  (otherwise #!null
+  (otherwise #!null 
     (and-let* ((pattern ::TextualComment)
 	       (subject ::TextualComment)
 	       (start ::int (infix-start pattern
