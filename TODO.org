@@ -1,3 +1,40 @@
+* 24.10.2024
+
+dzisiaj bysmy sie zajeli dalszymi pracami nad wyszukiwaniem.
+
+A tak konkretnie to co?
+
+1. chcemy, zeby "matches" sprawdzalo rowniez spacje pomiedzy
+   elementami.
+   Tak naprawde najlepiej zeby powstaly dwie funkcje,
+   "matches" i "matches-pair". Ta pierwsza sprawdzalaby
+   najpierw dopasowanie pre-head-space, a ta ostatnia
+   sprawdzalaby post-head-space, dotted? oraz wszystko
+   wokol (wzorem funkcyj show/show-pair z (editor types primitive))
+
+2. jak to bedziemy mieli, bedziemy chcieli jeszcze dokonczyc
+   "match-highlight", tak zeby obslugiwalo nie tylko puste spacje
+
+3. no i kiedy to bedzie gotowe, to napiszemy testy dla
+   "match-highlight"
+
+4. i jak stwierdzimy, ze wszystko jest OK, to bedziemy integowac
+   funkcje to wyszukiwania z edytorem (w szczegolnosci podswietlanie
+   i animowanie widoku)
+
+Zasadniczo punkt 1 wydaje sie zrealizowany, tyle ze brakuje
+implementacji funjcji "match-spaces" (ktora powinna byc podobna
+do highlight-space)
+
+
+* 23.10.2024
+
+Najpierw skupmy sie na tym, zeby dostarczyc wszystkich funkcji,
+ktore sa uzywane przez modul "search". Kiedy to bedzie gotowe,
+wrocimy do implementowania funkcji do wyszukiwania/pattern-matchowania
+
+(moze zreszta powinnismy wyszukiwac za pomoca Traverse?)
+
 * 22.10.2024
 
 No to teraz tak:
