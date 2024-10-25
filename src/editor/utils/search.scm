@@ -22,30 +22,73 @@
 
 (define-alias Bindings (!maps (String) to: (maybe Tile)))
 
-(define (match-highlight pattern ::Tile
-			 document ::Tile
-			 cursor ::Cursor
-			 bindings ::Bindings)
-  
-  ::(maybe Highlight)
-  (let* ((pattern-index ::int 0)
-	 (n ::int (length pattern))
-	 (item-index (car cursor))
-	 (context (cdr cursor)))
-    (match n
-      (0 (highlight-space
-	  (pattern:part-at 0)
-	  (document:part-at item-index)
-	  cursor
-	  bindings))
-      (1 ...)
-      (2 ...)
-      (n ...))))
+(define (match-spaces pattern ::Space
+		      subject ::Space
+		      bindings ::Bindings)
+  ::(maybe Bindings)
+  (let ((n (count (isnt _ number?) pattern:fragments)))
+    (if (is n <= 0)
+	bindings
+	(let loop ((subpattern 1)
+		   (bindings bindings)
+		   (pattern-fragments pattern:fragments)
+		   (subject-fragments subject:fragments))
+	  (and-let* ((`(,pattern-comment
+			. ,pattern-fragments)
+		      pattern-index
+		      (space-fragment-comment+index
+		       pattern-fragments))
+		     (`(,subject-comment
+			. ,subject-fragments)
+		      subject-index 
+		      (space-fragment-comment+index
+		       subject-fragments))
+		     (bindings (comment-matches
+				pattern-comment
+				subject-comment
+				bindings)))
+	    (if (is subpattern >= n)
+		bindings
+		(loop (+ subpattern 1)
+		      bindings
+		      pattern-fragments
+		      subject-fragments)))))))
 
-(define (matches pattern
-		 subject
+(define (matches-pair pattern ::cons
+		      subject ::cons
+		      bindings ::Bindings)
+  ::(maybe Bindings)
+  (otherwise #!null
+    (and-let* ((`(,pattern-head . ,pattern-tail) pattern)
+	       (`(,subject-head . ,subject-tail) subject)
+	       (bindings (matches pattern-head subject-head
+				  bindings))
+	       (bindings (match-spaces
+			    (post-head-space pattern)
+			    (post-head-space subject)
+			    bindings)))
+      (cond
+       ((and (dotted? pattern)
+	     (dotted? subject))
+	(and-let* ((bindings (match-spaces
+			      (pre-tail-space pattern)
+			      (pre-tail-space subject)
+			      bindings))
+		   (bindings (match-spaces
+			      (post-tail-space pattern)
+			      (post-tail-space subject)
+			      bindings)))
+	  (matches pattern-tail subject-tail bindings)))
+       ((and (pair? pattern-tail)
+	     (pair? subject-tail))
+	(matches-pair pattern-tail subject-tail bindings))
+       (else
+	(matches pattern-tail subject-tail bindings))))))
+
+(define (matches pattern ::Tile
+		 subject ::Tile
 		 bindings ::Bindings)
-  ::(maybe (maps (Object) to: Object))
+  ::(maybe Bindings)
   (otherwise #!null
     (match pattern
       (enchanted::Enchanted
@@ -68,10 +111,20 @@
 
       (`(,head-pattern . ,tail-pattern)
        (and-let* ((`(,head-subject . ,tail-subject) subject)
-		  (bindings* (matches head-pattern
-				      head-subject
-				      bindings)))
-	 (matches tail-pattern tail-subject bindings*)))
+		  (bindings* (match-spaces
+			      (pre-head-space pattern)
+			      (pre-head-space subject)
+			      bindings)))
+	 (matches-pair pattern subject bindings*)))
+      ('()
+       (or
+	(and-let* ((pattern ::EmptyListProxy)
+		   (subject ::EmptyListProxy))
+	  (match-spaces pattern:space
+			subject:space
+			bindings))
+	(and (empty? subject)
+	     bindings)))
       (_
        (and (match/equal? pattern subject)
 	    bindings)))))
@@ -114,6 +167,7 @@
 					   context)
 				   bindings)))
 		  (let loop ((subpattern 1)
+			     (bindings bindings)
 			     (index subject-index)
 			     (pattern-fragments pattern-fragments)
 			     (subject-fragments subject-fragments))
@@ -148,11 +202,13 @@
 				    subject-index 
 				    (space-fragment-comment+index
 				     subject-fragments))
-				   ((comment-matches
+				   (bindings
+				    (comment-matches
 				     pattern-comment
 				     subject-comment
 				     bindings)))
 			  (loop (+ subpattern 1)
+				bindings
 				(+ index subject-index)
 				pattern-fragments
 				subject-fragments)))))))))))
@@ -272,3 +328,23 @@
 	       (subject ::Textual)
 	       (start ::int (suffix-start pattern subject)))
       (recons start context))))
+
+(define (match-highlight pattern ::Tile
+			 document ::Tile
+			 cursor ::Cursor
+			 bindings ::Bindings)
+  
+  ::(maybe Highlight)
+  (let* ((pattern-index ::int 0)
+	 (n ::int (length pattern))
+	 (item-index (car cursor))
+	 (context (cdr cursor)))
+    (match n
+      (0 (highlight-space
+	  (pattern:part-at 0)
+	  (document:part-at item-index)
+	  cursor
+	  bindings))
+      (1 ...)
+      (2 ...)
+      (n ...))))
