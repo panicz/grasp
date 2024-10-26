@@ -338,25 +338,26 @@
 
     (read-next)))
 
-(define (parse #!optional (port (current-input-port)))::list
+(define (parse #!optional (port (current-input-port)))::Tile
   (parameterize ((current-input-port port))
     (let-values (((result spaces) (read-list)))
       (if (empty? result)
 	  (EmptyListProxy spaces)
 	  result))))
 
-(define (parse-string s::string)::list
+(define (parse-string s::string)::Tile
   (call-with-input-string s parse))
 
 (define (parse-document #!optional
 			(port (current-input-port)))
+  ::Document
   (Document (parse port) port))
 
-(define (string->document s::string)::list
+(define (string->document s::string)::Document
   (call-with-input-string s parse-document))
 
-(define (document->string doc::list)
+(define (document->string doc::list)::string
   (with-output-to-string (lambda () (show-document doc))))
 
-(define (pair->string p::list)
+(define (pair->string p::list)::string
   (with-output-to-string (lambda () (show-pair p))))

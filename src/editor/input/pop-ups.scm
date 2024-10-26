@@ -285,8 +285,8 @@
 	  (index (car suffix)))
      (match index
        ('content
-	(set! target:left (+ targer:left left))
-	(set! target:top (+ targer:left top))
+	(set! target:left (+ target:left left))
+	(set! target:top (+ target:top top))
 	(content:measure-position #;of cursor
 				       #;into target
 					      #;within context))
