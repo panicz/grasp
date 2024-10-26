@@ -1,3 +1,78 @@
+* 25.10.2024
+
+to plan na dzis jest taki, zeby dokonczyc match-highlight.
+
+I tutaj pomysl jest taki, zeby zrobic tak, ze:
+- jezeli =(whitespace? (pre-head-space pattern))=,
+  to jako poczatek highlightu bierzemy =cursor-climb-front=
+  z poczatku wyrazenia
+- w przeciwnym razie raczej po kolei probujemy
+  dopasowywac suffixy komentarzy w =(pre-head-space pattern)=
+
+No ale jakze to? Przeciez my tylko na poczatku chcemy miec
+=pre-head-space=
+
+#+BEGIN_SRC scheme
+  (define/kw (next-match pattern ::list
+			 in: document ::Indexable
+			 := (the-document)
+			 after: cursor ::Cursor := (the-cursor)
+			 context: context ::Cursor := '())
+    ::(maybe Highlight)
+    (escape-with return
+      (let* ((current-level ::int (length context))
+	     (reference-level ::int (length cursor))
+	     (pressure (- reference-level current-level 1))
+	     (index (if (is pressure >= 0)
+			(let ((initial-index (cursor
+					      pressure)))
+			  (if (= pressure 0)
+			      (document:next-index
+			       initial-index)
+			      initial-index))
+			(document:next-index
+			 (document:first-index))))
+	     (limit (document:last-index)))
+	(while (isnt index eqv? limit)
+	  (and-let* ((result ::Highlight (match-highlight
+					  pattern
+					  at: (recons index context)
+					  in: document)))
+	    (return result))
+	  (when (gnu.lists.LList? item)
+	    (let ((result (next-match pattern
+				      in: item
+				      after: cursor
+				      context: (recons
+						index
+						context))))
+	      (when result
+		(return result)))))
+	;; we skip by two indices to make sure that
+	(set! index (document:next-index
+		     (document:next-index index))))
+      (return #!null)))
+
+  (define/kw (match-highlight pattern ::list
+			      at: index ::int
+			      in: document ::Indexable
+			      within: context ::Cursor)
+    ::(maybe Highlight)
+    ...)
+
+#+END_SRC
+
+No to tak: mamy sobie te nowa funkcje pt. =next-match=
+(jeszcze niezintegrowana), i ona dziala w taki sposob, ze
+przchodzimy po kolei po wszystkich wyrazeniach, i wywolujemy
+na nich =match-highlight=. 
+
+(Tymczasem interfejs =match-highlight= juz sie zmienil wzgledem
+pierwotnej implementacji).
+
+Natomiast czy to na pewno wlasnie tak powinno dzialac?
+
+
 * 24.10.2024
 
 dzisiaj bysmy sie zajeli dalszymi pracami nad wyszukiwaniem.
@@ -23,8 +98,7 @@ A tak konkretnie to co?
    i animowanie widoku)
 
 Zasadniczo punkt 1 wydaje sie zrealizowany, tyle ze brakuje
-implementacji funjcji "match-spaces" (ktora powinna byc podobna
-do highlight-space)
+implementacji funjcji "match-spaces"
 
 
 * 23.10.2024
