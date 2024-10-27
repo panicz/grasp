@@ -1,3 +1,54 @@
+* 26.10.2024
+
+#+BEGIN_SRC scheme
+  (define (match-highlight pattern ::Tile
+			   subject ::Tile
+			   context ::Cursor)
+    ::(maybe Highlight)
+    ...)
+
+  (define/kw (next-match pattern ::list
+			 in: document ::Indexable
+			 := (the-document)
+			 after: cursor ::Cursor := (the-cursor)
+			 context: context ::Cursor := '())
+    ::(maybe Highlight)
+    (escape-with return
+      (let* ((current-level ::int (length context))
+	     (reference-level ::int (length cursor))
+	     (pressure (- reference-level current-level 1))
+	     (index (if (is pressure >= 0)
+			(let ((initial-index (cursor
+					      pressure)))
+			  (if (= pressure 0)
+			      (document:next-index
+			       initial-index)
+			      initial-index))
+			(document:next-index
+			 (document:first-index))))
+	     (limit (document:last-index)))
+	(while (isnt index eqv? limit)
+	  (and-let* ((result ::Highlight (match-highlight
+					  pattern
+					  document
+					  (recons index context))))
+	    (return result))
+	  (when (gnu.lists.LList? item)
+	    (let ((result (next-match pattern
+				      in: item
+				      after: cursor
+				      context: (recons
+						index
+						context))))
+	      (when result
+		(return result))))
+
+	  (set! index (document:next-index index)))
+	(return #!null)))
+
+#+END_SRC
+
+
 * 25.10.2024
 
 to plan na dzis jest taki, zeby dokonczyc match-highlight.
