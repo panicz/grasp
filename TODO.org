@@ -1,11 +1,20 @@
-* 26.10.2024
+* 26-27.10.2024
 
 #+BEGIN_SRC scheme
   (define (match-highlight pattern ::Tile
-			   subject ::Tile
-			   context ::Cursor)
+			   subject-context ::Tile
+			   cursor ::Cursor)
     ::(maybe Highlight)
-    ...)
+    (otherwise #!null
+      (and-let* ((`(,index . ,context) cursor)
+		 (first-subject ::Space (subject-context:part-at
+					 index))
+		 (pattern-length (length pattern)))
+	(cond
+	 ((is pattern-length <= 0) ;>
+	  
+
+
 
   (define/kw (next-match pattern ::list
 			 in: document ::Indexable
