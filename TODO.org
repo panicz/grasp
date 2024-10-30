@@ -1,3 +1,98 @@
+* 28-29.10.2024
+
+No tomoze jeszcze jedna mala rekapitulacja: mamy funkcje =next-match=,
+ktora wola =match-highlight=. Na razie w jej ramach mamy obsluzony
+tylko jeden przypadek, =highlight-space=.
+
+Funkcja =highlight-space= moze wolac =highlight-comment-infix=,
+=comment-suffix-start=, =comment-prefix-end=, =comment-matches=
+oraz =space-fragment+comment-index=.
+
+=highlight-comment-infix= moze z kolei wolac =highlight-infix=,
+ktora wola =infix-start= albo =highlight-pattern=.
+
+=comment-matches= wola =matches= albo ~textual=?~
+
+=comment-suffix-start= wola =match-suffix-start= albo =suffix-start=,
+a =comment-prefix-end= wola =match-prefix-end= albo =prefix-end=.
+
+Wreszcie =match-prefix-end= wola =prefix-end= albo =matches=, a
+=match-suffix-start= - =suffix-start= albo =matches=.
+
+Wreszcie =matches= wola =matches-pair= i vice versa.
+
+No i pieknie (niezbyt?). Rozbudowania wymaga oczywiscie
+=match-highlight=, ktora powinna dzialac tak, ze:
+- jezeli pattern ma jeden komponent, to:
+  1. jezeli tylko =pre-head-space= jest =whitespace?=, to
+     probujemy zwrocic pare
+     #+BEGIN_SRC scheme
+
+       (match-suffix-start
+	 (pattern:part-at 1)
+	 (subject-context:part-at
+	  (subject-context:next-index index)))
+
+       (space-prefix-end
+	 (pattern:part-at 2)
+	 (subject-context:part-at
+	  (subject-context:next-index
+	   (subject-context:next-index index))))
+
+     #+END_SRC
+  2. jezeli tylko =post-head-space= jest =whitespace?=,
+     to probujemy zwrocic pare
+     #+BEGIN_SRC scheme
+
+       (space-suffix-start
+	 (pattern:part-at 0)
+	 (subject-context:part-at index))
+
+       (match-prefix-end
+	 (pattern:part-at 1)
+	 (subject-context:part-at
+	  (subject-context:next-index index)))
+
+     #+END_SRC
+  3. jezeli zarowno =pre-head-space= jak i =post-head-space=
+     sa =whitespace?=, to zwracamy =highlight-pattern=
+
+  4. jezeli zadne z nich nie jest whitespace, to zwracamy
+
+     #+BEGIN_SRC scheme
+
+       (space-suffix-start
+	 (pattern:part-at 0)
+	 (subject-context:part-at index))
+
+       (space-prefix-end
+	 (pattern:part-at 2)
+	 (subject-context:part-at
+	  (subject-context:next-index
+	   (subject-context:next-index index))))
+
+     #+END_SRC
+
+Natomiast jezeli chcemy to uogolnic na dowolna liczbe argumentow,
+to to musialoby wygladac mniej wiecej w taki sposob, ze:
+
+#+BEGIN_SRC scheme
+  (and-let* ((opening-space ::Space (pre-head-space pattern))
+	     (start ::Cursor
+		    (if (whitespace? opening-space)
+			(match-suffix-start
+			 (pattern:part-at 1)
+			 (subject-context:part-at
+			  (subject-context:next-index index)))
+			(space-suffix-start
+			 opening-space
+			 (subject-context:part-at index))))
+	     
+
+
+
+#+END_SRC
+
 * 26-27.10.2024
 
 #+BEGIN_SRC scheme
@@ -10,11 +105,17 @@
 		 (first-subject ::Space (subject-context:part-at
 					 index))
 		 (pattern-length (length pattern)))
-	(cond
-	 ((is pattern-length <= 0) ;>
-	  
-
-
+	(match pattern-length
+	 (0
+	  (highlight-space
+	   (pattern:part-at 0)
+	   first-subject
+	   cursor
+	   search-bindings))
+	 (1
+	  ...)
+	 (n
+	  ...)))))
 
   (define/kw (next-match pattern ::list
 			 in: document ::Indexable
