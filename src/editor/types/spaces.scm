@@ -32,6 +32,18 @@
      0)
     ))
 
+(define (drop-comment-fragments n::int fragments::list)
+  ::list
+  (if (is n <= 0)
+      fragments
+      (match fragments
+	(`(,head::integer . ,tail)
+	 (drop-comment-fragments n tail))
+	(`(,head . ,tail)
+	 (drop-comment-fragments (- n 1) tail))
+	('()
+	 fragments))))
+
 (define (space-fragment-comment+index fragments::list)
   ::(maybe (Values list int))
   (let loop ((input ::list fragments)
