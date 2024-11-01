@@ -1,3 +1,105 @@
+* 30-31.10.2024
+
+to wyglada tak, ze mamy do zaimplementowania:
+- =match-highlight=
+- =match-infix=, =match-suffix-start=, =match-prefix-end=
+  (ale porzadnie)
+- poprawe/uwzglednienie =drop-comment-fragments=
+  (ktora dodatkowo powinna zwracac wartosc indeksu) 
+
+#+BEGIN_SRC scheme
+
+  (define (match-highlight pattern ::Tile
+			   subject ::Tile
+			   cursor ::Cursor
+			   bindings ::Bindings)
+
+    ::(maybe Highlight)
+    (reset! search-bindings)
+    (otherwise #!null
+      (let* ((pattern-index ::int 0)
+	     (item-index (car cursor))
+	     (context (cdr cursor)))
+	(match pattern
+	 (enchanted::Enchanted
+	  ;; pewnie niepotrzebne
+	  (match-highlight (enchanted:value)
+			   subject
+			   cursor
+			   bindings))
+	 ('()
+	  (highlight-space
+	   (pattern:part-at 0)
+	   (document:part-at item-index)
+	   cursor
+	   bindings))
+	 (`(,single)
+	  (let* ((opening-space ::Space
+				(pre-head-space pattern))
+		 (closing-space ::Space
+				(post-head-space pattern))
+		 (opening-whitespace? ::boolean
+				      (whitespace? opening-space))
+		 (closing-whitespace? ::boolean
+				      (whitespace? closing-space)))
+	    (cond
+	     ((and opening-whitespace? closing-whitespace?)
+	      (match-infix ...))
+	     (opening-whitespace?
+	      (and-let* ((start ::Cursor
+				(space-suffix-start
+				 opening-space
+				 (subject-context:part-at index)))
+			 (end ::Cursor
+			      (match-prefix-end
+			       (pattern:part-at 1)
+			       (subject-context:part-at
+				(subject-context:next-index
+				 item-index)))))
+		(Highlight start: start end: end)))
+	     (closing-whitespace?
+	      (and-let* ((start ::Cursor
+				(match-suffix-start
+				 (pattern:part-at 1)
+				 (subject-context:part-at
+				  (subject-context:next-index
+				   index))))
+			 (end ::Cursor
+			      (space-prefix-end
+			       closing-space
+			       (subject-context:part-at
+				item-index))))
+		(Highlight start: start end: end)))
+	     (else
+	      (and-let* ((start ::Cursor
+				(space-suffix-start
+				 opening-space
+				 (subject-context:part-at index)))
+			 (end ::Cursor
+			      (space-prefix-end
+			       closing-space
+			       (subject-context:part-at
+				item-index))))
+		(Highlight start: start end: end))))))
+	 (`(,first . ,_)
+	  (and-let* ((opening-space ::Space
+				    (pre-head-space pattern))
+		     (start ::Cursor
+			    (if (whitespace? opening-space)
+				(match-suffix-start ...)
+				(space-suffix-start ...)))
+		     )
+	    (let loop ((front-pattern pattern))
+	      (and-let* ((`(,head . ,tail) front)
+			 ...)
+		(if (isnt tail pair?)
+		    ...
+		    (loop tail))))
+
+	    ...))))))
+
+#+END_SRC
+
 * 28-29.10.2024
 
 No tomoze jeszcze jedna mala rekapitulacja: mamy funkcje =next-match=,

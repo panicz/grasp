@@ -17,6 +17,7 @@
   (editor document cursor)
   (utils hash-table)
   (language mapping)
+  (utils functions)
   (editor utils search)
   )
 
@@ -63,10 +64,16 @@
 
 (e.g. (length (empty)) ===> 0)
 
+(write
+ (let* ((pattern (parse-string "(a b ,c)"))
+	(subject (parse-string "(a b d)"))
+	(bindings (matches pattern subject
+			   (mapping (key ::String)
+			     #!null)))
+	(bound-keys (keys bindings)))
+   (map (lambda (key)
+	  (let ((value (bindings key)))
+	    `(,key ,value)))
+	  bound-keys)))
 
-(let* ((pattern (parse-string "(a b ,c)"))
-       (subject (parse-string "(a b d)"))
-       (bindings (matches pattern subject))
-       (bound-keys (keys bindings)))
-  (print bound-keys (map bindings bound-keys)))
-
+(newline)

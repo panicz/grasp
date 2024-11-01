@@ -183,7 +183,7 @@
 				    (space-fragment-comment+index
 				     subject-fragments))
 				   (end ::Cursor
-					(comment-suffix-start
+					(comment-prefix-end
 					 pattern-comment
 					 subject-comment
 					 (recons (+ index
@@ -235,14 +235,33 @@
 			       context)
 		       bindings))))
 
+(define (highlight-pattern pattern ::Tile
+			   subject ::Tile
+			   cursor ::Cursor
+			   bindings ::Bindings)
+  ::(maybe Highlight)
+  (and-let* ((`(,initial-index . ,context) cursor)
+	     (bindings (matches pattern subject bindings))
+	     (last-pattern-index (pattern:last-index)))
+    (let loop ((pattern-index (pattern:next-index
+			       (pattern:first-index)))
+	       (current-index initial-index))
+      (let ((next-pattern-index (pattern:next-index pattern-index)))
+	(if (eqv? next-pattern-index last-pattern-index)
+	    (Highlight start: cursor ;;powinnismy zrobic
+		       ;; climb-front/back na wynik
+		       end: (recons current-index context))
+	    (loop next-pattern-index
+		  (subject:next-index current-index)))))))
+
 (define (highlight-infix pattern ::Tile
 			 subject ::Tile
 			 context ::Cursor
 			 bindings ::Bindings)
   ::(maybe Highlight)
   (otherwise #!null
-    (match-highlight pattern subject
-		     context bindings)
+    (highlight-pattern pattern subject
+		       context bindings)
     (and-let* ((pattern ::Textual)
 	       (subject ::Textual)
 	       (start ::int (infix-start pattern
@@ -276,7 +295,6 @@
 	       (subject ::TextualComment)
 	       (start ::int (suffix-start pattern subject)))
       (recons start context))
-
     (and-let* ((pattern ::ExpressionComment)
 	       (subject ::ExpressionComment))
       (match-suffix-start pattern:expression
@@ -330,21 +348,26 @@
       (recons start context))))
 
 (define (match-highlight pattern ::Tile
-			 document ::Tile
+			 document ::Document
 			 cursor ::Cursor
 			 bindings ::Bindings)
   
   ::(maybe Highlight)
+  (assert (list? pattern))
+  (reset! search-bindings)
   (let* ((pattern-index ::int 0)
 	 (n ::int (length pattern))
 	 (item-index (car cursor))
 	 (context (cdr cursor)))
     (match n
-      (0 (highlight-space
-	  (pattern:part-at 0)
-	  (document:part-at item-index)
-	  cursor
-	  bindings))
-      (1 ...)
-      (2 ...)
-      (n ...))))
+      (0
+       (highlight-space
+	(pattern:part-at 0)
+	(document:part-at item-index)
+	cursor
+	bindings))
+      (1
+       ...)
+      (n
+
+       ...))))
