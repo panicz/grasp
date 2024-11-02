@@ -44,6 +44,14 @@
  (drop 2 (list 1 2 3))
  ===> (3))
 
+(define (drop-while satisfying?::predicate s::list)
+  (match s
+    ('() s)
+    (`(,h . ,t)
+     (if (satisfying? h)
+	 (drop-while satisfying? t)
+	 s))))
+
 (define (drop-after! k::integer #;elements-in s::list)::list
   (define (lastmost-tail n::integer l::list)
     (if (or (is n <= 1) (isnt l pair?))
