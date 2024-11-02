@@ -303,6 +303,46 @@
 				  context)
 			  bindings))))
 
+(define (space-fragments-match pattern-fragments ::list
+			       subject-fragments ::list
+			       bindings ::Bindings
+			       #!optional (limit ::number +inf.0))
+  ::(maybe Bindings)
+  (let* ((pattern-fragments (drop-while integer? pattern-fragments))
+	 (subject-fragments (drop-while integer? subject-fragments)))
+    (otherwise #!null
+      (if (or (is limit <= 0)
+	      (and (null? pattern-fragments)
+		   (null? subject-fragments)))
+	  bindings
+	  (and-let* ((`(,comment-pattern::Comment . ,tail-pattern) pattern-fragments)
+		     (`(,comment-subject::Comment . ,tail-subject) subject-fragments)
+		     (bindings (comment-matches comment-pattern comment-subject bindings)))
+	    (space-fragments-match tail-pattern tail-subject bindings
+				   (- limit 1)))))))
+
+(define (space-suffix-start pattern ::Space
+			    subject ::Space
+			    context ::Cursor
+			    bindings ::Bindings)
+  ::(maybe Cursor)
+  (otherwise #!null
+    (and-let* ((n (count (isnt _ integer?) pattern:fragments))
+	       (m (count (isnt _ integer?) subject:fragments))
+	       ((is m >= n))
+	       (`(,comment-pattern::Comment . ,rest-pattern)
+		(drop-while (isnt _ Comment?) pattern:fragments))
+	       (`(,comment-subject::Comment . ,rest-subject) skipped
+		(drop-comment-fragments
+		 (- m n) subject:fragments))
+	       ((space-fragments-match rest-pattern
+				       rest-subject
+				       bindings)))
+      (comment-suffix-start comment-pattern
+			    comment-subject
+			    (recons skipped context)
+			    bindings))))
+
 (define (comment-prefix-end pattern ::Comment
 			    subject ::Comment
 			    context ::Cursor
@@ -320,6 +360,21 @@
 			(recons (subject:first-index)
 				context)
 			bindings))))
+
+(define (space-prefix-end pattern ::Space
+			  subject ::Space
+			  context ::Cursor
+			  bindings ::Bindings)
+  ::(maybe Cursor)
+  (otherwise #!null
+    (and-let* ((n (count (isnt _ integer?) pattern:fragments))
+	       (m (count (isnt _ integer?) subject:fragments))
+	       ((is m >= n))
+	       (`(,comment-pattern::Comment . ,_)
+		(drop-while (isnt _ Comment?) pattern:fragments))
+	       (`(,comment-subject::Comment . ,_) skipped
+		(drop-comment-fragments (- m n) subject:fragments)))
+      ...)))
 
 (define (match-prefix-end pattern ::Tile
 			  subject ::Tile
@@ -348,26 +403,81 @@
       (recons start context))))
 
 (define (match-highlight pattern ::Tile
-			 document ::Document
+			 subject ::Tile
 			 cursor ::Cursor
 			 bindings ::Bindings)
-  
   ::(maybe Highlight)
-  (assert (list? pattern))
   (reset! search-bindings)
-  (let* ((pattern-index ::int 0)
-	 (n ::int (length pattern))
-	 (item-index (car cursor))
-	 (context (cdr cursor)))
-    (match n
-      (0
-       (highlight-space
-	(pattern:part-at 0)
-	(document:part-at item-index)
-	cursor
-	bindings))
-      (1
-       ...)
-      (n
+  (or 
+   (and-let* ((subject ::Enchanted))
+     (match-highlight pattern (subject:value) cursor bindings))
+   (and-let* ((pattern ::Enchanted))
+     (match-highlight (pattern:value) subject cursor bindings))   
+   (and-let* ((pattern-index (pattern:next-index
+			      (pattern:first-index)))
+	      (`(,subject-index . ,context) cursor))
+     (match pattern
+       ('()
+	(and-let* ((space-pattern ::Space (pattern:part-at pattern-index))
+		   (space-subject ::Space (subject:part-at subject-index)))
+	  (highlight-space space-pattern space-subject
+			   cursor bindings)))
+       (`(,single)
+	(let* ((opening-space ::Space (pre-head-space pattern))
+	       (closing-space ::Space (post-head-space pattern))
+	       (opening-whitespace? ::boolean (whitespace? opening-space))
+	       (closing-whitespace? ::boolean (whitespace? closing-space)))
+	  (cond
+	   ((and opening-whitespace? closing-whitespace?)
+	    (match-infix single element ))
+	   (opening-whitespace?
+	    (and-let* ((start ::Cursor
+			      (space-suffix-start
+			       opening-space
+			       (subject-context:part-at index)))
+		       (end ::Cursor
+			    (match-prefix-end
+			     (pattern:part-at 1)
+			     (subject-context:part-at
+			      (subject-context:next-index
+			       item-index)))))
+	      (Highlight start: start end: end)))
+	    (closing-whitespace?
+	     (and-let* ((start ::Cursor
+			       (match-suffix-start
+				(pattern:part-at 1)
+				(subject-context:part-at
+				 (subject-context:next-index
+				  index))))
+			(end ::Cursor
+			     (space-prefix-end
+			      closing-space
+			      (subject-context:part-at
+			       item-index))))
+	       (Highlight start: start end: end)))
+	    (else
+	     (and-let* ((start ::Cursor
+			       (space-suffix-start
+				opening-space
+				(subject-context:part-at index)))
+			(end ::Cursor
+			     (space-prefix-end
+			      closing-space
+			      (subject-context:part-at
+			       item-index))))
+	       (Highlight start: start end: end))))))
+	(`(,first . ,_)
+	 (and-let* ((opening-space ::Space
+				   (pre-head-space pattern))
+		    (start ::Cursor
+			   (if (whitespace? opening-space)
+			       (match-suffix-start ...)
+			       (space-suffix-start ...)))
+		    )
+	   (let loop ((front-pattern pattern))
+	     (and-let* ((`(,head . ,tail) front)
+			...)
+	       (if (isnt tail pair?)
+		   ...
+		   (loop tail))))))
 
-       ...))))
