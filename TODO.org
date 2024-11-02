@@ -1,3 +1,16 @@
+* 01.10.2024
+
+No dobra, to wyglada na to, ze jestesmy blisko tego,
+zeby miec wszystkie klocki we wlasciwych miejscach.
+
+Wiec plan na razie (nie wiem, czy na dzis? Na jutro?
+Na pojutrze?) bylby taki, zeby uzupelnic definicje
+"match-highlight" i sprobowac moze napisac jakies
+testy jednostkowe.
+
+Ech, to sie wszystko wydaje takie trudne!
+
+
 * 30-31.10.2024
 
 to wyglada tak, ze mamy do zaimplementowania:
