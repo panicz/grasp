@@ -33,16 +33,24 @@
     ))
 
 (define (drop-comment-fragments n::int fragments::list)
-  ::list
-  (if (is n <= 0)
-      fragments
-      (match fragments
-	(`(,head::integer . ,tail)
-	 (drop-comment-fragments n tail))
-	(`(,head . ,tail)
-	 (drop-comment-fragments (- n 1) tail))
-	('()
-	 fragments))))
+  ::(Values list int)
+  (let loop ((n ::int n)
+	     (skipped ::int 0)
+	     (fragments ::list fragments))
+    (match fragments
+      (`(,head::integer ,newline::integer . ,_)
+       (loop n (+ skipped head 1) (cdr fragments)))
+
+      (`(,head::integer . ,tail)
+       (loop n (+ skipped head) tail))
+      
+      (`(,head . ,tail)
+       (if (is n <= 0)
+	   (values fragments skipped)
+	   (loop (- n 1) (+ skipped 1) tail)))
+      
+      ('()
+       (values fragments skipped)))))
 
 (define (space-fragment-comment+index fragments::list)
   ::(maybe (Values list int))
@@ -50,8 +58,13 @@
 	     (index ::int 0))
     (match input
       ('() #!null)
+      
+      (`(,first::integer ,next::integer . ,_)
+       (loop (cdr input) (+ index first 1)))
+
       (`(,first::integer . ,rest)
-       (loop rest (+ index first 1)))
+       (loop rest (+ index first)))
+      
       (`(,first . ,rest)
        (values input index)))))
 
