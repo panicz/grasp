@@ -1,3 +1,40 @@
+* 03.10.2024
+
+A jednak w =match-highlight= jest jeszcze do obsluzenia
+=match-infix=.
+
+No dobra, ale sprobujmy cos pomyslec bardziej perspektywicznie.
+Niedlugo moze bedziemy mieli algorytm wyszukiwania, a po nim
+rowniez mozliwosc podmiany tekstu w dokumencie.
+
+Kiedy to bedzie gotowe, to bysmy sie zajeli budowaniem APK
+przez aplikacje mobilna, bo wydaje sie, ze w tym jest duza wartosc.
+
+Niezaleznie jednak od tego, czym bedziemy chcieli sie zajac,
+warto postarac sie o to, zeby dalo sie edytowac GRASPa z wewnatrz
+jego samego.
+
+Naomiast opcja budowania GRASPa z GRASPa na mobilce nie musi
+byc publicznie dostepna.
+
+* 02.10.2024
+
+Sprobujmy chociaz zaimplemenrowac =space-prefix-end=.
+I tutaj oczywiscie powinno byc tak, jak =space-suffix-start=,
+tylko ze na odwrot.
+
+No to wydaje sie, ze to mamy.
+
+Teraz pozostaje am zakonczyc =match-highlight=, w ktorym
+- przypominjmy - pozostaja jeszcze dwa przypadki: dla n = 1
+oraz dla n > 1.
+
+Dla n = 1 wydaje sie, ze mamy juz obsluzone. Zostaje nam
+n > 1.
+
+Pytanie, czy bylibysmy w stanie uproscic nasz kod.
+
+
 * 01.10.2024
 
 No dobra, to wyglada na to, ze jestesmy blisko tego,
