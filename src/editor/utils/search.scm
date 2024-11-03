@@ -16,6 +16,13 @@
 (import (utils functions))
 (import (utils print))
 
+#|
+The search algorithm is conceptually not difficult,
+but because of the representation for the document
+that I chose for GRASP, its implementation is very
+convoluted (and I'm so sorry).
+|#
+
 (define-mapping (search-bindings key ::String)
   ::(maybe Tile)
   #!null)
@@ -335,9 +342,9 @@
 	       (`(,comment-subject::Comment . ,rest-subject) skipped
 		(drop-comment-fragments
 		 (- m n) subject:fragments))
-	       ((space-fragments-match rest-pattern
-				       rest-subject
-				       bindings)))
+	       (bindings (space-fragments-match rest-pattern
+						rest-subject
+						bindings)))
       (comment-suffix-start comment-pattern
 			    comment-subject
 			    (recons skipped context)
@@ -370,11 +377,18 @@
     (and-let* ((n (count (isnt _ integer?) pattern:fragments))
 	       (m (count (isnt _ integer?) subject:fragments))
 	       ((is m >= n))
-	       (`(,comment-pattern::Comment . ,_)
-		(drop-while (isnt _ Comment?) pattern:fragments))
-	       (`(,comment-subject::Comment . ,_) skipped
-		(drop-comment-fragments (- m n) subject:fragments)))
-      ...)))
+	       (bindings (space-fragments-match rest-pattern
+						rest-subject
+						bindings
+						(- n 1)))
+	       (`(,comment-pattern::Comment . ,_) _
+		(drop-comment-fragments (- n 1) pattern:fragments))
+	       (`(,comment-subject::Comment . ,_) index
+		(drop-comment-fragments (- n 1) subject:fragments)))
+      (comment-prefix-end comment-pattern
+			  comment-subject
+			  (recons index context)
+			  bindings))))
 
 (define (match-prefix-end pattern ::Tile
 			  subject ::Tile
@@ -434,37 +448,51 @@
 	    (and-let* ((start ::Cursor
 			      (space-suffix-start
 			       opening-space
-			       (subject-context:part-at index)))
+			       (subject:part-at subject-index)
+			       cursor
+			       bindings))
+		       (closing-index (subject:next-index
+					subject-index))
 		       (end ::Cursor
 			    (match-prefix-end
-			     (pattern:part-at 1)
-			     (subject-context:part-at
-			      (subject-context:next-index
-			       item-index)))))
+			     closing-space
+			     (subject:part-at closing-index)
+			     (recons closing-index context)
+			     bindings)))
 	      (Highlight start: start end: end)))
 	    (closing-whitespace?
-	     (and-let* ((start ::Cursor
+	     (and-let* ((item-index (subject:next-index subject-index))
+			(start ::Cursor
 			       (match-suffix-start
-				(pattern:part-at 1)
-				(subject-context:part-at
-				 (subject-context:next-index
-				  index))))
+				single
+				(subject:part-at item-index)
+				(recons item-index context)
+				bindings))
+			(closing-index (subject:next-index item-index))
 			(end ::Cursor
 			     (space-prefix-end
 			      closing-space
-			      (subject-context:part-at
-			       item-index))))
+			      (subject:part-at closing-index)
+			      (recons closing-index context)
+			      bindings)))
 	       (Highlight start: start end: end)))
 	    (else
 	     (and-let* ((start ::Cursor
 			       (space-suffix-start
 				opening-space
-				(subject-context:part-at index)))
+				(subject:part-at subject-index)
+				cursor
+				bindings))
+			(closing-index (subject:next-index
+					(subject:next-index
+					 subject-index)))
 			(end ::Cursor
 			     (space-prefix-end
 			      closing-space
-			      (subject-context:part-at
-			       item-index))))
+			      (subject:part-at
+			       closing-index)
+			      (recons closing-index context)
+			      bindings)))
 	       (Highlight start: start end: end))))))
 	(`(,first . ,_)
 	 (and-let* ((opening-space ::Space
@@ -480,4 +508,6 @@
 	       (if (isnt tail pair?)
 		   ...
 		   (loop tail))))))
+	))
+   #!null))
 
