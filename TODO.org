@@ -1,3 +1,9 @@
+* 04.10.2024
+
+No to dzisiaj dalej dziubiemy =match-highlight=, tym razem
+przypadek dla n > 1. Po tym zostanie nam jeszcze =match-infix=,
+i bedziemy to mogli sprobowac otestowac i zintegrowac.
+
 * 03.10.2024
 
 A jednak w =match-highlight= jest jeszcze do obsluzenia
