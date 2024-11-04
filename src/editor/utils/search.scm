@@ -377,8 +377,8 @@ convoluted (and I'm so sorry).
     (and-let* ((n (count (isnt _ integer?) pattern:fragments))
 	       (m (count (isnt _ integer?) subject:fragments))
 	       ((is m >= n))
-	       (bindings (space-fragments-match rest-pattern
-						rest-subject
+	       (bindings (space-fragments-match pattern:fragments
+						subject:fragments
 						bindings
 						(- n 1)))
 	       (`(,comment-pattern::Comment . ,_) _
@@ -432,54 +432,93 @@ convoluted (and I'm so sorry).
 	      (`(,subject-index . ,context) cursor))
      (match pattern
        ('()
-	(and-let* ((space-pattern ::Space (pattern:part-at pattern-index))
-		   (space-subject ::Space (subject:part-at subject-index)))
+	(and-let* ((space-pattern ::Space (pattern:part-at
+					   pattern-index))
+		   (space-subject ::Space (subject:part-at
+					   subject-index)))
 	  (highlight-space space-pattern space-subject
 			   cursor bindings)))
        (`(,single)
-	(let* ((opening-space ::Space (pre-head-space pattern))
-	       (closing-space ::Space (post-head-space pattern))
-	       (opening-whitespace? ::boolean (whitespace? opening-space))
-	       (closing-whitespace? ::boolean (whitespace? closing-space)))
+	(let* ((pattern-opening-space ::Space
+			      (pre-head-space pattern))
+	       (pattern-closing-space ::Space
+				      (post-head-space pattern))
+	       (opening-whitespace? ::boolean
+				    (whitespace?
+				     pattern-opening-space))
+	       (closing-whitespace? ::boolean
+				    (whitespace?
+				     pattern-closing-space)))
 	  (cond
 	   ((and opening-whitespace? closing-whitespace?)
-	    (match-infix single element ))
+	    (and-let* ((tile-index (subject:next-index
+				    subject-index))
+		       (tile ::Tile
+			     (subject:part-at tile-index))
+		       ((isnt tile eq? subject)))
+	      (or (and-let* ((single ::TextualTile)
+			     (tile ::TextualTile)
+			     (index ::int (infix-start single
+						       tile)))
+		    (Highlight start: (recons* index tile-index
+					       context)
+			       end: (recons* (+ index
+						(single:text-length))
+					     tile-index
+					     context)))
+		  (and (matches single tile bindings)
+		       (Highlight start: (recons*
+					  (pattern:first-index)
+					  tile-index
+					  context)
+				  end: (recons*
+					(pattern:last-index)
+					tile-index
+					context))))))
 	   (opening-whitespace?
-	    (and-let* ((start ::Cursor
+	    (and-let* ((subject-opening-space::Space
+			(subject:part-at subject-index))
+		       (start ::Cursor
 			      (space-suffix-start
-			       opening-space
-			       (subject:part-at subject-index)
+			       pattern-opening-space
+			       subject-opening-space
 			       cursor
 			       bindings))
 		       (closing-index (subject:next-index
-					subject-index))
+				       subject-index))
+		       (subject-closing-tile::Tile
+			(subject:part-at closing-index))
 		       (end ::Cursor
 			    (match-prefix-end
-			     closing-space
-			     (subject:part-at closing-index)
+			     single
+			     subject-closing-tile
 			     (recons closing-index context)
 			     bindings)))
 	      (Highlight start: start end: end)))
 	    (closing-whitespace?
-	     (and-let* ((item-index (subject:next-index subject-index))
+	     (and-let* ((item-index (subject:next-index
+				     subject-index))
 			(start ::Cursor
 			       (match-suffix-start
 				single
 				(subject:part-at item-index)
 				(recons item-index context)
 				bindings))
-			(closing-index (subject:next-index item-index))
+			(closing-index (subject:next-index
+					item-index))
+			(subject-closing-space::Space
+			 (subject:part-at closing-index))
 			(end ::Cursor
 			     (space-prefix-end
-			      closing-space
-			      (subject:part-at closing-index)
+			      pattern-closing-space
+			      subject-closing-space
 			      (recons closing-index context)
 			      bindings)))
 	       (Highlight start: start end: end)))
 	    (else
 	     (and-let* ((start ::Cursor
 			       (space-suffix-start
-				opening-space
+				pattern-opening-space
 				(subject:part-at subject-index)
 				cursor
 				bindings))
@@ -488,26 +527,84 @@ convoluted (and I'm so sorry).
 					 subject-index)))
 			(end ::Cursor
 			     (space-prefix-end
-			      closing-space
+			      pattern-closing-space
 			      (subject:part-at
 			       closing-index)
 			      (recons closing-index context)
 			      bindings)))
 	       (Highlight start: start end: end))))))
 	(`(,first . ,_)
-	 (and-let* ((opening-space ::Space
-				   (pre-head-space pattern))
+	 (and-let* ((pattern-opening-space ::Space
+					   (pre-head-space
+					    pattern))
+		    (subject-opening-space ::Space
+					   (subject:part-at
+					    subject-index))
+		    (subject-tile-index (subject:next-index
+					 subject-index))
 		    (start ::Cursor
-			   (if (whitespace? opening-space)
-			       (match-suffix-start ...)
-			       (space-suffix-start ...)))
-		    )
-	   (let loop ((front-pattern pattern))
-	     (and-let* ((`(,head . ,tail) front)
-			...)
-	       (if (isnt tail pair?)
-		   ...
-		   (loop tail))))))
-	))
+			   (if (whitespace?
+				pattern-opening-space)
+			       (match-suffix-start
+				first
+				(subject:part-at
+				 subject-tile-index)
+				(recons subject-tile-index
+					context)
+				bindings)
+			       (space-suffix-start
+				pattern-opening-space
+				subject-opening-space
+				cursor
+				bindings)))
+		    ((integer? subject-index))
+		    ((is subject-index >= 0))
+		    ((even? subject-index)))
+	   (let loop ((front-pattern pattern)
+		      (front-subject (drop (/ subject-index 2)
+					   subject))
+		      (index (subject:next-index subject-index))
+		      (bindings bindings))
+	     (and-let* ((`(,head-pattern . ,tail-pattern)
+			 front-pattern)
+			(`(,head-subject . ,tail-subject)
+			 front-subject))
+	       (if (isnt tail-pattern pair?)
+		   (and-let* ((pattern-closing-space ::Space
+						     (post-head-space
+						      front-pattern))
+			      (subject-closing-space ::Space
+						     (post-head-space
+						      subject-index))
+			      (end (if (whitespace?
+					pattern-closing-space)
+				       (match-prefix-end
+					head-pattern
+					head-subject
+					(recons index context)
+					bindings)
+				       (space-prefix-end
+					pattern-closing-space
+					subject-closing-space
+					(recons (subject:next-index
+						 index))
+					bindings))))
+		     (Highlight start: start
+				end: end))
+		   (and-let* ((bindings (matches
+					 head-pattern
+					 head-subject
+					 bindings))
+			      (bindings (match-spaces
+					 (post-head-space
+					  front-pattern)
+					 (post-head-space
+					  front-subject)
+					 bindings)))
+		     (loop tail-pattern
+			   tail-subject
+			   (subject:next-index
+			    (subject:next-index index))
+			   bindings)))))))))
    #!null))
 
