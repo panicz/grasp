@@ -64,16 +64,18 @@
 
 (e.g. (length (empty)) ===> 0)
 
-(write
+(e.g.
  (let* ((pattern (parse-string "(a b ,c)"))
 	(subject (parse-string "(a b d)"))
 	(bindings (matches pattern subject
 			   (mapping (key ::String)
 			     #!null)))
+	(value (lambda (x)
+		 (match x
+		   (x::Shadowed (x:value))
+		   (_ x))))
 	(bound-keys (keys bindings)))
    (map (lambda (key)
-	  (let ((value (bindings key)))
+	  (let ((value (value (bindings key))))
 	    `(,key ,value)))
-	  bound-keys)))
-
-(newline)
+	bound-keys)) ===> (("c" d)))
