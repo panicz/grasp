@@ -28,6 +28,12 @@
  ===> 3)
 
 (e.g.
+ (match (parse-string "b b")
+   (`(,pattern ,subject)
+    (infix-start pattern subject)))
+ ===> 0)
+
+(e.g.
  (match (parse-string "abc \"abc\"")
    (`(,a ,b)
     (textual=? a b))))
@@ -79,3 +85,23 @@
 	  (let ((value (value (bindings key))))
 	    `(,key ,value)))
 	bound-keys)) ===> (("c" d)))
+
+(e.g.
+ (and-let* ((pattern (parse-string "b"))
+	    (document (string->document "(a b d)"))
+	    ((Highlight start: '(0 3 1 1)
+			end: '(1 3 1 1))
+	     (next-match pattern in: document)))))
+
+
+
+(e.g.
+ (and-let* ((pattern (parse-string "b c"))
+	    (document (string->document "(a b c d)"))
+	    ((Highlight start: start
+			end: end) (next-match pattern
+					      in: document)))
+   (with-eval-access
+    (values (the-expression at: start in: document)
+	    (the-expression at: end in: document))))
+ ===> b c)

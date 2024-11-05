@@ -5,6 +5,9 @@
 (import (language define-type))
 (import (language infix))
 (import (language match))
+(import (language keyword-arguments))
+(import (language while))
+(import (language for))
 (import (utils hash-table))
 (import (language mapping))
 (import (language fundamental))
@@ -421,7 +424,6 @@ convoluted (and I'm so sorry).
 			 cursor ::Cursor
 			 bindings ::Bindings)
   ::(maybe Highlight)
-  (reset! search-bindings)
   (or 
    (and-let* ((subject ::Enchanted))
      (match-highlight pattern (subject:value) cursor bindings))
@@ -440,7 +442,7 @@ convoluted (and I'm so sorry).
 			   cursor bindings)))
        (`(,single)
 	(let* ((pattern-opening-space ::Space
-			      (pre-head-space pattern))
+				      (pre-head-space pattern))
 	       (pattern-closing-space ::Space
 				      (post-head-space pattern))
 	       (opening-whitespace? ::boolean
@@ -456,10 +458,11 @@ convoluted (and I'm so sorry).
 		       (tile ::Tile
 			     (subject:part-at tile-index))
 		       ((isnt tile eq? subject)))
-	      (or (and-let* ((single ::TextualTile)
-			     (tile ::TextualTile)
-			     (index ::int (infix-start single
-						       tile)))
+	      
+	      (or (and-let* ((single ::Textual)
+			     (tile ::Textual)
+			     (index ::integer (infix-start single
+							   tile)))
 		    (Highlight start: (recons* index tile-index
 					       context)
 			       end: (recons* (+ index
@@ -575,7 +578,7 @@ convoluted (and I'm so sorry).
 						      front-pattern))
 			      (subject-closing-space ::Space
 						     (post-head-space
-						      subject-index))
+						      front-subject))
 			      (end (if (whitespace?
 					pattern-closing-space)
 				       (match-prefix-end
@@ -608,3 +611,43 @@ convoluted (and I'm so sorry).
 			   bindings)))))))))
    #!null))
 
+(define/kw (next-match pattern ::list
+		       in: document ::Indexable := (the-document)
+		       after: cursor ::Cursor := (the-cursor)
+		       context: context ::Cursor := '())
+  ::(maybe Highlight)
+  (escape-with return
+    (let* ((current-level ::int (length context))
+	   (reference-level ::int (length cursor))
+	   (pressure (- reference-level current-level 1))
+	   
+	   (limit (document:last-index)))
+      (let loop ((index (if (is pressure >= 0)
+			    (let ((initial-index (cursor
+						  pressure)))
+			      (if (= pressure 0)
+				  (document:next-index
+				   initial-index)
+				  initial-index))
+			    (document:next-index
+			     (document:first-index)))))
+	(reset! search-bindings)
+	(let ((item (document:part-at index)))
+	  (and-let* ((result ::Highlight (match-highlight
+					  pattern
+					  document
+					  (recons index context)
+					  search-bindings)))
+	    (return result))
+	  (when (gnu.lists.LList? item)
+	    (let ((result (next-match pattern
+				      in: item
+				      after: cursor
+				      context: (recons
+						index
+						context))))
+	      (when result
+		(return result)))))
+	(unless (is index eqv? limit)
+	  (loop (document:next-index index))))
+      (return #!null))))

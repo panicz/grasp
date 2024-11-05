@@ -24,7 +24,8 @@
 
 (define-type (Highlight start: Cursor
 			end: Cursor
-			type: HighlightType))
+			type: HighlightType
+			:= HighlightType:OtherFinding))
 
 (define-attribute (extent-cached? tile::Tile)::boolean
   #f)
@@ -162,7 +163,7 @@
     (let ((n ::int (prefix-candidate:text-length))
 	  (m ::int (subject:text-length)))
       (cond
-       ((is n <= m) ;>
+       ((is n <= m)
 	(for i::int from 0 below n
 	     (when (isnt (prefix-candidate:char-ref i) eq?
 			 (subject:char-ref i))
@@ -179,7 +180,7 @@
 	   (m ::int (subject:text-length))
 	   (d ::int (- m n)))
       (cond
-       ((is n <= m) ;>
+       ((is n <= m)
 	(for i::int from 0 below n
 	     (when (isnt (suffix-candidate:char-ref i) eq?
 			 (subject:char-ref (+ i d)))
@@ -195,8 +196,8 @@
     (let* ((n ::int (infix-candidate:text-length))
 	   (m ::int (subject:text-length))
 	   (d ::int (- m n)))
-      (when (is n <= m) ;>
-	(for k::int from 0 below d
+      (when (is n <= m)
+	(for k::int from 0 to d
 	     (escape-with continue
 	       (for i::int from 0 below n
 		    (when (isnt (infix-candidate:char-ref i)
