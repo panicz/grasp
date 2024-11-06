@@ -231,9 +231,9 @@ convoluted (and I'm so sorry).
   (otherwise #!null 
     (and-let* ((pattern ::TextualComment)
 	       (subject ::TextualComment)
-	       (start ::int (infix-start pattern
-					 subject))
-	       (end ::int (+ start (pattern:text-length))))
+	       (start ::integer (infix-start pattern
+					     subject))
+	       (end ::integer (+ start (pattern:text-length))))
       (Highlight start: (recons start context)
 		 end: (recons end context)))
     (and-let* ((pattern ::ExpressionComment)
@@ -274,9 +274,9 @@ convoluted (and I'm so sorry).
 		       context bindings)
     (and-let* ((pattern ::Textual)
 	       (subject ::Textual)
-	       (start ::int (infix-start pattern
-					 subject))
-	       (end ::int (+ start (pattern:text-length))))
+	       (start ::integer (infix-start pattern
+					     subject))
+	       (end ::integer (+ start (pattern:text-length))))
       (Highlight start: (recons start context)
 		 end: (recons end context)))))
 
@@ -303,7 +303,7 @@ convoluted (and I'm so sorry).
   (otherwise #!null
     (and-let* ((pattern ::TextualComment)
 	       (subject ::TextualComment)
-	       (start ::int (suffix-start pattern subject)))
+	       (start ::integer (suffix-start pattern subject)))
       (recons start context))
     (and-let* ((pattern ::ExpressionComment)
 	       (subject ::ExpressionComment))
@@ -361,7 +361,7 @@ convoluted (and I'm so sorry).
   (otherwise #!null
     (and-let* ((pattern ::TextualComment)
 	       (subject ::TextualComment)
-	       (end ::int (prefix-end pattern subject)))
+	       (end ::integer (prefix-end pattern subject)))
       (recons end context))
     (and-let* ((pattern ::ExpressionComment)
 	       (subject ::ExpressionComment))
@@ -403,7 +403,7 @@ convoluted (and I'm so sorry).
 	 (recons (subject:last-index) context))
     (and-let* ((pattern ::Textual)
 	       (subject ::Textual)
-	       (end ::int (prefix-end pattern subject)))
+	       (end ::integer (prefix-end pattern subject)))
       (recons end context))))
 
 (define (match-suffix-start pattern ::Tile
@@ -416,7 +416,7 @@ convoluted (and I'm so sorry).
 	 (recons (subject:first-index) context))
     (and-let* ((pattern ::Textual)
 	       (subject ::Textual)
-	       (start ::int (suffix-start pattern subject)))
+	       (start ::integer (suffix-start pattern subject)))
       (recons start context))))
 
 (define (match-highlight pattern ::Tile
@@ -536,7 +536,7 @@ convoluted (and I'm so sorry).
 			      (recons closing-index context)
 			      bindings)))
 	       (Highlight start: start end: end))))))
-	(`(,first . ,_)
+       (`(,first-pattern . ,rest-pattern)
 	 (and-let* ((pattern-opening-space ::Space
 					   (pre-head-space
 					    pattern))
@@ -549,7 +549,7 @@ convoluted (and I'm so sorry).
 			   (if (whitespace?
 				pattern-opening-space)
 			       (match-suffix-start
-				first
+				first-pattern
 				(subject:part-at
 				 subject-tile-index)
 				(recons subject-tile-index
@@ -563,10 +563,12 @@ convoluted (and I'm so sorry).
 		    ((integer? subject-index))
 		    ((is subject-index >= 0))
 		    ((even? subject-index)))
-	   (let loop ((front-pattern pattern)
-		      (front-subject (drop (/ subject-index 2)
+	   (let loop ((front-pattern rest-pattern)
+		      (front-subject (drop (+ (/ subject-index 2) 1)
 					   subject))
-		      (index (subject:next-index subject-index))
+		      (index (subject:next-index
+			      (subject:next-index
+			       subject-tile-index)))
 		      (bindings bindings))
 	     (and-let* ((`(,head-pattern . ,tail-pattern)
 			 front-pattern)
@@ -662,13 +664,14 @@ convoluted (and I'm so sorry).
 		     after: cursor)
     (#!null '())
     (highlight::Highlight
-     (let* ((result `(,highlight))
-	    (cone result))
-       (let loop ((cursor highlight:start))
+     (let ((result `(,highlight)))
+       (let loop ((cursor highlight:start)
+		  (cone result))
 	 (match (next-match of: pattern in: document
 			    after: cursor)
 	   (#!null
 	    result)
 	   (next::Highlight
 	    (set-cdr! cone `(,next . ,(cdr cone)))
-	    (loop next:start))))))))
+	    (loop next:start
+		  (cdr cone)))))))))
