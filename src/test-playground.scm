@@ -6,6 +6,8 @@
   (editor interfaces elements)
   (language infix)
   (language match)
+  (language while)
+  (language for)
   (editor types primitive)
   (editor types spaces)
   (editor document parse)
@@ -51,6 +53,18 @@
  ===> 3)
 
 (e.g.
+ (match (parse-string "b rub")
+   (`(,pattern ,subject)
+    (suffix-start pattern subject)))
+ ===> 2)
+
+(e.g.
+ (match (parse-string "c cat")
+   (`(,pattern ,subject)
+    (prefix-end pattern subject)))
+ ===> 1)
+
+(e.g.
  (match (parse-string "in suffixum")
    (`(,pattern ,subject)
     (infix-start pattern subject)))
@@ -91,17 +105,48 @@
 	    (document (string->document "(a b d)"))
 	    ((Highlight start: '(0 3 1 1)
 			end: '(1 3 1 1))
-	     (next-match pattern in: document)))))
-
-
+	     (next-match of: pattern in: document)))))
 
 (e.g.
  (and-let* ((pattern (parse-string "b c"))
 	    (document (string->document "(a b c d)"))
 	    ((Highlight start: start
-			end: end) (next-match pattern
-					      in: document)))
+			end: end) (next-match of: pattern
+					      in: document))
+	    ('(0 3 1 1) start)
+	    ('(1 5 1 1) end))
    (with-eval-access
     (values (the-expression at: start in: document)
 	    (the-expression at: end in: document))))
  ===> b c)
+
+(e.g.
+ (and-let* ((pattern (parse-string "ub"))
+	    (document (string->document "(hubba #;tuba bubba)")))
+   (match/equal? (all-matches of: pattern in: document)
+		 `(,(Highlight start: '(1 1 1 1) end: '(3 1 1 1))
+		   ,(Highlight start: '(1 3 1 1) end: '(3 3 1 1))))))
+
+
+(and-let* ((pattern (parse-string "b c"))
+	   (document (string->document "a b c d (a b c (a b c))")))
+  (match/equal?
+   (all-matches of: pattern in: document)
+   (list
+    (Highlight start: '(0 3 1) end: '(1 5 1))
+    (Highlight start: '(0 3 9 1) end: '(1 5 9 1))
+    (Highlight start: '(0 3 7 9 1) end: '(1 5 7 9 1)))))
+
+(e.g.
+ (and-let* ((pattern (parse-string "b c"))
+	    (document (string->document "(rub cat)")))
+   (match/equal?
+    (all-matches of: pattern in: document)
+    (list
+     (Highlight start: '(2 1 1 1) end: '(1 3 1 1))))))
+
+(parameterize ((debugging? #t))
+ (and-let* ((pattern (parse-string "b c"))
+	    (document (string->document "(rub #;(dub club) cat)")))
+   (DUMP (all-matches of: pattern in: document))))
+
