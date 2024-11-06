@@ -611,16 +611,17 @@ convoluted (and I'm so sorry).
 			   bindings)))))))))
    #!null))
 
-(define/kw (next-match pattern ::list
-		       in: document ::Indexable := (the-document)
+(define/kw (next-match of: pattern ::Tile
+		       in: document ::Tile := (as Tile (the-document))
 		       after: cursor ::Cursor := (the-cursor)
 		       context: context ::Cursor := '())
   ::(maybe Highlight)
+  #;(print "looking for "pattern" in "document
+	 " after "cursor" at "context)
   (escape-with return
     (let* ((current-level ::int (length context))
 	   (reference-level ::int (length cursor))
 	   (pressure (- reference-level current-level 1))
-	   
 	   (limit (document:last-index)))
       (let loop ((index (if (is pressure >= 0)
 			    (let ((initial-index (cursor
@@ -633,21 +634,41 @@ convoluted (and I'm so sorry).
 			     (document:first-index)))))
 	(reset! search-bindings)
 	(let ((item (document:part-at index)))
-	  (and-let* ((result ::Highlight (match-highlight
-					  pattern
-					  document
-					  (recons index context)
-					  search-bindings)))
-	    (return result))
-	  (when (gnu.lists.LList? item)
-	    (let ((result (next-match pattern
-				      in: item
-				      after: cursor
-				      context: (recons
-						index
-						context))))
-	      (when result
-		(return result)))))
+	  (unless (eq? item document)
+	    (and-let* ((result ::Highlight (match-highlight
+					    pattern
+					    (as Tile document)
+					    (recons index context)
+					    search-bindings)))
+	      (return result))
+	    (when (gnu.lists.LList? item)
+	      (let ((result (next-match of: pattern
+					in: item
+					after: cursor
+					context: (recons
+						  index
+						  context))))
+		(when result
+		  (return result))))))
 	(unless (is index eqv? limit)
 	  (loop (document:next-index index))))
       (return #!null))))
+
+(define/kw (all-matches of: pattern
+			in: document := (the-document)
+			after: cursor := '())
+  ::(list-of Highlight)
+  (match (next-match of: pattern in: document
+		     after: cursor)
+    (#!null '())
+    (highlight::Highlight
+     (let* ((result `(,highlight))
+	    (cone result))
+       (let loop ((cursor highlight:start))
+	 (match (next-match of: pattern in: document
+			    after: cursor)
+	   (#!null
+	    result)
+	   (next::Highlight
+	    (set-cdr! cone `(,next . ,(cdr cone)))
+	    (loop next:start))))))))
