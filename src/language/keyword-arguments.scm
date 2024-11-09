@@ -52,7 +52,7 @@
        (with-syntax ((sym (datum->syntax stx
                             (keyword->symbol
                              (syntax->datum #'key)))))
-         #'(%lambda/kw rest req opt (kw ... (sym :: type))
+         #'(%lambda/kw rest req opt (kw ... (sym :: type #!null))
                        (pat ... (pattern sym)) body)))
       
       ((_ (key pattern := init . rest) req opt (kw ...) (pat ...) body)

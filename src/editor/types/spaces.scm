@@ -59,11 +59,11 @@
     (match input
       ('() #!null)
       
-      (`(,first::integer ,next::integer . ,_)
+      #;(`(,first::integer ,next::integer . ,_)
        (loop (cdr input) (+ index first 1)))
 
       (`(,first::integer . ,rest)
-       (loop rest (+ index first)))
+       (loop rest (+ index first 1)))
       
       (`(,first . ,rest)
        (values input index)))))

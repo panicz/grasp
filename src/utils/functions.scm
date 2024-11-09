@@ -7,6 +7,7 @@
 (import (language while))
 (import (language for))
 
+(define-alias predicate procedure)
 
 (define (nearby-int x::real)::int
   (as int (round x)))
@@ -126,8 +127,6 @@
 
 (e.g.
  (is '(1 2) prefix? '(1 2 3 4)))
-
-(define-alias predicate procedure)
 
 (define (any satisfying? elements)
   (escape-with return
