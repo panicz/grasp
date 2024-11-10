@@ -963,3 +963,28 @@
      (and-let* ((,port (skip-characters from: port
 					until-having-read: "kokos")))
        (read-string 5 port)))) ===> "owych")
+
+(define (sort l::list #!optional (< ::predicate <))
+  (match l
+    ('() l)
+    (`(,h . ,t)
+     (and-let* ((smaller greater (partition (is _ < h) t)))
+       `(,@(sort smaller <) ,h ,@(sort greater <))))))
+
+(e.g.
+ (sort '(8 3 7 1 2 5 9 4 6)) ===> (1 2 3 4 5 6 7 8 9)) 
+
+(define (sublists l::list n::int)::(list-of list)
+  (cond ((= n 0)
+	 '(()))
+	((null? l)
+	 '())
+	(else
+	 (and-let* ((`(,first . ,rest) l))
+	   (append! (map (lambda (next)
+			   `(,first . ,next))
+			 (sublists rest (- n 1)))
+		    (sublists rest n))))))
+
+(e.g.
+ (sublists '(a b c) 2) ===> ((a b) (a c) (b c)))
