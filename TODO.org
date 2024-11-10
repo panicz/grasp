@@ -1,3 +1,162 @@
+* 08.10.2024
+
+No dobra, to co robimy?
+
+Chyba trzeba zaczac od zmiany definicji =(the-highlights)=
+
+No to tak:
+- na pewno chcemy, zeby =(the-highlights)= stalo sie
+  parametrem
+- chcemy zeby w =DocumentEditor= pojawilo sie pole
+  "highlights"
+- ale w sumie to chyba nie chcemy =current-highlight=
+  - zamiast tego mozemy sie posilkowac =Highlight:type=
+
+Czyli funkcja =highlight-next!= dzialalaby w taki sposob,
+ze:
+- szukalibysmy na liscie =(the-highlights)= elementu,
+  ktorego typ to =HighlightType:CurrentFinding=
+  - jezeli go znajdziemy, to ustawiamy jego typ na
+    =HighlightType:OtherFinding= i szukamy kolejnego elementu
+    za nim, ktorego typ to =HighlightType:OtherFinding=
+    - jezeli go znajdziemy, to ustawiamy jego typ
+      na =HighlightType:CurrentFinding=, a jezeli nie,
+      to ustawiamy typ pierwszego elementu na liscie
+      =(the-highlights)= o typie =HighlightType:OtherFinding=
+      na =HighlightType:CurrentFinding=
+  - w przeciwnym razie ustawiamy typ pierwszego elementu,
+    ktorego end znajduje sie za kursorem, a ktorego typ
+    to =HighlightType:OtherFinding=, na
+    =HighlightType:CurrentFinding=
+
+- kazdorazowo bysmy centrowali ekran wokol elementu,
+  na ktorym ustawilismy =HighlightType:CurrentFinding=
+
+Czyli plan jest z grubsza taki, zeby dodac do =DocumentEditor=
+pole =highlights=, zeby parametryzowac =the-highlights=
+tym polem, i zeby dodac metody =highlight-next!= oraz
+=highlight-back!=.
+
+Oczywiscie musi tez byc metoda =set-highlights!=.
+
+Pisanie w polu tekstowym powinmo powodowac wywolywanie metody
+=set-highlights!=
+
+* 07.10.2024
+
+no to tak:
+- jak mamy otwarte okienko z wyszukiwaniem, to
+  kazda edycja powinna modyfikowac liste the-highlights
+
+Musimy sobie polozyc wszystkie klocki na stol.
+- Okienko wyszukiwania jest otwierane za pomoca
+   =(ctrl f)=, co jest zdefiniowane w pliku =init.scm=
+- funkcja =open-search-window= jest zdefiniowana
+  w module =(editor input document-editor)=
+- funkcje do wyszukiwania, w szczegolnosci =next-match=
+  oraz =all-matches=,  sa zdefiniowane w
+  =(editor utils search)=
+- funkcja =(the-highlights)= jest zdefiniowana w
+  =(editor document cursor)=
+- aktualnie =(the-highlights)= jest uzywane w
+  =grasp-android=, =grasp-desktop= oraz =text-painter=
+  (pewnie sposob uzycia daloby sie zoptymalizowac,
+  ale moze wyjdzmy od tego co mamy)
+
+No dobra, to troche pracy jednak tutaj bedzie trzeba.
+
+Po pierwsze, zmiana w okienku powinna powodowac zmiane
+highlightow.
+
+Po drugie, lista highlightow powinna byc posortowana.
+
+Po trzecie, powinnismy szybko odfiltrowywac wszystkie
+elementy, ktorych =end= znajduje sie za biezacym
+kontekstem, tj.
+=(document:cursor< #;> context highlight:end)=
+
+Czyli tak: zakladamy, ze:
+- w =DocumentEditor= mamy liste =higlights=, ktorej
+  wartosc jest uzywana jako parametr =(the-highlights)=
+- edycja okienka tworzonego w =open-search-window=
+  powoduje aktualizacje listy =highlights=
+- chcielibysmy, zeby w trakcie renderowania przeszukiwac
+  tylko te fragmenty =the-highlights=, ktorych koniec
+  znajduje sie za biezacym kontekstem
+- w trakcie renderowania nie interesuja nas te
+  podswietlenia, ktorych =start < context= (a tak naprawde
+  ktorych =(suffix start) < context=) ;>
+- musimy miec jeszcze =current-highlight=. Wydaje sie,
+  ze byloby rozsadnie, zeby to byl indeks
+- do tego trzeba jeszcze uwzglednic =(the-selection)=,
+  i to w taki sposob, zeby indeks zachowywal sie
+  poprawnie
+
+Pytanie projektowe: czy chcemy rownoczesnie obslugiwac
+indeks oraz selekcje?
+
+(w zasadzie czemu nie)
+
+* 06.10.2024
+
+no to dzisiaj bysmy sprobowali zrobic tak, zeby pattern
+#+BEGIN_SRC scheme
+b c
+#+END_SRC
+
+wpasowywal sie w wyrazenie
+
+#+BEGIN_SRC scheme
+  (rub #;(dub club) cat)
+#+END_SRC
+
+dwukrotnie, tzn. zeb ten komentarz w srodku rowniez dzialal.
+
+(pytanie czy to ma sens?)
+
+a i jeszcze poza tym bysmy podopasowywali komentarze
+
+No dobra. Widac, ze mamy problemy:
+- przeszukiwanie komentarzy wiesza nam system
+- wielokrotne wystapienia w tym samym stringu
+  nie sa prawidlowo wynajdywane
+
+Ten pierwszy problem sprobowalibysmy jeszcze
+rozwiazac, ale ten drugi na razie olewamy.
+
+W sumie mozemy na razie z tym zyc.
+
+I teraz sciezki dalszego rozwoju mamy zasadniczo
+dwie: pierwsza to implementacja TeleGRASPa z nowa
+struktura danych (a takze - moze - wlasnego
+kompilatora z poprawionym systemem typow?)
+
+I tej pierwszej sciezki nie bedziemy na razie
+eksplorowac.
+
+Natomias drugi plan jest taki, zeby - po poprawkach
+w obsludze komentarzy (zeby sie chociaz nie wieszalo)
+sprzac te nasze funkcje wyszukujace z interfejsem
+uzytkownika, czyli w skrocie chodziloby o to, zeby
+- wyszukany wzorzec byl podswietlony
+- guziki (nastepny/poprzedni) powodowaly zmiane
+  pozycji "kamery"
+- dodac rowniez mozliwosc zamieniania patternow
+
+
+* 05.10.2024
+
+Przez pare najblizszych dni mozemy sobie odpuscic aktualizacje
+TODO, i skupic sie na pisaniu testow na test-playground.scm.
+
+(mozemy tez sobie nie odpuszczac)
+
+Bo co chcemy przetestowac:
+
+- szuknie wszystkich wystapien wzorca w dokumencie
+- w tym rowniez z komentarzami
+- jak rowniez stringami
+
 * 04.10.2024
 
 No to dzisiaj dalej dziubiemy =match-highlight=, tym razem
