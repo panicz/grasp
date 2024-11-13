@@ -107,42 +107,43 @@
 
 (define-object (Resize box::cons path::Cursor anchor::real
 		       left::real top::real
-		       editor::Editor)::Drag
+		       editor::Editor)
+  ::Drag
 
-		       (define initial ::Extent (copy (extent+ box)))
+  (define initial ::Extent (copy (extent+ box)))
 
-		       (define width ::real initial:width)
-		       (define height ::real initial:height)
+  (define width ::real initial:width)
+  (define height ::real initial:height)
 
-		       (define ending ::LineEnding
-			 (line-ending-embracing anchor #;from box))
+  (define ending ::LineEnding
+    (line-ending-embracing anchor #;from box))
 
-		       #;(define p ::Point
-		       (let-values (((xe ye) (the-transform-stack:inside-out
-		       (+ left ending:reach
-		       (painter:paren-width))
-		       (+ top anchor))))
-		       (Point xe ye #xff0000)))
+  #;(define p ::Point
+  (let-values (((xe ye) (the-transform-stack:inside-out
+  (+ left ending:reach
+  (painter:paren-width))
+  (+ top anchor))))
+  (Point xe ye #xff0000)))
 
-		       (define (move! x::real y::real dx::real dy::real)::void
-			 (safely
-			  (let*-values (((zx zy) (editor:outside-in 0 0))
-					((dx* dy*) (editor:outside-in dx dy)))
-			    (set! width (+ width (- dx* zx)))
-			    (set! height (+ height (- dy* zy)))
-			    (resize! box width height ending))))
+  (define (move! x::real y::real dx::real dy::real)::void
+    (safely
+     (let*-values (((zx zy) (editor:outside-in 0 0))
+		   ((dx* dy*) (editor:outside-in dx dy)))
+       (set! width (+ width (- dx* zx)))
+       (set! height (+ height (- dy* zy)))
+       (resize! box width height ending))))
 
-		       (define (drop! x::real y::real vx::real vy::real)::void
-			 #;(screen:remove-overlay! p)
-			 (let ((final ::Extent (extent+ box))
-			       (history ::History (history (the-document))))
-			   (when (isnt final equal? initial)
-			     (history:record! (ResizeBox at: path
-							 from: initial
-							 to: (copy final)
-							 with-anchor: anchor)))))
-		       #;(screen:add-overlay! p)
-		       )
+  (define (drop! x::real y::real vx::real vy::real)::void
+    #;(screen:remove-overlay! p)
+    (let ((final ::Extent (extent+ box))
+	  (history ::History (history (the-document))))
+      (when (isnt final equal? initial)
+	(history:record! (ResizeBox at: path
+				    from: initial
+				    to: (copy final)
+				    with-anchor: anchor)))))
+  #;(screen:add-overlay! p)
+  )
 
 (define-object (Translate target::Transform)::Drag
   (define (move! x::real y::real dx::real dy::real)::void
@@ -405,7 +406,8 @@
   (define post-draw-actions ::java.util.List
     (java.util.ArrayList))
 
-  (define (add-post-draw-action! action::(maps () to: void))::void
+  (define (add-post-draw-action! action::(maps () to: void))
+    ::void
     (post-draw-actions:add (post-draw-actions:size) action))
 
   (define document ::Document (Document (empty) #!null))
@@ -414,6 +416,74 @@
   (define transform ::Transform ((default-transform)))
 
   (define selection-range ::integer 0)
+  
+  (define highlights ::(list-of Highlight)
+    '()) ;; tutaj moze dodajmy
+  
+  (define (highlight-next!)::void
+    (and-let* ((`(,current::Highlight . ,rest)
+		(first-cell
+		 (lambda (cell::pair)
+		   ::boolean
+		   (and-let*
+		       ((`(,(Highlight
+			     type:
+			     HighlightType:CurrentFinding)
+			   . ,_) cell))))
+		 highlights)))
+      (set! current:type HighlightType:OtherFinding)
+      (and-let* ((next (or
+			(find (is _:type eq?
+				  HighlightType:OtherFinding)
+			      rest)
+			(find (is _:type eq?
+				  HighlightType:OtherFinding)
+			      highlights))))
+	;; tutaj jeszcze powinnismy wycentrowac widok
+	(set! next:type HighlightType:CurrentFinding))))
+ 
+  (define findings-highlights ::EnumSet
+    (EnumSet:of HighlightType:CurrentFinding
+		HighlightType:OtherFinding))
+  
+  (define (highlight-back!)::void
+    (or
+     (and-let* ((`(,previous::Highlight . ,rest)
+		 (first-cell
+		  (lambda (cell)
+		    (and-let*
+			((`(,(Highlight
+			      type:
+			      HighlightType:OtherFinding)
+			    . ,rest) cell)
+			 (`(,(Highlight
+			      type:
+			      HighlightType:CurrentFinding)
+			    . ,_) (drop-while
+				   (isnt _:type in
+					 findings-highlights)
+				   rest)))))
+		  highlights))
+		(current::Highlight
+	   (find (is _:type eq?
+		     HighlightType:CurrentFinding)
+		 rest)))
+       (set! previous:type HighlightType:CurrentFinding)
+       (set! current:type HighlightType:OtherFinding)
+       	;; tutaj jeszcze powinnismy wycentrowac widok
+       #t)
+     (and-let* ((`(,current::Highlight . ,rest)
+		 (first-cell (is _:type eq?
+				 HighlightType:CurrentFinding)
+			     highlights))
+		(`(,last::Highlight . ,_)
+		 (last-cell (is _:type eq?
+				HighlightType:OtherFinding)
+			    rest)))
+       (set! current:type HighlightType:OtherFinding)
+       (set! last:type HighlightType:OtherFinding)
+       	;; tutaj jeszcze powinnismy wycentrowac widok
+       #t)))
 
   (define (drop-at! x::real y::real object::pair)::boolean
     (and-let* ((items ::cons object)
@@ -463,7 +533,7 @@
 			      ((isnt first eq? document)))
 		     first)
 		   document)))
-
+  
   (define editing-context
     (attribute+ (document::Document)
 		::DocumentEditingContext
@@ -503,22 +573,24 @@
     (safely
      (switch-to! (open-document-file file))))
 
-  (define (load-from-port port::gnu.kawa.io.InPort source)::void
+  (define (load-from-port port::gnu.kawa.io.InPort source)
+    ::void
     (safely
      (switch-to! (load-document-from-port port source))))
 
   (define (draw-debug-cursor-points!)
     (safely
-     (and-let* ((position ::Position (invoke (this)
-					     'marked-cursor-position))
-		(left ::real position:left)
-		(top ::real position:top)
-		(column ::real (invoke-special CursorMarker (this)
-					       'cursor-column))
-		(previous ::real (invoke-special CursorMarker (this)
-						 'to-previous-line))
-		(current ::real (invoke-special CursorMarker (this)
-						'to-next-line)))
+     (and-let*
+	 ((position ::Position (invoke (this)
+				       'marked-cursor-position))
+	  (left ::real position:left)
+	  (top ::real position:top)
+	  (column ::real (invoke-special CursorMarker (this)
+					 'cursor-column))
+	  (previous ::real (invoke-special CursorMarker (this)
+					   'to-previous-line))
+	  (current ::real (invoke-special CursorMarker (this)
+					  'to-next-line)))
        #;(painter:draw-point! left top #x000000)
        #;(painter:draw-point! column top #xff0000)
        (painter:draw-point! column (+ top current) #x00ff00)
@@ -531,24 +603,26 @@
 		   (the-selection-range selection-range))
       (with-post-transform transform
 	(with-view-edges-transformed transform
-	  (transform:within painter
-			    (lambda ()
-			      (document:draw! '())
-			      (for action::procedure in post-draw-actions
-				(action))
-			      (post-draw-actions:clear)
-			      (draw-debug-cursor-points!)
-			      ))))))
+	  (transform:within
+	   painter
+	   (lambda ()
+	     (document:draw! '())
+	     (for action::procedure in post-draw-actions
+	       (action))
+	     (post-draw-actions:clear)
+	     (draw-debug-cursor-points!)
+	     ))))))
 
   (define (tap! finger::byte #;at xe::real ye::real)::boolean
     (with-post-transform transform
       (with-view-edges-transformed transform
-	(parameterize/update-sources ((the-document document)
-					; trzeba dojsc dlaczego to nie dziala
-				      #;(the-cursor cursor)
-				      (the-editor (this))
-				      #;(the-selection-range
-				      selection-range))
+	(parameterize/update-sources
+	    ((the-document document)
+	     ;; trzeba dojsc dlaczego to nie dziala
+	     #;(the-cursor cursor)
+	     (the-editor (this))
+	     #;(the-selection-range
+	     selection-range))
 	  (and-let* ((x y (transform:outside-in xe ye))
 		     (target-cursor (cursor-under x y))
 		     (target (the-expression
@@ -745,7 +819,6 @@
 		     (parent ::Element (the-expression
 					at: subpath))
 		     (target ::Element (parent:part-at tip)))
-	    (DUMP parent)
 	    (cond
 	     ((Maximizable? parent)
 	      (screen:maximize! parent))
@@ -754,7 +827,8 @@
 	      (painter:play!
 	       (Transition of: transform
 			   from: (copy transform)
-			   to: (let ((target ::Transform (copy transform)))
+			   to: (let ((target ::Transform
+					     (copy transform)))
 				 (target:set-angle! 0.0)
 				 target)
 			   around: (Position left: xe top: ye)
@@ -765,13 +839,18 @@
 	      (painter:play!
 	       (Transition of: transform
 			   from: (copy transform)
-			   to: (let ((target ::Transform (copy transform))
-				     (document ::Extent (extent+ document)))
+			   to: (let ((target ::Transform
+					     (copy transform))
+				     (document ::Extent
+					       (extent+
+						document)))
 				 (target:set-left! 0.0)
 				 (target:set-top! 0.0)
 				 (target:set-scale!
-				  (min (/ (screen:width) document:width)
-				       (/ (screen:height) document:height)))
+				  (min (/ (screen:width)
+					  document:width)
+				       (/ (screen:height)
+					  document:height)))
 				 target)
 			   duration/ms: 500))
 	      #t)
@@ -961,9 +1040,10 @@
 
   (define (split-beside! line::Area)::Embeddable
     (if (can-split-beside? line)
-	(let*-values (((ratio::real) (/ (/ (+ line:left line:right)
-					   2)
-					(the-pane-width)))
+	(let*-values (((ratio::real)
+		       (/ (/ (+ line:left line:right)
+			     2)
+			  (the-pane-width)))
 		      ((new::DocumentEditor) (copy (this)))
 		      ((split::Split) (SplitBeside first: (this)
 						   last: new
