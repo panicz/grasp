@@ -974,7 +974,7 @@
 (e.g.
  (sort '(8 3 7 1 2 5 9 4 6)) ===> (1 2 3 4 5 6 7 8 9)) 
 
-(define (sublists l::list n::int)::(list-of list)
+(define (sublists l::list n::int)::list
   (cond ((= n 0)
 	 '(()))
 	((null? l)
