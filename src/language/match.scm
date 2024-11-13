@@ -68,7 +68,7 @@
   (lambda (stx)
     (syntax-case stx (quasiquote
 		      unquote quote unquote-splicing
-		      and _ %typename ::)
+		      and _ %typename :: $lookup$)
       ((match-clause () condition bindings actions ... alternative)
        #'(check/unique condition bindings #f () ()
 		       actions ... alternative))
@@ -168,6 +168,16 @@
                        bindings
                        actions ... alternative))
 
+      ((match-clause ((object:key root) . rest)
+                     (and conditions ...)
+                     bindings
+                     actions ... alternative)
+       #'(match-clause rest
+                       (and conditions ... (match/equal? root
+							 object:key))
+                       bindings
+                       actions ... alternative))
+      
       ((match-clause ((`(left::type . right) root) . rest)
                      (and conditions ...)
                      bindings
