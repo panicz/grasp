@@ -17,6 +17,38 @@
     (apply action args)
     (apply times (- n 1) action args)))
 
+(define (insert-ordered! item #;into target ::list #!optional (< <))::list
+  (let loop ((input target))
+    (match input
+      ('() `(,item))
+      (`(,head . ,tail)
+       (cond
+	((is item < head)
+	 (set-cdr! input `(,head . ,tail))
+	 (set-car! input  item)
+	 target)
+	((null? tail)
+	 (set-cdr! input `(,item))
+	 target)
+	(else
+	 (loop tail)))))))
+(e.g.
+ (let ((l (list 1 3 5)))
+   (insert-ordered! 0 l)) ===> (0 1 3 5))
+
+(e.g.
+ (let ((l (list 1 3 5)))
+   (insert-ordered! 2 l)) ===> (1 2 3 5))
+
+(e.g.
+ (let ((l (list 1 3 5)))
+   (insert-ordered! 4 l)) ===> (1 3 4 5))
+
+(e.g.
+ (let ((l (list 1 3 5)))
+   (insert-ordered! 7 l)) ===> (1 3 5 7))
+
+
 (define (iterations n::int f::procedure x)
   (if (is n <= 0)
       x
