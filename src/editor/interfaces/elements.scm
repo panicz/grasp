@@ -406,8 +406,14 @@ operate on cursors.
   (split-below! line::Area)::Embeddable
   )
 
-(define-interface Editor (Embeddable java.lang.Cloneable WithCursor)
-  (add-post-draw-action! action::(maps () to: void))::void
+(define-interface Editor (Embeddable
+			  java.lang.Cloneable
+			  WithCursor)
+  (add-post-draw-action! action::(maps () to: void))
+  ::void
+  (expand-selection-right!)::void
+  (expand-selection-left!)::void
+  (update-cursor-column!)::void
   )
 
 (define-object (NullPane)::Embeddable
@@ -462,6 +468,15 @@ operate on cursors.
   (define (add-post-draw-action! action::(maps () to: void))::void
     (action))
 
+  (define (expand-selection-right!)::void
+    (values))
+
+  (define (expand-selection-left!)::void
+    (values))
+
+  (define (update-cursor-column!)::void
+    (values))
+  
   (define marked ::Position
     (Position left: 0
 	      top: 0))

@@ -23,13 +23,13 @@
 (import (editor types extensions extensions))
 (import (editor types extensions quotations))
 
-
-(define (update-cursor-column!)
+(define (update-cursor-column!)::void
   (let* ((cursor-position ::Position (painter:marked-cursor-position))
 	 (editor ::Editor (the-editor)))
     (editor:add-post-draw-action!
      (lambda ()
-       (editor:set-cursor-column! cursor-position:left)))))
+       (editor:set-cursor-column!
+	cursor-position:left)))))
 
 (define (move-cursor-right!)
   (set! (the-cursor) (cursor-advance))
@@ -57,15 +57,13 @@
 	    (recons* (parent:last-index) top root))))
     (update-cursor-column!)))
 
-(define (expand-selection-right!)
-  (set! (the-cursor) (cursor-advance))
-  (set! (the-selection-range) (- (the-selection-range) 1))
-  (update-cursor-column!))
+(define (expand-selection-right!)::void
+  (let* ((editor ::Editor (the-editor)))
+    (editor:expand-selection-right!)))
 
-(define (expand-selection-left!)
-  (set! (the-cursor) (cursor-retreat))
-  (set! (the-selection-range) (+ (the-selection-range) 1))
-  (update-cursor-column!))
+(define (expand-selection-left!)::void
+  (let* ((editor ::Editor (the-editor)))
+    (editor:expand-selection-left!)))
 
 (define (move-cursor-up!)
   (let* ((editor ::Editor (the-editor))
