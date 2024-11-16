@@ -1,3 +1,52 @@
+* 16.11.2024
+
+Bysmy sie zajeli zmiana definicji =the-highlights=, ale 
+trzeba jeszcze uwzglednic =DocumentEditor:selection-highlight:start/stop=
+w ruchu kursora.
+
+Najlepiej by bylo zmienic definicje =(move-cursor-left!)= i =(move-cursor-right!)=
+tak zeby mialy postac:
+
+#+BEGIN_SRC scheme
+
+(define (move-cursor-left!)::void
+  (and-let* ((editor ::Editor (the-editor)))
+    (editor:move-cursor-left!)))
+
+(define (move-cursor-right!)::void
+  (and-let* ((editor ::Editor (the-editor)))
+    (editor:move-cursor-right!)))
+
+(define (move-cursor-up!)::void
+  (and-let* ((editor ::Editor (the-editor)))
+    (editor:move-cursor-up!)))
+
+(define (move-cursor-down!)::void
+  (and-let* ((editor ::Editor (the-editor)))
+    (editor:move-cursor-down!)))
+
+(define (unnest-cursor-right!)::void
+  (and-let* ((editor ::Editor (the-editor)))
+    (editor:unnest-cursor-right!)))
+
+#+END_SRC
+
+Oczywiscie trzeba wtedy wzbogacic interfejs Editor
+o te cztery metody, ale co to dla nas :D
+
+Pytanie czy przy okazji chcemy tez przeniesc
+=unnest-cursor-right!=, ale chyba raczej tak.
+
+A w ogolnosci moze tez warto sobie pomyslec
+o tym, jak wygladalaby idealna architektura
+dla takiego zorientowanego obiektowo systemu
+w kwestii propagacji zdarzen i tworzenia skrotow
+klawiszowych.
+
+No ale jednakowoz wszelako wracajac do kwestii
+refaktoryzacji, wiele wskazuje na to, ze =selection-range=
+bedzie mozna wywalic.
+
 * 15.11.2024
 
 No to ta refaktoryzacja z grubsza jest zrobiona.
