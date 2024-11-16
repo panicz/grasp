@@ -1,4 +1,108 @@
-* 08.10.2024
+* 15.11.2024
+
+No to ta refaktoryzacja z grubsza jest zrobiona.
+To teraz chcemy:
+- dodac do =DocumentEditor= pole =selection-highlight=
+- dodac metode =set-highlights!=, ktora wstawia
+  =selection-highlight= do argumentu, i ustawia go
+  jako =highlights=
+- do =highlight-next!= i =highlight-back!= dodac
+  centrowanie ekranu
+- dodac przy wpisywaniu do edytora otwieranego
+  na =(ctrl f)= (czyli zdaje sie =open-search-window=)
+  wywolywanie =set-highlights!= przy zmianie wartosci
+  pola tekstowego
+
+Aha no i trzeba zmienic definicje =the-highlights=.
+I w ogole sporo jeszcze trzeba zrobic :/
+
+No a jak to zrobimy, to co dalej?
+
+- bledy edycji
+- juz zaczac edytowac GRASP w GRASP
+- zamykanie i otwieranie wyrazen (i obracanie i skalowanie?)
+- normalizacja wciec przy zapisie i odczycie
+- serializacja magicznych pudelek
+- scroll bary, "normalna" selekcja tekstu
+- wersja przegladarkowa
+- wydanie wersji 1.0 (i do F-droid)
+
+- "How Was This Book Written"
+- algorytm A*
+- Pautyalna Kutasa 2D - moze na Spring Lisp Game Jam?
+
+* 14.11.2024
+
+No i co dzisiaj robimy?
+Zacznijmy od zaimplementowania metod
+=expand-selection-right!= i =expand-selection-left!=
+w klasie =DocumentEditor=.
+
+Trzeba zmienic wywolanie parameterize/update-soruces,
+ale najpierw przekonwertowac to do makra, powiedzmy,
+=with-editor-context=.
+
+* 13.11.2024
+
+Dzisiaj udalo sie naprawic niespodziewanego buga w
+pattern matcherze.  Teraz dobrze by bylo zaimplementowac
+=set-highlights!= - w taki sposob, zeby samo dodawalo
+highlighta od biezacego =selection-range='a.
+
+I takze zeby zmiana selekcji to aktualizowala.
+
+A w dalszym kroku bysmy zmienili ~(the-highlights)~
+w taki sposob, zeby odnosil sie do highlightsow
+z =DocumentEditor= i odpowiednio sparametryzowali
+wszystkie funkcje.
+
+No, ale w tym celu musimy okreslic, jak to sie
+teraz odbywa.
+
+W =init.scm= mozemy znalezc cos takiego:
+
+#+BEGIN_SRC scheme
+(set-key! '(shift left) expand-selection-left!)
+(set-key! '(shift right) expand-selection-right!)
+#+END_SRC
+
+natomiast odpowiednie funkcje sa zdefiniowane
+w =src/editor/document/editor-operations.scm=
+przy czym owe definicje maja postac:
+
+#+BEGIN_SRC scheme
+  (define (expand-selection-right!)
+    (set! (the-cursor) (cursor-advance))
+    (set! (the-selection-range) (- (the-selection-range) 1))
+    (update-cursor-column!))
+
+  (define (expand-selection-left!)
+    (set! (the-cursor) (cursor-retreat))
+    (set! (the-selection-range) (+ (the-selection-range) 1))
+    (update-cursor-column!))
+#+END_SRC
+
+Natomiast zamiast tego bysmy chcieli miec cos w rodzaju
+
+#+BEGIN_SRC scheme
+  (define (expand-selection-right!)::void
+    (and-let* ((editor ::DocumentEditor (the-editor)))
+      (editor:expand-selection-right!)))
+
+  (define (expand-selection-left!)::void
+    (and-let* ((editor ::DocumentEditor (the-editor)))
+      (editor:expand-selection-left!)))
+#+END_SRC
+
+
+* 12.11.2024
+
+No dobra. To moze przymierzmy sie do wdrozenia tych zmian,
+co to o nich pisalismy w piatek.
+
+Ok, to juz mamy =highlight-next!= i =highlight-back!=
+
+* 08.11.2024
 
 No dobra, to co robimy?
 
@@ -42,7 +146,7 @@ Oczywiscie musi tez byc metoda =set-highlights!=.
 Pisanie w polu tekstowym powinmo powodowac wywolywanie metody
 =set-highlights!=
 
-* 07.10.2024
+* 07.11.2024
 
 no to tak:
 - jak mamy otwarte okienko z wyszukiwaniem, to
@@ -97,7 +201,7 @@ indeks oraz selekcje?
 
 (w zasadzie czemu nie)
 
-* 06.10.2024
+* 06.11.2024
 
 no to dzisiaj bysmy sprobowali zrobic tak, zeby pattern
 #+BEGIN_SRC scheme
@@ -144,7 +248,7 @@ uzytkownika, czyli w skrocie chodziloby o to, zeby
 - dodac rowniez mozliwosc zamieniania patternow
 
 
-* 05.10.2024
+* 05.11.2024
 
 Przez pare najblizszych dni mozemy sobie odpuscic aktualizacje
 TODO, i skupic sie na pisaniu testow na test-playground.scm.
@@ -157,13 +261,13 @@ Bo co chcemy przetestowac:
 - w tym rowniez z komentarzami
 - jak rowniez stringami
 
-* 04.10.2024
+* 04.11.2024
 
 No to dzisiaj dalej dziubiemy =match-highlight=, tym razem
 przypadek dla n > 1. Po tym zostanie nam jeszcze =match-infix=,
 i bedziemy to mogli sprobowac otestowac i zintegrowac.
 
-* 03.10.2024
+* 03.11.2024
 
 A jednak w =match-highlight= jest jeszcze do obsluzenia
 =match-infix=.
@@ -182,7 +286,7 @@ jego samego.
 Naomiast opcja budowania GRASPa z GRASPa na mobilce nie musi
 byc publicznie dostepna.
 
-* 02.10.2024
+* 02.11.2024
 
 Sprobujmy chociaz zaimplemenrowac =space-prefix-end=.
 I tutaj oczywiscie powinno byc tak, jak =space-suffix-start=,
@@ -200,7 +304,7 @@ n > 1.
 Pytanie, czy bylibysmy w stanie uproscic nasz kod.
 
 
-* 01.10.2024
+* 01.11.2024
 
 No dobra, to wyglada na to, ze jestesmy blisko tego,
 zeby miec wszystkie klocki we wlasciwych miejscach.

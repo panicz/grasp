@@ -5,11 +5,18 @@
 ;; like `parameterize`, but updates parameter sources
 ;; after the execution of the inner block
 
-(define-syntax-rule (parameterize/update-sources ((param source) ...)
-		      body + ...)
-  (parameterize ((param source) ...)
-    (try-finally
-     (begin body + ...)
-     (begin (set! source (param)) ...))))
-
-
+(define-syntax parameterize/update-sources
+  (lambda (stx)
+    (syntax-case stx ()
+      ((_ ((param source) ...) body + ...)
+       (with-syntax (((previous-value ...)
+		      (generate-temporaries
+		       #'(source ...))))
+	 #'(parameterize ((param source) ...)
+	     (let ((previous-value source) ...)
+	       (try-finally
+		(begin body + ...)
+		(begin
+		  (when (eqv? previous-value source)
+		    (set! source (param)))
+		  ...)))))))))
