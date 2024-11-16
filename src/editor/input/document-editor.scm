@@ -443,6 +443,11 @@
 	 (invoke-special CursorMarker (this)
 			 'set-cursor-column!
 			 cursor-position:left)))))
+
+  (define selection-highlight ::Highlight
+    (Highlight type: HighlightType:Selection
+	       start: cursor
+	       end: cursor))
   
   (define (expand-selection-right!)::void
     (set! cursor (cursor-advance cursor document))
