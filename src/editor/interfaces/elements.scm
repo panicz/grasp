@@ -411,6 +411,12 @@ operate on cursors.
 			  WithCursor)
   (add-post-draw-action! action::(maps () to: void))
   ::void
+  (move-cursor-left!)::void
+  (move-cursor-right!)::void
+  (move-cursor-up!)::void
+  (move-cursor-down!)::void
+  (unnest-cursor-right!)::void
+  
   (expand-selection-right!)::void
   (expand-selection-left!)::void
   (update-cursor-column!)::void
@@ -468,6 +474,21 @@ operate on cursors.
   (define (add-post-draw-action! action::(maps () to: void))::void
     (action))
 
+  (define (move-cursor-left!)::void
+    (values))
+
+  (define (move-cursor-right!)::void
+    (values))
+
+  (define (move-cursor-up!)::void
+    (values))
+
+  (define (move-cursor-down!)::void
+    (values))
+
+  (define (unnest-cursor-right!)::void
+    (values))
+  
   (define (expand-selection-right!)::void
     (values))
 

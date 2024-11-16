@@ -448,14 +448,87 @@
     (Highlight type: HighlightType:Selection
 	       start: cursor
 	       end: cursor))
+
+  (define (move-cursor-up!)::void
+    (let ((current ::Position (invoke-special
+			       CursorMarker (this)
+			       'marked-cursor-position)))
+      (set! cursor
+	    (cursor-under (invoke-special
+			   CursorMarker (this)
+			   'cursor-column)
+			  (- current:top
+			     (invoke-special
+			      CursorMarker (this)
+			      'to-previous-line))))
+      (set! selection-highlight:start cursor)
+      (set! selection-highlight:end cursor)
+      (set! selection-range 0)))
+
+  (define (move-cursor-down!)::void
+    (let ((current ::Position (invoke-special
+			       CursorMarker (this)
+			       'marked-cursor-position)))
+      (set! cursor
+	    (cursor-under (invoke-special
+			   CursorMarker (this)
+			   'cursor-column)
+			  (+ current:top
+			     (invoke-special
+			      CursorMarker (this)
+			      'to-next-line))))
+      (set! selection-highlight:start cursor)
+      (set! selection-highlight:end cursor)      
+      (set! selection-range 0)))
   
-  (define (expand-selection-right!)::void
+  (define (move-cursor-right!)::void
     (set! cursor (cursor-advance cursor document))
+    (set! selection-highlight:start cursor)
+    (set! selection-highlight:end cursor)
+    (set! (the-selection-range) 0)
+    (update-cursor-column!))
+
+  (define (move-cursor-left!)::void
+    (set! cursor (cursor-retreat cursor document))
+    (set! selection-highlight:start cursor)
+    (set! selection-highlight:end cursor)
+    (set! selection-range 0)
+    (update-cursor-column!))
+
+  (define (unnest-cursor-right!)::void
+    (and-let* ((`(,tip ,top . ,root) cursor)
+	       (parent ::Indexable (cursor-ref document root))
+	       (target ::Indexable (parent:part-at top))
+	       (item ::Indexable (target:part-at tip)))
+      ;;(assert (eq? target item))
+      (set! cursor
+	    (cond
+	     ((Textual? item)
+	      (recons (parent:last-index) root))
+	     ((eqv? tip (parent:last-index))
+	      (recons (parent:last-index) root))
+	     (else
+	      (recons* (parent:last-index) top root))))
+      (set! selection-highlight:start cursor)
+      (set! selection-highlight:end cursor)
+      (set! selection-range 0)
+      (update-cursor-column!)))
+
+  (define (expand-selection-right!)::void
+    (let ((new-cursor (cursor-advance cursor document)))
+      (if (equal? cursor selection-highlight:end)
+	  (set! selection-highlight:end new-cursor)
+	  (set! selection-highlight:start new-cursor))
+      (set! cursor new-cursor))
     (set! selection-range (- selection-range 1))
     (update-cursor-column!))
 
   (define (expand-selection-left!)::void
-    (set! cursor (cursor-retreat cursor document))
+    (let ((new-cursor (cursor-retreat cursor document)))
+      (if (equal? cursor selection-highlight:start)
+	  (set! selection-highlight:start new-cursor)
+	  (set! selection-highlight:end new-cursor))
+      (set! cursor new-cursor))
     (set! selection-range (+ selection-range 1))
     (update-cursor-column!))
   
