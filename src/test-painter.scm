@@ -6,6 +6,7 @@
   (language define-type)
   (language define-object)
   (language while)
+  (language fundamental)
   (utils conversions)
   (editor interfaces painting)
   (editor interfaces elements)
@@ -338,16 +339,19 @@ step|# (- n 1)))))
 ╰   ╰       ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
 ")
 
-
 (e.g.
- (parameterize ((the-cursor (cursor 6 1 1 1))
-		(the-selection-range -6))
-   (grasped "\
+ (let ((selection (Highlight start: (cursor 0 1 1 1)
+			     end: (cursor 6 1 1 1)
+			     type: HighlightType:Selection)))
+   (parameterize ((the-cursor (cursor 6 1 1 1))
+		  (the-highlights `(,selection))
+		  (the-selection selection))
+     (grasped "\
 (define (! n)
   (if (<= n 0)
       1
       (* n (! (- n 1)))))
-")) ===> "
+"))) ===> "
 ╭        ╭     ╮                      ╮
 │ define │ ! n │                      │
 │ ~~~~~~^╰     ╯                      │
@@ -364,14 +368,18 @@ step|# (- n 1)))))
 
 
 (e.g.
- (parameterize ((the-cursor (cursor 4 1 1 1))
-		(the-selection-range -3))
-   (grasped "\
+ (let ((selection (Highlight start: (cursor 0 1 1 1)
+			     end: (cursor 6 1 1 1)
+			     type: HighlightType:Selection)))
+   (parameterize ((the-cursor (cursor 4 1 1 1))
+		  (the-highlights `(,selection))
+		  (the-selection selection))
+     (grasped "\
 (define (! n)
   (if (<= n 0)
       1
       (* n (! (- n 1)))))
-")) ===> "
+"))) ===> "
 ╭        ╭     ╮                      ╮
 │ define │ ! n │                      │
 │  ~~~^  ╰     ╯                      │

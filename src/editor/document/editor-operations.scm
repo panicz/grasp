@@ -88,7 +88,8 @@
 	     (`(,top . ,root) stem)
 	     (parent ::Indexable (cursor-ref (the-document) root))
 	     (target ::Indexable (parent:part-at top))
-	     (selection-start selection-end (the-selection))
+	     ((Highlight start: selection-start
+			 end: selection-end) (the-selection))
 	     (`(,selection-start-tip . ,selection-start-stem)
 	      selection-start)
 	     (`(,selection-end-tip . ,selection-end-stem)
@@ -108,7 +109,10 @@
 	   (isnt selection-start-tip equal? selection-end-tip)
 	   (integer? selection-start-tip)
 	   (integer? selection-end-tip))
-      (set! (the-selection-range) 0)
+      (and-let* ((selection ::Highlight (the-selection)))
+	(set! selection:start cursor)
+	(set! selection:end cursor))
+
       (if (and (equal? (target:first-index) selection-start-tip)
 	       (equal? (target:last-index) selection-end-tip))
 	  (record&perform!
@@ -260,7 +264,8 @@
 	 (move-cursor-right!)
 	 (delete-forward!))))
      (else
-      (when (zero? (the-selection-range))
+      (and-let* ((selection ::Highlight (the-selection))
+		 ((equal? selection:start selection:end)))
 	(move-cursor-right!))
       (delete-backward!)))))
 
@@ -276,7 +281,8 @@
 (define (insert-character! c::char)::boolean
   (and-let* (((isnt c eqv? #\null))
 	     (`(,tip ,top . ,subcursor) (the-cursor))
-	     (selection-start selection-end (the-selection))
+	     ((Highlight start: selection-start
+			 end: selection-end) (the-selection))
 	     (`(,selection-start-tip . ,selection-start-stem)
 	      selection-start)
 	     (`(,selection-end-tip . ,selection-end-stem)
@@ -305,7 +311,6 @@
 	  (for i from selection-start-tip below selection-end-tip
 	       (string-set! selection (- i selection-start-tip)
 			    (source:char-ref i)))
-	  (set! (the-selection-range) 0)
 	  (record&perform!
 	   (RemoveCharacter list: selection
 			    before: selection-end))

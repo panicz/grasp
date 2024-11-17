@@ -45,7 +45,7 @@
   (SystemClipboardMissing))
 
 (define/kw (cut-selection! at: cursor ::Cursor := (the-cursor)
-			   to: range ::integer := (the-selection-range)
+			   to: selection ::Highlight := (the-selection)
 			   in: document := (the-document))
   ::void
   (and-let* ((clipboard ::Clipboard (the-system-clipboard))
@@ -59,13 +59,14 @@
 						first-index
 						core)))
 	     (content (drop (quotient top 2) parent))
-	     (selection-start selection-end
-			      (selection-start+end cursor range))
+	     ((Highlight start: selection-start
+			 end: selection-end) selection)
 	     (`(,start . ,start-stem) selection-start)
 	     (`(,end . ,end-stem) selection-end))
-    (set! (the-selection-range) 0)
+    (set! selection:start cursor)
+    (set! selection:end cursor)
     (cond
-     ((= range 0)
+     ((equal? selection:start selection:end)
       ;; the target will be cut off from the rest
       ;; of the document after performing Remove
       (perform&record!
@@ -98,18 +99,18 @@
 	(clipboard:upload! (cons selection '())))))))
 
 (define/kw (copy-selection! at: cursor ::Cursor := (the-cursor)
-			    to: range ::integer := (the-selection-range)
+			    to: selection ::Highlight := (the-selection)
 			    in: document := (the-document))
   ::void
   (and-let* ((clipboard ::Clipboard (the-system-clipboard))
 	     (core ::Cursor (cursor-core cursor document))
 	     (expression (the-expression))
-	     (selection-start selection-end
-			      (selection-start+end cursor range))
+	     ((Highlight start: selection-start
+			 end: selection-end) selection)
 	     (`(,start . ,start-stem) selection-start)
 	     (`(,end . ,end-stem) selection-end))
     (cond
-     ((= range 0)
+     ((equal? selection:start selection:end)
       (clipboard:upload! (cons expression (empty))))
 
      ((equal? start-stem end-stem)
@@ -126,13 +127,13 @@
      
 (define/kw (paste-selection! into: document := (the-document)
 			     at: cursor ::Cursor := (the-cursor)
-			     to: range ::integer := (the-selection-range))
+			     to: selection ::Highlight := (the-selection))
   ::void
   (and-let* ((clipboard ::Clipboard (the-system-clipboard))
 	     ;; moze trzeba tutaj zrobic kopie:
 	     (content ::list (clipboard:content))
 	     ((pair? content)))
-    (if (= range 0)
+    (if (equal? selection:start selection:end)
 	(let ((target (cursor-ref document cursor)))
 	  (cond
 	   ((Space? target)

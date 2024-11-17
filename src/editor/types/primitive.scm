@@ -623,7 +623,9 @@
 			#!key (context::Cursor (recons 1 '())))
   ::void
   (escape-with end-drawing
-    (let*-values (((selection-start selection-end) (the-selection)))      
+    (let* ((selection ::Highlight (the-selection))
+	   (selection-start selection:start)
+	   (selection-end selection:end))
       (define (after-end-line t::Traversal)::void
 	(t:new-line!)
 	(t:on-end-line #f))

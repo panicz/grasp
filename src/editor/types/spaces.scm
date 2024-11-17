@@ -354,73 +354,75 @@ from the (editor interfaces elements) module
 	   ))))
 		
   (define (draw! context::Cursor)::void
-   (let-values (((selection-start selection-end) (the-selection)))
-     (let* ((enters-selection-drawing-mode?::boolean
-	     (and (pair? selection-start)
-		  (equal? (cdr selection-start) context)
-		  (integer? (car selection-start))))
-	    (exits-selection-drawing-mode?::boolean
-	     (and (pair? selection-end)
-		  (equal? (cdr selection-end) context)
-		  (integer? (car selection-end))))
-	    (space-width ::real (painter:space-width))
-	    (t0 ::Traversal (the-traversal))
-	    (t ::Traversal (t0:clone))
-	    (left ::real t:left)
-	    (top ::real t:top))
-       (parameterize ((the-traversal t))
-	 (let skip ((input ::list fragments)
-		    (total ::int 0))
-	   (define (expand-with-cursor! width::real)
-	     (and-let* ((`(,tip . ,sub) (the-cursor)))
-	       (when (and (integer? tip)
-			  (equal? sub context)
-			  (is total <= tip <= (+ total
-						 width)))
-		 (with-translation ((- t:left left
-				       (* space-width
-					  (- total tip)))
-				    (- t:top top -1))
-		   (set! t:parent-left (+ t:parent-left t:left
-					  (* space-width
-					     (- tip total))))
-		   (set! t:parent-top (+ t:parent-top t:top))
-		   (painter:mark-cursor! 0 0)
-		   (set! t:parent-left (- t:parent-left t:left
-					  (* space-width
-					     (- tip total))))
-		   (set! t:parent-top (- t:parent-top t:top))))
-	       (when (and enters-selection-drawing-mode?
-			  (is total <= (car selection-start)
-			      <= (+ total width)))
-		 (painter:begin-highlight! HighlightType:Selection))
-	       (when (and exits-selection-drawing-mode?
-			  (is total <= (car selection-end)
-			      <= (+ total width)))
-		 (painter:end-highlight! HighlightType:Selection)))
-	     (t:expand-by! (* width space-width)))
+    (let* ((selection ::Highlight (the-selection))
+	   (selection-start selection:start)
+	   (selection-end selection:start)
+	   (enters-selection-drawing-mode?::boolean
+	    (and (pair? selection-start)
+		 (equal? (cdr selection-start) context)
+		 (integer? (car selection-start))))
+	   (exits-selection-drawing-mode?::boolean
+	    (and (pair? selection-end)
+		 (equal? (cdr selection-end) context)
+		 (integer? (car selection-end))))
+	   (space-width ::real (painter:space-width))
+	   (t0 ::Traversal (the-traversal))
+	   (t ::Traversal (t0:clone))
+	   (left ::real t:left)
+	   (top ::real t:top))
+      (parameterize ((the-traversal t))
+	(let skip ((input ::list fragments)
+		   (total ::int 0))
+	  (define (expand-with-cursor! width::real)
+	    (and-let* ((`(,tip . ,sub) (the-cursor)))
+	      (when (and (integer? tip)
+			 (equal? sub context)
+			 (is total <= tip <= (+ total
+						width)))
+		(with-translation ((- t:left left
+				      (* space-width
+					 (- total tip)))
+				   (- t:top top -1))
+		  (set! t:parent-left (+ t:parent-left t:left
+					 (* space-width
+					    (- tip total))))
+		  (set! t:parent-top (+ t:parent-top t:top))
+		  (painter:mark-cursor! 0 0)
+		  (set! t:parent-left (- t:parent-left t:left
+					 (* space-width
+					    (- tip total))))
+		  (set! t:parent-top (- t:parent-top t:top))))
+	      (when (and enters-selection-drawing-mode?
+			 (is total <= (car selection-start)
+			     <= (+ total width)))
+		(painter:begin-highlight! HighlightType:Selection))
+	      (when (and exits-selection-drawing-mode?
+			 (is total <= (car selection-end)
+			     <= (+ total width)))
+		(painter:end-highlight! HighlightType:Selection)))
+	    (t:expand-by! (* width space-width)))
 
-	   (match input
-	     (`(,comment::Comment . ,rest)
-	      (with-translation ((- t:left left) (- t:top top))
-		(comment:draw! (hash-cons (+ total 1) context)))
-	      (comment:expand! t)
-	      (when (comment:breaks-line?)
-		(t:on-end-line #t))
-	      (skip rest (+ total 2)))
+	  (match input
+	    (`(,comment::Comment . ,rest)
+	     (with-translation ((- t:left left) (- t:top top))
+	       (comment:draw! (hash-cons (+ total 1) context)))
+	     (comment:expand! t)
+	     (when (comment:breaks-line?)
+	       (t:on-end-line #t))
+	     (skip rest (+ total 2)))
 
-	     (`(,width::integer ,next::integer . ,_)
-	      (expand-with-cursor! width)
-	      (t:on-end-line #t)
-	      (t:new-line!)
-	      (skip (cdr input) (+ total width 1)))
+	    (`(,width::integer ,next::integer . ,_)
+	     (expand-with-cursor! width)
+	     (t:on-end-line #t)
+	     (t:new-line!)
+	     (skip (cdr input) (+ total width 1)))
 
-	     (`(,width::integer . ,rest)
-	      (expand-with-cursor! width)
-	      (skip rest (+ total width)))
+	    (`(,width::integer . ,rest)
+	     (expand-with-cursor! width)
+	     (skip rest (+ total width)))
 
-	     ('()
-	      (set! t0:on-end-line t:on-end-line))))))))
+	    ('()
+	     (set! t0:on-end-line t:on-end-line)))))))
 
   (define (cursor-under* x::real y::real path::Cursor)::Cursor*
    (otherwise #!null

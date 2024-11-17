@@ -397,7 +397,6 @@
 
 (define-type (DocumentEditingContext
 	      cursor: Cursor := '(#\[ 1)
-	      selection-range: int := 0
 	      transform: Transform := ((default-transform))))
 
 (define-syntax-rule (the item)
@@ -414,8 +413,8 @@
       (parameterize ((the-editor (this))
 		     (the-document (the document)))
 	(parameterize/update-sources ((the-cursor (the cursor))
-				      (the-selection-range
-				       (the selection-range)))
+				      (the-selection (the selection-highlight))
+				      (the-highlights (the highlights)))
 	  body + ...)))))
 
 (define-object (DocumentEditor)::Editor
@@ -432,8 +431,6 @@
 
   (define document ::Document (Document (empty) #!null))
   (define cursor ::Cursor '(#\[ 1))
-
-  (define selection-range ::integer 0)
 
   (define (update-cursor-column!)::void
     (let ((cursor-position::Position
@@ -462,8 +459,7 @@
 			      CursorMarker (this)
 			      'to-previous-line))))
       (set! selection-highlight:start cursor)
-      (set! selection-highlight:end cursor)
-      (set! selection-range 0)))
+      (set! selection-highlight:end cursor)))
 
   (define (move-cursor-down!)::void
     (let ((current ::Position (invoke-special
@@ -478,21 +474,18 @@
 			      CursorMarker (this)
 			      'to-next-line))))
       (set! selection-highlight:start cursor)
-      (set! selection-highlight:end cursor)      
-      (set! selection-range 0)))
+      (set! selection-highlight:end cursor)))
   
   (define (move-cursor-right!)::void
     (set! cursor (cursor-advance cursor document))
     (set! selection-highlight:start cursor)
     (set! selection-highlight:end cursor)
-    (set! (the-selection-range) 0)
     (update-cursor-column!))
 
   (define (move-cursor-left!)::void
     (set! cursor (cursor-retreat cursor document))
     (set! selection-highlight:start cursor)
     (set! selection-highlight:end cursor)
-    (set! selection-range 0)
     (update-cursor-column!))
 
   (define (unnest-cursor-right!)::void
@@ -511,7 +504,6 @@
 	      (recons* (parent:last-index) top root))))
       (set! selection-highlight:start cursor)
       (set! selection-highlight:end cursor)
-      (set! selection-range 0)
       (update-cursor-column!)))
 
   (define (expand-selection-right!)::void
@@ -520,7 +512,7 @@
 	  (set! selection-highlight:end new-cursor)
 	  (set! selection-highlight:start new-cursor))
       (set! cursor new-cursor))
-    (set! selection-range (- selection-range 1))
+    (DUMP selection-highlight)
     (update-cursor-column!))
 
   (define (expand-selection-left!)::void
@@ -529,13 +521,13 @@
 	  (set! selection-highlight:start new-cursor)
 	  (set! selection-highlight:end new-cursor))
       (set! cursor new-cursor))
-    (set! selection-range (+ selection-range 1))
+    (DUMP selection-highlight)
     (update-cursor-column!))
   
   (define transform ::Transform ((default-transform)))
   
   (define highlights ::(list-of Highlight)
-    '()) ;; tutaj moze dodajmy
+    `(,selection-highlight))
   
   (define (highlight-next!)::void
     (and-let* ((`(,current::Highlight . ,rest)
@@ -662,10 +654,9 @@
 			(new-editing-context document)))
       (set! new-context:cursor cursor)
       (set! new-context:transform (copy transform))
-      (set! new-context:selection-range selection-range)
       (DocumentEditor document: document
 		      cursor: new-context:cursor
-		      selection-range: new-context:selection-range
+
 		      previously-edited: (copy previously-edited)
 		      transform: new-context:transform
 		      editing-context: new-editing-context)))
@@ -676,14 +667,12 @@
       (let ((previous-context ::DocumentEditingContext
 			      (editing-context document)))
 	(set! previous-context:transform transform)
-	(set! previous-context:cursor cursor)
-	(set! previous-context:selection-range selection-range))
+	(set! previous-context:cursor cursor))
       (set! document target)
       (let ((next-context ::DocumentEditingContext
 			  (editing-context target)))
 	(set! transform next-context:transform)
-	(set! cursor next-context:cursor)
-	(set! selection-range next-context:selection-range))
+	(set! cursor next-context:cursor))
       ))
 
   (define (load-file file::java.io.File)::void
@@ -716,8 +705,9 @@
   (define (render!)::void
     (parameterize ((the-document document)
                    (the-cursor cursor)
-                   (the-editor (this))
-                   (the-selection-range selection-range))
+		   (the-selection (the selection-highlight))
+		   (the-highlights (the highlights))
+                   (the-editor (this)))
       (with-post-transform transform
         (with-view-edges-transformed transform
 	  (transform:within
@@ -737,9 +727,7 @@
 	    ((the-document document)
 	     ;; trzeba dojsc dlaczego to nie dziala
 	     #;(the-cursor cursor)
-	     (the-editor (this))
-	     #;(the-selection-range
-	     selection-range))
+	     (the-editor (this)))
 	  (and-let* ((x y (transform:outside-in xe ye))
 		     (target-cursor (cursor-under x y))
 		     (target (the-expression
@@ -753,23 +741,22 @@
 	       (enchanted:tap! finger x y))
 	      (else
 	       (set! cursor target-cursor)
-	       (set! selection-range 0)
 	       (editor:set-cursor-column! xe)
 	       #t)))))))
 
   (define (press! finger::byte #;at xe::real ye::real)::boolean
     (with-editor-context
-     (let-values (((selection-start selection-end)
-		   (the-selection))
-		  ((x y) (transform:outside-in xe ye)))
-       (and-let* ((path (cursor-under x y))
-		  (xd yd (document-position-of-element-pointed-by
-			  path (car document)))
-		  (`(,tip . ,subpath) path)
-		  (parent ::Element (the-expression
-				     at: subpath))
-		  (target ::Element (parent:part-at tip)))
-	 (cond
+     (and-let* (((Highlight start: selection-start
+			    end: selection-end) (the-selection))
+		(x y (transform:outside-in xe ye))
+		(path (cursor-under x y))
+		(xd yd (document-position-of-element-pointed-by
+			path (car document)))
+		(`(,tip . ,subpath) path)
+		(parent ::Element (the-expression
+				   at: subpath))
+		(target ::Element (parent:part-at tip)))
+       (cond
 	  #;((isnt parent eq? target)
 	  (WARN "reached non-final item on press"))
 
@@ -868,48 +855,47 @@
 	   (screen:drag! finger
 			 (Drawing (Stroke finger (this))))
 	   ;;(set! (the-cursor) path)
-	   )))
-       #t)))
-	
+	   ))
+	 #t)))
 
   (define (second-press! finger::byte #;at xe::real ye::real)
     ::boolean
     (with-editor-context
-     (let-values (((selection-start selection-end)
-		   (the-selection))
-		  ((x y) (transform:outside-in xe ye)))
-       (and-let* ((path (cursor-under x y))
-		  (xd yd (document-position-of-element-pointed-by
-			  path (car document)))
-		  (`(,tip . ,subpath) path)
-		  (parent ::Element (the-expression
-				     at: subpath))
-		  (target ::Element (parent:part-at tip)))
-	 (cond
-	  ((or (isnt parent eq? target)
-	       (is target Space?))
-	   (screen:drag! finger
-			 (Translate transform)))
+     (and-let* (((Highlight start: selection-start
+			    end: selection-end) (the-selection))
+		(x y (transform:outside-in xe ye))
+		(path (cursor-under x y))
+		(xd yd (document-position-of-element-pointed-by
+			path (car document)))
+		(`(,tip . ,subpath) path)
+		(parent ::Element (the-expression
+				   at: subpath))
+		(target ::Element (parent:part-at tip)))
+       (cond
+	((or (isnt parent eq? target)
+	     (is target Space?))
+	 (screen:drag! finger
+		       (Translate transform)))
 
-	  #;((isnt dragging clean?)
-	  (WARN "should start scrolling or zooming "
-	  (keys dragging)))
+	#;((isnt dragging clean?)
+	(WARN "should start scrolling or zooming "
+	(keys dragging)))
 
-	  ((Enchanted? target)
-	   (let ((target ::Enchanted target))
-	     (target:second-press! finger (- x xd) (- y yd))))
+	((Enchanted? target)
+	 (let ((target ::Enchanted target))
+	   (target:second-press! finger (- x xd) (- y yd))))
 
-	  ((or (is target Atom?)
-	       (and (or (is target cons?)
-			(is target EmptyListProxy?))
-		    (eqv? tip (target:first-index))))
-	   (let* ((selection (Selected
-			      (cons (copy target) (empty))
-			      (copy
-			       (last-known-pointer-position
-				finger)))))
-	     (screen:drag! finger (DragAround selection))))))
-       #t)))
+	((or (is target Atom?)
+	     (and (or (is target cons?)
+		      (is target EmptyListProxy?))
+		  (eqv? tip (target:first-index))))
+	 (let* ((selection (Selected
+			    (cons (copy target) (empty))
+			    (copy
+			     (last-known-pointer-position
+			      finger)))))
+	   (screen:drag! finger (DragAround selection))))))
+     #t))
 
   (define (double-tap! finger::byte xe::real ye::real)::boolean
     (with-editor-context

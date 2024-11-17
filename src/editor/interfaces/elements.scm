@@ -90,7 +90,7 @@
 
 ;; the methods provided by these interfaces should be thought of as
 ;; implicitly parameterized with painter, (the-cursor)
-;; and (the-selection-range) parameters
+;; and (the-highlights) parameters
 
 (define-interface Expandable ()
   (expand! t::Traversal)::void)
@@ -298,7 +298,13 @@ operate on cursors.
   (or (equal? a b)
       (cursor< a b document)))
 
-(define-parameter (the-selection-range) ::integer 0)
+(define-parameter (the-highlights)::(list-of Highlight)
+  '())
+
+(define-parameter (the-selection)::Highlight
+  (Highlight start: '() end: '()
+	     type: HighlightType:Selection))
+
 
 ;; A Keeper is needed to obtain permissions on Android
 ;; - otherwise it does nothing special
