@@ -1,3 +1,8 @@
+* 17.11.2024
+
+Usuwamy =the-selection-range=. W tym celu musimy dodac parametr =(the-selection)=,
+ktory powinien przyjmowac wartosc =DocumentEditor:selected-highlight=.
+
 * 16.11.2024
 
 Bysmy sie zajeli zmiana definicji =the-highlights=, ale 
