@@ -70,6 +70,7 @@
 (define (perform&record! operation ::Edit)::boolean
   (and-let* ((document (the-document))
 	     (history ::History (history document))
+	     (selection ::Highlight (the-selection))
 	     (new-cursor (operation:apply! document)))
     ;; A note: in case of removal operations,
     ;; we record the operation after applying it,
@@ -79,6 +80,8 @@
     ;; in the presence of history merging.
     (history:record! operation)
     (set! (the-cursor) new-cursor)
+    (set! selection:start new-cursor)
+    (set! selection:end new-cursor)
     (update-cursor-column!)
     #t))
 
@@ -271,10 +274,13 @@
 
 (define (record&perform! operation ::Edit)::boolean
   (let* ((document (the-document))
+	 (selection ::Highlight (the-selection))
 	 (history ::History (history document)))
     (history:record! operation)
     (and-let* ((new-cursor (operation:apply! document)))
       (set! (the-cursor) new-cursor)
+      (set! selection:start new-cursor)
+      (set! selection:end new-cursor)
       (update-cursor-column!)
       #t)))
 

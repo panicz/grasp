@@ -481,10 +481,18 @@ operate on cursors.
     (action))
 
   (define (move-cursor-left!)::void
-    (values))
+    (let ((cursor (cursor-retreat))
+	  (selection (the-selection)))
+      (set! (the-cursor) cursor)
+      (set! selection:start cursor)
+      (set! selection:end cursor)))
 
   (define (move-cursor-right!)::void
-    (values))
+    (let ((cursor (cursor-advance))
+	  (selection (the-selection)))
+      (set! (the-cursor) cursor)
+      (set! selection:start cursor)
+      (set! selection:end cursor)))
 
   (define (move-cursor-up!)::void
     (values))
@@ -493,7 +501,22 @@ operate on cursors.
     (values))
 
   (define (unnest-cursor-right!)::void
-    (values))
+    (and-let* ((`(,tip ,top . ,root) cursor)
+	       (parent ::Indexable (cursor-ref document root))
+	       (target ::Indexable (parent:part-at top))
+	       (selection ::Highlight (the-selection))
+	       (item ::Indexable (target:part-at tip)))
+      ;;(assert (eq? target item))
+      (set! cursor
+	    (cond
+	     ((Textual? item)
+	      (recons (parent:last-index) root))
+	     ((eqv? tip (parent:last-index))
+	      (recons (parent:last-index) root))
+	     (else
+	      (recons* (parent:last-index) top root))))
+      (set! selection:start cursor)
+      (set! selection:end cursor)))
   
   (define (expand-selection-right!)::void
     (values))
