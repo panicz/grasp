@@ -366,10 +366,9 @@ step|# (- n 1)))))
 ╰   ╰       ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
 ")
 
-
 (e.g.
- (let ((selection (Highlight start: (cursor 0 1 1 1)
-			     end: (cursor 6 1 1 1)
+ (let ((selection (Highlight start: (cursor 1 1 1 1)
+			     end: (cursor 4 1 1 1)
 			     type: HighlightType:Selection)))
    (parameterize ((the-cursor (cursor 4 1 1 1))
 		  (the-highlights `(,selection))
@@ -393,8 +392,6 @@ step|# (- n 1)))))
 │   │       │ * n │ ! │ - n 1 │ │ │ │ │
 ╰   ╰       ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
 ")
-
-
 
 #|
               11111111112222222222333333333
