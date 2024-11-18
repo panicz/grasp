@@ -412,9 +412,10 @@
     (with-view-edges-transformed (the transform)
       (parameterize ((the-editor (this))
 		     (the-document (the document)))
-	(parameterize/update-sources ((the-cursor (the cursor))
-				      (the-selection (the selection-highlight))
-				      (the-highlights (the highlights)))
+	(parameterize/update-sources
+	    ((the-cursor (the cursor))
+	     (the-selection (the selection-highlight))
+	     (the-highlights (the highlights)))
 	  body + ...)))))
 
 (define-object (DocumentEditor)::Editor
@@ -741,6 +742,8 @@
 	       (enchanted:tap! finger x y))
 	      (else
 	       (set! cursor target-cursor)
+	       (set! selection-highlight:start cursor)
+	       (set! selection-highlight:end cursor)
 	       (editor:set-cursor-column! xe)
 	       #t)))))))
 
