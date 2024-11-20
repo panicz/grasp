@@ -1,4 +1,29 @@
-* 20.11.2024
+* 20.11.2024 (wieczor)
+
+Udalo sie jakos tam naprawic wiekszosc testow, chociaz
+jeszcze nie wszystkie, bo cos dalej nie tryka w
+=test-regressions=, i z pewnoscia bedzie sie tym trzeba
+zajac.
+
+Natomiast wydaje sie, ze pilniejszym tematem jest to,
+ze w niektorych okolicznosciach =selection-highlight:end=
+nie jest traktowany prawidlowo.
+
+I teraz jednym pomyslem na zdiagnozowanie tego jest
+napisanie testu. Jednakze wydaje sie, ze klient terminalowy
+zachowuje sie tutaj lepiej, niz klienty graficzne, wiec
+z napisaniem testu moze byc nielatwo (chociaz oczywiscie
+i tak warto sprobowac)
+
+Jezeli idzie o diagnoze "na zywym organizmie", to
+chyba najlepiej byloby uzyc do tego klienta graficznego
+na laptopie.
+
+Jednak zanim to zrobimy, mozemy sie upewnic, czy przed
+niedawna refaktoryzacja to dzialalo.
+
+
+* 20.11.2024 (poranek)
 
 Zrodlo klopotu, w ktory sie wladowalismy, jest takie, ze:
 - mamy parametr (the-editor) zdefiniowany
@@ -101,7 +126,7 @@ To teraz taki:
 
 #+BEGIN_SRC scheme
 (e.g.
- (snapshot)  #;< ===> "
+ (snapshot) ===> "
 ╭  ╮
 │  │
 ╰ |╯
