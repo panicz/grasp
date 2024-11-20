@@ -4,6 +4,7 @@
 (import (language define-syntax-rule))
 (import (language define-interface))
 (import (language define-type))
+(import (language define-object))
 (import (language define-cache))
 (import (language attributes))
 (import (language define-parameter))
@@ -18,6 +19,7 @@
 (import (utils print))
 
 (import (editor interfaces elements))
+(import (editor interfaces painting))
 
 ;; See the `fundamental.scm` file for a detailed explanation
 ;; how cursors are represented
@@ -301,4 +303,84 @@
 	      (next updated))
 	    updated))))
 
+(define-object (NoEditor)::Editor
+  
+  (define (add-post-draw-action! action::(maps () to: void))::void
+    (action))
+
+  (define (move-cursor-left!)::void
+    (let ((cursor (cursor-retreat))
+	  (selection (the-selection)))
+      (set! (the-cursor) cursor)
+      (set! selection:start cursor)
+      (set! selection:end cursor)))
+
+  (define (move-cursor-right!)::void
+    (let ((cursor (cursor-advance))
+	  (selection (the-selection)))
+      (set! (the-cursor) cursor)
+      (set! selection:start cursor)
+      (set! selection:end cursor)))
+
+  (define (move-cursor-up!)::void
+    (values))
+
+  (define (move-cursor-down!)::void
+    (values))
+
+  (define (unnest-cursor-right!)::void
+    (and-let* ((`(,tip ,top . ,root) (the-cursor))
+	       (parent ::Indexable (cursor-ref (the-document)
+					       root))
+	       (target ::Indexable (parent:part-at top))
+	       (selection ::Highlight (the-selection))
+	       (item ::Indexable (target:part-at tip)))
+      ;;(assert (eq? target item))
+      (set! (the-cursor)
+	    (cond
+	     ((Textual? item)
+	      (hash-cons (parent:last-index) root))
+	     ((eqv? tip (parent:last-index))
+	      (hash-cons (parent:last-index) root))
+	     (else
+	      (hash-cons* (parent:last-index) top root))))
+      (set! selection:start (the-cursor))
+      (set! selection:end (the-cursor))))
+  
+  (define (expand-selection-right!)::void
+    (values))
+
+  (define (expand-selection-left!)::void
+    (values))
+
+  (define (update-cursor-column!)::void
+    (values))
+  
+  (define marked ::Position
+    (Position left: 0
+	      top: 0))
+
+  (define (mark-cursor! left::real top::real)::void
+    (set! marked:left left)
+    (set! marked:top top))
+  
+  (define (to-next-line)::real
+    0)
+  
+  (define (to-previous-line)::real
+    0)
+  
+  (define (marked-cursor-position)::Position
+    marked)
+  
+  (define (set-cursor-column! left::real)::void
+    (values))
+  
+  (define (cursor-column)::real
+    0)
+
+  (NullPane))
+
+(define-parameter (the-editor)::Editor
+  (NoEditor))
 
