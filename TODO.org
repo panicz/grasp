@@ -1,16 +1,133 @@
+* 20.11.2024
+
+Zrodlo klopotu, w ktory sie wladowalismy, jest takie, ze:
+- mamy parametr (the-editor) zdefiniowany
+  w (editor interfaces elements)
+- mamy tez pewna ilosc operacji zdefiniowanych
+  w (editor document editor-operations)
+- oryginalnie te operacje byly zdefiniowane
+  jako "tresciwe", ale dokonalem takich zmian,
+  ze jedynie wywoluja odpowiednie metody interfejsu
+  Editor
+- i w zwiazku z tym trzeba bylo rowniez zmodyfikowac
+  implementacje NoEditor
+- i poczatkowo te jej metody nic nie robily
+  (tak jak mozna sie tego spodziewac), ale szybko
+  okazalo sie, ze w wyniku tego psuja sie pewne testy,
+  ktore opieraly sie na oryginalnej implementacji
+- ale wdrozylem "plan naprawczy", w postaci skopiowania
+  odpowiedniej implementacji do NoEditor
+- jednak pojawil sie problem z zaleznosciami, bo
+  funkcje uzywane w implementacji pochodza z modulu
+  =(editor document cursor)=, natomiast implementacja
+  =NoEditor= znajduje sie w =(editor interfaces elements)=,
+  ktory jest w skali edytora dosc podstawowym modulem.
+
+Jaki bylby zatem dorazny pomysl na rozwiazanie?
+
+Chyba najprosciej byloby przeanalizowac sposob uzywania
+parametru =(the-editor)=, i przeniesienie go (oraz definicji
+=NoEditor=) do jakiego innego modulu, z ktorego widocza jest
+zawartosc =(editor document cursor)=.
+
+Moduly uzywajace =(the-editor)=:
+
+#+BEGIN_SRC
+./src/grasp-android.scm # uzytkownik koncowy
+./src/grasp-desktop.scm # uzytkownik koncowy
+./src/editor/document/editor-operations.scm
+./src/editor/input/document-editor.scm
+./src/editor/text-painter.scm # uzytkownik koncowy
+./src/editor/interfaces/elements.scm #(definicja)
+./src/editor/interfaces/painting.scm # tylko komentarz
+#+END_SRC
+
+Modulow w gre nie wchodzi zbyt wiele
+
+* 18.11.2024
+
+No to dzis bysmy sprobowali naprawic testy i poprawic
+renderowanie selekcji
+
+(mozemy zaczac od wymuszenia wychodzenia z trybu
+rysowania selekcji)
+
+No to przeanalizujmy sobie test w =test-painter=:
+
+#+BEGIN_SRC scheme
+  (e.g.
+   (let ((selection (Highlight start: (cursor 0 1 1 1)
+			       end: (cursor 6 1 1 1)
+			       type: HighlightType:Selection)))
+     (parameterize ((the-cursor (cursor 4 1 1 1))
+		    (the-highlights `(,selection))
+		    (the-selection selection))
+       (grasped "\
+    (define (! n)
+      (if (<= n 0)
+	  1
+	  (* n (! (- n 1)))))
+    "))) ===> "
+    ╭        ╭     ╮                      ╮
+    │ define │ ! n │                      │
+    │  ~~~^  ╰     ╯                      │
+    │   ╭    ╭        ╮                 ╮ │
+    │   │ if │ <= n 0 │                 │ │
+    │   │    ╰        ╯                 │ │
+    │   │                               │ │
+    │   │       1                       │ │
+    │   │                               │ │
+    │   │       ╭     ╭   ╭       ╮ ╮ ╮ │ │
+    │   │       │ * n │ ! │ - n 1 │ │ │ │ │
+    ╰   ╰       ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
+    ")
+  ;;gdzie grasped jest zdefiniowane jako
+
+  (define (grasped program-text::string)::String
+    (let ((document ::Document
+		    (call-with-input-string program-text
+		      parse-document)))
+      (with ((painter (TextPainter)))
+	(parameterize ((the-document document))
+	  (document:draw! '())
+	  (painter:toString)))))
+
+#+END_SRC
+
+No dobra, to test paintera mamy przynajmniej wyjasniony
+(choc to troche rozczarowujace)
+
+To teraz taki:
+
+#+BEGIN_SRC scheme
+(e.g.
+ (snapshot)  #;< ===> "
+╭  ╮
+│  │
+╰ |╯
+")
+#+END_SRC
+
 * 17.11.2024
 
-Usuwamy =the-selection-range=. W tym celu musimy dodac parametr =(the-selection)=,
-ktory powinien przyjmowac wartosc =DocumentEditor:selected-highlight=.
+Usuwamy =the-selection-range=. W tym celu musimy dodac
+parametr =(the-selection)=, ktory powinien przyjmowac
+wartosc =DocumentEditor:selection-highlight=.
+
+Dobra, wyglada na to, ze sporo sie udalo, tylko ze:
+- zepsulismy testy
+- jest jakis problem z wychodzeniem z trybu rysowania
+  podswietlen (i trzeba to naprawic!)
 
 * 16.11.2024
 
 Bysmy sie zajeli zmiana definicji =the-highlights=, ale 
-trzeba jeszcze uwzglednic =DocumentEditor:selection-highlight:start/stop=
+trzeba jeszcze uwzglednic
+=DocumentEditor:selection-highlight:start/stop=
 w ruchu kursora.
 
-Najlepiej by bylo zmienic definicje =(move-cursor-left!)= i =(move-cursor-right!)=
-tak zeby mialy postac:
+Najlepiej by bylo zmienic definicje =(move-cursor-left!)=
+i =(move-cursor-right!)= tak zeby mialy postac:
 
 #+BEGIN_SRC scheme
 
