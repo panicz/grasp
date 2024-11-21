@@ -391,6 +391,42 @@ operate on cursors.
   
   (Simple))
 
+(define-object (DelegateInput target::Interactive)::Interactive
+  (define (tap! finger::byte #;at x::real y::real)::boolean
+    (target:tap! finger x y))
+  (define (press! finger::byte #;at x::real y::real)::boolean
+    (target:press! finger #;at x y))
+  (define (second-press! finger::byte #;at x::real y::real)::boolean
+    (target:second-press! finger #;at x y))
+  (define (double-tap! finger::byte x::real y::real)::boolean
+    (target:double-tap! finger x y))
+  (define (long-press! finger::byte x::real y::real)::boolean
+    (target:long-press! finger x y))
+  (define (key-typed! key-code::long context::Cursor)::boolean
+    (target:key-typed! key-code context))
+  
+  (define (scroll-up! left::real top::real)::boolean
+    (target:scroll-up! left top))
+  (define (scroll-down! left::real top::real)::boolean
+    (target:scroll-down! left top))
+  (define (scroll-left! left::real top::real)::boolean
+    (target:scroll-left! left top))
+  (define (scroll-right! left::real top::real)::boolean
+    (target:scroll-right! left top))
+  
+  (define (zoom-in! left::real top::real)::boolean
+    (target:zoom-in! left top))
+  (define (zoom-out! left::real top::real)::boolean
+    (target:zoom-out! left top))
+  
+  (define (rotate-left! left::real top::real)::boolean
+    (target:rotate-left! left top))
+  (define (rotate-right! left::real top::real)::boolean
+    (target:rotate-right! left top))
+  
+  (Simple))
+
+
 (define-interface Renderable ()
   (render!)::void
   )
@@ -474,6 +510,65 @@ operate on cursors.
     #f)
   
   (IgnoreInput))
+
+
+(define-object (DelegatePane target::Embeddable)::Embeddable
+
+  (define (drop-at! x::real y::real expression::pair)::boolean
+    (target:drop-at! x y expression))
+  
+  (define (render!)::void
+    (target:render!))
+  
+  (define (pane-under x::real y::real)::Embeddable
+    (let ((result (target:pane-under x y)))
+      (if (eq? result target)
+	  (this)
+	  result)))
+  
+  (define (outside-in x::real y::real)::(Values real real)
+    (target:outside-in x y))
+  
+  (define (inside-out x::real y::real)::(Values real real)
+    (target:inside-out x y))
+  
+  (define (can-split-beside? line::Area)::boolean
+    (target:can-split-beside? line::Area))
+  
+  (define (split-beside! line::Area)::Embeddable
+    (let ((result (target:split-beside! line)))
+      (if (eq? result target)
+	  (this)
+	  result)))
+      
+  (define (can-split-below? line::Area)::boolean
+    (target:can-split-below? line))
+
+  (define (split-below! line::Area)::Embeddable
+    (let ((result (target:split-below! line)))
+      (if (eq? result target)
+	  (this)
+	  result)))
+
+  (define (scroll-up! left::real top::real)::boolean
+    (target:scroll-up! left top))
+  
+  (define (scroll-down! left::real top::real)::boolean
+    (target:scroll-down! left top))
+  
+  (define (scroll-left! left::real top::real)::boolean
+    (target:scroll-left! left top))
+  
+  (define (scroll-right! left::real top::real)::boolean
+    (target:scroll-right! left top))
+
+  (define (zoom-in! left::real top::real)::boolean
+    (target:zoom-in! left top))
+  
+  (define (zoom-out! left::real top::real)::boolean
+    (target:zoom-out! left top))
+
+  (DelegateInput target))
 
 (define-interface Drag ()
   (move! x::real y::real dx::real dy::real)::void

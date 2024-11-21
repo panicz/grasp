@@ -529,6 +529,28 @@
   
   (define highlights ::(list-of Highlight)
     `(,selection-highlight))
+
+  (define (set-highlights! hs ::(list-of Highlight))::void
+    (set! highlights
+	  (insert-ordered! selection-highlight hs
+			   ;;(is _:start document:cursor< _:start)
+			   (lambda (a::Highlight b::Highlight)
+			     ::boolean
+			     (cursor< a:start b:start document))))
+    (and-let* ((current ::Highlight
+			(or (find (lambda (highlight::Highlight)
+				    (and
+				     (eq? highlight:type
+					  HighlightType:OtherFinding)
+				     (cursor<= cursor
+					       highlight:start
+					       document)))
+				  highlights)
+			    (find (is _:type eq?
+				      HighlightType:OtherFinding)
+				  highlight))))
+      (set! highlight:type
+	    HighlightType:CurrentFinding)))
   
   (define (highlight-next!)::void
     (and-let* ((`(,current::Highlight . ,rest)
