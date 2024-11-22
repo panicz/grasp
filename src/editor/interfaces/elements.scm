@@ -2,6 +2,7 @@
 
 (import (srfi :11))
 (import (srfi :17))
+(import (language define-syntax-rule))
 (import (language define-interface))
 (import (language define-type))
 (import (language define-object))
@@ -220,6 +221,33 @@
 
   (Base))
 
+(define-object (DelegateIndexing target::Indexable)::Indexable
+  (define (typename)::String
+    (string-append "DelegateIndexing"))
+  
+  (define (part-at index::Index)::Indexable*
+    (let ((result (target:part-at index)))
+      (if (eq? result target)
+	  (this)
+	  result)))
+
+  (define (first-index)::Index
+    (target:first-index))
+  
+  (define (last-index)::Index
+    (target:last-index))
+
+  (define (next-index index::Index)::Index
+    (target:next-index index))
+  
+  (define (previous-index index::Index)::Index
+    (target:previous-index index))
+
+  (define (index< a::Index b::Index)::boolean
+    (target:index< a b))
+
+  (Base))
+
 (define-interface ExpandableTextualElement (Expandable
 					    Textual
 					    Element))
@@ -391,7 +419,16 @@ operate on cursors.
   
   (Simple))
 
-(define-object (DelegateInput target::Interactive)::Interactive
+(define-interface Renderable ()
+  (render!)::void
+  )
+
+(define-interface Pane (Renderable Interactive))
+
+(define-interface Layer (Indexable Pane))
+
+(define-object (DelegatingLayer target::Layer)::Layer
+  
   (define (tap! finger::byte #;at x::real y::real)::boolean
     (target:tap! finger x y))
   (define (press! finger::byte #;at x::real y::real)::boolean
@@ -423,18 +460,18 @@ operate on cursors.
     (target:rotate-left! left top))
   (define (rotate-right! left::real top::real)::boolean
     (target:rotate-right! left top))
+
+  (define (render!)::void
+    (target:render!))
   
-  (Simple))
+  (DelegateIndexing target))
 
-
-(define-interface Renderable ()
-  (render!)::void
-  )
-
-
-(define-interface Pane (Renderable Interactive))
-
-(define-interface Layer (Indexable Pane))
+(define-syntax-rule (HijackLayerInput target methods ...)
+  (object (DelegatingLayer)
+     ((*init*)
+      (invoke-special DelegatingLayer (this) '*init* target))
+     methods
+     ...))
 
 (define-interface Embeddable (Pane Map2D)
   (drop-at! x::real y::real expression::pair)::boolean
@@ -510,65 +547,6 @@ operate on cursors.
     #f)
   
   (IgnoreInput))
-
-
-(define-object (DelegatePane target::Embeddable)::Embeddable
-
-  (define (drop-at! x::real y::real expression::pair)::boolean
-    (target:drop-at! x y expression))
-  
-  (define (render!)::void
-    (target:render!))
-  
-  (define (pane-under x::real y::real)::Embeddable
-    (let ((result (target:pane-under x y)))
-      (if (eq? result target)
-	  (this)
-	  result)))
-  
-  (define (outside-in x::real y::real)::(Values real real)
-    (target:outside-in x y))
-  
-  (define (inside-out x::real y::real)::(Values real real)
-    (target:inside-out x y))
-  
-  (define (can-split-beside? line::Area)::boolean
-    (target:can-split-beside? line::Area))
-  
-  (define (split-beside! line::Area)::Embeddable
-    (let ((result (target:split-beside! line)))
-      (if (eq? result target)
-	  (this)
-	  result)))
-      
-  (define (can-split-below? line::Area)::boolean
-    (target:can-split-below? line))
-
-  (define (split-below! line::Area)::Embeddable
-    (let ((result (target:split-below! line)))
-      (if (eq? result target)
-	  (this)
-	  result)))
-
-  (define (scroll-up! left::real top::real)::boolean
-    (target:scroll-up! left top))
-  
-  (define (scroll-down! left::real top::real)::boolean
-    (target:scroll-down! left top))
-  
-  (define (scroll-left! left::real top::real)::boolean
-    (target:scroll-left! left top))
-  
-  (define (scroll-right! left::real top::real)::boolean
-    (target:scroll-right! left top))
-
-  (define (zoom-in! left::real top::real)::boolean
-    (target:zoom-in! left top))
-  
-  (define (zoom-out! left::real top::real)::boolean
-    (target:zoom-out! left top))
-
-  (DelegateInput target))
 
 (define-interface Drag ()
   (move! x::real y::real dx::real dy::real)::void

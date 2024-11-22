@@ -322,25 +322,34 @@
     (popup-scroll (ColumnGrid choices))))
 
 (define (open-search-window)
-  (let ((search-input (text-field
-		       (* (painter:space-width) 20) "")))
-    (screen:add-overlay!
-     (PopUp
-      name: "search"
-      content:
-      (beside
-       search-input
-       (below
-	(Button label: "⬑"
-		action: (lambda _ (WARN "previous")))
-	(Button label: "⬎"
-		action: (lambda _
-			  (safely
-			   (let ((pattern (parse-string
-					   search-input:content)))
-			     (WARN "looking for the next "
-				   pattern
-				   (pattern:getClass))))))))))))
+  (let* ((search-input (text-field
+			(* (painter:space-width) 20) ""))
+	 (⬑ (Button label: "⬑"
+		    action: (lambda _ (WARN "previous"))))
+	 (⬎ (Button label: "⬎"
+		    action:
+		    (lambda _
+		      (safely
+		       (let ((pattern (parse-string
+				       search-input:content)))
+			 (WARN "looking for the next "
+			       pattern
+			       (pattern:getClass)))))))
+	 (popup
+	  (PopUp
+	   name: "search"
+	   content:
+	   (beside
+	    search-input (below ⬑ ⬎))))
+	 (hijack (HijackLayerInput popup
+		   ((key-typed! key-code::long context::Cursor)
+		    ::boolean
+		    (search-input:key-typed! key-code context)
+		    (WARN "pressed "(key-code-name key-code))
+		    ;; tutaj powinnismy wyszukac
+		    #t))))
+
+    (screen:add-overlay! hijack)))
 
 (define-object (CursorMarker)::WithCursor
   (define marked ::Position
