@@ -572,7 +572,9 @@ operate on cursors.
   
   (add-overlay! layer::Layer)::void
   (contains-overlay? satisfying?::predicate)::(maybe Layer)
-  (remove-overlay! layer::Layer)::void
+  (remove-overlay! layer::Layer)::boolean
+  (remove-overlay-if! satisfying?::(maps (Layer) to: boolean))::boolean
+
   (clear-overlay!)::void
   (overlay-cursor layer::Layer)::Cursor
   (set-overlay-cursor! layer::Layer cursor::Cursor)::void

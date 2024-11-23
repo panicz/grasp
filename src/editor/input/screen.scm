@@ -65,9 +65,12 @@
     ::(maybe Layer)
     (any satisfying? layers))
   
-  (define (remove! element::Layer)::void
+  (define (remove! element::Layer)::boolean
     (layers:remove element))
 
+  (define (remove-if! satisfying?::(maps (Layer) to: boolean))::boolean
+    (layers:removeIf (is _ satisfying?)))
+  
   (define (clear!)::void
     (layers:clear))
 
@@ -373,9 +376,12 @@
     ::(maybe Layer)
     (overlay:contains-layer? satisfying?))
   
-  (define (remove-overlay! layer::Layer)::void
+  (define (remove-overlay! layer::Layer)::boolean
     (overlay:remove! layer))
 
+  (define (remove-overlay-if! satisfying?::(maps (Layer) to: boolean))::boolean
+    (overlay:remove-if! satisfying?))
+  
   (define (clear-overlay!)::void
     (overlay:clear!))
   

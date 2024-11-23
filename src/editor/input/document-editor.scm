@@ -339,13 +339,25 @@
 		 content:
 		 (beside
 		  search-input (below ⬑ ⬎))))
+	 (is-popup? (lambda (layer::Layer)
+		      (and-let* ((layer ::DelegatingLayer))
+			(eq? layer:target popup))))
 	 (hijack (HijackLayerInput popup
 		   ((key-typed! key-code::long context::Cursor)
 		    ::boolean
-		    (search-input:key-typed! key-code context)
-		    (WARN "pressed "(key-code-name key-code))
-		    ;; tutaj powinnismy wyszukac
-		    #t))))
+		    (match (key-code-name key-code)
+		      ('escape
+		       (screen:remove-overlay-if! is-popup?))
+		      (_
+		       (search-input:key-typed! key-code context)
+		       (WARN "pressed "(key-code-name key-code))
+		       ;; tutaj powinnismy wyszukac
+		       #t)))
+		   ((tap! finger::byte #;at x::real y::real)
+		    ::boolean
+		    (or (popup:tap! finger x y)
+			(screen:remove-overlay-if! is-popup?)))
+		   )))
 
     (screen:add-overlay! hijack)))
 
@@ -555,8 +567,8 @@
 				  highlights)
 			    (find (is _:type eq?
 				      HighlightType:OtherFinding)
-				  highlight))))
-      (set! highlight:type
+				  highlights))))
+      (set! current:type
 	    HighlightType:CurrentFinding)))
   
   (define (highlight-next!)::void
