@@ -335,12 +335,10 @@
 			 (WARN "looking for the next "
 			       pattern
 			       (pattern:getClass)))))))
-	 (popup
-	  (PopUp
-	   name: "search"
-	   content:
-	   (beside
-	    search-input (below ⬑ ⬎))))
+	 (popup (PopUp
+		 content:
+		 (beside
+		  search-input (below ⬑ ⬎))))
 	 (hijack (HijackLayerInput popup
 		   ((key-typed! key-code::long context::Cursor)
 		    ::boolean

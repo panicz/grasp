@@ -60,7 +60,6 @@
 
 (define-type (PopUp left: real := 0
 		    top: real := 0
-		    name: string := ""
                     content: Enchanted)
   implementing Layer
   with
