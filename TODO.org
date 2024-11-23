@@ -1,3 +1,14 @@
+* 23.11.2024
+
+No dobra, to teraz plan jest taki, ze:
+- dodajemy "remove-if" do "Screen"
+- zmieniamy interfejs tak zeby "remove" zwracalo =boolean=
+
+OK, na razie usuwanie pop-upow wydaje sie dzialac w porzadku.
+
+Teraz bysmy chcieli zrobic cos takiego, zeby wpisywanie
+tekstu w pole tekstowe powodowalo wywolanie =set-highlights!=.
+
 * 22.11.2024
 
 Dzisiaj bysmy sprobowali zaimplementowac forme =extend=,
