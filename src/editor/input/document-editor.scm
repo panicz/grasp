@@ -352,13 +352,7 @@
 		       (search-input:key-typed! key-code context)
 		       (WARN "pressed "(key-code-name key-code))
 		       ;; tutaj powinnismy wyszukac
-		       #t)))
-		   ((tap! finger::byte #;at x::real y::real)
-		    ::boolean
-		    (or (popup:tap! finger x y)
-			(screen:remove-overlay-if! is-popup?)))
-		   )))
-
+		       #t))))))
     (screen:add-overlay! hijack)))
 
 (define-object (CursorMarker)::WithCursor
