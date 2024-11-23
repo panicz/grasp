@@ -1,3 +1,173 @@
+* 22.11.2024
+
+Dzisiaj bysmy sprobowali zaimplementowac forme =extend=,
+oraz zrefaktoryzowac =define-object= w taki sposob, zeby
+wyekstrahowac czesc wspolna, tj. iterowanie po slotach
+
+#+BEGIN_SRC scheme
+
+  (define-syntax slots&methods
+    (lambda (stx)
+      (syntax-case stx (define define-private define-static ::)
+	((_ () final slots initializers . extra)
+	 #'(final slots initializers . extra))
+
+	((_ ((define (name . args) . body) . definitions)
+	    final (slots ...) intializers . extra)
+	 #'(slots&methods definitions
+	    final (slots ... ((name . args) . body))
+	    intializers . extra))
+
+	((_ ((define name :: type value) . definitions)
+	    final (slots ...) (initializers ...) . extra)
+	 #'(slots&methods definitions
+	    final (slots ... (name :: type))
+	    (intializers ... (set! ) . extra)))
+
+	...)))
+
+#+END_SRC
+
+Ech. Na razie lepiej sobie odpuscic :/
+
+#+BEGIN_SRC scheme
+    ((object (DelegatingPane)
+       ((key-pressed! key-code::long context::Cursor)::boolean
+	...)
+       ((*init* popup::PopUp)
+	(DelegatingPane popup))) popup)
+
+    ((extend-instance (DelegatingPane popup)
+       ((key-pressed! key-code::long context::Cursor)::boolean
+	...)
+       ((*init* popup::PopUp)
+	(DelegatingPane popup))) popup)
+
+  ;; a moze po prostu
+
+  (define-syntax-rule (HijackInput target methods ...)
+    ((object (DelegatingPane)
+       ((*init* pane::Embeddable)
+	(DelegatingPane pane))
+       methods
+       ...) target))
+
+  (HijackLayerInput popup
+    ((key-presed! key-code::long context::Cursor)::boolean
+     (search-field:key-presed! key-code context)
+     (WARN "pressed "(key-name key-code))
+     ;; tutaj powinnismy wyszukac
+     #t))
+
+
+ #+END_SRC
+
+No ale z innej bajki. Chcemy zrobic wydanie.
+wymaganie: aplikacja musi dzialac bez zarzutu.
+
+Co zrobic:
+- search&replace
+- edycja komentarzy
+- testy, bugi
+- zamykanie/otwieranie, skalowanie, obracanie?
+- parsowanie nawiasu kwadratowego
+- scrollbary
+- selekcja tekstu
+
+No dobra, to w teorii sie udalo przechwycic ten input,
+ale nie dziala usuwanie popupa
+
+Trzeba cos o tym pomyslec. Na pewno teraz mamy w klasie
+=screen= metode =remove-overlay!=, ktora finalnie wola
+=overlay:layers:remove=, ktora jest metoda =java.util.List=.
+
+No to tak: chcemy zmienic interfejs =Overlay= i =Screen=
+w taki sposob, zeby metody =remove= zwracaly =boolean=,
+i wtedy uzaleznic zachowanie =tap!= od zwroconej wartosci.
+
+Ponadto chcemy dodac do =screen= metode =retain-unless!=
+
+* 21.11.2024
+
+To teraz juz wiemy, ze problem zostal wprowadzony przez
+
+#+BEGIN_SRC
+commit eae6d4aa15ef819eaa07b230d8ec96fa4e54ea75
+Author: panicz <godek.maciek@gmail.com>
+Date:   Tue Oct 1 06:56:52 2024 +0200
+
+    Support for highlighting search results in the painters
+#+END_SRC
+
+zaraz po
+
+#+BEGIN_SRC
+commit afccfe69864404c9fe2f389f341c0d99a1f160d5
+Author: Panicz <godek.maciek@gmail.com>
+Date:   Mon Sep 30 08:20:50 2024 +0200
+
+    Zamiana enter/exit-selection-drawing-mode! na begin/end-highlight! (#30)
+
+#+END_SRC    
+
+No i dobrze, dzieki temu sprawdzeniu wiemy, ze
+w klientach graficznych mamy sobie tablice
+=highlight-count=.
+
+Ale ustalilismy juz, ze to jest problem, ktory
+pewnie duzo latwiej bedzie zdiagnozowac na PC,
+wiec jezeli tak sobie siedzimy na telefonie,
+to moze lepiej byloby teraz zajac sie podpieciem
+tego highlighta do wyszukiwania
+
+Czyli mowiac najkrocej, plan jest taki, ze jak
+wpisujemy cos w pole tekstowe, to o ile to cos
+jest niepuste, wywolujemy =set-highlights!=
+na edytorze.
+
+No to teraz trzeba ten =set-highlights!=
+zaimplementowac.
+
+A i jeszcze bysmy sobie zdefiniowali =DelegatePane=,
+czyli takie cos, co ma swoj =target=, do ktorego przekazuje
+wszystkie zdarzenia
+
+No dobra. To teraz mamy cos takiego:
+
+#+BEGIN_SRC scheme
+
+  (define (open-search-window)
+    (let* ((search-input (text-field
+			  (* (painter:space-width) 20) ""))
+	   (⬑ (Button label: "⬑"
+		      action: (lambda _ (WARN "previous"))))
+	   (⬎ (Button label: "⬎"
+		      action:
+		      (lambda _
+			(safely
+			 (let ((pattern (parse-string
+					 search-input:content)))
+			   (WARN "looking for the next "
+				 pattern
+				 (pattern:getClass)))))))
+	   (popup
+	    (PopUp
+	     name: "search"
+	     content:
+	     (beside
+	      search-input (below ⬑ ⬎)))))
+      (screen:add-overlay! popup)))
+
+  (extend (DelegatePane popup)
+    (define (key-typed! key-code::long context::Cursor)::boolean
+      (search-input:key-typed! key-code context)
+      
+      (editor:sey-highlights! (find-matches ...))
+      #t))
+
+#+END_SRC
+
+
 * 20.11.2024 (wieczor)
 
 Udalo sie jakos tam naprawic wiekszosc testow, chociaz
