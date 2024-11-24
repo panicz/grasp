@@ -207,14 +207,12 @@
 	   height::real
 	   context::Cursor)
     ::void
-    (let-values (((selection-start selection-end)
-		  (the-selection))
-		 ((width height) (values
-				  (nearby-int (* width
-						 horizontal-stretch))
-				  (nearby-int (* height
-						 vertical-stretch))))
-		 ((t) (the-traversal)))
+    (let* ((selection ::Highlight (the-selection))
+	   (selection-start selection:start)
+	   (selection-end selection:end)
+	   (width (nearby-int (* width horizontal-stretch)))
+	   (height (nearby-int (* height vertical-stretch)))
+	   (t (the-traversal)))
       (when (and (pair? (the-cursor))
 		 (equal? context (cdr (the-cursor))))
 	  (match (head (the-cursor))
@@ -296,8 +294,9 @@
 			       height::real
 			       context::Cursor)
     ::void
-    (let-values (((selection-start selection-end)
-		  (the-selection)))
+    (let* ((selection ::Highlight (the-selection))
+	   (selection-start selection:start)
+	   (selection-end selection:end))
       (when (and (pair? (the-cursor))
 		 (equal? context (cdr (the-cursor))))
 	(match (head (the-cursor))
@@ -335,8 +334,9 @@
 				    height::real
 				    context::Cursor)
     ::void
-    (let-values (((selection-start selection-end)
-		  (the-selection)))
+    (let* ((selection ::Highlight (the-selection))
+	   (selection-start selection:start)
+	   (selection-end selection:end))
       (when (and (pair? (the-cursor))
 		 (equal? context (cdr (the-cursor))))
 	(match (head (the-cursor))
@@ -379,8 +379,9 @@
 				 height::real
 				 context::Cursor)
     ::void
-    (let-values (((selection-start selection-end)
-		  (the-selection)))
+    (let* ((selection ::Highlight (the-selection))
+	   (selection-start selection:start)
+	   (selection-end selection:end))
       (when (and (pair? (the-cursor))
 		 (equal? context (cdr (the-cursor))))
 	(match (head (the-cursor))
@@ -411,9 +412,9 @@
     ::void
     (with-translation (1 0)
       (draw-unquote-box! (- width 2) height context))
-
-    (let-values (((selection-start selection-end)
-		  (the-selection)))
+    (let* ((selection ::Highlight (the-selection))
+	   (selection-start selection:start)
+	   (selection-end selection:end))
       (when (and (pair? selection-start)
 		 (equal? (tail selection-start)
 			 context)
@@ -441,8 +442,9 @@
 	   height::real
 	   context::Cursor)
     ::void
-    (let-values (((selection-start selection-end)
-		  (the-selection)))
+    (let* ((selection ::Highlight (the-selection))
+	   (selection-start selection:start)
+	   (selection-end selection:end))
       (when (and (pair? (the-cursor))
 		 (equal? context (cdr (the-cursor))))
 	(match (head (the-cursor))

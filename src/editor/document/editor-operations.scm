@@ -31,31 +31,25 @@
        (editor:set-cursor-column!
 	cursor-position:left)))))
 
-(define (move-cursor-right!)
-  (set! (the-cursor) (cursor-advance))
-  (set! (the-selection-range) 0)
-  (update-cursor-column!))
+(define (move-cursor-left!)::void
+  (and-let* ((editor ::Editor (the-editor)))
+    (editor:move-cursor-left!)))
 
-(define (move-cursor-left!)
-  (set! (the-cursor) (cursor-retreat))
-  (set! (the-selection-range) 0)
-  (update-cursor-column!))
+(define (move-cursor-right!)::void
+  (and-let* ((editor ::Editor (the-editor)))
+    (editor:move-cursor-right!)))
 
-(define (unnest-cursor-right!)
-  (and-let* ((`(,tip ,top . ,root) (the-cursor))
-	     (parent ::Indexable (cursor-ref (the-document) root))
-	     (target ::Indexable (parent:part-at top))
-	     (item ::Indexable (target:part-at tip)))
-    ;;(assert (eq? target item))
-    (set! (the-cursor)
-	  (cond
-	   ((Textual? item)
-	    (recons (parent:last-index) root))
-	   ((eqv? tip (parent:last-index))
-	    (recons (parent:last-index) root))
-	   (else
-	    (recons* (parent:last-index) top root))))
-    (update-cursor-column!)))
+(define (move-cursor-up!)::void
+  (and-let* ((editor ::Editor (the-editor)))
+    (editor:move-cursor-up!)))
+
+(define (move-cursor-down!)::void
+  (and-let* ((editor ::Editor (the-editor)))
+    (editor:move-cursor-down!)))
+
+(define (unnest-cursor-right!)::void
+  (and-let* ((editor ::Editor (the-editor)))
+    (editor:unnest-cursor-right!)))
 
 (define (expand-selection-right!)::void
   (let* ((editor ::Editor (the-editor)))
@@ -64,24 +58,6 @@
 (define (expand-selection-left!)::void
   (let* ((editor ::Editor (the-editor)))
     (editor:expand-selection-left!)))
-
-(define (move-cursor-up!)
-  (let* ((editor ::Editor (the-editor))
-	 (current ::Position (editor:marked-cursor-position)))
-    (set! (the-cursor)
-	  (cursor-under (editor:cursor-column)
-			(- current:top
-			   (editor:to-previous-line))))
-    (set! (the-selection-range) 0)))
-
-(define (move-cursor-down!)
-  (let* ((editor ::Editor (the-editor))
-	 (current ::Position (editor:marked-cursor-position)))
-    (set! (the-cursor)
-	  (cursor-under (editor:cursor-column)
-			(+ current:top
-			   (editor:to-next-line))))
-     (set! (the-selection-range) 0)))
 
 (define (undo!)
   (let ((document-history ::History (history (the-document))))
@@ -94,6 +70,7 @@
 (define (perform&record! operation ::Edit)::boolean
   (and-let* ((document (the-document))
 	     (history ::History (history document))
+	     (selection ::Highlight (the-selection))
 	     (new-cursor (operation:apply! document)))
     ;; A note: in case of removal operations,
     ;; we record the operation after applying it,
@@ -103,6 +80,8 @@
     ;; in the presence of history merging.
     (history:record! operation)
     (set! (the-cursor) new-cursor)
+    (set! selection:start new-cursor)
+    (set! selection:end new-cursor)
     (update-cursor-column!)
     #t))
 
@@ -112,7 +91,8 @@
 	     (`(,top . ,root) stem)
 	     (parent ::Indexable (cursor-ref (the-document) root))
 	     (target ::Indexable (parent:part-at top))
-	     (selection-start selection-end (the-selection))
+	     ((Highlight start: selection-start
+			 end: selection-end) (the-selection))
 	     (`(,selection-start-tip . ,selection-start-stem)
 	      selection-start)
 	     (`(,selection-end-tip . ,selection-end-stem)
@@ -132,7 +112,10 @@
 	   (isnt selection-start-tip equal? selection-end-tip)
 	   (integer? selection-start-tip)
 	   (integer? selection-end-tip))
-      (set! (the-selection-range) 0)
+      (and-let* ((selection ::Highlight (the-selection)))
+	(set! selection:start cursor)
+	(set! selection:end cursor))
+
       (if (and (equal? (target:first-index) selection-start-tip)
 	       (equal? (target:last-index) selection-end-tip))
 	  (record&perform!
@@ -284,23 +267,28 @@
 	 (move-cursor-right!)
 	 (delete-forward!))))
      (else
-      (when (zero? (the-selection-range))
+      (and-let* ((selection ::Highlight (the-selection))
+		 ((equal? selection:start selection:end)))
 	(move-cursor-right!))
       (delete-backward!)))))
 
 (define (record&perform! operation ::Edit)::boolean
   (let* ((document (the-document))
+	 (selection ::Highlight (the-selection))
 	 (history ::History (history document)))
     (history:record! operation)
     (and-let* ((new-cursor (operation:apply! document)))
       (set! (the-cursor) new-cursor)
+      (set! selection:start new-cursor)
+      (set! selection:end new-cursor)
       (update-cursor-column!)
       #t)))
 
 (define (insert-character! c::char)::boolean
   (and-let* (((isnt c eqv? #\null))
 	     (`(,tip ,top . ,subcursor) (the-cursor))
-	     (selection-start selection-end (the-selection))
+	     ((Highlight start: selection-start
+			 end: selection-end) (the-selection))
 	     (`(,selection-start-tip . ,selection-start-stem)
 	      selection-start)
 	     (`(,selection-end-tip . ,selection-end-stem)
@@ -329,7 +317,6 @@
 	  (for i from selection-start-tip below selection-end-tip
 	       (string-set! selection (- i selection-start-tip)
 			    (source:char-ref i)))
-	  (set! (the-selection-range) 0)
 	  (record&perform!
 	   (RemoveCharacter list: selection
 			    before: selection-end))

@@ -2,6 +2,7 @@
 
 (import (srfi :11))
 (import (srfi :17))
+(import (language define-syntax-rule))
 (import (language define-interface))
 (import (language define-type))
 (import (language define-object))
@@ -90,7 +91,7 @@
 
 ;; the methods provided by these interfaces should be thought of as
 ;; implicitly parameterized with painter, (the-cursor)
-;; and (the-selection-range) parameters
+;; and (the-highlights) parameters
 
 (define-interface Expandable ()
   (expand! t::Traversal)::void)
@@ -220,6 +221,33 @@
 
   (Base))
 
+(define-object (DelegateIndexing target::Indexable)::Indexable
+  (define (typename)::String
+    (string-append "DelegateIndexing"))
+  
+  (define (part-at index::Index)::Indexable*
+    (let ((result (target:part-at index)))
+      (if (eq? result target)
+	  (this)
+	  result)))
+
+  (define (first-index)::Index
+    (target:first-index))
+  
+  (define (last-index)::Index
+    (target:last-index))
+
+  (define (next-index index::Index)::Index
+    (target:next-index index))
+  
+  (define (previous-index index::Index)::Index
+    (target:previous-index index))
+
+  (define (index< a::Index b::Index)::boolean
+    (target:index< a b))
+
+  (Base))
+
 (define-interface ExpandableTextualElement (Expandable
 					    Textual
 					    Element))
@@ -298,7 +326,13 @@ operate on cursors.
   (or (equal? a b)
       (cursor< a b document)))
 
-(define-parameter (the-selection-range) ::integer 0)
+(define-parameter (the-highlights)::(list-of Highlight)
+  '())
+
+(define-parameter (the-selection)::Highlight
+  (Highlight start: '() end: '()
+	     type: HighlightType:Selection))
+
 
 ;; A Keeper is needed to obtain permissions on Android
 ;; - otherwise it does nothing special
@@ -389,10 +423,55 @@ operate on cursors.
   (render!)::void
   )
 
-
 (define-interface Pane (Renderable Interactive))
 
 (define-interface Layer (Indexable Pane))
+
+(define-object (DelegatingLayer target::Layer)::Layer
+  
+  (define (tap! finger::byte #;at x::real y::real)::boolean
+    (target:tap! finger x y))
+  (define (press! finger::byte #;at x::real y::real)::boolean
+    (target:press! finger #;at x y))
+  (define (second-press! finger::byte #;at x::real y::real)::boolean
+    (target:second-press! finger #;at x y))
+  (define (double-tap! finger::byte x::real y::real)::boolean
+    (target:double-tap! finger x y))
+  (define (long-press! finger::byte x::real y::real)::boolean
+    (target:long-press! finger x y))
+  (define (key-typed! key-code::long context::Cursor)::boolean
+    (target:key-typed! key-code context))
+  
+  (define (scroll-up! left::real top::real)::boolean
+    (target:scroll-up! left top))
+  (define (scroll-down! left::real top::real)::boolean
+    (target:scroll-down! left top))
+  (define (scroll-left! left::real top::real)::boolean
+    (target:scroll-left! left top))
+  (define (scroll-right! left::real top::real)::boolean
+    (target:scroll-right! left top))
+  
+  (define (zoom-in! left::real top::real)::boolean
+    (target:zoom-in! left top))
+  (define (zoom-out! left::real top::real)::boolean
+    (target:zoom-out! left top))
+  
+  (define (rotate-left! left::real top::real)::boolean
+    (target:rotate-left! left top))
+  (define (rotate-right! left::real top::real)::boolean
+    (target:rotate-right! left top))
+
+  (define (render!)::void
+    (target:render!))
+  
+  (DelegateIndexing target))
+
+(define-syntax-rule (HijackLayerInput target methods ...)
+  (object (DelegatingLayer)
+     ((*init*)
+      (invoke-special DelegatingLayer (this) '*init* target))
+     methods
+     ...))
 
 (define-interface Embeddable (Pane Map2D)
   (drop-at! x::real y::real expression::pair)::boolean
@@ -411,6 +490,12 @@ operate on cursors.
 			  WithCursor)
   (add-post-draw-action! action::(maps () to: void))
   ::void
+  (move-cursor-left!)::void
+  (move-cursor-right!)::void
+  (move-cursor-up!)::void
+  (move-cursor-down!)::void
+  (unnest-cursor-right!)::void
+  
   (expand-selection-right!)::void
   (expand-selection-left!)::void
   (update-cursor-column!)::void
@@ -463,48 +548,6 @@ operate on cursors.
   
   (IgnoreInput))
 
-(define-object (NoEditor)::Editor
-  
-  (define (add-post-draw-action! action::(maps () to: void))::void
-    (action))
-
-  (define (expand-selection-right!)::void
-    (values))
-
-  (define (expand-selection-left!)::void
-    (values))
-
-  (define (update-cursor-column!)::void
-    (values))
-  
-  (define marked ::Position
-    (Position left: 0
-	      top: 0))
-
-  (define (mark-cursor! left::real top::real)::void
-    (set! marked:left left)
-    (set! marked:top top))
-  
-  (define (to-next-line)::real
-    0)
-  
-  (define (to-previous-line)::real
-    0)
-  
-  (define (marked-cursor-position)::Position
-    marked)
-  
-  (define (set-cursor-column! left::real)::void
-    (values))
-  
-  (define (cursor-column)::real
-    0)
-
-  (NullPane))
-
-(define-parameter (the-editor)::Editor
-  (NoEditor))
-
 (define-interface Drag ()
   (move! x::real y::real dx::real dy::real)::void
   (drop! x::real y::real vx::real vy::real)::void
@@ -529,7 +572,9 @@ operate on cursors.
   
   (add-overlay! layer::Layer)::void
   (contains-overlay? satisfying?::predicate)::(maybe Layer)
-  (remove-overlay! layer::Layer)::void
+  (remove-overlay! layer::Layer)::boolean
+  (remove-overlay-if! satisfying?::(maps (Layer) to: boolean))::boolean
+
   (clear-overlay!)::void
   (overlay-cursor layer::Layer)::Cursor
   (set-overlay-cursor! layer::Layer cursor::Cursor)::void

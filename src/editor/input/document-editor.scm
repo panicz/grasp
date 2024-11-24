@@ -322,25 +322,38 @@
     (popup-scroll (ColumnGrid choices))))
 
 (define (open-search-window)
-  (let ((search-input (text-field
-		       (* (painter:space-width) 20) "")))
-    (screen:add-overlay!
-     (PopUp
-      name: "search"
-      content:
-      (beside
-       search-input
-       (below
-	(Button label: "⬑"
-		action: (lambda _ (WARN "previous")))
-	(Button label: "⬎"
-		action: (lambda _
-			  (safely
-			   (let ((pattern (parse-string
-					   search-input:content)))
-			     (WARN "looking for the next "
-				   pattern
-				   (pattern:getClass))))))))))))
+  (let* ((search-input (text-field
+			(* (painter:space-width) 20) ""))
+	 (⬑ (Button label: "⬑"
+		    action: (lambda _ (WARN "previous"))))
+	 (⬎ (Button label: "⬎"
+		    action:
+		    (lambda _
+		      (safely
+		       (let ((pattern (parse-string
+				       search-input:content)))
+			 (WARN "looking for the next "
+			       pattern
+			       (pattern:getClass)))))))
+	 (popup (PopUp
+		 content:
+		 (beside
+		  search-input (below ⬑ ⬎))))
+	 (is-popup? (lambda (layer::Layer)
+		      (and-let* ((layer ::DelegatingLayer))
+			(eq? layer:target popup))))
+	 (hijack (HijackLayerInput popup
+		   ((key-typed! key-code::long context::Cursor)
+		    ::boolean
+		    (match (key-code-name key-code)
+		      ('escape
+		       (screen:remove-overlay-if! is-popup?))
+		      (_
+		       (search-input:key-typed! key-code context)
+		       (WARN "pressed "(key-code-name key-code))
+		       ;; tutaj powinnismy wyszukac
+		       #t))))))
+    (screen:add-overlay! hijack)))
 
 (define-object (CursorMarker)::WithCursor
   (define marked ::Position
@@ -397,7 +410,6 @@
 
 (define-type (DocumentEditingContext
 	      cursor: Cursor := '(#\[ 1)
-	      selection-range: int := 0
 	      transform: Transform := ((default-transform))))
 
 (define-syntax-rule (the item)
@@ -413,9 +425,10 @@
     (with-view-edges-transformed (the transform)
       (parameterize ((the-editor (this))
 		     (the-document (the document)))
-	(parameterize/update-sources ((the-cursor (the cursor))
-				      (the-selection-range
-				       (the selection-range)))
+	(parameterize/update-sources
+	    ((the-cursor (the cursor))
+	     (the-selection (the selection-highlight))
+	     (the-highlights (the highlights)))
 	  body + ...)))))
 
 (define-object (DocumentEditor)::Editor
@@ -433,8 +446,6 @@
   (define document ::Document (Document (empty) #!null))
   (define cursor ::Cursor '(#\[ 1))
 
-  (define selection-range ::integer 0)
-
   (define (update-cursor-column!)::void
     (let ((cursor-position::Position
 	   (painter:marked-cursor-position)))
@@ -448,21 +459,111 @@
     (Highlight type: HighlightType:Selection
 	       start: cursor
 	       end: cursor))
+
+  (define (move-cursor-up!)::void
+    (let ((current ::Position (invoke-special
+			       CursorMarker (this)
+			       'marked-cursor-position)))
+      (set! cursor
+	    (cursor-under (invoke-special
+			   CursorMarker (this)
+			   'cursor-column)
+			  (- current:top
+			     (invoke-special
+			      CursorMarker (this)
+			      'to-previous-line))))
+      (set! selection-highlight:start cursor)
+      (set! selection-highlight:end cursor)))
+
+  (define (move-cursor-down!)::void
+    (let ((current ::Position (invoke-special
+			       CursorMarker (this)
+			       'marked-cursor-position)))
+      (set! cursor
+	    (cursor-under (invoke-special
+			   CursorMarker (this)
+			   'cursor-column)
+			  (+ current:top
+			     (invoke-special
+			      CursorMarker (this)
+			      'to-next-line))))
+      (set! selection-highlight:start cursor)
+      (set! selection-highlight:end cursor)))
   
-  (define (expand-selection-right!)::void
+  (define (move-cursor-right!)::void
     (set! cursor (cursor-advance cursor document))
-    (set! selection-range (- selection-range 1))
+    (set! selection-highlight:start cursor)
+    (set! selection-highlight:end cursor)
+    (update-cursor-column!))
+
+  (define (move-cursor-left!)::void
+    (set! cursor (cursor-retreat cursor document))
+    (set! selection-highlight:start cursor)
+    (set! selection-highlight:end cursor)
+    (update-cursor-column!))
+
+  (define (unnest-cursor-right!)::void
+    (and-let* ((`(,tip ,top . ,root) cursor)
+	       (parent ::Indexable (cursor-ref document root))
+	       (target ::Indexable (parent:part-at top))
+	       (item ::Indexable (target:part-at tip)))
+      ;;(assert (eq? target item))
+      (set! cursor
+	    (cond
+	     ((Textual? item)
+	      (recons (parent:last-index) root))
+	     ((eqv? tip (parent:last-index))
+	      (recons (parent:last-index) root))
+	     (else
+	      (recons* (parent:last-index) top root))))
+      (set! selection-highlight:start cursor)
+      (set! selection-highlight:end cursor)
+      (update-cursor-column!)))
+
+  (define (expand-selection-right!)::void
+    (let ((new-cursor (cursor-advance cursor document)))
+      (if (equal? cursor selection-highlight:end)
+	  (set! selection-highlight:end new-cursor)
+	  (set! selection-highlight:start new-cursor))
+      (set! cursor new-cursor))
+    (DUMP selection-highlight)
     (update-cursor-column!))
 
   (define (expand-selection-left!)::void
-    (set! cursor (cursor-retreat cursor document))
-    (set! selection-range (+ selection-range 1))
+    (let ((new-cursor (cursor-retreat cursor document)))
+      (if (equal? cursor selection-highlight:start)
+	  (set! selection-highlight:start new-cursor)
+	  (set! selection-highlight:end new-cursor))
+      (set! cursor new-cursor))
+    (DUMP selection-highlight)
     (update-cursor-column!))
   
   (define transform ::Transform ((default-transform)))
   
   (define highlights ::(list-of Highlight)
-    '()) ;; tutaj moze dodajmy
+    `(,selection-highlight))
+
+  (define (set-highlights! hs ::(list-of Highlight))::void
+    (set! highlights
+	  (insert-ordered! selection-highlight hs
+			   ;;(is _:start document:cursor< _:start)
+			   (lambda (a::Highlight b::Highlight)
+			     ::boolean
+			     (cursor< a:start b:start document))))
+    (and-let* ((current ::Highlight
+			(or (find (lambda (highlight::Highlight)
+				    (and
+				     (eq? highlight:type
+					  HighlightType:OtherFinding)
+				     (cursor<= cursor
+					       highlight:start
+					       document)))
+				  highlights)
+			    (find (is _:type eq?
+				      HighlightType:OtherFinding)
+				  highlights))))
+      (set! current:type
+	    HighlightType:CurrentFinding)))
   
   (define (highlight-next!)::void
     (and-let* ((`(,current::Highlight . ,rest)
@@ -589,10 +690,9 @@
 			(new-editing-context document)))
       (set! new-context:cursor cursor)
       (set! new-context:transform (copy transform))
-      (set! new-context:selection-range selection-range)
       (DocumentEditor document: document
 		      cursor: new-context:cursor
-		      selection-range: new-context:selection-range
+
 		      previously-edited: (copy previously-edited)
 		      transform: new-context:transform
 		      editing-context: new-editing-context)))
@@ -603,14 +703,12 @@
       (let ((previous-context ::DocumentEditingContext
 			      (editing-context document)))
 	(set! previous-context:transform transform)
-	(set! previous-context:cursor cursor)
-	(set! previous-context:selection-range selection-range))
+	(set! previous-context:cursor cursor))
       (set! document target)
       (let ((next-context ::DocumentEditingContext
 			  (editing-context target)))
 	(set! transform next-context:transform)
-	(set! cursor next-context:cursor)
-	(set! selection-range next-context:selection-range))
+	(set! cursor next-context:cursor))
       ))
 
   (define (load-file file::java.io.File)::void
@@ -643,8 +741,9 @@
   (define (render!)::void
     (parameterize ((the-document document)
                    (the-cursor cursor)
-                   (the-editor (this))
-                   (the-selection-range selection-range))
+		   (the-selection (the selection-highlight))
+		   (the-highlights (the highlights))
+                   (the-editor (this)))
       (with-post-transform transform
         (with-view-edges-transformed transform
 	  (transform:within
@@ -664,9 +763,7 @@
 	    ((the-document document)
 	     ;; trzeba dojsc dlaczego to nie dziala
 	     #;(the-cursor cursor)
-	     (the-editor (this))
-	     #;(the-selection-range
-	     selection-range))
+	     (the-editor (this)))
 	  (and-let* ((x y (transform:outside-in xe ye))
 		     (target-cursor (cursor-under x y))
 		     (target (the-expression
@@ -680,23 +777,24 @@
 	       (enchanted:tap! finger x y))
 	      (else
 	       (set! cursor target-cursor)
-	       (set! selection-range 0)
+	       (set! selection-highlight:start cursor)
+	       (set! selection-highlight:end cursor)
 	       (editor:set-cursor-column! xe)
 	       #t)))))))
 
   (define (press! finger::byte #;at xe::real ye::real)::boolean
     (with-editor-context
-     (let-values (((selection-start selection-end)
-		   (the-selection))
-		  ((x y) (transform:outside-in xe ye)))
-       (and-let* ((path (cursor-under x y))
-		  (xd yd (document-position-of-element-pointed-by
-			  path (car document)))
-		  (`(,tip . ,subpath) path)
-		  (parent ::Element (the-expression
-				     at: subpath))
-		  (target ::Element (parent:part-at tip)))
-	 (cond
+     (and-let* (((Highlight start: selection-start
+			    end: selection-end) (the-selection))
+		(x y (transform:outside-in xe ye))
+		(path (cursor-under x y))
+		(xd yd (document-position-of-element-pointed-by
+			path (car document)))
+		(`(,tip . ,subpath) path)
+		(parent ::Element (the-expression
+				   at: subpath))
+		(target ::Element (parent:part-at tip)))
+       (cond
 	  #;((isnt parent eq? target)
 	  (WARN "reached non-final item on press"))
 
@@ -795,48 +893,47 @@
 	   (screen:drag! finger
 			 (Drawing (Stroke finger (this))))
 	   ;;(set! (the-cursor) path)
-	   )))
-       #t)))
-	
+	   ))
+	 #t)))
 
   (define (second-press! finger::byte #;at xe::real ye::real)
     ::boolean
     (with-editor-context
-     (let-values (((selection-start selection-end)
-		   (the-selection))
-		  ((x y) (transform:outside-in xe ye)))
-       (and-let* ((path (cursor-under x y))
-		  (xd yd (document-position-of-element-pointed-by
-			  path (car document)))
-		  (`(,tip . ,subpath) path)
-		  (parent ::Element (the-expression
-				     at: subpath))
-		  (target ::Element (parent:part-at tip)))
-	 (cond
-	  ((or (isnt parent eq? target)
-	       (is target Space?))
-	   (screen:drag! finger
-			 (Translate transform)))
+     (and-let* (((Highlight start: selection-start
+			    end: selection-end) (the-selection))
+		(x y (transform:outside-in xe ye))
+		(path (cursor-under x y))
+		(xd yd (document-position-of-element-pointed-by
+			path (car document)))
+		(`(,tip . ,subpath) path)
+		(parent ::Element (the-expression
+				   at: subpath))
+		(target ::Element (parent:part-at tip)))
+       (cond
+	((or (isnt parent eq? target)
+	     (is target Space?))
+	 (screen:drag! finger
+		       (Translate transform)))
 
-	  #;((isnt dragging clean?)
-	  (WARN "should start scrolling or zooming "
-	  (keys dragging)))
+	#;((isnt dragging clean?)
+	(WARN "should start scrolling or zooming "
+	(keys dragging)))
 
-	  ((Enchanted? target)
-	   (let ((target ::Enchanted target))
-	     (target:second-press! finger (- x xd) (- y yd))))
+	((Enchanted? target)
+	 (let ((target ::Enchanted target))
+	   (target:second-press! finger (- x xd) (- y yd))))
 
-	  ((or (is target Atom?)
-	       (and (or (is target cons?)
-			(is target EmptyListProxy?))
-		    (eqv? tip (target:first-index))))
-	   (let* ((selection (Selected
-			      (cons (copy target) (empty))
-			      (copy
-			       (last-known-pointer-position
-				finger)))))
-	     (screen:drag! finger (DragAround selection))))))
-       #t)))
+	((or (is target Atom?)
+	     (and (or (is target cons?)
+		      (is target EmptyListProxy?))
+		  (eqv? tip (target:first-index))))
+	 (let* ((selection (Selected
+			    (cons (copy target) (empty))
+			    (copy
+			     (last-known-pointer-position
+			      finger)))))
+	   (screen:drag! finger (DragAround selection))))))
+     #t))
 
   (define (double-tap! finger::byte xe::real ye::real)::boolean
     (with-editor-context

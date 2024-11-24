@@ -42,6 +42,10 @@
 
 (set! (the-cursor) (cursor 0 0 1))
 
+(let ((selection ::Highlight (the-selection)))
+  (set! selection:start (the-cursor))
+  (set! selection:end (the-cursor)))
+
 (insert-character! #\[)
 
 (e.g.

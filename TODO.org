@@ -1,3 +1,380 @@
+* 23.11.2024
+
+No dobra, to teraz plan jest taki, ze:
+- dodajemy "remove-if" do "Screen"
+- zmieniamy interfejs tak zeby "remove" zwracalo =boolean=
+
+OK, na razie usuwanie pop-upow wydaje sie dzialac w porzadku.
+
+Teraz bysmy chcieli zrobic cos takiego, zeby wpisywanie
+tekstu w pole tekstowe powodowalo wywolanie =set-highlights!=.
+
+* 22.11.2024
+
+Dzisiaj bysmy sprobowali zaimplementowac forme =extend=,
+oraz zrefaktoryzowac =define-object= w taki sposob, zeby
+wyekstrahowac czesc wspolna, tj. iterowanie po slotach
+
+#+BEGIN_SRC scheme
+
+  (define-syntax slots&methods
+    (lambda (stx)
+      (syntax-case stx (define define-private define-static ::)
+	((_ () final slots initializers . extra)
+	 #'(final slots initializers . extra))
+
+	((_ ((define (name . args) . body) . definitions)
+	    final (slots ...) intializers . extra)
+	 #'(slots&methods definitions
+	    final (slots ... ((name . args) . body))
+	    intializers . extra))
+
+	((_ ((define name :: type value) . definitions)
+	    final (slots ...) (initializers ...) . extra)
+	 #'(slots&methods definitions
+	    final (slots ... (name :: type))
+	    (intializers ... (set! ) . extra)))
+
+	...)))
+
+#+END_SRC
+
+Ech. Na razie lepiej sobie odpuscic :/
+
+#+BEGIN_SRC scheme
+    ((object (DelegatingPane)
+       ((key-pressed! key-code::long context::Cursor)::boolean
+	...)
+       ((*init* popup::PopUp)
+	(DelegatingPane popup))) popup)
+
+    ((extend-instance (DelegatingPane popup)
+       ((key-pressed! key-code::long context::Cursor)::boolean
+	...)
+       ((*init* popup::PopUp)
+	(DelegatingPane popup))) popup)
+
+  ;; a moze po prostu
+
+  (define-syntax-rule (HijackInput target methods ...)
+    ((object (DelegatingPane)
+       ((*init* pane::Embeddable)
+	(DelegatingPane pane))
+       methods
+       ...) target))
+
+  (HijackLayerInput popup
+    ((key-presed! key-code::long context::Cursor)::boolean
+     (search-field:key-presed! key-code context)
+     (WARN "pressed "(key-name key-code))
+     ;; tutaj powinnismy wyszukac
+     #t))
+
+
+ #+END_SRC
+
+No ale z innej bajki. Chcemy zrobic wydanie.
+wymaganie: aplikacja musi dzialac bez zarzutu.
+
+Co zrobic:
+- search&replace
+- edycja komentarzy
+- testy, bugi
+- zamykanie/otwieranie, skalowanie, obracanie?
+- parsowanie nawiasu kwadratowego
+- scrollbary
+- selekcja tekstu
+
+No dobra, to w teorii sie udalo przechwycic ten input,
+ale nie dziala usuwanie popupa
+
+Trzeba cos o tym pomyslec. Na pewno teraz mamy w klasie
+=screen= metode =remove-overlay!=, ktora finalnie wola
+=overlay:layers:remove=, ktora jest metoda =java.util.List=.
+
+No to tak: chcemy zmienic interfejs =Overlay= i =Screen=
+w taki sposob, zeby metody =remove= zwracaly =boolean=,
+i wtedy uzaleznic zachowanie =tap!= od zwroconej wartosci.
+
+Ponadto chcemy dodac do =screen= metode =retain-unless!=
+
+* 21.11.2024
+
+To teraz juz wiemy, ze problem zostal wprowadzony przez
+
+#+BEGIN_SRC
+commit eae6d4aa15ef819eaa07b230d8ec96fa4e54ea75
+Author: panicz <godek.maciek@gmail.com>
+Date:   Tue Oct 1 06:56:52 2024 +0200
+
+    Support for highlighting search results in the painters
+#+END_SRC
+
+zaraz po
+
+#+BEGIN_SRC
+commit afccfe69864404c9fe2f389f341c0d99a1f160d5
+Author: Panicz <godek.maciek@gmail.com>
+Date:   Mon Sep 30 08:20:50 2024 +0200
+
+    Zamiana enter/exit-selection-drawing-mode! na begin/end-highlight! (#30)
+
+#+END_SRC    
+
+No i dobrze, dzieki temu sprawdzeniu wiemy, ze
+w klientach graficznych mamy sobie tablice
+=highlight-count=.
+
+Ale ustalilismy juz, ze to jest problem, ktory
+pewnie duzo latwiej bedzie zdiagnozowac na PC,
+wiec jezeli tak sobie siedzimy na telefonie,
+to moze lepiej byloby teraz zajac sie podpieciem
+tego highlighta do wyszukiwania
+
+Czyli mowiac najkrocej, plan jest taki, ze jak
+wpisujemy cos w pole tekstowe, to o ile to cos
+jest niepuste, wywolujemy =set-highlights!=
+na edytorze.
+
+No to teraz trzeba ten =set-highlights!=
+zaimplementowac.
+
+A i jeszcze bysmy sobie zdefiniowali =DelegatePane=,
+czyli takie cos, co ma swoj =target=, do ktorego przekazuje
+wszystkie zdarzenia
+
+No dobra. To teraz mamy cos takiego:
+
+#+BEGIN_SRC scheme
+
+  (define (open-search-window)
+    (let* ((search-input (text-field
+			  (* (painter:space-width) 20) ""))
+	   (⬑ (Button label: "⬑"
+		      action: (lambda _ (WARN "previous"))))
+	   (⬎ (Button label: "⬎"
+		      action:
+		      (lambda _
+			(safely
+			 (let ((pattern (parse-string
+					 search-input:content)))
+			   (WARN "looking for the next "
+				 pattern
+				 (pattern:getClass)))))))
+	   (popup
+	    (PopUp
+	     name: "search"
+	     content:
+	     (beside
+	      search-input (below ⬑ ⬎)))))
+      (screen:add-overlay! popup)))
+
+  (extend (DelegatePane popup)
+    (define (key-typed! key-code::long context::Cursor)::boolean
+      (search-input:key-typed! key-code context)
+      
+      (editor:sey-highlights! (find-matches ...))
+      #t))
+
+#+END_SRC
+
+
+* 20.11.2024 (wieczor)
+
+Udalo sie jakos tam naprawic wiekszosc testow, chociaz
+jeszcze nie wszystkie, bo cos dalej nie tryka w
+=test-regressions=, i z pewnoscia bedzie sie tym trzeba
+zajac.
+
+Natomiast wydaje sie, ze pilniejszym tematem jest to,
+ze w niektorych okolicznosciach =selection-highlight:end=
+nie jest traktowany prawidlowo.
+
+I teraz jednym pomyslem na zdiagnozowanie tego jest
+napisanie testu. Jednakze wydaje sie, ze klient terminalowy
+zachowuje sie tutaj lepiej, niz klienty graficzne, wiec
+z napisaniem testu moze byc nielatwo (chociaz oczywiscie
+i tak warto sprobowac)
+
+Jezeli idzie o diagnoze "na zywym organizmie", to
+chyba najlepiej byloby uzyc do tego klienta graficznego
+na laptopie.
+
+Jednak zanim to zrobimy, mozemy sie upewnic, czy przed
+niedawna refaktoryzacja to dzialalo.
+
+
+* 20.11.2024 (poranek)
+
+Zrodlo klopotu, w ktory sie wladowalismy, jest takie, ze:
+- mamy parametr (the-editor) zdefiniowany
+  w (editor interfaces elements)
+- mamy tez pewna ilosc operacji zdefiniowanych
+  w (editor document editor-operations)
+- oryginalnie te operacje byly zdefiniowane
+  jako "tresciwe", ale dokonalem takich zmian,
+  ze jedynie wywoluja odpowiednie metody interfejsu
+  Editor
+- i w zwiazku z tym trzeba bylo rowniez zmodyfikowac
+  implementacje NoEditor
+- i poczatkowo te jej metody nic nie robily
+  (tak jak mozna sie tego spodziewac), ale szybko
+  okazalo sie, ze w wyniku tego psuja sie pewne testy,
+  ktore opieraly sie na oryginalnej implementacji
+- ale wdrozylem "plan naprawczy", w postaci skopiowania
+  odpowiedniej implementacji do NoEditor
+- jednak pojawil sie problem z zaleznosciami, bo
+  funkcje uzywane w implementacji pochodza z modulu
+  =(editor document cursor)=, natomiast implementacja
+  =NoEditor= znajduje sie w =(editor interfaces elements)=,
+  ktory jest w skali edytora dosc podstawowym modulem.
+
+Jaki bylby zatem dorazny pomysl na rozwiazanie?
+
+Chyba najprosciej byloby przeanalizowac sposob uzywania
+parametru =(the-editor)=, i przeniesienie go (oraz definicji
+=NoEditor=) do jakiego innego modulu, z ktorego widocza jest
+zawartosc =(editor document cursor)=.
+
+Moduly uzywajace =(the-editor)=:
+
+#+BEGIN_SRC
+./src/grasp-android.scm # uzytkownik koncowy
+./src/grasp-desktop.scm # uzytkownik koncowy
+./src/editor/document/editor-operations.scm
+./src/editor/input/document-editor.scm
+./src/editor/text-painter.scm # uzytkownik koncowy
+./src/editor/interfaces/elements.scm #(definicja)
+./src/editor/interfaces/painting.scm # tylko komentarz
+#+END_SRC
+
+Modulow w gre nie wchodzi zbyt wiele
+
+* 18.11.2024
+
+No to dzis bysmy sprobowali naprawic testy i poprawic
+renderowanie selekcji
+
+(mozemy zaczac od wymuszenia wychodzenia z trybu
+rysowania selekcji)
+
+No to przeanalizujmy sobie test w =test-painter=:
+
+#+BEGIN_SRC scheme
+  (e.g.
+   (let ((selection (Highlight start: (cursor 0 1 1 1)
+			       end: (cursor 6 1 1 1)
+			       type: HighlightType:Selection)))
+     (parameterize ((the-cursor (cursor 4 1 1 1))
+		    (the-highlights `(,selection))
+		    (the-selection selection))
+       (grasped "\
+    (define (! n)
+      (if (<= n 0)
+	  1
+	  (* n (! (- n 1)))))
+    "))) ===> "
+    ╭        ╭     ╮                      ╮
+    │ define │ ! n │                      │
+    │  ~~~^  ╰     ╯                      │
+    │   ╭    ╭        ╮                 ╮ │
+    │   │ if │ <= n 0 │                 │ │
+    │   │    ╰        ╯                 │ │
+    │   │                               │ │
+    │   │       1                       │ │
+    │   │                               │ │
+    │   │       ╭     ╭   ╭       ╮ ╮ ╮ │ │
+    │   │       │ * n │ ! │ - n 1 │ │ │ │ │
+    ╰   ╰       ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
+    ")
+  ;;gdzie grasped jest zdefiniowane jako
+
+  (define (grasped program-text::string)::String
+    (let ((document ::Document
+		    (call-with-input-string program-text
+		      parse-document)))
+      (with ((painter (TextPainter)))
+	(parameterize ((the-document document))
+	  (document:draw! '())
+	  (painter:toString)))))
+
+#+END_SRC
+
+No dobra, to test paintera mamy przynajmniej wyjasniony
+(choc to troche rozczarowujace)
+
+To teraz taki:
+
+#+BEGIN_SRC scheme
+(e.g.
+ (snapshot) ===> "
+╭  ╮
+│  │
+╰ |╯
+")
+#+END_SRC
+
+* 17.11.2024
+
+Usuwamy =the-selection-range=. W tym celu musimy dodac
+parametr =(the-selection)=, ktory powinien przyjmowac
+wartosc =DocumentEditor:selection-highlight=.
+
+Dobra, wyglada na to, ze sporo sie udalo, tylko ze:
+- zepsulismy testy
+- jest jakis problem z wychodzeniem z trybu rysowania
+  podswietlen (i trzeba to naprawic!)
+
+* 16.11.2024
+
+Bysmy sie zajeli zmiana definicji =the-highlights=, ale 
+trzeba jeszcze uwzglednic
+=DocumentEditor:selection-highlight:start/stop=
+w ruchu kursora.
+
+Najlepiej by bylo zmienic definicje =(move-cursor-left!)=
+i =(move-cursor-right!)= tak zeby mialy postac:
+
+#+BEGIN_SRC scheme
+
+(define (move-cursor-left!)::void
+  (and-let* ((editor ::Editor (the-editor)))
+    (editor:move-cursor-left!)))
+
+(define (move-cursor-right!)::void
+  (and-let* ((editor ::Editor (the-editor)))
+    (editor:move-cursor-right!)))
+
+(define (move-cursor-up!)::void
+  (and-let* ((editor ::Editor (the-editor)))
+    (editor:move-cursor-up!)))
+
+(define (move-cursor-down!)::void
+  (and-let* ((editor ::Editor (the-editor)))
+    (editor:move-cursor-down!)))
+
+(define (unnest-cursor-right!)::void
+  (and-let* ((editor ::Editor (the-editor)))
+    (editor:unnest-cursor-right!)))
+
+#+END_SRC
+
+Oczywiscie trzeba wtedy wzbogacic interfejs Editor
+o te cztery metody, ale co to dla nas :D
+
+Pytanie czy przy okazji chcemy tez przeniesc
+=unnest-cursor-right!=, ale chyba raczej tak.
+
+A w ogolnosci moze tez warto sobie pomyslec
+o tym, jak wygladalaby idealna architektura
+dla takiego zorientowanego obiektowo systemu
+w kwestii propagacji zdarzen i tworzenia skrotow
+klawiszowych.
+
+No ale jednakowoz wszelako wracajac do kwestii
+refaktoryzacji, wiele wskazuje na to, ze =selection-range=
+bedzie mozna wywalic.
+
 * 15.11.2024
 
 No to ta refaktoryzacja z grubsza jest zrobiona.

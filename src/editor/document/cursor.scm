@@ -4,6 +4,7 @@
 (import (language define-syntax-rule))
 (import (language define-interface))
 (import (language define-type))
+(import (language define-object))
 (import (language define-cache))
 (import (language attributes))
 (import (language define-parameter))
@@ -18,6 +19,7 @@
 (import (utils print))
 
 (import (editor interfaces elements))
+(import (editor interfaces painting))
 
 ;; See the `fundamental.scm` file for a detailed explanation
 ;; how cursors are represented
@@ -301,67 +303,84 @@
 	      (next updated))
 	    updated))))
 
-(define (selection-start+end cursor::Cursor
-			     range::integer
-			     #!optional
-			     (document (the-document)))
-  ::(Values Cursor Cursor)
-  (parameterize ((the-document document))
-    (cond
-     ((is range < 0)
-      (values
-       (iterations (- range)
-		   cursor-retreat
-		   cursor)
-       cursor))
+(define-object (NoEditor)::Editor
+  
+  (define (add-post-draw-action! action::(maps () to: void))::void
+    (action))
 
-     ((is range > 0) 
-      (values
-       cursor
-       (iterations range
-		   cursor-advance
-		   cursor)))
-     (else
-      (values cursor cursor)))))
+  (define (move-cursor-left!)::void
+    (let ((cursor (cursor-retreat))
+	  (selection (the-selection)))
+      (set! (the-cursor) cursor)
+      (set! selection:start cursor)
+      (set! selection:end cursor)))
 
-(define-single-cache (cached-selection-start+end
-		      cursor::Cursor
-		      range::integer
-		      document)
-  ::(Values Cursor Cursor)
-  (selection-start+end cursor range document))
+  (define (move-cursor-right!)::void
+    (let ((cursor (cursor-advance))
+	  (selection (the-selection)))
+      (set! (the-cursor) cursor)
+      (set! selection:start cursor)
+      (set! selection:end cursor)))
 
-(define (the-selection)::(Values Cursor Cursor)
-  (cached-selection-start+end (the-cursor)
-			      (the-selection-range)
-			      (the-document)))
+  (define (move-cursor-up!)::void
+    (values))
 
-(define-single-cache (cached-highlights cursor::Cursor
-					range::integer
-					document)
-  ::(list-of Highlight)
-  (let-values (((selection-start selection-end)
-		(selection-start+end cursor
-				     range
-				     document)))
-    `(,(Highlight start: selection-start
-		  end: selection-end
-		  type: HighlightType:Selection))))
+  (define (move-cursor-down!)::void
+    (values))
 
-(define (the-highlights)
-  ::(list-of Highlight)
-  (cached-highlights (the-cursor)
-		     (the-selection-range)
-		     (the-document)))
+  (define (unnest-cursor-right!)::void
+    (and-let* ((`(,tip ,top . ,root) (the-cursor))
+	       (parent ::Indexable (cursor-ref (the-document)
+					       root))
+	       (target ::Indexable (parent:part-at top))
+	       (selection ::Highlight (the-selection))
+	       (item ::Indexable (target:part-at tip)))
+      ;;(assert (eq? target item))
+      (set! (the-cursor)
+	    (cond
+	     ((Textual? item)
+	      (hash-cons (parent:last-index) root))
+	     ((eqv? tip (parent:last-index))
+	      (hash-cons (parent:last-index) root))
+	     (else
+	      (hash-cons* (parent:last-index) top root))))
+      (set! selection:start (the-cursor))
+      (set! selection:end (the-cursor))))
+  
+  (define (expand-selection-right!)::void
+    (values))
 
-(define (within-selection? context::Cursor)::boolean
-  ;; implicitly parameterized with (the-document),
-  ;; (the-cursor) and (the-selection-range),
-  ;; because cursor< is parameterized with (the-document),
-  ;; and (the-selection) is implicitly parameterized
-  ;; with (the-document), (the-cursor)
-  ;; and (the-selection-range)
-  (and (isnt (the-selection-range) zero?)
-       (let-values (((selection-start selection-end) (the-selection)))
-	 (is selection-start cursor< context cursor< selection-end))))
+  (define (expand-selection-left!)::void
+    (values))
+
+  (define (update-cursor-column!)::void
+    (values))
+  
+  (define marked ::Position
+    (Position left: 0
+	      top: 0))
+
+  (define (mark-cursor! left::real top::real)::void
+    (set! marked:left left)
+    (set! marked:top top))
+  
+  (define (to-next-line)::real
+    0)
+  
+  (define (to-previous-line)::real
+    0)
+  
+  (define (marked-cursor-position)::Position
+    marked)
+  
+  (define (set-cursor-column! left::real)::void
+    (values))
+  
+  (define (cursor-column)::real
+    0)
+
+  (NullPane))
+
+(define-parameter (the-editor)::Editor
+  (NoEditor))
 

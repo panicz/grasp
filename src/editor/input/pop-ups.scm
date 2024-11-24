@@ -60,10 +60,10 @@
 
 (define-type (PopUp left: real := 0
 		    top: real := 0
-		    name: string := ""
                     content: Enchanted)
   implementing Layer
   with
+  
   ((render!)::void
    (let ((tile ::Tile (as Tile (this))))
      (tile:draw! '())))
@@ -79,6 +79,13 @@
        ::boolean
        (screen:drag! finger pop-up))))
 
+  ((remove-from-overlay!)::boolean
+   (let ((should-remove? (lambda (layer::Layer)
+			   (or (eq? layer (this))
+			       (and-let* ((layer ::DelegatingLayer))
+				 (eq? layer:target (this)))))))
+     (screen:remove-overlay-if! should-remove?)))
+  
   ((tap! finger::byte #;at x::real y::real)::boolean
    (pop-up-action (this) finger x y
      inside:
@@ -88,7 +95,7 @@
      outside:
      (lambda (pop-up::PopUp finger::byte x::real y::real)
        ::boolean
-       (screen:remove-overlay! pop-up))))
+       (remove-from-overlay!))))
 
   ((second-press! finger::byte #;at x::real y::real)::boolean
    (pop-up-action (this) finger x y
