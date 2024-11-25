@@ -40,6 +40,8 @@
 (import (editor input splits))
 (import (editor input pop-ups))
 
+(import (editor utils search))
+
 (define-object (Point x::real y::real color::long)::Layer
   (define (render!)
     (painter:draw-point! x y color))
@@ -324,6 +326,7 @@
 (define (open-search-window)
   (let* ((search-input (text-field
 			(* (painter:space-width) 20) ""))
+	 (editor (the-editor))
 	 (⬑ (Button label: "⬑"
 		    action: (lambda _ (WARN "previous"))))
 	 (⬎ (Button label: "⬎"
@@ -339,19 +342,22 @@
 		 content:
 		 (beside
 		  search-input (below ⬑ ⬎))))
-	 (is-popup? (lambda (layer::Layer)
-		      (and-let* ((layer ::DelegatingLayer))
-			(eq? layer:target popup))))
 	 (hijack (HijackLayerInput popup
 		   ((key-typed! key-code::long context::Cursor)
 		    ::boolean
 		    (match (key-code-name key-code)
 		      ('escape
-		       (screen:remove-overlay-if! is-popup?))
+		       (popup:remove-from-overlay!))
 		      (_
 		       (search-input:key-typed! key-code context)
-		       (WARN "pressed "(key-code-name key-code))
-		       ;; tutaj powinnismy wyszukac
+		       (safely
+			(and-let* ((pattern (parse-string search-input:content))
+				   ((isnt pattern empty?))
+				   (editor ::DocumentEditor)
+				   (highlights ::(list-of Highlight)
+					       (all-matches of: pattern
+							    in: editor:document)))
+			  (editor:set-highlights! highlights)))
 		       #t))))))
     (screen:add-overlay! hijack)))
 
