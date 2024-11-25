@@ -1,3 +1,8 @@
+* 24.11.2024
+
+No dobra, to to dzisiaj bysmy sprobowali podlaczyc wyszukiwanie
+i podswietlanie do okienka
+
 * 23.11.2024
 
 No dobra, to teraz plan jest taki, ze:
