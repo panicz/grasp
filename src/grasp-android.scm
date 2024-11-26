@@ -1322,6 +1322,15 @@
 	       (set! traversal:max-line-height height)
 	       (set! segment-start (+ i 1))))
 	(render-fragment! string-end)
+
+	(for highlight::Highlight in highlight-starts
+	  (when (eqv? (car highlight:start) string-end)
+	    (begin-highlight! highlight:type)))
+	
+	(for highlight::Highlight in highlight-ends
+	  (when (eqv? (car highlight:end) string-end)
+	    (end-highlight! highlight:type)))
+	
 	(when (and focused? (eqv? (head (the-cursor))
 				  string-end))
 	  (mark-cursor! traversal:left traversal:top))
