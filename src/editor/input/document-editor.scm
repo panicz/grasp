@@ -328,16 +328,12 @@
 			(* (painter:space-width) 20) ""))
 	 (editor (the-editor))
 	 (⬑ (Button label: "⬑"
-		    action: (lambda _ (WARN "previous"))))
+		    action: (lambda _
+			      (editor:highlight-back!))))
 	 (⬎ (Button label: "⬎"
 		    action:
 		    (lambda _
-		      (safely
-		       (let ((pattern (parse-string
-				       search-input:content)))
-			 (WARN "looking for the next "
-			       pattern
-			       (pattern:getClass)))))))
+		      (editor:highlight-next!))))
 	 (popup (PopUp
 		 content:
 		 (beside
@@ -570,7 +566,7 @@
 				  highlights))))
       (set! current:type
 	    HighlightType:CurrentFinding)))
-  
+
   (define (highlight-next!)::void
     (and-let* ((`(,current::Highlight . ,rest)
 		(first-cell
@@ -592,11 +588,11 @@
 			      highlights))))
 	;; tutaj jeszcze powinnismy wycentrowac widok
 	(set! next:type HighlightType:CurrentFinding))))
- 
+
   (define findings-highlights ::EnumSet
     (EnumSet:of HighlightType:CurrentFinding
 		HighlightType:OtherFinding))
-  
+
   (define (highlight-back!)::void
     (or
      (and-let* ((`(,previous::Highlight . ,rest)
