@@ -591,3 +591,9 @@ operate on cursors.
   (height)::real
 
   )
+
+(define-attribute+ (screen-position editor::Editor)::Position
+  (Position))
+
+(define-attribute+ (screen-extent editor::Editor)::Extent
+  (Extent))

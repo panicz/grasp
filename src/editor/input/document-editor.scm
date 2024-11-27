@@ -206,8 +206,10 @@
 			  (screen:add-overlay! new-window))))))
     window))
 
-(define (save-file-browser directory::java.io.File name-hint::string editor::DocumentEditor)::PopUp 
-  
+(define (save-file-browser directory::java.io.File
+			   name-hint::string
+			   editor::DocumentEditor)
+  ::PopUp 
   (let* ((window ::PopUp #!null)
          (text-field ::Scroll (text-field 0 name-hint))
          (button (Button label: "Save"
@@ -414,8 +416,8 @@
 	      cursor: Cursor := '(#\[ 1)
 	      transform: Transform := ((default-transform))))
 
-(define-syntax-rule (the item)
-  (slot-ref (this) 'item))
+(define-syntax-rule (the property)
+  (slot-ref (this) 'property))
 
 (define-syntax-rule (with-editor-context body + ...)
   ;; this should normally be defined inside
@@ -751,6 +753,13 @@
 	  (transform:within
 	   painter
 	   (lambda ()
+	     (let ((position ::Position (screen-position
+					 (this)))
+		   (extent ::Extent (screen-extent (this))))
+	       (set! position:left (the-pane-left))
+	       (set! position:top (the-pane-top))
+	       (set! extent:width (the-pane-width))
+	       (set! extent:height (the-pane-height)))
 	     (document:draw! '())
 	     (for action::procedure in post-draw-actions
 	       (action))
