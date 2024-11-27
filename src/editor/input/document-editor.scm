@@ -569,33 +569,35 @@
       (set! current:type
 	    HighlightType:CurrentFinding)))
 
-  (define (highlight-next!)::void
-    (and-let* ((`(,current::Highlight . ,rest)
-		(first-cell
-		 (lambda (cell::pair)
-		   ::boolean
-		   (and-let*
-		       ((`(,(Highlight
-			     type:
-			     HighlightType:CurrentFinding)
-			   . ,_) cell))))
-		 highlights)))
-      (set! current:type HighlightType:OtherFinding)
-      (and-let* ((next (or
-			(find (is _:type eq?
-				  HighlightType:OtherFinding)
-			      rest)
-			(find (is _:type eq?
-				  HighlightType:OtherFinding)
-			      highlights))))
-	;; tutaj jeszcze powinnismy wycentrowac widok
-	(set! next:type HighlightType:CurrentFinding))))
+  (define (highlight-next!)::(maybe Highlight)
+    (otherwise #!null
+      (and-let* ((`(,current::Highlight . ,rest)
+		  (first-cell
+		   (lambda (cell::pair)
+		     ::boolean
+		     (and-let*
+			 ((`(,(Highlight
+			       type:
+			       HighlightType:CurrentFinding)
+			     . ,_) cell))))
+		   highlights)))
+	(set! current:type HighlightType:OtherFinding)
+	(and-let* ((next (or
+			  (find (is _:type eq?
+				    HighlightType:OtherFinding)
+				rest)
+			  (find (is _:type eq?
+				    HighlightType:OtherFinding)
+				highlights))))
+	  ;; tutaj jeszcze powinnismy wycentrowac widok
+	  (set! next:type HighlightType:CurrentFinding)
+	  next))))
 
   (define findings-highlights ::EnumSet
     (EnumSet:of HighlightType:CurrentFinding
 		HighlightType:OtherFinding))
 
-  (define (highlight-back!)::void
+  (define (highlight-back!)::(maybe Highlight)
     (or
      (and-let* ((`(,previous::Highlight . ,rest)
 		 (first-cell
@@ -620,19 +622,30 @@
        (set! previous:type HighlightType:CurrentFinding)
        (set! current:type HighlightType:OtherFinding)
        	;; tutaj jeszcze powinnismy wycentrowac widok
-       #t)
+       previous)
      (and-let* ((`(,current::Highlight . ,rest)
-		 (first-cell (is _:type eq?
-				 HighlightType:CurrentFinding)
-			     highlights))
+		 (first-cell
+		  (lambda (cell)
+		    (and-let*
+			((`(,(Highlight
+			      type:
+			      HighlightType:CurrentFinding)
+			    . ,_) cell))))
+		  highlights))
 		(`(,last::Highlight . ,_)
-		 (last-cell (is _:type eq?
-				HighlightType:OtherFinding)
-			    rest)))
+		 (last-cell
+		  (lambda (cell)
+		    (and-let*
+			((`(,(Highlight
+			      type:
+			      HighlightType:OtherFinding)
+			    . ,_) cell))))
+		  rest)))
        (set! current:type HighlightType:OtherFinding)
-       (set! last:type HighlightType:OtherFinding)
+       (set! last:type HighlightType:CurrentFinding)
        	;; tutaj jeszcze powinnismy wycentrowac widok
-       #t)))
+       last)
+     #!null))
 
   (define (drop-at! x::real y::real object::pair)::boolean
     (and-let* ((items ::cons object)
