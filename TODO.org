@@ -1,3 +1,158 @@
+* 27.11.2024
+
+No dobra, to wczoraj sie chyba udalo zrobic calkiem sporo:
+- poprawic cofanie biezacego highlighta
+- dodac =screen-position= i =screen-height= do elementow
+
+Dzisiaj moze sie wreszcie uda zrobic te animowane przejscia.
+
+Takze pomysl jest taki, zeby zaczac od tego, zeby wyswietlac
+=(cursor-position highlight:start)= z miejsca, w ktorym wolamy
+=highlight-next!= oraz =highlight-back!=.
+
+W nastepnym kroku - jezeli te zwrocone wartosci beda sensowne
+(bo nie sprawdzalismy tego nigdy) - trzeba bedzie wyekstrahowac
+z =adjust-view!= procedure, ktora animuje nam przejscie od biezacej
+pozycji do pozycji wokol kursora
+
+Jezeli uda sie zrobic dzisiaj obie te rzeczy, to bedzie super,
+ale jeszcze trzeba rozwazyc to, zeby usuwac highlighty przy zamykaniu
+okna - czyli najpewniej do interfejsu =Layer= bedzie trzeba dodac
+nowa metode, =close!=, ktora ma byc wywolywana przez =remove-overlay!=
+
+#+BEGIN_SRC scheme
+primitive.scm: 221 value is neither List or array
+#+END_SRC
+
+* 26.11.2024
+
+No dobra, to na dzisiaj plan jest z grubsza taki, ze
+bysmy sprobowali zaimplementowac te animacje, czy tez
+=editor:center-around/document!=.
+
+#+BEGIN_SRC scheme
+  (define (center-around/document! left::real top::real duration/ms::real)
+    (and-let* ((editor ::DocumentEditor (the-editor))
+	       (xe ye (editor:transform:outside-in left top)))
+      (if (is duration/ms <= 0)
+
+      (unless (is 0 <= ye < (- editor-height cursor-height))
+	(painter:play!
+	 (Transition of: editor:transform
+		     from: (copy editor:transform)
+		     to: (let ((target ::Transform
+				       (copy editor:transform)))
+			   (target:translate! 0 (- (/ (- editor-height
+							 cursor-height)
+						      2) ye))
+			   target)
+		     duration/ms: 500)))))
+#+END_SRC
+
+No to tak: jeden z prpblemow jest taki, ze edytor nie wie,
+jaki ma rozmiar.
+
+Ale moze powinien?
+
+Moze powinnismy miec =atrybuty+= przechowujace te informacje?
+
+Tylko jak je *nazwac*?
+
+Moze tak:
+
+#+BEGIN_SRC scheme
+
+  (define-attribute+ (screen-position editor::Editor)::Position
+    (Position))
+
+  (define-attribute+ (screen-extent editor::Editor)::Extent
+    (Extent))
+
+#+END_SRC
+
+I gdzie to umiescic?
+
+Pewnie w =(editor interfaces elements)=.
+
+I wowczas trzeba zapewne jeszcze zmodyfikowac renderowanie
+edytora tak, zeby kazdorazowo ustawiac te zmienne przy
+renderowaniu
+
+
+Ok, chyba to mamy. I teraz kolejny krok: chcemy, zeby
+wciskanie przyciskow =next/back= powodowalo, ze animujemy
+do kolejnego znalezionego miejsca.
+
+* 25.11.2024
+
+Dzisiaj glowny priorytet ma implementacja funkcjonalnosci
+"nastepny/poprzedni" w guzikach okna wyszukiwania, a takze
+- a jakze - animowanie widoku na kolejne highlighty.
+
+Ponadto bysmy sie moze zajeli tym bledem z konczeniem
+podswietlania (bo cos nam tam nie pyka), a poza tym
+renderowaniem okienka w kliencie desktopowym
+
+OK, no to widzimy teraz, ze costam nam nie dziala :O
+
+To chyba dzis bysmy sie tak naprawde zajeli
+tym bugiem, ktory sprawia, ze podswietlanie
+nie konczy sie prawidlowo
+
+I to sie udalo rozwiazac.
+
+Nastepny/poprzedni tez juz sa, ale jeszcze bez animacji.
+
+To sprobujmy zrobic te animacje.
+
+Mamy sobie funkcje =adjust-view!=, i ona jest
+zdefiniowana tak:
+
+#+BEGIN_SRC scheme
+(define (adjust-view!)
+  (and-let* ((editor ::DocumentEditor (the-editor))
+	     (cursor ::Position (editor:marked-cursor-position))
+	     (cursor-height ::real (painter:cursor-height))
+	     (editor-left ::real (the-pane-left))
+	     (editor-top ::real (the-pane-top))
+	     (editor-width ::real (the-pane-width))
+	     (editor-height ::real (the-pane-height))
+	     (xe ye (the-transform-stack:inside-out cursor:left cursor:top)))
+    (unless (is 0 <= ye < (- editor-height cursor-height))
+      (painter:play!
+       (Transition of: editor:transform
+		   from: (copy editor:transform)
+		   to: (let ((target ::Transform
+				     (copy editor:transform)))
+			 (target:translate! 0 (- (/ (- editor-height
+						       cursor-height)
+						    2) ye))
+			 target)
+		   duration/ms: 500)))))
+#+END_SRC
+
+ok, i sobie zesmy wczesniej zdefiniowali =cursor-position=
+w =(editor types primitive)=:
+
+#+BEGIN_SRC scheme
+
+  (cursor-position cursor ::Cursor := (the-cursor)
+		   in: document := (the-document)
+		   context: ::Cursor := '()
+		   into: target ::Position := (Position))
+  
+#+END_SRC
+
+No to bysmy chcieli miec metode w rodzaju
+
+#+BEGIN_SRC scheme
+
+  (editor:center-around/document! left::real top::real
+				  duration/ms::float)
+  
+#+END_SRC
+
+
 * 24.11.2024
 
 No dobra, to to dzisiaj bysmy sprobowali podlaczyc wyszukiwanie
