@@ -66,10 +66,17 @@
     (any satisfying? layers))
   
   (define (remove! element::Layer)::boolean
-    (layers:remove element))
+    (let ((removed (layers:remove element)))
+      (when removed
+	(element:close!))
+      removed))
 
   (define (remove-if! satisfying?::(maps (Layer) to: boolean))::boolean
-    (layers:removeIf (is _ satisfying?)))
+    (let ((removed (only satisfying? layers)))
+      (layers:removeAll removed)
+      (for layer::Layer in removed
+	(layer:close!))
+      (isnt removed null?)))
   
   (define (clear!)::void
     (layers:clear))

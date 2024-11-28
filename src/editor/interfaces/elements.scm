@@ -425,10 +425,21 @@ operate on cursors.
 
 (define-interface Pane (Renderable Interactive))
 
-(define-interface Layer (Indexable Pane))
+(define-interface Layer (Indexable Pane)
+  (close!)::void
+  )
+
+(define-object (DeadLayer)::Layer
+  (define (render!)::void
+    #!abstract)
+
+  (define (close!)::void
+    (values))
+  (IgnoreInput))
 
 (define-object (DelegatingLayer target::Layer)::Layer
-  
+  (define (close!)::void
+    (target:close!))
   (define (tap! finger::byte #;at x::real y::real)::boolean
     (target:tap! finger x y))
   (define (press! finger::byte #;at x::real y::real)::boolean

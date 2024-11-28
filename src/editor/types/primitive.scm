@@ -213,7 +213,7 @@
 
 (define/kw (cursor-position cursor ::Cursor := (the-cursor)
 			    in: document := (the-document)
-			    context: ::Cursor := '()
+			    context: context ::Cursor := '()
 			    into: target ::Position := (Position))
   ::Position
   (escape-with return
@@ -266,7 +266,7 @@
 				 #;into target::Position
 					#;within context::Cursor)
     ::Position
-    (set! target:left (+ target:left painter:paren-width))
+    (set! target:left (+ target:left (painter:paren-width)))
     (match cursor
       (`(#\[ . ,,context)
        target)

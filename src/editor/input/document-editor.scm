@@ -43,9 +43,9 @@
 (import (editor utils search))
 
 (define-object (Point x::real y::real color::long)::Layer
-  (define (render!)
+  (define (render!)::void
     (painter:draw-point! x y color))
-  (IgnoreInput))
+  (DeadLayer))
 
 (define-object (Stroke finger ::byte source-pane ::Pane)::Layer
   (define points ::($bracket-apply$ List Position) (ArrayList))
@@ -60,7 +60,7 @@
            (painter:draw-thick-line! p0:left p0:top
 				     p1:left p1:top))))
 
-  (IgnoreInput))
+  (DeadLayer))
 
 (define-object (Drawing stroke::Stroke)::Drag
 
@@ -91,7 +91,7 @@
       (with-translation (position:left position:top)
 	(draw-sequence! items))))
 
-  (IgnoreInput))
+  (DeadLayer))
 
 (define-object (DragAround selected::Selected)::Drag
 
@@ -330,17 +330,28 @@
 			(* (painter:space-width) 20) ""))
 	 (editor (the-editor))
 	 (⬑ (Button label: "⬑"
-		    action: (lambda _
-			      (editor:highlight-back!))))
+		    action:
+		    (lambda _
+		      (safely
+		       (and-let* (((Highlight end: end)
+				   (editor:highlight-back!)))
+			 (WARN (cursor-position
+				end in: editor:document)))))))
 	 (⬎ (Button label: "⬎"
 		    action:
 		    (lambda _
-		      (editor:highlight-next!))))
+		      (safely		      
+		      (and-let* (((Highlight start: start)
+				  (editor:highlight-next!)))
+			(WARN (cursor-position
+			       start in: editor:document)))))))
 	 (popup (PopUp
 		 content:
 		 (beside
 		  search-input (below ⬑ ⬎))))
 	 (hijack (HijackLayerInput popup
+		   ((close!)::void
+		    (editor:set-highlights! '()))
 		   ((key-typed! key-code::long context::Cursor)
 		    ::boolean
 		    (match (key-code-name key-code)

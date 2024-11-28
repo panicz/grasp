@@ -63,6 +63,9 @@
                     content: Enchanted)
   implementing Layer
   with
+
+  ((close!)::void
+   (values))
   
   ((render!)::void
    (let ((tile ::Tile (as Tile (this))))
