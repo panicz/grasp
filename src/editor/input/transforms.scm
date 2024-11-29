@@ -8,6 +8,7 @@
 (import (srfi :11))
 (import (language match))
 (import (language infix))
+(import (language examples))
 (import (language fundamental))
 (import (editor interfaces painting))
 
@@ -37,58 +38,13 @@
 
   (rotate! factor::real x::real y::real)::void
 
+  ;; this one returns a copy of this transform
+  ;; such that (inside-out inner-x inner-y)
+  ;; would return (values outer-x outer-y)
+  (translating inner-x::real inner-y::real
+		#;to outer-x::real outer-y::real)
+  ::Transform
   )
-
-#|
-(define-object (IdentityTransform)::Transform
-  (define (outside-in x::real y::real)::(Values real real)
-    (values x y))
-
-  (define (inside-out x::real y::real)::(Values real real)
-    (values x y))
-
-  (define (within painter::Painter action::procedure)::void
-    (action))
-
-  (define (translate! dx::real dy::real)::void
-    (values))
-
-  (define (stretch! x00::real y00::real x10::real y10::real
-		    x01::real y01::real x11::real y11::real)
-    ::void
-    (values))
-  
-  (define (scale! factor::real x::real y::real)::void
-    (values))
-
-  (define (rotate! factor::real x::real y::real)::void
-    (values))
-
-  (define (get-angle)::real 0)
-  
-  (define (set-angle! rad::real)::void
-    (values))
-
-  (define (get-scale)::real 1)
-  
-  (define (set-scale! s::real)::void
-    (values))
-
-  (define (get-left)::real 0)
-  
-  (define (set-left! l::real)::void
-    (values))
-  
-  (define (get-top)::real 0)
-  
-  (define (set-top! t::real)::void
-    (values))
-  )
-
-(define-early-constant identity-2d ::IdentityTransform
-  (IdentityTransform))
-|#
-
 
 (define-type (Translation left: real := 0
 			  top: real := 0)
@@ -112,6 +68,12 @@
     (+ x left)
     (+ y top)))
 
+  ((translating inner-x::real inner-y::real
+		 #;to outer-x::real outer-y::real)
+   ::Transform
+   (Translation left: (- outer-x inner-x)
+		top: (- outer-y inner-y)))
+  
   ((translate! dx::real dy::real)::void
     (set! left (as int (round (+ left dx))))
     (set! top (as int (round (+ top dy)))))
@@ -180,6 +142,18 @@
        (as int (round (- (/ (- (* c y) (* s x)) scale) top)))
        )))
 
+ ((translating inner-x::real inner-y::real
+	       #;to outer-x::real outer-y::real)
+  ::Transform
+  (let ((s (sin angle/rad))
+	(c (cos angle/rad)))
+    (Isogonal left: (- (/ (+ (* c outer-x) (* s outer-y)) scale)
+		       inner-x)
+	      top: (- (/ (- (* c outer-y) (* s outer-x)) scale)
+		      inner-y)
+	      scale: scale
+	      angle/rad: angle/rad)))
+
   ((translate! dx::real dy::real)::void
     (let ((s (sin angle/rad))
 	  (c (cos angle/rad)))
@@ -246,6 +220,12 @@
    (set! top t))
   )
 
+(e.g.
+ (and-let* ((t ::Transform (Translation))
+	    (t ::Transform (t:translating 1 2 3 4))
+	    (3 4 (t:inside-out 1 2))
+	    (1 2 (t:outside-in 3 4)))))
+
 (define (only-scale&rotation transform ::BiMap2D)::Transform
   (let*-values (((-left -top) (transform:outside-in 0 0))
 		((x y) (transform:outside-in 1 0))
@@ -253,13 +233,38 @@
 		((scale) (hypotenuse dx dy))
 		((angle) (atan (- dy) dx)))
     (Isogonal angle/rad: angle scale: (/ scale))))
-  
+
+(define (sine-interpolation initial-value::real
+			    final-value::real
+			    progress::real)
+  ::real
+  (cond
+   ((is progress <= 0) initial-value)
+   ((is progress >= 1) final-value)
+   (else
+    (+ initial-value
+       (* (- final-value initial-value)
+	  (sin (* progress pi/2)))))))
+
+(define-alias Tween (maps (initial::real
+			   final::real
+			   progress::real)
+			  to: real))
+
 (define-type (Transition of: Transform
                          from: Transform
 			 to: Transform
 			 around: Position := #!null
 			 duration/ms: int
-			 progress/ms: int := 0)
+			 progress/ms: int := 0
+			 tween-scale: Tween
+			 := sine-interpolation
+			 tween-angle: Tween
+			 := sine-interpolation
+			 tween-left: Tween
+			 := sine-interpolation
+			 tween-top: Tween
+			 := sine-interpolation)
   implementing Animation
   with
   ((advance! timestep/ms::int)::boolean
@@ -267,36 +272,44 @@
    (let ((progress ::float (/ progress/ms duration/ms)))
      (cond
       (around
-       (let*-values (((x0 y0) (of:inside-out around:left around:top))
-                     ((scale) (tween (from:get-scale)
-		                     (to:get-scale)
-		                     progress))
-		     ((angle) (tween (from:get-angle)
-		                     (to:get-angle)
-		                     progress))
+       (let*-values (((x0 y0) (of:inside-out
+			       around:left
+			       around:top))
+                     ((scale) (tween-scale
+			       (from:get-scale)
+		               (to:get-scale)
+		               progress))
+		     ((angle) (tween-angle
+			       (from:get-angle)
+		               (to:get-angle)
+		               progress))
 	             ((x1 y1) (begin
 				(of:set-scale! scale)
 				(of:set-angle! angle)
-				(of:inside-out around:left around:top))))
+				(of:inside-out
+				 around:left
+				 around:top))))
          (of:translate! (- x0 x1) (- y0 y1))))
       (else
-       (of:set-scale! (tween (from:get-scale) (to:get-scale)
-			     progress))
-       (of:set-angle! (tween (from:get-angle) (to:get-angle)
-			     progress))
-        (of:set-left! (tween (from:get-left) (to:get-left)
-			    progress))
-       (of:set-top! (tween (from:get-top) (to:get-top)
-			   progress))
+       (of:set-scale!
+	(tween-scale
+	 (from:get-scale)
+	 (to:get-scale)
+	 progress))
+       (of:set-angle!
+	(tween-angle
+	 (from:get-angle)
+	 (to:get-angle)
+	 progress))
+       (of:set-left!
+	(tween-left
+	 (from:get-left)
+	 (to:get-left)
+	 progress))
+       (of:set-top!
+	(tween-top
+	 (from:get-top)
+	 (to:get-top)
+	 progress))
        )))
-   (is progress/ms < duration/ms))
-
-  ((tween initial-value::real final-value::real progress::real)
-   ::real
-   (cond
-    ((is progress <= 0) initial-value)
-    ((is progress >= 1) final-value)
-    (else
-     (+ initial-value
-        (* (- final-value initial-value)
-	   (sin (* progress pi/2))))))))
+   (is progress/ms < duration/ms)))
