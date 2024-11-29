@@ -1,3 +1,68 @@
+* 28.11.2024
+
+Ale dzisiaj to juz na pewno uda sie zrobic te animacje!
+
+No to tak: mamy juz sobie pozycje ekranowe, i teraz chcemy
+zrobic tak, zeby dalo sie do nich animowac kamere
+- a konkretnie, to zeby animowac w taki sposob, zeby
+  kursor znalazl sie w polowie widoku edytora.
+
+  Ale co to znaczy?
+
+  Znamy wspolrzedne kursora wzgledem dokumentu, i wiemy,
+  w jaki sposob te wspolrzedne mapuja sie na wspolrzedne
+  edytora (natomaist pomijamy kwestie, jak je zmapowac
+  na wspolrzedne ekranu, bo ona nie ma tutaj znaczenia!)
+
+  Musimy znalezc taka transformacje, zeby po jej zastosowaniu
+  nasza wymagana wspolrzedna byla w polowie wysokosci ekranu.
+
+  No dobra, to moze przywolajmy sobie jeszcze raz jak wyglada
+  definicja =adjust-view!=
+
+
+#+BEGIN_SRC scheme
+(define (adjust-view!)
+  (and-let* ((editor ::DocumentEditor (the-editor))
+	     (cursor ::Position (editor:marked-cursor-position))
+	     (cursor-height ::real (painter:cursor-height))
+	     (editor-left ::real (the-pane-left))
+	     (editor-top ::real (the-pane-top))
+	     (editor-width ::real (the-pane-width))
+	     (editor-height ::real (the-pane-height))
+	     (xe ye (the-transform-stack:inside-out cursor:left cursor:top)))
+    (unless (is 0 <= ye < (- editor-height cursor-height))
+      (painter:play!
+       (Transition of: editor:transform
+		   from: (copy editor:transform)
+		   to: (let ((target ::Transform
+				     (copy editor:transform)))
+			 (target:translate! 0 (- (/ (- editor-height
+						       cursor-height)
+						    2) ye))
+			 target)
+		   duration/ms: 500)))))
+#+END_SRC
+
+No to - jak wczesniej wspominalismy - bysmy chceli miec metode
+
+#+BEGIN_SRC scheme
+
+  (define (center-around/document! left::real top::real
+				   duration/ms::real)
+    ::void
+    (and-let* ((xe ye (transform:inside-out left top))
+	       (extent ::Extent (screen-extent (this)))
+	       (x0 (/ extent:width 2))
+	       (y0 (/ extent:height 2)))
+      ???
+      ...))
+
+#+END_SRC
+
+Czyli na podstawie polozenia (we wspolrzednych dokumentu) chcemy
+wyznaczyc transformacje
+
 * 27.11.2024
 
 No dobra, to wczoraj sie chyba udalo zrobic calkiem sporo:
