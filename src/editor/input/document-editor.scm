@@ -334,17 +334,31 @@
 		    (lambda _
 		      (safely
 		       (and-let* (((Highlight end: end)
-				   (editor:highlight-back!)))
-			 (WARN (cursor-position
-				end in: editor:document)))))))
+				   (editor:highlight-back!))
+				  ((Position left: x top: y)
+				   (cursor-position
+				    end in: editor:document))
+				  ((Extent width: w height: h)
+				   (screen-extent editor)))
+			 (editor:pan-to!
+			  (editor:transform:translating
+			   0 y (editor:transform:get-left) (/ h 2))
+			  500))))))
 	 (⬎ (Button label: "⬎"
 		    action:
 		    (lambda _
 		      (safely		      
 		      (and-let* (((Highlight start: start)
-				  (editor:highlight-next!)))
-			(WARN (cursor-position
-			       start in: editor:document)))))))
+				  (editor:highlight-next!))
+				 ((Position left: x top: y)
+				  (cursor-position
+				   start in: editor:document))
+				 ((Extent width: w height: h)
+				   (screen-extent editor)))
+			(editor:pan-to!
+			 (editor:transform:translating
+			  0 y (editor:transform:get-left) (/ h 2))
+			 500))))))
 	 (popup (PopUp
 		 content:
 		 (beside
@@ -554,6 +568,14 @@
     (update-cursor-column!))
   
   (define transform ::Transform ((default-transform)))
+
+  (define (pan-to! target::Transform duration/ms::real)
+    ::void
+    (painter:play!
+     (Transition of: transform
+		 from: (copy transform)
+		 to: target
+		 duration/ms: duration/ms)))
   
   (define highlights ::(list-of Highlight)
     `(,selection-highlight))
@@ -1207,14 +1229,12 @@
 	     (editor-height ::real (the-pane-height))
 	     (xe ye (the-transform-stack:inside-out cursor:left cursor:top)))
     (unless (is 0 <= ye < (- editor-height cursor-height))
-      (painter:play!
-       (Transition of: editor:transform
-		   from: (copy editor:transform)
-		   to: (let ((target ::Transform
-				     (copy editor:transform)))
-			 (target:translate! 0 (- (/ (- editor-height
-						       cursor-height)
-						    2) ye))
-			 target)
-		   duration/ms: 500)))))
+      (editor:pan-to!
+       (let ((target ::Transform
+		     (copy editor:transform)))
+	 (target:translate! 0 (- (/ (- editor-height
+				       cursor-height)
+				    2) ye))
+	 target)
+       500 #;ms))))
 
