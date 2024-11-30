@@ -1,3 +1,15 @@
+* 29.11.2024
+
+juz mamy zaimplementowane ruszanie kamera. Warto by bylo moze
+jeszcze zrobic tak, zebykamera nie robila kuku jak obraz jest
+obrocony
+
+Ale tak poza tym to chceny:
+- poprawic samo wyszukiwanie (wyszukiwanie w komentarzach,
+  wiele instancji tego samego ciagu w obiekcie tekstowym)
+- renderowanie okienek na desktopie i w terminalu
+- replace
+
 * 28.11.2024
 
 Ale dzisiaj to juz na pewno uda sie zrobic te animacje!
