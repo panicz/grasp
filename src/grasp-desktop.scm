@@ -908,7 +908,7 @@
     (invoke (the-atom-font) 'getSize2D))
 
   (define (fill-background! width::real height::real)::void
-    (set-color! (color #xffffffff))
+    (set-color! (color #xffffff))
     (graphics:fillRect 0 0 (as int width) (as int height)))
 
   (define (draw-popup! width::real height::real)::void
