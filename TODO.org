@@ -1,3 +1,18 @@
+* 01.12.2024
+
+No i co teraz, e?
+
+Na pewno mamy do naprawy wyszukiwanie, implementacje
+zastepowania, ale tak naprawde glownym celem powinno
+teraz byc przesiascie sie na GRASPa w celu edytowania
+GRASPa. Byc moze jednak chcielibysmy to zrobic dopiero
+w nowym roku.
+
+Ale w zasadzie to bez sensu. Pomysl moglby byc taki, zeby
+dalo sie edytowac GRASPa z niego samego, ale zeby to moglo
+dzialac, trzeba albo wrzucac zrodla GRASPa w internal
+storage, albo pracowac na ecternal storage
+
 * 29.11.2024
 
 juz mamy zaimplementowane ruszanie kamera. Warto by bylo moze
