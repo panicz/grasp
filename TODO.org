@@ -1,3 +1,27 @@
+* 02.12.2024
+
+Wczoraj tosmy sie glownie zajmowali tym Advent of Code,
+i jak na razie poleglismy - bo cos w tym ewaluatorze wydaje
+sie nie dzialac tak, jak powinno.
+
+No dobra, to teraz mamy dwie drogi.
+
+Pierwsza jest taka, ze probujemy zrozumiec ten kod, ktory
+mamy teraz napisany.
+
+Druga jest taka, ze probujemy wymyslic model edycji,
+ktory jest fundamentalnie zrozumialy (TeleGRASP?).
+
+No bo jednak - co by nie mowic - te listy puste powoduja
+problemy.
+
+Wydaje sie jednak, ze tego, co teraz mamy,
+nie mozemy wyrzucic do kosza (bo ewaluator),
+a z drugiej strony przed proba przeprojektowania
+istniejacego rozwiazania warto byloby sie zapoznac
+z Interlispowym s-editem (czyli moze otworzyc ticket
+na githubowym repo?)
+
 * 01.12.2024
 
 No i co teraz, e?
