@@ -446,12 +446,10 @@
      ((Space? item)
       (cond
        ((eqv? c #\")
-	(record&perform! (Insert element: (cons (Text) '())))
-	(truly (move-cursor-left!)))
+	(record&perform! (Insert element: (cons (Text) '()))))
        
        ((is c in '(#\[ #\( #\{))
-	(record&perform! (Insert element: (cons (empty) '())))
-	(truly (move-cursor-left!)))
+	(record&perform! (Insert element: (cons (empty) '()))))
 
        ((is c char-whitespace?)
 	(record&perform! (InsertCharacter list: (list c))))

@@ -106,13 +106,16 @@
   with
   ((apply! document::pair)::Cursor
    (and-let* ((`(,tip ,top . ,root) at)
+	      (`(,first . ,_) element)
 	      (last-element (last element)))
      (insert! element into: document at: at)
      (let* ((base-cursor (cursor-climb-back
 			  (cursor-next (recons top root)
-					  document)
+				       document)
 			  document)))
-       base-cursor)))
+       (if (or (empty? first) (Text? first))
+	   (cursor-retreat base-cursor document)
+	   base-cursor))))
   ((inverse)::Edit
    (match at
      (`(,tip ,top . ,root)
