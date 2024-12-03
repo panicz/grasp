@@ -186,12 +186,13 @@
 				head))))))
 	(future
 	 (call-with-values (lambda ()
-			     (if definition
-				 (eval `(set! ,definition
-					      (let ()
-						,expression
-						,definition)))
-				 (eval expression)))
+			     (safely-
+			      (if definition
+				  (eval `(set! ,definition
+					       (let ()
+						 ,expression
+						 ,definition)))
+				  (eval expression))))
 	   (lambda result
 	     (unless (null? result)
 	       (with-edit-access

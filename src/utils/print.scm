@@ -128,13 +128,25 @@
    (ex java.lang.Throwable
        (stack-trace ex))))
 
+(define-parameter (stack-dump-length)::integer 20)
+
 (define-syntax-rule (safely actions ...)
   (try-catch
    (begin actions ...)
    (ex java.lang.Throwable
-       (for line in (take 4 (string-split (stack-trace ex) "\n"))
+       (for line in (take (stack-dump-length)
+			  (string-split (stack-trace ex) "\n"))
 	    (WARN line))
        #!null)))
+
+(define-syntax-rule (safely- actions ...)
+  (try-catch
+   (begin actions ...)
+   (ex java.lang.Throwable
+       (for line in (take (stack-dump-length)
+			  (string-split (stack-trace ex) "\n"))
+	    (WARN line))
+       (values))))
 
 (define-parameter (debugging?) #f)
 
