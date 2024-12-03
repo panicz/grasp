@@ -680,7 +680,7 @@
 			  (- top t:top)
 			  (recons t:index context))))
 	(return cursor)))
-    (define (result t ::Traversal) #!null)
+    (define (result t ::Traversal) (cursor 1))
     
     (traverse elems doing: action returning: result)))
 
