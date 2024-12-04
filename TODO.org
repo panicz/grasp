@@ -1,3 +1,62 @@
+* 03.12.2024
+
+No dobra, to mamy teraz niesamowita okazje do wprowadzania
+praktycznych usprawnien w GRASPie:
+
+po pierwsze, chcielibysmy moze na poczatek, zeby dwukrotne
+tapniecie robilo jedna z nastepujacych rzeczy:
+- przy tapnieciu lewego nawiasu zamykalo albo otwieralo
+  wyrazenie (ale tego na razie nie robimy)
+- przy tapnieciu prawego nawiasu maksymalizowalo wyrazenie
+  (ale tego tez na razie nie robimy
+- przy tapnieciu pustego obszaru gdzekolwiek, jezeli mamy
+  rotacje, chcemy anulowac te rotacje
+- przy tapnieciu pustego obszaru wewnatrz pudelka chcemy
+  ustawic taka transformacje, zeby caly wiersz, w ktorym
+  znajduje sie to pudelko, miescil sie na szerokosc w
+  biezacym edytorze
+
+I to jest jedna sprawa. Druga natomiast jest taka, warto
+sprobowac rozwazyc, dlaczego ewaluator na androidzie tak
+dziwacznie dziala, i czy da sie cos z tym zrobic (w
+najgorszym razie po prostu napiszemy nasz wlasny?).
+
+Trzecia zas sprawa jest taka, ze dobrze byloby usprawnic
+edycje z klawiatury (w tym w szczegolnosci, zeby dalo sie
+otwierac okna itd)
+
+Tak czy inaczej, na razie po prostu probujmy w GRASPie
+realizowac po kolei zadania z Advent of Code (bez
+pospiechu), i obserwujmy, czego nam brakuje.
+
+No to tak, jezeli idzie o "usability", to chcemy:
+- zeby po wyjsciu z programu i ponownym otwarciu
+  byl przywracany obszar roboczy
+- zeby "save as" otwieralo lokalizacje biezacego
+  dokumentu
+- zeby dalo sie sterowac tym wszystkim z klawiatury
+
+No ale wszystko po kolei.
+
+Czyli tak: bierzemy sobie element top-levelowy, czyli taki,
+na ktory indeks ma postac =`(,x ,1)=, tj.
+
+#+BEGIN_SRC scheme
+  (first-cell (lambda (cell)
+	       (and-let* ((`(,_ 1) cell))))
+	      path)
+
+  (first-cell (fn (`(,_ 1))) path)
+#+END_SRC
+
+No ale mniejsza. Bierzemy sobie ten element, jego pozycje
+w dokumencie oraz rozmiar, i szukamy takiej skali, ze:
+- nie moze byc wieksza, niz =(painter:max-document-scale)=
+- nie moze byc mniejsza, niz =(painter:min-document-scale)=
+- po jej zastosowaniu 
+
+
+
 * 02.12.2024
 
 Wczoraj tosmy sie glownie zajmowali tym Advent of Code,
