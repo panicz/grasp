@@ -131,7 +131,7 @@
     (Atom "#!null"))
    (else
     (WARN "dont know what to do with "expression)
-    (Atom (show->string expression)))))
+    #!null)))
 
 (define (apply-primitive operator operands)
   (grasp
@@ -196,10 +196,12 @@
 	   (lambda result
 	     (unless (null? result)
 	       (with-edit-access
-		(let* ((result+ (grasp result))
-		       (operation ::Insert (Insert element: result+
-						   at: next))
-		       (history ::History (history document)))
+		(and-let* ((result+ (grasp result))
+			   (operation ::Insert
+				      (Insert element: result+
+					      at: next))
+			   (history ::History (history
+					       document)))
 		  (history:record! operation)
 		  (set! (the-cursor)
 			(operation:apply! document)))))))))))))
