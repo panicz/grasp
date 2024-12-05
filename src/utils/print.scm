@@ -1,12 +1,17 @@
 (module-name (utils print))
 
+(import (kawa regex))
 (import (language define-syntax-rule))
 (import (language define-interface))
+(import (language define-type))
 (import (language define-object))
 (import (language define-parameter))
 (import (language for))
+(import (language infix))
+(import (language match))
 (import (utils conversions))
 (import (utils functions))
+
 
 (define-parameter (current-display-procedure)::procedure
   display)
@@ -128,14 +133,24 @@
    (ex java.lang.Throwable
        (stack-trace ex))))
 
-(define-parameter (stack-dump-length)::integer 20)
+(define-parameter (stack-dump-length)::integer 5)
+
+(define-parameter (show-in-stack-dump?)::(maps (string)
+					       to: boolean)
+  (lambda (line)
+    (and ;;(isnt ".java:[0-9]+" regex-match line)
+	 (isnt "at gnu" regex-match line)
+	 (isnt "at android.view.ViewRootImpl" regex-match line)
+	 (isnt "Native Method" regex-match line))))
 
 (define-syntax-rule (safely actions ...)
   (try-catch
    (begin actions ...)
    (ex java.lang.Throwable
        (for line in (take (stack-dump-length)
-			  (string-split (stack-trace ex) "\n"))
+			  (only (show-in-stack-dump?)
+				(string-split (stack-trace ex)
+					      "\n")))
 	    (WARN line))
        #!null)))
 
@@ -144,7 +159,10 @@
    (begin actions ...)
    (ex java.lang.Throwable
        (for line in (take (stack-dump-length)
-			  (string-split (stack-trace ex) "\n"))
+			  (only (show-in-stack-dump?)
+				(string-split
+				 (stack-trace ex)
+				 "\n")))
 	    (WARN line))
        (values))))
 
