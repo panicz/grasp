@@ -36,26 +36,27 @@
 
 (define (copy object)
   (cond
-   ((instance? object java.lang.Cloneable)
-    (with-compile-options
-     warn-unknown-member: #f
-     (let ((clonable ::java.lang.Cloneable object))
-       (clonable:clone))))
-   ((procedure? object)
-    (let ((clone (procedure-property object 'clone)))
-      (if (procedure? clone)
-	  (clone)
-	  (error "Unable to clone procedure "object))))
    ((instance? object java.util.WeakHashMap)
     (let* ((hash-map ::java.util.WeakHashMap object)
 	   (cloned ::java.util.WeakHashMap
 		   (java.util.WeakHashMap)))
       (for key in (hash-map:keySet)
 	(let ((value (hash-map:get key)))
-	  (if (clonable? value)
-	      (cloned:put key (copy value))
-	      (cloned:put key value))))
+	  (cloned:put key value)))
       cloned))
+   
+   ((instance? object java.lang.Cloneable)
+    (with-compile-options
+     warn-unknown-member: #f
+     (let ((clonable ::java.lang.Cloneable object))
+       (clonable:clone))))
+   
+   ((procedure? object)
+    (let ((clone (procedure-property object 'clone)))
+      (if (procedure? clone)
+	  (clone)
+	  (error "Unable to clone procedure "object))))
+   
    ((pair? object)
     (cons (copy (car object)) (copy (cdr object))))
 
