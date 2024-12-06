@@ -823,8 +823,7 @@
 	     (the-editor (this)))
 	  (and-let* ((x y (transform:outside-in xe ye))
 		     (target-cursor (cursor-under x y))
-		     (target (the-expression
-			      at: target-cursor))
+		     (target (cursor-ref document target-cursor))
 		     (editor ::Editor (this))
 		     (x0 y0 (document-position-of-element-pointed-by
 			     target-cursor (car document)))
@@ -848,8 +847,7 @@
 		(xd yd (document-position-of-element-pointed-by
 			path (car document)))
 		(`(,tip . ,subpath) path)
-		(parent ::Element (the-expression
-				   at: subpath))
+		(parent ::Element (cursor-ref document subpath))
 		(target ::Element (parent:part-at tip)))
        (cond
 	  #;((isnt parent eq? target)
@@ -963,8 +961,7 @@
 		(xd yd (document-position-of-element-pointed-by
 			path (car document)))
 		(`(,tip . ,subpath) path)
-		(parent ::Element (the-expression
-				   at: subpath))
+		(parent ::Element (cursor-ref document subpath))
 		(target ::Element (parent:part-at tip)))
        (cond
 	((or (isnt parent eq? target)
@@ -997,8 +994,7 @@
      (and-let* ((x y (transform:outside-in xe ye))
 		(path (cursor-under x y))
 		(`(,tip . ,subpath) path)
-		(parent ::Element (the-expression
-				   at: subpath))
+		(parent ::Element (cursor-ref document subpath))
 		(target ::Element (parent:part-at tip)))
        (cond
 	((Maximizable? parent)
