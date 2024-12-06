@@ -4,7 +4,12 @@
 (import (language define-object))
 (import (language define-interface))
 (import (language match))
+(import (utils conversions))
+(import (editor types spaces))
+(import (editor types primitive))
 (import (editor document copy-paste))
+(import (editor types texts))
+(import (utils print))
 
 (define-alias Transferable java.awt.datatransfer.Transferable)
 (define-alias DataFlavor java.awt.datatransfer.DataFlavor)
@@ -22,17 +27,16 @@
   (define own-clip-data ::Transferable #!null)
 
   (define (try-parse item ::Transferable)::list
-    (let* ((reader ::java.io.Reader
-		   (DataFlavor:stringFlavor:getReaderForText item))
-	   (input ::gnu.kawa.io.InPort (gnu.kawa.io.InPort reader)))
-      (with-input-from-port input
+    (let ((input ::String (as String (item:getTransferData
+				      DataFlavor:stringFlavor))))
+      (with-input-from-string input
 	(lambda ()
 	  (let*-values (((expression preceding-space) (read-list 1))
 			((following-space) (read-spaces))
 			((next) (peek-char)))
 	    (if (eof-object? next)
 		expression
-		(cons (text input) '())))))))
+		(cons (text input) (empty))))))))
 
   (define (upload! new-content ::pair)::void
     (and-let* ((`(,head . ,tail) new-content)
