@@ -143,27 +143,29 @@
 	 (isnt "at android.view.ViewRootImpl" regex-match line)
 	 (isnt "Native Method" regex-match line))))
 
+(define (log-stack-trace! trace::string)::void
+  (for line in (take (stack-dump-length)
+		     (only (show-in-stack-dump?)
+			   (string-split trace
+					 "\n")))
+    (WARN line)))
+
+(define-parameter (stack-trace-action)
+  ::(maps (string) to: void)
+  log-stack-trace!)
+
 (define-syntax-rule (safely actions ...)
   (try-catch
    (begin actions ...)
    (ex java.lang.Throwable
-       (for line in (take (stack-dump-length)
-			  (only (show-in-stack-dump?)
-				(string-split (stack-trace ex)
-					      "\n")))
-	    (WARN line))
+       ((stack-trace-action) (stack-trace ex))
        #!null)))
 
 (define-syntax-rule (safely- actions ...)
   (try-catch
    (begin actions ...)
    (ex java.lang.Throwable
-       (for line in (take (stack-dump-length)
-			  (only (show-in-stack-dump?)
-				(string-split
-				 (stack-trace ex)
-				 "\n")))
-	    (WARN line))
+       ((stack-trace-action) (stack-trace ex))
        (values))))
 
 (define-parameter (debugging?) #f)

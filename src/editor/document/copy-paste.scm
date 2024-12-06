@@ -171,3 +171,9 @@
 	   (else
 	    (WARN "unhandled target: "(target:getClass) target)))))))
 
+(define (copy-to-clipboard! item)::void
+  (let ((clipboard ::Clipboard (the-system-clipboard)))
+    (clipboard:upload! (if (pair? item)
+			   item
+			   `(,item)))))
+

@@ -185,6 +185,13 @@
  (lambda _
    (show-keyboard!)))
 
+(set! (stack-trace-action)
+      (lambda (trace::string)
+	::void
+	(copy-to-clipboard! trace)
+	(log-stack-trace! trace)
+	(WARN "(copied to clipboard)")))
+
 (if (null? input-files)
     (screen:set-content!
       (DocumentEditor
