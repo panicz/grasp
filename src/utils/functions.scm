@@ -1,5 +1,7 @@
 (module-name (utils functions))
 
+(import (kawa regex))
+
 (import (language assert))
 (import (language match))
 (import (language examples))
@@ -275,6 +277,42 @@
 (e.g.
  (fold-right (lambda (a b) `(,a + ,b)) 'e '(a b c d))
  ===> (a + (b + (c + (d + e)))))
+
+(define (unfold generator #;until termination?) 
+  (let ((first (generator)))
+    (if (termination? first)
+	'()
+	(let ((result `(,first)))
+	  (let loop ((cone result))
+	    (let ((input  (generator)))
+	      (cond
+	       ((termination? input)
+		result)
+	       (else
+		(set-cdr! cone (pair input (cdr cone)))
+		(loop (cdr cone))))))))))
+
+(e.g.
+ (call-with-input-string "1 2 3"
+   (lambda (port)
+     (unfold (lambda () (read port))
+	     #;until eof-object?)))
+ ===> (1 2 3))
+
+(define (regex-matches pattern input::string)
+  (let ((position 0))
+    (unfold (lambda ()
+	      (and-let* ((positions (regex-match-positions
+				     pattern input position))
+			 (`((,start . ,end) . ,_) positions))
+		(set! position end)
+		(map (lambda (m)
+		       (substring input (car m) (cdr m)))
+		     positions)))
+	    #;until (is _ eq? #false))))
+
+(e.g.
+ (regex-matches "[0-9]" "1a2b3c") ===> (("1") ("2") ("3")))
 
 (define (only cool? stuff)
   (let* ((result (cons #f '()))
