@@ -1,3 +1,185 @@
+* 07.12.2024
+
+No dobra, to teraz zakladajac, ze chcemy dalej robic
+advent of code, warto by bylo skupic sie na ficzerach,
+ktore nam to ulatwia.
+
+W szczegolnosci bysmy zaimplementowali przycisk New
+
+* 06.12.2024
+
+No dobra. Jeden bug zaraportowany (i jak na razie
+bez odpowiedzi).
+
+To teraz moze bysmy sie zajeli tym drugim bugiem
+
+#+BEGIN_SRC
+#<ERROR Assertion failed:  (= index 0)>
+at kawa.lib.exceptions.error(exceptions.scm:105)
+at editor.types.primitive.cellIndex(primitive.scm:399)
+at editor.types.cons.partAt(primitive.scm:319)
+at editor.input.DocumentEditor.lambda39$V(document-editor.scm:968)
+at editor.input.DocumentEditor.lambda39$check(document-editor.scm:959)
+at java.lang.reflect.Method.invoke(Native Method)
+at gnu.mapping.CallContext$ReflectMethodHandle.invokeExact(CallContext.java:726)
+at gnu.mapping.CallContext.runUntilValue(CallContext.java:656)
+at gnu.mapping.Procedure.applyN(Procedure.java:142)
+at gnu.mapping.Values.call_with(Values.java:107)
+at gnu.kawa.functions.ApplyWithValues.applyWithValues(ApplyWithValues.java:23)
+at gnu.kawa.functions.ApplyWithValues.apply2(ApplyWithValues.java:29)
+at editor.input.DocumentEditor.lambda38$V(document-editor.scm:959)
+at editor.input.DocumentEditor.lambda38$check(document-editor.scm:959)
+at java.lang.reflect.Method.invoke(Native Method)
+at gnu.mapping.CallContext$ReflectMethodHandle.invokeExact(CallContext.java:726)
+at gnu.mapping.CallContext.runUntilValue(CallContext.java:656)
+at gnu.mapping.Procedure.apply2(Procedure.java:160)
+at gnu.mapping.Values$Values2.call_with(Values.java:376)
+at gnu.kawa.functions.ApplyWithValues.applyWithValues(ApplyWithValues.java:23)
+at gnu.kawa.functions.ApplyWithValues.apply2(ApplyWithValues.java:29)
+at editor.input.DocumentEditor.secondPress$Ex(document-editor.scm:959)
+at editor.input.ActualScreen.secondPress$Ex(screen.scm:284)
+at editor.input.TouchEventProcessor.move$Ex(touch-event-processor.scm:70)
+at io.github.grasp.GRASP.onTouchEvent(grasp-android.scm:1833)
+at android.app.Activity.dispatchTouchEvent(Activity.java:4198)
+at com.android.internal.policy.DecorView.dispatchTouchEvent(DecorView.java:460)
+at android.view.View.dispatchPointerEvent(View.java:14837)
+at android.view.ViewRootImpl$ViewPostImeInputStage.processPointerEvent(ViewRootImpl.java:6606)
+at android.view.ViewRootImpl$ViewPostImeInputStage.onProcess(ViewRootImpl.java:6388)
+at android.view.ViewRootImpl$InputStage.deliver(ViewRootImpl.java:5862)
+at android.view.ViewRootImpl$InputStage.onDeliverToNext(ViewRootImpl.java:5919)
+at android.view.ViewRootImpl$InputStage.forward(ViewRootImpl.java:5885)
+at android.view.ViewRootImpl$AsyncInputStage.forward(ViewRootImpl.java:6050)
+at android.view.ViewRootImpl$InputStage.apply(ViewRootImpl.java:5893)
+at android.view.ViewRootImpl$AsyncInputStage.apply(ViewRootImpl.java:6107)
+at android.view.ViewRootImpl$InputStage.deliver(ViewRootImpl.java:5866)
+at android.view.ViewRootImpl$InputStage.onDeliverToNext(ViewRootImpl.java:5919)
+at android.view.ViewRootImpl$InputStage.forward(ViewRootImpl.java:5885)
+at android.view.ViewRootImpl$InputStage.apply(ViewRootImpl.java:5893)
+at android.view.ViewRootImpl$InputStage.deliver(ViewRootImpl.java:5866)
+at android.view.ViewRootImpl.deliverInputEvent(ViewRootImpl.java:8920)
+at android.view.ViewRootImpl.doProcessInputEvents(ViewRootImpl.java:8860)
+at android.view.ViewRootImpl.enqueueInputEvent(ViewRootImpl.java:8817)
+at android.view.ViewRootImpl$WindowInputEventReceiver.onInputEvent(ViewRootImpl.java:9052)
+at android.view.InputEventReceiver.dispatchInputEvent(InputEventReceiver.java:259)
+at android.view.InputEventReceiver.nativeConsumeBatchedInputEvents(Native Method)
+at android.view.InputEventReceiver.consumeBatchedInputEvents(InputEventReceiver.java:239)
+at android.view.ViewRootImpl.doConsumeBatchedInput(ViewRootImpl.java:9005)
+at android.view.ViewRootImpl$ConsumeBatchedInputRunnable.run(ViewRootImpl.java:9143)
+at android.view.Choreographer$CallbackRecord.run(Choreographer.java:1105)
+at android.view.Choreographer.doCallbacks(Choreographer.java:896)
+at android.view.Choreographer.doFrame(Choreographer.java:807)
+at android.view.Choreographer$FrameDisplayEventReceiver.run(Choreographer.java:1090)
+at android.os.Handler.handleCallback(Handler.java:938)
+at android.os.Handler.dispatchMessage(Handler.java:99)
+at android.os.Looper.loopOnce(Looper.java:201)
+at android.os.Looper.loop(Looper.java:288)
+at android.app.ActivityThread.main(ActivityThread.java:7881)
+at java.lang.reflect.Method.invoke(Native Method)
+at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:568)
+at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:1045)
+
+#+END_SRC
+
+#+BEGIN_SRC
+java.lang.ClassCastException: editor.types.EmptyListProxy cannot be cast to gnu.lists.Pair
+at editor.types.primitive.cellIndex(primitive.scm:411)
+at editor.types.cons.partAt(primitive.scm:319)
+at editor.input.DocumentEditor.lambda36$V(document-editor.scm:853)
+at editor.input.DocumentEditor.lambda36$check(document-editor.scm:844)
+at java.lang.reflect.Method.invoke(Native Method)
+at gnu.mapping.CallContext$ReflectMethodHandle.invokeExact(CallContext.java:726)
+at gnu.mapping.CallContext.runUntilValue(CallContext.java:656)
+at gnu.mapping.Procedure.applyN(Procedure.java:142)
+at gnu.mapping.Values.call_with(Values.java:107)
+at gnu.kawa.functions.ApplyWithValues.applyWithValues(ApplyWithValues.java:23)
+at gnu.kawa.functions.ApplyWithValues.apply2(ApplyWithValues.java:29)
+at editor.input.DocumentEditor.lambda35$V(document-editor.scm:844)
+at editor.input.DocumentEditor.lambda35$check(document-editor.scm:844)
+at java.lang.reflect.Method.invoke(Native Method)
+at gnu.mapping.CallContext$ReflectMethodHandle.invokeExact(CallContext.java:726)
+at gnu.mapping.CallContext.runUntilValue(CallContext.java:656)
+at gnu.mapping.Procedure.apply2(Procedure.java:160)
+at gnu.mapping.Values$Values2.call_with(Values.java:376)
+at gnu.kawa.functions.ApplyWithValues.applyWithValues(ApplyWithValues.java:23)
+at gnu.kawa.functions.ApplyWithValues.apply2(ApplyWithValues.java:29)
+at editor.input.DocumentEditor.press$Ex(document-editor.scm:844)
+at editor.input.ActualScreen.press$Ex(screen.scm:258)
+at editor.input.TouchEventProcessor.move$Ex(touch-event-processor.scm:71)
+at io.github.grasp.GRASP.onTouchEvent(grasp-android.scm:1833)
+at android.app.Activity.dispatchTouchEvent(Activity.java:4198)
+at com.android.internal.policy.DecorView.dispatchTouchEvent(DecorView.java:460)
+at android.view.View.dispatchPointerEvent(View.java:14837)
+at android.view.ViewRootImpl$ViewPostImeInputStage.processPointerEvent(ViewRootImpl.java:6606)
+at android.view.ViewRootImpl$ViewPostImeInputStage.onProcess(ViewRootImpl.java:6388)
+at android.view.ViewRootImpl$InputStage.deliver(ViewRootImpl.java:5862)
+at android.view.ViewRootImpl$InputStage.onDeliverToNext(ViewRootImpl.java:5919)
+at android.view.ViewRootImpl$InputStage.forward(ViewRootImpl.java:5885)
+at android.view.ViewRootImpl$AsyncInputStage.forward(ViewRootImpl.java:6050)
+at android.view.ViewRootImpl$InputStage.apply(ViewRootImpl.java:5893)
+at android.view.ViewRootImpl$AsyncInputStage.apply(ViewRootImpl.java:6107)
+at android.view.ViewRootImpl$InputStage.deliver(ViewRootImpl.java:5866)
+at android.view.ViewRootImpl$InputStage.onDeliverToNext(ViewRootImpl.java:5919)
+at android.view.ViewRootImpl$InputStage.forward(ViewRootImpl.java:5885)
+at android.view.ViewRootImpl$InputStage.apply(ViewRootImpl.java:5893)
+at android.view.ViewRootImpl$InputStage.deliver(ViewRootImpl.java:5866)
+at android.view.ViewRootImpl.deliverInputEvent(ViewRootImpl.java:8920)
+at android.view.ViewRootImpl.doProcessInputEvents(ViewRootImpl.java:8860)
+at android.view.ViewRootImpl.enqueueInputEvent(ViewRootImpl.java:8817)
+at android.view.ViewRootImpl$WindowInputEventReceiver.onInputEvent(ViewRootImpl.java:9052)
+at android.view.InputEventReceiver.dispatchInputEvent(InputEventReceiver.java:259)
+at android.view.InputEventReceiver.nativeConsumeBatchedInputEvents(Native Method)
+at android.view.InputEventReceiver.consumeBatchedInputEvents(InputEventReceiver.java:239)
+at android.view.ViewRootImpl.doConsumeBatchedInput(ViewRootImpl.java:9005)
+at android.view.ViewRootImpl$ConsumeBatchedInputRunnable.run(ViewRootImpl.java:9143)
+at android.view.Choreographer$CallbackRecord.run(Choreographer.java:1105)
+at android.view.Choreographer.doCallbacks(Choreographer.java:896)
+at android.view.Choreographer.doFrame(Choreographer.java:807)
+at android.view.Choreographer$FrameDisplayEventReceiver.run(Choreographer.java:1090)
+at android.os.Handler.handleCallback(Handler.java:938)
+at android.os.Handler.dispatchMessage(Handler.java:99)
+at android.os.Looper.loopOnce(Looper.java:201)
+at android.os.Looper.loop(Looper.java:288)
+at android.app.ActivityThread.main(ActivityThread.java:7881)
+at java.lang.reflect.Method.invoke(Native Method)
+at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:568)
+at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:1045)
+
+#+END_SRC
+
+* 05.12.2024
+
+mamy jeszcze jeden problem: forma =and-let*= nie jest
+prawidlowo ewaluowana [i forma =match= tez nie jest].
+
+Moze problemem jest uzycie slowa =match=?
+
+(jezeli tak, to =match/evaluated= powinno mormalbie dzialac)
+
+Trzeba bedzie moze zapytac Pera Bothnera - i w tym celu
+dobrze by bylo zrobic tak, zeby funkcja obslugujaca
+wyjatek mogla opcjonalnie zachowac dane do schowka
+
+#+BEGIN_SRC scheme
+  (define (copy-to-clipboard! item)::void
+    (let ((clipboard ::Clipboard (the-system-clipboard)))
+      (clipboard:upload! (if (pair? item)
+			     item
+			     `(,item)))))
+
+  (set! (stack-trace-action)
+	(lambda (trace::string)
+	  ::void
+	  (copy-to-clipboard! trace)
+	  (log-stack-trace! trace)
+	  (WARN "copied to clipboard")))
+#+END_SRC
+
+
+* 04.12.2024
+
+poprawic blad generowany z =document-editor:959/968=
+=(EmptyListProxy cannot be cast to gnu.lists.Pair)=
+
 * 03.12.2024
 
 No dobra, to mamy teraz niesamowita okazje do wprowadzania
@@ -53,9 +235,9 @@ No ale mniejsza. Bierzemy sobie ten element, jego pozycje
 w dokumencie oraz rozmiar, i szukamy takiej skali, ze:
 - nie moze byc wieksza, niz =(painter:max-document-scale)=
 - nie moze byc mniejsza, niz =(painter:min-document-scale)=
-- po jej zastosowaniu 
-
-
+- po jej zastosowaniu element zmiesci sie w szerokosci edytora,
+  jego lewa i prawa krawedz beda odsuniete od krawedzi ekranu
+  o =(painter:document-margin)=
 
 * 02.12.2024
 
