@@ -275,7 +275,12 @@
       (keeper:with-read-permission
        (lambda _
 	 (let ((window ::PopUp (open-file-browser
-				(keeper:initial-directory)
+				(or (and-let* ((document ::Document editor:document)
+					(file ::java.io.File document:source)
+					(parent ::java.io.File (file:getParentFile))
+					((parent:isDirectory)))
+				      parent)
+				    (keeper:initial-directory))
 				editor))
 	       (position ::Position
 			 (last-known-pointer-position
@@ -294,10 +299,19 @@
       (keeper:with-write-permission
        (lambda _
 	 (safely
-	  (let ((window ::PopUp (save-file-browser
-				 (keeper:initial-directory)
-				 "filename.scm"
-				 editor))
+	  (let ((window ::PopUp
+			(save-file-browser
+			 (or (and-let* ((document ::Document editor:document)
+					(file ::java.io.File document:source)
+					(parent ::java.io.File (file:getParentFile))
+					((parent:isDirectory)))
+			       parent)
+			     (keeper:initial-directory))
+			 (or (and-let* ((document ::Document editor:document)
+					(file ::java.io.File document:source))
+			       (file:getName))
+			     "filename.scm")
+			 editor))
 		(position ::Position
 			  (last-known-pointer-position
 			   finger)))
@@ -1055,7 +1069,7 @@
 				  (screen:clear-overlay!)
 				  (editor:new-file)))
 		 ,(Link content: (Caption "Open...")
-			on-tap: ((open-file) finger (this)))
+			on-tap: ((open-file) finger editor))
 		 ,@(if (is (length open-documents) < 1)
 		       '()
 		       `(,(Link
@@ -1065,10 +1079,10 @@
 			   (lambda _
 			     (safely
 			      (screen:add-overlay!
-			       (document-switcher (this))))
+			       (document-switcher editor)))
 			     #t))))
 		 ,(Link content: (Caption "Save as...")
-			on-tap: ((save-file) finger (this)))
+			on-tap: ((save-file) finger editor))
 		 ,(Link content: (Caption "Close")
 			on-tap:
 			(lambda _
