@@ -39,11 +39,19 @@
 	    open-documents) 
       (call-with-input-file (source:getAbsolutePath)
 	(lambda (port)
-
 	  (let ((document (Document (parse port) source)))
 	    (set! open-documents 
 		  (cons document open-documents))         
 	    document)))))
+
+(define (new-document)::Document
+  (call-with-input-string ""
+    (lambda (port)
+      (let ((document (Document (parse port)
+				(java.time.LocalDateTime:now))))
+	(set! open-documents 
+	      (cons document open-documents))         
+	document))))
 
 (define-attribute (last-save-point document)::list
   '())

@@ -275,7 +275,12 @@
       (keeper:with-read-permission
        (lambda _
 	 (let ((window ::PopUp (open-file-browser
-				(keeper:initial-directory)
+				(or (and-let* ((document ::Document editor:document)
+					(file ::java.io.File document:source)
+					(parent ::java.io.File (file:getParentFile))
+					((parent:isDirectory)))
+				      parent)
+				    (keeper:initial-directory))
 				editor))
 	       (position ::Position
 			 (last-known-pointer-position
@@ -294,10 +299,19 @@
       (keeper:with-write-permission
        (lambda _
 	 (safely
-	  (let ((window ::PopUp (save-file-browser
-				 (keeper:initial-directory)
-				 "filename.scm"
-				 editor))
+	  (let ((window ::PopUp
+			(save-file-browser
+			 (or (and-let* ((document ::Document editor:document)
+					(file ::java.io.File document:source)
+					(parent ::java.io.File (file:getParentFile))
+					((parent:isDirectory)))
+			       parent)
+			     (keeper:initial-directory))
+			 (or (and-let* ((document ::Document editor:document)
+					(file ::java.io.File document:source))
+			       (file:getName))
+			     "filename.scm")
+			 editor))
 		(position ::Position
 			  (last-known-pointer-position
 			   finger)))
@@ -313,9 +327,13 @@
   (let* ((choices (map (lambda (document::Document)
 			 (Link content:
 			       (Caption
-				(if document:source
-				    (document:source:getName)
-				    "(unnamed)"))
+				(cond
+				 ((eq? document:source #!null)
+				  "(unnamed)")
+				 ((java.io.File? document:source)
+				  (document:source:getName))
+				 (else
+				  (document:source:toString))))
 			       on-tap:
 			       (lambda _
 				 (screen:clear-overlay!)
@@ -719,15 +737,15 @@
 
   (define previously-edited
     (attribute (document::Document)
-	       ::Document
-	       (or (and-let* ((`(,_ ,next . ,_)
-			       (first-cell (is (car _) eq? document)
-					   open-documents )))
-		     next)
-		   (and-let* ((`(,first . ,_) open-documents)
-			      ((isnt first eq? document)))
-		     first)
-		   document)))
+	::Document
+	(or (and-let* ((`(,_ ,next . ,_)
+			(first-cell (is (car _) eq? document)
+				    open-documents )))
+	      next)
+	    (and-let* ((`(,first . ,_) open-documents)
+		       ((isnt first eq? document)))
+	      first)
+	    document)))
   
   (define editing-context
     (attribute+ (document::Document)
@@ -742,8 +760,8 @@
       (set! new-context:transform (copy transform))
       (DocumentEditor document: document
 		      cursor: new-context:cursor
-
-		      previously-edited: (copy previously-edited)
+		      previously-edited: (copy
+					  previously-edited)
 		      transform: new-context:transform
 		      editing-context: new-editing-context)))
 
@@ -765,6 +783,10 @@
     (safely
      (switch-to! (open-document-file file))))
 
+  (define (new-file)::void
+    (safely
+     (switch-to! (new-document))))
+  
   (define (load-from-port port::gnu.kawa.io.InPort source)
     ::void
     (safely
@@ -989,10 +1011,12 @@
 	   (screen:drag! finger (DragAround selection))))))
      #t))
 
-  (define (double-tap! finger::byte xe::real ye::real)::boolean
+  (define (double-tap! finger::byte xe::real ye::real)
+    ::boolean
     (with-editor-context
      (and-let* ((x y (transform:outside-in xe ye))
 		(path (cursor-under x y))
+		((truly (DUMP path)))
 		(`(,tip . ,subpath) path)
 		(parent ::Element (cursor-ref document subpath))
 		(target ::Element (parent:part-at tip)))
@@ -1009,8 +1033,7 @@
 			    (target:set-angle! 0.0)
 			    target)
 		      around: (Position left: xe top: ye)
-		      duration/ms: 500))
-	 #t)
+		      duration/ms: 500)))
 	((or (isnt (transform:get-left) = 0)
 	     (is (transform:get-top) > 0))
 	 (painter:play!
@@ -1029,22 +1052,24 @@
 				  (/ (screen:height)
 				     document:height)))
 			    target)
-		      duration/ms: 500))
-	 #t)
-	(else
-	 #f)))))
+		      duration/ms: 500))))
+       #t)))
 
   (define (long-press! finger::byte x::real y::real)::boolean
     (with-editor-context
      (safely
       (invoke (current-message-handler) 'clear-messages!)
-      (let* ((content
+      (let* ((editor ::DocumentEditor (this))
+	     (content
 	      ::Enchanted
 	      (ColumnGrid
 	       `(,(Link content: (Caption "New")
-			on-tap: (lambda _ (WARN "New") #t))
+			on-tap: (lambda _
+				  ::void
+				  (screen:clear-overlay!)
+				  (editor:new-file)))
 		 ,(Link content: (Caption "Open...")
-			on-tap: ((open-file) finger (this)))
+			on-tap: ((open-file) finger editor))
 		 ,@(if (is (length open-documents) < 1)
 		       '()
 		       `(,(Link
@@ -1054,10 +1079,10 @@
 			   (lambda _
 			     (safely
 			      (screen:add-overlay!
-			       (document-switcher (this))))
+			       (document-switcher editor)))
 			     #t))))
 		 ,(Link content: (Caption "Save as...")
-			on-tap: ((save-file) finger (this)))
+			on-tap: ((save-file) finger editor))
 		 ,(Link content: (Caption "Close")
 			on-tap:
 			(lambda _
