@@ -66,7 +66,8 @@
   (call-with-output-file (file:getAbsolutePath)
     (lambda (port)
       (parameterize ((current-output-port port))
-	(show-document document)))))
+	(show-document document))))
+  (set! document:source file))
 
 (define (document-saved? document::Document)::boolean
   (let ((document-history ::History (history document)))
