@@ -1,3 +1,115 @@
+* 12.12.2024
+
+Chcielibysmy stworzyc nowy typ w =elements=,
+moze
+
+#+BEGIN_SRC scheme
+  (define-type (FileWithDescription file: java.io.File
+				    description: string))
+#+END_SRC
+
+No dobra, ale poki co to moze lepiej byloby zrobic tak, zeby
+przy zapisywaniu pliku ustawiac =document:source=.
+
+* 11.12.2024
+
+No dobra, to moze dzisiaj sprobujmy zrobic tak, zeby:
+- po zapisaniu pliku a dysku (jako "save as") aktualizowac
+  ich "source"
+- otwierac przegladarke w tym folderze, w ktorym
+  znajduje sie biezacy plik
+
+No to to juz mamy. To teraz moze bysmy sprobowali
+zrobic liste dostepnych systemow plikow
+
+Jest sobie statyczna metoda =java.io.File:listRoots=,
+i to z niej bysmy korzystali na JVM. A na Androidzie?
+
+=getFilesDir=, =getCacheDir=, =getExternalFilesDir=,
+=getExternalCacheDir=,
+=android.os.Environment:getExternalStorageDirectory=
+
+No i OK. Ale jak to nazwiemy?!
+
+"file-system-roots"!
+
+* 10.12.2024
+
+To teraz zrobmy tak, zeby:
+- "save as" powodowalo zmiane pola "source" w dokumencie
+- przegladarka sie otwierala w folderze, zawierajacym plik
+- sugestia nazwy pliku pochodzila od nazwy biezacego plku
+- jezeli plik docelowy istnieje i jest rozny od pliku
+  zrodlowego, to zrobic pop-up z potwierdzeniem
+
+dalej bysmy zrobili tak, zeby:
+- przestrzen robocza sama sie zapisywala i przywracala
+- dalo sie wybierac litere dysku/rodzaj storage'u
+  w przegladarce plikow
+
+* 09.12.2024
+
+no to tak:
+jak otwieramy dokument, to to sie dzieje w taki sposob
+(z perspektywy =open-file-browser=
+
+#+BEGIN_SRC scheme
+
+  (screen:clear-overlay!)
+  (editor:load-file file)
+
+#+END_SRC
+
+wydaje sie zatem, ze analogicznie bysmy chcieli miec metode
+=editor:new-file= analogiczna do =editor:load-file=, ktora jest
+zaimplementowana tak oto:
+
+#+BEGIN_SRC scheme
+
+  (define (load-file file::java.io.File)::void
+    (safely
+     (switch-to! (open-document-file file))))
+
+#+END_SRC
+
+gdzie =open-document-file= jest zaimplementowana jako
+
+#+BEGIN_SRC scheme
+(define (open-document-file source::java.io.File)::Document
+  (or (find (lambda (document::Document)
+	      ::boolean
+	      (eq? document:source source))
+	    open-documents) 
+      (call-with-input-file (source:getAbsolutePath)
+	(lambda (port)
+
+	  (let ((document (Document (parse port) source)))
+	    (set! open-documents 
+		  (cons document open-documents))         
+	    document)))))
+#+END_SRC
+
+#+BEGIN_SRC scheme
+
+  (call-with-input-string ""
+      (lambda (port)
+	(Document (parse port) (java.lang.LocalDateTime:now))))
+
+#+END_SRC
+
+Ok, mamy to z grubsza. Teraz jeszczd zrobic tak, zeby:
+- jak sie zrobi "Save as", to zeby domyslnie pojawiala sie
+  podpowiedz z nazwa biezacego pliku
+- przegladarka otwierala sie w folderze, w ktorym
+  znajduje sie biezacy plik
+
+* 08.12.2024
+
+No dobra, to bysmy sie moze sprobowali zajac tym przyciskiem 'new'.
+
+Co on musi robic?
+- tworzyc nowy dokument, oczywiscie.
+
 * 07.12.2024
 
 No dobra, to teraz zakladajac, ze chcemy dalej robic
