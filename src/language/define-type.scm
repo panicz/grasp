@@ -87,7 +87,7 @@
   ((clone)::Struct (Base)))
 
 (define-syntax-rule (define-type (type-name . fields) . spec)
-  (type-definition type-name Base () fields () spec ()))
+  (type-definition type-name Base () fields () spec () ()))
 
 (define-syntax keyword-value-list
   (syntax-rules ()
@@ -112,7 +112,8 @@
     (syntax-case stx (Base extending implementing with :=)
 
       ((_ type-name parent interfaces
-	  () ((slot-symbol . slot-spec) ...) () (methods ...))
+	  () ((slot-symbol . slot-spec) ...) () (methods ...)
+	  (initializers ...))
        #'(begin
 	   (define-simple-class type-name (parent . interfaces)
 	     ((typename):: String
@@ -170,7 +171,9 @@
 	      (set! slot-symbol (field source 'slot-symbol))
 	      ...
 	      (this))
-
+	     ((*init*)
+	      initializers ...
+	      #!void)
 	     (slot-symbol . slot-spec)
 	     ...
 	     methods ...)
@@ -189,7 +192,7 @@
 
       ((_ type-name parent interfaces
 	  (slot-keyword slot-type := value . fields)
-	  (slot-definitions ...) spec methods)
+	  (slot-definitions ...) spec methods (initializers ...))
        (keyword? (syntax->datum #'slot-keyword))
        (with-syntax ((slot-symbol
 		      (datum->syntax
@@ -198,13 +201,12 @@
                         (syntax->datum #'slot-keyword)))))
 	 #'(type-definition
 	    type-name parent interfaces fields
-	    (slot-definitions ... (slot-symbol type: slot-type
-					       init: value))
-	    spec methods)))
+	    (slot-definitions ... (slot-symbol type: slot-type))
+	    spec methods (initializers ... (set! slot-symbol value)))))
 
       ((_ type-name parent interfaces
 	  (slot-keyword slot-type . fields)
-	  (slot-definitions ...) spec methods)
+	  (slot-definitions ...) spec methods (initializers ...))
        (keyword? (syntax->datum #'slot-keyword))
        (with-syntax ((slot-symbol (datum->syntax
 				   stx
@@ -213,41 +215,42 @@
 	 #'(type-definition
 	    type-name parent interfaces fields
 	    (slot-definitions ... (slot-symbol type: slot-type))
-	    spec methods)))
+	    spec methods (initializers ...))))
 
       ((_ type-name parent interfaces
 	  () slots (implementing interface
 				 with (method . body) . spec)
-	  (methods ...))
+	  (methods ...) initializers)
        #'(type-definition
 	  type-name parent (interface . interfaces) () slots
-	  spec (methods ... (method . body))))
+	  spec (methods ... (method . body)) initializers))
 
       ((_ type-name parent interfaces
 	  () slots (implementing interface . spec)
-	  methods)
+	  methods initializers)
        #'(type-definition
 	  type-name parent (interface . interfaces) () slots
-	  spec methods))
+	  spec methods initializers))
 
       ((_ type-name Base interfaces
 	  () slots (extending
 		    parent
-		    with (method . body) . spec) (methods ...))
+		    with (method . body) . spec) (methods ...)
+		    initializers)
        #'(type-definition
 	  type-name parent interfaces () slots spec
-	  (methods ... (method . body))))
+	  (methods ... (method . body)) initializers))
 
       ((_ type-name Base interfaces
-	  () slots (extending parent . spec) methods)
+	  () slots (extending parent . spec) methods initializers)
        #'(type-definition
-	  type-name parent interfaces () slots spec methods))
+	  type-name parent interfaces () slots spec methods initializers))
 
       ((_ type-name parent interfaces
-	  () slots ((method . body) . spec) (methods ...))
+	  () slots ((method . body) . spec) (methods ...) initializers)
        #'(type-definition
 	  type-name parent interfaces () slots
-	  spec (methods ... (method . body))))
+	  spec (methods ... (method . body)) initializers))
       )))
 
 (define-syntax set-fields!
