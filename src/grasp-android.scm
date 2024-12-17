@@ -1763,6 +1763,28 @@
   (define (initial-directory)::java.io.File
     (android.os.Environment:getExternalStorageDirectory))
 
+  (define (file-system-roots)::(list-of FileWithDescription)
+    `(,(FileWithDescription
+	file:
+	(android.os.Environment:getExternalStorageDirectory)
+	description:
+	"Shared Storage")
+      
+      ,(FileWithDescription
+	file:
+	(invoke-special android.content.Context
+			(this) 'getFilesDir)
+	description:
+	"Private Storage")
+      
+      ,(FileWithDescription
+	file:
+	(invoke-special android.content.Context
+			(this) 'getExternalFilesDir #!null)
+	description:
+	"External Storage")
+      ))
+  
   (define view :: View)
 
   (define process-finger ::(array-of TouchEventProcessor)
@@ -2100,7 +2122,10 @@
 			   (import (language define-parameter))
 			   (import (language fundamental))
 			   (import (language examples))
+			   (import (language while))
 			   (import (language for))
+			   (import (language infix))
+			   (import (language match))
 			   (import (editor interfaces painting))
 			   (import (editor interfaces elements))
 			   (set-painter! the-view))

@@ -333,6 +333,8 @@ operate on cursors.
   (Highlight start: '() end: '()
 	     type: HighlightType:Selection))
 
+(define-type (FileWithDescription file: java.io.File
+				  description: string))
 
 ;; A Keeper is needed to obtain permissions on Android
 ;; - otherwise it does nothing special
@@ -340,17 +342,43 @@ operate on cursors.
   (with-read-permission action::procedure)::Object
   (with-write-permission action::procedure)::Object
   (initial-directory)::java.io.File
+  (file-system-roots)::(list-of FileWithDescription)
   )
 
 (define-object (PermissiveKeeper)::Keeper
   (define (with-read-permission action::procedure)::Object
     (action))
+  
   (define (with-write-permission action::procedure)::Object
     (action))
+  
   (define (initial-directory)::java.io.File
     (let ((wd ::java.io.File (java.io.File ".")))
       (wd:getAbsoluteFile)))
-  )
+
+  (define (file-system-roots)::(list-of FileWithDescription)
+    (let ((roots (map
+		  (lambda (root::java.io.File)
+		    (FileWithDescription
+		     file: root
+		     description:
+		     (root:getAbsolutePath)))
+		  (only (lambda (root::java.io.File)
+			  (and (root:canRead)
+			       (root:canExecute)))
+			(invoke-static
+			 java.io.File
+			 'listRoots)))))
+      (if (null? roots)
+	  (let ((base (invoke-static
+		       java.lang.System
+		       'getProperty "user.dir")))
+	    (list
+	     (FileWithDescription
+	      file: (java.io.File base)
+	      description: "")))
+	  roots)))
+   )
 
 (define-parameter (the-keeper)::Keeper
   (PermissiveKeeper))
