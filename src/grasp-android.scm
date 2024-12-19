@@ -1764,26 +1764,11 @@
     (android.os.Environment:getExternalStorageDirectory))
 
   (define (file-system-roots)::(list-of FileWithDescription)
-    `(,(FileWithDescription
-	file:
-	(android.os.Environment:getExternalStorageDirectory)
-	description:
-	"Shared Storage")
-      
-      ,(FileWithDescription
-	file:
-	(invoke-special android.content.Context
-			(this) 'getFilesDir)
-	description:
-	"Private Storage")
-      
-      ,(FileWithDescription
-	file:
-	(invoke-special android.content.Context
-			(this) 'getExternalFilesDir #!null)
-	description:
-	"External Storage")
-      ))
+    `(,(android.os.Environment:getExternalStorageDirectory)
+      ,(invoke-special android.content.Context
+		       (this) 'getFilesDir)
+      ,(invoke-special android.content.Context
+		       (this) 'getExternalFilesDir #!null)))
   
   (define view :: View)
 
@@ -1905,6 +1890,27 @@
       (decor:setSystemUiVisibility flags))
     
     (initialize-activity (this))
+
+    (safely
+    (set! (file-display-name
+	   (invoke-static
+	    android.os.Environment
+	    'getExternalStorageDirectory))
+	  "[Shared Storage]")
+
+    (set! (file-display-name
+	   (invoke-special
+	    android.content.Context
+	    (this) 'getFilesDir))
+	  "[Private Storage]")
+
+    (set! (file-display-name
+	   (invoke-special
+	    android.content.Context
+	    (this) 'getExternalFilesDir
+	    #!null))
+	  "[External Storage]"))
+    
     (safely (initialize-keymap))
     (set! (the-keeper) (this))
     (set! (the-system-clipboard)

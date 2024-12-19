@@ -187,23 +187,29 @@
   (let ((window ::PopUp #!null))
     (set! window
 	  (popup-scroll
-	   (file-list directory
-		      (lambda (file::java.io.File)
-			::void
-			(screen:clear-overlay!)
-			(editor:load-file file))
-		      (lambda (directory::java.io.File)
-			::void
-			(screen:remove-overlay! window)
-			(let ((new-window (open-file-browser
-					   directory
-					   editor))
-			      (position ::Position
-					(last-known-pointer-position
-					 0)))
-			  (new-window:center-around! position:left
-						     position:top)
-			  (screen:add-overlay! new-window))))))
+	   (below
+	    (DirectoryButton
+	     target: directory
+	     action: (lambda _
+		       (WARN "choose file system root" _)))
+	    (file-list
+	     directory
+	     (lambda (file::java.io.File)
+	       ::void
+	       (screen:clear-overlay!)
+	       (editor:load-file file))
+	     (lambda (directory::java.io.File)
+	       ::void
+	       (screen:remove-overlay! window)
+	       (let ((new-window (open-file-browser
+				  directory
+				  editor))
+		     (position ::Position
+			       (last-known-pointer-position
+				0)))
+		 (new-window:center-around! position:left
+					    position:top)
+		 (screen:add-overlay! new-window)))))))
     window))
 
 (define (save-file-browser directory::java.io.File
@@ -245,8 +251,12 @@
 				   height: inner:height))
 	 (top (Beside left: text-field right: button))
 	 (upper ::Extent (extent+ top))
-	 (content (Below top: top
-                         bottom: browser))
+	 (content (below top
+			 (DirectoryButton
+			  target: directory
+			  action: (lambda _
+				    (WARN "choose file system root" _)))
+			 browser))
          (popup (PopUp content: content))
 	 (outer ::Extent (extent+ popup))
 	 (available ::Extent (screen:extent))
@@ -274,14 +284,18 @@
     (let ((keeper ::Keeper (the-keeper)))
       (keeper:with-read-permission
        (lambda _
-	 (let ((window ::PopUp (open-file-browser
-				(or (and-let* ((document ::Document editor:document)
-					(file ::java.io.File document:source)
-					(parent ::java.io.File (file:getParentFile))
-					((parent:isDirectory)))
-				      parent)
-				    (keeper:initial-directory))
-				editor))
+	 (let ((window::PopUp
+		(open-file-browser
+		 (or (and-let* ((document ::Document
+					  editor:document)
+				(file ::java.io.File
+				      document:source)
+				(parent ::java.io.File
+					(file:getParentFile))
+				((parent:isDirectory)))
+		       parent)
+		     (keeper:initial-directory))
+		 editor))
 	       (position ::Position
 			 (last-known-pointer-position
 			  finger)))
@@ -299,25 +313,29 @@
       (keeper:with-write-permission
        (lambda _
 	 (safely
-	  (let ((window ::PopUp
-			(save-file-browser
-			 (or (and-let* ((document ::Document editor:document)
-					(file ::java.io.File document:source)
-					(parent ::java.io.File (file:getParentFile))
-					((parent:isDirectory)))
-			       parent)
-			     (keeper:initial-directory))
-			 (or (and-let* ((document ::Document editor:document)
-					(file ::java.io.File document:source))
-			       (file:getName))
-			     "filename.scm")
-			 editor))
+	  (let ((window::PopUp
+		 (save-file-browser
+		  (or (and-let* ((document ::Document
+					   editor:document)
+				 (file ::java.io.File
+				       document:source)
+				 (parent ::java.io.File
+					 (file:getParentFile))
+				 ((parent:isDirectory)))
+			parent)
+		      (keeper:initial-directory))
+		  (or (and-let* ((document ::Document
+					   editor:document)
+				 (file ::java.io.File
+				       document:source))
+			(file:getName))
+		      "filename.scm")
+		  editor))
 		(position ::Position
 			  (last-known-pointer-position
 			   finger)))
 	    (window:center-around! position:left position:top)
-	    (screen:add-overlay! window))))))
-    #t))
+	    (screen:add-overlay! window))))))))
 
 (define-parameter (save-file)::(maps (byte java.io.File Editor)
 				     to: (maps _ to: void))

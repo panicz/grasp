@@ -330,7 +330,7 @@
 	  #f)))
 
   ((label)::String
-   (target:getName))
+   (file-display-name target))
 
   ((draw-icon!)::void
    (painter:draw-file-icon!))
