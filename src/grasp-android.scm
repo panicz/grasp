@@ -1763,6 +1763,13 @@
   (define (initial-directory)::java.io.File
     (android.os.Environment:getExternalStorageDirectory))
 
+  (define (file-system-roots)::(list-of FileWithDescription)
+    `(,(android.os.Environment:getExternalStorageDirectory)
+      ,(invoke-special android.content.Context
+		       (this) 'getFilesDir)
+      ,(invoke-special android.content.Context
+		       (this) 'getExternalFilesDir #!null)))
+  
   (define view :: View)
 
   (define process-finger ::(array-of TouchEventProcessor)
@@ -1883,6 +1890,27 @@
       (decor:setSystemUiVisibility flags))
     
     (initialize-activity (this))
+
+    (safely
+    (set! (file-display-name
+	   (invoke-static
+	    android.os.Environment
+	    'getExternalStorageDirectory))
+	  "[Shared Storage]")
+
+    (set! (file-display-name
+	   (invoke-special
+	    android.content.Context
+	    (this) 'getFilesDir))
+	  "[Private Storage]")
+
+    (set! (file-display-name
+	   (invoke-special
+	    android.content.Context
+	    (this) 'getExternalFilesDir
+	    #!null))
+	  "[External Storage]"))
+    
     (safely (initialize-keymap))
     (set! (the-keeper) (this))
     (set! (the-system-clipboard)
@@ -2100,7 +2128,10 @@
 			   (import (language define-parameter))
 			   (import (language fundamental))
 			   (import (language examples))
+			   (import (language while))
 			   (import (language for))
+			   (import (language infix))
+			   (import (language match))
 			   (import (editor interfaces painting))
 			   (import (editor interfaces elements))
 			   (set-painter! the-view))

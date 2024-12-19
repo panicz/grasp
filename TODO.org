@@ -1,3 +1,295 @@
+* 19.12.2024
+
+To dzis sprobujemy zrobic to menu do wyboru systemu plikow.
+A powinno ono dzialac podobnie do zwyklego wyboru plikow.
+
+No to moze warto by bylo opisac, jak aktualnie zwykly
+wybor plikow dziala.
+
+#+BEGIN_SRC scheme
+
+    (Link content: (Caption "Open...")
+	  on-tap: ((open-file) finger editor))
+
+    (Link content: (Caption "Save as...")
+	  on-tap: ((save-file) finger editor))
+
+    (define-parameter (save-file)::(maps (byte java.io.File Editor)
+					 to: (maps _ to: void))
+      builtin-save-file)
+
+    (define-parameter (open-file)::(maps (byte java.io.File Editor)
+					 to: (maps _ to: void))
+      builtin-open-file)
+
+    (define (builtin-open-file finger::byte editor::Editor)
+      (lambda _
+	(let ((keeper ::Keeper (the-keeper)))
+	  (keeper:with-read-permission
+	   (lambda _
+	     (let ((window::PopUp
+		    (open-file-browser
+		     (or (and-let*
+			     ((document ::Document
+					editor:document)
+			      (file ::java.io.File
+				    document:source)
+			      (parent ::java.io.File
+				      (file:getParentFile))
+			      ((parent:isDirectory)))
+			   parent)
+			 (keeper:initial-directory))
+		     editor))
+		   (position ::Position
+			     (last-known-pointer-position
+			      finger)))
+	       (window:center-around! position:left position:top)
+	       (screen:add-overlay! window)))))))
+
+    (define (builtin-save-file finger::byte editor::Editor)
+      (lambda _
+	(let ((keeper ::Keeper (the-keeper)))
+	  (keeper:with-write-permission
+	   (lambda _
+	     (safely
+	      (let ((window::PopUp
+		     (save-file-browser
+		      (or (and-let*
+			      ((document ::Document
+					 editor:document)
+			       (file ::java.io.File
+				     document:source)
+			       (parent ::java.io.File
+				       (file:getParentFile))
+			       ((parent:isDirectory)))
+			    parent)
+			  (keeper:initial-directory))
+		      (or (and-let* ((document ::Document
+					       editor:document)
+				     (file ::java.io.File
+					   document:source))
+			    (file:getName))
+			  "filename.scm")
+		      editor))
+		    (position ::Position
+			      (last-known-pointer-position
+			       finger)))
+		(window:center-around! position:left position:top)
+		(screen:add-overlay! window))))))
+	#t))
+
+
+  (define (open-file-browser directory::java.io.File
+			     editor::DocumentEditor)
+    ::PopUp
+    (let ((window ::PopUp #!null))
+      (set! window
+	    (popup-scroll
+	     (below
+	      (DirectoryButton
+	       target: directory
+	       action: (lambda _
+			 (WARN "choose file system root" _)))
+	      (file-list
+	       directory
+	       (lambda (file::java.io.File)
+		 ::void
+		 (screen:clear-overlay!)
+		 (editor:load-file file))
+	       (lambda (directory::java.io.File)
+		 ::void
+		 (screen:remove-overlay! window)
+		 (let ((new-window (open-file-browser
+				    directory
+				    editor))
+		       (position ::Position
+				 (last-known-pointer-position
+				  0)))
+		   (new-window:center-around! position:left
+					      position:top)
+		   (screen:add-overlay! new-window)))))))
+      window))
+
+  (define (save-file-browser directory::java.io.File
+			     name-hint::string
+			     editor::DocumentEditor)
+    ::PopUp 
+    (let* ((window ::PopUp #!null)
+	   (text-field ::Scroll (text-field 0 name-hint))
+	   (button (Button label: "Save"
+			   action: (lambda _
+				     (screen:clear-overlay!)
+				     (save-document!
+				      editor:document
+				      (java.io.File
+				       directory
+				       text-field:content)))))
+	   (files (file-list
+		   directory
+		   (lambda (file::java.io.File)::void
+			   (set! text-field:content
+				 (text-input
+				  (file:getName))))
+		   (lambda (dir::java.io.File)::void
+			   (screen:remove-overlay!
+			    window)
+			   (let ((new-window (save-file-browser
+					      dir
+					      text-field:content
+					      editor))
+				 (position ::Position
+					   (last-known-pointer-position
+					    0)))
+			     (new-window:center-around! position:left
+							position:top)
+			     (screen:add-overlay! new-window)))))
+	   (inner ::Extent (extent+ files))
+	   (browser ::Scroll (Scroll content: files
+				     width: inner:width
+				     height: inner:height))
+	   (top (Beside left: text-field right: button))
+	   (upper ::Extent (extent+ top))
+	   (content (below top
+			   (DirectoryButton
+			    target: directory
+			    action: (lambda _
+				      (WARN "choose file system root" _)))
+			   browser))
+	   (popup (PopUp content: content))
+	   (outer ::Extent (extent+ popup))
+	   (available ::Extent (screen:extent))
+	   (button-size ::Extent (extent+ button))
+	   (min-width ::real (+ (* 7 (painter:space-width))
+				button-size:width)))
+      (set! browser:width (max min-width
+			       (- browser:width
+				  (max 0 (- outer:width
+					    available:width)))))
+      (set! browser:height (- browser:height
+			      (max 0 (- outer:height
+					(- upper:height)
+					available:height))))
+      (set! text-field:width (- browser:width
+				button-size:width))
+      (set! window popup)
+      (and-let* ((`(,tip . ,root) (screen:overlay-cursor popup)))
+	(screen:set-overlay-cursor!
+	 popup (recons (text-field:content:last-index) root)))
+      window))
+
+  (define (file-list directory::java.io.File
+		   file-action::(maps (java.io.File) to: void)
+		   directory-action::(maps (java.io.File) to: void))
+  ::Enchanted
+  (let* ((filenames ::(array-of String)
+		    (directory:list))
+	 (n ::int (length filenames))
+	 (buttons ::(array-of FileButton)
+		  ((array-of FileButton)
+		   length: (+ n 1))))
+    (set! (buttons 0) (ParentDirectoryButton
+		       target: (directory:getParentFile)
+		       action: directory-action))
+    (for i from 0 below n
+	 (let ((file (java.io.File directory (filenames i))))
+	   (set! (buttons (+ i 1))
+		 (if (file:isDirectory)
+		     (DirectoryButton target: file
+				      action: directory-action)
+		     (FileButton target: file
+				 action: file-action)))))
+    (Array:sort buttons)
+    (ColumnGrid buttons)))
+
+
+#+END_SRC
+
+No dobra, czyli tak: ciskamy "Open..." albo
+"Save as...", i w efekcie otrzymujemy wywolanie
+=save-file-browser= albo =open-file-browser=,
+do ktorych przekazujemy odpowiedni katalog.
+
+W rezultacie - za pomoca =file-list= - do sceny zostaja
+dodane obiekty, zawierajace =ColumnGrid= z taka przypadloscia,
+ze jezeli kliknie sie na guzik wskazujacy na katalog,
+to ponownie zostanie wywolany =open-file-browser=
+albo =save-file-browser=, z przekazanym tym katalogiem.
+
+I teraz tak: klikniecie na 
+
+
+* 18.12.2024
+
+No dobra, to mamy sobie juz zaimplementowane
+=file-system-roots=. Tyle ze wydaje sie, ze
+z perspektywy istniejacej przegladarki plikow
+- zeby nie musiec zbyt wiele zmieniac - nalezaloby
+raczej zrobic hasz-mape, o np. taka:
+
+#+BEGIN_SRC scheme
+(define-mapping (file-name path ::string)::string
+  path)
+#+END_SRC
+
+albo
+
+#+BEGIN_SRC scheme
+(define-mapping (file-display-name file ::java.io.File)::String
+  (file:getName))
+#+END_SRC
+
+i wtedy by sobie poszczegolne klienty po prostu override'owaly
+
+#+BEGIN_SRC scheme
+(set! (file-display-name ...) "<Internal Storage>")
+(set! (file-display-name ...) "<External Storage>")
+#+END_SRC
+
+itd.
+
+I teraz kolejny krok to dodanie do przrgladarki pliku
+wyboru "korzenia"
+
+Ale zanim to nastapi, warto nieco pouzalac sie nad soba.
+
+Ach.
+
+No dobra.
+
+Na pewno zdolamy przebudowac przegladarke, i na pewno
+/jakos to bedzie/, ale rzecz wyglada tak, ze mamy jeszcze
+w tym roku 6 dni commitowych:
+- jutro (czwartek)
+- poniedzialek
+- wtorek (wigila)
+- sroda (pierwszy dzien swiat)
+- piatek
+- sobota
+(a w niedziele ma byc kotlet)
+
+W miare mozliwosci chcielibysmy miec
+juz cos uzywalnego, zeby nowy rok zaczac
+probujac wepchnac GRASPa do f-droid.
+
+W zwiazku z tym nalezaloby:
+- napisac "contribution guide"
+- przesledzic zrodla wszystkich zalaczonych
+  zasobow (czcionki, obrazki, sloiki)
+- zmodyfikowac skrypt tak zeby zamiast
+  io.github.grasp miec io.github.panicz
+- zrobic zgloszenie do F-droid
+- doprowadzic kod do takiego stanu, zeby
+  zminimalizowac dziwne zachowania
+- stworzyc road-mape z planem wydawniczym
+- zrobic jakis system do dokumentacji
+  (oraz dokumentacje)
+
+
+* 16.12.2024
+
+Chyba jednak =file-system-roots= powinny przynalezec
+do =Keeper='a, bo musza byc widoczne w implementacji
+
 * 12.12.2024
 
 Chcielibysmy stworzyc nowy typ w =elements=,

@@ -8,6 +8,7 @@
 (import (language define-object))
 (import (language attributes))
 (import (language define-parameter))
+(import (language mapping))
 (import (language keyword-arguments))
 (import (language match))
 (import (language infix))
@@ -333,24 +334,41 @@ operate on cursors.
   (Highlight start: '() end: '()
 	     type: HighlightType:Selection))
 
-
 ;; A Keeper is needed to obtain permissions on Android
 ;; - otherwise it does nothing special
 (define-interface Keeper ()
   (with-read-permission action::procedure)::Object
   (with-write-permission action::procedure)::Object
   (initial-directory)::java.io.File
+  (file-system-roots)::(list-of File)
   )
 
 (define-object (PermissiveKeeper)::Keeper
   (define (with-read-permission action::procedure)::Object
     (action))
+  
   (define (with-write-permission action::procedure)::Object
     (action))
+  
   (define (initial-directory)::java.io.File
     (let ((wd ::java.io.File (java.io.File ".")))
       (wd:getAbsoluteFile)))
-  )
+
+  (define (file-system-roots)::(list-of File)
+    (let ((roots (only (lambda (root::java.io.File)
+			  (and (root:canRead)
+			       (root:canExecute)))
+		       (java.io.File:listRoots))))
+      (if (null? roots)
+	  (let ((base (java.lang.System:getProperty
+		       "user.dir")))
+	    (list
+	     (java.io.File base)))
+	  roots)))
+   )
+
+(define-mapping (file-display-name file ::java.io.File)::String
+  (file:getName))
 
 (define-parameter (the-keeper)::Keeper
   (PermissiveKeeper))
