@@ -1763,7 +1763,7 @@
   (define (initial-directory)::java.io.File
     (android.os.Environment:getExternalStorageDirectory))
 
-  (define (file-system-roots)::(list-of FileWithDescription)
+  (define (file-system-roots)::(list-of java.io.File)
     `(,(android.os.Environment:getExternalStorageDirectory)
       ,(invoke-special android.content.Context
 		       (this) 'getFilesDir)

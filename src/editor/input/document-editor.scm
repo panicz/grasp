@@ -156,67 +156,134 @@
   (define (drop! x::real y::real vx::real vy::real)::void
     (values)))
 
+(define-object (ParentDirectory directory::String)
+  (define (getName)::String
+    "..")
+  (java.io.File directory))
 
-(define (file-list directory::java.io.File
-                   file-action::(maps (java.io.File) to: void)
+(define (file-list files::(sequence-of java.io.File)
+		   file-action::(maps (java.io.File) to: void)
 		   directory-action::(maps (java.io.File) to: void))
   ::Enchanted
-  (let* ((filenames ::(array-of String)
-		    (directory:list))
-         (n ::int (length filenames))
-         (buttons ::(array-of FileButton)
-		  ((array-of FileButton)
-		   length: (+ n 1))))
-    (set! (buttons 0) (ParentDirectoryButton
-                       target: (directory:getParentFile)
-		       action: directory-action))
-    (for i from 0 below n
-	 (let ((file (java.io.File directory (filenames i))))
-           (set! (buttons (+ i 1))
-		 (if (file:isDirectory)
-		     (DirectoryButton target: file
-				      action: directory-action)
-		     (FileButton target: file
-				 action: file-action)))))
+  (let* ((n ::int (length files))
+	 (buttons ::(array-of FileButton)
+		  ((array-of FileButton) length: n))
+	 (i ::int 0))
+    (for file::java.io.File in files
+      (set! (buttons i)
+	    (cond
+	     ((is file ParentDirectory?)
+	      (ParentDirectoryButton
+	       target: file
+	       action: directory-action))
+	     ((file:isDirectory)
+	      (DirectoryButton target: file
+			       action: directory-action))
+	     (else
+	      (FileButton target: file
+			  action: file-action))))
+      (set! i (+ i 1)))
     (Array:sort buttons)
     (ColumnGrid buttons)))
+
+(define (open-root-selector action ::(maps (java.io.File)
+					   to: void)
+			    editor ::Editor)
+  ::PopUp
+  (let* ((window ::PopUp #!null)
+	 (keeper ::Keeper (the-keeper))
+	 (roots ::(list-of java.io.File)
+		(keeper:file-system-roots)))
+    (set! window
+      (popup-scroll
+       (file-list
+	roots
+	action
+	action)))
+    window))
+
+  
+(define (content-with-parent* directory::java.io.File)
+  ::(sequence-of java.io.File)
+  (safely
+   (let ((files (only (lambda (f::java.io.File)
+			(and (f:canRead)
+			     (or (not (f:isDirectory))
+				 (f:canExecute))))
+		      (directory:listFiles)))
+	 (parent (ParentDirectory
+		  (directory:getParent))))
+     (if (and (parent:canRead)
+	      (parent:canExecute))
+	 `(,parent . ,files)
+	 files))))
+
+(define (replace-window! window ::PopUp
+			 #;with new-window ::PopUp)
+  ::PopUp
+  (screen:remove-overlay! window)
+  (let ((position ::Position
+		  (last-known-pointer-position
+		   0)))
+    (new-window:center-around! position:left
+			       position:top)
+    (screen:add-overlay! new-window)
+    new-window))
 
 (define (open-file-browser directory::java.io.File
 			   editor::DocumentEditor)
   ::PopUp
-  (let ((window ::PopUp #!null))
+  (let* ((window ::PopUp #!null)
+	 (keeper ::Keeper (the-keeper))
+	 (dir-name (directory:getAbsolutePath))
+	 (roots ::(list-of java.io.File)
+		(keeper:file-system-roots)))
     (set! window
-	  (popup-scroll
-	   (below
-	    (DirectoryButton
-	     target: directory
-	     action: (lambda _
-		       (WARN "choose file system root" _)))
-	    (file-list
-	     directory
-	     (lambda (file::java.io.File)
-	       ::void
-	       (screen:clear-overlay!)
-	       (editor:load-file file))
-	     (lambda (directory::java.io.File)
-	       ::void
-	       (screen:remove-overlay! window)
-	       (let ((new-window (open-file-browser
-				  directory
-				  editor))
-		     (position ::Position
-			       (last-known-pointer-position
-				0)))
-		 (new-window:center-around! position:left
-					    position:top)
-		 (screen:add-overlay! new-window)))))))
+      (popup-scroll
+       (below
+	(DirectoryButton
+	 target:
+	 (element-maximizing
+	  (lambda (root::java.io.File)
+	    (string-prefix-length
+	     (root:getAbsolutePath)
+	     dir-name))
+	  roots)
+	 action:
+	 (lambda _
+	   (let ((selector #!null))
+	     (set! selector
+	       (open-root-selector
+		(lambda (directory::java.io.File)
+		  ::void
+		  (replace-window! selector #;with
+				   (open-file-browser
+				    directory
+				    editor)))
+		editor))
+	   (replace-window! window selector))))
+	(file-list
+	 (content-with-parent* directory)
+	 (lambda (file::java.io.File)
+	   ::void
+	   (screen:clear-overlay!)
+	   (editor:load-file file))
+	 (lambda (directory::java.io.File)
+	   ::void
+	   (replace-window! window #;with
+			    (open-file-browser
+			     directory
+			     editor)))))))
     window))
 
 (define (save-file-browser directory::java.io.File
 			   name-hint::string
 			   editor::DocumentEditor)
-  ::PopUp 
+  ::PopUp
   (let* ((window ::PopUp #!null)
+	 (keeper ::Keeper (the-keeper))
+	 (roots ::(list-of java.io.File)
+		(keeper:file-system-roots))
          (text-field ::Scroll (text-field 0 name-hint))
          (button (Button label: "Save"
 			 action: (lambda _
@@ -227,36 +294,47 @@
 				     directory
 				     text-field:content)))))
 	 (files (file-list
-		 directory
-		 (lambda (file::java.io.File)::void
-			 (set! text-field:content
-			       (text-input
-				(file:getName))))
-		 (lambda (dir::java.io.File)::void
-			 (screen:remove-overlay!
-			  window)
-			 (let ((new-window (save-file-browser
-					    dir
-					    text-field:content
-					    editor))
-			       (position ::Position
-					 (last-known-pointer-position
-					  0)))
-			   (new-window:center-around! position:left
-						      position:top)
-			   (screen:add-overlay! new-window)))))
+		 (content-with-parent* directory)
+		 (lambda (file::java.io.File)
+		   ::void
+		   (set! text-field:content
+		     (text-input
+		      (file:getName))))
+		 (lambda (dir::java.io.File)
+		   ::void
+		   (replace-window!
+		    window
+		    #;with
+		    (save-file-browser
+		     dir
+		     text-field:content
+		     editor)))))
 	 (inner ::Extent (extent+ files))
 	 (browser ::Scroll (Scroll content: files
 				   width: inner:width
 				   height: inner:height))
 	 (top (Beside left: text-field right: button))
 	 (upper ::Extent (extent+ top))
-	 (content (below top
-			 (DirectoryButton
-			  target: directory
-			  action: (lambda _
-				    (WARN "choose file system root" _)))
-			 browser))
+	 (content (below
+		   top
+		   (DirectoryButton
+		    target: directory
+		    action:
+		    (lambda _
+		      (let ((selector ::PopUp #!null))
+			(set! selector
+			  (open-root-selector
+			   (lambda (directory::java.io.File)
+			     ::void
+			     (replace-window!
+			      selector
+			      (save-file-browser
+			       directory
+			       text-field:content
+			       editor)))
+			   editor))
+		      (replace-window! window selector))))
+		   browser))
          (popup (PopUp content: content))
 	 (outer ::Extent (extent+ popup))
 	 (available ::Extent (screen:extent))
@@ -348,7 +426,8 @@
 				(cond
 				 ((eq? document:source #!null)
 				  "(unnamed)")
-				 ((java.io.File? document:source)
+				 ((java.io.File?
+				   document:source)
 				  (document:source:getName))
 				 (else
 				  (document:source:toString))))
@@ -365,59 +444,65 @@
   (let* ((search-input (text-field
 			(* (painter:space-width) 20) ""))
 	 (editor (the-editor))
-	 (⬑ (Button label: "⬑"
-		    action:
-		    (lambda _
-		      (safely
-		       (and-let* (((Highlight end: end)
-				   (editor:highlight-back!))
-				  ((Position left: x top: y)
-				   (cursor-position
-				    end in: editor:document))
-				  ((Extent width: w height: h)
-				   (screen-extent editor)))
-			 (editor:pan-to!
-			  (editor:transform:translating
-			   0 y (editor:transform:get-left) (/ h 2))
-			  500))))))
-	 (⬎ (Button label: "⬎"
-		    action:
-		    (lambda _
-		      (safely		      
-		      (and-let* (((Highlight start: start)
-				  (editor:highlight-next!))
-				 ((Position left: x top: y)
-				  (cursor-position
-				   start in: editor:document))
-				 ((Extent width: w height: h)
-				   (screen-extent editor)))
-			(editor:pan-to!
-			 (editor:transform:translating
-			  0 y (editor:transform:get-left) (/ h 2))
-			 500))))))
+	 (⬑ (Button
+	     label: "⬑"
+	     action:
+	     (lambda _
+	       (safely
+		(and-let* (((Highlight end: end)
+			    (editor:highlight-back!))
+			   ((Position left: x top: y)
+			    (cursor-position
+			     end in: editor:document))
+			   ((Extent width: w height: h)
+			    (screen-extent editor)))
+		  (editor:pan-to!
+		   (editor:transform:translating
+		    0 y (editor:transform:get-left) (/ h 2))
+		   500))))))
+	 (⬎ (Button
+	     label: "⬎"
+	     action:
+	     (lambda _
+	       (safely		      
+		(and-let* (((Highlight start: start)
+			    (editor:highlight-next!))
+			   ((Position left: x top: y)
+			    (cursor-position
+			     start in: editor:document))
+			   ((Extent width: w height: h)
+			    (screen-extent editor)))
+		  (editor:pan-to!
+		   (editor:transform:translating
+		    0 y (editor:transform:get-left) (/ h 2))
+		   500))))))
 	 (popup (PopUp
 		 content:
 		 (beside
 		  search-input (below ⬑ ⬎))))
-	 (hijack (HijackLayerInput popup
-		   ((close!)::void
-		    (editor:set-highlights! '()))
-		   ((key-typed! key-code::long context::Cursor)
-		    ::boolean
-		    (match (key-code-name key-code)
-		      ('escape
-		       (popup:remove-from-overlay!))
-		      (_
-		       (search-input:key-typed! key-code context)
-		       (safely
-			(and-let* ((pattern (parse-string search-input:content))
-				   ((isnt pattern empty?))
-				   (editor ::DocumentEditor)
-				   (highlights ::(list-of Highlight)
-					       (all-matches of: pattern
-							    in: editor:document)))
-			  (editor:set-highlights! highlights)))
-		       #t))))))
+	 (hijack
+	  (HijackLayerInput popup
+	    ((close!)::void
+	     (editor:set-highlights! '()))
+	    ((key-typed! key-code::long context::Cursor)
+	     ::boolean
+	     (match (key-code-name key-code)
+	       ('escape
+		(popup:remove-from-overlay!))
+	       (_
+		(search-input:key-typed! key-code context)
+		(safely
+		 (and-let*
+		     ((pattern (parse-string
+				search-input:content))
+		      ((isnt pattern empty?))
+		      (editor ::DocumentEditor)
+		      (highlights ::(list-of Highlight)
+				  (all-matches
+				   of: pattern
+				   in: editor:document)))
+		   (editor:set-highlights! highlights)))
+		#t))))))
     (screen:add-overlay! hijack)))
 
 (define-object (CursorMarker)::WithCursor
