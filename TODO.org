@@ -1,3 +1,230 @@
+* 21.12.2024
+
+Znalezione w internecie:
+
+Lower bound of Edwin B. Wilson (1927) score confidence interval
+for a Bernoulli parameter
+
+#+BEGIN_SRC ruby
+  require 'statistics2'
+
+  def ci_lower_bound(pos, n, confidence)
+      if n == 0
+	  return 0
+      end
+      z = Statistics2.pnormaldist(1-(1-confidence)/2)
+      phat = 1.0*pos/n
+      (phat + z*z/(2*n)
+       - z * Math.sqrt((phat*(1-phat)+z*z/(4*n))/n))/(1+z*z/n)
+  end
+#+END_SRC
+
+pick 0.95 confidence to have a 95% chance that your lower
+bound is correct, 0.975 to have a 97.5% chance, etc.
+The z-score in this function never changes, so if you don’t
+have a statistics package handy or if performance is an
+issue you can always hard-code a value here for z.
+(Use 1.96 for a confidence level of 0.95.)
+
+* 20.12.2024
+
+to bysmy tak zrobili, zeby =file-list= zamiast katalogu
+przyjmowalo =(sequence-of java.io.File)= (ktora juz
+na wstepie powinna byc posortowana)
+
+Czyli tak: na razie mamy
+
+#+BEGIN_SRC scheme
+  (define (file-list directory::java.io.File
+		   file-action::(maps (java.io.File) to: void)
+		   directory-action::(maps (java.io.File) to: void))
+  ::Enchanted
+  (let* ((filenames ::(array-of String)
+		    (directory:list))
+	 (n ::int (length filenames))
+	 (buttons ::(array-of FileButton)
+		  ((array-of FileButton)
+		   length: (+ n 1))))
+    (set! (buttons 0) (ParentDirectoryButton
+		       target: (directory:getParentFile)
+		       action: directory-action))
+    (for i from 0 below n
+	 (let ((file (java.io.File directory (filenames i))))
+	   (set! (buttons (+ i 1))
+		 (if (file:isDirectory)
+		     (DirectoryButton target: file
+				      action: directory-action)
+		     (FileButton target: file
+				 action: file-action)))))
+    (Array:sort buttons)
+    (ColumnGrid buttons)))
+#+END_SRC
+
+a chcemy miec
+
+#+BEGIN_SRC scheme
+  (define-class (ParentDirectory directory::String)
+    (define (getName)::String
+      "..")
+    (java.io.File directory))
+
+  (define (file-list files::(sequence-of java.io.File)
+		     file-action::(maps (java.io.File) to: void)
+		     directory-action::(maps (java.io.File) to: void))
+    ::Enchanted
+    (let* ((n ::int (length files))
+	   (buttons ::(array-of FileButton)
+		    ((array-of FileButton) length: n))
+	   (i ::int 0))
+      (for file::java.io.File in files
+	(set! (buttons i)
+	      (cond
+	       ((is file ParentDirectory?)
+		(ParentDirectoryButton
+		 target: (directory:getParentFile)
+		 action: directory-action))
+	       ((file:isDirectory)
+		(DirectoryButton target: file
+				 action: directory-action))
+	       (else
+		(FileButton target: file
+			    action: file-action))))
+	(set! i (+ i 1)))
+      (Array:sort buttons)
+      (ColumnGrid buttons)))
+#+END_SRC
+
+to teraz nasze wywolania wygladaja tak:
+
+#+BEGIN_SRC scheme
+  (file-list
+   directory
+   (lambda (file::java.io.File)
+     ::void
+     (screen:clear-overlay!)
+     (editor:load-file file))
+   (lambda (directory::java.io.File)
+     ::void
+     (screen:remove-overlay! window)
+     (let ((new-window (open-file-browser
+			directory
+			editor))
+	   (position ::Position
+		     (last-known-pointer-position
+		      0)))
+       (new-window:center-around! position:left
+				  position:top)
+       (screen:add-overlay! new-window))))
+#+END_SRC
+		   
+a docelowo bysmy chcieli raczej cos w stylu
+
+#+BEGIN_SRC scheme
+
+  (define (content-with-parent* directory::java.io.File)
+    ::(sequence-of java.io.File)
+    (let ((files (only (lambda (f::java.io.File)
+			 (and (f:canRead)
+			      (or (not (f:isDirectory))
+				  (f:canExecute))))
+		       (directory:listFiles)))
+	  (parent (ParentDirectory
+		   (directory:getParent))))
+      (if (and (parent:canRead)
+	       (parent:canExecute))
+	  `(,parent . ,files)
+	  files)))
+
+  (file-list
+   (content-with-parent* directory)
+   (lambda (file::java.io.File)
+     ::void
+     (screen:clear-overlay!)
+     (editor:load-file file))
+   (lambda (directory::java.io.File)
+     ::void
+     (screen:remove-overlay! window)
+     (let ((new-window (open-file-browser
+			directory
+			editor))
+	   (position ::Position
+		     (last-known-pointer-position
+		      0));).
+	   (new-window:center-around! position:left
+				      position:top)
+	   (screen:add-overlay! new-window))))
+
+#+END_SRC
+
+#+BEGIN_SRC
+
+  "java.lang.NullPointerException: Attempt to invoke interface method 'int java.util.List.size()' on a null object reference
+	at editor.input.document$Mneditor.fileList(document-editor.scm:168)
+	at editor.input.document$Mneditor.openFileBrowser(document-editor.scm:221)
+	at editor.input.document$Mneditor$frame2.lambda10$V(document-editor.scm:318)
+	at editor.input.document$Mneditor$frame2.lambda10$check(document-editor.scm:306)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at gnu.mapping.CallContext$ReflectMethodHandle.invokeExact(CallContext.java:726)
+	at gnu.mapping.CallContext.runUntilValue(CallContext.java:656)
+	at gnu.mapping.Procedure.apply1(Procedure.java:154)
+	at io.github.grasp.GRASP.withPermissions(grasp-android.scm:1757)
+	at io.github.grasp.GRASP.withPermission(grasp-android.scm:1761)
+	at io.github.grasp.GRASP.withReadPermission(grasp-android.scm:1765)
+	at editor.input.document$Mneditor$frame1.lambda9$V(document-editor.scm:306)
+	at editor.input.document$Mneditor$frame1.lambda9$check(document-editor.scm:303)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at gnu.mapping.CallContext$ReflectMethodHandle.invokeExact(CallContext.java:726)
+	at gnu.mapping.CallContext.runUntilValue(CallContext.java:656)
+	at gnu.mapping.Procedure.apply4(Procedure.java:174)
+	at editor.types.extensions.Link.tap$Ex(widgets.scm:208)
+	at editor.types.extensions.ColumnGrid.lambda8(widgets.scm:110)
+	at editor.types.extensions.ColumnGrid.lambda8$check(widgets.scm:108)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at gnu.mapping.CallContext$ReflectMethodHandle.invokeExact(CallContext.java:726)
+	at gnu.mapping.CallContext.runUntilValue(CallContext.java:656)
+	at editor.types.extensions.ColumnGrid.propagate(widgets.scm:73)
+	at editor.types.extensions.ColumnGrid.tap$Ex(widgets.scm:105)
+	at editor.input.PopUp.lambda8(pop-ups.scm:97)
+	at editor.input.PopUp.lambda8$check(pop-ups.scm:95)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at gnu.mapping.CallContext$ReflectMethodHandle.invokeExact(CallContext.java:726)
+	at gnu.mapping.CallContext.runUntilValue(CallContext.java:656)
+	at gnu.mapping.Procedure.apply4(Procedure.java:174)
+	at editor.input.pop$Mnups.popUpAction$check(pop-ups.scm:54)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at gnu.mapping.CallContext$ReflectMethodHandle.invokeExact(CallContext.java:726)
+	at gnu.mapping.CallContext.runUntilValue(CallContext.java:656)
+	at editor.input.PopUp.tap$Ex(pop-ups.scm:99)
+	at editor.input.Overlay.lambda3(screen.scm:86)
+	at editor.input.Overlay.lambda3$check(screen.scm:85)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at gnu.mapping.CallContext$ReflectMethodHandle.invokeExact(CallContext.java:726)
+	at gnu.mapping.CallContext.runUntilValue(CallContext.java:656)
+	at gnu.mapping.Procedure.apply1(Procedure.java:154)
+	at gnu.kawa.functions.ApplyToArgs.apply2(ApplyToArgs.java:52)
+	at utils.functions.any(functions.scm:168)
+	at editor.input.Overlay.tap$Ex(screen.scm:87)
+	at editor.input.ActualScreen.tap$Ex(screen.scm:248)
+	at editor.input.TouchEventProcessor.lambda2(touch-event-processor.scm:123)
+	at editor.input.TouchEventProcessor.lambda2$check(touch-event-processor.scm:121)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at gnu.mapping.CallContext$ReflectMethodHandle.invokeExact(CallContext.java:726)
+	at gnu.mapping.CallContext.runUntilValue(CallContext.java:656)
+	at gnu.mapping.Procedure.apply0(Procedure.java:148)
+	at io.github.grasp.io$Dtgithub$Dtgrasp$DtGRASP$0.run(grasp-android.scm:199)
+	at android.os.Handler.handleCallback(Handler.java:938)
+	at android.os.Handler.dispatchMessage(Handler.java:99)
+	at android.os.Looper.loopOnce(Looper.java:201)
+	at android.os.Looper.loop(Looper.java:288)
+	at android.app.ActivityThread.main(ActivityThread.java:7881)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:568)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:1045)
+"
+
+#+END_SRC
+
+
 * 19.12.2024
 
 To dzis sprobujemy zrobic to menu do wyboru systemu plikow.
@@ -215,7 +442,13 @@ ze jezeli kliknie sie na guzik wskazujacy na katalog,
 to ponownie zostanie wywolany =open-file-browser=
 albo =save-file-browser=, z przekazanym tym katalogiem.
 
-I teraz tak: klikniecie na 
+I teraz tak: klikniecie na ikone katalogu spowoduje
+ponowne wywolanie odpowiednio =open-file-browser=
+badz =save-file-browser=
+
+Natomiast my bysmy chcieli w tym wszystkim, zeby
+wcisniecie tego guzika u gory otwieralo nam
+=file-system-switcher=
 
 
 * 18.12.2024
