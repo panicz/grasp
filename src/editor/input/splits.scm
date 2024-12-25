@@ -20,14 +20,11 @@
 (import (editor interfaces elements))
 (import (editor input transforms))
 (import (editor input screen))
+(import (utils print))
 
 (define-enum SplitFocus (First Last))
 
 (define-parameter (the-split-context)
-  ::(list-of SplitFocus)
-  '())
-
-(define-parameter (the-split-path)
   ::(list-of SplitFocus)
   '())
 
@@ -76,6 +73,13 @@
      (,SplitFocus:First first)
      (,SplitFocus:Last last)))
 
+  ((active)::Embeddable
+   (match focus
+     (,SplitFocus:First
+      (first:active))
+     (,SplitFocus:Last
+      (last:active))))
+  
   ((draw-split!)::void
    #!abstract)
 
@@ -271,16 +275,19 @@
 	      (area/last line (+ first-size line-size))))))))
 
   ((split-beside! line::Area)::Embeddable
+   (WARN "splitting "(this))
    (let-values (((first-size line-size last-size) (part-sizes)))
      (with-pane-size first-size
        (lambda ()
-	 (when (first:can-split-beside? line)
-	   (set! first (first:split-beside! line)))))
+	 (if (first:can-split-beside? line)
+	     (set! first (first:split-beside! line))
+	     (WARN "cannot split left beside"))))
      (let ((line* (area/last line (+ first-size line-size))))
        (with-pane-size last-size
 	 (lambda ()
-	   (when (last:can-split-beside? line*)
-	     (set! last (last:split-beside! line*))))))
+	   (if (last:can-split-beside? line*)
+	       (set! last (last:split-beside! line*))
+	       (WARN "cannot split right beside")))))
      (this)))
 
   ((can-split-below? line::Area)::boolean
@@ -477,3 +484,42 @@
    (set! at (/ (max 0.0 (* 1.0 (- pointer-top pane-top)))
 	       pane-height)))
   )
+
+(define (halve-beside!)
+  (let* ((editor (screen:active))
+	 (position (screen-position editor))
+	 (extent (screen-extent editor))
+	 (center (+ position:left (quotient extent:width 2)))
+	 (line (Area left: center
+		     top: position:top
+		     right: center
+		     bottom: (+ position:top
+				extent:height)))
+	 #;(stroke (Stroke 0 editor)))
+#|
+    (stroke:add-point! (Position left: line:left
+				 top: line:top))
+    (stroke:add-point! (Position left: line:right
+				 top: line:bottom))
+    (screen:add-overlay! stroke)
+|#
+    (screen:split-beside! line)))
+
+
+(define (halve-below!)
+  (let* ((editor (screen:active))
+	 (position (screen-position editor))
+	 (extent (screen-extent editor))
+	 (center (+ position:top (quotient extent:height 2)))
+	 (line (Area left: position:left
+		     top: center
+		     right: (+ position:left
+			       extent:width)
+		     bottom: center))
+	 (stroke (Stroke 0 editor)))
+    (stroke:add-point! (Position left: line:left
+				 top: line:top))
+    (stroke:add-point! (Position left: line:right
+				 top: line:bottom))
+    (screen:add-overlay! stroke)
+    (screen:split-below! line)))

@@ -116,7 +116,6 @@
 	    points::(sequence-of Position)
 	    screen::Screen
 	    line::Area)
-     (WARN "splitting by "own:name)
      (screen:split-below! line))))
 
 (define-early-constant split-pane-by-vertical-line

@@ -512,6 +512,8 @@ operate on cursors.
   
   (can-split-below? line::Area)::boolean
   (split-below! line::Area)::Embeddable
+
+  (active)::Embeddable
   )
 
 (define-interface Editor (Embeddable
@@ -533,6 +535,9 @@ operate on cursors.
 (define-object (NullPane)::Embeddable
   (define (drop-at! x::real y::real expression::pair)::boolean
     #f)
+
+  (define (active)::Embeddable
+    (this))
   
   (define (render!)::void (values))
   

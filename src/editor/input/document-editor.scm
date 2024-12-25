@@ -583,6 +583,9 @@
 
 (define-object (DocumentEditor)::Editor
 
+  (define (active)::Embeddable
+    (this))
+  
   (define (pane-under x::real y::real)::Embeddable
     (this))
 
@@ -1278,17 +1281,20 @@
   (define (can-split-beside? line::Area)::boolean
     (let* ((vicinity ::real
 		     (painter:line-simplification-resolution))
+	   (extent ::Extent (screen-extent (this)))
 	   (3vicinity (* vicinity 3)))
-      (and (is 0 < line:left <= line:right < (the-pane-width))
+      (and (is 0 < line:left <= line:right < extent:width)
 	   (is line:top <= 3vicinity)
-	   (is (- (the-pane-height) line:bottom) <= 3vicinity))))
+	   (is (- extent:height line:bottom) <= 3vicinity))))
 
   (define (split-beside! line::Area)::Embeddable
     (if (can-split-beside? line)
-	(let*-values (((ratio::real)
+	(let*-values (((extent::Extent)
+		       (screen-extent (this)))
+		      ((ratio::real)
 		       (/ (/ (+ line:left line:right)
-			     2)
-			  (the-pane-width)))
+			     2.0)
+			  extent:width))
 		      ((new::DocumentEditor) (copy (this)))
 		      ((split::Split) (SplitBeside first: (this)
 						   last: new
@@ -1298,7 +1304,7 @@
 	  (new:transform:translate! (- shift) 0)
 	  split)
 	(this)))
-
+    
   (define (can-split-below? line::Area)::boolean
     (let* ((vicinity ::real
 		     (painter:line-simplification-resolution))

@@ -179,6 +179,9 @@
 
   (define top ::Embeddable (NullPane))
 
+  (define (active)::Embeddable
+    (top:active))
+  
   (define content-stack ::java.util.Stack
     (java.util.Stack))
 

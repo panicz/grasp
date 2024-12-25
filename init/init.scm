@@ -156,12 +156,25 @@
 (set-key! 'backspace delete-backward!)
 (set-key! 'delete delete-forward!)
 
+(set-key! '(ctrl h) halve-beside!)
+	  
+(set-key! '(ctrl shift h) halve-below!)
+
+(set-key! '(ctrl alt h) (lambda ()
+			  (WARN "join halves")))
+
+(set-key! '(alt h) (lambda ()
+		     (WARN "switch halves")))
+
+(set-key! '(alt shift h) (lambda ()
+			   (WARN "switch halves back")))
+
 (set-key! 'F1 (lambda ()
 		(WARN "cursor: "(the-cursor)
 		      ", expression: "(cursor-ref))))
 
 (set-key! 'F2 (lambda ()
-		(DUMP (last-operation))))
+		(DUMP (slot-ref screen 'top))))
 
 (invoke
  the-recognizers 'add
