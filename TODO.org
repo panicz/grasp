@@ -1,3 +1,27 @@
+* 22.12.2024 (komputer)
+
+Skoro tak sie tutaj komputeryzujemy, to moze warto by
+bylo obsluzyc rzeczy z klawiatury.
+
+
+#+BEGIN_SRC
+
+normalne prosie zaprosiło się
+a prosię Cię nie zaprosiło
+
+bo prosię się prosiło
+by gadać wciąż na wynos
+
+prosię się prosiło bo chciało dalej pić oliwo
+
+aż się prosi że gada prosię
+
+prosię gada bo wciąż zajada
+
+-- Pola
+
+#+END_SRC
+
 * 21.12.2024
 
 Znalezione w internecie:
@@ -223,7 +247,6 @@ a docelowo bysmy chcieli raczej cos w stylu
 "
 
 #+END_SRC
-
 
 * 19.12.2024
 
@@ -522,6 +545,12 @@ W zwiazku z tym nalezaloby:
 
 Chyba jednak =file-system-roots= powinny przynalezec
 do =Keeper='a, bo musza byc widoczne w implementacji
+=======
+No dobra, to cos tam juz dziala, ale cos wciaz nie dziala :/
+
+Tzn. jak za pierwszym razem wcisniemy =(ctrl h)=, to jest prawie OK,
+ale za drugim razem to juz nie
+>>>>>>> 7692b74 (TODO update)
 
 * 12.12.2024
 
