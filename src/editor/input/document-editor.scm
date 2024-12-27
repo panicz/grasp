@@ -1140,7 +1140,8 @@
 			    target)
 		      around: (Position left: xe top: ye)
 		      duration/ms: 500)))
-	((or (isnt (transform:get-left) = 0)
+	((or (isnt (transform:get-left)
+		   = (painter:space-width))
 	     (is (transform:get-top) > 0))
 	 (painter:play!
 	  (Transition of: transform
@@ -1150,13 +1151,12 @@
 				(document ::Extent
 					  (extent+
 					   document)))
-			    (target:set-left! 0.0)
+			    (target:set-left!
+			     (painter:space-width))
 			    (target:set-top! 0.0)
 			    (target:set-scale!
-			     (min (/ (screen:width)
-				     document:width)
-				  (/ (screen:height)
-				     document:height)))
+			     (/ (screen:width)
+				document:width))
 			    target)
 		      duration/ms: 500))))
        #t)))
