@@ -216,31 +216,59 @@
  (every. even? '(2 4 6 . 8)))
 
 (define (fold-left f x0 . xs*)
-  (define (fold-left1 f x0 xs)
+  
+  (define (fold-left1 xs::java.util.List)
     (for x in xs
       (set! x0 (f x0 x)))
     x0)
 
-  (define (fold-left2 f x0 xs xs2)
-    (if (or (null? xs) (null? xs2))
-	x0
-	(fold-left2 f (f x0 (car xs) (car xs2)) (cdr xs) (cdr xs2))))
+  (define (fold-left2 xs1::java.util.List xs2::java.util.List)
+    (let ((xi1 ::java.util.ListIterator (xs1:listIterator))
+	  (xi2 ::java.util.ListIterator (xs2:listIterator)))
+      (let loop ((xo x0))
+	(if (and (xi1:hasNext) (xi2:hasNext))
+	    (loop (f xo (xi1:next) (xi2:next)))
+	    xo))))
 
-  (define (fold-left3 f x0 xs xs2 xs3)
-    (if (or (null? xs) (null? xs2) (null? xs3))
-	x0
-	(fold-left3 f (f x0 (car xs) (car xs2) (car xs3)) (cdr xs) (cdr xs2) (cdr xs3))))
+  (define (fold-left3 xs1::java.util.List
+		      xs2::java.util.List
+		      xs3::java.util.List)
+    (let ((xi1 ::java.util.ListIterator (xs1:listIterator))
+	  (xi2 ::java.util.ListIterator (xs2:listIterator))
+	  (xi3 ::java.util.ListIterator (xs3:listIterator)))
+      (let loop ((xo x0))
+	(if (and (xi1:hasNext) (xi2:hasNext) (xi3:hasNext))
+	    (loop (f xo (xi1:next) (xi2:next) (xi3:next)))
+	    xo))))
 
-  (define (fold-left* f x0 . xs*)
-    (if (any null? xs*)
-	x0
-	(apply fold-left* f (apply f x0 (map car xs*)) (map cdr xs*))))
+  (define (fold-left* . xs*)
+    (let ((iterators (map (lambda (x::java.util.List)
+			    (x:listIterator))
+			  xs*)))
+      (let loop ((xo x0))
+	(if (every (lambda (it::java.util.ListIterator)
+		     (it:hasNext))
+		   iterators)
+	    (loop
+	     (apply
+	      f xo
+	      (map (lambda (it::java.util.ListIterator)
+		     (it:next))
+		   iterators)))
+	    xo))))
   (cond
    ((null? xs*) x0)
-   ((null? (cdr xs*)) (fold-left1 f x0 (car xs*)))
-   ((null? (cddr xs*)) (fold-left2 f x0 (car xs*) (cadr xs*)))
-   ((null? (cdddr xs*)) (fold-left3 f x0 (car xs*) (cadr xs*) (caddr xs*)))
-   (else (apply fold-left* f x0 xs*))))
+   ((null? (cdr xs*)) (fold-left1 (car xs*)))
+   ((null? (cddr xs*)) (fold-left2 (car xs*)
+				   (cadr xs*)))
+   ((null? (cdddr xs*)) (fold-left3 (car xs*)
+				    (cadr xs*)
+				    (caddr xs*)))
+   (else (apply fold-left* xs*))))
+
+(e.g.
+ (fold-left (lambda (a b) `(,a + ,b)) 'e '(a b c d))
+ ===> ((((e + a) + b) + c) + d))
 
 (define (fold-right f x0 . xs*)
   (define (fold-right1 f x0 xs)
@@ -251,7 +279,8 @@
   (define (fold-right2 f x0 xs xs2)
     (if (or (null? xs) (null? xs2))
 	x0
-	(f (car xs) (car xs2) (fold-right2 f x0 (cdr xs) (cdr xs2)))))
+	(f (car xs) (car xs2)
+	   (fold-right2 f x0 (cdr xs) (cdr xs2)))))
 
   (define (fold-right3 f x0 xs xs2 xs3)
     (if (or (null? xs) (null? xs2) (null? xs3))
