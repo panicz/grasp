@@ -708,7 +708,7 @@ Main-Class: "main-class-name"
        (name "<target application name>" "GRASP")
        (icon "<path to icon file>" "icons/grasp.png")
        (init "<path to init file>" "init/init.scm")
-       (package "<top class package>" "io.github.grasp")
+       (package "<top class package>" "io.github.panicz")
        (keystore "<path to keystore>" "binary/keystore")
        (key "<key alias>" "grasp-public")
        (password "<key password>" "untrusted"))
