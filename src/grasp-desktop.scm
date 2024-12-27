@@ -1079,10 +1079,10 @@
 	   target::Position text::CharSequence index::int
 	   font::Font)
     ::Position
-    (let ((segment-start 0)
-	  (metrics ::FontMetrics (graphics:getFontMetrics font))
-	  (height ::float (metrics:getHeight))
-	  (string-end (text:length)))
+    (let* ((segment-start 0)
+	   (metrics ::FontMetrics (graphics:getFontMetrics font))
+	   (height ::float (metrics:getHeight))
+	   (string-end (text:length)))
       (escape-with break
 	(for i from 0 below string-end
 	     (when (eq? (text:charAt i) #\newline)
