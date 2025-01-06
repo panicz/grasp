@@ -26,25 +26,25 @@ that some of its current qualities can already be valuable
 to some hackers -- which is why we wrote this guide.
 
 GRASP comes bundled with a set of dependencies (except for
-the JVM runtime). They are included in the "libs/" directory.
-Among them there's "android.jar" which I've found in my
-distribution of Termux, there's "kawa.jar" that I have built
-myself from Kawa sources (pointing to the included "android.jar"),
-as well as "androidsvg-1.4.jar", "lanterna-3.1.1.jar"
-and "jsvg-1.0.0.jar" that I think I downloaded from Maven Central.
+the JVM runtime). They are included in the =libs/= directory.
+Among them there's =android.jar= which I've found in my
+distribution of Termux, there's =kawa.jar= that I have built
+myself from Kawa sources (pointing to the included =android.jar=),
+as well as =androidsvg-1.4.jar=, =lanterna-3.1.1.jar=
+and =jsvg-1.0.0.jar= that I think I downloaded from Maven Central.
 
 None of them was built by me from the source, and I never
 audited them for any security issues, so I cannot attest
 that they don't do anything malicious (even though I never
 had any reason to suspect that they do).
 
-There are also two .dex files: "kawa.dex" and "androidsvg-1.4.dex",
+There are also two =.dex= files: =kawa.dex= and =androidsvg-1.4.dex=,
 which simply are "pre-dexed" versions of the corresponding .jar
 files (using the d8 tool provided by the Androud SDK). They are
 provided in order to reduce build times of the Android client.
 
 Note also, that this document was written around the commit
-efb205244adbdfef43610b8325446d92c29f9421 (October 2023), and
+=efb205244adbdfef43610b8325446d92c29f9421= (October 2023), and
 some modules could have been moved or refactored.
 
 I will try to update this guide occasionally, but keeping
@@ -62,11 +62,11 @@ provided by GRASP.
 
 *** The Configuration File
 
-During the startup, GRASP executes the file "assets/init.scm".
+During the startup, GRASP executes the file =assets/init.scm=.
 This might be the first place worth editing if you want to tweak
-GRASP's behavior (if GRASP is bundled in a .jar archive, it can
+GRASP's behavior (if GRASP is bundled in a =.jar= archive, it can
 be accessed by simply unzipping the archive. I suppose that
-a similar thing can be done with Android's .apk files).
+a similar thing can be done with Android's =.apk= files).
 
 The file is mainly responsible for setting the initial keyboard
 bindings during the startup, but it can execute arbitrary Scheme code.
@@ -76,45 +76,45 @@ bindings during the startup, but it can execute arbitrary Scheme code.
 At its core, GRASP is an editor of Lisp's s-expressions, which
 means that cons cells and atoms are the basic building blocks
 of documents/programs written in GRASP. They are implemented
-in the src_scheme{(editor types primitive)} module (note that
-this module corresponds to the file "src/editor/types/primitive.scm"
+in the =(editor types primitive)= module (note that
+this module corresponds to the file =src/editor/types/primitive.scm=
 inside GRASP's repository; the remaining modules are mapped to
 the file system in the exact same way).
 
 But in addition to those two types, there are a few other
 built-in types in GRASP, namely:
-- text, which corresponds to strings -- see src_scheme{(editor types texts)}
+- text, which corresponds to strings -- see =(editor types texts)=
 - spaces, which represent whitespace between elements, as defined
-  in the module src_scheme{(editor types spaces)}
+  in the module =(editor types spaces)=
 - comments, that can be included inside spaces
-  src_scheme{(editor types comments)}.
+  =(editor types comments)=.
   There are three types of comments: line comments, block comments
   and expression comments, which correspond to the same types
   of comments in the Scheme programming language.
 
 Another important family of expressions are extensions, which
 are objects that implement the Enchanted interface, as defined
-in the src_scheme{(editor types extensions extensions)} module.
+in the =(editor types extensions extensions)= module.
 Extensions are meant to be user-definable, but GRASP already
 comes with a bunch of built-in extensions. The simplest ones are
 quotations, as defined in the
-src_scheme{(editor types extensions quotations)} module, and they
+=(editor types extensions quotations)= module, and they
 simply provide special markers for quoted, quasiquoted and
 unquoted expressions.
 
 A more elaborate extension is the visual stepper. Its definition can
-be found in the src_scheme{(editor types extensions visual-stepper)}
+be found in the =(editor types extensions visual-stepper)=
 module.
 
 Some simple extensions can also be found in the
-src_scheme{(editor types extensions widgets)} module. It contains
-a definition of classes such as src_scheme{Button}, which -- in addition to
+=(editor types extensions widgets)= module. It contains
+a definition of classes such as =Button=, which -- in addition to
 being embeddable inside GRASP documents -- are also used for building
 the interface of GRASP.
 
 Moreover, there exists a distinct class of extensions that is used
 for combining other extensions (e.g. putting them beside one another).
-Those can be found in the src_scheme{(editor types extensions combinators)}
+Those can be found in the =(editor types extensions combinators)=
 module.
 
 ** The type hierarchy
@@ -125,87 +125,87 @@ very scarcely in the code base, an extensive use is made of
 interface aggregation, which also leads to a hierarchy.
 
 The elementary interfaces implemented by the basic types in GRASP
-can be found in the src_scheme{(editor interfaces elements)} module.
-And the most fundamental of those interfaces is src_scheme{Element}, which
+can be found in the =(editor interfaces elements)= module.
+And the most fundamental of those interfaces is =Element=, which
 is implemented by all the types listed in the previous section.
 
 It provides functions for drawing, selecting using the mouse/finger
 presses, and a way of navigating through using the arrow keys
-(the src_scheme{Indexable} sub-interface).
+(the =Indexable= sub-interface).
 
-Another important intetface is src_scheme{Tile}, which extends the
-src_scheme{Element} interface with the ability to measure its area.
-It's woth to note, that the only type which is an src_scheme{Element}
-but not a src_scheme{Tile} is src_scheme{Space}, because spaces are -- by
+Another important intetface is =Tile=, which extends the
+=Element= interface with the ability to measure its area.
+It's woth to note, that the only type which is an =Element=
+but not a =Tile= is =Space=, because spaces are -- by
 their nature -- non-rectangular.
 
-Lists can be iterated through using the src_scheme{traverse}
+Lists can be iterated through using the =traverse=
 function. It is a control structure that is shared between
 the implementations of a drawing function, a measuring function
 and a mouse/finger selecting function (and possibly some others).
 
-Extensions -- or elements implementing the src_scheme{Enchanted} interface
-(as defined in the src_scheme{(editor types extensions extensions)}
-module) -- are src_scheme{Tiles} that are also src_scheme{Interactive}
-(where the exact meaning of src_scheme{Interactive} can be determined by
+Extensions -- or elements implementing the =Enchanted= interface
+(as defined in the =(editor types extensions extensions)=
+module) -- are =Tiles= that are also =Interactive=
+(where the exact meaning of =Interactive= can be determined by
 studying the contents of the
-src_scheme{(editor types extensions interactions)} module -- but
-in particular, src_scheme{Interactive} objects can react to mouse/finger
+=(editor types extensions interactions)= module -- but
+in particular, =Interactive= objects can react to mouse/finger
 events and to keyboard input.
 
 ** The construction of the view
 
-src_scheme{Enchanted} elements are not the only things in GRASP that are
-src_scheme{Interactive}. Everything that is visible must somehow be
-accessible from a singleton object src_scheme{screen} of type
-src_scheme{Screen}, which is a class defined in the
-src_scheme{(editor input pane)} module.
+=Enchanted= elements are not the only things in GRASP that are
+=Interactive=. Everything that is visible must somehow be
+accessible from a singleton object =screen= of type
+=Screen=, which is a class defined in the
+=(editor input screen)= module.
 
-The src_scheme{screen} consists primarily of two things: the main
-content, accessible by the name src_scheme{top} (although perhaps
-"bottom" would be a better name), and src_scheme{overlay}, which
+The =screen= consists primarily of two things: the main
+content, accessible by the name =top= (although perhaps
+"bottom" would be a better name), and =overlay=, which
 might contain pop-up windows and other elements that are meant
 to be drawn on top of the main content.
 
-Both the main content and the overlay are src_scheme{Interactive},
-and also src_scheme{Drawable}. The drawing is performed starting with
+Both the main content and the overlay are =Interactive=,
+and also =Drawable=. The drawing is performed starting with
 the main content, and then the overlaid elements are performed from
 the bottom to the top. Interaction is handled in the reverse order:
 first, the top element is handled, and if the handler function returns
 true, the process is stopped; otherwise we handle the element below,
 and so on, until we reach the screen's main content.
 
-The main content of the screen can either be an src_scheme{Editor}
-or a src_scheme{Split} (or -- more specifically -- a
-src_scheme{SplitBeside} or a src_scheme{SplitBelow}) -- but eventually
-there must be some src_scheme{Editor}.
+The main content of the screen can either be an =Editor=
+or a =Split= (or -- more specifically -- a
+=SplitBeside= or a =SplitBelow=) -- but eventually
+there must be some =Editor=.
 
-An editor displays a src_scheme{Document} (which essentially is
-a src_scheme{cons} cell), and -- as its name suggests -- it also
+An editor displays a =Document= (which essentially is
+a =cons= cell), and -- as its name suggests -- it also
 lets the users /edit/ that document.
 
 ** Editing
 
 A document in GRASP is essentially a mutable data structure.
 All editing operations are intermediated by the history subsystem,
-located in the src_scheme{(editor document history-tracking)} module.
+located in the =(editor document history-tracking)= module.
 
 The module serves as a good reference regarding the operations
 that can be performed on the document. You may note, that every
-operation implements the src_scheme{Edit} interface, which consists
-of two operations: src_scheme{apply!}, which applies the operation
-to a document, and src_scheme{inverse}, which returns an operation
+operation implements the =Edit= interface, which consists
+of two operations: =apply!=, which applies the operation
+to a document, and =inverse=, which returns an operation
 such that, when applied after the original operation, would undo
 the effect of that operation.
 
-For every document, a tree of src_scheme{Edit} operations
+For every document, a tree of =Edit= operations
 is gathered during the editing process.
 
 A sample editing session can be inspected in the
-"test-editor-operations.scm" file.
+=test-editor-operations.scm= file.
 
 Some remarks regarding the representation of cursors can be found
-in the src_scheme{(language fundamental)} module.
+in the =(language fundamental)= module.
 
 ** The Painter
 
@@ -217,10 +217,10 @@ I also hope to provide a client for the browser and for iOS at some point.
 Each client implements a fairly thin mapping from its native input
 system to the input system of GRASP, as presented above. It also
 implements a much thicker mapping between the rendering system
-offered by the target, and the interface called src_scheme{Painter}, which
+offered by the target, and the interface called =Painter=, which
 is used by all the visible components in GRASP. The exact definition
-of the src_scheme{Painter} class can be found in the
-src_scheme{(editor interfaces painting)} module. It may seem fairly
+of the =Painter= class can be found in the
+=(editor interfaces painting)= module. It may seem fairly
 whimsical (consisting of around 80 methods at the moment of writing
 this document), but this stems from the fact that it tries to accomodate
 for the differences between rendering to both graphical and textual outputs.
@@ -240,23 +240,23 @@ syntax) aren't yet supported.
 
 ** Fiddling with the code
 
-If you import src_scheme{(utils print)} module from your codem
-you can use the src_scheme{WARN} and src_scheme{DUMP} macros to
+If you import =(utils print)= module from your code,
+you can use the =WARN= and =DUMP= macros to
 poke the system around.
 
-src_scheme{WARN} simply displays values of all of its arguments,
-followed by the new line. src_scheme{DUMP} is similar, but will
+=WARN= simply displays values of all of its arguments,
+followed by the new line. =DUMP= is similar, but will
 display values of provided expresions after displaying the expressions
 themselves.
 
-If you wrap your code inside src_scheme{(safely <my-code>)} form,
+If you wrap your code inside =(safely <my-code>)= form,
 it will print all the unhandled exceptions caused by your code.
 
 It's worth to run the desktop client from the console, to see
 all those messages printed. If you want to debug the terminal client,
-it's best to pass "-p <port-number>" as a command line argument.
+it's best to pass ~-p <port-number>~ as a command line argument.
 This causes the terminal client to start up a socket server where
 all the debug messages go, so that you can run, say,
-"nc localhost <port-number>" to see those messages.
+~nc localhost <port-number>~ to see those messages.
 
 The Android client displays the debug messages to the screen.
