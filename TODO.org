@@ -1,3 +1,60 @@
+* 05.01.2025 (komputer)
+
+No, to dzis bysmy sprobowali zrobic renderowanie
+kolek w kliencie terminalowym.
+
+A moze nawet we wszystkich klientach?
+
+#+BEGIN_SRC
+
+5 szerokosci ~ 3 wysokosci
+
+⣿⣿⣿⣿⣿
+⣿⣿⣿⣿⣿
+⣿⣿⣿⣿⣿
+
+no to niby by bylo fajnie, tyle ze to jeszcze
+bardziej komplikuje rzecz i tak juz skomplikowana,
+bo jezeli idzie o liczbe punktow, to
+
+⣿⣿ ma 8x8
+
+czyli 2 szerokosci ~ 1 wysokosci
+
+#+END_SRC
+
+No dobra, to sie wydaje, ze jedyny problem mamy tak naprawde
+z wymiarami, tzn. dobrze by bylo, zebysmy mieli w painterze
+wartosc "page-width" wyrazona w jednostkach tegoz paintera
+(i dla terminala to ma byc oczywiscie 60, dla klienta 
+desktopowego 400, a dla androidowego?).
+
+No dobra, tylko teraz byloby dobrze jakos zapewnic, zeby
+jakos sensownie odwzorowywac wspolrzedne Canvasa w te nasze
+piksele
+
+(x-x0)^2 + (y-y0)^2 = r^2
+
+y-y0 = +/- sqrt(r^2 - (x-x0)^2)
+y = +/- sqrt(r^2 - (x-x0)^2) + y0
+
+
+* 04.01.2025 (komputer)
+
+No dobra, to teraz chcielibysmy stworzyc takie
+"plotno", na ktorym moglibysmy rysowac zarowno
+w klientach graficznych, jak i tekstowych
+(bazujac na 8pix), czyli zeby miec funkcje
+w rodzaju "draw-circle!"
+
+
+
+* 03.01.2025 (komputer)
+
+Plan bylby taki, zeby stworzyc w GRASPie 
+=PhysicsScene2D=
+
+
 * 22.12.2024 (komputer)
 
 Skoro tak sie tutaj komputeryzujemy, to moze warto by
@@ -545,12 +602,11 @@ W zwiazku z tym nalezaloby:
 
 Chyba jednak =file-system-roots= powinny przynalezec
 do =Keeper='a, bo musza byc widoczne w implementacji
-=======
+
 No dobra, to cos tam juz dziala, ale cos wciaz nie dziala :/
 
 Tzn. jak za pierwszym razem wcisniemy =(ctrl h)=, to jest prawie OK,
 ale za drugim razem to juz nie
->>>>>>> 7692b74 (TODO update)
 
 * 12.12.2024
 
