@@ -664,6 +664,21 @@
     (draw-line-8pix! (* x0 2) (* y0 4)
 		     (* x1 2) (* y1 4)))
 
+  (define (draw-circle! x0::real y0::real r::real color::uint)::void
+    (for x from (ceiling (- x0 r)) to (floor (+ x0 r))
+	 (let* ((p (- x x0))
+		(d (sqrt (- (* r r) (* p p)))))
+	   (8pix-set! x (floor (+ y0 d)))
+	   (8pix-set! x (ceiling (- y0 d))))))
+
+  (define (fill-circle! x0::real y0::real r::real color::uint)::void
+    (for x from (ceiling (- x0 r)) to (floor (+ x0 r))
+	 (let* ((p (- x x0))
+		(d (sqrt (- (* r r) (* p p))))
+		(top (round (+ y0 d)))
+		(bottom (round (- y0 d))))
+	   (for y from bottom to top
+		(8pix-set! x y)))))
   
   (define (draw-quoted-text! s::CharSequence
 			     context::Cursor)

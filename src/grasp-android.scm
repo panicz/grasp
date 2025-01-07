@@ -739,6 +739,19 @@
     (set-color! Color:LTGRAY)
     (paint:setStrokeWidth 1)
     (canvas:drawLine x0 y0 x1 y1 paint))
+
+  (define (draw-circle! x0::real y0::real r::real c::uint)::void
+    ::void
+    (set-color! c)
+    (paint:setStyle Paint:Style:STROKE)
+    (paint:setStrokeWidth 4)
+    (canvas:drawCircle x0 y0 r)
+    (paint:setStyle Paint:Style:FILL))
+
+  (define (fill-circle! x0::real y0::real r::real c::uint)::void
+    ::void
+    (set-color! c)
+    (canvas:drawCircle x0 y0 r))
   
   (define (draw-stroke! x0::real y0::real x1::real y1::real)
     ::void

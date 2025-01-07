@@ -42,6 +42,7 @@
 (import (editor types extensions widgets))
 (import (editor types extensions quotations))
 (import (editor types extensions testing))
+(import (editor types extensions canvas))
 (import (editor input input))
 (import (editor input screen))
 (import (editor input splits))
@@ -452,6 +453,26 @@
     (invoke-special CharPainter (this)
 		    'exit-comment-drawing-mode!))
 
+  (define (draw-circle! x0::real y0::real r::real color-rgb::uint)
+    ::void
+    (let* ((red ::int (byte-ref color-rgb 2))
+	   (green ::int (byte-ref color-rgb 1))
+	   (blue ::int (byte-ref color-rgb 0))
+	   (color ::Color (Color:Indexed:fromRGB red green blue)))
+      (parameterize ((the-text-color color))
+	(invoke-special CharPainter (this)
+			'draw-circle! x0 y0 r color-rgb))))
+
+  (define (fill-circle! x0::real y0::real r::real color-rgb::uint)
+    ::void
+    (let* ((red ::int (byte-ref color-rgb 2))
+	   (green ::int (byte-ref color-rgb 1))
+	   (blue ::int (byte-ref color-rgb 0))
+	   (color ::Color (Color:Indexed:fromRGB red green blue)))
+      (parameterize ((the-text-color color))
+	(invoke-special CharPainter (this)
+			'fill-circle! x0 y0 r color-rgb))))
+  
   (define (draw-point! left::real top::real color-rgb::int)
     ::void
     (let* ((red ::int (byte-ref color-rgb 2))

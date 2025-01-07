@@ -230,7 +230,9 @@ def") ===> [Extent width: 3 height: 2])
   (draw-thin-line! x0::real y0::real x1::real y1::real)
   ::void
 
-
+  (draw-circle! x0::real y0::real r::real c::uint)::void
+  (fill-circle! x0::real y0::real r::real c::uint)::void
+  
   (begin-highlight! type::HighlightType)::void
   (end-highlight! type::HighlightType)::void
   
@@ -431,6 +433,14 @@ def") ===> [Extent width: 3 height: 2])
 
   (define (draw-thin-line! x0::real y0::real
 		      x1::real y1::real)
+    ::void
+    (values))
+
+  (define (draw-circle! x0::real y0::real r::real color::uint)::void
+    ::void
+    (values))
+
+  (define (fill-circle! x0::real y0::real r::real color::uint)::void
     ::void
     (values))
   
@@ -681,8 +691,9 @@ def") ===> [Extent width: 3 height: 2])
     (values))
 
   (define (draw-point! left::real top::real
-		       color-rgba::int)::void
-		       (values))
+		       color-rgba::int)
+    ::void
+    (values))
 
   (define (measure-quoted-text-index-position-into!
 	   target::Position text::CharSequence index::int)

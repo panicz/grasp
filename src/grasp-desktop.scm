@@ -1075,6 +1075,19 @@
 		       (as int (round x1))
 		       (as int (round y1))))
 
+  (define (draw-circle! x0::real y0::real r::real c::uint)::void
+    ::void
+    (graphics:setStroke thick)
+    (set-color! (color c))
+    (let ((2r (+ r r)))
+      (graphics:drawOval (- x0 r) (- y0 r) 2r 2r)))
+
+  (define (fill-circle! x0::real y0::real r::real c::uint)::void
+    ::void
+    (set-color! (color c))
+    (let ((2r (+ r r)))
+      (graphics:fillOval (- x0 r) (- y0 r) 2r 2r)))
+  
   (define (measure-text-index-position-into!
 	   target::Position text::CharSequence index::int
 	   font::Font)
