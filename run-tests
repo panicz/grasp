@@ -1,12 +1,14 @@
 #!/bin/bash
 set -x
 FLAGS="" #"--debug-print-final-expr"
+LIST_START=`awk '/^else # list of test suites:/ { print NR; exit }' < $0`
 if [ "$#" -gt 0 ]; then
     for n in "$@"
     do
-        . <(sed -n $(($n+9))p $0)
+        . <(sed -n $(($n+$LIST_START))p $0)
     done
-else
+# do not touch the line/comment below
+else # list of test suites:
 java -jar libs/kawa.jar $FLAGS -f src/test-parser.scm #1
 java -jar libs/kawa.jar $FLAGS -f src/test-painter.scm #2
 java -jar libs/kawa.jar $FLAGS -f src/test-editor-operations.scm #3

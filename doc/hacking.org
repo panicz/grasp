@@ -60,6 +60,29 @@ outright modify its source code. In some cases this might be legitimate,
 but it's usually better to use one of the extension mechanisms
 provided by GRASP.
 
+*** Entry Points
+
+Since GRASP comes with three clients, it has at least three
+distinct entry points, that can be found in the files
+=src/grasp-desktop.scm=, =src/grasp-terminal.scm= and 
+=src/grasp-android.scm=.
+
+Moreover, the files located directly in the =src/= directory
+whose names have the form =test-*.scm= are low-barrier entry points
+that can be used for testing specific functions, and studying
+GRASP's architecture.
+
+(While some of the tests may have their quirks, they were all
+designed to be readable, and they should give a good overview
+of GRASP's core functions and their interactions.)
+
+The file =run-tests= is a bash script that can be used for running
+the tests. It can optionally take natural numbers (test indices)
+as arguments to select some particular test suites to run.
+
+(If you'd like to create a new test suite, you'll need to add
+an appropriate line to the test runner.)
+
 *** The Configuration File
 
 During the startup, GRASP executes the file =assets/init.scm=.
@@ -93,7 +116,7 @@ built-in types in GRASP, namely:
   of comments in the Scheme programming language.
 
 Another important family of expressions are extensions, which
-are objects that implement the Enchanted interface, as defined
+are objects that implement the =Enchanted= interface, as defined
 in the =(editor types extensions extensions)= module.
 Extensions are meant to be user-definable, but GRASP already
 comes with a bunch of built-in extensions. The simplest ones are
