@@ -1,3 +1,25 @@
+* 07.01.2024
+
+no dobra, to chociaz sprobujmy zrozumiec, skad
+koncepcyjnie sie biora nasze problemy
+
+po pierwsze, jak rysujemy 8-pix, to dostajemy
+(wizualnie) dosc dobra aproksymacje kola;
+prawdopodobnie na nic lepszego w terminalu
+liczyc nie mozemy.
+
+jednak w tym przypadku rozdzielczosc
+rysowania jest w poziomie dwa, a w pionie
+cztery razy wieksza, niz rozdzielczosc
+klikania mysza
+
+dlatego moze bysmy zdefiniowali w painterze
+- =precise-resolution-sideways=
+- =precise-resolution-downward=
+i przemianowali =draw-circle!= oraz =fill-circle!=
+na =precise-draw-circle!= i =precise-fill-circle!=
+i na koniec - =Canvas= na =PreciseCanvas=
+
 * 05.01.2025 (komputer)
 
 No, to dzis bysmy sprobowali zrobic renderowanie
@@ -47,13 +69,41 @@ w klientach graficznych, jak i tekstowych
 (bazujac na 8pix), czyli zeby miec funkcje
 w rodzaju "draw-circle!"
 
+* 04.01.2025 (telefon)
 
+No dobra, to moze zajmijmy sie czyms innym, mianowicie
+jak doprowadzic do sytuacji, w ktorej edytujemy GRASPa
+w GRASPie.
+
+I chyba najprosciej byloby zaczac od sytuacji, w ktorej
+edytujemy GRASP w shared storage
 
 * 03.01.2025 (komputer)
 
 Plan bylby taki, zeby stworzyc w GRASPie 
 =PhysicsScene2D=
 
+* 03.01.2025 (telefon)
+
+Mozemy sprobowac sobie przemyslec narracje do ksiazki
+(bo ze do naprawy mamy gest ewaluacji na Androidzie,
+to wiadomo)
+
+No to tak: chcielibysmy opowiedziec o cechach, jakie
+powinien miec idealny jezyk programowania.
+
+* 01.01.2025
+
+no to pomalu wracamy chyba na normalne tory.
+sprobujmy moze najpierw naprawic gest ewaluacji
+na edytorze androidowym.
+
+warto by tez bylo dopracowac przegladarke pliku
+na desktopie, bo te "rooty" cos nie dzialaja
+na windowsie chyba
+
+i ogolnie z tym klientem windowsowym jest chyba
+problem z przerysowywaniem
 
 * 22.12.2024 (komputer)
 
