@@ -41,8 +41,7 @@
 (import (editor types extensions extensions))
 (import (editor types extensions widgets))
 (import (editor types extensions quotations))
-(import (editor types extensions testing))
-(import (editor types extensions canvas))
+
 (import (editor input input))
 (import (editor input screen))
 (import (editor input splits))
@@ -52,6 +51,7 @@
 (import (editor input touch-event-processor))
 (import (editor types extensions visual-stepper))
 (import (editor types extensions testing))
+(import (editor types extensions canvas))
 (import (editor input transforms))
 (import (editor input gestures))
 
@@ -86,7 +86,8 @@
      (define-early-constant name
        (let* ((state initial-value)
 	      (getter (lambda () state)))
-	 (set! (setter getter) (lambda (value) (set! state value)))
+	 (set! (setter getter) (lambda (value)
+				 (set! state value)))
 	 getter)))
     ))
 

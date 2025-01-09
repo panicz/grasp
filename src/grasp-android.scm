@@ -44,11 +44,11 @@
 (import (editor types extensions widgets))
 (import (editor types extensions visual-stepper))
 (import (editor types extensions testing))
+(import (editor types extensions canvas))
 
 (import (editor types texts))
 (import (editor input evaluation))
 (import (editor input gestures))
-
 
 (define-alias BlockingQueue java.util.concurrent.BlockingQueue)
 (define-alias ArrayBlockingQueue
@@ -745,13 +745,13 @@
     (set-color! c)
     (paint:setStyle Paint:Style:STROKE)
     (paint:setStrokeWidth 4)
-    (canvas:drawCircle x0 y0 r)
+    (canvas:drawCircle x0 y0 r paint)
     (paint:setStyle Paint:Style:FILL))
 
   (define (fill-circle! x0::real y0::real r::real c::uint)::void
     ::void
     (set-color! c)
-    (canvas:drawCircle x0 y0 r))
+    (canvas:drawCircle x0 y0 r paint))
   
   (define (draw-stroke! x0::real y0::real x1::real y1::real)
     ::void
@@ -1922,7 +1922,7 @@
 	    android.content.Context
 	    (this) 'getExternalFilesDir
 	    #!null))
-	  "[External Storage]"))
+	  "[Private/External]"))
     
     (safely (initialize-keymap))
     (set! (the-keeper) (this))

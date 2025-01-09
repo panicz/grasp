@@ -44,6 +44,8 @@
 (import (editor input touch-event-processor))
 (import (editor types extensions visual-stepper))
 (import (editor types extensions testing))
+(import (editor types extensions canvas))
+
 (import (editor input gestures))
 (import (editor awt-clipboard))
 

@@ -8,10 +8,18 @@
 (import (language for))
 (import (utils functions))
 (import (language fundamental))
+
 (import (editor interfaces painting))
 (import (editor types primitive))
 (import (editor interfaces elements))
+(import (editor types texts))
+(import (editor types spaces))
+(import (editor document cursor))
+(import (editor input transforms))
+(import (editor input screen))
+
 (import (editor types extensions extensions))
+(import (utils print))
 
 (define-type (Circle radius: real color: uint)
   extending Position
@@ -20,7 +28,7 @@
   ((render!)
    (painter:fill-circle! left top radius color)))
 
-(define-type (Canvas size: Extent content: (list-of Renderable))
+(define-type (PreciseCanvas size: Extent content: (list-of Renderable))
   extending Magic with
   ((draw! context ::Cursor) ::void  
    (for item::Renderable in content
@@ -29,11 +37,11 @@
   ((extent)::Extent size)
   )
 
-(set! (extension 'Canvas)
+(set! (extension 'PreciseCanvas)
       (object (Extension)
-	((enchant source::cons)::Enchanted
+	((enchant source ::cons)::Enchanted
 	 (try-catch
-	  (or (as Canvas (eval source)) #!null)
+	  (or (as PreciseCanvas (eval source)) #!null)
 	  (ex java.lang.Throwable
 	      (WARN "Unable to create Movement from "source": "
 		    (java.lang.String:valueOf ex))
