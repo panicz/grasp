@@ -929,11 +929,16 @@
 	   (lambda ()
 	     (let ((position ::Position (screen-position
 					 (this)))
+		   (doc ::Extent (extent+ document))
+		   (margin (- (painter:space-width)))
 		   (extent ::Extent (screen-extent (this))))
 	       (set! position:left (the-pane-left))
 	       (set! position:top (the-pane-top))
 	       (set! extent:width (the-pane-width))
-	       (set! extent:height (the-pane-height)))
+	       (set! extent:height (the-pane-height))
+	       (with-translation (margin margin)
+		 (painter:fill-background! doc:width
+					   doc:height)))
 	     (document:draw! '())
 	     (for action::procedure in post-draw-actions
 	       (action))

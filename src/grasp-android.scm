@@ -837,7 +837,7 @@
     (is current-comment-level > 0))
 
   (define (clear!)::void
-    (canvas:drawRGB 255 255 255))
+    (canvas:drawRGB 127 127 127))
 
   (define (request-redraw!)::void
     (invalidate))
@@ -879,7 +879,8 @@
 
   (define (fill-background! width::real height::real)::void
     (set-color! #xffffffff)
-    (canvas:drawRect 0 0 (as int width) (as int height) paint))
+    (canvas:drawRect 0 0 (as int width) (as int height)
+		     paint))
   
   (define (draw-popup! width::real height::real)::void
     (paint:setColor (- text-color

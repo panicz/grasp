@@ -1496,6 +1496,9 @@ by the AWT framework."))
     (set! painter (this))
     ;; cf. https://docs.oracle.com/javase/tutorial/2d/advanced/quality.html
     (graphics:setRenderingHints rendering-hints)
+    (set-color! (color #x7f7f7f))
+    (graphics:fillRect 0 0 (invoke (this) 'getWidth)
+		       (invoke (this) 'getHeight))
     (screen:render!))
 
   (define pointer ::TouchEventProcessor
