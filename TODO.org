@@ -1,4 +1,83 @@
-* 07.01.2024
+* 09.01.2025
+
+No i dobra, i co teraz chcemy robic?
+
+Mamy kilka mozliwosci:
+- z jednej strony skupic sie na ksiazce
+- z drugiej, pracowac nad widgetem do ksiazki
+  (tym z kulkami)
+- z trzeciej to mozemy wrocic do tego naszego calego
+  "usability"
+
+Wczoraj udalo sie wymyslic "owoc nisko wiszacy"
+dla zmian w edytorze, czyli:
+- czyscic ekran na szaro
+- przed wyrysowaniem wszystkiego wyrenderowac
+  "bialy" prostokat w rozmiarze dokumentu
+- i jeszcze ewentualnie zrobic tak, zeby jakosc
+  wyswietlania zalezala od zooma
+
+(a na wyzszym poziomie, warto by bylo podzielic
+sobie dni na takie, w ktore pracujemy nad widgetem,
+takie, w ktore pracujemy nad ksiazka, i takie,
+w ktore dopracowujemy edytor, zeby poruszac sie
+rownolegle na wszystkich frontach)
+
+No to w androidzie mamy to mniej wiecej zrobione;
+teraz pozostaje nam przeniesc to na desktop, bo
+w terminalu chyba tego nie chcemy?
+
+Ok, na desktopie tez jest.
+
+No to teraz co dalej?
+
+Do wyboru mamy:
+- dalsze prace nad zapisywaniem i przywracaniem
+  workspace'u
+- prace nad wyszukiwaniem
+- prace nad widgetem z kulkami
+- prace nad ksiazka
+- prace nad systemem dla ksiazki
+
+Wydaje sie, ze z perspektywy "uruchomienia
+sprzedazy" nieodzowne elementy to z jednej strony
+system do wyswietlania ksiazek, a z drugiej
+sama ksiazka.
+
+Nalezaloby przeyslec, w jaki sposob w ogole
+chcielibysmy te ksiazke reprezentowac, i w jaki
+sposob chcemy ja wysiwetlac, oraz jakie
+funkcje chcielibysmy udostepnac czytelnikowi
+(zakladki, wyszukiwanie, transkluzja?, skakanie
+po linkach, komentarze)
+
+No to nasze zalozenie jest z grubsza takie, zeby
+przegladarka ksiazki byla widgetem.
+
+Chyba ze chcemy po prostu czytac ksiazke jako dokument
+w GRASPie. Wtedy trzeba by bylo jakos poprawic te czcionki
+od komentarzy, i samo wyswietlanie komentarzy jakos
+rozbudowac o te wszystkie markdowny itp.,
+i cos wykombinowac z dzieleniem dokumentu na sekcje,
+ewentualnie strony.
+
+Ale zanim nawet sie nam uda osiagnac takie bardziej
+wypolerowane doswiadczenie, chcielibysmy ogarnac
+jakiekolwiek doswiadczenie.
+
+I moze ten system modulow okazalby sie pomocny do
+nawigowania.
+
+Czyli moze na razie przyjmijmy taki plan dzialania, ze:
+- piszemy ksiazke
+- pracujemy bad uzytecznoscia GRASPa (w tym a*
+  i widok modulow)
+- robimy widgety do ksiazki
+
+I dopiero jak juz bedziemy mieli duzo ksiazki, to
+zaczniemy czytnik i ogolnie sie martwic
+
+* 07.01.2025
 
 no dobra, to chociaz sprobujmy zrozumiec, skad
 koncepcyjnie sie biora nasze problemy
