@@ -1,3 +1,10 @@
+* 10.01.2025
+
+To co? Suwaki bysmy zrobili?
+
+No, ale najpierw by pewnie trzeba bylo zrefaktoryzowac
+sposob uzywania overlaya.
+
 * 09.01.2025
 
 No i dobra, i co teraz chcemy robic?
