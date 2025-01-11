@@ -79,7 +79,8 @@
       (isnt removed null?)))
   
   (define (clear!)::void
-    (layers:clear))
+    (remove-if! (lambda (layer::Layer)
+		  (not (layer:permanent?)))))
 
   (define (tap! finger::byte #;at x::real y::real)::boolean
     (any (lambda (layer::Layer)

@@ -64,6 +64,8 @@
   implementing Layer
   with
 
+  ((permanent?)::boolean #f)
+  
   ((close!)::void
    (values))
   

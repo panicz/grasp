@@ -445,12 +445,15 @@ operate on cursors.
 
 (define-interface Layer (Indexable Pane)
   (close!)::void
+  (permanent?)::boolean
   )
 
 (define-object (DeadLayer)::Layer
   (define (render!)::void
     #!abstract)
 
+  (define (permanent?)::boolean #f)
+  
   (define (close!)::void
     (values))
   (IgnoreInput))
@@ -458,6 +461,10 @@ operate on cursors.
 (define-object (DelegatingLayer target::Layer)::Layer
   (define (close!)::void
     (target:close!))
+
+  (define (permanent?)::boolean
+    (target:permanent?))
+  
   (define (tap! finger::byte #;at x::real y::real)::boolean
     (target:tap! finger x y))
   (define (press! finger::byte #;at x::real y::real)::boolean
