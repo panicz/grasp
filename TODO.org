@@ -1,3 +1,21 @@
+* 11.01.2025
+
+No i jaki teraz jest dalszy plan?
+
+Jeden pomysl to jakos zintegrowac API do refkeksji
+(zeby $lookup$ dzialal normalnie na androidzie)
+
+#+BEGIN_SRC scheme
+
+  (define-syntax-rule ($lookup$ object name)
+    (if (is name in (properties object))
+	(slot-ref object name)
+	(lambda args
+	  (apply invoke object name args))))
+
+#+END_SRC
+
+
 * 10.01.2025
 
 To co? Suwaki bysmy zrobili?
