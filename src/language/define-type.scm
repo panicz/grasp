@@ -18,6 +18,20 @@
     ((_ input-types to: output-type + ...)
      procedure)))
 
+(define-syntax chain
+  (syntax-rules (quote unquote _)
+    ((chain _ . rest)
+     (lambda (x)
+       (chain x . rest)))
+    ((chain object)
+     object)
+    ((chain object 'method . rest)
+     (chain (invoke object 'method) . rest))
+    ((chain object ('method . args) . rest)
+     (chain (invoke object 'method . args) . rest))
+    ((chain object ,function . rest)
+     (chain (function object) . rest))))
+
 (define-syntax-rule (list-of type)
   list)
 
