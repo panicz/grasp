@@ -1127,7 +1127,6 @@
     (with-editor-context
      (and-let* ((x y (transform:outside-in xe ye))
 		(path (cursor-under x y))
-		((truly (DUMP path)))
 		(`(,tip . ,subpath) path)
 		(parent ::Element (cursor-ref document subpath))
 		(target ::Element (parent:part-at tip)))
@@ -1158,10 +1157,18 @@
 					   document)))
 			    (target:set-left!
 			     (painter:space-width))
-			    (target:set-top! 0.0)
 			    (target:set-scale!
 			     (/ (screen:width)
 				document:width))
+			    (cond
+			     ((is (* (target:get-scale)
+				     (target:get-top))
+				  < (- (screen:height)
+				       document:height))
+			      (target:set-top! (- (screen:height)
+						  document:height)))
+			     ((is (target:get-top) > 0)
+			      (target:set-top! 0.0)))
 			    target)
 		      duration/ms: 500))))
        #t)))
