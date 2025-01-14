@@ -49,6 +49,8 @@
 (import (editor input gestures))
 (import (editor awt-clipboard))
 
+(import (utils reflection))
+
 (define-alias Font java.awt.Font)
 (define-alias FontMetrics java.awt.FontMetrics)
 ;;(define-alias File java.io.File)

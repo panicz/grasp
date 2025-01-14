@@ -12,26 +12,20 @@
 
 (import (utils functions))
 
-(define (direct-methods object)::list
-  (let* ((class ::java.lang.Class (object:getClass))
-	 (methods (class:getMethods)))
-    (map (lambda (method::java.lang.reflect.Method)
-	   `((,(string->symbol (method:getName))
-	      . ,(map (lambda (param::java.lang.Class)
-			(string->symbol
-			 (param:getName)))
-		      (method:getParameterTypes)))
-	     ::,(let ((return (method:getReturnType)))
-		  (string->symbol
-		   (return:getName)))))
-	 methods)))
+(define (direct-methods object)
+  (map (lambda (method)
+	 (list
+	  (cons
+	   (string->symbol (method:getName))
+	   (map (chain _ 'getName ,string->symbol)
+		(method:getParameterTypes)))
+	  ':: (chain method 'getReturnType 'getName ,string->symbol)))
+       (chain object 'getClass 'getDeclaredMethods)))
 
-(define (direct-fields object)::list
-  (let* ((class ::java.lang.Class (object:getClass))
-	 (fields (class:getDeclaredFields)))
-    (map (lambda (field::java.lang.reflect.Field)
-	   (let ((type (field:getType)))
-	     `(,(string->symbol (field:getName))
-	       ::,(string->symbol (field:getName))
-	       ,(field:get object))))
-	 fields)))
+(define (direct-fields object)
+  (map (lambda (field)
+	 (list
+	  (string->symbol (field:getName))
+	  ':: (string->symbol (chain field 'getType 'getName))
+	  (field:get object)))
+       (chain object 'getClass 'getDeclaredFields)))

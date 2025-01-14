@@ -124,6 +124,12 @@ i przemianowali =draw-circle!= oraz =fill-circle!=
 na =precise-draw-circle!= i =precise-fill-circle!=
 i na koniec - =Canvas= na =PreciseCanvas=
 
+* 06.01.2025 (komputer)
+
+To plan bylby z grubsza taki, zeby dodac do paintera
+(page-width). Chociaz moze wystarczy przemnozyc
+(space-width) przez 60?
+
 * 05.01.2025 (komputer)
 
 No, to dzis bysmy sprobowali zrobic renderowanie

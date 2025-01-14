@@ -40,12 +40,16 @@
 (import (editor input evaluation))
 (import (editor types extensions visual-stepper))
 (import (editor types extensions testing))
+(import (editor types extensions canvas))
+
 (import (editor document history-tracking))
 (import (editor types spaces))
 (import (editor document copy-paste))
 (import (editor types extensions combinators))
 
-(import (extra tile-board))
+(import (utils reflection))
+
+;;(import (extra tile-board))
 
 (define-syntax $lookup$
   (syntax-rules ()

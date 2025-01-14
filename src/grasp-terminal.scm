@@ -54,6 +54,7 @@
 (import (editor types extensions canvas))
 (import (editor input transforms))
 (import (editor input gestures))
+(import (utils reflection))
 
 (import (editor awt-clipboard))
 

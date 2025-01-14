@@ -49,6 +49,7 @@
 (import (editor types texts))
 (import (editor input evaluation))
 (import (editor input gestures))
+(import (utils reflection))
 
 (define-alias BlockingQueue java.util.concurrent.BlockingQueue)
 (define-alias ArrayBlockingQueue
