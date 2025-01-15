@@ -29,3 +29,17 @@
 	  ':: (string->symbol (chain field 'getType 'getName))
 	  (field:get object)))
        (chain object 'getClass 'getDeclaredFields)))
+
+(define (field-of? name::symbol object)
+  ::boolean
+  (let ((name (symbol->string name)))
+    (any (is (_:getName) string=? name)
+	 (chain object 'getClass 'getFields))))
+
+(define (defined? s)::boolean
+  (try-catch
+   (begin
+     (eval s)
+     #t)
+   (ex java.lang.Throwable
+       #f)))

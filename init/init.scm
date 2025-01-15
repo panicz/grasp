@@ -52,10 +52,18 @@
 ;;(import (extra tile-board))
 
 (define-syntax $lookup$
-  (syntax-rules ()
-    (($lookup$ object method)
-     (lambda args
-       (apply invoke object method args)))))
+  (lambda (stx)
+    (syntax-case stx ()
+      (($lookup$ object name)
+       (let ((target (syntax->datum #'object))
+	     (field (syntax->datum #'name)))
+	 (and (defined? target)
+	      (is (eval field) field-of?
+		  (eval target))))
+       #'(slot-ref object name))
+      (($lookup$ object name)
+       #'(lambda args
+	   (apply invoke object name args))))))
 
 (set-key! 'left (lambda ()
 		  (move-cursor-left!)
