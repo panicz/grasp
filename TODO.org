@@ -1,3 +1,116 @@
+* 14.01.2025
+
+no dobra, to moze bysmy sprobowali sie zajac
+poprawka w refleksji?
+
+czyli by to wygladalo jakos tak
+
+#+BEGIN_SRC scheme
+
+  (define-syntax $lookup$
+    (syntax-rules ()
+      (($lookup$ object name)
+       (if (is name field-of? object)
+	   (slot-ref object name)
+	   (lambda args
+	     (apply invoke object method args))))))
+
+  (define (field-of? name::symbol object)
+    ::boolean
+    (try-catch 
+     (let ((field (chain object
+			 'getClass ('getField
+				    (symbol->string name)))))
+       (isnt field eq? null))
+     (ex java.lang.Throwable #f)))
+
+#+END_SRC
+
+
+Super. Cos tam nam nawet dziala. Ale co chcemy robic
+dalej?
+
+No ogolnie fajnie by bylo, gdyby te kulki sie zderzaly,
+i gdyby wokol canvasu byla jakas obwodka, i gdyby
+zderzanie kulek bylo zgodne z akcelerometrem.
+
+No, ale do tego potrzebna jest rewizja systemu
+animacji
+
+* 13.01.2025
+
+No to wczoraj cos tam probowalismy zrobic zeby miec
+refleksje, ale nasz modul nie dziala z jakichs
+niezrozumialych powodow.
+
+(Warto moze dodac, ze refleksja nie jest tutaj jakos
+super-wazna)
+
+Natomiast super-wazne jest to, co zrobimy. Ale zacznijmy
+dzisiaj moze od czegos prostego i lekkiego, czyli od tego,
+zeby podwojne klikniecie nie powoodowalo zerowania
+pionowej skladowej transformacji.
+
+No dobra, to mamy. Jednak znow powraca pytanie co robimy:
+- suwak?
+- widget z kulkami?
+- poprawke w kilkaniu na pustych dokumentach?
+- poprawke przy sledzeniu kursora?
+
+A na co mamy ochote?
+
+w sumie to na ten rok najwazniejsze tematy to:
+- wydanie do f-droid
+- ksiazka
+- eksplorator modulow
+- algorytm a* i rozne zabawy ze stepperem
+
+No i pieknie. I co teraz?
+
+Moze te kulki?
+
+Czy refleksja?
+
+No bo jezeli idzie o refleksje, to fajnie by bylo
+zrobic taki "wrapper":
+
+#+BEGIN_SRC scheme
+  (define-object (ObjectWrapper object ::java.lang.Object)::Enchanted
+
+    (define (draw! context::Cursor)::void
+      ...)
+
+    (define (extent)::Extent
+      ...)
+
+    (Magic))
+#+END_SRC
+
+Ech. Meh.
+
+Moze raczej cos w stylu
+
+#+BEGIN_SRC scheme
+  (define (ObjectWrapper object::java.lang.Object)
+    ::Enchanted
+    (let* ((class (object:getClass)))
+      (bordered
+       (below
+	(bordered
+	 (Capiton (class:getName))
+	 (GridColumns
+	  (map (lambda (field::java.lang.reflect.Field)
+		 `(,(field:getName) ...))
+	       (fields class))))
+	(ColumnGrid
+	 (map (lambda (method::java.lang.reflect.Method)
+		...)
+	      ...))
+
+#+END_SRC
+
+
+
 * 11.01.2025
 
 No i jaki teraz jest dalszy plan?
@@ -8,13 +121,12 @@ Jeden pomysl to jakos zintegrowac API do refkeksji
 #+BEGIN_SRC scheme
 
   (define-syntax-rule ($lookup$ object name)
-    (if (is name in (properties object))
+    (if (is name in (property-names object))
 	(slot-ref object name)
 	(lambda args
 	  (apply invoke object name args))))
 
 #+END_SRC
-
 
 * 10.01.2025
 
