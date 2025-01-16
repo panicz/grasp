@@ -62,8 +62,10 @@
 		  (eval target))))
        #'(slot-ref object name))
       (($lookup$ object name)
-       #'(lambda args
-	   (apply invoke object name args))))))
+       #'(if (is name field-of? object)
+	     (slot-ref object name)
+	     (lambda args
+	       (apply invoke object name args)))))))
 
 (set-key! 'left (lambda ()
 		  (move-cursor-left!)
@@ -103,52 +105,38 @@
 
 (set-key! 'page-down
 	  (lambda ()
-	    (let* ((pivot ::Position (last-known-pointer-position 0))
-		   (left ::real (slot-ref pivot 'left))
-		   (top ::real (slot-ref pivot 'top)))
-	      (screen:scroll-down! left top))))
+	    (let ((pivot ::Position (last-known-pointer-position 0)))
+	      (screen:scroll-down! pivot:left pivot:top))))
 
 (set-key! '(ctrl page-up)
 	  (lambda ()
-	    (let* ((pivot ::Position (last-known-pointer-position 0))
-		   (left ::real (slot-ref pivot 'left))
-		   (top ::real (slot-ref pivot 'top)))
-	      (screen:zoom-in! left top))))
+	    (let ((pivot ::Position (last-known-pointer-position 0)))
+	      (screen:zoom-in! pivot:left pivot:top))))
 
 (set-key! '(ctrl page-down)
 	  (lambda ()
-	    (let* ((pivot ::Position (last-known-pointer-position 0))
-		   (left ::real (slot-ref pivot 'left))
-		   (top ::real (slot-ref pivot 'top)))
-	    (screen:zoom-out! left top))))
+	    (let ((pivot ::Position (last-known-pointer-position 0)))
+	    (screen:zoom-out! pivot:left pivot:top))))
 
 (set-key! '(shift page-up)
 	  (lambda ()
-	    (let* ((pivot ::Position (last-known-pointer-position 0))
-		   (left ::real (slot-ref pivot 'left))
-		   (top ::real (slot-ref pivot 'top)))
-	      (screen:scroll-left! left top))))
+	    (let ((pivot ::Position (last-known-pointer-position 0)))
+	      (screen:scroll-left! pivot:left pivot:top))))
 
 (set-key! '(shift page-down)
 	  (lambda ()
-	    (let* ((pivot ::Position (last-known-pointer-position 0))
-		   (left ::real (slot-ref pivot 'left))
-		   (top ::real (slot-ref pivot 'top)))
-	      (screen:scroll-right! left top))))
+	    (let ((pivot ::Position (last-known-pointer-position 0)))
+	      (screen:scroll-right! pivot:left pivot:top))))
 
 (set-key! '(alt page-up)
 	  (lambda ()
-	    (let* ((pivot ::Position (last-known-pointer-position 0))
-		   (left ::real (slot-ref pivot 'left))
-		   (top ::real (slot-ref pivot 'top)))
-	      (screen:rotate-left! left top))))
+	    (let ((pivot ::Position (last-known-pointer-position 0)))
+	      (screen:rotate-left! pivot:left pivot:top))))
 
 (set-key! '(alt page-down)
 	  (lambda ()
-	      (let* ((pivot ::Position (last-known-pointer-position 0))
-		     (left ::real (slot-ref pivot 'left))
-		     (top ::real (slot-ref pivot 'top)))
-		(screen:rotate-right! left top))))
+	    (let ((pivot ::Position (last-known-pointer-position 0)))
+	      (screen:rotate-right! pivot:left pivot:top))))
 
 (set-key! '(ctrl e) evaluate-expression!)
 
@@ -186,18 +174,15 @@
 		      ", expression: "(cursor-ref))))
 
 (set-key! 'F2 (lambda ()
-		(DUMP (slot-ref screen 'top))))
+		(DUMP screen:top)))
 
-(invoke
- the-recognizers 'add
+(the-recognizers:add
  split-pane-by-horizontal-line)
 
-(invoke
- the-recognizers 'add
+(the-recognizers:add
  split-pane-by-vertical-line)
 
-(invoke
- the-recognizers 'add
+(the-recognizers:add
  evaluate-expression-by-wedge)
 
 (before-possible-exit
@@ -205,8 +190,7 @@
    (display "exitting?\n")
    (flush-output-port)))
 
-(invoke screen
- 'after-tap
+(screen:after-tap
  (lambda _
    (show-keyboard!)))
 
