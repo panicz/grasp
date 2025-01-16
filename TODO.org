@@ -1,3 +1,143 @@
+* 15.01.2025
+
+Rewizja systemu amimacji
+========================
+
+W module =(editor interfaces painting)=, w interfejsie
+=Painter=, jest sobie taka oto metoda:
+
+=(play! animation::Animation)::void=
+
+gdzie interfejs =Animation= jest zdefiniowany tak:
+
+#+BEGIN_SRC scheme
+
+(define-interface Animation ()
+  ;; if this method returns #f, it means
+  ;; that the animation has ended and can be
+  ;; discarded by the animation system
+  (advance! timestep/ms::int)::boolean)
+  
+#+END_SRC
+
+Natomiast poszczegolne klienty implementuja sobie ten interfejs
+roznorako, np. desktop robi tak:
+
+#+BEGIN_SRC scheme
+
+  (define pending-animations
+    ::java.util.Collection
+    (java.util.concurrent.ConcurrentLinkedQueue))
+
+  (define last-animation-event-time-ms ::long 0)
+  
+  (define (actionPerformed event::java.awt.event.ActionEvent)::void
+    (unless (pending-animations:isEmpty)
+      (let* ((now ::long (current-time-ms))
+	     (delta ::long (- now last-animation-event-time-ms)))
+	(for animation::Animation in pending-animations
+	  (unless (animation:advance! delta)
+	    (pending-animations:remove animation)))
+	(set! last-animation-event-time-ms now)
+	(repaint)
+	(when (pending-animations:isEmpty)
+	  (animator:stop)))))
+  
+  (define animator ::javax.swing.Timer
+    (let ((timer ::javax.swing.Timer
+		 (javax.swing.Timer 40 (this))))
+      (timer:stop)
+      (timer:setRepeats #t)
+      timer))
+
+  (define (play! animation::Animation)::void
+    (unless (any (is _ eq? animation) pending-animations)
+      (let ((was-empty? ::boolean (pending-animations:isEmpty)))
+	(pending-animations:add animation)
+	(when was-empty?
+	  (set! last-animation-event-time-ms (current-time-ms))
+	  (animator:start)))))
+
+#+END_SRC
+
+Terminal tak:
+
+#+BEGIN_SRC scheme
+
+  (define pending-animations
+    ::java.util.Collection
+    (java.util.concurrent.ConcurrentLinkedQueue))
+
+  (define-object (Pending animation::Animation)
+    (define then ::long (current-time-ms))
+
+    (define (apply0)
+      (let* ((now ::long (current-time-ms))
+	     (delta/ms ::long (- now then)))
+	(unless (animation:advance! delta/ms)
+	  (pending-animations:remove (this)))
+	(set! then now)))
+
+    (gnu.mapping.Procedure0))
+
+  (define (play! animation::Animation)::void
+    (unless (any (lambda (pending::Pending)
+		   (eq? pending:animation animation))
+		 pending-animations)
+      (pending-animations:add (Pending animation))))
+
+  (define thread-pool ::Scheduler (ThreadPool 1))
+
+  (define animating ::ScheduledTask #!null)
+
+  (define (start-animating!)::void
+    (set! animating
+      (thread-pool:scheduleAtFixedRate
+       (lambda ()
+	 (for playing in pending-animations
+	   (queue:put playing)))
+       40 40 TimeUnit:MILLISECONDS)))
+
+#+END_SRC
+
+gdzie =queue= to kolejka, na ktora przychodza wszystkie zdarzenia,
+zas watek edycji pobiera te zdarzenia, i w przypadku obiektow
+=Pending= (oraz innych procedur) po prostu je "wykonuje".
+
+Z kolei na Androidzie jest jeszcze inaczej:
+
+#+BEGIN_SRC scheme
+
+  (define pending-animations
+    ::java.util.Collection
+    (java.util.concurrent.ConcurrentLinkedQueue))
+
+  (define last-animation-event-time-ms ::long 0)
+
+  (define (animate!)::void 
+    (unless (pending-animations:isEmpty)
+      (let* ((now ::long (current-time-ms))
+	     (delta-ms ::long (- now
+				 last-animation-event-time-ms)))
+	(for animation::Animation in pending-animations
+	  (unless (animation:advance! delta-ms)
+	    (pending-animations:remove animation)))
+	(set! last-animation-event-time-ms now)
+	(invalidate)
+	(unless (pending-animations:isEmpty)
+	  (sync:postDelayed (lambda () (animate!)) 40)))))
+
+  (define (play! animation::Animation)::void
+    (unless (any (is _ eq? animation) pending-animations)
+      (let ((was-empty? ::boolean (pending-animations:isEmpty)))
+	(pending-animations:add animation)
+	(when was-empty?
+	  (set! last-animation-event-time-ms (current-time-ms))
+	  (sync:postDelayed (lambda () (animate!)) 40)))))
+
+#+END_SRC
+
+
 * 14.01.2025
 
 no dobra, to moze bysmy sprobowali sie zajac
