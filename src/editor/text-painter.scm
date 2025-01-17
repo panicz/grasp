@@ -22,7 +22,11 @@
 
 (define-object (CharPainter)::Painter
 
+  (define (playing? animation::Animation)::boolean #!abstract)
+  
   (define (play! animation::Animation)::void #!abstract)
+
+  (define (stop-playing! animation::Animation)::void #!abstract)
 
   (define (with-intensity i::float action::(maps () to: void))::void
     #!abstract)
@@ -1137,10 +1141,14 @@
           (data (+ (* width y) x))
           #\space)))
 
+  (define (playing? animation::Animation)::boolean #f)
+  
   (define (play! animation::Animation)::void
     (let loop ()
       (unless (animation:advance! 40)
 	(loop))))
+
+  (define (stop-playing! animation::Animation)::void (values))
 
   (define (with-intensity i::float action::(maps () to: void))::void
     (action))

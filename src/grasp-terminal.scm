@@ -488,6 +488,16 @@
 		     (the-background-color color))
 	(put! #\⦿ top left))))
 
+  (define (playing? animation::Animation)::boolean
+    (any (lambda (pending::Pending)
+		   (eq? pending:animation animation))
+		 pending-animations))
+
+  (define (stop-playing! animation::Animation)::void
+    (for pending in pending-animations
+      (when (eq? pending:animation animation)
+	(pending-animations:remove pending))))
+  
   (define (play! animation::Animation)::void
     (unless (any (lambda (pending::Pending)
 		   (eq? pending:animation animation))

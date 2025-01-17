@@ -133,6 +133,9 @@ def") ===> [Extent width: 3 height: 2])
   (vertical-split-width)::real
   
   (play! animation::Animation)::void
+  (playing? animation::Animation)::boolean
+  (stop-playing! animation::Animation)::void
+  
   (with-intensity i::float action::(maps () to: void))::void
   (with-stretch horizontal::float vertical::float
 		action::(maps () to: void))
@@ -357,6 +360,10 @@ def") ===> [Extent width: 3 height: 2])
 
 (define-object (NullPainter)::Painter
   (define (play! animation::Animation)::void (values))
+
+  (define (playing? animation::Animation)::boolean #f)
+
+  (define (stop-playing! animation::Animation)::void (values))
   
   (define (space-width)::real 1)
 

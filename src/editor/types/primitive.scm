@@ -52,6 +52,23 @@
 ;; But if we're not (evaluating?), then we can
 ;; see (and operate on) Shadowed elements  themselves.
 
+
+(define-constant previously-visible-animations::set
+  (set))
+
+(define-constant currently-visible-animations::set
+  (set))
+
+(define (handle-animations-post-render!)::void
+  (for animation in previously-visible-animations
+    (unless (currently-visible-animations:contains animation)
+      (painter:stop-playing! animation)
+      (previously-visible-animations:remove animation)))
+  (for animation in currently-visible-animations
+    (unless (painter:playing? animation)
+      (painter:play! animation))
+    (previously-visible-animations:add animation)))
+  
 (define-enum CellAccessMode (Editing Evaluating))
 
 (define-parameter (cell-access-mode) ::CellAccessMode
@@ -647,7 +664,10 @@
 		  (when (is document-top > (view-edge-bottom))
 		    (after-end-line traversal)
 		    (end-drawing))
-		  (skip-element))))
+		  (skip-element))
+
+		(when (is item Animation?)
+		  (currently-visible-animations:add item))))
 	    
 	    (let ((context (recons traversal:index
 				   context)))

@@ -35,6 +35,9 @@
 (define-syntax-rule (list-of type)
   list)
 
+(define-syntax-rule (set-of type)
+  ($bracket-apply$ java.util.Set type))
+
 (define-syntax-rule (vector-of type)
   vector)
 

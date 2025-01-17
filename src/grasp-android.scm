@@ -1666,6 +1666,12 @@
 	(invalidate)
 	(unless (pending-animations:isEmpty)
 	  (sync:postDelayed (lambda () (animate!)) 40)))))
+
+  (define (playing? animation::Animation)::boolean
+    (any (is _ eq? animation) pending-animations))
+
+  (define (stop-playing! animation::Animation)::void
+    (pending-animations:remove animation))
   
   (define (play! animation::Animation)::void
     (unless (any (is _ eq? animation) pending-animations)

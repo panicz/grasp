@@ -1593,6 +1593,12 @@ by the AWT framework."))
       (timer:stop)
       (timer:setRepeats #t)
       timer))
+
+  (define (stop-playing! animation::Animation)::void
+    (pending-animations:remove animation))
+
+  (define (playing? animation::Animation)::boolean
+    (any (is _ eq? animation) pending-animations))
   
   (define (play! animation::Animation)::void
     (unless (any (is _ eq? animation) pending-animations)

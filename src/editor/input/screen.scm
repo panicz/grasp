@@ -235,10 +235,12 @@
 
   (define (render!)::void
     (reset! extent-cached?)
+    (currently-visible-animations:clear)
     (parameterize ((the-pane-width size:width)
 		   (the-pane-height size:height))
       (top:render!)
-      (overlay:render!)))
+      (overlay:render!))
+    (handle-animations-post-render!))
 
   (define after-tap-hooks ::(list-of (maps (byte real real) to: void))
     '())
