@@ -1,4 +1,22 @@
+* 16.01.2025
+
+To teraz bysmy chcieli stworzyc =AnimatedExtension=,
+tzn. zeby narysowanie tego sprawialo, ze do listy animacji
+zostaje dodany biezacy obiekt.
+
+Jeden pomysl na rozwiazanie tego bylby taki, zeby miec
+dwa zbiory: =previously-visible?= i =currently-visible?=,
+i zeby w trakcie renderowania dodawac do tych zbiorow
+aktualnie rysowane obiekty.
+
+No dobra, cos tam sie udalo wymodzic w sumie. Tylko zamiast
+metody =stop!= w =AnimatedTile= powinnismy miec =stop-playing!=
+w =Painter=.
+
+
+
 * 15.01.2025
+
 
 Rewizja systemu amimacji
 ========================
