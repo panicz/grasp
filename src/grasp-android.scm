@@ -741,18 +741,38 @@
     (paint:setStrokeWidth 1)
     (canvas:drawLine x0 y0 x1 y1 paint))
 
-  (define (draw-circle! x0::real y0::real r::real c::uint)::void
+  (define (precise-resolution-right)::ubyte 1)
+  (define (precise-resolution-down)::ubyte 1)
+  
+  (define (precise-inside-out px::real py::real)
+    ::(Values real real)
+    (values px py))
+  
+  (define (precise-outside-in x::real y::real)
+    ::(Values real real)
+    (values x y))
+  
+  (define (precise-draw-circle! x0::real y0::real
+				r::real c::uint)
     ::void
-    (set-color! c)
+    (set-color! (bitwise-xor #xff000000 c))
     (paint:setStyle Paint:Style:STROKE)
     (paint:setStrokeWidth 4)
     (canvas:drawCircle x0 y0 r paint)
     (paint:setStyle Paint:Style:FILL))
 
-  (define (fill-circle! x0::real y0::real r::real c::uint)::void
+  (define (precise-fill-circle! x0::real y0::real
+				r::real c::uint)
     ::void
-    (set-color! c)
+    (set-color! (bitwise-xor #xff000000 c))
     (canvas:drawCircle x0 y0 r paint))
+
+  (define (precise-draw-line! px0::real py0::real
+			      px1::real py1::real
+			      color::uint)
+    ::void
+    (set-color! (bitwise-xor #xff000000 c))
+    (draw-thin-line! px0 py0 px1 py1))
   
   (define (draw-stroke! x0::real y0::real x1::real y1::real)
     ::void

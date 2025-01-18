@@ -668,14 +668,29 @@
     (draw-line-8pix! (* x0 2) (* y0 4)
 		     (* x1 2) (* y1 4)))
 
-  (define (draw-circle! x0::real y0::real r::real color::uint)::void
+  (define (precise-resolution-right)::ubyte 2)
+  (define (precise-resolution-down)::ubyte 4)
+  
+  (define (precise-inside-out px::real py::real)
+    ::(Values real real)
+    (values (round (/ px 2)) (round (/ py 4))))
+  
+  (define (precise-outside-in x::real y::real)
+    ::(Values real real)
+    (values (* x 2) (* y 4)))
+  
+  (define (precise-draw-circle! x0::real y0::real r::real
+				color::uint)
+    ::void
     (for x from (ceiling (- x0 r)) to (floor (+ x0 r))
 	 (let* ((p (- x x0))
 		(d (sqrt (- (* r r) (* p p)))))
 	   (8pix-set! x (floor (+ y0 d)))
 	   (8pix-set! x (ceiling (- y0 d))))))
 
-  (define (fill-circle! x0::real y0::real r::real color::uint)::void
+  (define (precise-fill-circle! x0::real y0::real r::real
+				color::uint)
+    ::void
     (for x from (ceiling (- x0 r)) to (floor (+ x0 r))
 	 (let* ((p (- x x0))
 		(d (sqrt (- (* r r) (* p p))))
@@ -683,6 +698,12 @@
 		(bottom (round (- y0 d))))
 	   (for y from bottom to top
 		(8pix-set! x y)))))
+
+  (define (precise-draw-line! x0::real y0::real
+			      x1::real y1::real
+			      color::uint)
+    ::void
+    (draw-line-8pix! x0 y0 x1 y1))
   
   (define (draw-quoted-text! s::CharSequence
 			     context::Cursor)

@@ -233,8 +233,33 @@ def") ===> [Extent width: 3 height: 2])
   (draw-thin-line! x0::real y0::real x1::real y1::real)
   ::void
 
-  (draw-circle! x0::real y0::real r::real c::uint)::void
-  (fill-circle! x0::real y0::real r::real c::uint)::void
+  #|
+  The `precise` family of methods is intended
+  mainly to overcome the limitations for the
+  textual client, making use of its capability
+  to draw points on the Braille grid, which is
+  2 points wide and 4 points tall with respect
+  to a single character
+  |#
+  
+  (precise-resolution-right)::ubyte
+  (precise-resolution-down)::ubyte
+
+  (precise-inside-out px::real py::real)::(Values real real)
+  (precise-outside-in px::real py::real)::(Values real real)
+
+  (precise-draw-circle! px0::real py0::real r::real
+			color::uint)
+  ::void
+  
+  (precise-fill-circle! px0::real py0::real r::real
+			color::uint)
+  ::void
+  
+  (precise-draw-line! px0::real py0::real
+		      px1::real py1::real
+		      color::uint)
+  ::void
   
   (begin-highlight! type::HighlightType)::void
   (end-highlight! type::HighlightType)::void
@@ -443,11 +468,30 @@ def") ===> [Extent width: 3 height: 2])
     ::void
     (values))
 
-  (define (draw-circle! x0::real y0::real r::real color::uint)::void
+  (define (precise-resolution-right)::ubyte 1)
+  (define (precise-resolution-down)::ubyte 1)
+
+  (define (precise-inside-out px::real py::real)
+    ::(Values real real)
+    (values px py))
+  
+  (define (precise-outside-in x::real y::real)
+    ::(Values real real)
+    (values x y))
+
+  (define (precise-draw-circle! px0::real py0::real r::real
+				color::uint)
     ::void
     (values))
-
-  (define (fill-circle! x0::real y0::real r::real color::uint)::void
+  
+  (define (precise-fill-circle! px0::real py0::real r::real
+				color::uint)
+    ::void
+    (values))
+ 
+  (define (precise-draw-line! px0::real py0::real
+			      px1::real py1::real 
+			      color::uint)
     ::void
     (values))
   

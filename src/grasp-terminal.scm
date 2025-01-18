@@ -455,7 +455,8 @@
     (invoke-special CharPainter (this)
 		    'exit-comment-drawing-mode!))
 
-  (define (draw-circle! x0::real y0::real r::real color-rgb::uint)
+  (define (precise-draw-circle! x0::real y0::real
+				r::real color-rgb::uint)
     ::void
     (let* ((red ::int (byte-ref color-rgb 2))
 	   (green ::int (byte-ref color-rgb 1))
@@ -463,17 +464,33 @@
 	   (color ::Color (Color:Indexed:fromRGB red green blue)))
       (parameterize ((the-text-color color))
 	(invoke-special CharPainter (this)
-			'draw-circle! x0 y0 r color-rgb))))
+			'precise-draw-circle! x0 y0
+			r color-rgb))))
+  (define (precise-fill-circle! x0::real y0::real
+				r::real color-rgb::uint)
+    ::void
+    (let* ((red ::int (byte-ref color-rgb 2))
+	   (green ::int (byte-ref color-rgb 1))
+	   (blue ::int (byte-ref color-rgb 0))
+	   (color ::Color (Color:Indexed:fromRGB
+			   red green blue)))
+      (parameterize ((the-text-color color))
+	(invoke-special CharPainter (this)
+			'precise-fill-circle! x0 y0
+			r color-rgb))))
 
-  (define (fill-circle! x0::real y0::real r::real color-rgb::uint)
+  (define (precise-draw-line! x0::real y0::real
+				x1color-rgb::uint)
     ::void
     (let* ((red ::int (byte-ref color-rgb 2))
 	   (green ::int (byte-ref color-rgb 1))
 	   (blue ::int (byte-ref color-rgb 0))
-	   (color ::Color (Color:Indexed:fromRGB red green blue)))
+	   (color ::Color (Color:Indexed:fromRGB
+			   red green blue)))
       (parameterize ((the-text-color color))
 	(invoke-special CharPainter (this)
-			'fill-circle! x0 y0 r color-rgb))))
+			'precise-draw-line! x0 y0 x1 y1
+			color-rgb))))
   
   (define (draw-point! left::real top::real color-rgb::int)
     ::void

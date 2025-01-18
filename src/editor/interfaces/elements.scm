@@ -603,9 +603,13 @@ operate on cursors.
   ;; of the Shadowed interface should return a cons-cell
   )
 
+(define-interface Alive (Enchanted Animation))
+
 (define-interface ResizableEnchanted (Resizable Enchanted))
 
 (define-interface Maximizable (Embeddable ResizableEnchanted))
+
+(define-interface World (Maximizable Animation))
 
 (define-interface Screen (Resizable Embeddable Interactive)
   (drag! finger::byte action::Drag)::void

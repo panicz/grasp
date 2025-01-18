@@ -1079,19 +1079,39 @@
 		       (as int (round x1))
 		       (as int (round y1))))
 
-  (define (draw-circle! x0::real y0::real r::real c::uint)::void
+  (define (precise-resolution-right)::ubyte 1)
+  (define (precise-resolution-down)::ubyte 1)
+
+  (define (precise-inside-out px::real py::real)
+    ::(Values real real)
+    (values px py))
+  
+  (define (precise-outside-in x::real y::real)
+    ::(Values real real)
+    (values x y))
+
+  (define (precise-draw-circle! px0::real py0::real r::real
+				color::uint)
     ::void
     (graphics:setStroke thick)
     (set-color! (color c))
     (let ((2r (+ r r)))
-      (graphics:drawOval (- x0 r) (- y0 r) 2r 2r)))
-
-  (define (fill-circle! x0::real y0::real r::real c::uint)::void
+      (graphics:drawOval (- px0 r) (- py0 r) 2r 2r)))
+  
+  (define (precise-fill-circle! px0::real py0::real r::real
+				color::uint)
     ::void
     (set-color! (color c))
     (let ((2r (+ r r)))
-      (graphics:fillOval (- x0 r) (- y0 r) 2r 2r)))
-  
+      (graphics:fillOval (- px0 r) (- py0 r) 2r 2r)))
+
+  (define (precise-draw-line! px0::real py0::real
+			      px1::real py1::real
+			      color::uint)
+    ::void
+    (set-color! (color c))
+    (draw-thin-line! px0 py0 px1 py1))
+
   (define (measure-text-index-position-into!
 	   target::Position text::CharSequence index::int
 	   font::Font)

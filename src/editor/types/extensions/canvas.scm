@@ -26,7 +26,7 @@
   implementing Renderable
   with
   ((render!)
-   (painter:fill-circle! left top radius color)))
+   (painter:precise-fill-circle! left top radius color)))
 
 (define-type (PreciseCanvas size: Extent content: (list-of Renderable))
   extending Magic with
