@@ -1,3 +1,26 @@
+* 18.01.2025
+
+Nie wiem czy w GRASPie chcemy cos robic. Moze warto by bylo
+rozwazyc fork ktory by umial gadac z datomic?
+
+Czy moze chcemy zrobic jakis widget, np. orbitujace kolko?
+
+Ale wowczas byloby dobrze zrobic te zmiany z =PreciseCanvas=,
+o ktorych pisalismy wczesniej.
+
+
+* 17.01.2025
+
+No i fajnie, i mamy sobie jakies mechanizmy do zarzadzania
+animacjami, i teraz fajnie by bylo napisac cos, co by jakos
+tego systemu uzywalo - a do tego najlepiej zeby jeszcze
+robilo detekcje kolizji, oraz po prostu symulowalo srodowisko
+fizyczne
+
+Czyli bysmy zaczeli od tego, zeby stworzyc =AnimatedExtension=,
+albo po prostu =Alive=.
+
+
 * 16.01.2025
 
 To teraz bysmy chcieli stworzyc =AnimatedExtension=,
@@ -12,8 +35,6 @@ aktualnie rysowane obiekty.
 No dobra, cos tam sie udalo wymodzic w sumie. Tylko zamiast
 metody =stop!= w =AnimatedTile= powinnismy miec =stop-playing!=
 w =Painter=.
-
-
 
 * 15.01.2025
 
