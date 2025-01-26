@@ -1,3 +1,153 @@
+* 24.01.2025
+
+No dobra, to bysmy chcieli miec cos takiego jak
+=Resizing=, co stanowiloby owijke dla czegos, co jest
+=Maximizable=, a z drugiej co samo byloby =Maximizable=
+i wspolpracowalo z undo
+
+Ale zeby cosik na ten temat wnioskowac, dobrze byloby
+sobie najpierw przypomniec co to wszystko znaczy.
+
+#+BEGIN_SRC scheme
+
+(define-interface Resizable (Extensive)
+  (set-size! width::real height::real)::void
+  )
+
+(define-interface ResizableEnchanted (Resizable Enchanted))
+
+(define-interface Maximizable (Embeddable ResizableEnchanted))
+
+(define-interface World (Maximizable Animation))
+
+;; ActualScreen
+
+  (define content-stack ::java.util.Stack
+    (java.util.Stack))
+
+  (define (maximize! tile ::Maximizable)::void
+    (content-stack:push `(,(copy (tile:extent)) . ,top))
+    (tile:set-size! size:width size:height)
+    (set! top tile))
+
+  (define (unmaximize!)::void
+    (unless (content-stack:empty)
+      (and-let* ((`(,previous::Extent . ,origin)
+		  (content-stack:pop))
+		 (widget ::Maximizable top))
+	(widget:set-size! previous:width previous:height)
+	(set! top origin))))
+
+
+;; document-editor
+
+(define-object (Resize box::cons path::Cursor anchor::real
+		       left::real top::real
+		       editor::Editor)
+  ::Drag
+
+  (define initial ::Extent (copy (extent+ box)))
+
+  (define width ::real initial:width)
+  (define height ::real initial:height)
+
+  (define ending ::LineEnding
+    (line-ending-embracing anchor #;from box))
+
+  #;(define p ::Point
+  (let-values (((xe ye) (the-transform-stack:inside-out
+  (+ left ending:reach
+  (painter:paren-width))
+  (+ top anchor))))
+  (Point xe ye #xff0000)))
+
+  (define (move! x::real y::real dx::real dy::real)::void
+    (safely
+     (let*-values (((zx zy) (editor:outside-in 0 0))
+		   ((dx* dy*) (editor:outside-in dx dy)))
+       (set! width (+ width (- dx* zx)))
+       (set! height (+ height (- dy* zy)))
+       (resize! box width height ending))))
+
+  (define (drop! x::real y::real vx::real vy::real)::void
+    #;(screen:remove-overlay! p)
+    (let ((final ::Extent (extent+ box))
+	  (history ::History (history (the-document))))
+      (when (isnt final equal? initial)
+	(history:record! (ResizeBox at: path
+				    from: initial
+				    to: (copy final)
+				    with-anchor: anchor)))))
+  #;(screen:add-overlay! p)
+  )
+
+
+#+END_SRC
+
+No, to bysmy zmienili =Resize= tak, zeby zamiast =cons=
+przyjmowala =Resizable=, i dostarczyli instancje
+=set-size!= do =cons= oraz do =EmptyListProxy=.
+
+
+
+* 23.01.2025 (komputer)
+
+Warto by bylo sie zastanowic nad nastepujacymi tematami:
+- ksiazka - co chcemy w niej napisac,
+  ale jak na razie wiele wskazuje na to, ze chcemy:
+  - zrobic widget z fizyczna symulacja
+  - zrobic widget z "the youngest of Tom's brothers"
+    (wykorzystujacy stepper)
+  - uzasadnic skladnie jezyka Scheme
+  - napisac sekcje o definiowaniu
+  - napisac sekcje o meta-jezyku
+
+A jaki dalej uklad rozdzialow?
+
+Powiedzmy, ze cos takiego:
+- pojecie reprezentacji
+- fizyka: zasada zachowania pedu
+- tarcie i wytracanie energii
+
+- chemia: czasteczki wody; dlaczego woda jest mokra
+- biologia - podstawowa wiedza o komorce, moze cykl
+Krebsa, moze jakis wirus,
+- moze tez symulacje populacji?
+
+- logika - semantyka swiatow mozliwych
+
+
+* 18.01.2025 (komputer)
+
+To taki watek troche niezalezny, ale interesujace jest
+to, w jaki sposob zintegrowac Kawe (i GRASPa) z baza Datomic.
+
+#+BEGIN_SRC scheme
+
+(define-parameter (current-database) ...)
+
+(define-syntax select
+  (syntax-rules (from where)
+    ((select variables ... from database where conditions ...)
+     ...)
+    ((select 
+
+
+(select entity where (entity _ _))
+
+
+(insert (Bundle db/id: id movie/genre: "future governor") 
+ where (id movie/title: "Commando"))
+
+(describe (current-database))
+
+#+END_SRC
+
+
+No dobra, a nasze odpalanie bazy tak wyglada:
+bin/transactor config/samples/mysql-transactor.properties
+
+
 * 18.01.2025
 
 Nie wiem czy w GRASPie chcemy cos robic. Moze warto by bylo
