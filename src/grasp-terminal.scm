@@ -193,7 +193,8 @@
 	(set! (screen-up-to-date?) #t))
       (let* ((resize ::TerminalSize (io:doResizeIfNecessary))
 	     (size (or resize (io:getTerminalSize))))
-	(screen:set-size! (size:getColumns) (size:getRows))
+	(screen:set-size! (size:getColumns) (size:getRows)
+			  (screen:resize-anchor (size:getRows)))
 	(painter:clear!)
 	(screen:render!)
 	;; swap front- and back-buffer

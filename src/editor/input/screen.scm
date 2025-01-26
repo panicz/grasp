@@ -188,7 +188,8 @@
 
   (define (maximize! tile ::Maximizable)::void
     (content-stack:push `(,(copy (tile:extent)) . ,top))
-    (tile:set-size! size:width size:height)
+    (tile:set-size! size:width size:height
+		    (tile:resize-anchor size:height))
     (set! top tile))
 
   (define (unmaximize!)::void
@@ -196,7 +197,8 @@
       (and-let* ((`(,previous::Extent . ,origin)
 		  (content-stack:pop))
 		 (widget ::Maximizable top))
-	(widget:set-size! previous:width previous:height)
+	(widget:set-size! previous:width previous:height
+			  (widget:resize-anchor previous:height))
 	(set! top origin))))
   
   ;; this parameter must be set by the
@@ -211,13 +213,16 @@
   (define (undrag! finger::byte)::void
     (unset! (dragging finger)))
 
-  (define (set-size! width::real height::real)::void
+  (define (resize-anchor anchor::real)::ResizeAnchor
+    #f)
+  
+  (define (set-size! width::real height::real anchor::ResizeAnchor)::void
     (set! size:width width)
     (set! size:height height)
     (set! (the-pane-width) width)
     (set! (the-pane-height) height)
     (and-let* ((widget ::Maximizable top))
-      (widget:set-size! width height))
+      (widget:set-size! width height (widget:resize-anchor height)))
     )
 
   (define (width)::real

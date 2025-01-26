@@ -892,7 +892,7 @@
     (graphics:fillRect (- width 7) 3 4 (- height 6))
     (graphics:fillRect 3 (- height 7) (- width 6) 4))
 
-  (define (border-size)::real 10)
+  (define (border-size)::real 15)
 
   (define (height/width-ratio)::real 1)
   
@@ -1091,7 +1091,7 @@
     (values x y))
 
   (define (precise-draw-circle! px0::real py0::real r::real
-				color::uint)
+				c::uint)
     ::void
     (graphics:setStroke thick)
     (set-color! (color c))
@@ -1099,7 +1099,7 @@
       (graphics:drawOval (- px0 r) (- py0 r) 2r 2r)))
   
   (define (precise-fill-circle! px0::real py0::real r::real
-				color::uint)
+				c::uint)
     ::void
     (set-color! (color c))
     (let ((2r (+ r r)))
@@ -1107,7 +1107,7 @@
 
   (define (precise-draw-line! px0::real py0::real
 			      px1::real py1::real
-			      color::uint)
+			      c::uint)
     ::void
     (set-color! (color c))
     (draw-thin-line! px0 py0 px1 py1))
@@ -1586,7 +1586,8 @@ by the AWT framework."))
 
   (define (componentResized event::ComponentEvent)::void
     (screen:set-size! (invoke (this) 'getWidth)
-		      (invoke (this) 'getHeight))
+		      (invoke (this) 'getHeight)
+		      (screen:resize-anchor (invoke (this) 'getHeight)))
     (repaint))
 
   (define pending-animations
@@ -1725,7 +1726,8 @@ by the AWT framework."))
 	(for expression in init-script
 	  (safely (eval expression))))
 
-      (screen:set-size! (window:getWidth) (window:getHeight))
+      (screen:set-size! (window:getWidth) (window:getHeight)
+			(screen:resize-anchor (window:getHeight)))
       (window:repaint))))
 
 ;;(set! *print-base* 16)

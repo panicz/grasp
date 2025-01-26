@@ -706,7 +706,9 @@
 
 (define-type (LineEnding reach: real
 			 space: Space
-			 index: int))
+			 index: int)
+  ;;extending ResizeAnchor
+  )
 
 (define (line-ending-embracing position::real
 			       #;from box::cons)

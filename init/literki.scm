@@ -54,4 +54,6 @@
 (slot-set! screen 'top (LetterTileBoard "POLA" say ask))
 (invoke (slot-ref screen 'top) 'set-size!
 	(slot-ref (slot-ref screen 'size) 'width)
-	(slot-ref (slot-ref screen 'size) 'height))
+	(slot-ref (slot-ref screen 'size) 'height)
+	(invoke screen 'resize-anchor
+		(slot-ref (slot-ref screen 'size) 'height)))

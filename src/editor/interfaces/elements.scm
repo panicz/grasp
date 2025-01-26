@@ -594,8 +594,11 @@ operate on cursors.
   (drop! x::real y::real vx::real vy::real)::void
   )
 
+(define-alias ResizeAnchor java.lang.Object)
+
 (define-interface Resizable (Extensive)
-  (set-size! width::real height::real)::void
+  (resize-anchor poistion::real)::ResizeAnchor
+  (set-size! width::real height::real anchor::ResizeAnchor)::void
   )
 
 (define-interface Enchanted (Interactive ShadowedTile)

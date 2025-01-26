@@ -130,7 +130,11 @@
   )
   
 (define-object (Stretched element::Enchanted size::Extent)::Maximizable
-  (define (set-size! width::real height::real)::void
+
+  (define (resize-anchor poistion::real)::ResizeAnchor
+    position)
+  
+  (define (set-size! width::real height::real anchor::ResizeAnchor)::void
     (set! size:width width)
     (set! size:height height))
   

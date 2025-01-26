@@ -1732,7 +1732,8 @@
     (let* ((resources ::AndroidResources (getResources))
 	   (metrics ::DisplayMetrics
 		    (resources:getDisplayMetrics)))
-      (screen:set-size! metrics:widthPixels metrics:heightPixels))
+      (screen:set-size! metrics:widthPixels metrics:heightPixels
+			(screen:resize-anchor metrics:heightPixels)))
 
     #;(match config:orientation
       (,AndroidConfiguration:ORIENTATION_LANDSCAPE
@@ -2142,7 +2143,8 @@
     (let* ((resources ::AndroidResources (getResources))
 	   (metrics ::DisplayMetrics
 		    (resources:getDisplayMetrics)))
-      (screen:set-size! metrics:widthPixels metrics:heightPixels))
+      (screen:set-size! metrics:widthPixels metrics:heightPixels
+			(screen:resize-anchor metrics:heightPixels)))
     
     (view:setSystemUiVisibility
      (bitwise-ior
@@ -2159,8 +2161,10 @@
       (observer:addOnGlobalLayoutListener
        (lambda ()
 	 (parent:getWindowVisibleDisplayFrame span)
-	 (screen:set-size! (span:width) (span:height))))
-      (screen:set-size! (span:width) (span:height))
+	 (screen:set-size! (span:width) (span:height)
+			   (screen:resize-anchor (span:height)))))
+      (screen:set-size! (span:width) (span:height)
+			(screen:resize-anchor (span:height)))
 
       (for expression in '((import (language define-interface))
 			   (import (language define-object))
@@ -2183,7 +2187,8 @@
 	(safely
 	 (eval expression)))
       
-      (screen:set-size! (span:width) (span:height))
+      (screen:set-size! (span:width) (span:height)
+			(screen:resize-anchor (span:height)))
       (view:request-redraw!))
     
     (let ((postpone ::Postponed (EventRunner sync view)))

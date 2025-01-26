@@ -175,7 +175,9 @@
 
   (define (extent)::Extent size)
 
-  (define (set-size! width::real height::real)::void
+  (define (resize-anchor poistion::real)::ResizeAnchor #f)
+  
+  (define (set-size! width::real height::real anchor::ResizeAnchor)::void
     (set! size:width width)
     (set! size:height height)
     (arrange-content!)

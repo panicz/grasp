@@ -121,7 +121,9 @@
 
   (define (draw! context::Cursor)::void #!abstract)
 
-  (define (set-size! width::real height::real)::void
+  (define (resize-anchor poistion::real)::ResizeAnchor #f)
+  
+  (define (set-size! width::real height::real anchor::ResizeAnchor)::void
     #!abstract)
 
   (define (render!)::void
