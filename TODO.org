@@ -1,4 +1,25 @@
-* 24.01.2025
+* 24.01.2025 (telefon)
+To co bysmy zrobili?
+
+#+BEGIN_SRC scheme
+  (define-object (PhysicsStage content::(list-of Physical))
+    ::World
+
+    (define (advance! delta/ms::int)::void
+      (for item::Physical in content
+	(item:advance! delta/ms))
+      (for (a b) in (collisions #;among content)
+	(a:force! ...)
+	(b:force! ...)))
+
+    (Magic))
+
+#+END_SRC
+
+Ok. No ale fajnie by bylo miec takie cos, zeby moc
+zmieniac rozmiar widgetu
+
+* 24.01.2025 (komputer)
 
 No dobra, to bysmy chcieli miec cos takiego jak
 =Resizing=, co stanowiloby owijke dla czegos, co jest
@@ -88,8 +109,6 @@ No, to bysmy zmienili =Resize= tak, zeby zamiast =cons=
 przyjmowala =Resizable=, i dostarczyli instancje
 =set-size!= do =cons= oraz do =EmptyListProxy=.
 
-
-
 * 23.01.2025 (komputer)
 
 Warto by bylo sie zastanowic nad nastepujacymi tematami:
@@ -115,7 +134,6 @@ Krebsa, moze jakis wirus,
 - moze tez symulacje populacji?
 
 - logika - semantyka swiatow mozliwych
-
 
 * 18.01.2025 (komputer)
 
@@ -143,10 +161,14 @@ to, w jaki sposob zintegrowac Kawe (i GRASPa) z baza Datomic.
 
 #+END_SRC
 
-
 No dobra, a nasze odpalanie bazy tak wyglada:
 bin/transactor config/samples/mysql-transactor.properties
 
+* 19.01.2025
+
+Plan jest zatem na razie taki, zeby:
+- zajac sie pracami nad widgetem z kulkami
+- skupic sie na ksiazce
 
 * 18.01.2025
 
@@ -158,7 +180,6 @@ Czy moze chcemy zrobic jakis widget, np. orbitujace kolko?
 Ale wowczas byloby dobrze zrobic te zmiany z =PreciseCanvas=,
 o ktorych pisalismy wczesniej.
 
-
 * 17.01.2025
 
 No i fajnie, i mamy sobie jakies mechanizmy do zarzadzania
@@ -169,7 +190,6 @@ fizyczne
 
 Czyli bysmy zaczeli od tego, zeby stworzyc =AnimatedExtension=,
 albo po prostu =Alive=.
-
 
 * 16.01.2025
 
