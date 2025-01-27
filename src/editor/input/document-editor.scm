@@ -109,24 +109,24 @@
 
   (screen:add-overlay! selected))
 
-(define-object (Resize box::cons path::Cursor anchor::real
+(define-object (Resize box::Resizable path::Cursor grab::real
 		       left::real top::real
 		       editor::Editor)
   ::Drag
-
-  (define initial ::Extent (copy (extent+ box)))
+  (define document (the-document))
+  (define initial ::Extent (copy (box:extent)))
 
   (define width ::real initial:width)
   (define height ::real initial:height)
 
-  (define ending ::LineEnding
-    (line-ending-embracing anchor #;from box))
+  (define anchor ::ResizeAnchor
+    (box:resize-anchor grab))
 
   #;(define p ::Point
   (let-values (((xe ye) (the-transform-stack:inside-out
-  (+ left ending:reach
+  (+ left anchor:reach
   (painter:paren-width))
-  (+ top anchor))))
+  (+ top grab))))
   (Point xe ye #xff0000)))
 
   (define (move! x::real y::real dx::real dy::real)::void
@@ -135,18 +135,20 @@
 		   ((dx* dy*) (editor:outside-in dx dy)))
        (set! width (+ width (- dx* zx)))
        (set! height (+ height (- dy* zy)))
-       (resize! box width height ending))))
+       (box:set-size! width height anchor))))
 
   (define (drop! x::real y::real vx::real vy::real)::void
     #;(screen:remove-overlay! p)
-    (let ((final ::Extent (extent+ box))
-	  (history ::History (history (the-document))))
-      (when (isnt final equal? initial)
+    (let ((final ::Extent (box:extent))
+	  (history ::History (history document)))
+      (unless (equal? initial final)
+	
 	(history:record! (ResizeBox at: path
 				    from: initial
 				    to: (copy final)
-				    with-anchor: anchor)))))
+				    with-anchor: grab)))))
   #;(screen:add-overlay! p)
+  
   )
 
 (define-object (Translate target::Transform)::Drag
@@ -1069,7 +1071,7 @@
 				finger)))))
 	     (screen:drag! finger (DragAround selection))))
 
-	  ((and (is target cons?)
+	  ((and (is target Resizable?)
 		(eqv? tip (target:last-index)))
 	   (let ((extent ::Extent (extent+ target)))
 	     (screen:drag! finger

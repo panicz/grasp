@@ -597,7 +597,7 @@ operate on cursors.
 (define-alias ResizeAnchor java.lang.Object)
 
 (define-interface Resizable (Extensive)
-  (resize-anchor poistion::real)::ResizeAnchor
+  (resize-anchor position::real)::ResizeAnchor
   (set-size! width::real height::real anchor::ResizeAnchor)::void
   )
 
