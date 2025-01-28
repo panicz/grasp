@@ -771,8 +771,55 @@ from the (editor interfaces elements) module
   (and (is x gnu.lists.LList?)
        (isnt x gnu.lists.Pair?)))
 
-(define-object (EmptyListProxy space::Space)::ShadowedTile
+(define-object (EmptyListProxy space::Space)
+  ::ResizableShadowedTile
 
+  (define (resize-anchor position::real)::ResizeAnchor
+    ;; TODO this should be made to preserve
+    ;; the correctness of comments (but
+    #f)
+
+  (define (set-size! width::real height::real
+		     anchor::ResizeAnchor)
+    ::void
+    (let* ((min-line-height ::real (painter:min-line-height))
+	   (space-width ::real (painter:space-width))
+	   (paren-width ::real (painter:paren-width))
+	   (current ::Extent (extent))
+	   (row-change (as int
+			   (quotient (- height
+					current:height)
+				     min-line-height))))
+      (set-car! space:fragments
+		(max 0 (as int
+			   (quotient (- width (* 2 space-width))
+				 space-width))))
+      (define (remove-rows! fragments how-many::int)
+	(if (is how-many <= 0)
+	    fragments
+	    (match fragments
+	      (`(,,@number? ,,@number? . ,rest)
+	       (set-cdr! fragments rest)
+	       (remove-rows! fragments (- how-many 1)))
+	      (`(,_ . ,rest)
+	       (remove-rows! rest how-many))
+	      (_
+	       fragments))))
+      
+      (define (add-rows! fragments how-many::int)
+	(if (is how-many <= 0)
+	    fragments
+	    (begin
+	      (set-cdr! fragments (cons 0 (cdr fragments)))
+	      (add-rows! fragments (- how-many 1)))))
+      
+      (cond
+       ((is row-change > 0)
+	(add-rows! space:fragments row-change))
+       ((is row-change < 0)
+	(remove-rows! space:fragments (- row-change)))
+      )))
+  
   (define (value) '())
 
   (define (hashCode)::int

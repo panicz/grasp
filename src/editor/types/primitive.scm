@@ -97,8 +97,6 @@
 ;; edited objects, even though the "value" of
 ;; those atoms can be a different kind of object
 ;; on every query.
-(define-interface MatchableShadowedTextualTile
-  (Matchable ShadowedTextualTile))
 
 (define-object (Atom name::String)::MatchableShadowedTextualTile
 
@@ -224,9 +222,6 @@
     (Atom name))
   
   (set! builder (java.lang.StringBuilder name)))
-
-
-(define-interface MatchableResizableTile (Matchable Resizable Tile))
 
 (define/kw (cursor-position cursor ::Cursor := (the-cursor)
 			    in: document := (the-document)
@@ -809,7 +804,8 @@
 
     (escape-with return
 
-      (define-syntax-rule (action item #;Element current #;Traversal)
+      (define-syntax-rule (action item #;Element
+				  current #;Traversal)
 	(and-let* ((space ::Space item)
 		   ((isnt space eq? first-space)))
 	  (set! last-space space)

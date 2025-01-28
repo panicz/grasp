@@ -258,23 +258,6 @@
   )
 
 
-(define-interface Tile (Extensive Element))
-
-(define-interface ShadowedTile (Shadowed Tile))
-
-(define-interface TextualTile (Textual Tile))
-
-(define-interface ShadowedTextualTile (Shadowed TextualTile))
-
-(define-interface Comment (Expandable Tile)
-  (breaks-line?)::boolean
-  (print out::gnu.lists.Consumer)::void)
-
-(define-interface TextualComment (Textual Comment)
-  (removable?)::boolean
-  (remove-from! fragments::list)::list
-  )
-
 #|
 `the-cursor` and `the-document` are parameters
 that provide the default values to some functions that
@@ -599,6 +582,32 @@ operate on cursors.
 (define-interface Resizable (Extensive)
   (resize-anchor position::real)::ResizeAnchor
   (set-size! width::real height::real anchor::ResizeAnchor)::void
+  )
+
+(define-interface Tile (Extensive Element))
+
+(define-interface ShadowedTile (Shadowed Tile))
+
+(define-interface ResizableShadowedTile
+  (Resizable ShadowedTile))
+
+(define-interface TextualTile (Textual Tile))
+
+(define-interface ShadowedTextualTile (Shadowed TextualTile))
+
+(define-interface MatchableResizableTile
+  (Matchable Resizable Tile))
+
+(define-interface MatchableShadowedTextualTile
+  (Matchable ShadowedTextualTile))
+
+(define-interface Comment (Expandable Tile)
+  (breaks-line?)::boolean
+  (print out::gnu.lists.Consumer)::void)
+
+(define-interface TextualComment (Textual Comment)
+  (removable?)::boolean
+  (remove-from! fragments::list)::list
   )
 
 (define-interface Enchanted (Interactive ShadowedTile)
