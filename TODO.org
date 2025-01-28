@@ -1,3 +1,8 @@
+* 27.01.2025 (telefon)
+
+No to dzisiaj probujemy zrobic tak, zeby =EmptyListProxy=
+byl =Resizable=.
+
 * 24.01.2025 (telefon)
 To co bysmy zrobili?
 
