@@ -1,3 +1,51 @@
+* 28.01.2025
+
+No dobra, to teraz bysmy sprobowali stworzyc kombinator
+=Resizing=, ktory by przyjmowal jako argument widget
+=Resizable= badz =Maximizable=, i zmienial jego rozmiar;
+moze na bazie kombinatora =Bordered=, a moze po prostu
+bysmy rozszerzyli jego funkcjonalnosci?
+
+No dobra, zalozmy ze tak. Ale co wowczas z =Maximizable=?
+
+Ono jest zdefiniowane tak:
+
+#+BEGIN_SRC scheme
+(define-interface Maximizable (Embeddable ResizableEnchanted))
+#+END_SRC
+
+Moze jeszcze by do tego dolozyc predykat =can-be-maximized?=
+A do =Resizable= - =can-be-resized?=
+
+I wowczas bysmy mogli zrobic tak, zeby =Bordered= bylo
+=Resizable= i =Maximizable=, ale moglo byc =resized/maximized=
+tylko wtedy, gdy jego =element= jest odpowiednio =Resizable=
+i =Maximizable= (i odpowiednio moglo byc =resized/maximized=).
+
+No dobra, to sprawdzmy, czy te zmiany, ktore teraz mamy,
+kompiluja sie i z grubsza dzialaja, i jezeli tak, to wprowadzmy
+te kolejne (a jezeli nie, to naprawmy to co mamy teraz, zeby
+mozna to bylo jutro scommitowac)
+
+OK, wydaje sie, ze dziala. To teraz sprawdzmy, jakie
+widgety sa =Resizable= i =Maximizable=.
+
+Na pewno =Screen=, =cons=, =EmptyListProxy=,
+=Stretched=,  =MaximizableWidget= i jego potomstwo
+(czyli najpewniej tylko =LetterTileBoard=).
+
+No dobra. To zrobmy to!
+
+OK, i zrobilismy. I przy okazji udalo sie odkryc,
+ze w metodzie =cursor-under*= klasy =Bordered=
+jest chyba blad (ale to sie napraaaawi, oczywiscie).
+
+Czyli teraz chcemy zrobic tak, zeby =Bordered=
+bylo =Maximizable=. Tak. A co dalej?
+
+Jeszcze bysmy do =Resizable= dodali metody
+=min-width= oraz =min-height=.
+
 * 27.01.2025 (telefon)
 
 No to dzisiaj probujemy zrobic tak, zeby =EmptyListProxy=
