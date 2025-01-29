@@ -580,6 +580,7 @@ operate on cursors.
 (define-alias ResizeAnchor java.lang.Object)
 
 (define-interface Resizable (Extensive)
+  (can-be-resized?)::boolean
   (resize-anchor position::real)::ResizeAnchor
   (set-size! width::real height::real anchor::ResizeAnchor)::void
   )
@@ -619,7 +620,8 @@ operate on cursors.
 
 (define-interface ResizableEnchanted (Resizable Enchanted))
 
-(define-interface Maximizable (Embeddable ResizableEnchanted))
+(define-interface Maximizable (Embeddable ResizableEnchanted)
+  (can-be-maximized?)::boolean)
 
 (define-interface World (Maximizable Animation))
 

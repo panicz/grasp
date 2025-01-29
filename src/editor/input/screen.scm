@@ -161,6 +161,13 @@
   )
 
 (define-object (ActualScreen)::Screen
+  
+  (define (can-be-resized?)::boolean
+    #t)
+  
+  (define (can-be-maximized?)::boolean
+    #t)
+  
   (define overlay ::Overlay (Overlay))
 
   (define (overlay-cursor layer::Layer)::Cursor

@@ -774,6 +774,8 @@ from the (editor interfaces elements) module
 (define-object (EmptyListProxy space::Space)
   ::ResizableShadowedTile
 
+  (define (can-be-resized?)::boolean #t)
+  
   (define (resize-anchor position::real)::ResizeAnchor
     ;; TODO this should be made to preserve
     ;; the correctness of comments (but

@@ -95,6 +95,12 @@
   #;(Simple))
 
 (define-object (MaximizableWidget)::Maximizable
+
+  (define (can-be-resized?)::boolean
+    #t)
+
+  (define (can-be-maximized?)::booleann
+    #t)
   
   (define (typename)::String "")
   (define (part-at index::Index)::Indexable* (this))

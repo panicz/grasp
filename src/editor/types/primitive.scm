@@ -249,6 +249,8 @@
 
 (define-object (cons car cdr)::MatchableResizableTile
 
+  (define (can-be-resized?)::boolean #t)
+  
   (define (resize-anchor position::real)::ResizeAnchor
     (line-ending-embracing position #;from (this)))
   

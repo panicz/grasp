@@ -131,6 +131,9 @@
   
 (define-object (Stretched element::Enchanted size::Extent)::Maximizable
 
+  (define (can-be-resized?)::boolean
+    #t)
+  
   (define (resize-anchor poistion::real)::ResizeAnchor
     position)
   
