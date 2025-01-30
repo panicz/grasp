@@ -33,40 +33,58 @@
 
   ((part-at index::Index)::Indexable*
    (match index
-     ('element element)
+     (0 element)
      (_ (this))))
   
   ((first-index)::Index
-   'element)
+   #\[)
 
   ((last-index)::Index
-   'element)
+   #\])
 
-  ((next-index index::Index)::Index 'element)
+  ((next-index index::Index)::Index
+   (match index
+     (#\[ 0)
+     (_ #\])))
 
-  ((previous-index index::Index)::Index 'element)
-
-  ((index< a::Index b::Index)::boolean #f)
+  ((previous-index index::Index)::Index
+   (match index
+     (#\] 0)
+     (_ #\[)))
 
   ((index< a::Index b::Index)::boolean
-   (and (is a eq? (first-index))
-	(isnt b eq? (first-index))))
+   (or (and (is a eqv? (first-index))
+	    (isnt b eqv? (first-index)))
+       (and (is b eqv? (last-index))
+	    (isnt a eqv? (last-index)))))
 
   ((cursor-under* x::real y::real path::Cursor)::Cursor*
-   (let* ((border ::real (painter:border-size)))
-     (element:cursor-under* (- x border) (- y border)
-			    (hash-cons 'element path))))
+   (let ((border ::real (painter:border-size))
+	 (inner ::Extent (extent+ element)))
+     (cond
+      ((and (is x < border) (is y < border))
+       (hash-cons (first-index) path))
+      ((and (is x < (+ inner:width border))
+	    (is y < (+ inner:height border)))
+       (element:cursor-under* (- x border) (- y border)
+			      (hash-cons 0 path)))
+      ((and (is x < (+ inner:width border border))
+	    (is y < (+ inner:height border border)))
+       (hash-cons (last-index) path))
+      (else
+       #!null))))
 
-  ((measure-position #;of cursor::Cursor
-				 #;into target::Position
-					#;within context::Cursor)
+  ((measure-position
+    #;of cursor::Cursor
+	 #;into target::Position
+		#;within context::Cursor)
    ::Position
    (let* ((border ::real (painter:border-size)))
      (set! target:left (+ target:left border))
      (set! target:top (+ target:top border))
      (element:measure-position cursor
 				 target
-				 (hash-cons 'element
+				 (hash-cons 0
 					    context))))
   
   ((tap! finger::byte #;at x::real y::real)::boolean

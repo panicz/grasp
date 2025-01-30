@@ -1071,8 +1071,9 @@
 				finger)))))
 	     (screen:drag! finger (DragAround selection))))
 
-	  ((and (is target Resizable?)
-		(eqv? tip (target:last-index)))
+	  ((and-let* ((it ::Resizable target)
+		      ((it:can-be-resized?)))
+	     (eqv? tip (target:last-index)))
 	   (let ((extent ::Extent (extent+ target)))
 	     (screen:drag! finger
 			   (Resize target subpath
