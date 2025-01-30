@@ -1,3 +1,11 @@
+* 29.01.2025
+
+To dzien zaczynamy od:
+- poprawki =cursor-under*= w =Bordered=
+- zrobienie, zeby =Bordered= bylo =Maximizable=
+- dodanie =min-width= i =min-height= (i ewentualnie
+  =max-width= i =max-height=) do =Resizable=?
+
 * 28.01.2025
 
 No dobra, to teraz bysmy sprobowali stworzyc kombinator
