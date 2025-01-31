@@ -1,3 +1,37 @@
+* 30.01.2025
+
+No dobra, moze bysmy sie zajeli tym, zeby jakos
+ladniej podswietlac ramke =Bordered=?
+
+Pomysl bylby z grubsza taki:
+- jezeli kontekst ma postac =(#\[ . ,,cursor)=,
+  to kolorujemy na kolor podswietlonego nawiasu
+  lewa i gorna krawedz
+- jezeli ma postac  =(#\] . ,,cursor)=, to
+  prawa dolna krawedz
+- jezeli kontekst jest sufiksem kursora, to
+  rysujemy takie lekko szare
+
+No, ale do tego celu musimy zmodyfikowac metode
+=draw-border!=. Mozliwosci sa takie, ze albo
+dodamy parametr, albo rozbijemy to na rysowanie
+czterech linii, i to moze w dwoch funkcjach:
+- =draw-horizontal-border-line!=
+- =draw-vertical-border-line!=
+
+Na pewno jednak 'leniwiej' byloby zaczac od parametru.
+Moglibysmy przyjac, ze parametr moze miec cztery wartosci
+#\[, #\], #\null albo dowolny inny znak (przyjmijmy, ze #\t)
+
+#+BEGIN_SRC scheme
+(subtype-of gnu.text.Char (either #\[ #\] #\t #\null))
+#+END_SRC
+
+OK, to na razie mamy to na poziomie szkieletu. Teraz bysmy
+zrobili w klientach graficznych kolory. Zaczniemy od
+klienta androidowego
+
+
 * 29.01.2025
 
 To dzien zaczynamy od:
