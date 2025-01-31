@@ -886,7 +886,16 @@
      (unquote-splicing-marker-width)
      width height context))
   
-  (define (draw-border! width::real height::real)::void
+  (define (draw-border! width::real
+			height::real
+			highlight::(subtype-of
+				    gnu.text.Char
+				    (either
+				     #\[
+				     #\]
+				     #\t
+				     #\null)))
+    ::void
     (graphics:fillRect 3 3 (- width 6) 4)
     (graphics:fillRect 3 3 4 (- height 6))
     (graphics:fillRect (- width 7) 3 4 (- height 6))

@@ -925,12 +925,42 @@
       ))
 
 
-  (define (draw-border! width::real height::real)::void
-    (set-color! text-color)
+  (define (draw-border! width::real
+			height::real
+			highlight::(subtype-of
+				    gnu.text.Char
+				    (either
+				     #\[
+				     #\]
+				     #\t
+				     #\null)))
+    ::void
+    (set-color!
+     (match highlight
+       (#\[
+	(focused-parenthesis-color))
+       (#\]
+	(matching-parenthesis-color))
+       (#\null
+	(parenthesis-color))
+       (_
+	text-color)))
     (canvas:drawRect 6 6 (- width 6) 16 paint)
     (canvas:drawRect 6 6 16 (- height 6) paint)
-    (canvas:drawRect (- width 14) 6 (- width 6) (- height 6) paint)
-    (canvas:drawRect 6 (- height 14) (- width 6) (- height 6) paint))
+    (set-color!
+     (match highlight
+       (#\[
+	(matching-parenthesis-color))
+       (#\]
+	(focused-parenthesis-color))
+       (#\null
+	(parenthesis-color))
+       (_
+	text-color)))
+    (canvas:drawRect (- width 14) 6 (- width 6) (- height 6)
+		     paint)
+    (canvas:drawRect 6 (- height 14) (- width 6) (- height 6)
+		     paint))
 
   (define (border-size)::real 20)
 

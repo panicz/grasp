@@ -214,7 +214,15 @@ def") ===> [Extent width: 3 height: 2])
 	     context::Cursor)
   ::void
 
-  (draw-border! width::real height::real)::void
+  (draw-border! width::real height::real
+		highlight::(subtype-of
+			    gnu.text.Char
+			    (either
+			     #\[
+			     #\]
+			     #\t
+			     #\null)))
+  ::void
 
   (border-size)::real
   (height/width-ratio)::real
@@ -562,7 +570,15 @@ def") ===> [Extent width: 3 height: 2])
     ::void
     (values))
 
-  (define (draw-border! width::real height::real)
+  (define (draw-border! width::real
+			height::real
+			highlight::(subtype-of
+				    gnu.text.Char
+				    (either
+				     #\[
+				     #\]
+				     #\t
+				     #\null)))
     ::void
     (values))
 

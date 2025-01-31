@@ -50,6 +50,11 @@
 (define-syntax-rule (parameter-of type)
   ($bracket-apply$ parameter type))
 
+(define-syntax subtype-of
+  (syntax-rules ()
+    ((subtype-of supertype . _)
+     supertype)))
+
 (define-syntax-rule (either type ...)
   java.lang.Object)
 

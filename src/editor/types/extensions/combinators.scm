@@ -19,9 +19,17 @@
   with
   ((draw! context::Cursor)::void
    (let* ((inner ::Extent (extent+ element))
-	  (border ::real (painter:border-size)))
+	  (border ::real (painter:border-size))
+	  (cursor ::Cursor (the-cursor))
+	  (highlight ::gnu.text.Char
+		     (match context
+		       (`(#\[ . ,,cursor) #\[)
+		       (`(#\] . ,,cursor) #\])
+		       (,@(is _ suffix? cursor) #\t)
+		       (_ #\null))))
      (painter:draw-border! (+ inner:width (* 2 border))
-			   (+ inner:height (* 2 border)))
+			   (+ inner:height (* 2 border))
+			   highlight)
      (with-translation (border border)
        (element:draw! (recons 'element context)))))
 
@@ -62,7 +70,7 @@
    (let ((border ::real (painter:border-size))
 	 (inner ::Extent (extent+ element)))
      (cond
-      ((and (is x < border) (is y < border))
+      ((or (is x < border) (is y < border))
        (hash-cons (first-index) path))
       ((and (is x < (+ inner:width border))
 	    (is y < (+ inner:height border)))

@@ -266,7 +266,16 @@
      #\╰                             #\╯
      width height context))
 
-  (define (draw-border! width::real height::real)::void
+  (define (draw-border! width::real
+			height::real
+			highlight::(subtype-of
+				    gnu.text.Char
+				    (either
+				     #\[
+				     #\]
+				     #\t
+				     #\null)))
+    ::void
     (draw-custom-rectangle!
      #\╔ #\═ #\╗
      #\║
