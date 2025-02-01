@@ -1,3 +1,41 @@
+* 31.01.2025
+
+OK, to dzis zacznijmy dzien od poprawek w podswietlaniu
+ramki, a w dalszej kolejnosci bysmy zrobili tak, zeby
+=Bordered= byl =Maximizable=.
+
+No dobrze. Udalo sie zrobic zeby byl =Resizable=,
+ale wartosc robienia z niego =Maximizable= przy
+obecnej ontologii wydaje sie znikoma.
+
+(problem jest taki, ze w =Embeddable= pojawiaja
+sie rzeczy, ktore tak naprawde powinny byc =Splittable=,
+ale nie ma w naszym slowniku takiego pojecia)
+
+Teraz czym bysmy sie w dalszym ciagu zajeli?
+
+Na pewno chcemy stworzyc widget do symulacji.
+Czy w zasadzie kwestia bylaby taka, zeby po prostu
+stworzyc jakikolwiek widget, ktoremu mozna zmieniac
+rozmiary.
+
+A tak w gruncie rzeczy to co chcielibysmy miec?
+- symulator cial fizycznych, do ksiazki,
+  i zeby go zintegrowac z tymi czarodziejskimi
+  mechanizmami do detekcji kolizji
+- moze tez chcielibysmy stworzyc projekt "wyrazania
+  emocji" oparty na twarzach
+
+  W ogole musimy znalezc jakies tematy do ksiazki,
+  zeby sie nie zakopac, i moze tez zeby bylo im
+  po drodze z naszymi zainteresowaniami.
+
+Z drugiej strony jest tez kwestia samego edytora
+i naprawiania w  nim bugow, ale to szczerze mowiac
+zrobimy tak jak by sie nam chcialo.
+
+  
+
 * 30.01.2025
 
 No dobra, moze bysmy sie zajeli tym, zeby jakos
