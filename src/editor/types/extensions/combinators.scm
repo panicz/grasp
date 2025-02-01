@@ -22,10 +22,10 @@
 	  (border ::real (painter:border-size))
 	  (cursor ::Cursor (the-cursor))
 	  (highlight ::gnu.text.Char
-		     (match context
-		       (`(#\[ . ,,cursor) #\[)
-		       (`(#\] . ,,cursor) #\])
-		       (,@(is _ suffix? cursor) #\t)
+		     (match cursor
+		       (`(#\[ . ,,context) #\[)
+		       (`(#\] . ,,context) #\])
+		       (,@(is context suffix? _) #\t)
 		       (_ #\null))))
      (painter:draw-border! (+ inner:width (* 2 border))
 			   (+ inner:height (* 2 border))
@@ -153,6 +153,27 @@
    (let* ((border ::real (painter:border-size)))
      (element:rotate-right! (- x border) (- y border))))
 
+  implementing Resizable
+  with
+
+  ((can-be-resized?)::boolean
+   (and-let* ((element ::Resizable))
+     (element:can-be-resized?)))
+
+  ((resize-anchor position::real)::ResizeAnchor
+   (and-let* ((element ::Resizable)
+	      (border ::real (painter:border-size)))
+     (element:resize-anchor (- position border))))
+  
+  ((set-size! width::real
+	      height::real
+	      anchor::ResizeAnchor)
+   ::void
+   (and-let* ((element ::Resizable)
+	      (border ::real (painter:border-size)))
+     (element:set-size! (- width border border)
+			(- height border border)
+			anchor)))
   )
   
 (define-object (Stretched element::Enchanted size::Extent)::Maximizable
@@ -160,7 +181,7 @@
   (define (can-be-resized?)::boolean
     #t)
   
-  (define (resize-anchor poistion::real)::ResizeAnchor
+  (define (resize-anchor position::real)::ResizeAnchor
     position)
   
   (define (set-size! width::real height::real anchor::ResizeAnchor)::void
