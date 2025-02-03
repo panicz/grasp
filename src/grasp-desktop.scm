@@ -896,8 +896,28 @@
 				     #\t
 				     #\null)))
     ::void
+    (set-color!
+     (match highlight
+       (#\[
+	(focused-parenthesis-color))
+       (#\]
+	(matching-parenthesis-color))
+       (#\null
+	(parenthesis-color))
+       (_
+	text-color)))
     (graphics:fillRect 3 3 (- width 6) 4)
     (graphics:fillRect 3 3 4 (- height 6))
+    (set-color!
+     (match highlight
+       (#\[
+	(matching-parenthesis-color))
+       (#\]
+	(focused-parenthesis-color))
+       (#\null
+	(parenthesis-color))
+       (_
+	text-color)))
     (graphics:fillRect (- width 7) 3 4 (- height 6))
     (graphics:fillRect 3 (- height 7) (- width 6) 4))
 
