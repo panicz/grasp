@@ -1,3 +1,15 @@
+* 02.02.2025
+
+No to teraz plan jest jaki?
+
+Chyba bysmy chcieli wyodrebnic =Splittable= z =Embeddable=,
+i tak zmodyfikowac detektor gestow, zeby sprawdzal, czy 
+=(Splittable? (screen:content))=.
+
+A jak juz to bedziemy mieli, to sie zajmiemy na powrot
+symulatorem?
+
+
 * 31.01.2025
 
 OK, to dzis zacznijmy dzien od poprawek w podswietlaniu
@@ -69,7 +81,6 @@ OK, to na razie mamy to na poziomie szkieletu. Teraz bysmy
 zrobili w klientach graficznych kolory. Zaczniemy od
 klienta androidowego
 
-
 * 29.01.2025
 
 To dzien zaczynamy od:
@@ -130,6 +141,13 @@ Jeszcze bysmy do =Resizable= dodali metody
 
 No to dzisiaj probujemy zrobic tak, zeby =EmptyListProxy=
 byl =Resizable=.
+
+* 26.01.2025 (komputer)
+
+No dobra, to na razie udalo sie nam przeprowadzic
+mala refaktoryzacje. Teraz kolejne etapy bylyby takie, zeby:
+- dodac mozliwosc zmiany rozmiaru pustej listy
+- stworzyc kombinator do zmiany rozmiaru zawartego wen elementu
 
 * 24.01.2025 (telefon)
 To co bysmy zrobili?
