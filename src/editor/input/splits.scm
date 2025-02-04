@@ -32,7 +32,7 @@
 		    first: Embeddable
 		    last: Embeddable
 		    focus: SplitFocus := SplitFocus:First)
-  implementing Embeddable
+  implementing Splittable
   with
 
   (translation ::Translation (Translation))
@@ -268,49 +268,54 @@
    (let-values (((first-size line-size last-size) (part-sizes)))
      (or (with-pane-size first-size
 	   (lambda ()
-	     (first:can-split-beside? line)))
+	     (and-let* ((first ::Splittable))
+	       (first:can-split-beside? line))))
 	 (with-pane-size last-size
 	   (lambda ()
-	     (last:can-split-beside?
-	      (area/last line (+ first-size line-size))))))))
+	     (and-let* ((last ::Splittable))
+	       (last:can-split-beside?
+		(area/last line (+ first-size line-size)))))))))
 
   ((split-beside! line::Area)::Embeddable
-   (WARN "splitting "(this))
    (let-values (((first-size line-size last-size) (part-sizes)))
      (with-pane-size first-size
        (lambda ()
-	 (if (first:can-split-beside? line)
-	     (set! first (first:split-beside! line))
-	     (WARN "cannot split left beside"))))
+	 (and-let* ((f ::Splittable first)
+		    ((f:can-split-beside? line)))
+	   (set! first (f:split-beside! line)))))
      (let ((line* (area/last line (+ first-size line-size))))
        (with-pane-size last-size
 	 (lambda ()
-	   (if (last:can-split-beside? line*)
-	       (set! last (last:split-beside! line*))
-	       (WARN "cannot split right beside")))))
+	   (and-let* ((l ::Splittable last)
+		      ((l:can-split-beside? line*)))
+	       (set! last (l:split-beside! line*))))))
      (this)))
 
   ((can-split-below? line::Area)::boolean
    (let-values (((first-size line-size last-size) (part-sizes)))
      (or (with-pane-size first-size
 	   (lambda ()
-	     (first:can-split-below? line)))
+	     (and-let* ((first ::Splittable))
+	       (first:can-split-below? line))))
 	 (with-pane-size last-size
 	   (lambda ()
-	     (last:can-split-below?
-	      (area/last line (+ first-size line-size))))))))
+	     (and-let* ((last ::Splittable))
+	       (last:can-split-below?
+		(area/last line (+ first-size line-size)))))))))
 
   ((split-below! line::Area)::Embeddable
    (let-values (((first-size line-size last-size) (part-sizes)))
      (with-pane-size first-size
        (lambda ()
-	 (when (first:can-split-below? line)
-	   (set! first (first:split-below! line)))))
+	 (and-let* ((f ::Splittable first)
+		    ((first:can-split-below? line)))
+	   (set! first (f:split-below! line)))))
      (let ((line* (area/last line (+ first-size line-size))))
        (with-pane-size last-size
 	 (lambda ()
-	   (when (last:can-split-below? line*)
-	     (set! last (last:split-below! line*))))))
+	   (and-let* ((l ::Splittable last)
+		      ((last:can-split-below? line*)))
+	     (set! last (l:split-below! line*))))))
      (this)))
 
   )

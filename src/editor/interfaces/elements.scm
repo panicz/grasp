@@ -492,9 +492,12 @@ operate on cursors.
      methods
      ...))
 
+
+
 (define-interface Embeddable (Pane Map2D)
-  (drop-at! x::real y::real expression::pair)::boolean
-  
+  (drop-at! x::real y::real expression::pair)::boolean)
+
+(define-interface Splittable (Embeddable)
   (pane-under x::real y::real)::Embeddable
 
   (can-split-beside? line::Area)::boolean
@@ -503,10 +506,9 @@ operate on cursors.
   (can-split-below? line::Area)::boolean
   (split-below! line::Area)::Embeddable
 
-  (active)::Embeddable
-  )
+  (active)::Embeddable)
 
-(define-interface Editor (Embeddable
+(define-interface Editor (Splittable
 			  java.lang.Cloneable
 			  WithCursor)
   (add-post-draw-action! action::(maps () to: void))
@@ -625,7 +627,7 @@ operate on cursors.
 
 (define-interface World (Maximizable Animation))
 
-(define-interface Screen (Resizable Embeddable Interactive)
+(define-interface Screen (Resizable Splittable Interactive)
   (drag! finger::byte action::Drag)::void
   (undrag! finger::byte)::void
   

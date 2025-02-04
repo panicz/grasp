@@ -324,17 +324,21 @@
 	      (top:key-typed! key-code context)))))
 
   (define (can-split-beside? line::Area)::boolean
-    (top:can-split-beside? line))
+    (and-let* ((top ::Splittable))
+      (top:can-split-beside? line)))
 
   (define (split-beside! line::Area)::Embeddable
-    (set! top (top:split-beside! line))
+    (and-let* ((t ::Splittable top))
+      (set! top (t:split-beside! line)))
     (this))
 
   (define (can-split-below? line::Area)::boolean
-    (top:can-split-below? line))
+    (and-let* ((top ::Splittable))
+      (top:can-split-below? line)))
 
   (define (split-below! line::Area)::Embeddable
-    (set! top (top:split-below! line))
+    (and-let* ((t ::Splittable top))
+      (set! top (t:split-below! line)))
     (this))
 
   (define (scroll-up! x::real y::real)::boolean
