@@ -1,3 +1,126 @@
+* 03.02.2025
+
+No dobra, to teraz jeszcze sie wciaz chcemy skupiac
+na tym naszym symulatorze (i zadowoleni bedziemy
+dopiero jak to podepniemy do akcelerometru)
+
+No dobra, to na razie mamy taka ontologie, ze na
+=PreciseCanvas= moze sie znalezc cos co jest =Renderable=.
+
+Ale to rozwiazanie ma powazna wade, mianowicie nie
+wyodrebnia "punktu mocowania" od rysowania. Bo my
+bysmy chcieli albo rysowac bezkontekstowo, albo
+w kontekscie - przy czym za umiejscawianie rzeczy
+w kontekscie powinno byc odpowiedzialne *cos innego*.
+
+No dobra, to jeden aspekt - i to w sumie dosc istotny.
+
+Do tego dochodzi kwestia samych praw fizyki
+(i ewentualnego przejscia z 2d do 3d).
+
+No bo musimy miec metode =advance!=, ktora calkuje nam
+ruch poszczegolnych obiektow, a w przypadku samej sceny
+odpala detekcje kolizji i stosuje wszystkie niezbedne
+sily.
+
+No dobra, to teraz musimy sie zdobyc na takie bardziej
+calosciowe spojrzenie:
+
+Mamy modul =(extra collisions)=, ktory definiuje algorytm
+detekcji kolizji, ale poza tym definiuje interfejs =Collider=
+wymagany do dzialania algorytmu.
+
+I teraz co?
+
+Na pewno nasza klasa =PhysicsStage= bedzie musiala miec
+liste takich =Collider=-ow
+
+#+BEGIN_SRC scheme
+  (define-interface Body (Alive Collider))
+
+  (define-object (PhysicalBody2D ...)::Body
+    (define horizontal-velocity ::real 0.0)
+    (define vertical-velocity ::real 0.0)
+    (define angular-velocity ::real 0.0)
+    (define left ::real 0.0)
+    (define top ::real 0.0)
+    (define rotation ::real 0.0)
+    (define mass ::real 1.0)
+
+    (define (advance! timestep/ms::int)
+      ::boolean
+      (set! left
+	(+ left (* horizontal-velocity
+		   timestep/ms)))
+      (set! top
+	(+ top (* vertical-velocity
+		  timestep/ms)))
+      (set! rotation
+	(+ rotation (* angular-velocity
+		       timestep/ms)))
+      #t)
+
+    ...)
+
+  (define-type (PhysicalWorld2D
+		content::(list-of
+			  PhysicalBody2D))
+    (define (advance! timestep/ms::int)
+      ::boolean
+      (for item::PhysicalBody2D in content
+	(item:advance! timestep/ms))
+      (for (a::PhysicalBody2D
+	    b::PhysicalBody2D)
+	  in (collisions #;between content)
+	(let ((points (a:contact-points b)))
+	  (for contact in contacts
+	    ;; No, i tutaj rzecz tak
+	    ;; wyglada, ze jak mamy
+	    ;; zderzenie, to sila tego
+	    ;; zderzenia powinna zalezec
+	    ;; od mas i predkosci
+	    ;; poszczegolnych obiektow,
+	    ;; A co to oznacza w praktyce?
+	    ;; Po pierwsze, wiemy, ze
+	    ;; w momencie zderzenia albo
+	    ;; jest tak, ze calkowita
+	    ;; energa (kinetyczna) jest
+	    ;; zachowana. Ale to jest
+	    ;; prawda tylko dla obiektow
+	    ;; o skonczonej masie, natomiaast
+	    ;; obiekty nieruchome chcielibysmy
+	    ;; modelowac jako obiekty o
+	    ;; masach nieskonczonych (o ile
+	    ;; to ma sens?)
+	    ;; W kazdym razie wiemy tyle,
+	    ;; ze powinny obowiazywac
+	    ;; zasady zachowania energii
+	    ;; i pedu.
+
+	    ;; No ale co to nam mowi o
+	    ;; silach, jakie powinny
+	    ;; dzialac na uklad?
+
+	    ;; Jezeli mamy kulke, ktora
+	    ;; spada na podloge, to jezeli
+	    ;; ta kulka jest idealnie
+	    ;; sprezysta, to sie odbije
+	    ;; od tej podlogi. Oznacza
+	    ;; to, ze ped zmieni swoj zwrot
+	    ;; na przeciwny.
+
+	    ;; W przypadku kuli bilardowej
+	    ;; odbijajacej sie od scianki
+	    ;; stolu bilardowego
+
+	    ...))))
+
+    ...)
+
+#+END_SRC
+
+
+
 * 02.02.2025
 
 No to teraz plan jest jaki?
