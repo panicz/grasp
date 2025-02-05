@@ -1,3 +1,59 @@
+* 04.02.2025
+
+Symulator fizyczny: nowe rozdanie. To cosmy wczoraj
+nawymyslali pozostaje w mocy.
+
+Ale musimy sie jeszcze skupic na zamodelowaniu
+zderzen
+
+#+BEGIN_SRC
+m1*v1 + m2*v2 = m1*v1' + m2*v2'
+m1*v1^2 + m2*v2^2 = m1*v1'^2 + m2*v2'^2
+
+m1(v1-v1')=m2(v2'-v2)
+m1=m2(v2'-v2)/(v1-v1')
+
+m1(v1^2 - v1'^2)=m2(v2'^2 - v2^2)
+
+v1+v1'=v2'+v2
+v1'=v2'+v2-v1
+2*v1-v2'-v2=(m2/m1)(v2'-v2)
+2v1 - v2' - v2 = v2'*m2/m1 - v2*m2/m1
+v2'(m2/m1 - 1) = v2(m2/m1 - 1) - 2v1
+
+cos tutaj jest nietenteges, a gostek wkleja tam jakies
+magiczne wartosci z dupy
+
+m1*v1 + m2*v2 = m1*v1' + m2*v2'
+m1*v1^2 + m2*v2^2 = m1*v1'^2 + m2*v2'^2
+
+m1(v1 - v1')=m2(v2' - v2)
+m1(v1^2 - v1'^2)=m2(v2'^2 - v2^2)
+m1(v1 - v1')(v1 + v1')=m2(v2' - v2)(v2' + v2)
+
+v1 + v1' = v2' + v2
+
+F = dp/dt
+
+Impuls = Calka(t0, t1) F(t)dt
+
+#+END_SRC
+
+No, to sytuacja nie wyglada jak na razie
+najlepiej. Rzecz w tym, ze chcemy wyznaczyc
+sily dzialajace przy zderzezniach.
+
+Zakladajac, ze podczas zderzenia energia
+nie jest wytracana (np. przez sprezystosc
+materialu), to w przypadku liniowym
+zderzenia dwoch kul mamy z zasady
+zachowania pedu
+
+m1*v1 + m2*v2 = m1*v1' + m2*v2'
+
+
+
+
 * 03.02.2025
 
 No dobra, to teraz jeszcze sie wciaz chcemy skupiac
