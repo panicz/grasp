@@ -1,3 +1,62 @@
+* 05.02.2025 (poranek)
+
+Wydaje sie, ze blad we wczorajszym wyprowadzeniu
+jest taki, ze o ile zasade zachowania pedu mozna
+rzutowac na poszczegolne osie (a mozna?), o tyle
+w przypadku energii juz nie jest tak prosto, bo
+do kwadratu podnosimy wielkosci wektorowe,
+czyli v^2 to kwadrat z dlugosci wektora, co mozna
+zapisac jako vx^2 + vy^2, czyli zasade zachowania
+energii w 2d mozna zapisac jako
+
+#+BEGIN_SRC
+  m1*(v1x^2 + v1y^2) + m2*(v2x^2 + v2y^2)
+  = m1*(v1'x^2 + v1'y^2) + m2*(v2'x^2 + v2'y^2)
+#+END_SRC
+
+natomiast zasade zachowania pedu mozemy rozpisac
+jako
+
+#+BEGIN_SRC
+m1*v1x + m2*v2x = m1*v1'x + m2*v2'x
+m1*v1y + m2*v2y = m1*v1'y + m2*v2'y
+#+END_SRC
+
+Szukamy v1'x, v1'y, v2'x, v2'y
+ale mamy 4 niewiadome, a tylko 3 rownania.
+Niech Px = m1*v1x + m2*v2x,
+Py = m1*v1y + m2*v2y, E1 = m1*(v1x^2 + v1y^2),
+E2 = m2*(v2x^2 + v2y^2), E=E1+E2wszystko to sa
+wielkosci dane
+
+#+BEGIN_SRC
+Px = m1*v1'x + m2*v2'x
+Py = m1*v1'y + m2*v2'y
+E= m1*(v1'x^2 + v1'y^2) + m2*(v2'x^2 + v2'y^2)
+#+END_SRC
+
+Mozemy wyliczyc i podstawic
+#+BEGIN_SRC
+v1'x = (Px - m2*v2'x)/m1
+v1'y = (Py - m2*v2'y)/m1
+E=m1*(((Px - m2*v2'x)/m1)^2
+     +((Py - m2*v2'y)/m1)^2)
+  + m2*(v2'x^2 + v2'y^2)
+#+END_SRC
+
+No ale widac, ze to nie pomoze nam wyznaczyc
+konkretnych wartosci v2'x i v2'y, a co najwyzej
+ich wzajemna relacje.
+
+I nic dziwnego - bo do wyznaczenia konkretnych
+wartosci musimy jeszcze znac plaszczyzne odbicia!
+
+No i fajnie. Czyli nadal g*wno wiemy.
+
+Ale wezmy to video tego goscia, co mowi
+o symulacjach fizycznych, i zerknijmy moze
+do materialow, o ktorych opowiada.
+
 * 04.02.2025
 
 Symulator fizyczny: nowe rozdanie. To cosmy wczoraj
