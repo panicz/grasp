@@ -1,3 +1,83 @@
+* 05.02.2025 (wieczor)
+
+Wyglada na to, ze sie udalo zrozumiec jeden
+z pejperow - gdzie wyznaczona zostaje plaszczyzna
+kolizji, a nastepnie jest w jej ramach rozwiazany
+przypadek jednowymiarowy
+
+#+BEGIN_SRC
+ v1' = (2*m2*v2 + (m1 - m2)*v1)/(m1+m2)
+ v2' = (2*m1*v1 + (m2 - m1)*v2)/(m1+m2)
+#+END_SRC
+
+i predkosc zostaje zaktualizowana wlasnie w owym
+rzucie.
+
+Oczywiscie, w gre wchodzi tutaj jeszcze taka
+kwestia, ze rownanie zostaje rozwiazane dla
+odbicia "idealnie sprezystego", tj. przy zalozeniu
+zachowania energii kinetycznej.
+
+Natomiast w praktyce chcielibysmy na pewno,
+zeby istniala mozliwosc "pochlaniania" energii
+przy uderzeniu (na przyklad, zeby "zniszczyc"
+zbroje), i z pewnoscia chcielibysmy parametryzowac
+uderzenia procentem pochlonietej energii.
+
+Druga rzecz jest taka, ze w pewnych sytuacjach
+bedziemy mieli do czynienia ze "zlamaniem"
+zasady zachowania pedu (np. rzeczy przytwierdzone
+do ziemi nie beda jej podlegac), dlatego nie ma
+sie co przesadnie nad tym spuszczac.
+
+Wrocmy jednak do naszych rownan:
+
+#+BEGIN_SRC
+ v1' = (2*m2*v2 + (m1 - m2)*v1)/(m1+m2)
+ v2' = (2*m1*v1 + (m2 - m1)*v2)/(m1+m2)
+#+END_SRC
+
+Chcemy wyznaczyc sile, czy moze raczej
+"poped", ktory dziala na obydwa ciala.
+
+Co wiemy?
+
+~F = m*a = dp/dt~
+
+~Impuls = Calka(t0, t1) F(t)dt~
+
+W naszym przypadku zakladamy, ze krok symulacji
+bedzie staly, czyli mamy sobie jakies ~Δt~,
+i zmiana pedu wyniesie ~Δp = F*Δt~.
+
+I teraz tak: zmiana pedu pierwszego ciala wyniesie
+~m1*(v1' - v1)~, a zmiana pedu drugiego ciala
+~m2*(v2' - v2)~, choc to oczywiscie zalezy jak
+na to patrzec.
+
+Wiemy tez, ze ta liczba powinna byc w obu przypadkach
+taka sama!
+
+#+BEGIN_SRC
+ m1*(v1' - v1) = m1*((2*m2*v2 + (m1 - m2)*v1)/(m1+m2) - v1)
+ = m1*((2*m2*v2 + (m1 - m2)*v1)/(m1+m2) - v1(m1+m2)/(m1+m2))
+ = m1*((2*m2*v2 + m1*v1 - m2*v1 - m1*v1 - m2*v1))/(m1+m2)
+ = 2*m1*m2*(v2-v1)/(m1+m2) [kg*m/s]
+
+
+m2*(v2'-v2) = 2*m1*m2*(v1-v2)/(m1+m2)
+#+END_SRC
+
+Sie to zgadza! (Z dokladnoscia do znaku)
+[czym pewnie nie ma sie co podniecac, skoro wynika
+z zalozen]
+
+No dobra, to teraz ilekroc ktos nas zapyta o to,
+jaki impuls dziala na dwa ciala w momencie uderzenia,
+to mu powiemy, ze ~Δp = +-2*m1*m2*(v1-v2)/(m1+m2)~
+
+Ale jaka to ma interpretacje?
+
 * 05.02.2025 (poranek)
 
 Wydaje sie, ze blad we wczorajszym wyprowadzeniu
