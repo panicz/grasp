@@ -1,3 +1,155 @@
+* 06.02.2025 (poranek)
+
+No dobra, czyli mamy cos w stylu
+
+#+BEGIN_SRC
+
+j = (-1-C)Vrel0
+    /(  1/mA
+      + 1/mB
+      + nB*(IAinv (rA x nB)) x rA
+      + nB*(IBinv (rB x nB)) x rB )
+  
+#+END_SRC
+
+co wynika stad, ze tak jak
+
+#+BEGIN_SRC
+
+  Va' = Va + jnB/ma
+
+#+END_SRC
+
+tak rowniez
+
+#+BEGIN_SRC
+
+  Wa' = Wa + Iainv(rA x jnB)
+
+#+END_SRC
+
+Czyli teraz wiemy, ze gdy wyznaczamy
+punkt kontaktu, to oprocz samego punktu
+potrzebujemy rowniez wektora normalnego.
+
+Pytanie brzmi: co dalej?
+
+W miare mozliwosci bysmy chcieli opracowac
+interfejs generyczny, czyli zeby ten sam kod
+dzialal w 2D i w 3D.
+
+OK, to w teorii bysmy mogli sobie juz teraz
+wygeneralizowac =Box2D= na =HyperCube=, a
+=Circle= na =HyperSphere=, i w pierwszym przypadku
+reprezentowac calosc jako tablice wartosci
+=(poczatek, koniec)=, a w tym drugim reprezentowac
+srodek jako tablice wspolrzednych.
+
+Na razie jednak to nie jest naszym celem. Wazniejsze
+wydaje sie stworzenie klasy =Polygon=, ktora jednak
+trudniej bedzie uogolnic (w 3d bylby to =Mesh=).
+
+OK, to teraz jeszcze kwestia momentow bezwladnosci.
+Dla kuli glowne momenty to =2/5mr^2=, dla sfery
+=2/3mr^2=, dla walca moment dla osi, w ktorej przekroj
+jest kolisty, to =1/2mr^2= (we wszystkich przypadkach
+momenty dewiacyjne sa 0), dla srodka preta =1/12ml^2=,
+dla krawedzi preta =1/3ml^2=, dla prostokata to
+=1/12m(w^2+h^2)=.
+
+W kazdym razie tensor momentu bezwladnosci sie nam
+redukuje do pojedynczej liczby.
+
+#+BEGIN_SRC scheme
+
+  (define-interface Body (Alive)
+    (collider)::Collider
+    )
+
+  (define-type (ContactPoint position: Position
+			     direction: Position
+			     impulse: real))
+
+  (define-object (PhysicalBody2D ...)::Body
+    (define horizontal-velocity ::real 0.0)
+    (define vertical-velocity ::real 0.0)
+    (define angular-velocity ::real 0.0)
+    (define left ::real 0.0)
+    (define top ::real 0.0)
+    (define rotation ::real 0.0)
+    (define mass ::real 1.0)
+    (define inertia ::real 1.0)
+
+    (define (impulse! momentum ::real
+		      position ::Position
+		      direction ::Position)
+      ::void
+      ;; czysta fizyka
+      ...)
+
+    (define (contact-points another::PhysicalBody2D)
+      ::(list-of ContactPoint)
+
+      ...)
+
+    (define (collide-with! another::PhysicalBody2D)
+      ::void
+      (let ((contacts (contact-points another)))
+	(for contact in contacts
+	  (let ((impulse (contact:impulse a b)))
+	    (a:impulse! contact:impulse
+			contact:position
+			contact:direction)
+	    (b:impulse! (- impulse) contact:position
+			contact:direction)))))
+
+    (define (advance! timestep/ms::int)
+      ::boolean
+      (set! left
+	(+ left (* horizontal-velocity
+		   timestep/ms)))
+      (set! top
+	(+ top (* vertical-velocity
+		  timestep/ms)))
+      (set! rotation
+	(+ rotation (* angular-velocity
+		       timestep/ms)))
+      #t)
+
+    ...)
+
+  (define-type (PhysicalWorld2D
+		content::(list-of
+			  PhysicalBody2D))
+    (define (advance! timestep/ms::int)
+      ::boolean
+      (for item::PhysicalBody2D in content
+	(item:advance! timestep/ms))
+      (for (a::PhysicalBody2D
+	    b::PhysicalBody2D)
+	  in (collisions #;between content)
+	(a:collide-with! b)))
+    ...)
+
+#+END_SRC
+
+No dobra, jeszcze dochodzi nam taka rzecz, ze jezeli
+chcemy wyabstrahowac dynamike od samego rysowania
+/rozciaglosci, to musimy byc w stanie wyliczyc =Extent=
+dla dowolnego kata, ktory musi przychodzic z zewnatrz.
+
+Ok, ale co chcemy zrobic dalej?
+- przede wszystkim, wyznaczanie punktow kolizji
+  dla kolek, a w dalszej kolejnosci dla wielokatow
+- usuniecie =Box2D=, generalizacja =Circle= do =BoundingSphere=
+  (rowniez zeby uniknac kolizji z =Circle= w =PreciseCanvas=)
+
+Na pewno bedziemy chcieli:
+- zaimplementowac =Polygon= jako =Collider=
+- ale wczesniej chcemy sie zajac kulami
+- i do =BoundingSphere= bedziemy chcieli dodac =ContactPoints=
+
+
 * 05.02.2025 (wieczor)
 
 Wyglada na to, ze sie udalo zrozumiec jeden
