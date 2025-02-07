@@ -1,3 +1,19 @@
+* 07.02.2025
+
+Wydaje sie, ze wazne jest to, zeby dokonac
+rozdzielenia fizyki od geometrii.
+
+To znaczy, =Collider= jest czyms geometrycznym,
+natomiast =Body= jest czyms fizycznym.
+
+Wiec do wyboru mamy albo delegowanie, albo
+dziedziczenie. Wydaje sie jednak, ze skoro
+rzeczy fizyczne opieraja sie na tych
+geometrycznych (przede wszystkim polozenie),
+lepiej jest wspoldzielic ich reprezentacje
+poprzez dziedziczenie wlasnie.
+
+
 * 06.02.2025 (poranek)
 
 No dobra, czyli mamy cos w stylu
@@ -63,7 +79,7 @@ redukuje do pojedynczej liczby.
 #+BEGIN_SRC scheme
 
   (define-interface Body (Alive)
-    (collider)::Collider
+    (shape)::Collider
     )
 
   (define-type (ContactPoint position: Position
