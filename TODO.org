@@ -1,3 +1,58 @@
+* 08.02.2025
+
+#+BEGIN_SRC scheme
+
+(define-interface Body (Alive Colliding)
+  (impulse! force ::real contact-point ::ContactPoint)::void
+  (collide-with! another ::Body)::void
+  )
+
+(define-type (PhysicalSphere mass: real
+                             velocity: (sequence-of real)
+			     angular-velocity: real
+                             bounciness: real
+                             rotation: real)
+
+  implementing Body with
+  ((impulse! value ::real contact-point ::ContactPoint)::void
+   (for i::int from 0 below (length velocity)
+     (set! (velocity i)
+       (+ (velocity i) (* value (contact-point:direction i) (/ mass)))))
+   (let* ((arm (map - contact-point:position 
+                      (slot-ref (this) 'center))))
+     ...))
+
+  extending BoundingSphere with
+  ((collide-with! another ::Body)::void
+   (let ((points (invoke-special Colliding (this) 
+                                 'contact-points another)))
+     (for contact::ContactPoint in points
+        (let ((impulse ...))
+           (impulse! impulse contact)
+           (another:impulse! (- impulse) contact)))))
+
+  implementing Alive with
+  ((advance! timestep/ms::int)::boolean
+   (for item ::Body in content
+     (item:advance! timestep/ms))
+   (for (a ::Body b ::Body) in (collisions content)
+     (a:collide-with! b)))
+   )
+
+
+(define-object (PhysicalWorld content::(list-of Body))
+
+  (define (advance! timestep/ms::int)
+      ::boolean
+      (for item ::Body in content
+	(item:advance! timestep/ms))
+      (for (a ::Body b ::Body) in (collisions content)
+        (a:collide-with! b))))
+
+
+#+END_SRC
+
+
 * 07.02.2025
 
 Wydaje sie, ze wazne jest to, zeby dokonac
@@ -12,6 +67,9 @@ rzeczy fizyczne opieraja sie na tych
 geometrycznych (przede wszystkim polozenie),
 lepiej jest wspoldzielic ich reprezentacje
 poprzez dziedziczenie wlasnie.
+
+OK, mamy na razie punkty kontaktowe. Teraz bysmy
+chcieli przylozyc impuls do tego punktu.
 
 
 * 06.02.2025 (poranek)
