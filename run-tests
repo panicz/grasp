@@ -16,4 +16,6 @@ java -jar libs/kawa.jar $FLAGS -f src/test-document-operations.scm #4
 java -jar libs/kawa.jar $FLAGS -f src/test-stepper.scm #5
 java -jar libs/kawa.jar $FLAGS -f src/test-regressions.scm #6
 java -jar libs/kawa.jar $FLAGS -f src/test-playground.scm #7
+java -jar libs/kawa.jar $FLAGS -f src/test-simulator.scm #8
+
 fi
