@@ -1,3 +1,80 @@
+* 10.02.2025
+
+#+BEGIN_SRC scheme
+
+  (define-interface Body (Alive Colliding)
+    (impulse! force ::real
+	      contact-point ::ContactPoint)
+    ::void
+    (collide-with! another ::Body)::void
+    (current-mass)::real
+    (current-velocity)::(sequence-of real)
+    (current-inertia)::real
+    (current-angular-velocity)::real
+    (current-bounciness)::real
+    )
+
+  (define (cross-product-2d a::(sequence-of real)
+			 b::(sequence-of real))
+    (- (* (a 0) (b 1))
+       (* (a 1) (b 0))))
+
+  (define-type (PhysicalSphere mass: real
+			       velocity: (sequence-of
+					  real)
+			       angular-velocity: real
+			       inertia: real
+			       bounciness: real := 1
+			       rotation: real := 0)
+    ...
+    implementing Body with
+    ...
+
+    ((current-mass)::real mass)
+
+    ((current-velocity)::(sequence-of real) velocity)
+    ((current-inertia)::real inertia)
+    ((current-angular-velocity)::real angular-velocity)
+    ((current-bounciness)::real bounciness)
+
+    ((impulse! value ::real contact-point ::ContactPoint)::void
+     (for i::int from 0 below (length velocity)
+       (set! (velocity i)
+	 (+ (velocity i) (* value
+			    (contact-point:direction i)
+			    (/ mass)))))
+     (let* ((arm (map - contact-point:position 
+			(slot-ref (this) 'center))))
+       (set! angular-velocity
+	 (+ angular-velocity
+	    (* value (cross-product-2d
+		      contact-point:direction
+		      arm))))))
+    
+    ((collide-with! another ::Body)::void
+     (let ((points (invoke-special Colliding (this) 
+				   'contact-points
+				   another)))
+       (for contact::ContactPoint in points
+	  (let* ((m1 mass)
+		 (m2 (another:current-mass))
+		 (v1 (apply + (map * contact:direction
+				   velocity)))
+		 (v2 (apply
+		      + (map * contact:direction
+			     (another:current-velocity))))
+		 (C (* bounciness
+		       (another:current-bounciness)))
+		 (impulse (/ (* (+ 1 C) m1 m2 (- v2 v1))
+			     (+ m1 m2))))
+	     (impulse! impulse contact)
+	     (another:impulse! (- impulse) contact)))))
+
+
+    ...)
+
+#+END_SRC
+     
 * 09.02.2025
 
 Co chcemy zrobic:
@@ -9,52 +86,60 @@ Co chcemy zrobic:
 
 #+BEGIN_SRC scheme
 
-(define-interface Body (Alive Colliding)
-  (impulse! force ::real contact-point ::ContactPoint)::void
-  (collide-with! another ::Body)::void
-  )
+  (define-interface Body (Alive Colliding)
+    (impulse! force ::real contact-point ::ContactPoint)::void
+    (collide-with! another ::Body)::void
+    (mass)::real
+    (velocity)::(sequence-of real)
+    (inertia)::real
+    (angular-velocity)::real
+    (bounciness)::real
+    )
 
-(define-type (PhysicalSphere mass: real
-                             velocity: (sequence-of real)
-			     angular-velocity: real
-                             bounciness: real
-                             rotation: real)
+  (define-type (PhysicalSphere mass: real
+			       velocity: (sequence-of real)
+			       angular-velocity: real
+			       bounciness: real
+			       rotation: real)
 
-  implementing Body with
-  ((impulse! value ::real contact-point ::ContactPoint)::void
-   (for i::int from 0 below (length velocity)
-     (set! (velocity i)
-       (+ (velocity i) (* value (contact-point:direction i) (/ mass)))))
-   (let* ((arm (map - contact-point:position 
-                      (slot-ref (this) 'center))))
-     ...))
+    implementing Body with
+    ((impulse! value ::real contact-point ::ContactPoint)::void
+     (for i::int from 0 below (length velocity)
+       (set! (velocity i)
+	 (+ (velocity i) (* value (contact-point:direction i) (/ mass)))))
+     (let* ((arm (map - contact-point:position 
+			(slot-ref (this) 'center))))
+       ...))
 
-  extending BoundingSphere with
-  ((collide-with! another ::Body)::void
-   (let ((points (invoke-special Colliding (this) 
-                                 'contact-points another)))
-     (for contact::ContactPoint in points
-        (let ((impulse ...))
-           (impulse! impulse contact)
-           (another:impulse! (- impulse) contact)))))
+    extending BoundingSphere with
+    ((collide-with! another ::Body)::void
+     (let ((points (invoke-special Colliding (this) 
+				   'contact-points another)))
+       (for contact::ContactPoint in points
+	  (let ((impulse ...))
+	     (impulse! impulse contact)
+	     (another:impulse! (- impulse) contact)))))
 
-  implementing Alive with
-  ((advance! timestep/ms::int)::boolean
-   (for item ::Body in content
-     (item:advance! timestep/ms))
-   (for (a ::Body b ::Body) in (collisions content)
-     (a:collide-with! b)))
-   )
+    implementing Alive with
+    ((advance! timestep/ms::int)::boolean
+     (for item ::Body in content
+       (item:advance! timestep/ms))
+     (for (a ::Body b ::Body) in (collisions content)
+       (a:collide-with! b)))
+     )
 
 
-(define-object (PhysicalWorld content::(list-of Body))
+  (define-object (PhysicalWorld content::(list-of Body))
+    ::World
 
-  (define (advance! timestep/ms::int)
-      ::boolean
-      (for item ::Body in content
-	(item:advance! timestep/ms))
-      (for (a ::Body b ::Body) in (collisions content)
-        (a:collide-with! b))))
+    (define (advance! timestep/ms::int)
+	::boolean
+	(for item ::Body in content
+	  (item:advance! timestep/ms))
+	(for (a ::Body b ::Body) in (collisions content)
+	  (a:collide-with! b)))
+
+    (PreciseCanvas content))
 
 
 #+END_SRC
