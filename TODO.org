@@ -1,3 +1,10 @@
+* 09.02.2025
+
+Co chcemy zrobic:
+- uwzglednic zmiane momentu pedu przy oddzialywaniu
+  popedu
+- wyliczac poped podczas zderzenia
+
 * 08.02.2025
 
 #+BEGIN_SRC scheme
