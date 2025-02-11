@@ -28,14 +28,20 @@
   ((render!)
    (painter:precise-fill-circle! left top radius color)))
 
-(define-type (PreciseCanvas size: Extent content: (list-of Renderable))
-  extending Magic with
-  ((draw! context ::Cursor) ::void  
-   (for item::Renderable in content
-     (item:render!))
-   )
-  ((extent)::Extent size)
-  )
+(define-object (PreciseCanvas width ::real
+			      height ::real
+			      content ::(list-of
+					 Renderable))
+  ::Enchanted
+  (define (draw! context ::Cursor) ::void  
+    (for item::Renderable in content
+      (item:render!))
+    )
+  
+  (define size ::Extent (Extent width: width
+				height: height))
+  (define (extent)::Extent size)
+  (Magic))
 
 (set! (extension 'PreciseCanvas)
       (object (Extension)

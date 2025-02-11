@@ -18,7 +18,5 @@ action: (lambda ()
 action: (lambda ()
   (set! c:radius (- c:radius 1)))) 
 
-
-(PreciseCanvas size: (Extent width: 60 height: 30)
-       content: (list c))
+(PreciseCanvas 60 30 (list c))
 
