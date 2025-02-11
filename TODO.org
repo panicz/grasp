@@ -1,3 +1,78 @@
+* 11.02.2025
+
+Musimy jeszcze poprawic formule wyliczajaca impuls
+
+#+BEGIN_SRC scheme
+  (define-type (PhysicalSphere mass: real
+			       velocity: (sequence-of
+					  real)
+			       angular-velocity: real
+			       inertia: real
+			       bounciness: real := 1
+			       rotation: real := 0)
+    ...
+    implementing Body with
+    ...
+    ((collide-with! another ::Body)::void
+     (let ((points (invoke-special Colliding (this) 
+				   'contact-points
+				   another)))
+       (for contact::ContactPoint in points
+	  (let* ((m1 mass)
+		 (m2 (another:current-mass))
+		 (v1 (apply + (map * contact:direction
+				   velocity)))
+		 (v2 (apply
+		      + (map * contact:direction
+			     (another:current-velocity))))
+		 (C (* bounciness
+		       (another:current-bounciness)))
+		 (impulse (/ (* (+ 1 C) m1 m2 (- v2 v1))
+			     (+ m1 m2))))
+	     (impulse! impulse contact)
+	     (another:impulse! (- impulse) contact)))))
+    ...)
+#+END_SRC
+
+Czech pisze nam tak:
+
+#+BEGIN_SRC
+j = (-1-C)Vrel0
+    /(  1/mA
+      + 1/mB
+      + nB*(IAinv (rA x nB)) x rA
+      + nB*(IBinv (rB x nB)) x rB )
+
+#+END_SRC
+
+Ale to dziala w ogolbym przypadku, gdy wyrazamy moment
+pedu jako wektor.
+
+Zastanowmy sie przez chwile nad sensem fizycznym
+poszczegolnych skladowych. rA x nB to wektor
+prostopadly do plaszczyzny sily/srodka masy.
+Jezeli IA jest diagonalna, to spowoduje tylko
+zmiane dlugosci tego wektora. Dalej: iloczyn tego
+wektora przez wektor rA da w wyniku wektor lezacy
+mniej wiecej w plaszczyznie wektora nB, natomiast
+iloczyn skalarny da nam rzut otrzymanego wektora.
+
+W podstawowce na fizyce mielismy takie cos, ze
+dlugosc iloczynu wektorowego to iloczyn dlugosci
+razy sinus kata miedzy nimi. Wiemy, ze nB jest
+jednostkowy, i wiemy, ze (rA x nB) jest prostopadly
+do rA (oraz do nB). Zakladajac, ze IA to jednorodna
+macierz diagonalna, wiemy, ze IAinv (rA x nB) x rA
+ma dlugosc rA^2*sin(<rA,nB)/m , i ze to samo
+mozemy mutatis mutandis powiedziec o rB.
+
+Rzecz jest jednak taka, ze:
+- w pierwszym rzucie mozemy to olac, i skupic sie
+  na kulach
+- docelowo modelowalibysmy nawet ciala 2d poslugujac
+  sie wektorami 3d, bo dla takich jest zdefiniowany
+  iloczyn wektorowy
+
 * 10.02.2025
 
 #+BEGIN_SRC scheme
@@ -31,7 +106,6 @@
     ...
 
     ((current-mass)::real mass)
-
     ((current-velocity)::(sequence-of real) velocity)
     ((current-inertia)::real inertia)
     ((current-angular-velocity)::real angular-velocity)
