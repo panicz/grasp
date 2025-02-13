@@ -52,6 +52,7 @@
 (import (editor types extensions visual-stepper))
 (import (editor types extensions testing))
 (import (editor types extensions canvas))
+(import (editor types extensions physics))
 (import (editor input transforms))
 (import (editor input gestures))
 (import (utils reflection))
