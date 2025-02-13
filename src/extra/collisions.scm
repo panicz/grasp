@@ -46,7 +46,10 @@
      (circle::BoundingSphere
       (is (apply + (map square
 			(map - center circle:center)))
-	  <= (square (+ radius circle:radius))))))
+	  <= (square (+ radius circle:radius))))
+     (box::BoundingBox
+      (box:collides-with? (this)))))
+
   
   ((opening dimension ::int)::real
    (- (center dimension) radius))
@@ -54,6 +57,48 @@
   ((closing dimension ::int)::real
    (+ (center dimension) radius))
   )
+
+(define-type (BoundingBox open: (sequence-of real)
+			  close: (sequence-of real))
+  implementing Collider
+  with
+  ((dimensionality)
+   ;;(assert (= (length open) (length close)))
+   (length open))
+  
+  ((collides-with? another ::Collider)::boolean
+   (match another
+     (box::BoundingBox
+      (escape-with return
+	(for i from 0 below (min (dimensionality)
+				 (box:dimensionality))
+	     (unless (overlap? (open i) (close i)
+			       (box:open i) (box:close i))
+	       (return #f))
+	     (return #t))))
+     
+     (sphere::BoundingSphere
+      (let ((dmin 0))
+	(for i from 0 below (min (dimensionality)
+				 (box:dimensionality))
+	     (cond
+	      ((is (sphere:center i) <= (open i))
+	       (set! dmin (+ dmin
+			     (square (- (sphere:center i)
+					(open i))))))
+	      ((is (sphere:center i) >= (close i))
+	       (set! dmin (+ dmin
+			     (square (- (sphere:center i)
+					(close i))))))))
+	(is dmin <= (square sphere:radius))))))
+  
+  ((opening dimension ::int)::real
+   (open dimension))
+  
+  ((closing dimension ::int)::real
+   (close dimension))
+  )
+
 
 (define (collisions #;among items ::(list-of Collider))
   ;; Based on Game Programming Gems vol.2, chapter 2.7:
