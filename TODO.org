@@ -1,3 +1,63 @@
+* 13.02.2024
+
+Chcemy przemianowac stworzona wczoraj =AnimateCanvas=
+na =PhysicalStage=, dodac =ContactPoint=, i rozszerzyc
+aktualizacje o detekcje kolizji.
+
+To do uruchomienia symulatora potrzebujemy jeszcze:
+- rysowania prostokatow
+- detekcji kolizji
+  - sfera sfera
+  - sfera pudelko
+  - pudelko pudelko
+- obslugi odpowiedzi na kolizje
+
+* 12.02.2025
+
+No to dzisiaj bysmy moze zrobili tak, ze bysmy
+przywrocili jako =Collider= =AxisAlignedBoundingBox=,
+i zdefiniowali sobie jako krawedzie:
+
+#+BEGIN_SRC scheme
+  ;; lewa sciana
+  (AxisAlignedBoundingBox
+   left: -inf.0 right: 0
+   top: -inf.0 bottom: +inf.0)
+
+  ;; sufit
+  (AxisAlignedBoundingBox
+   left: -inf.0 right: +inf.0
+   top: -inf.0 bottom: 0)
+
+  ;; podloga
+  (AxisAlignedBoundingBox
+   left: -inf.0 right: +inf.0
+   top: height bottom: +inf.0)
+  
+  ;; prawa sciana
+  (AxisAlignedBoundingBox
+   left: width right: +inf.0
+   top: -inf.0 bottom: +inf.0)
+
+#+END_SRC
+
+Musimy sie jeszcze upewnic, ze =PreciseCanvas= w =TextPainter=
+obsluguje wspolrzedne pseudorzeczywiste.
+
+Wyglada na to, ze powinno.
+
+Czyli jaki jest kolejny krok?
+
+Na pewno musimy:
+- przywrocic =AxisAlignedBoundingBox=
+- zdefiniowac sciane
+- zdefiniowac kule
+- odbicia pomiedzy kulami i scianami, kulami i kulami
+
+No dobra, mamy bounding-boxy.
+
+I co dalej?
+
 * 11.02.2025
 
 Musimy jeszcze poprawic formule wyliczajaca impuls
@@ -72,6 +132,46 @@ Rzecz jest jednak taka, ze:
 - docelowo modelowalibysmy nawet ciala 2d poslugujac
   sie wektorami 3d, bo dla takich jest zdefiniowany
   iloczyn wektorowy
+
+No dobra, czyli dzisiaj zajmujemy sie integracja
+tego, co juz mamy, zeby pozyskac przynajmniej
+dzialajacy symulator z odbijajacymi sie kulami.
+
+I jeszcze bysmy dodali polplaszczyzne jako =Collider=.
+
+No wlasnie: bo tutaj rzecz ma sie tak, ze gdybysmy
+wzieli nasza formule i chcieli ja zastosowac
+do czegos o nieskonczonej masie, to by nam wyszlo
+mnozenie i dzielenie przez ~+oo~
+
+#+BEGIN_SRC
+
+  dP = (1+C)*m1*m2*(v2-v1)/(m1+m2)
+
+  1/dP = (m1+m2)/((1+C)*m1*m2*(v2-v1))
+  = 1/((1+C)*m2*(v2-v1)) + 1/((1+C)*m1*(v2-v1))
+  
+#+END_SRC
+
+I jak to sobie w taki sposob zapiszemy, to dostajemy
+dwa skladniki zalezne od poszczegolnych mas
+- i jezeli jedna z tych mas bedzie nieskonczona,
+  to skladnik po prostu sie wyzeruje
+
+A wezmy jeszcze tego Czecha, ale w uproszczeniu,
+#+BEGIN_SRC
+  (-1-C)(v1-v2) = j(1/m1 + 1/m2)
+
+  1/j = (1/m1 + 1/m2)/((1+C)*(v2-v1))
+#+END_SRC
+
+No to sie to nadal zgadza. Pozostale skladniki
+mozemy rowniez wyliczyc przed odwroceniem.
+
+No to co? =inverted-momentum-component=
+
+Moze na razie dodajmy do =PreciseCanvas= =BiMap2D=
+i zawinmy to w =Bordered=?
 
 * 10.02.2025
 
