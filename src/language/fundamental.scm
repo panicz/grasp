@@ -1,5 +1,6 @@
 (module-name (language fundamental))
 
+(import (language define-syntax-rule))
 (import (language define-parameter))
 (import (language define-interface))
 (import (language for))
@@ -7,6 +8,9 @@
 (define-alias EnumSet java.util.EnumSet)
 
 (define-alias CharSequence java.lang.CharSequence)
+
+(define-syntax-rule (the property)
+  (slot-ref (this) 'property))
 
 (define-interface Animation ()
   ;; if this method returns #f, it means
