@@ -11,6 +11,8 @@
 
 (define-alias predicate procedure)
 
+(define-alias Iterator java.util.Iterator)
+
 (define (nearby-int x::real)::int
   (as int (round x)))
 
@@ -223,8 +225,8 @@
     x0)
 
   (define (fold-left2 xs1::java.util.List xs2::java.util.List)
-    (let ((xi1 ::java.util.ListIterator (xs1:listIterator))
-	  (xi2 ::java.util.ListIterator (xs2:listIterator)))
+    (let ((xi1 ::Iterator (xs1:listIterator))
+	  (xi2 ::Iterator (xs2:listIterator)))
       (let loop ((xo x0))
 	(if (and (xi1:hasNext) (xi2:hasNext))
 	    (loop (f xo (xi1:next) (xi2:next)))
@@ -233,9 +235,9 @@
   (define (fold-left3 xs1::java.util.List
 		      xs2::java.util.List
 		      xs3::java.util.List)
-    (let ((xi1 ::java.util.ListIterator (xs1:listIterator))
-	  (xi2 ::java.util.ListIterator (xs2:listIterator))
-	  (xi3 ::java.util.ListIterator (xs3:listIterator)))
+    (let ((xi1 ::Iterator (xs1:listIterator))
+	  (xi2 ::Iterator (xs2:listIterator))
+	  (xi3 ::Iterator (xs3:listIterator)))
       (let loop ((xo x0))
 	(if (and (xi1:hasNext) (xi2:hasNext) (xi3:hasNext))
 	    (loop (f xo (xi1:next) (xi2:next) (xi3:next)))
@@ -246,13 +248,13 @@
 			    (x:listIterator))
 			  xs*)))
       (let loop ((xo x0))
-	(if (every (lambda (it::java.util.ListIterator)
+	(if (every (lambda (it::Iterator)
 		     (it:hasNext))
 		   iterators)
 	    (loop
 	     (apply
 	      f xo
-	      (map (lambda (it::java.util.ListIterator)
+	      (map (lambda (it::Iterator)
 		     (it:next))
 		   iterators)))
 	    xo))))
@@ -802,6 +804,37 @@
 
 (define (map! f inout . in*)
   (cond
+   ((isnt inout list?)
+    (cond 
+     ((null? in*)
+      (for i from 0 below (length inout)
+	   (set! (inout i) (f (inout i))))
+      inout)
+     ((null? (cdr in*))
+      (escape-with return
+	(let ((i 0)
+	      (n (length inout)))
+	  (for x in (cdr in*)
+	    (set! (inout i) (f (inout i) x))
+	    (set! i (+ i 1))
+	    (when (is i >= n)
+	      (return inout)))
+	  (return inout))))
+     (else
+      (let ((n (length inout))
+	    (its (map (lambda (l::java.util.List)
+			(l:listIterator))
+		      in*)))
+	(escape-with return
+	  (for i from 0 below n
+	       (if (every (lambda (it::Iterator)
+			    (it:hasNext)) its)
+		   (set! (inout i)
+		     (apply f (inout i)
+			    (map (lambda (it::Iterator)
+				   (it:next)) its)))
+		   (return inout)))
+	  (return inout))))))
    ((null? in*)
     (let loop ((tip inout))
       (if (pair? tip)
