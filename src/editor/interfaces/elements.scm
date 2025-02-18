@@ -628,7 +628,7 @@ operate on cursors.
 			       ResizableEnchanted)
   (can-be-maximized?)::boolean)
 
-(define-interface World (Maximizable Animation))
+(define-interface World (ResizableEnchanted Animation))
 
 (define-interface Screen (Resizable Splittable Interactive)
   (drag! finger::byte action::Drag)::void
