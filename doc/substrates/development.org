@@ -1,0 +1,63 @@
+* The development of ideas underlying the GRASP programming system
+
+GRASP is a nascent extensible visual structure editor designed
+to be usable with touch screens of modern mobile devices.
+In this paper I present my personal account of the ideas
+and experiences that are driving its development.  
+
+** The current state of GRASP
+
+The main problem with presenting ideas is that they
+can be really understood only by people who already
+have them. Therefore, instead of merely speaking
+about them, one has to create circumstances that
+would prompt their development in other people.
+
+The core motivation for the development of GRASP,
+expressed in a single sentence, would be
+
+/to provide a programming environment in which/
+/programmers could make their programs look and behave/
+/exactly the way they want them to look and behave/
+
+The above sentence contains a distressing ambiguity,
+for the word /program/ can mean at least two things:
+- a /source code/ of a program
+- in case of a graphical application, the content
+  of a window of a running application
+
+GRASP does not resolve this ambiguity. Instead,
+it allows "running applications" to be a part
+of the program source code through its extension
+mechanism.
+
+Editing code in GRASP resembles editing a text file
+in a text editor such as Notepad. The main difference
+is that instead of plain text, GRASP organizes
+its content into boxes.
+
+There are five fundamental types of boxes in GRASP:
+- boxes that represent atoms (like symbols, character 
+  literals, boolean values or numerals)
+- boxes that represent lists which can contain other
+  boxes
+- boxes that contain strings of characters
+- boxes that represent comments
+- boxes that contain arbitrary extensions, and
+  can display themselves in some custom ways
+
+The structure of a GRASP file is modelled
+on the syntax of the Scheme programming language, and
+GRASP itself can be used as an editor of files written
+in Scheme, and possibly other languages whose syntax
+is based on s-expressions.
+
+*** GRASP's extensions
+
+
+*** Tactile editing
+
+
+
+
+
