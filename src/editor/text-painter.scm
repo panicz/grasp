@@ -697,6 +697,16 @@
 	   (8pix-set! x (floor (+ y0 d)))
 	   (8pix-set! x (ceiling (- y0 d))))))
 
+  (define (precise-fill-rectangle!
+	   left::real top::real
+	   right::real bottom::real
+	   color-rgb::uint)
+    ::void
+    (for x from (ceiling left) to (floor right)
+	 (for y from (ceiling top) to (floor bottom)
+	      (8pix-set! x y))))
+
+
   (define (precise-fill-circle! x0::real y0::real r::real
 				color::uint)
     ::void

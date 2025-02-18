@@ -481,6 +481,20 @@
 			'precise-fill-circle! x0 y0
 			r color-rgb))))
 
+  (define (precise-fill-rectangle! left::real top::real
+				   right::real bottom::real
+				   color-rgb::uint)
+    ::void
+    (let* ((red ::int (byte-ref color-rgb 2))
+	   (green ::int (byte-ref color-rgb 1))
+	   (blue ::int (byte-ref color-rgb 0))
+	   (color ::Color (Color:Indexed:fromRGB
+			   red green blue)))
+      (parameterize ((the-text-color color))
+	(invoke-special CharPainter (this)
+			'precise-fill-rectangle!
+			left top right bottom color-rgb))))
+  
   (define (precise-draw-line! x0::real y0::real
 				x1color-rgb::uint)
     ::void

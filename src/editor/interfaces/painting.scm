@@ -106,7 +106,8 @@ def") ===> [Extent width: 3 height: 2])
       result))
   )
 
-(define the-transform-stack ::TransformStack (TransformStack))
+(define the-transform-stack ::TransformStack
+  (TransformStack))
 
 (define-syntax-rule (with-post-transform t . actions)
   (the-transform-stack:addLast t)
@@ -173,9 +174,8 @@ def") ===> [Extent width: 3 height: 2])
   (draw-quoted-text! s::CharSequence context::Cursor)
   ::void
 
-  (measure-quoted-text-index-position-into! target::Position
-					    text::CharSequence
-					    index::int)
+  (measure-quoted-text-index-position-into!
+   target::Position text::CharSequence index::int)
   ::Position
 
   (draw-caption! caption::CharSequence)::void
@@ -204,8 +204,13 @@ def") ===> [Extent width: 3 height: 2])
 
   (atom-extent text::CharSequence)::Extent
 
-  (draw-horizontal-bar! width::real highlighted?::boolean)::void
-  (draw-vertical-bar! height::real highlighted?::boolean)::void
+  (draw-horizontal-bar!
+   width::real highlighted?::boolean)
+  ::void
+   
+  (draw-vertical-bar!
+   height::real highlighted?::boolean)
+  ::void
 
   (vertical-bar-width)::real
   (horizontal-bar-height)::real
@@ -253,8 +258,11 @@ def") ===> [Extent width: 3 height: 2])
   (precise-resolution-right)::ubyte
   (precise-resolution-down)::ubyte
 
-  (precise-inside-out px::real py::real)::(Values real real)
-  (precise-outside-in px::real py::real)::(Values real real)
+  (precise-inside-out px::real py::real)
+  ::(Values real real)
+
+  (precise-outside-in px::real py::real)
+  ::(Values real real)
 
   (precise-draw-circle! px0::real py0::real r::real
 			color::uint)
@@ -267,6 +275,11 @@ def") ===> [Extent width: 3 height: 2])
   (precise-draw-line! px0::real py0::real
 		      px1::real py1::real
 		      color::uint)
+  ::void
+
+  (precise-fill-rectangle! left::real top::real
+			   right::real bottom::real
+			   color::uint)
   ::void
   
   (begin-highlight! type::HighlightType)::void
@@ -337,48 +350,43 @@ def") ===> [Extent width: 3 height: 2])
   (draw-line-comment! text::CharSequence
 		      context::Cursor)
   ::void
-  (measure-line-comment-index-position-into! target::Position
-					     text::CharSequence
-					     index::int)
+
+  (measure-line-comment-index-position-into!
+   target::Position text::CharSequence index::int)
   ::Position
 
   (line-comment-extent text::CharSequence)::Extent
 
   (line-comment-character-index-under
-   x::real y::real
-   text::CharSequence)
+   x::real y::real text::CharSequence)
   ::int
 
-  (draw-text-input! text::CharSequence
-		    context::Cursor)
+  (draw-text-input!
+   text::CharSequence context::Cursor)
   ::void
 
-  (measure-text-input-index-position-into! target::Position
-					   text::CharSequence
-					   index::int)
+  (measure-text-input-index-position-into!
+   target::Position text::CharSequence index::int)
   ::Position
 
   (text-input-extent text::CharSequence)::Extent
 
   (text-input-character-index-under
-   x::real y::real
-   text::CharSequence)
+   x::real y::real text::CharSequence)
   ::int
   
-  (draw-block-comment! text::CharSequence
-		       context::Cursor)
+  (draw-block-comment!
+   text::CharSequence context::Cursor)
   ::void
 
-  (measure-block-comment-index-position-into! target::Position
-					      text::CharSequence
-					      index::int)
+  (measure-block-comment-index-position-into!
+   target::Position text::CharSequence index::int)
   ::Position
   
   (block-comment-extent text::CharSequence)::Extent
 
   (block-comment-character-index-under
-   x::real y::real
-   text::CharSequence)
+   x::real y::real text::CharSequence)
   ::int
 
   (draw-horizontal-grid! width::real)::void
@@ -396,7 +404,8 @@ def") ===> [Extent width: 3 height: 2])
 
   (define (playing? animation::Animation)::boolean #f)
 
-  (define (stop-playing! animation::Animation)::void (values))
+  (define (stop-playing! animation::Animation)::void
+    (values))
   
   (define (space-width)::real 1)
 
@@ -447,10 +456,14 @@ def") ===> [Extent width: 3 height: 2])
   (define (scale! factor ::real)::void
     (values))
 
-  (define (with-clip w::real h::real action::(maps () to: void))::void
+  (define (with-clip w::real h::real
+		     action::(maps () to: void))
+    ::void
     (action))
 
-  (define (with-intensity i::float action::(maps () to: void))::void
+  (define (with-intensity i::float
+			  action::(maps () to: void))
+    ::void
     (action))
 
   (define (with-stretch horizontal::float vertical::float
@@ -487,19 +500,25 @@ def") ===> [Extent width: 3 height: 2])
     ::(Values real real)
     (values x y))
 
-  (define (precise-draw-circle! px0::real py0::real r::real
-				color::uint)
+  (define (precise-draw-circle!
+	   px0::real py0::real r::real color::uint)
     ::void
     (values))
   
-  (define (precise-fill-circle! px0::real py0::real r::real
-				color::uint)
+  (define (precise-fill-circle!
+	   px0::real py0::real r::real color::uint)
     ::void
     (values))
- 
-  (define (precise-draw-line! px0::real py0::real
-			      px1::real py1::real 
-			      color::uint)
+
+  (define (precise-fill-rectangle! left::real top::real
+				   right::real bottom::real
+				   color::uint)
+    ::void
+    (values))
+  
+  (define (precise-draw-line!
+	   px0::real py0::real px1::real py1::real 
+	   color::uint)
     ::void
     (values))
   
@@ -575,10 +594,8 @@ def") ===> [Extent width: 3 height: 2])
 			highlight::(subtype-of
 				    gnu.text.Char
 				    (either
-				     #\[
-				     #\]
-				     #\t
-				     #\null)))
+				     #\[ #\]
+				     #\t #\null)))
     ::void
     (values))
 
@@ -606,11 +623,13 @@ def") ===> [Extent width: 3 height: 2])
   (define (horizontal-popup-margin)::real 0)
   (define (vertical-popup-margin)::real 0)
 
-  (define (mark-editor-cursor! +left::real +top::real editor::WithCursor)
+  (define (mark-editor-cursor! +left::real +top::real
+			       editor::WithCursor)
     ::void
     (values))
 
-  (define (editor-cursor-position editor::WithCursor)::Position
+  (define (editor-cursor-position editor::WithCursor)
+    ::Position
     (Position left: 0
 	      top: 0))
   
@@ -792,7 +811,6 @@ def") ===> [Extent width: 3 height: 2])
     ::Position
     target)
   )
-
 
 (define painter ::Painter
   (NullPainter))
