@@ -1,4 +1,75 @@
-* 13.02.2024
+* 17.02.2025
+
+zaczniemy od rysowania.
+
+chcemy dodac do =Painter= metode
+=precise-fill-rectangle!=
+
+Oke, wydaje sie, ze to juz mamy. I teraz nam pozostaje:
+- implementacja odpowiedzi na kolizje
+- przetestowanie tego, czyli zbudowanie
+  sceny "fizycznej" z jakims obiektem
+- podpiecie akcelerometru!
+
+To sobie przypominamy wzorek:
+
+~dP = (1+C)m1*m2*(v2-v1)/(m1 + m2)~
+
+gdzie =(v2-v1)= to roznica rzutow predkosci
+na os zderzenia
+
+~1/dP = (m1 + m2)/((1+C)*m1*m2*(v2-v1))~
+
+~1/dP = (m1 + m2)/((1+C)*m1*m2*(v2-v1))~
+
+~1/dP = 1/((1+C)*m2*(v2-v1)) + 1/((1+C)*m1*(v2-v1))~
+
+~1/dP = (1/m1 + 1/m2)*(1/((1+C)*(v2-v1)))~
+
+~((1+C)*(v2-v1))/dP = (1/m1 + 1/m2)~
+
+~dP = (1+C)*(v2-v1)/(1/m1 + 1/m2)~
+
+
+
+* 16.02.2025
+
+mamy juz kolizje pomiedzy kula a sciana.
+
+teraz pozostaje nam rysowanie scian i odpowiedz
+na kolizje
+
+* 14.02.2025
+
+Dzisiaj chcemy zrobic:
+- uproszczona kolizje pomiedzy
+  kula a sciana
+- rysowanie scian
+- odpowiedz na kolizje
+
+(tak naprawde jezeli zrobimy tylko
+detekcje kolizji, to bedzie niezle)
+
+To zacznijmy od tego:
+- odleglosc punktu =p0= od odcinka =|AB|=
+
+  =d((x0,y0),|(xA,yA)(xB,yB)|)=
+
+  przy zalozeniu, ze ~xA=xB~ lub ~yA=yB~
+
+  - jezeli ~xA=xB~, to odleglosc od prostej,
+    na ktorej lezy odcinek, wynosi =|x0-xA|=.
+
+    i teraz jezeli ~min(yA,yB) <= y0 <= max(yA,yB)~,
+    to wlasnie to bedzie nasza odleglosc.
+
+    jezeli jednak ten warunek nie zachodzi,
+    to bierzemy =hypot(|x0-xA|, min(|y0-yA|,|y0-yB|))=
+
+  - analogicznie dla przypadku ~yA=yB~
+
+
+* 13.02.2025
 
 Chcemy przemianowac stworzona wczoraj =AnimateCanvas=
 na =PhysicalStage=, dodac =ContactPoint=, i rozszerzyc
