@@ -586,6 +586,19 @@
  (min+max 5 4 6 3 7 2 8 1)
  ===> 1 8)
 
+(define (argmin f arg1 . args)
+  (let ((arg/min arg1)
+	(f/min (f arg1)))
+    (for arg in args
+      (let ((f/arg (f arg)))
+	(when (is f/arg < f/min)
+	  (set! arg/min arg)
+	  (set! f/min f/arg))))
+    arg/min))
+
+(e.g.
+ (argmin abs -6 5 -4 3 -2) ===> -2)
+
 (define (argmin+argmax property element . elements)
   (let ((quality (property element)))
     (let next-trial ((winner element)
