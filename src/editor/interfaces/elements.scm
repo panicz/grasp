@@ -424,6 +424,9 @@ operate on cursors.
   (render!)::void
   )
 
+(define-interface Animate (Renderable Animation)
+  )
+
 (define-interface Pane (Renderable Interactive))
 
 (define-interface Layer (Indexable Pane)
@@ -488,11 +491,10 @@ operate on cursors.
 (define-syntax-rule (HijackLayerInput target methods ...)
   (object (DelegatingLayer)
      ((*init*)
-      (invoke-special DelegatingLayer (this) '*init* target))
+      (invoke-special DelegatingLayer (this)
+		      '*init* target))
      methods
      ...))
-
-
 
 (define-interface Embeddable (Pane Map2D)
   (drop-at! x::real y::real expression::pair)::boolean)
@@ -622,10 +624,11 @@ operate on cursors.
 
 (define-interface ResizableEnchanted (Resizable Enchanted))
 
-(define-interface Maximizable (Embeddable ResizableEnchanted)
+(define-interface Maximizable (Embeddable
+			       ResizableEnchanted)
   (can-be-maximized?)::boolean)
 
-(define-interface World (Maximizable Animation))
+(define-interface World (ResizableEnchanted Animation))
 
 (define-interface Screen (Resizable Splittable Interactive)
   (drag! finger::byte action::Drag)::void

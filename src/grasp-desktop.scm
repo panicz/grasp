@@ -45,6 +45,7 @@
 (import (editor types extensions visual-stepper))
 (import (editor types extensions testing))
 (import (editor types extensions canvas))
+(import (editor types extensions physics))
 
 (import (editor input gestures))
 (import (editor awt-clipboard))
@@ -1134,6 +1135,15 @@
     (let ((2r (+ r r)))
       (graphics:fillOval (- px0 r) (- py0 r) 2r 2r)))
 
+  (define (precise-fill-rectangle! left::real top::real
+				   right::real bottom::real
+				   color::uint)
+    ::void
+    (set-color! (bitwise-xor #xff000000 color))
+    (graphics:fillRect (as int left) (as int top)
+		       (as int (- right left))
+		       (as int (- bottom top))))
+  
   (define (precise-draw-line! px0::real py0::real
 			      px1::real py1::real
 			      c::uint)

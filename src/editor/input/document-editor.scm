@@ -564,9 +564,6 @@
 	      cursor: Cursor := '(#\[ 1)
 	      transform: Transform := ((default-transform))))
 
-(define-syntax-rule (the property)
-  (slot-ref (this) 'property))
-
 (define-syntax-rule (with-editor-context body + ...)
   ;; this should normally be defined inside
   ;; the DocumentEditor, but unfortunately

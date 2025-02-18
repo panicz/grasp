@@ -19,6 +19,8 @@
 (import (editor input screen))
 
 (import (editor types extensions extensions))
+(import (editor types extensions combinators))
+
 (import (utils print))
 
 (define-type (Circle radius: real color: uint)
@@ -32,22 +34,38 @@
 			      height ::real
 			      content ::(list-of
 					 Renderable))
-  ::Enchanted
-  (define (draw! context ::Cursor) ::void  
-    (for item::Renderable in content
-      (item:render!))
-    )
+  ::Resizable
+  (define (draw! context ::Cursor) ::void
+    (painter:with-clip
+     width height
+     (lambda ()
+       (for item::Renderable in content
+	 (item:render!)))))
+
+  (define (can-be-resized?)::boolean #t)
   
+  (define (resize-anchor position::real)::ResizeAnchor
+    position)
+
   (define size ::Extent (Extent width: width
 				height: height))
-  (define (extent)::Extent size)
+  
+  (define (set-size! w::real h::real anchor::ResizeAnchor)
+    ::void
+    (set! width w)
+    (set! size:width w)
+    (set! height h)
+    (set! size:height h))
+
+    (define (extent)::Extent size)
   (Magic))
 
 (set! (extension 'PreciseCanvas)
       (object (Extension)
 	((enchant source ::cons)::Enchanted
 	 (try-catch
-	  (or (as PreciseCanvas (eval source)) #!null)
+	  (or (bordered
+	       (as PreciseCanvas (eval source))) #!null)
 	  (ex java.lang.Throwable
 	      (WARN "Unable to create Movement from "source": "
 		    (java.lang.String:valueOf ex))

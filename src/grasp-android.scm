@@ -45,6 +45,7 @@
 (import (editor types extensions visual-stepper))
 (import (editor types extensions testing))
 (import (editor types extensions canvas))
+(import (editor types extensions physics))
 
 (import (editor types texts))
 (import (editor input evaluation))
@@ -767,6 +768,13 @@
     (set-color! (bitwise-xor #xff000000 c))
     (canvas:drawCircle x0 y0 r paint))
 
+  (define (precise-fill-rectangle! left::real top::real
+				   right::real bottom::real
+				   color::uint)
+    ::void
+    (set-color! (bitwise-xor #xff000000 c))
+    (canvas:drawRect left top right bottom paint))
+  
   (define (precise-draw-line! px0::real py0::real
 			      px1::real py1::real
 			      color::uint)
@@ -873,7 +881,8 @@
     (if highlighted?
 	(set-color! (focused-parenthesis-color))
 	(set-color! (parenthesis-color)))
-    (canvas:drawRect 0 0 width (horizontal-bar-height) paint))
+    (canvas:drawRect 0 0 width (horizontal-bar-height)
+		     paint))
 
   (define (draw-vertical-bar! height::real
 			      highlighted?::boolean)
@@ -881,21 +890,28 @@
     (if highlighted?
 	(set-color! (focused-parenthesis-color))
 	(set-color! (parenthesis-color)))
-    (canvas:drawRect 0 0 (vertical-bar-width) height paint))
+    (canvas:drawRect 0 0 (vertical-bar-width)
+		     height paint))
 
   (define (space-width)::real 16)
 
   (define (line-simplification-resolution)::real 20)
   
-  (define (draw-rounded-rectangle! width::real height::real)
+  (define (draw-rounded-rectangle!
+	   width::real height::real)
     ::void
     (set-color! #xffffffff)
-    (canvas:drawRoundRect 0 0 (as int width) (as int height)
-			  10 10 paint)
+    (canvas:drawRoundRect
+     0 0 (as int width) (as int height)
+     10 10 paint)
+    
     (set-color! text-color)
+    
     (paint:setStyle Paint:Style:STROKE)
-    (canvas:drawRoundRect 0 0 (as int width) (as int height)
-			  10 10 paint)
+    (canvas:drawRoundRect
+     0 0 (as int width) (as int height)
+     10 10 paint)
+    
     (paint:setStyle Paint:Style:FILL))
 
   (define (fill-background! width::real height::real)::void
@@ -906,8 +922,9 @@
   (define (draw-popup! width::real height::real)::void
     (paint:setColor (- text-color
 		       #x77000000))
-    (canvas:drawRoundRect 0 0 (as int width) (as int height)
-			  25 25 paint))
+    (canvas:drawRoundRect
+     0 0 (as int width) (as int height)
+     25 25 paint))
 
   (define (horizontal-popup-margin)::real 4)
   (define (vertical-popup-margin)::real 40)
@@ -916,8 +933,9 @@
     (let ((b ::int 2))
       (set-color! text-color)
       (canvas:drawRect 0 0 (as int width) (as int b) paint)
-      (canvas:drawRect 0 (as int (- height b))
-		       (as int width) (as int height) paint)
+      (canvas:drawRect
+       0 (as int (- height b))
+       (as int width) (as int height) paint)
       (canvas:drawRect 0 b b (as int (- height b)) paint)
       (canvas:drawRect (as int (- width b)) b
 		       (as int width) (as int (- height b))
@@ -977,7 +995,7 @@
 	      bottom-left-extent:height)
 	   (+ top-right-extent:height
 	      bottom-right-extent:height))))
-
+  
   (define (draw-custom-box!
 	   draw-left-paren!::(maps (real) to: void)
 	   draw-right-paren!::(maps (real) to: void)
