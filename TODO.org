@@ -1,3 +1,19 @@
+* 18.02.2025
+
+To dzis sprobujemy przede wszystkim uruchomic nasz
+symulatorek.
+
+Aaale jeszcze trzeba dodac sciany do symulatora
+fizyki.
+
+No dobea, w teorii udalo sie symulator odpalic, tylko
+jakos odbicia nie dzialaja, i w terminalu ta skala cos
+jakos nie dziala.
+
+Ale rodza sie z tego dlanas plany na kolejny tydzien:
+- zeby podpiac akcelerometr, dotyk a takze orientacje
+  dokumentu
+
 * 17.02.2025
 
 zaczniemy od rysowania.
