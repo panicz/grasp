@@ -3,6 +3,7 @@
 (import (language define-type))
 (import (language define-interface))
 (import (language define-object))
+(import (language for))
 (import (language infix))
 (import (language match))
 (import (language examples))
@@ -24,11 +25,13 @@
 (define-type (ClosingBoundary)
   extending Boundary)
 
-(define (opening collider ::Collider dimension ::int)::Boundary
+(define (opening collider ::Collider dimension ::int)
+  ::Boundary
   (OpeningBoundary item: collider
 		   position: (collider:opening dimension)))
 
-(define (closing collider ::Collider dimension ::int)::Boundary
+(define (closing collider ::Collider dimension ::int)
+  ::Boundary
   (ClosingBoundary item: collider
 		   position: (collider:closing dimension)))
 
@@ -80,7 +83,7 @@
      (sphere::BoundingSphere
       (let ((dmin 0))
 	(for i from 0 below (min (dimensionality)
-				 (box:dimensionality))
+				 (sphere:dimensionality))
 	     (cond
 	      ((is (sphere:center i) <= (open i))
 	       (set! dmin (+ dmin

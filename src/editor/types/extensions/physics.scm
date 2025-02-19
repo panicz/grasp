@@ -38,9 +38,8 @@
   (current-mass)::real
   (current-velocity)::(sequence-of real)
   (current-bounciness)::real
-  
+ 
   )
-
 (define (collide! one ::Body #;with another ::Body)::void
   (let ((contacts (one:contact-points another)))
     (for contact::ContactPoint in contacts
@@ -51,17 +50,17 @@
 		 ((is m finite?))
 		 (v1 ::real
 		     (apply
-		      + (map * contact-point:direction
+		      + (map * contact:direction
 			     (one:current-velocity))))
 		 (v2 ::real
 		     (apply
-		      + (map * contact-point:direction
+		      + (map * contact:direction
 			     (another:current-velocity))))
 		 (b1 ::real (one:current-bounciness))
 		 (b2 ::real (another:current-bounciness))
 		 (bounciness ::real (+ 1.0 (* b1 b2)))
 		 (impulse ::real (* bounciness
-				    m (- v2 v1))))
+				    m (- v1 v2))))
 	(one:impulse! impulse contact)
 	(another:impulse! (- impulse) contact)))))
 
@@ -78,6 +77,8 @@
 			     bounciness: real := 0.9
 			     color: long := #x000000)
   extending BoundingSphere with
+  ((current-mass)::real mass)
+
   ((contact-points another ::Body)
    ::(list-of ContactPoint)
    (match another
@@ -105,8 +106,7 @@
 				    (length wall:close)
 				    (length center)))
 		   ((is dimensions > 0))
-		   (position ((array-of real)
-			    length: dimensions)))
+		   (position (make-vector dimensions)))
 	  (set! (position 0)
 	    (argmin (lambda (x)
 		      (abs (- x (center 0))))
@@ -128,7 +128,9 @@
 				  direction)))
 	    `(,(ContactPoint
 		position: position
-		direction: normal))))))))
+		direction: normal))))))
+  ))
+
   implementing Body with
   ((advance! timestep/ms::int)::boolean
    (let ((c (the center))
@@ -138,16 +140,14 @@
 	  (set! (c i) (+ (c i) (* (v i)
 				  timestep/ms))))))
 
-  ((render!)
+  ((render!)::void
    (let ((c (the center)))
      (painter:precise-fill-circle!
       (c 0) (c 1) (the radius) color)))
 
-  ((current-mass)::real mass)
-
   ((current-bounciness)::real bounciness)
   
-  ((current-velocity)::(sequence real)
+  ((current-velocity)::(sequence-of real)
    velocity)
   
   ((impulse! force ::real contact-point ::ContactPoint)
@@ -167,10 +167,10 @@
    ::(list-of ContactPoint)
    (match another
      (sphere::BoundingSphere
-      (let ((points (sphere:contact-points (this))))
-	(for p::ContactPoint in points
-	  (ContactPoint position: p:position
-			direction: (map - direction)))))
+      (map (lambda (p::ContactPoint)
+	     (ContactPoint position: p:position
+			   direction: (map - p:direction)))
+	   (sphere:contact-points (this))))
      (_
       #| For now we assume that walls
       cannot collide with other walls |#
@@ -192,7 +192,7 @@
   
   ((current-mass)::real +inf.0)
   
-  ((current-velocity)::(sequence real)
+  ((current-velocity)::(sequence-of real)
    '(0.0 0.0 0.0))
 
   ((current-bounciness)::real bounciness)
@@ -206,19 +206,80 @@
 			     content ::(list-of
 					Body))  
   ::World
+
+  (define left-wall ::GridWall
+    (GridWall open: (vector -inf.0 0)
+	      close:
+	      (vector
+	       0
+	       (* (painter:precise-resolution-down)
+		  height))))
+
+  (define top-wall ::GridWall
+    (GridWall open: (vector 0 -inf.0)
+	      close:
+	      (vector
+	       (* (painter:precise-resolution-right)
+		  width)
+	       0)))
+
+  (define right-wall ::GridWall
+    (GridWall open:
+	      (vector
+	       (* (painter:precise-resolution-down)
+		  width)
+	       0)
+	      close:
+	      (vector
+	       +inf.0
+	       (* (painter:precise-resolution-down)
+		  height))))
+
+  (define bottom-wall ::GridWall
+    (GridWall open:
+	      (vector
+	       0
+	       (* (painter:precise-resolution-down)
+		  height))
+	      close:
+	      (vector
+	       (* (painter:precise-resolution-down)
+		  width)
+	       +inf.0)))
+  
   (define (set-size! w::real h::real anchor::ResizeAnchor)
     ::void
+
+    (let-values (((w* h*)
+		  (painter:precise-outside-in w h)))
+      (set! (right-wall:open 0) w*)
+      (set! (top-wall:close 0) w*)
+      (set! (bottom-wall:close 0) w*)
+    
+      (set! (bottom-wall:open 1) h*)
+      (set! (left-wall:close 1) h*)
+      (set! (right-wall:close 1) h*))
+
     (set! width w)
     (set! height h)
     (invoke-special
      PreciseCanvas (this) 'set-size!
      w h anchor))
 
+  (define content-with-walls ::(list-of Body)
+    `(,left-wall
+      ,top-wall
+      ,right-wall
+      ,bottom-wall
+      . ,content))
+  
   (define (advance! timestep/ms::int)::boolean
     (for item ::Animate in content
 	 (item:advance! timestep/ms))
-    (for (a::Body b::Body) in (collisions content)
+    (for (a::Body b::Body) in (collisions
+			       content-with-walls)
       (collide! a #;with b))
+    #t
     )
 
   (PreciseCanvas width height content))
@@ -227,7 +288,7 @@
       (object (Extension)
 	((enchant source ::cons)::Enchanted
 	 (try-catch
-	  (or (bordered
+	  (or (BorderedAnimation
 	       (as PhysicsStage (eval source))) #!null)
 	  (ex java.lang.Throwable
 	      (WARN "Unable to create Movement from "

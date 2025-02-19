@@ -175,7 +175,19 @@
 			(- height border border)
 			anchor)))
   )
+
+(define-object (BorderedAnimation animation ::Alive)
+  ::Animation
+  (define (typename)::String
+    "BorderedAnimation")
+    
+  (define (advance! timestep/ms::int)::boolean
+    (animation:advance! timestep/ms))
   
+  (Bordered)
+  (set! element animation))
+  
+
 (define-object (Stretched element::Enchanted size::Extent)::Maximizable
 
   (define (can-be-resized?)::boolean

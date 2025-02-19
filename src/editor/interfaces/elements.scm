@@ -622,15 +622,16 @@ operate on cursors.
 
 (define-interface Alive (Enchanted Animation))
 
-(define-interface ResizableEnchanted (Resizable Enchanted))
-
 (define-interface Maximizable (Embeddable
-			       ResizableEnchanted)
+			       Resizable
+			       Enchanted)
   (can-be-maximized?)::boolean)
 
-(define-interface World (ResizableEnchanted Animation))
+(define-interface World (Resizable Alive))
 
-(define-interface Screen (Resizable Splittable Interactive)
+(define-interface Screen (Resizable
+			  Splittable
+			  Interactive)
   (drag! finger::byte action::Drag)::void
   (undrag! finger::byte)::void
   
