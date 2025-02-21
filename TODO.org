@@ -1,3 +1,21 @@
+* 21.02.2025
+
+Teraz chcemy sie skupic na diagnostyce problemow
+z detekcja kolizji.
+
+Zaczelibysmy moze od tego, zeby rysowac wektory
+kontaktu w momencie kolizji
+
+Ale zeby to moglo dzialac, potrzebujemy funkcji
+=precise-draw-line x0 y0 x1 y1 color=
+Ale w sumie to latwizna, bo w terminalu to
+po prostu =8pix-draw-line!=, a w pozostalych
+klientach uzyjemy funkcji dostarczanej przez
+graficzne API
+
+No, ale w sumie to my juz to mamy ;P
+
+
 * 19.02.2025
 
 No dobzie, to musimy sie przyjrzec, dlaczego
