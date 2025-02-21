@@ -20,6 +20,8 @@
 
 (import (editor types extensions extensions))
 (import (editor types extensions combinators))
+(import (editor types extensions widgets))
+
 (import (editor types extensions canvas))
 (import (extra collisions))
 
@@ -205,7 +207,7 @@
 			     height ::real
 			     content ::(list-of
 					Body))  
-  ::World
+  ::WorldPlayer
 
   (define left-wall ::GridWall
     (GridWall open: (vector -inf.0 0)
@@ -272,6 +274,8 @@
       ,right-wall
       ,bottom-wall
       . ,content))
+
+  (define running? ::boolean #t)
   
   (define (advance! timestep/ms::int)::boolean
     (for item ::Animate in content
@@ -279,9 +283,31 @@
     (for (a::Body b::Body) in (collisions
 			       content-with-walls)
       (collide! a #;with b))
-    #t
+    running?
     )
 
+  (define (rewind!)::void
+    (WARN "PhysicalStage cannot be rewinded"))
+
+  (define (back!)::void
+    (WARN "PhysicalStage cannot be moved back"))
+  
+  (define (play!)::void
+    (set! running? #t)
+    (painter:play! (this)))
+  
+  (define (pause!)::void
+    (set! running? #f))
+  
+  (define (next!)::void
+    (advance! 40))
+  
+  (define (fast-forward!)::void
+    (WARN "PhysicalStage cannot be fast-forwarded"))
+  
+  (define (playing?)::boolean
+    running?)
+  
   (PreciseCanvas width height content))
 
 (set! (extension 'PhysicsStage)
@@ -291,7 +317,26 @@
 	  (or (BorderedAnimation
 	       (as PhysicsStage (eval source))) #!null)
 	  (ex java.lang.Throwable
-	      (WARN "Unable to create Movement from "
+	      (WARN "Unable to create PhysicsStage from "
+		    source": "
+		    (java.lang.String:valueOf ex))
+	      #!null)))))
+
+(define-simple-extension (PhysicsStepper
+			  width ::real
+			  height ::real
+			  content ::(list-of
+				     Body))
+  (PlayerWithControls
+   (PhysicsStage width height content)))
+
+(set! (extension 'PhysicsStepper)
+      (object (Extension)
+	((enchant source ::cons)::Enchanted
+	 (try-catch
+	  (or (as PhysicsStepper (eval source)) #!null)
+	  (ex java.lang.Throwable
+	      (WARN "Unable to create PhysicsStepper from "
 		    source": "
 		    (java.lang.String:valueOf ex))
 	      #!null)))))

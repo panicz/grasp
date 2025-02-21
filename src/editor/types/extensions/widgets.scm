@@ -492,7 +492,21 @@
     (beside
       (Button label: "▮◀◀" action: (lambda () (player:rewind!)))
       (Button label: "▮◀ " action: (lambda () (player:back!)))
-      (Button label: " ▶ " action: (lambda () (player:play!)))
+      (let ((play/pause (Button)))
+	(set! play/pause:label
+	  (if (player:playing?)
+	      " ▮▮"
+	      " ▶ "))
+	(set! play/pause:action
+	  (lambda ()
+	    (cond
+	     ((player:playing?)
+	      (player:pause!)
+	      (set! play/pause:label " ▶ "))
+	     (else
+	      (player:play!)
+	      (set! play/pause:label "▮▮ ")))))
+	play/pause)
       (Button label: " ▶▮" action: (lambda () (player:next!)))
       (Button label: "▶▶▮" action: (lambda () (player:fast-forward!))))
     )))

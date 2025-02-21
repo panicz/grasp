@@ -640,6 +640,8 @@ operate on cursors.
 
 (define-interface Player (Enchanted Playable Animation))
 
+(define-interface WorldPlayer (World Player))
+
 (define-interface Screen (Resizable
 			  Splittable
 			  Interactive)
