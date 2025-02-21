@@ -161,7 +161,7 @@
 			      (length n))
 	  (set! (v i) (+ (v i) (* force (n i) /m))))))
   )
-	  
+
 (define-type (GridWall bounciness: real := 0.9
 		       color: long := #x000000)
   extending BoundingBox with
@@ -248,6 +248,18 @@
 	       (* (painter:precise-resolution-down)
 		  width)
 	       +inf.0)))
+
+
+  (define (can-be-resized?)::boolean #t)
+  
+  (define (resize-anchor position::real)
+    ::ResizeAnchor
+    position)
+
+  (define size ::Extent (Extent width: width
+				height: height))
+
+  (define (extent)::Extent size)
   
   (define (set-size! w::real h::real anchor::ResizeAnchor)
     ::void
@@ -264,9 +276,9 @@
 
     (set! width w)
     (set! height h)
-    (invoke-special
-     PreciseCanvas (this) 'set-size!
-     w h anchor))
+
+    (set! size:width w)
+    (set! size:height h))
 
   (define content-with-walls ::(list-of Body)
     `(,left-wall
@@ -276,6 +288,13 @@
       . ,content))
 
   (define running? ::boolean #t)
+
+  (define (draw! context ::Cursor) ::void
+    (painter:with-clip
+     width height
+     (lambda ()
+       (for item::Renderable in content
+	 (item:render!)))))
   
   (define (advance! timestep/ms::int)::boolean
     (for item ::Animate in content
@@ -307,8 +326,8 @@
   
   (define (playing?)::boolean
     running?)
-  
-  (PreciseCanvas width height content))
+
+  (Magic))
 
 (set! (extension 'PhysicsStage)
       (object (Extension)
@@ -322,7 +341,7 @@
 		    (java.lang.String:valueOf ex))
 	      #!null)))))
 
-(define-simple-extension (PhysicsStepper
+(define-simple-extension (PhysicsPlayer
 			  width ::real
 			  height ::real
 			  content ::(list-of
@@ -330,11 +349,11 @@
   (PlayerWithControls
    (PhysicsStage width height content)))
 
-(set! (extension 'PhysicsStepper)
+(set! (extension 'PhysicsPlayer)
       (object (Extension)
 	((enchant source ::cons)::Enchanted
 	 (try-catch
-	  (or (as PhysicsStepper (eval source)) #!null)
+	  (or (as PhysicsPlayer (eval source)) #!null)
 	  (ex java.lang.Throwable
 	      (WARN "Unable to create PhysicsStepper from "
 		    source": "
