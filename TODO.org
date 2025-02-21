@@ -1,3 +1,16 @@
+* 19.02.2025
+
+No dobzie, to musimy sie przyjrzec, dlaczego
+te kolizje nie dzialaja.
+
+W tym celu bysmy stworzyli widget =PhysicsPlayer=,
+za pomoca ktorego moglibysmy sterowac symulacja
+fizyczna.
+
+Ale najpierw musielibysmy przeniesc definicje
+interfejsow do =elements=, a =PlayerWithControls=
+do =widgets= (czy cos)
+
 * 18.02.2025
 
 To dzis sprobujemy przede wszystkim uruchomic nasz
