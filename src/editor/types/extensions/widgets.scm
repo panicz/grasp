@@ -17,6 +17,8 @@
 (import (editor document cursor))
 (import (editor types primitive))
 (import (editor types extensions extensions))
+(import (editor types extensions combinators))
+
 (import (editor types spaces))
 (import (editor types texts))
 (import (editor input input))
@@ -482,3 +484,33 @@
   (let ((result ::TextInput (TextInput)))
     (result:append string)
     result))
+
+(define (PlayerWithControls player::Player)::Enchanted
+  (bordered
+   (below
+    player
+    (beside
+     (Button label: "▮◀◀"
+	     action: (lambda ()
+		       (player:rewind!)))
+     (Button label: "▮◀ "
+	     action: (lambda ()
+		       (player:back!)))
+     (let ((play/pause (Button label: " ▶ ")))
+       (set! play/pause:action
+	 (lambda ()
+	   (cond
+	    ((player:playing?)
+	     (player:pause!)
+	     (set! play/pause:label " ▶ "))
+	    (else
+	     (player:play!)
+	     (set! play/pause:label "▮ ▮")))))
+       play/pause)
+     (Button label: " ▶▮"
+	     action: (lambda ()
+		       (player:next!)))
+     (Button label: "▶▶▮"
+	     action: (lambda ()
+		       (player:fast-forward!))))
+    )))

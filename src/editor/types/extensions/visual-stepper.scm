@@ -571,17 +571,6 @@
       (set! (morph-to reduced) result))
     result))
 
-(define-interface Playable ()
-  (rewind!)::void
-  (back!)::void
-  (play!)::void
-  (pause!)::void
-  (next!)::void
-  (fast-forward!)::void
-  (playing?)::boolean)
-
-(define-interface Player (Enchanted Playable Animation))
-
 (define-object (ExpressionReducer initial-expression::Tile)::Player
 
   (define (typename)::String "Stepper")
@@ -680,18 +669,6 @@
     #!null)
   
   (Magic))
-
-(define (PlayerWithControls player::Player)::Enchanted
-  (bordered
-   (below
-    player
-    (beside
-      (Button label: "▮◀◀" action: (lambda () (player:rewind!)))
-      (Button label: "▮◀ " action: (lambda () (player:back!)))
-      (Button label: " ▶ " action: (lambda () (player:play!)))
-      (Button label: " ▶▮" action: (lambda () (player:next!)))
-      (Button label: "▶▶▮" action: (lambda () (player:fast-forward!))))
-    )))
 
 (define-simple-extension (Stepper expression::Tile)
   (PlayerWithControls (ExpressionReducer expression)))

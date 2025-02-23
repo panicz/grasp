@@ -20,6 +20,8 @@
 
 (import (editor types extensions extensions))
 (import (editor types extensions combinators))
+(import (editor types extensions widgets))
+
 (import (editor types extensions canvas))
 (import (extra collisions))
 
@@ -159,7 +161,7 @@
 			      (length n))
 	  (set! (v i) (+ (v i) (* force (n i) /m))))))
   )
-	  
+
 (define-type (GridWall bounciness: real := 0.9
 		       color: long := #x000000)
   extending BoundingBox with
@@ -205,7 +207,7 @@
 			     height ::real
 			     content ::(list-of
 					Body))  
-  ::World
+  ::WorldPlayer
 
   (define left-wall ::GridWall
     (GridWall open: (vector -inf.0 0)
@@ -246,6 +248,18 @@
 	       (* (painter:precise-resolution-down)
 		  width)
 	       +inf.0)))
+
+
+  (define (can-be-resized?)::boolean #t)
+  
+  (define (resize-anchor position::real)
+    ::ResizeAnchor
+    position)
+
+  (define size ::Extent (Extent width: width
+				height: height))
+
+  (define (extent)::Extent size)
   
   (define (set-size! w::real h::real anchor::ResizeAnchor)
     ::void
@@ -262,9 +276,9 @@
 
     (set! width w)
     (set! height h)
-    (invoke-special
-     PreciseCanvas (this) 'set-size!
-     w h anchor))
+
+    (set! size:width w)
+    (set! size:height h))
 
   (define content-with-walls ::(list-of Body)
     `(,left-wall
@@ -272,6 +286,15 @@
       ,right-wall
       ,bottom-wall
       . ,content))
+
+  (define running? ::boolean #t)
+
+  (define (draw! context ::Cursor) ::void
+    (painter:with-clip
+     width height
+     (lambda ()
+       (for item::Renderable in content
+	 (item:render!)))))
   
   (define (advance! timestep/ms::int)::boolean
     (for item ::Animate in content
@@ -279,10 +302,32 @@
     (for (a::Body b::Body) in (collisions
 			       content-with-walls)
       (collide! a #;with b))
-    #t
+    running?
     )
 
-  (PreciseCanvas width height content))
+  (define (rewind!)::void
+    (WARN "PhysicalStage cannot be rewinded"))
+
+  (define (back!)::void
+    (WARN "PhysicalStage cannot be moved back"))
+  
+  (define (play!)::void
+    (set! running? #t)
+    (painter:play! (this)))
+  
+  (define (pause!)::void
+    (set! running? #f))
+  
+  (define (next!)::void
+    (advance! 40))
+  
+  (define (fast-forward!)::void
+    (WARN "PhysicalStage cannot be fast-forwarded"))
+  
+  (define (playing?)::boolean
+    running?)
+
+  (Magic))
 
 (set! (extension 'PhysicsStage)
       (object (Extension)
@@ -291,7 +336,26 @@
 	  (or (BorderedAnimation
 	       (as PhysicsStage (eval source))) #!null)
 	  (ex java.lang.Throwable
-	      (WARN "Unable to create Movement from "
+	      (WARN "Unable to create PhysicsStage from "
+		    source": "
+		    (java.lang.String:valueOf ex))
+	      #!null)))))
+
+(define-simple-extension (PhysicsPlayer
+			  width ::real
+			  height ::real
+			  content ::(list-of
+				     Body))
+  (PlayerWithControls
+   (PhysicsStage width height content)))
+
+(set! (extension 'PhysicsPlayer)
+      (object (Extension)
+	((enchant source ::cons)::Enchanted
+	 (try-catch
+	  (or (as PhysicsPlayer (eval source)) #!null)
+	  (ex java.lang.Throwable
+	      (WARN "Unable to create PhysicsStepper from "
 		    source": "
 		    (java.lang.String:valueOf ex))
 	      #!null)))))

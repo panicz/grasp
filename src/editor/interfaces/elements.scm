@@ -629,6 +629,19 @@ operate on cursors.
 
 (define-interface World (Resizable Alive))
 
+(define-interface Playable ()
+  (rewind!)::void
+  (back!)::void
+  (play!)::void
+  (pause!)::void
+  (next!)::void
+  (fast-forward!)::void
+  (playing?)::boolean)
+
+(define-interface Player (Enchanted Playable Animation))
+
+(define-interface WorldPlayer (World Player))
+
 (define-interface Screen (Resizable
 			  Splittable
 			  Interactive)
