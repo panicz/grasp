@@ -28,7 +28,28 @@
 (import (utils print))
 
 (define-type (ContactPoint position: (sequence-of real)
-			   direction: (sequence-of real)))
+			   direction: (sequence-of real)
+			   color: ulong)
+
+  implementing Renderable with
+  ((render!)::void
+   (when (and (is (length position) >= 2)
+	      (is (length direction) >= 2))
+     (painter:precise-fill-circle! (position 0) (position 1)
+				   3.0 color)
+     (painter:precise-draw-line! (position 0) (position 1)
+				 (+ (position 0)
+				    (* 50.0 (direction 0)))
+				 (+ (position 1)
+				    (* 50.0 (direction 1)))
+				 color)
+     (painter:precise-fill-circle! (+ (position 0)
+				      (* 50.0 (direction 0)))
+				   (+ (position 1)
+				      (* 50.0 (direction 1)))
+				   2.0
+				   color)
+     )))
 
 (define-interface Body (Animate Collider)
   (impulse! force ::real contact-point ::ContactPoint)
@@ -42,10 +63,17 @@
   (current-bounciness)::real
  
   )
-(define (collide! one ::Body #;with another ::Body)::void
+
+(define (collide! one ::Body #;with another ::Body
+		  #;on stage ::PhysicsStage)::void
   (let ((contacts (one:contact-points another)))
     (for contact::ContactPoint in contacts
-      (and-let* ((m1 ::real (one:current-mass))
+      (stage:add-contact! contact)
+      (and-let* ((impact (apply + (map * contact:direction
+				       (map - (one:current-velocity)
+					    (another:current-velocity)))))
+		 ((is impact < 0))
+		 (m1 ::real (one:current-mass))
 		 (m2 ::real (another:current-mass))
 		 (m ::real (/ (+ (/ m1) (/ m2))))
 		 ((is m > 0))
@@ -60,9 +88,11 @@
 			     (another:current-velocity))))
 		 (b1 ::real (one:current-bounciness))
 		 (b2 ::real (another:current-bounciness))
+		 
 		 (bounciness ::real (+ 1.0 (* b1 b2)))
 		 (impulse ::real (* bounciness
-				    m (- v1 v2))))
+				    m (- v2 v1))))
+
 	(one:impulse! impulse contact)
 	(another:impulse! (- impulse) contact)))))
 
@@ -86,20 +116,23 @@
    (match another
      (sphere::PhysicalSphere
       (otherwise '()
-	(and-let* ((r (map - sphere:center (the center)))
+	(and-let* ((r (map - (the center) sphere:center))
 		   (d (magnitude r))
-		   ((is r > 0))
+		   ((isnt d zero?))
 		   (n (map (lambda (x) (/ x d)) r))
-		   (p (- (+ (the radius)
-			    sphere:radius) d))
-		   ((is p >= 0)))
-	  `(,(ContactPoint
-	      position: (map (lambda (c v)
-			       (+ c (* (- (the radius)
-					  (* 0.5 p))
-				       v)))
-			     (the center) n)
-	      direction: n)))))
+		   (p (+ (the radius) sphere:radius (- d)))
+		   (point (ContactPoint
+			   position: (map (lambda (c v)
+					    (- c (* (- (* 0.5 p)
+						       (the radius)
+						       )
+						    v)))
+					  (the center) n)
+			   direction: n
+			   color: #xff00ff))
+		   #;((is p >= 0)))
+	  (DUMP d p point)
+	  `(,point))))
      
      (wall::GridWall
       (otherwise '()
@@ -109,11 +142,7 @@
 				    (length center)))
 		   ((is dimensions > 0))
 		   (position (make-vector dimensions)))
-	  (set! (position 0)
-	    (argmin (lambda (x)
-		      (abs (- x (center 0))))
-		    (wall:open 0) (wall:close 0)))
-	  (for i from 1 below dimensions
+	  (for i from 0 below dimensions
 	       (set! (position i)
 		 (if (is (wall:open i) <= (center i)
 			 <= (wall:close i))
@@ -122,7 +151,7 @@
 			       (abs (- x (center i))))
 			     (wall:open i)
 			     (wall:close i)))))
-	  (and-let* ((direction (map - position center))
+	  (and-let* ((direction (map - center position))
 		     (distance (magnitude direction))
 		     ((is distance > 0))
 		     (normal (map (lambda (x)
@@ -130,7 +159,8 @@
 				  direction)))
 	    `(,(ContactPoint
 		position: position
-		direction: normal))))))
+		direction: normal
+		color: #x0000ff))))))
   ))
 
   implementing Body with
@@ -171,7 +201,8 @@
      (sphere::BoundingSphere
       (map (lambda (p::ContactPoint)
 	     (ContactPoint position: p:position
-			   direction: (map - p:direction)))
+			   direction: (map - p:direction)
+			   color: #x00ff00))
 	   (sphere:contact-points (this))))
      (_
       #| For now we assume that walls
@@ -208,7 +239,12 @@
 			     content ::(list-of
 					Body))  
   ::WorldPlayer
-
+  (define contacts ::java.util.List
+    (java.util.ArrayList))
+  
+  (define (add-contact! point::ContactPoint)
+    (contacts:add point))
+  
   (define left-wall ::GridWall
     (GridWall open: (vector -inf.0 0)
 	      close:
@@ -294,14 +330,17 @@
      width height
      (lambda ()
        (for item::Renderable in content
-	 (item:render!)))))
+	 (item:render!))
+       (for contact::ContactPoint in contacts
+	 (contact:render!)))))
   
   (define (advance! timestep/ms::int)::boolean
+    (contacts:clear)
     (for item ::Animate in content
 	 (item:advance! timestep/ms))
     (for (a::Body b::Body) in (collisions
 			       content-with-walls)
-      (collide! a #;with b))
+      (collide! a #;with b #;on (this)))
     running?
     )
 
