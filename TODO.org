@@ -1,3 +1,13 @@
+* 23.02.2025
+
+No to probujemy rysowac wektor normalny przy kolizji,
+a po drugie chcemy zrobic tak, ze jezeli mamy kolizje,
+ale kierunki wektorow predkosci ida na przekor normalnym
+kontaktu, to wtedy nie stosujemy sily
+
+No to sprawdzmy moze, jakie sa cosinusy, tzn. iloczyn
+skalarny normalnej kontaktu i normalnej predkosci
+
 * 21.02.2025
 
 Teraz chcemy sie skupic na diagnostyce problemow
