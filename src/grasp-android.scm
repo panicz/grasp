@@ -128,6 +128,9 @@
 (define-alias SensorListener
   android.hardware.SensorListener)
 
+(define-alias SensorManager
+  android.hardware.SensorManager)
+
 (define-alias PreserveAspectRatio
   com.caverock.androidsvg.PreserveAspectRatio)
 
@@ -779,7 +782,7 @@
 			      px1::real py1::real
 			      color::uint)
     ::void
-    (set-color! (bitwise-xor #xff000000 c))
+    (set-color! (bitwise-xor #xff000000 color))
     (draw-thin-line! px0 py0 px1 py1))
   
   (define (draw-stroke! x0::real y0::real x1::real y1::real)
@@ -1761,7 +1764,9 @@
   ;;(setClickable #t)
   (paint:setFlags Paint:ANTI_ALIAS_FLAG))
 
-(define-object (GRASP)::Keeper
+(define-interface Application (Keeper SensorListener))
+
+(define-object (GRASP)::Application
   
   (define reaction-to-request-response
     (attribute (request-code::int)::(maps (Object) to: void)
@@ -1944,6 +1949,18 @@
   (define scheme ::gnu.expr.Language #!null)
 
   (define save-state ::procedure (lambda () (values)))
+
+  (define sensor-manager ::SensorManager #!null)
+
+  (define (onAccuracyChanged sensor::int accuracy::int)
+    ::void
+    (WARN "accuracy of sensor "sensor" changed to "accuracy))
+
+  (define (onSensorChanged sensor::int
+			   measurements::(array-of float))
+    ::void
+    (values)
+    #;(WARN "values of sensor "sensor" changed to "values))
   
   (define (onPause)::void
     (invoke-special AndroidActivity (this) 'onPause)
@@ -1952,6 +1969,16 @@
   (define (onCreate savedState::Bundle)::void
     (invoke-special AndroidActivity (this) 'onCreate
 		    savedState)
+    (set! sensor-manager
+      (as SensorManager
+	  (invoke-special
+	   AndroidActivity (this)
+	   'getSystemService
+	   android.content.Context:SENSOR_SERVICE)))
+    (sensor-manager:registerListener
+     (this)
+     SensorManager:SENSOR_ACCELEROMETER
+     SensorManager:SENSOR_DELAY_GAME)
 
     (set! (default-transform) (lambda () (Isogonal)))
     (set! (current-message-handler) (ScreenLogger 100))
