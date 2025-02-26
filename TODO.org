@@ -1,7 +1,16 @@
+* 25.02.2025
+
+mamy juz sobie sczytywanie akcekerometru na androidzie.
+teraz trzeba to jeszcze wepchnac w jakis interfejs.
+
+No to pomysl jest taki, zeby po prostu miec wektor
+/parametr *the-gravity* i zwyczajnie przepisywac do
+niego wartosci we funkcji.
+
 * 24.02.2025
 
 No to teraz plan jest taki, ze chcemy podpiac
-akcelerometr do kulek.
+akcelerometr do kulek
 
 * 23.02.2025
 
