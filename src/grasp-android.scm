@@ -1956,10 +1956,13 @@
     ::void
     (WARN "accuracy of sensor "sensor" changed to "accuracy))
 
-  (define (onSensorChanged sensor::int
-			   measurements::(array-of float))
+  (define (onSensorChanged sensor ::int
+			   measurements ::(array-of float))
     ::void
-    (values)
+    (let ((g (the-gravity)))
+      (for i from 0 below (min (length measurements)
+			       (length g))
+	   (set! (g i) (measurements i))))
     #;(WARN "values of sensor "sensor" changed to "values))
   
   (define (onPause)::void

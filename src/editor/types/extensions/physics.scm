@@ -54,6 +54,8 @@
 (define-interface Body (Animate Collider)
   (impulse! force ::real contact-point ::ContactPoint)
   ::void
+  (impulse-center! force ::real point ::(sequence-of real))
+  ::void
   
   (contact-points another ::Collider)
   ::(list-of ContactPoint)
@@ -131,7 +133,6 @@
 			   direction: n
 			   color: #xff00ff))
 		   #;((is p >= 0)))
-	  (DUMP d p point)
 	  `(,point))))
      
      (wall::GridWall
@@ -184,12 +185,17 @@
   
   ((impulse! force ::real contact-point ::ContactPoint)
    ::void
+   (impulse-center! force contact-point:direction))
+  
+  ((impulse-center! force ::real point ::(sequence-of real))
+   ::void
    (let ((v (the velocity))
 	 (/m (/ mass))
-	 (n contact-point:direction))
+	 (n point))
      (for i from 0 below (min (length v)
 			      (length n))
 	  (set! (v i) (+ (v i) (* force (n i) /m))))))
+
   )
 
 (define-type (GridWall bounciness: real := 0.9
@@ -229,6 +235,10 @@
    '(0.0 0.0 0.0))
 
   ((current-bounciness)::real bounciness)
+
+  ((impulse-center! force ::real point ::(sequence-of real))
+   ::void
+   (values))
   
   ((impulse! force ::real contact-point ::ContactPoint)
    ::void
@@ -237,7 +247,7 @@
 (define-object (PhysicsStage width ::real
 			     height ::real
 			     content ::(list-of
-					Body))  
+					Body))
   ::WorldPlayer
   (define contacts ::java.util.List
     (java.util.ArrayList))
@@ -336,8 +346,17 @@
   
   (define (advance! timestep/ms::int)::boolean
     (contacts:clear)
-    (for item ::Animate in content
-	 (item:advance! timestep/ms))
+    (let* ((g (the-gravity))
+	   (F (magnitude g))
+	   (i (map (lambda (x)
+		     (if (zero? F)
+			 0.0
+			 (/ x F)))
+		   g)))
+      (for item ::Animate in content
+	   (item:advance! timestep/ms)
+	   (item:impulse-center! (* 0.0001 F) i)))
+    
     (for (a::Body b::Body) in (collisions
 			       content-with-walls)
       (collide! a #;with b #;on (this)))

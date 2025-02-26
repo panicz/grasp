@@ -356,6 +356,8 @@ operate on cursors.
 (define-parameter (the-keeper)::Keeper
   (PermissiveKeeper))
 
+(define-parameter (the-gravity) ::(sequence-of real)
+  (vector 0.0 0.04 0.0))
 
 (define-interface Interactive ()
   (tap! finger::byte #;at x::real y::real)::boolean
