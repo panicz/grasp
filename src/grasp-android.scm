@@ -1960,10 +1960,9 @@
 			   measurements ::(array-of float))
     ::void
     (let ((g (the-gravity)))
-      (for i from 0 below (min (length measurements)
-			       (length g))
-	   (set! (g i) (measurements i))))
-    #;(WARN "values of sensor "sensor" changed to "values))
+      (set! (g 0) (measurements 0))
+      (set! (g 1) (- (measurements 1)))
+      (set! (g 2) (measurements 2))))
   
   (define (onPause)::void
     (invoke-special AndroidActivity (this) 'onPause)
