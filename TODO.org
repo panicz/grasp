@@ -1,3 +1,11 @@
+* 27.02.2025
+
+teraz bysmy chcieli zrobic cos troche-jakby nowego,
+czyli mozliwosc ciagania tych kulek za pomoca palca/myszy
+
+troche tez chyba mamy odpowiedz na kolizje do poprawy,
+bo dosc dziwne rzeczy sie dzieja
+
 * 25.02.2025
 
 mamy juz sobie sczytywanie akcekerometru na androidzie.
