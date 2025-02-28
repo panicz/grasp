@@ -213,8 +213,7 @@
 			     (or (not (f:isDirectory))
 				 (f:canExecute))))
 		      (directory:listFiles)))
-	 (parent (ParentDirectory
-		  (directory:getParent))))
+	 (parent (ParentDirectory (directory:getParent))))
      (if (and (parent:canRead)
 	      (parent:canExecute))
 	 `(,parent . ,files)
@@ -364,21 +363,21 @@
     (let ((keeper ::Keeper (the-keeper)))
       (keeper:with-read-permission
        (lambda _
-	 (let ((window::PopUp
-		(open-file-browser
-		 (or (and-let* ((document ::Document
-					  editor:document)
-				(file ::java.io.File
-				      document:source)
-				(parent ::java.io.File
-					(file:getParentFile))
-				((parent:isDirectory)))
-		       parent)
-		     (keeper:initial-directory))
-		 editor))
-	       (position ::Position
-			 (last-known-pointer-position
-			  finger)))
+	 (let* ((filename (or (and-let*
+				  ((document ::Document
+					     editor:document)
+				   (file ::java.io.File
+					 document:source)
+				   (parent ::java.io.File
+					   (file:getParentFile))
+				   ((parent:isDirectory)))
+				(parent:getAbsoluteFile))
+			      (keeper:initial-directory)))
+		(window::PopUp
+		 (open-file-browser filename editor))
+		(position ::Position
+			  (last-known-pointer-position
+			   finger)))
 	   (window:center-around! position:left position:top)
 	   (screen:add-overlay! window)))))))
 
