@@ -1,3 +1,15 @@
+* 28.02.2025
+
+spróbujmy może to rozwiązać, bo czasu jest mało
+
+#+BEGIN_SRC
+java.lang.NullPointerException
+        at java.base/java.io.File.<init>(File.java:278)
+        at editor.input.ParentDirectory.<init>(document-editor.scm:164)
+        at editor.input.document$Mneditor.contentWithParent$St(document-editor.scm:216)
+        at editor.input.document$Mneditor.openFileBrowser(document-editor.scm:267)
+#+END_SRC
+
 * 27.02.2025
 
 teraz bysmy chcieli zrobic cos troche-jakby nowego,
