@@ -13,6 +13,8 @@
   (dimensionality)::int
   (opening dimension ::int)::real
   (closing dimension ::int)::real
+  (current-center)::(sequence-of real)
+  (move-by! displacement::(sequence-of real))::void
   (collides-with? another ::Collider)::boolean
   )
 
@@ -53,6 +55,13 @@
      (box::BoundingBox
       (box:collides-with? (this)))))
 
+  ((current-center)::(sequence-of real)
+   center)
+
+  ((move-by! displacement::(sequence-of real))::void
+   (for i from 0 below (min (length displacement)
+			    (length center))
+	(set! (center i) (+ (center i) (displacement i)))))
   
   ((opening dimension ::int)::real
    (- (center dimension) radius))
@@ -68,6 +77,19 @@
   ((dimensionality)
    ;;(assert (= (length open) (length close)))
    (length open))
+
+  ((current-center)::(sequence-of real)
+   (let* ((d (dimensionality))
+	  (result (make-vector d)))
+     (for i from 0 below d
+	  (set! (result i) (/ (+ (open i) (close i)) 2)))
+     result))
+
+  ((move-by! displacement::(sequence-of real))::void
+   (for i from 0 below (min (length displacement)
+			    (dimensionality))
+	(set! (open i) (+ (open i) (displacement i)))
+	(set! (close i) (+ (close i) (displacement i)))))
   
   ((collides-with? another ::Collider)::boolean
    (match another
