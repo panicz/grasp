@@ -1,3 +1,17 @@
+* 01.03.2025
+
+to moze dzis sprobujmy zrobic to ciaganie palcem
+po ekranie
+
+no i w jaki sposob to musi dzialac?
+
+po pierwsze, musimy zrobic te wszystkie funkcje
+do obslugi myszy/dotyku, czyli:
+- w momencie kiedy dotykamy widgetu, to przeszukujemy
+  cala scene w poszukiwaniu elementu
+- i teraz mozemy albo "transcendowac", tzn. wyjac
+element, albo dzialac jakas sila
+
 * 28.02.2025
 
 spróbujmy może to rozwiązać, bo czasu jest mało
