@@ -36,6 +36,9 @@
 (define-alias MouseAction
   com.googlecode.lanterna.input.MouseAction)
 
+(define-alias MouseActionType
+  com.googlecode.lanterna.input.MouseActionType)
+
 (define-alias Character java.lang.Character)
 
 (define-alias Letter

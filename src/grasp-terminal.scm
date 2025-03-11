@@ -261,7 +261,6 @@
 		      (type ::KeyType (key:getKeyType))
 		      (caret ::TerminalPosition (io:getCursorPosition)))
 		 (match type
-
 		   (,KeyType:MouseEvent
 		    (let* ((action ::MouseAction
 				   (as MouseAction key))
@@ -272,11 +271,11 @@
 					   0))
 			   (left (position:getColumn))
 			   (top (position:getRow)))
-		      (cond
-		       ((action:isMouseMove)
+		      (match (action:getActionType)
+		       (,MouseActionType:MOVE
 			(set! last-position:left left)
 			(set! last-position:top top))
-		       ((action:isMouseDown)
+		       (,MouseActionType:CLICK_DOWN
 
 			(match (action:getButton)
 			  (,MouseButton:Left
@@ -299,13 +298,25 @@
 			    '()))
 			  (_
 			   (values))))
-		       ((action:isMouseDrag)
+		       (,MouseActionType:DRAG
 			(pointer:move! left top
 				       (System:currentTimeMillis)))
 
-		       ((action:isMouseUp)
+		       (,MouseActionType:CLICK_RELEASE
 			(pointer:release! left top
 					  (System:currentTimeMillis)))
+		       (,MouseActionType:SCROLL_UP
+			(set! last-position:left left)
+			(set! last-position:top top)
+			(screen:key-typed!
+			 (special-key-code KeyType:PageUp)
+			 '()))
+		       (,MouseActionType:SCROLL_DOWN
+			(set! last-position:left left)
+			(set! last-position:top top)
+			(screen:key-typed!
+			 (special-key-code KeyType:PageDown)
+			 '()))
 		       )))
 
 		   (_
