@@ -12,6 +12,7 @@
 (import (language match))
 (import (language infix))
 (import (language keyword-arguments))
+(import (language mapping))
 
 (import (language parameterize-up))
 (import (utils functions))
@@ -597,6 +598,17 @@
   (define document ::Document (Document (empty) #!null))
   (define cursor ::Cursor '(#\[ 1))
 
+  (define (close-document! target)::void
+    (for document::Document in (keys previously-edited)
+      (when (eq? (previously-edited document) target)
+	(unset! (previously-edited document))))
+    (let ((replacement (previously-edited target)))
+      (when (eq? replacement target)
+	(set! replacement (new-document)))
+      (when (eq? target document)
+	(set! document replacement)))
+    (unset! (previously-edited target)))
+  
   (define (update-cursor-column!)::void
     (let ((cursor-position::Position
 	   (painter:marked-cursor-position)))
@@ -1180,13 +1192,15 @@
 	     (content
 	      ::Enchanted
 	      (ColumnGrid
-	       `(,(Link content: (Caption "New")
-			on-tap: (lambda _
-				  ::void
-				  (screen:clear-overlay!)
-				  (editor:new-file)))
-		 ,(Link content: (Caption "Open...")
-			on-tap: ((open-file) finger editor))
+	       `(,(Link
+		   content: (Caption "New")
+		   on-tap: (lambda _
+			     ::void
+			     (screen:clear-overlay!)
+			     (editor:new-file)))
+		 ,(Link
+		   content: (Caption "Open...")
+		   on-tap: ((open-file) finger editor))
 		 ,@(if (is (length open-documents) < 1)
 		       '()
 		       `(,(Link
@@ -1198,40 +1212,45 @@
 			      (screen:add-overlay!
 			       (document-switcher editor)))
 			     #t))))
-		 ,(Link content: (Caption "Save as...")
-			on-tap: ((save-file) finger editor))
-		 ,(Link content: (Caption "Close")
-			on-tap:
-			(lambda _
-			  (if (document-saved? document)
-			      (close-document! document)
-			      ;; tutaj powinnismy wyswietlic
-			      (screen:add-overlay!
-			       (PopUp
-				content:
-				(below
-				 (Caption
-				  (string-append
-				   "Do you want to save "
-				   (as-string document:source)
-				   "?"))
-				 (beside
-				  (Button
-				   label: "yes"
-				   action:
-				   (lambda _
-				     (and-let* ((f::java.io.File
-						 document:source))
-				       (save-document!
-					document f))
-				     (close-document! document)))
-				  (Button
-				   label: "no"
-				   action:
-				   (lambda _
-				     (close-document!
-				      document))))))))
-			  #t))
+		 ,(Link
+		   content: (Caption "Save as...")
+		   on-tap: ((save-file) finger editor))
+		 ,(Link
+		   content: (Caption "Close")
+		   on-tap:
+		   (lambda _
+		     (safely
+		      (if (document-saved? document)
+			  (shut-document! document)
+			  ;; tutaj powinnismy wyswietlic
+			  (screen:add-overlay!
+			   (PopUp
+			    content:
+			    (below
+			     (Caption
+			      (string-append
+			       "Do you want to save "
+			       (as-string document:source)
+			       "?"))
+			     (beside
+			      (Button
+			       label: "yes"
+			       action:
+			       (lambda _
+				 (and-let*
+				     ((f::java.io.File
+				       document:source))
+				   (save-document!
+				    document f))
+				 (shut-document!
+				  document)))
+			      (Button
+			       label: "no"
+			       action:
+			       (lambda _
+				 (shut-document!
+				  document)))))))))
+		     #t))
 		 )))
 	     (window ::PopUp (PopUp content: content)))
 	(window:center-around! x y)

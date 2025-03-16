@@ -35,6 +35,10 @@
   implementing Splittable
   with
 
+  ((close-document! document)::void
+   (first:close-document! document)
+   (last:close-document! document))
+  
   (translation ::Translation (Translation))
 
   ((set-translation! pos::real)::void

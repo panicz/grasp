@@ -245,6 +245,9 @@
 
   (define (content)::Embeddable top)
 
+  (define (close-document! document)::void
+    (top:close-document! document))
+  
   (define (render!)::void
     (reset! extent-cached?)
     (currently-visible-animations:clear)

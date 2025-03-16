@@ -6,6 +6,7 @@
 (import (language attributes))
 (import (language infix))
 (import (language match))
+(import (language mapping))
 (import (srfi :11))
 (import (utils functions))
 (import (language fundamental))
@@ -17,8 +18,9 @@
 (import (editor document parse))
 (import (utils print))
 (import (editor document history-tracking))
+(import (editor input screen))
 
-(define  open-documents ::(list-of Document)
+(define open-documents ::(list-of Document)
   '())
 
 (define (load-document-from-port port::gnu.kawa.io.InPort source)
@@ -56,7 +58,9 @@
 (define-attribute (last-save-point document)::list
   '())
 
-(define (save-document! document::Document file::java.io.File)::void
+(define (save-document! document::Document
+			file::java.io.File)
+  ::void
   (and-let* ((source ::java.io.File document:source)
 	     ((string=? (source:getCanonicalPath)
 			(file:getCanonicalPath)))
@@ -73,4 +77,10 @@
   (let ((document-history ::History (history document)))
     (or (null? document-history:fronts)
 	(and-let* ((`(,front . ,_) document-history:fronts))
-	  (eq? front (last-saved-point document))))))
+	  (eq? front (last-save-point document))))))
+
+(define (shut-document! document::Document)
+  ::void
+  (screen:close-document! document)
+  (set! open-documents
+    (only (isnt _ eq? document) open-documents)))

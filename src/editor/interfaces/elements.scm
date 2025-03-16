@@ -499,6 +499,7 @@ operate on cursors.
      ...))
 
 (define-interface Embeddable (Pane Map2D)
+  (close-document! document)::void
   (drop-at! x::real y::real expression::pair)::boolean)
 
 (define-interface Splittable (Embeddable)
@@ -575,6 +576,9 @@ operate on cursors.
   
   (define (zoom-out! left::real top::real)::boolean
     #f)
+
+  (define (close-document! document)::void
+    (vales))
   
   (IgnoreInput))
 
