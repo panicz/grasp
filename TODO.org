@@ -34,6 +34,27 @@ bo mamy niezaimplementowana funkcje =close-document!=.
 
 Zamykanie dokumentu powinno dzialac w taki sposob, ze:
 
+* 07.03.2025
+
+Czego my tak naprawde teraz chcemy?
+
+- z jednej strony chcemy zakodowac algorytm A*
+w komiksowej formie
+
+- z drugiej strony chcemy, zeby nasz edytor byl
+uzyteczny
+
+- z trzeciej strony chcemy przerzucic sie z emacsa
+na nasz edytor
+
+- z czwartej strony chcemy miec przegladarke grafow
+/projektow
+
+Ale chcemy, czy nie chcemy tak naprawde?
+
+Albo jeszcze kilka innych kwestii.
+Po pierwsze, podgladanie stanu obiektow na zywo.
+Po drugie moze jakies cache'owanie renderowania.
 
 * 04.03.2025
 
