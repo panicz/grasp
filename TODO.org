@@ -1,3 +1,66 @@
+* 15.03.2025
+
+Jakies pomysly na dalszy rozwoj?
+
+Najlepsze co przychodzi do glowy to:
+- stworzyc dialekt, ktory sie kompiluje
+  i do javy, i do javascriptu (i ewentualnie
+  do C albo do Scheme'u)
+- i w oparciu o to stworzyc nowego klienta,
+  ktory by uzywal 'grzebieniowej' reprezentacji
+  wyrazen
+
+A co z aktualnym klientem?
+
+Wydaje sie, ze dalej mamy miejsce na rozwoj.
+
+I przede wszystkim nalezaloby zaczac od tego, zeby
+sprobowac uzywac GRASPa do edytowania jego samego.
+
+A co jesli nie?
+
+Bo z takich rzeczy, ktore sa niejako ortogonalne,
+to jest:
+- GutenBergSon
+- algotyrm A*
+- przegladarka grafow
+
+A poza tym:
+- scroll-bary
+- ogolne poprawki w edycji i 'doswiadczeniu'
+
+Na razie mozemy sie zajac zamykaniem dokumentu,
+bo mamy niezaimplementowana funkcje =close-document!=.
+
+Zamykanie dokumentu powinno dzialac w taki sposob, ze:
+
+
+* 04.03.2025
+
+Poniewaz nie chcemy przesadnie sie angazowac w robienie
+engine'u fizycznego, byc moze warto by bylo rozwazyc
+integracje z dyn4j.
+
+Gdybysmy jedbak chcieli to robic, to z pewnoscia
+powinno sie to odbywac na osobnym branchu.
+
+Na razie byc moze warto by bylo raczej sie skupic
+na pisaniu ksiazki, a w wolnych chwilach poprawiac
+bugi i wszystkie inne problemy, jakie stwarza
+nam GRASP, zeby mozna go bylo wreszcie wydac.
+
+* 03.03.2025
+
+Czyli co teraz?
+
+Zabawa w dotykanie kulek?
+
+A co z:
+- przegladarka modulow?
+- otwieraniem i zamykaniem pudelek?
+- skomiksowanym algorytmem A*?
+- wyszukiwaniem?
+
 * 01.03.2025
 
 to moze dzis sprobujmy zrobic to ciaganie palcem
