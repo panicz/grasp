@@ -74,7 +74,8 @@
        (for recognizer::Recognizer in the-recognizers
 	 (call-with-values
 	     (lambda ()
-	       (recognizer:recognizes stroke:points screen))
+	       (recognizer:recognizes stroke:points
+				      screen))
 	   (lambda result
 	     (and-let* ((`(,value . ,rest) result)
 			(value))
@@ -317,7 +318,7 @@
 				   height: inner:height))
 	 (top (Beside left: text-field right: button))
 	 (upper ::Extent (extent+ top))
-	 (content (below
+	 (inside (below
 		   top
 		   (DirectoryButton
 		    target: directory
@@ -337,7 +338,28 @@
 			   editor))
 		      (replace-window! window selector))))
 		   browser))
-         (popup (PopUp content: content))
+         (popup (object (PopUp)
+		  ((*init*)
+		   (invoke-special PopUp (this) '*init*)
+		   (slot-set! (this) 'content inside))
+		  ((key-typed! key-code::long
+			       context::Cursor)
+		   ::boolean
+		   (match (key-code-name key-code)
+		     (,@(is _ in '(page-up page-down up down))
+		      (browser:key-typed!
+		       key-code
+		       (recons* 'bottom 'bottom
+				'content context)))
+		     ('escape
+		      (screen:clear-overlay!))
+		     ('enter
+		      (button:action))
+		     (_
+		      (text-field:content:key-typed!
+		       key-code
+		       (recons* 'left 'top 'content context)))
+		     ))))
 	 (outer ::Extent (extent+ popup))
 	 (available ::Extent (screen:extent))
 	 (button-size ::Extent (extent+ button))
