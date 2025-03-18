@@ -108,15 +108,12 @@
 	 layers))
 
   (define (key-typed! key-code::long context::Cursor)::boolean
-    (let ((n ::int (+ 1 (* 2 (length layers)))))
-      (escape-with return
-	(for layer::Layer in layers
-	  (parameterize/update-sources ((the-cursor (cursor
-						     layer)))
-	    (when (layer:key-typed! key-code context)
-	      (return #t))
-	    (set! n (- n 2))))
-	#f)))
+    (escape-with return
+      (for layer::Layer in layers
+	(parameterize/update-sources ((the-cursor (cursor layer)))
+	  (when (layer:key-typed! key-code context)
+	    (return #t))))
+      #f))
 
   (define (scroll-up! left::real top::real)::boolean
     (any (lambda (layer::Layer)

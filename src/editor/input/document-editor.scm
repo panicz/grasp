@@ -342,6 +342,8 @@
 		  ((*init*)
 		   (invoke-special PopUp (this) '*init*)
 		   (slot-set! (this) 'content inside))
+		  ((hashCode)::int
+		   (java.lang.System:identityHashCode (this)))
 		  ((key-typed! key-code::long
 			       context::Cursor)
 		   ::boolean
@@ -359,7 +361,7 @@
 		      (text-field:content:key-typed!
 		       key-code
 		       (recons* 'left 'top 'content context)))
-		     ))))
+		     ) #t)))
 	 (outer ::Extent (extent+ popup))
 	 (available ::Extent (screen:extent))
 	 (button-size ::Extent (extent+ button))
