@@ -1,3 +1,26 @@
+* 19.03.2025
+
+No to tak: w nieodleglym czasie bysmy sprobowali
+zrobic cos, zeby dalo sie poruszac po menu za
+pomoca klawiarury - co wiaze sie z pewnymi
+wyzwaniami zblizonymi do poruszania sie po
+przyciskach
+
+Ponadto celem nadrzednym powinno byc rozpoczecie
+uzywania GRASPa do edytowania jego samego, a
+w szczegolnosci zintegrowania skryptow do budowania
+projektu.
+
+Docelowo chcemy rowniez:
+- przegladarke modulow
+- algorytm A* i uporzadkowanie kwestii rozszerzen
+
+* 18.03.2025
+
+To bysmy sie zajeli tym, zeby mozna bylo
+(przynajmniej w jakims zakresie) obslugiwac
+GRASP z klawiatury.
+
 * 16.03.2025
 
 No to teraz sytuacja wyglada w taki sposob, ze
