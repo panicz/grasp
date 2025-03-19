@@ -171,6 +171,14 @@
 (set-key! '(alt shift h) (lambda ()
 			   (WARN "switch halves back")))
 
+(set-key! '(ctrl s)
+	  (lambda ()
+	    (((save-file) 0 (the-editor)))))
+
+(set-key! '(ctrl o)
+	  (lambda ()
+	    (((open-file) 0 (the-editor)))))
+
 (set-key! 'F1 (lambda ()
 		(WARN "cursor: "(the-cursor)
 		      ", expression: "(cursor-ref))))
