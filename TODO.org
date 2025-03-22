@@ -1,3 +1,27 @@
+#+BEGIN_SRC scheme
+#+END_SRC
+
+* 20.03.2025
+
+Plan bylby taki, zeby:
+- dodac ciemniejszy kolor dla zaznaczonych pozycji
+  (dla guzikow i tych gridow nieszczesnych)
+- zrobic pelna mozliwosc nawigowania z klawiatury
+- i moze przy okazji dodac odwrocenie kolorow
+  na 200ms przed wykonaniem akcji?
+
+No to tak: mamy sobie metode =FileButton:draw!=,
+i chcemy do niej dodac sprawdzenie kursora/
+contextu
+
+Jak teraz wyglada to w roznych przypadkach?
+
+Na pewno mamy renderowanie pudelka:
+
+#+BEGIN_SRC scheme
+
+#+END_SRC
+
 * 19.03.2025
 
 No to tak: w nieodleglym czasie bysmy sprobowali
