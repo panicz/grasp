@@ -1856,14 +1856,23 @@
 	 (startActivityForResult intent request)))))
   
   (define (initial-directory)::java.io.File
-    (android.os.Environment:getExternalStorageDirectory))
+    (let ((d (invoke-static android.os.Environment
+			    'getExternalStorageDirectory)))
+      (if (d:exists)
+	  d
+	  (invoke-special android.content.Context
+			  (this) 'getFilesDir))))
 
   (define (file-system-roots)::(list-of java.io.File)
-    `(,(android.os.Environment:getExternalStorageDirectory)
-      ,(invoke-special android.content.Context
-		       (this) 'getFilesDir)
-      ,(invoke-special android.content.Context
-		       (this) 'getExternalFilesDir #!null)))
+    (only
+     (lambda (f)
+       (and-let* ((f ::java.io.File))
+	 (f:exists)))
+     `(,(android.os.Environment:getExternalStorageDirectory)
+       ,(invoke-special android.content.Context
+			(this) 'getFilesDir)
+       ,(invoke-special android.content.Context
+			(this) 'getExternalFilesDir #!null))))
   
   (define view :: View)
 
