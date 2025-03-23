@@ -833,6 +833,10 @@
      ((is (highlight-count (HighlightType:Selection:ordinal)) > 0)
       (set! text-color #xffffffff)
       (set! background-color #xff555555))
+     ((is (highlight-count
+	   (HighlightType:CurrentChoice:ordinal)) > 0)
+      (set! text-color #xff999999)
+      (set! background-color transparent))
      (else
       (set! text-color #xff555555)
       (set! background-color transparent))

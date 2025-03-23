@@ -705,8 +705,10 @@
 			   context::Cursor)
     ::void
     (draw-custom-box!
-     (lambda (width::real)::void (open-quote-paren! height))
-     (lambda (width::real)::void (close-quote-paren! height))
+     (lambda (width::real)::void
+	     (open-quote-paren! height))
+     (lambda (width::real)::void
+	     (close-quote-paren! height))
      (quote-paren-width)
      width height context))
 
@@ -995,15 +997,22 @@
 
   (define (set-highlight-color!)
     (cond
-     ((is (highlight-count (HighlightType:CurrentFinding:ordinal)) > 0)
+     ((is (highlight-count
+	   (HighlightType:CurrentFinding:ordinal)) > 0)
       (set! text-color Color:WHITE)
       (set! background-color Color:ORANGE))
-     ((is (highlight-count (HighlightType:OtherFinding:ordinal)) > 0)
+     ((is (highlight-count
+	   (HighlightType:OtherFinding:ordinal)) > 0)
       (set! text-color Color:WHITE)
       (set! background-color Color:YELLOW))
-     ((is (highlight-count (HighlightType:Selection:ordinal)) > 0)
+     ((is (highlight-count
+	   (HighlightType:Selection:ordinal)) > 0)
       (set! text-color Color:WHITE)
       (set! background-color Color:DARK_GRAY))
+     ((is (highlight-count
+	   (HighlightType:CurrentChoice:ordinal)) > 0)
+      (set! text-color Color:BLACK)
+      (set! background-color transparent))
      (else
       (set! text-color Color:DARK_GRAY)
       (set! background-color transparent))

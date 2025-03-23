@@ -121,6 +121,12 @@ def") ===> [Extent width: 3 height: 2])
    (begin . actions)
    (the-transform-stack:removeFirst)))
 
+(define-syntax-rule (with-highlight highlight-type . actions)
+  (painter:begin-highlight! highlight-type)
+  (try-finally
+   (begin . actions)
+   (painter:end-highlight! highlight-type)))
+
 (define-interface Painter ()
   
   (translate! x::real y::real)::void

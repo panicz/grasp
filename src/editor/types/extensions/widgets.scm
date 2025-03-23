@@ -309,10 +309,15 @@
   with
   ((draw! context::Cursor)::void
    (let* ((icon ::Extent (painter:icon-extent))
-	  (caption ::String (label)))
+	  (caption ::String (label))
+	  (highlight? ::boolean (equal? context
+					(the-cursor))))
      (draw-icon!)
      (with-translation (icon:width 0)
-       (painter:draw-caption! caption))))
+       (if highlight?
+	   (with-highlight HighlightType:CurrentChoice
+	     (painter:draw-caption! caption))
+	   (painter:draw-caption! caption)))))
 
   ((value)::Object
    (origin (this)))
