@@ -1,6 +1,16 @@
 #+BEGIN_SRC scheme
 #+END_SRC
 
+* 22.03.2025
+
+dobrze by bylo chociaz przetestowac czy to
+kolorowanie, ktore zrobilismy ostatnio,
+w ogole jakkolwiek dziala.
+
+No to rzecz by tak wygladala, ze lewo albo prawo
+albo dowolna literka musialyby powodowac ustalenie
+jako kursora kontekst + sciezke do pola tekstowego,
+
 * 20.03.2025
 
 Plan bylby taki, zeby:
