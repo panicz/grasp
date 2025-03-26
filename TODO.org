@@ -1,6 +1,23 @@
 #+BEGIN_SRC scheme
 #+END_SRC
 
+* 24.03.2025
+
+No dobra, to teraz plan jest taki, ze chcemy zeby:
+- strzalki w gore i w dol robily nam poruszanie
+  po menu
+- strzalki lewo i prawo oraz backspace, a takze
+  wszystkie literki robily nam edycje pola tekstowego
+
+I to jest jeden aspekt.
+Drugi jest taki, ze mamy - przynajmniej na Androidzie
+- mozliwosc cache'owania
+
+https://stackoverflow.com/questions/52642055/view-getdrawingcache-is-deprecated-in-android-api-28
+
+Jeszcze bysmy musieli obczaic, czy AWT tez daje takie
+mozliwosci - albo zamiast AWT uzyc czego innego?
+
 * 22.03.2025
 
 dobrze by bylo chociaz przetestowac czy to
