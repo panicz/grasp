@@ -49,11 +49,12 @@
 				      (slot:below? x y)))
 			       board:tile-slots)
 			 (and-let* ((slot intersection
-					  (maximizing
+					  (element-maximizing
 					   (lambda (slot::LetterTileSlot)
 					     (if slot:content
 						 0
-						 (slot:intersection-extent tile)))
+						 (slot:intersection-extent
+						  tile)))
 					   board:tile-slots))
 				    ((is intersection > 0.1)))
 			   slot))))
