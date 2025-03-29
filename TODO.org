@@ -1,6 +1,50 @@
 #+BEGIN_SRC scheme
 #+END_SRC
 
+* 28.03.2025
+
+Wydaje sie, ze wielki redesign GRASPa zbliza sie
+wielkimi krokami. Przy czym:
+
+- chcielibysmy pewnie moc rowniez edytowac pliki
+  Clojure i Common Lispa
+- musimy przemyslec sobie reprezentacje dokumentu
+- a moze chcielibysmy sobie tego uzywac jako Datomika?
+
+* 27.03.2025
+
+To my w koncu zrobimy to sterowanie z klawiatury?
+Po ostatniej aktualizacji Androida warto by bylo tez
+sie zastanowic nad optymalizacja tego nieszczesnego
+renderowania
+
+No ale to - jak to mowia - maniana
+
+Teraz zrobmy tak (w handlerze klawiatury =ColumnGrid=), ze:
+- jezeli =(is (the-cursor) proper-suffix? context)=,
+  to robimy =(set! (the-cursor) (recons (first-index) context)=
+- a jezeli =(equal? context (cdr (the-cursor)))=
+
+* 26.03.2025
+
+Ech, ach i och.
+
+GRASP dziala niemozliwie wolno na Androidzie po przywroceniu
+ustawien fabrycznych.
+
+Stad przychodzi kilka nowych pomyslow.
+
+Po pierwsze, byloby niezle gdyby stworzyc cos, co mozna
+by bylo kompilowac do javascriptu, albo do WASMa.
+
+Po drugie, byloby super, gdyby dalo sie to rowniez
+kompilowac natywnie (moze byc do Chez/Guile/Chicken).
+
+Po trzecie, byloby extra, gdyby opcja kompilacji do JVM
+pozostala.
+
+Moze tez warto rozwazyc opcje kompilacji do DartVM?
+
 * 24.03.2025
 
 No dobra, to teraz plan jest taki, ze chcemy zeby:
