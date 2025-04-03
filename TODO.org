@@ -236,6 +236,25 @@ by bylo interesujace?
 Czyli zasadniczo by to wygladalo w taki sposob, ze:
 - kazdy byt odpowiada umiejscowionemu obiektowi
 
+* 29-28.03.2025 (komputer)
+
+Rzecz wyglada w taki sposob, ze z jakichs powodow
+na razie nie chcemy babrac sie w tym kodzie, ktory mamy,
+i chcielibysmy sobie przemyslec to i owo.
+
+Po pierwsze, chcielibysmy zmienic reprezentacje kursora
+na ArrayList. Podczas trawersowania drzewa bysmy po prostu
+odkladali rzeczy na stos.
+
+Czyli kontekst to bedzie w zasadzie mutowalny =Deque=
+ktory bedzie oparty na =ArrayList=.
+
+Po drugie, jezeli naciskamy jakis klawisz, to chcielibysmy,
+zeby jego obsluga byla wywolywana kaskadowo, tzn. zeby
+poszeczegolne funkcje byly propagowane zgodnie z kursorem.
+
+Po trzecie, operacje musza byc w jakis sposob zreifikowane,
+zeby dalo sie na nich przeprowadzac "undo".
 
 * 28.03.2025
 

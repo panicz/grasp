@@ -58,22 +58,21 @@
 	  (else
 	   (boundary-action pop-up finger (- x left) (- y top))))))
 
-(define-type (PopUp left: real := 0
-		    top: real := 0
-                    content: Enchanted)
-  implementing Layer
-  with
+(define-object (PopUp content ::Enchanted)::EnchantedDragLayer
 
-  ((permanent?)::boolean #f)
+  (define left ::real 0)
+  (define top ::real 0)
   
-  ((close!)::void
+  (define (permanent?)::boolean #f)
+  
+  (define (close!)::void
    (values))
   
-  ((render!)::void
+  (define (render!)::void
    (let ((tile ::Tile (as Tile (this))))
      (tile:draw! '())))
 
-  ((press! finger::byte #;at x::real y::real)::boolean
+  (define (press! finger::byte #;at x::real y::real)::boolean
    (pop-up-action (this) finger x y
      inside:
      (lambda (content::Enchanted finger::byte x::real y::real)
@@ -84,14 +83,14 @@
        ::boolean
        (screen:drag! finger pop-up))))
 
-  ((remove-from-overlay!)::boolean
+  (define (remove-from-overlay!)::boolean
    (let ((should-remove? (lambda (layer::Layer)
 			   (or (eq? layer (this))
 			       (and-let* ((layer ::DelegatingLayer))
 				 (eq? layer:target (this)))))))
      (screen:remove-overlay-if! should-remove?)))
   
-  ((tap! finger::byte #;at x::real y::real)::boolean
+  (define (tap! finger::byte #;at x::real y::real)::boolean
    (pop-up-action (this) finger x y
      inside:
      (lambda (content::Enchanted finger::byte x::real y::real)
@@ -102,31 +101,31 @@
        ::boolean
        (remove-from-overlay!))))
 
-  ((second-press! finger::byte #;at x::real y::real)::boolean
+  (define (second-press! finger::byte #;at x::real y::real)::boolean
    (pop-up-action (this) finger x y
      inside:
      (lambda (content::Enchanted finger::byte x::real y::real)
        ::boolean
        (content:second-press! finger x y))))
 
-  ((double-tap! finger::byte x::real y::real)::boolean
+  (define (double-tap! finger::byte x::real y::real)::boolean
    (pop-up-action (this) finger x y
     inside:
     (lambda (content::Enchanted finger::byte x::real y::real)
       ::boolean
       (content:double-tap! finger x y))))
 
-  ((long-press! finger::byte x::real y::real)::boolean
+  (define (long-press! finger::byte x::real y::real)::boolean
    (pop-up-action (this) finger x y
      inside:
      (lambda (content::Enchanted finger::byte x::real y::real)
        ::boolean
        (content:long-press! finger x y))))
 
-  ((key-typed! key-code::long context::Cursor)::boolean
+  (define (key-typed! key-code::long context::Cursor)::boolean
    (content:key-typed! key-code (recons (first-index) context)))
 
-  ((draw! context::Cursor)::void
+  (define (draw! context::Cursor)::void
    (let* ((inner ::Extent (extent+ content))
 	  (horizontal ::real (painter:horizontal-popup-margin))
 	  (vertical ::real (painter:vertical-popup-margin)))
@@ -136,12 +135,12 @@
        (with-translation (horizontal vertical)
 	 (content:draw! (recons 'content context))))))
 
-  ((part-at index::Index)::Indexable*
+  (define (part-at index::Index)::Indexable*
    (match index
     ('edge (this))
     ('content content)))
 
-  ((measure-position #;of cursor::Cursor
+  (define (measure-position #;of cursor::Cursor
 			  #;into target::Position
 				 #;within context::Cursor)
    ::Position
@@ -156,16 +155,16 @@
 					      #;within context))
        (_ target))))
 
-  ((first-index)::Index 'content)
-  ((last-index)::Index 'edge)
+  (define (first-index)::Index 'content)
+  (define (last-index)::Index 'edge)
 
-  ((next-index index::Index)::Index 'edge)
-  ((previous-index index::Index)::Index 'content)
+  (define (next-index index::Index)::Index 'edge)
+  (define (previous-index index::Index)::Index 'content)
 
-  ((index< a::Index b::Index)::boolean ;>
+  (define (index< a::Index b::Index)::boolean ;>
    (and (eq? a 'edge) (eq? b 'content)))
 
-  ((cursor-under* x::real y::real path::Cursor)::Cursor*
+  (define (cursor-under* x::real y::real path::Cursor)::Cursor*
    (escape-with return
      (pop-up-action
       (this) 0 x y
@@ -185,30 +184,26 @@
 	       (otherwise #!null
 		 (and path (recons 'edge path))))))))
 
-  ((extent)::Extent
+  (define (extent)::Extent
    (let ((inner ::Extent (extent+ content)))
      (Extent width: (+ inner:width
 		       (* 2 (painter:horizontal-popup-margin)))
 	     height: (+ inner:height
 			(* 2 (painter:vertical-popup-margin))))))
 
-  implementing Drag
-  with
-  ((move! x::real y::real dx::real dy::real)::void
+  (define (move! x::real y::real dx::real dy::real)::void
    (set! left (+ left dx))
    (set! top (+ top dy)))
 
-  ((drop! x::real y::real vx::real vy::real)::void
+  (define (drop! x::real y::real vx::real vy::real)::void
    ;; sprawdzic czy v jest wieksza niz prog,
    ;; i iesli tak - usunac (this) ze screen:overlay
    (values))
 
-  implementing Enchanted
-  with
-  ((value)::Object
+  (define (value)::Object
    (invoke-special Base 'to-list cons to-expression))
 
-  ((center-around! x::real y::real)::void
+  (define (center-around! x::real y::real)::void
    (let ((inner ::Extent (extent))
 	 (outer ::Extent (screen:extent)))
      (set! left (max 0 (min (- outer:width inner:width)
@@ -217,28 +212,28 @@
 	   (max 0 (min (- outer:height inner:height)
 		       (- y (quotient inner:height 2)))))))
 
-  ((scroll-up! left::real top::real)::boolean
+  (define (scroll-up! left::real top::real)::boolean
    (content:scroll-up! left top))
-
-  ((scroll-down! left::real top::real)::boolean
+  
+  (define (scroll-down! left::real top::real)::boolean
    (content:scroll-down! left top))
 
-  ((scroll-left! left::real top::real)::boolean
+  (define (scroll-left! left::real top::real)::boolean
    (content:scroll-left! left top))
 
-  ((scroll-right! left::real top::real)::boolean
-   (content:scroll-right! left top))
+  (define (scroll-right! left::real top::real)::boolean
+    (content:scroll-right! left top))
 
-  ((rotate-left! left::real top::real)::boolean
+  (define (rotate-left! left::real top::real)::boolean
    (content:rotate-left! left top))
 
-  ((rotate-right! left::real top::real)::boolean
+  (define (rotate-right! left::real top::real)::boolean
    (content:rotate-right! left top))
 
-  ((zoom-in! left::real top::real)::boolean
+  (define (zoom-in! left::real top::real)::boolean
     (content:zoom-in! left top))
 
-  ((zoom-out! left::real top::real)::boolean
+  (define (zoom-out! left::real top::real)::boolean
    (content:zoom-out! left top))
   )
 
@@ -374,7 +369,7 @@
 	 (scroll ::Scroll (Scroll width: inner:width
 				  height: inner:height
 				  content: content))
-         (popup (PopUp content: scroll))
+         (popup (PopUp scroll))
 	 (outer ::Extent (extent+ popup))
 	 (available ::Extent (screen:extent)))
     (set! scroll:width (- scroll:width
