@@ -1,6 +1,242 @@
 #+BEGIN_SRC scheme
 #+END_SRC
 
+* 01.04.2025
+
+No dobra, to dzisiaj bysmy chcieli polaczyc sie z
+baza datomic-local z poziomu Kawy
+
+W jaki sposob mialoby to wygladac?
+
+Na pewno musimy:
+- wywolac odpowiednie funkcje (owinac je?)
+- skonstruowac odpowiednie struktury (czyli
+  zbudowac cos, co by nam mapowalo kawowe
+  listy na clojure'owe wektory)
+
+No dobra, to teraz jeszcze musimy ustalic,
+co jest nam potrzebne do pracy z baza danych.
+
+No przede wszystkim adres tej bazy danych
+(oraz ewentualnie dabe dostepowe jak login i haslo
+albo sciezka dostepu do klucza prywatnego)
+
+Podczas gdy w Clojure mamy do czynienia z takimi
+bytami:
+- =datomic.client.api:client= - zwraca (bezpolaczeniowy)
+  obiekt reprezentujacy klienta bazy danych (np.
+  datomic-local, datomic-cloud, datomic-pro)
+- =datomic.client.api:connect= - zwraca obiekt
+  reprezentujacy polaczeniez baza danych
+- =datomic.client.api:db= - zwraca obiekt reprezentujacy
+  aktualna wartosc bazy danych (niemutowalna) dla
+  danego polaczenia
+
+Zasadniczo wydaje sie zatem, ze jezeli chcemy miec
+najnowsze dane, to powinnismy zawsze przed wykonaniem
+zapytania pobrac nowy obiekt "db"
+
+
+#+BEGIN_SRC scheme
+
+  ;; snaj
+
+  ; datomic.client.api.protocols.Client
+
+  (define-alias Database datomic.client.api.protocols.Connection)
+
+  (define-alias DatabaseSnapshot datomic.core.db.Db)
+
+  (define-class VectorBundle (clojure.lang.PersistentArrayMap)
+    ((*init* elements::(Object[]))
+     (invoke-special clojure.lang.PersistentArrayMap (this)
+    		   '*init* elements))
+    ((toString)::String
+     (let ((content (string-join
+  		   (map (lambda (key)
+    			  (string-append
+    			   (key:toString)
+    			   " "
+  			   (*:toString
+    			    (invoke-special
+    			     clojure.lang.PersistentMap
+    			     (this) 'get key))))
+    			(clojure.core$keys:invokeStatic m))
+    		   " ")))
+       (string-append
+        "(Bundle"
+        (if (= (string-length content) 0)
+  	  ""
+  	  " ")
+        content
+        ")"))))
+
+  (define-class HashBundle (clojure.lang.PersistentHashMap)
+    ((*init* elements::(Object[]))
+     (invoke-special clojure.lang.PersistentHashMap (this)
+    		   '*init* elements))
+    ((toString)::String
+     (let ((content (string-join
+  		   (map (lambda (key)
+    			  (string-append
+    			   (key:toString)
+    			   " "
+  			   (*:toString
+    			    (invoke-special
+    			     clojure.lang.PersistentMap
+    			     (this) 'get key))))
+    			(clojure.core$keys:invokeStatic m))
+    		   " ")))
+       (string-append
+        "(Bundle"
+        (if (= (string-length content) 0)
+  	  ""
+  	  " ")
+        content
+        ")"))))
+
+  (define (clojurize value)
+    (cond
+     ((keyword? value) ;<
+      (clojure.lang.Keyword:intern (keyword->string value)))
+
+     ((symbol? value) ;<
+      (clojure.lang.Symbol:intern (symbol->string value)))
+
+     ((and (string? value) (not (String? value)))
+      (as String value))
+
+     (else
+      value)))
+
+  (define (Bundle . args)
+    (let ((n ::int (length args)))
+      ;;(assert (even? n))
+      (let ((args* (Object[] length: n))
+    	  (i 0))
+        (for-each (lambda (arg)
+    		  (set! (args* i) (clojurize arg))
+    		  (set! i (+ i 1)))
+    		args)
+        (if (<= n 16) ;>
+    	  (VectorBundle args*)
+    	  (HashBundle args*)))))
+
+  (define (datomic-local system ::String
+     		       db-name ::String
+     		       #!key (path '#:mem))
+    ;;::Database
+    (let* ((client-parameters (Bundle server-type: '#:datomic-local
+     				    system: system
+     				    storage-dir: path))
+      	 (client (datomic.client.api$client:invokeStatic
+     		  client-parameters))
+    	 (connection-parameters (Bundle db-name: db-name)))
+      (datomic.client.api$connect:invokeStatic
+       client connection-parameters)))
+
+  (define (database-snapshot database #;Database)
+    ;;DatabaseSnapshot
+    (datomic.client.api$db:invokeStatic database))
+
+  (define the-database
+    (make-parameter (datomic-local "system" "base")))
+
+#+END_SRC
+
+#+BEGIN_SRC java
+
+    ~/kawa-datomic/zips $ javap clojure-1.12.0/clojure/lang/PersistentHashMap.class |head -n 2
+    Compiled from "PersistentHashMap.java"
+    public class clojure.lang.PersistentHashMap
+        extends clojure.lang.APersistentMap
+        implements clojure.lang.IEditableCollection,
+    	       clojure.lang.IObj,
+    	       clojure.lang.IMapIterable,
+    	       clojure.lang.IKVReduce {...}
+    ~/kawa-datomic/zips $ javap clojure-1.12.0/clojure/lang/PersistentArrayMap.class |head -n 2
+    Compiled from "PersistentArrayMap.java"
+    public class clojure.lang.PersistentArrayMap
+          extends clojure.lang.APersistentMap
+          implements clojure.lang.IObj,
+    		 clojure.lang.IEditableCollection,
+    		 clojure.lang.IMapIterable,
+    		 clojure.lang.IKVReduce,
+    		 clojure.lang.IDrop {...}
+    ~/kawa-datomic/zips $ javap clojure-1.12.0/clojure/lang/APersistentMap.class |head -n 2                                                       Compiled from "APersistentMap.java"
+    public abstract class clojure.lang.APersistentMap
+          extends clojure.lang.AFn
+          implements clojure.lang.IPersistentMap,
+    		 java.util.Map,
+    		 java.lang.Iterable,
+    		 java.io.Serializable,
+    		 clojure.lang.MapEquivalence,
+    		 clojure.lang.IHashEq {...}
+
+    ~/kawa-datomic/zips $ javap clojure-1.12.0/clojure/lang/IPersistentMap.class
+  Compiled from "IPersistentMap.java"
+  public interface clojure.lang.IPersistentMap
+  	extends java.lang.Iterable,
+  		clojure.lang.Associative,
+  		clojure.lang.Counted {
+    public abstract clojure.lang.IPersistentMap assoc(java.lang.Object, java.lang.Object);
+    public abstract clojure.lang.IPersistentMap assocEx(java.lang.Object, java.lang.Object);
+    public abstract clojure.lang.IPersistentMap without(java.lang.Object);
+    public default clojure.lang.Associative assoc(java.lang.Object, java.lang.Object);
+  }
+      
+#+END_SRC
+
+
+* 31.03.2025
+
+No dobra, to na razie bedziemy robili kilka prob
+z systemem Datomic.
+
+Celem jest integracja Datomika z Kawa, co jednak bedzie
+rowniez wymagalo integracji z Clojure, co z kolei daje
+podstawe do narodzin projektu =Snaj=
+
+I teraz jak sie to ma wydarzac:
+
+chcielibysmy zasadniczo polaczyc sie z baza Datomic
+z poziomu Kawy, ale zeby to zrobic, musimy najpierw
+dobrze zrozumiec jak to wyglada z poziomu Clojure.
+
+No to po pierwsze jest sobie cos takiego jak
+=datomic.client.api/client=, ktorego argumentem
+jest mapa posiadajaca przynajmniej takie klucze:
+=:server-type=, =:system=.
+
+No dobra, to jak bysmy chcieli tej bazy uzywac?
+
+#+BEGIN_SRC scheme
+
+  (parameterize ((the-database (datomic-local
+  			      "movies"
+  			      path: "/storage/emulated/0/datomic"
+  			      )))
+    (assuming `((,e1 a1: v1)
+  	      (,e1 a2: v2))
+  	    (select (variables ...)
+  		    from: (the-database)
+  		    where: ...)))
+
+#+END_SRC
+
+* 30.03.2025
+
+A gdyby tak zrobic wersje GRASPa w ktorej wszystkie
+struktury danych sa oparte o baze Datomic?
+
+W ogole moze warto by bylo zrobic eksperyment
+z uzywaniem Kawy do pracy z Datomikiem? Czy to
+by bylo interesujace?
+
+Czyli zasadniczo by to wygladalo w taki sposob, ze:
+- kazdy byt odpowiada umiejscowionemu obiektowi
+
+
 * 28.03.2025
 
 Wydaje sie, ze wielki redesign GRASPa zbliza sie
