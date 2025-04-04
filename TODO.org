@@ -1,6 +1,49 @@
 #+BEGIN_SRC scheme
 #+END_SRC
 
+* 03.04.2025
+
+wyglada na to, ze szybkosc ladowania datomika jest
+ograniczona, co czyni go niepraktycznym do
+zamierzonego zastosowania (choc docelowo moze
+byloby warto - posilkujac sie ich architektura
+- stworzyc szybsza implementacje?)
+
+kolejnym krokiem byloby zatem wyprobowanie
+bazy xtdb, ale tego raczej na szybko nie zrobimy
+
+z tematow, ktore jakos tak materializuja sie
+na horyzoncie, mamy:
+
+- stworzenie rozszerzena =ObjectInspector=, ktore
+  by wyswietlalo wszystkie publiczne wlasciwosci
+  i metody inspektowanego obiektu
+
+- wprowadzenie cache'u do renderowania
+
+- zmiane reprezentacji dokumentu (i przepisanie
+  wielu komponentow od nowa)
+
+- udzial w spring lisp game jam z totalna kutasa 2d
+  (integracja z dyn4j?)
+
+Tak czy inaczej, wydaje sie, ze nalezaloby zaczac od
+optymalizacji, tak zeby ten klient androidowy na powrot
+stal sie uzywalny.
+
+Ale zanim do tego dojdzie, musimy i tak przemyslec
+architekture.
+
+Wyjdzmy moze od tego, ze Clojure ma transactora, i ze
+my tez wszystkich zmian chcielibysmy dokonywac przez
+cos podobnego.
+
+Tzn. zeby byl sobie pewien interfejs do edytowania
+dokumentu.
+
+Tyle ze 'jednosc' tego interfejsu jest trudna, jezeli
+chcemy do tego, zeby edycja odbywala sie 'rekurencyjnie'
+
 * 01.04.2025
 
 No dobra, to dzisiaj bysmy chcieli polaczyc sie z
