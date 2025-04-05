@@ -1,6 +1,35 @@
 #+BEGIN_SRC scheme
 #+END_SRC
 
+* 05.04.2025
+
+No dobra, to teraz mamy dwa tematy:
+1. stworzenie jezyka w oparciu o Racket, ktory
+   mialby czesc wspolna z podzbiorem Kawy uzytym w GRASP
+2. nowa architektura GRASPa (tzn. nowa reprezentacja
+   dokumentu, kursora, historii oraz operacji na
+   dokumencie)
+  
+* 04.04.2025
+
+No to jak na razie nasze wyobrazenie jest takie, ze:
+- zaczniemy od zbudowania reprezentacji "Comb"
+  (jako pary tablic) oraz "Loc" (jako tablicy
+  indeksow)
+- ale wczesniej wyodrebnimy i rozbudujemy
+  system reprezentacji obiektow i rekordow
+- sama architektura musi byc taka, ze:
+  - rekurencyjnie przekazujemy wglab obsluge
+    klawiszy
+
+Aaaaa
+
+no to teraz taka mysl, zeby napisac kod, ktory
+bedzie jednoczesnie dzialal w Kawie i Rackecie,
+tzn. zeby zbudowac kawowy jezyk dla Racketa.
+
+(Jest tez pomysl na projekt Jacket Blake'a Shaw)
+
 * 03.04.2025
 
 wyglada na to, ze szybkosc ladowania datomika jest
