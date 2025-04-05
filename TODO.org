@@ -9,7 +9,67 @@ No dobra, to teraz mamy dwa tematy:
 2. nowa architektura GRASPa (tzn. nowa reprezentacja
    dokumentu, kursora, historii oraz operacji na
    dokumencie)
-  
+
+Mowiac skrotowo, chcemy miec taki =#lang= w Rackecie,
+w ktorym bysmy mieli:
+
+- ujednolicony =define-object= (poprawiony wzgledem tego,
+co mielismy w Kawie)
+- =define-record= (troche uproszczony wzgledem tego,
+co mamy teraz w =define-type=, ale na swoj sposob tez troche rozbudowany)
+- =define-interface= (zasadniczo taki jak mamy teraz)
+- =a:b= => ($lookup$ a `b)
+- =a::b= -> 3 tokeny: =a=, =::=, =b=
+- =define-attribute=, =define-cache=, uogolnione settery
+
+(natomiast po stronie Kawy chcielibysmy moze miec jakies wsparcie
+dla =#lang=?)
+
+- no i jeszcze generyczne wsparcie dla =Bundle=!
+
+
+Moze tez powinnismy wrocic do takiego zagadnienia: czym jest typ?
+- z jednej strony mozemy go utozsamiac z predykatem
+- z drugiej moze z jakims generatorem? (tak jak w quickchecku)
+
+A ten nasz =ObjectInspector= to by mniej wiecej tak wygladal:
+
+#+BEGIN_SRC
+┌────────────────────────────────────┐
+│     java.class.Name@(hash)         │
+├───────────────────────┬────────────┤
+│ fieldName (fieldType) │ fieldValue │
+├───────────────────────┼────────────┤
+┆                       ┆            ┆
+├───────────────────────┼────────────┤
+│ (return) methodName   │ args ...   │
+├───────────────────────┼────────────┤
+┆                       ┆            ┆
+└───────────────────────┴────────────┘
+#+END_SRC
+
+tak naprawde argumenty do metod powinny stanowic liste
+do ktorej wartosci mozemy albo wybierac (jezeli to enum),
+albo wpisywac z palca.
+
+
+Zeby jednak do tego moglo dojsc, to byloby dobrze, zeby
+dalo sie umieszczac edytor graspowych wyrazen wewnatrz
+takiego pola
+
+No i jeszcze powinnismy miec dla pol jeszcze jedna kolumne,
+w ktorej bysmy wpisywali ewentualna nowa wartosc, oraz
+przycisk "set", ktory pozwalaby nam to zmieniac (natomiast
+dla metod powinnismy miec metode "call")
+
+
+No dobra, natomiast co do tego Racketa, to pytanie,
+czy nie chcielibysmy raczej stworzyc readera oraz
+modelu obiektowego w czystym Schemie, i ewentualnie
+tlumaczyc kodu do czystego Scheme'u, modelujac to
+na tym, jak teraz dziala Kawa?
+
+
 * 04.04.2025
 
 No to jak na razie nasze wyobrazenie jest takie, ze:
