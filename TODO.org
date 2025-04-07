@@ -1,6 +1,82 @@
 #+BEGIN_SRC scheme
 #+END_SRC
 
+* 06.04.2025 (no, prawie)
+
+Teraz sprobujemy moze troche postudiowac to, jak dzialaja
+w Rackecie te syntax-objecty
+
+Tam ta struktura jest tak zdefiniowana
+
+#+BEGIN_SRC scheme
+
+(struct syntax ([content* #:mutable] ; datum and nested syntax objects; mutated for lazy propagation
+                scopes  ; scopes that apply at all phases
+                shifted-multi-scopes ; scopes with a distinct identity at each phase; maybe a fallback search
+                mpi-shifts ; chain of module-path-index substitutions
+                srcloc  ; source location
+                props   ; properties
+                inspector)
+  ...)
+
+#+END_SRC
+
+Wyglada na to, ze niewiele sie stad dowiemy. W Chez mamy z kolei
+
+#+BEGIN_SRC scheme
+
+(define-record-type syntax-object
+  (fields (immutable expression) (immutable wrap))
+  (nongenerative #{syntax-object bdehkef6almh6ypb-a})
+  (sealed #t))
+
+#+END_SRC
+
+co jest wprawdzie prostsze, ale takze niezbyt pomocne
+
+Wniosek z tego taki, ze moze na razie dajemy sobie z tym
+spokoj?
+
+No ale dobra, zalozmy ze tak.
+I co wtedy?
+
+Czy chcemy napisac translator z Eidolona do Scheme'u?
+I czym jest typ?
+
+Przede wszystkim, typ moze byc wbudowany (np. Javowy,
+JSowy itd), albo zdefiniowany przez uzytkownika.
+
+Po drugie, typ pozwala nam:
+- stwierdzic, czy dany obiekt do niego nalezy
+- skonstruowac nowy obiekt (na podstawie parametrow)
+- zdekonstruowac zlozony obiekt na jego komponenty
+
+Teoria kategorii mowi nam tyle, ze mamy dwa podstawowe
+rodzaje typow:
+- rekordy
+- warianty
+
+Natomiast Java poucza nas, ze przynajmniej niektore
+typy albo sa interfejsami, albo implementuja interfejsy.
+
+
+#+BEGIN_SRC scheme
+
+(define-variants BaseType
+  (Variant1 ...)
+  (Variant2 ...)
+  (Variant3 ...))
+
+(define-record (Name fields ...))
+
+#+END_SRC
+
+No i co dalej?
+
+Wydaje sie, ze warto by bylo obejrzec sobie ten tutorial
+Brady'ego, i ewentualnie przestudiowac The Little Typera.
+
+
 * 05.04.2025
 
 No dobra, to teraz mamy dwa tematy:
