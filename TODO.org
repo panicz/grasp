@@ -1,4 +1,260 @@
-#+BEGIN_SRC scheme
+#+BEGIN_SRC racket
+#+END_SRC
+
+* 09.04.2025
+
+Musimy teraz wymyslic w jaki sposob bedziemy reprezentowac:
+- klasy
+- obiekty
+- interfejsy
+
+Interfejs musi miec przynajmniej tyle:
+- tablice interfejsow nadrzednych
+- liste metod
+- odwzorowanie nazwy metody w jej sygnature typu
+
+Klasa musi miec:
+- wskazanie na interfejs
+- wskazanie na klase nadrzedna
+- zmienne i metody statyczne
+- mozliwosc konstruowania instancji
+
+Obiekt musi miec:
+- wskazanie na klase
+- mozliwosc wywolania metod oraz odczytu 
+
+* 08.04.2025
+
+POORMANS - Portable Object Orientation/Reflection
+Module Across Numerous Schemes
+
+#+BEGIN_SRC racket
+  (define-syntax leftmost-atom
+    (syntax-rules ()
+      ((_ (left . right))
+       (leftmost-atom left))
+      ((_ atom)
+       atom)))
+
+  (define-syntax categorize-members
+    (syntax-rules (define
+                    define-private
+                    define-static)
+      
+      ((categorize-members final params members)
+       (categorize-members
+        final
+        params
+        members
+        () () () () () ()))
+
+      ((categorize-members
+        final params
+        ((define (name . args) . body) . rest)
+        public-methods
+        public-fields
+        private-methods
+        private-fields
+        static-methods
+        static-fields)
+       (categorize-members
+        final params
+        rest
+        ((define (name . args) . body) . public-methods)
+        public-fields
+        private-methods
+        private-fields
+        static-methods
+        static-fields))
+
+      ((categorize-members
+        final params
+        ((define name . body) . rest)
+        public-methods
+        public-fields
+        private-methods
+        private-fields
+        static-methods
+        static-fields)
+       (categorize-members
+        final params
+        rest
+        public-methods 
+        ((define name . body) . public-fields)
+        private-methods
+        private-fields
+        static-methods
+        static-fields))
+
+      ((categorize-members
+        final params
+        ((define-private (name . args) . body) . rest)
+        public-methods
+        public-fields
+        private-methods
+        private-fields
+        static-methods
+        static-fields)
+       (categorize-members
+        final params
+        rest
+        public-methods 
+        public-fields
+        ((define-private (name . args)
+           . body)
+         . private-methods)
+        private-fields
+        static-methods
+        static-fields))
+
+      ((categorize-members
+        final params
+        ((define-private name . body) . rest)
+        public-methods
+        public-fields
+        private-methods
+        private-fields
+        static-methods
+        static-fields)
+       (categorize-members
+        final params
+        rest
+        public-methods 
+        public-fields
+        private-methods
+        ((define-private name . body) . private-fields)
+        static-methods
+        static-fields))
+
+      ((categorize-members
+        final params
+        ((define-static (name . args) . body) . rest)
+        public-methods
+        public-fields
+        private-methods
+        private-fields
+        static-methods
+        static-fields)
+       (categorize-members
+        final params
+        rest
+        public-methods 
+        public-fields
+        private-methods
+        private-fields
+        ((define-static (name . args)
+           . body) . static-methods)
+        static-fields))
+
+      ((categorize-members
+        final params
+        ((define-static name . body) . rest)
+        public-methods
+        public-fields
+        private-methods
+        private-fields
+        static-methods
+        static-fields)
+       (categorize-members
+        final params
+        rest
+        public-methods 
+        public-fields
+        private-methods
+        private-fields
+        static-methods
+        ((define-static name . body) . static-fields)))
+      
+      ((_ final params
+          unmatched
+          public-methods
+          public-fields
+          private-methods
+          private-fields
+          static-methods
+          static-fields)
+       (final
+        params
+        public-methods
+        public-fields
+        private-methods
+        private-fields
+        static-methods
+        static-fields
+        . unmatched))
+      ))
+
+  (define-syntax build-class
+    (syntax-rules ()
+      ((build-class
+        (class-name interface)
+        (public-methods ...)
+        (public-fields ...)
+        (private-methods ...)
+        (private-fields ...)
+        (static-methods ...)
+        (static-fields ...)
+        super-class
+        . initializer)
+       (let ()
+         private-fields ...
+         public-fields ...
+         private-methods ...
+         public-methods ...
+         (setter-with-getter public-fields) ...
+         (getter public-methods) ...))))
+
+  (define-syntax define-object
+    (syntax-rules (::)
+      ((define-object (class-name . constructor-args)
+                      :: interface
+         . members)
+       (categorize-members build-class (class-name
+                                        interface)
+                           members))))
+
+  (define some-class
+    (object (arguments ...) :: interface
+      (define counter :: int 0)
+      (define (next) :: int
+        ...)
+      (SuperClass arguments* ...)
+      intialization ...))
+
+  422252895 lo_wymiany@bshg.com
+  bsh sprzet gospodarstwa domowgo
+
+#+END_SRC
+
+No dobra, to wyglada na to, ze jeszcze troche bedziemy
+sobie musieli pogaworzyc.
+
+Definiowanie klasy bedzie
+- wprowadzalo konstruktor, w ktorym bedziemy
+  tworzyli wszystkie pola, a nastepnie gettery
+  i settery dla tych pol
+
+#+BEGIN_SRC racket
+  (define (field-ref object field)
+    ((getter object field)))
+
+  (define (field-set! object field value)
+    ((setter (getter object field)) value))
+
+  (define-syntax object
+    (syntax-rules (::)
+      ((object args :: interface
+         spec)
+       (let ((class (new-class
+                     'unnamed-class
+                     (class-spec-superclass spec)
+                     interface)))
+         (lambda args
+           (class-spec-fields+methods spec)
+           (class-spec-initializer spec)
+           (new-instance class (class-spec-accessors spec)))))))
+
+
 #+END_SRC
 
 * 06.04.2025 (no, prawie)
