@@ -1,6 +1,73 @@
 #+BEGIN_SRC racket
 #+END_SRC
 
+* 10.04.2025
+
+No to teraz kolejna kwestia: co z mozliwoscia:
+- dynamicznego dodania metody do interfejsu
+- dynamicznego dodania metody do klasy
+
+Na razie chyba mozemy sie tym nie przejmowac.
+
+Natomiast w tej chwili musimy podjac taka decyzje
+projektowa, ze do reprezentacji takich rzeczy, jak
+klasy czy interfejsy, uzywamy wektorow.
+
+#+BEGIN_SRC racket
+
+  (set! (object 'property) value)
+
+  (define some-class
+    (object (arguments ...) :: interface
+      (define counter :: int 0)
+      (define (next) :: int
+        ...)
+      (SuperClass arguments* ...)
+      intialization ...))
+
+  (define-syntax object
+    (syntax-rules (::)
+      ((object (arguments ...) :: interface
+         spec ...)
+       ;; musimy sprawdzic, czy specyfikacja jest zgodna
+       ;; z interfejsem
+       (let* ((constructor (lambda (arguments ...)
+                             spec ...
+
+                             ;; zwracamy obiekt, czyli co?
+                             ;; na pewno potrzebujemy czegos,
+                             ;; co by nam odwzorowywalo nazwy
+                             ;; w akcesory do specjalizacji.
+                             ;; I tutaj mamy takie mozliwosci:
+                             ;; - albo stworzymy w ramach klasy
+                             ;; jakas haszmape, ktota bedzie nam
+                             ;; odwzorowywac nazwy w indeksy,
+                             ;; i za pomoca tych indeksow
+                             ;; bedziemy sie odnosic do tablicy
+                             ;; akcesotow, albo umiescimy
+                             ;; akcesory bezposrednio w haszmapie.
+                             ;;
+                             ;; Za pierwszym rozwiazaniem przemawia
+                             ;; to, ze takie rozwiazanie wydaje sie
+                             ;; oszczednoejsze (i moze bylby sens
+                             ;; stworztc w klasie doskonala funkcje
+                             ;; haszujaca dla okreslonego zbioru
+                             ;; danych)
+                             )))
+         constructor))))
+                  
+   
+#+END_SRC
+
+no to tak:
+- poniewaz klasa musi byc konstruktorem, to bedziemy ja
+  utozsamiac z procedura
+- musimy znalezc jakis spodob na trzymanie metadanych
+  o procedurze
+
+I teraz tak:
+
+
 * 09.04.2025
 
 Musimy teraz wymyslic w jaki sposob bedziemy reprezentowac:
@@ -220,9 +287,6 @@ Module Across Numerous Schemes
         ...)
       (SuperClass arguments* ...)
       intialization ...))
-
-  422252895 lo_wymiany@bshg.com
-  bsh sprzet gospodarstwa domowgo
 
 #+END_SRC
 
