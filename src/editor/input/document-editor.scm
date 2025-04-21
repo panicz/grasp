@@ -340,8 +340,8 @@
 		   browser))
          (popup (object (PopUp)
 		  ((*init*)
-		   (invoke-special PopUp (this) '*init*)
-		   (slot-set! (this) 'content inside))
+		   (invoke-special PopUp (this) '*init* inside)
+		   #;(slot-set! (this) 'content inside))
 		  ((hashCode)::int
 		   (java.lang.System:identityHashCode (this)))
 		  ((key-typed! key-code::long
@@ -503,7 +503,6 @@
 		    0 y (editor:transform:get-left) (/ h 2))
 		   500))))))
 	 (popup (PopUp
-		 content:
 		 (beside
 		  search-input (below ⬑ ⬎))))
 	 (hijack
@@ -1249,7 +1248,6 @@
 			  ;; tutaj powinnismy wyswietlic
 			  (screen:add-overlay!
 			   (PopUp
-			    content:
 			    (below
 			     (Caption
 			      (string-append
@@ -1276,7 +1274,7 @@
 				  document)))))))))
 		     #t))
 		 )))
-	     (window ::PopUp (PopUp content: content)))
+	     (window ::PopUp (PopUp content)))
 	(window:center-around! x y)
 	(screen:add-overlay! window))))
     ;; dodanie menu kontekstowego

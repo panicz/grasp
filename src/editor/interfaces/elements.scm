@@ -676,6 +676,8 @@ operate on cursors.
 
   )
 
+(define-interface EnchantedDragLayer (Enchanted Drag Layer))
+
 (define-attribute+ (screen-position editor::Editor)::Position
   (Position))
 

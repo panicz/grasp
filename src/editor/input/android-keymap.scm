@@ -86,6 +86,11 @@
   |#
   (set-key-code-name! KeyEvent:KEYCODE_FOCUS 'focus)
   (set-key-code-name! KeyEvent:KEYCODE_FORWARD 'forward)
+
+  (set-key-code-name! KeyEvent:KEYCODE_GRAVE 'backtick)
+  (set-key-code-name! KeyEvent:KEYCODE_GRAVE 'grave)
+
+  
   (set-key-code-name! KeyEvent:KEYCODE_INFO 'info)
   (set-key-code-name! KeyEvent:KEYCODE_KANA 'kana)
   (set-key-code-name! KeyEvent:KEYCODE_LANGUAGE_SWITCH

@@ -85,6 +85,35 @@
     (update-cursor-column!)
     #t))
 
+;; this is the kind of a code that should probably
+;; be recorded as a macro rather than written by hand
+(define/kw (wrap-expression-with! prefix ::Tile
+				  at: cursor := (the-cursor)
+				  in: document := (the-document))
+  ::boolean
+  (and-let* ((`(,tip ,top::integer . ,root) cursor)
+             (target ::Tile (the-expression
+                             at: cursor
+                             in: document))
+             (parent ::Indexable (the-expression
+                                  at: root
+                                  in: document))
+             (back (cursor-climb-back
+                    (recons (parent:previous-index top)
+                            root)
+                    document)))
+    (record&perform!
+     (EditSequence
+      operations:
+      (list
+       (Insert element:
+               (cons (cons prefix (empty)) (empty))
+               at: back)
+       (Move from: (recons* tip (+ top 2) root)
+             to: (recons* 0 2 top root))
+       (EnchantExpression
+        at: (recons* #\[ #;\] top root)))))))
+
 (define (delete-backward!)::boolean
   (and-let* ((cursor (the-cursor))
 	     (`(,tip . ,stem) cursor)
