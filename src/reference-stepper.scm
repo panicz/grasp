@@ -161,7 +161,8 @@
     (`(quote ,_)
      expression)
     (`(lambda ,args ,body)
-     (let-values (((variables* values*) (only. (isnt _ in. args)
+     (let-values (((variables* values*) (only. (lambda (var value)
+						 (isnt var in. args))
 					       variables values)))
        `(lambda ,args
 	  ,(substitute variables* #;with values*

@@ -344,8 +344,10 @@
       (`(quote ,_)
        expression)
       (`(lambda ,args ,body)
-       (let*-values (((variables* values*) (only. (isnt _ in. args)
-						  variables values))
+       (let*-values (((variables* values*) (only.
+					    (lambda (var value)
+					      (isnt var in. args))
+					    variables values))
 		     ((result) (cons* (car expression) args
 				      (substitute variables*
 						  #;with values*
