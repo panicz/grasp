@@ -87,6 +87,18 @@
 	    (move-cursor-down!)
 	    (adjust-view!)))
 
+(set-key! '(ctrl comma)
+	  (lambda ()
+	   (wrap-expression-with! (Atom "unquote"))))
+
+(set-key! '(ctrl backtick)
+	  (lambda ()
+	   (wrap-expression-with! (Atom "quasiquote"))))
+
+(set-key! '(ctrl quote)
+	  (lambda ()
+	   (wrap-expression-with! (Atom "quote"))))
+
 (set-key! '(shift left) expand-selection-left!)
 (set-key! '(shift right) expand-selection-right!)
 
