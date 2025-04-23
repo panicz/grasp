@@ -1,6 +1,622 @@
 #+BEGIN_SRC racket
 #+END_SRC
 
+* 22.04.2025
+
+Sprobujmy wydobyc z pracy magistetskiej nasz makroekspander,
+i moze scalic go z ewaluatorem GRASPa?
+
+No bo ogolnie wyglada na to, ze nie ma co liczyc na ewaluator
+Kawy na Androidzie.
+
+Moze bylby jakis sens w tym, zeby napisac cos, co by nam
+przekladalo nasz nadzbior podzbioru Scheme'u na Fusion?
+
+#+BEGIN_SRC racket
+
+  (define core-macros
+    '((('let ((name value) ...)
+             . body)
+       (('lambda (name ...) . body) value ...))
+      (('let* () . body)
+       ('begin . body))
+      (('let* ((name-1 value-1)
+  	     (name-2 value-2) ...)
+              . body)
+       ('let ((name-1 value-1))
+             ('let* ((name-2 value-2) ...)
+                    . body)))
+      (('and)
+       #true)
+      (('and last)
+       last)
+      (('and first . rest)
+       ('if first ('and . rest) #false))
+      (('or)
+       #false)
+      (('or last)
+       last)
+      (('or first . rest)
+       ('let ((result first))
+             ('if result result ('or . rest))))))
+
+  (define (bind pattern #;to form . bound-variables)
+    (match pattern
+      (`(quote ,literal)
+       (and (equal? form literal)
+            bound-variables))
+      (`(,repetition ... . ,remaining)
+       (bind-sequence repetition remaining form
+                      bound-variables))
+      (`(,head/pattern . ,tail/pattern)
+       (match form
+         (`(,head/form . ,tail/form)
+          (let ((bound (apply bind head/pattern head/form
+                              bound-variables)))
+            (and bound
+                 (apply bind tail/pattern tail/form bound))))
+         (_
+          #false)))
+      (_
+       (if (symbol? pattern)
+           (merge-bindings `((,pattern . ,form)) bound-variables)
+           ;else
+           (and (equal? pattern form)
+                bound-variables)))))
+
+  (define (merge-bindings bindings . bindings*)
+    (define (merge-bindings a b)
+      (and a b
+           (fold-left (lambda (bindings (key . value))
+                        (and bindings
+                             (cond ((assoc key bindings) ;<
+                                    => (lambda ((key . value*))
+                                         (and (equal? value value*)
+                                              bindings)))
+                                   (else
+                                    `((,key . ,value)
+                                      . ,bindings)))))
+                      a
+                      b)))
+    
+    (fold-left merge-bindings bindings bindings*))
+
+  (define (zip-bindings list-of-bindings)
+    (match list-of-bindings
+      ((((names . values) ...) ...)
+       (assert (apply eq? names))
+       (match names
+         ((names . _)
+          (apply map list names values))
+         (()
+          '())))))
+
+  (e.g.
+   (zip-bindings '(((a . 1) (b . 2) (c . 3))
+                   ((a . 4) (b . 5) (c . 6))
+                   ((a . 7) (b . 8) (c . 9))))
+   ===> ((a 1 4 7) (b 2 5 8) (c 3 6 9)))
+
+  (define (bind-sequence repeated-pattern remaining-pattern
+                         form bound-variables)
+    (define (successful-match? prefix suffix)
+      (let* ((bindings (map (lambda (form)
+                              (bind repeated-pattern form))
+                            prefix))
+             (zipped (zip-bindings bindings))
+             (merged (merge-bindings bound-variables zipped)))
+        (and merged (apply bind remaining-pattern suffix
+                           merged))))
+    
+    (let* ((limit (prefix-length (lambda (constituent)
+                                   (bind repeated-pattern
+                                         constituent))
+                                 form))
+           (prefix rest (split-at form limit)))
+      (carry #;from prefix #;to rest
+             #;until successful-match?)))
+
+  (define (carry #;from prefix #;to suffix #;until success?)
+    (let ((result (success? prefix suffix)))
+      (if (or result (null? prefix))
+  	  result
+      ;else
+  	  (let (((initial ... last) prefix))
+  	    (carry #;from initial #;to `(,last . ,suffix)
+  			  #;until success?)))))
+
+  (define (prefix-length condition? l)
+    (define (traverse l n)
+      (match l
+        ((head . tail)
+         (if (condition? head)
+  	     (traverse tail (+ n 1))
+         ;else
+             n))
+        (_
+         n)))
+    (traverse l 0))
+
+  (e.g.
+    (prefix-length even? '(2 4 6 7 8 9)) ===> 3)
+
+#+END_SRC
+
+
+No dobra, to widzimy ze mamy fundamentalne problemy z reprezentowaniem
+rzeczy. Tzn. ze np. zamiast zbiorow uzywamy list.
+
+Jutro bedziemy kontynuowac prace nad tym ekspanderem/impanderem
+(szkoda ze stracilismy dysk z laptopa - chyba ze nie?). Ale tak ogolnie
+to byloby super gdyby nasz jezyk dawal nam prawdziwe zbiory (tak jak
+clojure czy nawet to cosmy sobie w kawie zrobili)
+
+Jednak powraca pytanie: co z tym Hemannem nieszcsesnym?
+
+Opcje sa takie, zeby:
+- zrobic tutorial w GRASPie na kompie
+- napisac nowy ewaluator dla Kawy
+- zrobic w Emacsie w Termuxie
+
+No i jeszcze taka wpadla mysl do glowy, zeby sprobowac uzyc
+=Comb= jako =syntax-object=, a przynajmniej zeby napisac
+ewaluator dla =Comb=
+
+I kolejna mysl, zeby w POORMANS kazdy obiekt mogl byc
+drugim argumentem dla =eval=.
+
+* 20.04.2025
+
+jutro wrzucimy zrodla jsssssssss na githuba i zaktualizujemy
+TODO, a pojutrze dodamy owijanie rzeczy w quote'y i fixa
+w stepperze
+
+a co dalej?
+
+watki mamy w zasadzie trzy:
+- telegrasp (comb, jsssssssss, poormans)
+- hemann
+- ksiazka
+
+no dobra, to problem z Hemannem jest taki, ze ewaluator Kawy
+na Androidzie dziala nieortodoksyjnie, i nie obsluguje makra
+=match=.
+
+No ale tak:
+- chcielibysmy na pewno obsluzyc makto =match= rowniez
+  w ewaluatorze
+- ale jak to zrobic bazujac na samym jezyku Scheme?
+
+
+Tutaj (oraz w przypadku =cond=) idea bylaby taka, zeby
+od razu dopasowywac fragmenty wyrazenia do zmiennych,
+i zastepowac je w ciele funkcji. Czyli jak mamy
+
+#+BEGIN_SRC racket
+  (match x
+    (a ...)
+    (b ...)
+    ...
+    (k ...)
+    ...
+    (z ...))
+#+END_SRC
+
+i pattern =k= jest pierwszym pasujacym do wartosci =x=,
+to w pierwszym kroku wszystkie pozoatale patterny znikaja,
+i dostajemy
+#+BEGIN_SRC racket
+  (match x
+    (k ...))
+#+END_SRC
+
+a dopiero w kolejnym kroku zastepujemy wystapienia komponentow
+=k= odpowiednimi komponentami =x=, i zastepuhemy cale wyrazenie
+cialem patternu.
+
+* 19.04.2025
+
+raczej bysmy chcieli cos w rodzaju
+
+#+BEGIN_SRC racket
+  (let ((x (take-expression!)))
+    (put-expression! `(quote ,x)))
+#+END_SRC
+
+No dobra, to mamy juz jakas koncepcje.
+
+Teraz bysmy jeszcze chcieli uzyc tych naszych
+czarodziejstw do zaimplementowania TeleGRASPa.
+
+Jak by to moglo wygladac?
+
+#+BEGIN_SRC
+  $ telegrasp file.scm
+  p - print
+  ? - help
+  /name/ - zwraca indeksy obiektow, do ktorych udaje sie
+  dopasowac wzorzec
+  0 3 - pozwala umiescic kusror na odpowiedniej sciezce
+  0 3,0 5 - pozwala wybrac region
+  l - wylistowuje otwarte dokumenty
+  h - wyswietla historie edycji
+  u - undo
+  r - redo
+  iwyrazenie - dodaje wyrazenie 
+  d - usuwa biezacy obiekt
+  n+ przesuwa kursor o n pozycji do przodu
+  n- przesuwa kursor o n pozycji do tylu
+  c 
+  
+#+END_SRC
+
+* 18.04.2025
+
+No dobra, to sprobujmy moze zrobic tak, zeby wciskanie
+` powodowalo owijanie biezacego wyrazenia quasiquotem,
+a , - unquotem.
+
+Jak by to mozna bylo zrobic:
+1. przed aktualnym wyrazeniem umieszczamy
+   np. (quasiquote )
+
+#+BEGIN_SRC racket
+  (Insert element: pair
+          at: Cursor := (the-cursor))
+#+END_SRC
+   
+2. przenosimy aktualne wyrazenie do srodka
+
+#+BEGIN_SRC racket
+  (Move from: Cursor
+      to: Cursor
+      with-shift: int := 0)
+#+END_SRC
+
+3. zaczarowujemy nadrzedne wyrazenie
+
+#+BEGIN_SRC racket
+  (EnchantExpression at: Cursor := (the-cursor))
+#+END_SRC
+
+4. to wszystko powinno byc zaklete w sekwencje;
+
+#+BEGIN_SRC racket
+  (EditSequence operations: (list-of Edit))
+#+END_SRC
+
+Czyli biorac to wszystko do kupy:
+
+
+#+BEGIN_SRC racket
+  (define (wrap-expression! with: prefix ::Tile
+                            at: cursor := (the-cursor)
+                            in: document := (the-document))
+          ::boolean
+    (and-let* ((`(,tip ,top::integer . ,root) cursor)
+               (target ::Tile (the-expression
+                               at: cursor
+                               in: document))
+               (parent ::Indexable (the-expression
+                                    at: root
+                                    in: document))
+               (,target (parent:part-at top))
+               
+               
+               (back (cursor-climb-back
+                      (recons (parent:previous-index top)
+                              root)
+                      document)))
+      (perform&record
+       (EditSequence
+        operations:
+        (list
+         (Insert element:
+                 (list (cons prefix (empty)))
+                 at: back)
+         (Move from: (recons* tip (+ top 2) root)
+               to: (recons* 0 2 top root))
+         (EnchantExpression
+          at: (recons* #\[ #;\] ,top ,root)))))))
+
+#+END_SRC
+
+* 17.04.2025
+
+No to jak teraz wyglada sytuacja?
+
+Lista rzeczy, ktore wczesniej sprawialy trudnosc:
+- pionowy ruch kursora
+- wyszukiwanie tekstowe
+- bledy zwiazane z ficzerami jezykowymi
+  (tak jak to haszowanie mutowalnego obiektu)
+
+Poza tym wydaje sie, ze schemat do indeksowania
+wcisnietych klawiszy troche niepotrzebnie wchodzil
+w droge podczas budowania pop-upow
+
+ Kolejna rzecz, ze podczas renderowania moglibysmy
+zbudowac drzewo binarne, zeby moc szybciej odwzorowywac
+wspolrzedne ekranu we wspolrzedne dokumentu - co w sumie
+moze miec znaczenie przy wiekszej ilosci obiektow
+na ekranie
+
+A tak naprawde to zalezy nam na odwzorowywaniu wspolrzednych
+dokumentu we wspolrzedne edytora, a dopiero stamtad
+przenosimy je na wspolrzedne ekranu.
+
+Dodatkowo, ten sam dokument moze byc otwarty we wiecej
+niz jednym edytorze, przez co odwzorowanie z dokumentu
+na ekran jest w ogolnosci jeden-do-wielu.
+
+No ale dobra. Fajnie. Swietnie. Ekstra.
+
+Ale co robimy dalej?
+
+Idealna, wysniona sciezka bylaby tak, ze:
+- implementujemy jssssssss jako self-hosting
+- implementuhemy POORMANS dla:
+  - Kawy (to prawie juz mamy)
+  - Racketa (bo wydaje sie nieodlegly)
+  - jssssssss (bo powinnismy miec nad nim duza kontrole)
+  - Chez (jako przystanek do innych Scheme'ow)
+ - implementujemy GRASP od nowa w POORMANS
+   - reprezentacja Comb
+   - a co z TeleGRASP?
+ - a jak juz tu dojdziemy, to co?
+
+Trzeba:
+- trzaskac rozszerzenia
+- uzywac
+- dokumentowac
+
+No dobra, ale gdzies tam nam umykaja:
+- gutenbergson
+- UtWtC
+- uzywanie tego, co zrobilismy do tej pory
+
+Czyli tak:
+- w niedziele tworzymy repozytorium dla fsssssss
+- w poniedzialek wgrywamy tam projekt i commitujemy
+  TODO
+
+Poza tym jednak wydaje sie, ze powinnismy kontynuowac
+prace nad:
+- POORMANS
+- Comb
+- jsssssssss
+- Indiana Dan's
+- A*
+- wizualizator grafow
+
+javascript scrounged from a sophisticated superset of
+a simple subset of scheme or something similar
+
+* 16.04.2025
+
+Wyobrazam sobie, ze =DocumentEditor= powinien byc w stanie
+okreslic, ktory obiekt jest pierwszym widocznym obiektem.
+
+Natomiast liste operacji edycji przerobilibysmy na interfejs.
+
+#+BEGIN_SRC racket
+
+  (define-interface Editable ()
+    (move-expression! source :: Cursor
+                      destination :: Cursor)
+    :: Cursor
+
+    (remove-expression-at! location :: Cursor)
+    :: Cursor
+
+    (insert-expression! expression :: Tile
+                        location :: Cursor)
+    :: Cursor
+    
+    (resize-box-at! location :: Cursor
+                    width :: real
+                    height :: real
+                    anchor :: real)
+    :: Cursor
+    
+    (insert-characters! characters :: (sequence-of char)
+                        location :: Cursor)
+    :: Cursor
+    
+    (remove-characters-before! location :: Cursor
+                               amount :: int)
+    :: Cursor
+    
+    (split-element-at! location :: Cursor
+                       space :: Space)
+    :: Cursor
+    
+    (merge-elements-removing-space-after! location :: Cursor)
+    :: Cursor
+    
+    (atomically perform-edits::(maps () to: Cursor))
+    :: Cursor
+    )
+
+#+END_SRC
+
+
+* 15.04.2025
+
+#+BEGIN_SRC racket
+
+  (define-object (Comb) :: Tile
+    
+    (define-private elements ::(sequence-of Tile)
+      (FlexibleVector))
+    
+    (define-private spaces ::(sequence-of Space)
+      (FlexibleVector (Space)))
+
+    (define (first-index):: Index #\[)
+    (define (last-index):: Index #\])
+
+    (define (previous-index index):: Index
+      (match index
+        (0 #\[)
+        (#\] (+ 1 (* 2 (length elements))))
+        (index :: integer (max 0 (- index 1)))
+        (_ index)))
+
+    (define (next-index index):: Index
+      (match index
+        (#\[ 0)
+        (index :: integer
+               (let ((next (+ index 1)))
+                 (if (is next < (+ 1 (* 2 (length elements)))) ;>
+                     next
+                     #\])))
+        (_ index)))
+
+    (define (part-at index):: Element
+      (match index
+        (,(first-index) (this))
+        (,(last-index) (this))
+        (index :: integer
+               (if (even? index)
+                   (spaces (/ index 2))
+                   (elements (/ (- index 1) 2))))))
+    
+    (define (key-typed key context):: boolean
+      (let* ((cursor (the-cursor)))
+        (match cursor
+          (`(,@,context ,index)
+           (assert (is index in (set #\[ #\])))
+           (context:push index)
+           ;; ???
+           (context:pop index))
+          
+          (`(,@,context ,index ,top)
+           (let ((child (that:part-at index)))
+             (assert (eq? child (child:part-at top)))
+             (context:push index)
+             (edit-child child key context)
+             (context:pop index)))
+
+          (`(,@,context ,index . ,rest)
+           (let ((child :: Element (that:part-at index)))
+             (context:push index)
+             (child:key-typed key context)
+             (context:pop index))))))
+    )
+
+  (set! (Comb:keymap #\space) ...)
+  (set! (Comb:keymap #\return) ...)
+  (set! (Comb:keymap #\backspace) ...)
+  (set! (Comb:keymap #\[) ...) 
+  (set! (Comb:keymap #\]) ...)
+
+  (define-object (Document):: EditableTile
+
+    (define (draw! context):: void
+      )
+    
+    (Comb))
+
+  #+END_SRC
+
+Aktualne operacje historyczne:
+
+#+BEGIN_SRC racket
+  (NoEdit)
+  (EditSequence operations: (list-of Edit))
+  (Move from: Cursor
+        to: Cursor
+        with-shift: int := 0)
+  (Remove element: (either pair EmptyListProxy)
+          at: Cursor := (the-cursor)
+          with-shift: int := 0)
+  (Insert element: pair
+          at: Cursor := (the-cursor))
+  (ResizeBox at: Cursor := (the-cursor)
+  			from: Extent
+  			to: Extent
+  			with-anchor: real)
+  (InsertCharacter list: (sequence-of char)
+                   after: Cursor := (the-cursor))
+  (RemoveCharacter list: (sequence-of char)
+                   before: Cursor := (the-cursor))
+  (InsertComment content: TextualComment
+                 at: Cursor := (the-cursor))
+  (RemoveComment content: TextualComment
+                 at: Cursor)
+  (CommentExpression at: Cursor := (the-cursor)
+                     with-shift: int)
+  (UncommentExpression at: Cursor := (the-cursor))
+  (SplitElement at: Cursor := (the-cursor)
+                with: Space)
+  (MergeElements removing: Space
+                 after: Cursor := (the-cursor))
+  (EnchantExpression at: Cursor := (the-cursor))
+  (DisenchantExpression at: Cursor := (the-cursor))
+#+END_SRC
+
+
+No dobra, to teraz kwestia taka, ze mozemy:
+- uporzadkowac operacje historyczne
+- rozwazyc kwestie optymalizacji renderowania
+  i wyliczania rozmiarow
+
+
+  
+* 13.04.2025 (telefon)
+
+no to mamy tak:
+- jssssss
+- system obiektow dla jezyka Scheme
+
+No ale tak:
+- zeby jssssss trzymal sie kupy, musimy dokonac ekspansji
+  makr
+- a przy okazji mozemy odwiedzic nasz stary kompilator
+- i warto odswiezyc to, w jaki sposob "robi sie to"
+  w Indianie
+- wiec po raz kolejny sprobujemy zrobic tutorial Hemanna
+  w GRASPie, co zapewne bedzie wymagalo paru zmian:
+  - wcisniecie ' na obiekcie x powinno go zastepowac
+    obiektem [quote x]
+  - wcisniecie ` na obiekcie x powinno go zastepowac
+    [quasiquote x]
+  - wcisniecie , na obiekcie x powinno go zastepowac
+    [unquote x]
+  - wcisniecie (alt #\') na obiekcie [quote x]
+    powinno go zastepowac x
+  - itd.
+
+
+No i tak: wydaje sie, ze dodanie takiego rozszerzenia
+"owijajacego" jest dosc trudne, bo miesza sie nam
+edycja dokumentu z edycja historii.
+
+  
+  
+* 11.04.2025
+
+na razie mamy takie zagadnienia:
+- wyliczanie perfect hasha dla zbioru stringow
+- czy chez scheme ma weak-key-hash-table?
+
+no ale moze cofnijmy sie o krok. co chcemy teraz miec?
+- GRASP ktory dziala w przegladarce
+
+jak chcemy to osiagnac?
+- zaprojektowac system obiektow kompilowany do:
+- racketa/racketscripta
+- kawy
+- (a docelowo tez do cheza z SDLem)
+
+A co z naszymi datomikowymi rozkminkami?
+Na razie chyba nic (ale wyglada na to, ze docelowo
+bedziemy chcieli napusac swojego)
+
+No ok. To mozemy przeciez tez sprobowac uzyc racketscripta?
+
+
 * 10.04.2025
 
 No to teraz kolejna kwestia: co z mozliwoscia:
@@ -31,9 +647,12 @@ klasy czy interfejsy, uzywamy wektorow.
          spec ...)
        ;; musimy sprawdzic, czy specyfikacja jest zgodna
        ;; z interfejsem
-       (let* ((constructor (lambda (arguments ...)
+       (let* ((members (only-names (visible-definitions spec ...)))
+              ;; musimy sprawdzic, czy wszystkie te membery
+              ;; przynaleza do interfejsu  i maja zgodne typy
+              (member-accessor (perfect-hash members))
+              (constructor (lambda (arguments ...)
                              spec ...
-
                              ;; zwracamy obiekt, czyli co?
                              ;; na pewno potrzebujemy czegos,
                              ;; co by nam odwzorowywalo nazwy
@@ -49,7 +668,7 @@ klasy czy interfejsy, uzywamy wektorow.
                              ;;
                              ;; Za pierwszym rozwiazaniem przemawia
                              ;; to, ze takie rozwiazanie wydaje sie
-                             ;; oszczednoejsze (i moze bylby sens
+                             ;; oszczedniejsze (i moze bylby sens
                              ;; stworztc w klasie doskonala funkcje
                              ;; haszujaca dla okreslonego zbioru
                              ;; danych)
