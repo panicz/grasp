@@ -1009,6 +1009,8 @@
      (and-let* (((Highlight start: selection-start
 			    end: selection-end) (the-selection))
 		(x y (transform:outside-in xe ye))
+		((Position left: xs top: ys)
+		 (last-known-pointer-position finger))
 		(path (cursor-under x y))
 		(xd yd (document-position-of-element-pointed-by
 			path (car document)))
@@ -1031,11 +1033,18 @@
 	   => (lambda (stroke::Stroke)
 		(screen:remove-overlay! stroke)
 		(screen:undrag! stroke:finger)
-		(let ((p0 ::Position (Position left: xe top: ye))
-		      (p1 ::Position (stroke:points
-				      (- (length stroke:points)
-					 1)))
-		      (editor ::DocumentEditor (this)))
+		(let* ((p0 ::Position (Position left: xe
+						top: ye))
+		       (p1 ::Position (stroke:points
+					(- (length
+					    stroke:points)
+					   1)))
+		       (p1 ::Position
+			   (Position left: (- p1:left
+					      (- xs xe))
+				     top: (- p1:top
+					     (- ys ye))))
+		       (editor ::DocumentEditor (this)))
 		  (screen:drag!
 		   stroke:finger
 		   (object (Drag)
