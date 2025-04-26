@@ -1,6 +1,15 @@
 #+BEGIN_SRC racket
 #+END_SRC
 
+* 25.04.2025
+
+No to wyglada na to, ze bysmy teraz chcieli sprobowac
+zrobic cos na przegladarke?
+
+Czy moze bysmy jeszcze pocisneli te nasze makra?
+
+
+
 * 24.04.2025
 
 Mozemy albo kontynuowac analize tego bledu ze zmiana rozmiaru
