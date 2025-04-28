@@ -669,8 +669,20 @@ No dobra, to teraz kwestia taka, ze mozemy:
 - rozwazyc kwestie optymalizacji renderowania
   i wyliczania rozmiarow
 
+* 13.04.2025
 
-  
+No dobra, to tym, co udalo sie zrobic w ciagu
+kilku ostatnich dni, jest przede wszystkim
+zalazek projektu /jssssss/, czyli JavaScript
+Scrounged from a Simple and Straightforward
+Subset of Scheme.
+
+I teraz rodzi sie pytanie: co robimy dalej?
+
+Byc moze moglibysmy zaczac od tego, zeby
+odkopac kompilator z pracy magisterskiej.
+
+
 * 13.04.2025 (telefon)
 
 no to mamy tak:
@@ -722,7 +734,6 @@ Na razie chyba nic (ale wyglada na to, ze docelowo
 bedziemy chcieli napusac swojego)
 
 No ok. To mozemy przeciez tez sprobowac uzyc racketscripta?
-
 
 * 10.04.2025
 
