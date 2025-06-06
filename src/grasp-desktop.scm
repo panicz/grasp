@@ -1618,8 +1618,11 @@ by the AWT framework."))
 
   (define (keyPressed event::KeyEvent)::void
     (let ((typed (event:getKeyChar)))
-      (parameterize ((unicode-input (if (eqv? KeyEvent:CHAR_UNDEFINED
-					      typed)
+      (parameterize ((unicode-input (if (or (eqv? KeyEvent:CHAR_UNDEFINED
+						  typed)
+					    (and (java.lang.Character:isISOControl typed)
+						 (isnt typed eqv? #\return)
+						 (isnt typed eqv? #\newline)))
 					#\null
 					(integer->char typed)))
 		     (the-system-clipboard clipboard))

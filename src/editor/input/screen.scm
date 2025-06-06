@@ -61,6 +61,14 @@
   (define (add! element::Layer)::void
     (layers:add 0 element))
 
+  (define (pop!)::Layer
+    (otherwise #!null
+      (and-let* ((n (layers:size))
+		 ((is n > 0))
+		 (layer (layers:get 0)))
+	    (layers:remove 0)
+	    layer)))
+  
   (define (contains-layer? satisfying?::predicate)
     ::(maybe Layer)
     (any satisfying? layers))
@@ -401,6 +409,9 @@
   (define (add-overlay! layer::Layer)::void
     (overlay:add! layer))
 
+  (define (pop-overlay!)::Layer
+    (overlay:pop!))
+  
   (define (contains-overlay? satisfying?::predicate)
     ::(maybe Layer)
     (overlay:contains-layer? satisfying?))

@@ -160,6 +160,9 @@
 
 (set-key! 'F12 exit)
 
+(set-key! 'escape (lambda ()
+		    (screen:pop-overlay!)))
+
 (set-key! 'tab
 	  (lambda ()
 	    (let ((target (the-expression)))

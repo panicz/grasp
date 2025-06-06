@@ -655,6 +655,7 @@ operate on cursors.
   (undrag! finger::byte)::void
   
   (add-overlay! layer::Layer)::void
+  (pop-overlay!)::Layer
   (contains-overlay? satisfying?::predicate)::(maybe Layer)
   (remove-overlay! layer::Layer)::boolean
   (remove-overlay-if! satisfying?::(maps (Layer) to: boolean))::boolean
