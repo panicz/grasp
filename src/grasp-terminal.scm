@@ -629,6 +629,10 @@
 			 java.lang.System
 			 'getProperty "user.home")))
 
+    (env:define 'maximize/unmaximize! #!null
+		(lambda ()::void
+			(values)))
+
     (env:define 'show-keyboard! #!null
 		(lambda ()::void
 			(values)))

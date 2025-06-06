@@ -87,9 +87,8 @@
   (set-key-code-name! KeyEvent:KEYCODE_FOCUS 'focus)
   (set-key-code-name! KeyEvent:KEYCODE_FORWARD 'forward)
 
-  (set-key-code-name! KeyEvent:KEYCODE_GRAVE 'backtick)
-  (set-key-code-name! KeyEvent:KEYCODE_GRAVE 'grave)
-
+  (set-key-code-name! KeyEvent:KEYCODE_GRAVE #\`)
+  (set-key-code-name! KeyEvent:KEYCODE_GRAVE 'backquote)
   
   (set-key-code-name! KeyEvent:KEYCODE_INFO 'info)
   (set-key-code-name! KeyEvent:KEYCODE_KANA 'kana)

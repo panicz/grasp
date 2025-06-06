@@ -1707,76 +1707,83 @@ by the AWT framework."))
     (load-resource (string-append "/assets/" file-name)))))
 
 (define (run-in-AWT-window)::void
-  (let ((application ::GRASP (GRASP))
-	(runtime ::java.lang.Runtime
-		 (java.lang.Runtime:getRuntime)))
-
+  (let* ((application ::GRASP (GRASP))
+	 (runtime ::java.lang.Runtime
+		  (java.lang.Runtime:getRuntime))
+	 (window ::javax.swing.JFrame
+		 (javax.swing.JFrame title: "GRASP"
+				     content-pane: application))
+	 (input (gnu.kawa.io.InPort
+		 (java.io.InputStreamReader
+		  (load-resource "/assets/init.scm"))))
+	 (init-script (read-all input))
+	 (scheme kawa.standard.Scheme:instance)
+	 (env (scheme:getEnvironment)))
+    
     (runtime:addShutdownHook (object (java.lang.Thread)
 			       ((run)::void
 				(save-state))))
     
     (set! (the-system-clipboard) application:clipboard)
- 
+    
     (set! painter application)
     (initialize-keymap)
 
-    (let ((window ::javax.swing.JFrame
-		  (javax.swing.JFrame title: "GRASP"
-				      content-pane: application)))
-      (window:addKeyListener application)
-      (window:setSize 640 480)
-      (window:setDefaultCloseOperation
-       javax.swing.JFrame:EXIT_ON_CLOSE)
-      (window:setFocusTraversalKeysEnabled #f)
-      (window:setVisible #t)
-      (application:repaint)
-      
-      (let* ((input (gnu.kawa.io.InPort
-		     (java.io.InputStreamReader
-		      (load-resource "/assets/init.scm"))))
-	     (init-script (read-all input))
-	     (scheme kawa.standard.Scheme:instance)
-	     (env (scheme:getEnvironment)))
+    (window:addKeyListener application)
+    (window:setSize 640 480)
+    (window:setDefaultCloseOperation
+     javax.swing.JFrame:EXIT_ON_CLOSE)
+    (window:setFocusTraversalKeysEnabled #f)
+    (window:setVisible #t)
+    (window:setMaximizedBounds (graphics-environment:getMaximumWindowBounds))
+    
+    (env:define 'input-files #!null (cdr (command-line)))
 
-	(env:define 'input-files #!null (cdr (command-line)))
+    (env:define 'ask #!null
+		(lambda question ::string
+			;;(WARN "speech recognition unavailable")
+			#!null))
+    (env:define 'application-directory #!null
+		(lambda ()::string
+			(invoke-static
+			 java.lang.System
+			 'getProperty "user.dir")))
 
-	(env:define 'ask #!null
-		    (lambda question ::string
-			    ;;(WARN "speech recognition unavailable")
-			    #!null))
-	(env:define 'application-directory #!null
-		    (lambda ()::string
-			    (invoke-static
-			     java.lang.System
-			     'getProperty "user.dir")))
+    (env:define 'projects-directory #!null
+		(lambda ()::string
+			(invoke-static
+			 java.lang.System
+			 'getProperty "user.home")))
+    
+    (env:define 'maximize/unmaximize! #!null
+		(lambda ()
+		  (let ((state (window:getExtendedState))
+			(maximize javax.swing.JFrame:MAXIMIZED_BOTH))
+		    (if (isnt (bitwise-and state maximize) = 0)
+			(window:setExtendedState (bitwise-and (bitwise-not maximize)
+							      state))
+			(window:setExtendedState (bitwise-ior state maximize))))))
+    
+    (env:define 'show-keyboard! #!null
+		(lambda ()::void
+			(values)))
+    
+    (env:define 'say #!null
+		(lambda words ::void
+			;;(WARN "speech synthesis umavailable")
+			(values)))
 
-	(env:define 'projects-directory #!null
-		    (lambda ()::string
-			    (invoke-static
-			     java.lang.System
-			     'getProperty "user.home")))
+    (env:define 'before-possible-exit #!null
+		(lambda (action::procedure)::void
+			(set! save-state action)))
+    
+    (env:define 'open-asset #!null open-asset)
 
-	(env:define 'show-keyboard! #!null
-		    (lambda ()::void
-			    (values)))
-	
-	(env:define 'say #!null
-		    (lambda words ::void
-			    ;;(WARN "speech synthesis umavailable")
-			    (values)))
-
-	(env:define 'before-possible-exit #!null
-		    (lambda (action::procedure)::void
-			    (set! save-state action)))
-	
-	(env:define 'open-asset #!null open-asset)
-
-	(for expression in init-script
-	  (safely (eval expression))))
-
-      (screen:set-size! (window:getWidth) (window:getHeight)
-			(screen:resize-anchor (window:getHeight)))
-      (window:repaint))))
+    (for expression in init-script
+      (safely (eval expression)))
+    (screen:set-size! (window:getWidth) (window:getHeight)
+		      (screen:resize-anchor (window:getHeight)))
+    (window:repaint)))
 
 ;;(set! *print-base* 16)
 

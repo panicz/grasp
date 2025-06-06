@@ -91,7 +91,7 @@
 	  (lambda ()
 	   (wrap-expression-with! (Atom "unquote"))))
 
-(set-key! '(ctrl backtick)
+(set-key! '(ctrl backquote)
 	  (lambda ()
 	   (wrap-expression-with! (Atom "quasiquote"))))
 
@@ -155,6 +155,8 @@
 (set-key! '(ctrl e) evaluate-expression!)
 
 (set-key! '(ctrl enter) evaluate-expression!)
+
+(set-key! '(alt enter) maximize/unmaximize!)
 
 (set-key! 'F12 exit)
 

@@ -2207,6 +2207,9 @@
       (define (show-keyboard!)::void
 	(view:showKeyboard))
 
+      (define (maximize/unmaximize!)::void
+	(values))
+      
       (define (open-asset filename ::string)::gnu.kawa.io.InPort
 	(let* ((assets ::AssetManager (invoke (this) 'getAssets)))
 	  (gnu.kawa.io.InPort
@@ -2224,6 +2227,7 @@
 		application-directory
 		projects-directory
 		show-keyboard!
+		maximize/unmaximize!
 		the-view
 		before-possible-exit
 		open-asset
