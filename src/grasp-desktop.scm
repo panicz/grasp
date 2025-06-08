@@ -1072,11 +1072,13 @@
   (define (vertical-split-width)::real 10)
 
   (define (draw-horizontal-split! top::real)::void
+    (set-color! text-color)
     (graphics:fillRect (max 0 (current-clip-left)) top
 		       (current-clip-width)
 		       (horizontal-split-height)))
 
   (define (draw-vertical-split! left::real)::void
+    (set-color! text-color)
     (graphics:fillRect left (max 0 (current-clip-top))
 		       (vertical-split-width) (current-clip-height)))
 

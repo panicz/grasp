@@ -245,7 +245,7 @@
 			 (update! (post-tail-space growth-cone)
 				  (read-space))
 			 (let ((c (read-char)))
-			   (assert (eq? c #\))))
+			   (assert (or (eof-object? c) (eq? c #\)))))
 			 (values result initial-space))))
 		    (let ((output (cons c '())))
 		      (read-atom-chars-into output)

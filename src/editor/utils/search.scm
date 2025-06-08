@@ -625,7 +625,9 @@ convoluted (and I'm so sorry).
 	   (reference-level ::int (length cursor))
 	   (pressure (- reference-level current-level 1))
 	   (limit (document:last-index)))
-      (let loop ((index (if (is pressure >= 0)
+      
+      (let loop ((index (if (and (is pressure >= 0)
+				 (equal? context (drop (+ pressure 1) cursor)))
 			    (let ((initial-index (cursor
 						  pressure)))
 			      (if (= pressure 0)

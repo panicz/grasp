@@ -99,7 +99,7 @@
   (define (can-be-resized?)::boolean
     #t)
 
-  (define (can-be-maximized?)::booleann
+  (define (can-be-maximized?)::boolean
     #t)
   
   (define (typename)::String "")
