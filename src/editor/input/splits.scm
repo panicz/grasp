@@ -427,7 +427,8 @@
 
   ((with-pane-translation shift::real action::procedure)::Object
    (with-translation (shift 0)
-     (action)))
+     (parameterize ((the-pane-left (+ (the-pane-left) shift)))
+       (action))))
 
   ((varying-dimension x::real y::real)::real
    x)
@@ -477,7 +478,8 @@
 
   ((with-pane-translation shift::real action::procedure)::Object
    (with-translation (0 shift)
-     (action)))
+     (parameterize ((the-pane-top (+ (the-pane-top) shift)))
+       (action))))
 
   ((varying-dimension x::real y::real)::real y)
 
