@@ -337,8 +337,8 @@
 
   (define (split-beside! line::Area)::Embeddable
     (and-let* ((t ::Splittable top))
-      (set! top (t:split-beside! line)))
-    (this))
+      (set! top (t:split-beside! line))
+      top))
 
   (define (can-split-below? line::Area)::boolean
     (and-let* ((top ::Splittable))
@@ -346,8 +346,8 @@
 
   (define (split-below! line::Area)::Embeddable
     (and-let* ((t ::Splittable top))
-      (set! top (t:split-below! line)))
-    (this))
+      (set! top (t:split-below! line))
+      top))
 
   (define (scroll-up! x::real y::real)::boolean
     (parameterize ((the-pane-width size:width)
@@ -424,7 +424,6 @@
   
   (define (clear-overlay!)::void
     (overlay:clear!))
-  
   )
 
 (define-early-constant screen ::Screen (ActualScreen))

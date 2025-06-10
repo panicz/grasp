@@ -59,9 +59,9 @@
   ((with-pane-translation shift::real action::procedure)::Object
    #!abstract)
 
-  ((area/last original::Area earlier-size::real)::Area
+  ((area/last line::Area first-size::real)::Area
    #!abstract)
-
+  
   ((varying-dimension x::real y::real)::real
    #!abstract)
 
@@ -88,9 +88,15 @@
    #!abstract)
 
   ((render!)::void
-   (let-values (((first-size line-size last-size) (part-sizes)))
+   (let*-values (((first-size line-size last-size) (part-sizes))
+		 ((position) (screen-position (this)))
+		 ((extent) (screen-extent (this))))
      (with-pane-translation first-size
        (lambda ()
+	 (set! position:left (the-pane-left))
+	 (set! position:top (the-pane-top))
+	 (set! extent:width (the-pane-width))
+	 (set! extent:height (the-pane-height))
 	 (draw-split!)
 	 (set-translation! (+ first-size line-size))
 	 (with-post-transform translation
@@ -406,6 +412,12 @@
           (right-width ::real (- pane-width left-width line-width)))
      (values left-width line-width right-width)))
 
+  ((area/last line::Area first-size::real)::Area
+   (Area left: (- line:left first-size)
+	 top: line:top
+	 right: (- line:right first-size)
+	 bottom: line:bottom))
+  
   ((draw-split!)::void
    (painter:draw-vertical-split! 0))
 
@@ -416,12 +428,6 @@
   ((with-pane-translation shift::real action::procedure)::Object
    (with-translation (shift 0)
      (action)))
-
-  ((area/last line::Area earlier-size::real)::Area
-   (Area left: (- line:left earlier-size)
-	 top: line:top
-	 right: (- line:right earlier-size)
-	 bottom: line:bottom))
 
   ((varying-dimension x::real y::real)::real
    x)
@@ -456,6 +462,12 @@
           (right-height ::real (- inner-height left-height)))
      (values left-height line-height right-height)))
 
+  ((area/last line::Area first-size::real)::Area
+   (Area left: line:left
+	 top: (- line:top first-size)
+	 right: line:right
+	 bottom: (- line:bottom first-size)))
+
   ((draw-split!)::void
    (painter:draw-horizontal-split! 0))
 
@@ -466,12 +478,6 @@
   ((with-pane-translation shift::real action::procedure)::Object
    (with-translation (0 shift)
      (action)))
-
-  ((area/last line::Area earlier-size::real)::Area
-   (Area left: line:left
-	 top: (- line:top earlier-size)
-	 right: line:right
-	 bottom: (- line:bottom earlier-size)))
 
   ((varying-dimension x::real y::real)::real y)
 
@@ -503,16 +509,12 @@
 		     top: position:top
 		     right: center
 		     bottom: (+ position:top
-				extent:height)))
-	 #;(stroke (Stroke 0 editor)))
-#|
-    (stroke:add-point! (Position left: line:left
-				 top: line:top))
-    (stroke:add-point! (Position left: line:right
-				 top: line:bottom))
-    (screen:add-overlay! stroke)
-|#
-    (screen:split-beside! line)))
+				extent:height))))
+    (parameterize ((the-pane-left 0)
+		   (the-pane-top 0)
+		   (the-pane-width (screen:width))
+		   (the-pane-height (screen:height)))
+      (screen:split-beside! line))))
 
 
 (define (halve-below!)
@@ -524,11 +526,9 @@
 		     top: center
 		     right: (+ position:left
 			       extent:width)
-		     bottom: center))
-	 (stroke (Stroke 0 editor)))
-    (stroke:add-point! (Position left: line:left
-				 top: line:top))
-    (stroke:add-point! (Position left: line:right
-				 top: line:bottom))
-    (screen:add-overlay! stroke)
-    (screen:split-below! line)))
+		     bottom: center)))
+    (parameterize ((the-pane-left 0)
+		   (the-pane-top 0)
+		   (the-pane-width (screen:width))
+		   (the-pane-height (screen:height)))
+      (screen:split-below! line))))

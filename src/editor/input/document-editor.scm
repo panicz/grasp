@@ -1365,20 +1365,22 @@
 	  (new:transform:translate! (- shift) 0)
 	  split)
 	(this)))
-    
+
   (define (can-split-below? line::Area)::boolean
     (let* ((vicinity ::real
 		     (painter:line-simplification-resolution))
+	   (extent ::Extent (screen-extent (this)))
 	   (3vicinity (* vicinity 3)))
-      (and (is 0 < line:top <= line:bottom < (the-pane-height))
+      (and (is 0 < line:top <= line:bottom < extent:height)
 	   (is line:left <= 3vicinity)
-	   (is (- (the-pane-width) line:right) <= 3vicinity))))
+	   (is (- extent:width line:right) <= 3vicinity))))
 
   (define (split-below! line::Area)::Embeddable
     (if (can-split-below? line)
-	(let*-values (((ratio::real) (/ (/ (+ line:top line:bottom)
+	(let*-values (((extent::Extent) (screen-extent (this)))
+		      ((ratio::real) (/ (/ (+ line:top line:bottom)
 					   2)
-					(the-pane-height)))
+					extent:height))
 		      ((new::DocumentEditor) (copy (this)))
 		      ((split::Split) (SplitBelow first: (this)
 						  last: new
