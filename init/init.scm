@@ -48,6 +48,7 @@
 (import (editor types spaces))
 (import (editor document copy-paste))
 (import (editor types extensions combinators))
+(import (editor input transforms))
 
 (import (utils reflection))
 
@@ -179,16 +180,15 @@
 	  
 (set-key! '(ctrl shift h) halve-below!)
 
-(set-key! '(ctrl alt h) (lambda ()
-			  (set! screen:top (join-splits! screen:top))))
+(set-key! '(ctrl alt h) join-splits!)
 
 (set-key! '(ctrl tab) (lambda ()
-			(or (select-next-split! screen:top)
-			    (select-first-split! screen:top))))
+			(or (select-next-split! (screen:content))
+			    (select-first-split! (screen:content)))))
 
 (set-key! '(ctrl shift tab) (lambda ()
-			      (or (select-previous-split! screen:top)
-				  (select-last-split! screen:top))))
+			      (or (select-previous-split! (screen:content))
+				  (select-last-split! (screen:content)))))
 
 (set-key! '(ctrl s)
 	  (lambda ()

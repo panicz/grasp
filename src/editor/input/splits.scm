@@ -91,12 +91,12 @@
    (let*-values (((first-size line-size last-size) (part-sizes))
 		 ((position) (screen-position (this)))
 		 ((extent) (screen-extent (this))))
+     (set! position:left (the-pane-left))
+     (set! position:top (the-pane-top))
+     (set! extent:width (the-pane-width))
+     (set! extent:height (the-pane-height))
      (with-pane-translation first-size
        (lambda ()
-	 (set! position:left (the-pane-left))
-	 (set! position:top (the-pane-top))
-	 (set! extent:width (the-pane-width))
-	 (set! extent:height (the-pane-height))
 	 (draw-split!)
 	 (set-translation! (+ first-size line-size))
 	 (with-post-transform translation
@@ -578,24 +578,34 @@
       (,SplitFocus:First
        (select-previous-split! first)))))
 
-(define (join-splits! editor ::Splittable)::Splittable
+(define (split-path editor #!optional (path '()))
   (match editor
-    (split::Split
-     (match split:focus
-       (,SplitFocus:First
-	(cond
-	 ((Split? split:first)
-	  (set! split:first (join-splits! split:first))
-	  editor)
-	 (else
-	  split:first)))
+    ((Split focus: ,SplitFocus:First first: first)
+     (split-path first (recons SplitFocus:First path)))
 
-       (,SplitFocus:Last
-	(cond
-	 ((Split? split:last)
-	  (set! split:last (join-splits! split:last))
-	  editor)
-	 (else
-	  split:last)))))
+    ((Split focus: ,SplitFocus:Last last: last)
+     (split-path last (recons SplitFocus:Last path)))
+
     (_
-     editor)))
+     path)))
+
+
+(define (join-splits!)
+  (and-let* ((`(,top . ,path) (split-path (screen:content)))
+	     (split (split-ref path))
+	     (position ::Position (screen-position split))
+	     (extent ::Extent (screen-extent split))
+	     (center ::Position (Position left: (* 0.5 (+ position:left
+							  extent:width))
+					  top: (* 0.5 (+ position:top
+							 extent:height)))))
+    (painter:play!
+     (DragAnimation of: (ResizeSplitAt path)
+		    from: center
+		    to: (if (equal? top SplitFocus:First)
+			    (Position left: (+ position:left
+					       extent:width)
+				      top: (+ position:top
+					      extent:height))
+			    position)
+		    duration/ms: 500))))
