@@ -592,7 +592,7 @@
 
 (define (join-splits!)
   (and-let* ((`(,top . ,path) (split-path (screen:content)))
-	     (split (split-ref path))
+	     (split ::Split (split-ref path))
 	     (position ::Position (screen-position split))
 	     (extent ::Extent (screen-extent split))
 	     (center ::Position (Position left: (* 0.5 (+ position:left
