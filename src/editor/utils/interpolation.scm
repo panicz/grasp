@@ -2,6 +2,7 @@
 
 (import (language infix))
 (import (language define-type))
+(import (utils functions))
 
 (define-alias Tween (maps (initial::real
 			   final::real
