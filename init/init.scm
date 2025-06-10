@@ -182,11 +182,13 @@
 (set-key! '(ctrl alt h) (lambda ()
 			  (WARN "join halves")))
 
-(set-key! '(alt h) (lambda ()
-		     (WARN "switch halves")))
+(set-key! '(ctrl tab) (lambda ()
+			(or (select-next-split! screen:top)
+			    (select-first-split! screen:top))))
 
-(set-key! '(alt shift h) (lambda ()
-			   (WARN "switch halves back")))
+(set-key! '(ctrl shift tab) (lambda ()
+			      (or (select-previous-split! screen:top)
+				  (select-last-split! screen:top))))
 
 (set-key! '(ctrl s)
 	  (lambda ()

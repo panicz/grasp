@@ -534,3 +534,51 @@
 		   (the-pane-width (screen:width))
 		   (the-pane-height (screen:height)))
       (screen:split-below! line))))
+
+
+
+
+(define (select-first-split! editor ::Splittable)::void
+  (match editor
+    ((Split first: first last: last)
+     (set! editor:focus SplitFocus:First)
+     (select-first-split! last)
+     (select-first-split! first))
+    (_
+     (values))))
+
+(define (select-last-split! editor ::Splittable)::void
+  (match editor
+    ((Split first: first last: last)
+     (set! editor:focus SplitFocus:Last)
+     (select-last-split! first)
+     (select-last-split! last))
+    (_
+     (values))))
+
+(define (select-next-split! editor ::Splittable)::boolean
+  (and-let* (((Split first: first last: last focus: focus) editor))
+    (match focus
+      (,SplitFocus:First
+       (cond
+	((select-next-split! first) #t)
+	(else
+	 (select-first-split! last)
+	 (set! editor:focus SplitFocus:Last)
+	 #t)))
+      (,SplitFocus:Last
+       (select-next-split! last)))))
+
+(define (select-previous-split! editor ::Splittable)::boolean
+  (and-let* (((Split first: first last: last focus: focus) editor))
+    (match focus
+      (,SplitFocus:Last
+       (cond
+	((select-previous-split! last) #t)
+	(else
+	 (select-last-split! first)
+	 (set! editor:focus SplitFocus:First)
+	 #t)))
+      (,SplitFocus:First
+       (select-previous-split! first)))))
+
