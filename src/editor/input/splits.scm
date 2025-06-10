@@ -518,7 +518,6 @@
 		   (the-pane-height (screen:height)))
       (screen:split-beside! line))))
 
-
 (define (halve-below!)
   (let* ((editor (screen:active))
 	 (position (screen-position editor))
@@ -534,9 +533,6 @@
 		   (the-pane-width (screen:width))
 		   (the-pane-height (screen:height)))
       (screen:split-below! line))))
-
-
-
 
 (define (select-first-split! editor ::Splittable)::void
   (match editor
@@ -582,3 +578,24 @@
       (,SplitFocus:First
        (select-previous-split! first)))))
 
+(define (join-splits! editor ::Splittable)::Splittable
+  (match editor
+    (split::Split
+     (match split:focus
+       (,SplitFocus:First
+	(cond
+	 ((Split? split:first)
+	  (set! split:first (join-splits! split:first))
+	  editor)
+	 (else
+	  split:first)))
+
+       (,SplitFocus:Last
+	(cond
+	 ((Split? split:last)
+	  (set! split:last (join-splits! split:last))
+	  editor)
+	 (else
+	  split:last)))))
+    (_
+     editor)))

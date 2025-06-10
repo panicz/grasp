@@ -81,7 +81,7 @@
 	  (lambda ()
 	    (move-cursor-up!)
 	    (adjust-view!)))
-	    
+
 (set-key! 'down
 	  (lambda ()
 	    (move-cursor-down!)
@@ -180,7 +180,7 @@
 (set-key! '(ctrl shift h) halve-below!)
 
 (set-key! '(ctrl alt h) (lambda ()
-			  (WARN "join halves")))
+			  (set! screen:top (join-splits! screen:top))))
 
 (set-key! '(ctrl tab) (lambda ()
 			(or (select-next-split! screen:top)
