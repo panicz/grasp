@@ -1363,6 +1363,11 @@
 		      ((left line right) (split:part-sizes))
 		      ((shift) (+ left line)))
 	  (new:transform:translate! (- shift) 0)
+	  (painter:play!
+	   (Transition of: new:transform
+		       from: (copy new:transform)
+		       to: (copy transform)
+		       duration/ms: 500))
 	  split)
 	(this)))
 
