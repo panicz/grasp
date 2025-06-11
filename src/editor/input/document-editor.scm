@@ -976,8 +976,9 @@
 	     (for action::procedure in post-draw-actions
 	       (action))
 	     (post-draw-actions:clear)
-	     (draw-debug-cursor-points!)
-	     ))))))
+	     (draw-debug-cursor-points!)))))
+      (when (eq? (this) (screen:active))
+	(painter:draw-rectangle! (the-pane-width) (the-pane-height) ))))
 
   (define (tap! finger::byte #;at xe::real ye::real)::boolean
     (with-post-transform transform

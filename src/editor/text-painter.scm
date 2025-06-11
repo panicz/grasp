@@ -498,7 +498,7 @@
     (put! top-left 0 0)
     (for i from 1 to (- height 2)
          (put! vertical i 0)
-	 (for j from 1 to (- width 2)
+	 #;(for j from 1 to (- width 2)
 	      (put! #\space i j)))
     (put! bottom-left (- height 1) 0)
 

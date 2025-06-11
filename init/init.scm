@@ -196,6 +196,11 @@
 			      (or (select-previous-split! (screen:content))
 				  (select-last-split! (screen:content)))))
 
+;; ctrl+tab doesn't work in the terminal client, so here's a workaround
+(set-key! '(shift tab) (lambda ()
+			 (or (select-next-split! (screen:content))
+			     (select-first-split! (screen:content)))))
+
 (set-key! '(ctrl s)
 	  (lambda ()
 	    (((save-file) 0 (the-editor)))))

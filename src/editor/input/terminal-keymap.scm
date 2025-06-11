@@ -35,6 +35,9 @@
 	(char->integer
 	 (char-downcase
 	  (integer->char (c:charValue)))))))
+    (,KeyType:ReverseTab
+     (bitwise-ior SHIFT_MASK (special-key-code KeyType:Tab)))
+
     (type
      (with-modifiers (special-key-code type)))))
 
@@ -67,8 +70,6 @@
   (set! (key-code-name (special-key-code KeyType:PageDown)) 'page-down)
   (set! (key-code-name (special-key-code KeyType:Tab)) #\tab)
   (set! (key-code-name (special-key-code KeyType:Tab)) 'tab)
-  (set! (key-code-name (special-key-code KeyType:ReverseTab))
-	'reverse-tab)
   (set! (key-code-name (special-key-code KeyType:Enter)) #\newline)
   (set! (key-code-name (special-key-code KeyType:Enter)) 'enter)
 
