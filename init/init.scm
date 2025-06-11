@@ -50,6 +50,7 @@
 (import (editor types extensions combinators))
 (import (editor input transforms))
 
+(import (utils server))
 (import (utils reflection))
 
 ;;(import (extra tile-board))
@@ -176,11 +177,16 @@
 (set-key! 'backspace delete-backward!)
 (set-key! 'delete delete-forward!)
 
-(set-key! '(ctrl h) halve-beside!)
+(set-key! '(ctrl t) halve-beside!)
 	  
-(set-key! '(ctrl shift h) halve-below!)
+(set-key! '(ctrl shift t) halve-below!)
 
-(set-key! '(ctrl alt h) join-splits!)
+;; the terminal client is unable to detect
+;; ctrl+shift+key combinations, so we provide
+;; an alternative
+(set-key! '(alt shift t) halve-below!)
+
+(set-key! '(ctrl alt t) join-splits!)
 
 (set-key! '(ctrl tab) (lambda ()
 			(or (select-next-split! (screen:content))
@@ -203,7 +209,9 @@
 		      ", expression: "(cursor-ref))))
 
 (set-key! 'F2 (lambda ()
+		(DUMP (screen:active))
 		(DUMP screen:top)))
+
 
 (the-recognizers:add
  split-pane-by-horizontal-line)

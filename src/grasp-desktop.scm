@@ -46,6 +46,7 @@
 (import (editor types extensions testing))
 (import (editor types extensions canvas))
 (import (editor types extensions physics))
+(import (utils server))
 
 (import (editor input gestures))
 (import (editor awt-clipboard))

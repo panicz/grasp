@@ -5,6 +5,8 @@
 (import (language match))
 (import (language infix))
 
+(import (utils print))
+
 (define (special-key-code key::KeyType)::long
   (bitwise-arithmetic-shift (as long (key:ordinal))
 			    java.lang.Integer:SIZE))
@@ -17,7 +19,13 @@
     (bitwise-ior
      (if (input:ctrl-down?) CTRL_MASK 0)
      (if (input:alt-down?) ALT_MASK 0)
-     (if (input:shift-down?) SHIFT_MASK 0)
+     (if (or (input:shift-down?)
+	     (and (eq? (input:getKeyType) KeyType:Character)
+		  (or (input:ctrl-down?)
+		      (input:alt-down?))
+		  (let ((c (input:getCharacter)))
+		    (char-upper-case? (integer->char (c:charValue))))))
+	 SHIFT_MASK 0)
      code))
   
   (match (input:getKeyType)
@@ -32,7 +40,10 @@
 
 (define (input-character input::KeyStroke)::char
   (let* ((c ::java.lang.Character (input:getCharacter)))
-    (or (and c (integer->char (c:charValue)))
+    (or (and c
+	     (not (input:ctrl-down?))
+	     (not (input:alt-down?))
+	     (integer->char (c:charValue)))
 	#\null)))
 
 (define (initialize-keymap)  
