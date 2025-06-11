@@ -1055,8 +1055,8 @@
 
 
 (define-syntax-rule (with-view-edges-transformed transform . actions)
-  (let*-values (((pane-left pane-top) (values (the-pane-left)
-					      (the-pane-top)))
+  (let*-values (((pane-left pane-top) (values 0 #;(the-pane-left)
+					      0 #;(the-pane-top)))
 		((pane-right pane-bottom)
 		 (values (+ pane-left (the-pane-width))
 			 (+ pane-top (the-pane-height))))

@@ -59,9 +59,9 @@
   ((with-pane-translation shift::real action::procedure)::Object
    #!abstract)
 
-  ((area/last original::Area earlier-size::real)::Area
+  ((area/last line::Area first-size::real)::Area
    #!abstract)
-
+  
   ((varying-dimension x::real y::real)::real
    #!abstract)
 
@@ -88,7 +88,13 @@
    #!abstract)
 
   ((render!)::void
-   (let-values (((first-size line-size last-size) (part-sizes)))
+   (let*-values (((first-size line-size last-size) (part-sizes))
+		 ((position) (screen-position (this)))
+		 ((extent) (screen-extent (this))))
+     (set! position:left (the-pane-left))
+     (set! position:top (the-pane-top))
+     (set! extent:width (the-pane-width))
+     (set! extent:height (the-pane-height))
      (with-pane-translation first-size
        (lambda ()
 	 (draw-split!)
@@ -406,6 +412,12 @@
           (right-width ::real (- pane-width left-width line-width)))
      (values left-width line-width right-width)))
 
+  ((area/last line::Area first-size::real)::Area
+   (Area left: (- line:left first-size)
+	 top: line:top
+	 right: (- line:right first-size)
+	 bottom: line:bottom))
+  
   ((draw-split!)::void
    (painter:draw-vertical-split! 0))
 
@@ -415,13 +427,8 @@
 
   ((with-pane-translation shift::real action::procedure)::Object
    (with-translation (shift 0)
-     (action)))
-
-  ((area/last line::Area earlier-size::real)::Area
-   (Area left: (- line:left earlier-size)
-	 top: line:top
-	 right: (- line:right earlier-size)
-	 bottom: line:bottom))
+     (parameterize ((the-pane-left (+ (the-pane-left) shift)))
+       (action))))
 
   ((varying-dimension x::real y::real)::real
    x)
@@ -456,6 +463,12 @@
           (right-height ::real (- inner-height left-height)))
      (values left-height line-height right-height)))
 
+  ((area/last line::Area first-size::real)::Area
+   (Area left: line:left
+	 top: (- line:top first-size)
+	 right: line:right
+	 bottom: (- line:bottom first-size)))
+
   ((draw-split!)::void
    (painter:draw-horizontal-split! 0))
 
@@ -465,13 +478,8 @@
 
   ((with-pane-translation shift::real action::procedure)::Object
    (with-translation (0 shift)
-     (action)))
-
-  ((area/last line::Area earlier-size::real)::Area
-   (Area left: line:left
-	 top: (- line:top earlier-size)
-	 right: line:right
-	 bottom: (- line:bottom earlier-size)))
+     (parameterize ((the-pane-top (+ (the-pane-top) shift)))
+       (action))))
 
   ((varying-dimension x::real y::real)::real y)
 
@@ -503,17 +511,12 @@
 		     top: position:top
 		     right: center
 		     bottom: (+ position:top
-				extent:height)))
-	 #;(stroke (Stroke 0 editor)))
-#|
-    (stroke:add-point! (Position left: line:left
-				 top: line:top))
-    (stroke:add-point! (Position left: line:right
-				 top: line:bottom))
-    (screen:add-overlay! stroke)
-|#
-    (screen:split-beside! line)))
-
+				extent:height))))
+    (parameterize ((the-pane-left 0)
+		   (the-pane-top 0)
+		   (the-pane-width (screen:width))
+		   (the-pane-height (screen:height)))
+      (screen:split-beside! line))))
 
 (define (halve-below!)
   (let* ((editor (screen:active))
@@ -524,11 +527,85 @@
 		     top: center
 		     right: (+ position:left
 			       extent:width)
-		     bottom: center))
-	 (stroke (Stroke 0 editor)))
-    (stroke:add-point! (Position left: line:left
-				 top: line:top))
-    (stroke:add-point! (Position left: line:right
-				 top: line:bottom))
-    (screen:add-overlay! stroke)
-    (screen:split-below! line)))
+		     bottom: center)))
+    (parameterize ((the-pane-left 0)
+		   (the-pane-top 0)
+		   (the-pane-width (screen:width))
+		   (the-pane-height (screen:height)))
+      (screen:split-below! line))))
+
+(define (select-first-split! editor ::Splittable)::void
+  (match editor
+    ((Split first: first last: last)
+     (set! editor:focus SplitFocus:First)
+     (select-first-split! last)
+     (select-first-split! first))
+    (_
+     (values))))
+
+(define (select-last-split! editor ::Splittable)::void
+  (match editor
+    ((Split first: first last: last)
+     (set! editor:focus SplitFocus:Last)
+     (select-last-split! first)
+     (select-last-split! last))
+    (_
+     (values))))
+
+(define (select-next-split! editor ::Splittable)::boolean
+  (and-let* (((Split first: first last: last focus: focus) editor))
+    (match focus
+      (,SplitFocus:First
+       (cond
+	((select-next-split! first) #t)
+	(else
+	 (select-first-split! last)
+	 (set! editor:focus SplitFocus:Last)
+	 #t)))
+      (,SplitFocus:Last
+       (select-next-split! last)))))
+
+(define (select-previous-split! editor ::Splittable)::boolean
+  (and-let* (((Split first: first last: last focus: focus) editor))
+    (match focus
+      (,SplitFocus:Last
+       (cond
+	((select-previous-split! last) #t)
+	(else
+	 (select-last-split! first)
+	 (set! editor:focus SplitFocus:First)
+	 #t)))
+      (,SplitFocus:First
+       (select-previous-split! first)))))
+
+(define (split-path editor #!optional (path '()))
+  (match editor
+    ((Split focus: ,SplitFocus:First first: first)
+     (split-path first (recons SplitFocus:First path)))
+
+    ((Split focus: ,SplitFocus:Last last: last)
+     (split-path last (recons SplitFocus:Last path)))
+
+    (_
+     path)))
+
+
+(define (join-splits!)
+  (and-let* ((`(,top . ,path) (split-path (screen:content)))
+	     (split ::Split (split-ref path))
+	     (position ::Position (screen-position split))
+	     (extent ::Extent (screen-extent split))
+	     (center ::Position (Position left: (* 0.5 (+ position:left
+							  extent:width))
+					  top: (* 0.5 (+ position:top
+							 extent:height)))))
+    (painter:play!
+     (DragAnimation of: (ResizeSplitAt path)
+		    from: center
+		    to: (if (equal? top SplitFocus:First)
+			    (Position left: (+ position:left
+					       extent:width)
+				      top: (+ position:top
+					      extent:height))
+			    position)
+		    duration/ms: 500))))

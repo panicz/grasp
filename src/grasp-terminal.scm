@@ -337,7 +337,7 @@
   (define (apply0)
     (let* ((now ::long (current-time-ms))
 	   (delta/ms ::long (- now then)))
-      (unless (animation:advance! delta/ms)
+      (unless (safely (animation:advance! delta/ms))
         (pending-animations:remove (this)))
       (set! then now)))
 

@@ -48,7 +48,9 @@
 (import (editor types spaces))
 (import (editor document copy-paste))
 (import (editor types extensions combinators))
+(import (editor input transforms))
 
+(import (utils server))
 (import (utils reflection))
 
 ;;(import (extra tile-board))
@@ -81,7 +83,7 @@
 	  (lambda ()
 	    (move-cursor-up!)
 	    (adjust-view!)))
-	    
+
 (set-key! 'down
 	  (lambda ()
 	    (move-cursor-down!)
@@ -175,18 +177,29 @@
 (set-key! 'backspace delete-backward!)
 (set-key! 'delete delete-forward!)
 
-(set-key! '(ctrl h) halve-beside!)
+(set-key! '(ctrl t) halve-beside!)
 	  
-(set-key! '(ctrl shift h) halve-below!)
+(set-key! '(ctrl shift t) halve-below!)
 
-(set-key! '(ctrl alt h) (lambda ()
-			  (WARN "join halves")))
+;; the terminal client is unable to detect
+;; ctrl+shift+key combinations, so we provide
+;; an alternative
+(set-key! '(alt shift t) halve-below!)
 
-(set-key! '(alt h) (lambda ()
-		     (WARN "switch halves")))
+(set-key! '(ctrl alt t) join-splits!)
 
-(set-key! '(alt shift h) (lambda ()
-			   (WARN "switch halves back")))
+(set-key! '(ctrl tab) (lambda ()
+			(or (select-next-split! (screen:content))
+			    (select-first-split! (screen:content)))))
+
+(set-key! '(ctrl shift tab) (lambda ()
+			      (or (select-previous-split! (screen:content))
+				  (select-last-split! (screen:content)))))
+
+;; ctrl+tab doesn't work in the terminal client, so here's a workaround
+(set-key! '(shift tab) (lambda ()
+			 (or (select-next-split! (screen:content))
+			     (select-first-split! (screen:content)))))
 
 (set-key! '(ctrl s)
 	  (lambda ()
@@ -201,7 +214,9 @@
 		      ", expression: "(cursor-ref))))
 
 (set-key! 'F2 (lambda ()
+		(DUMP (screen:active))
 		(DUMP screen:top)))
+
 
 (the-recognizers:add
  split-pane-by-horizontal-line)

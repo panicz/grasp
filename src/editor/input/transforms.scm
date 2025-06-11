@@ -11,6 +11,8 @@
 (import (language examples))
 (import (language fundamental))
 (import (editor interfaces painting))
+(import (editor interfaces elements))
+(import (editor utils interpolation))
 
 (import (utils print))
 
@@ -234,22 +236,38 @@
 		((angle) (atan (- dy) dx)))
     (Isogonal angle/rad: angle scale: (/ scale))))
 
-(define (sine-interpolation initial-value::real
-			    final-value::real
-			    progress::real)
-  ::real
-  (cond
-   ((is progress <= 0) initial-value)
-   ((is progress >= 1) final-value)
-   (else
-    (+ initial-value
-       (* (- final-value initial-value)
-	  (sin (* progress pi/2)))))))
-
-(define-alias Tween (maps (initial::real
-			   final::real
-			   progress::real)
-			  to: real))
+(define-type (DragAnimation of: Drag
+			    from: Position
+			    to: Position
+			    duration/ms: int
+			    interpolate: Tween := sine-interpolation)
+  implementing Animation
+  with
+  (progress/ms type: int init-value: 0)
+  (previous-x type: real init-value: +nan.0)
+  (previous-y type: real init-value: +nan.0)
+  
+  ((advance! timestep/ms::int)::boolean
+   (when (or (nan? previous-x)
+	     (nan? previous-y))
+     (set! previous-x from:left)
+     (set! previous-y from:top))
+   (set! progress/ms (+ progress/ms timestep/ms))
+   (if (is progress/ms < duration/ms)
+       (let* ((progress ::float (/ progress/ms duration/ms))
+	      (x (interpolate from:left to:left progress))
+	      (y (interpolate from:top to:top progress))
+	      (dx (- x previous-x))
+	      (dy (- y previous-y)))
+	 (of:move! x y dx dy)
+	 (set! previous-x x)
+	 (set! previous-y y)
+	 #t)
+       (let ((vx ::float (/ (- to:left previous-x) timestep/ms))
+	     (vy ::float (/ (- to:top previous-y) timestep/ms)))
+	 (of:drop! to:left to:top vx vy)
+	 #f)
+       )))
 
 (define-type (Transition of: Transform
                          from: Transform

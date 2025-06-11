@@ -1735,7 +1735,7 @@
 	     (delta-ms ::long (- now
 				 last-animation-event-time-ms)))
 	(for animation::Animation in pending-animations
-	  (unless (animation:advance! delta-ms)
+	  (unless (safely (animation:advance! delta-ms))
 	    (pending-animations:remove animation)))
 	(set! last-animation-event-time-ms now)
 	(invalidate)
