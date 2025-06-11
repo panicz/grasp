@@ -1655,7 +1655,7 @@ by the AWT framework."))
       (let* ((now ::long (current-time-ms))
 	     (delta ::long (- now last-animation-event-time-ms)))
 	(for animation::Animation in pending-animations
-	  (unless (animation:advance! delta)
+	  (unless (safely (animation:advance! delta))
 	    (pending-animations:remove animation)))
 	(set! last-animation-event-time-ms now)
 	(repaint)
