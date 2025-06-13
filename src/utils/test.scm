@@ -9,7 +9,7 @@
 (import (language while))
 
 (import (utils hash-table))
-(import (editor document documents))
+(import (editor document universe))
 (import (editor document document-operations))
 (import (editor document editor-operations))
 (import (editor document history-tracking))

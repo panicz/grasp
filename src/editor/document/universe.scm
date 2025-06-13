@@ -1,4 +1,4 @@
-(module-name (editor document documents))
+(module-name (editor document universe))
 
 (import (language define-type))
 (import (language define-object))

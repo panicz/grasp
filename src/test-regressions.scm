@@ -31,7 +31,7 @@
  (editor document history-tracking)
  (editor interfaces painting)
  (editor text-painter)
- (editor document documents)
+ (editor document universe)
 
  (utils test)
  (editor types extensions widgets)

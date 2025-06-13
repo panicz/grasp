@@ -26,7 +26,7 @@
 (import (editor types spaces))
 (import (editor types texts))
 (import (editor document parse))
-(import (editor document documents))
+(import (editor document universe))
 (import (editor document cursor))
 (import (editor document history-tracking))
 (import (editor types extensions extensions))
