@@ -19,7 +19,7 @@
 (import (utils graph))
 (import (utils file))
 
-(define-syntax-rule (print elements ...)
+(define-syntax-rule (report elements ...)
   (synchronized (current-output-port)
     (display elements)
     ...
@@ -142,7 +142,7 @@
 		(open-input-file source))
 	 (class-prefix-default ::String
 			       gnu.expr.Compilation:classPrefixDefault))
-    (print"building "source)
+    (report "building "source)
     (try-finally
      (begin
        (when top-class-name
@@ -201,7 +201,7 @@
      (command:build))))
 
 (define (build-zip source-file ::string target-file ::string)
-  (print "building "target-file)
+  (report "building "target-file)
   (compile-file source-file target-file))
 
 (define (build-jar! #!key
@@ -348,7 +348,7 @@ Main-Class: "main-class-name"
   
   (define package-components (string-split package "."))
   
-  (print "Gathering file list...")
+  (report "Gathering file list...")
   
   (define dependency-files ::(list-of java.io.File)
     (list-files from: "src"
@@ -387,7 +387,7 @@ Main-Class: "main-class-name"
   
   (define main-class-files (map main-class-file targets))
 
-  (print "Building dependency graph...")
+  (report "Building dependency graph...")
 
   (define module-dependency-graph
     (build-module-dependency-graph all-files))
@@ -396,23 +396,23 @@ Main-Class: "main-class-name"
     ::(list-of (list-of symbol))
     (reach module-dependency-graph module))
 
-  (print "Checking for circular dependencies...")
+  (report "Checking for circular dependencies...")
 
   (let ((circular-dependencies
 	 (only (lambda (m)
 		 (is m in (module-dependencies m)))
 	       (keys module-dependency-graph))))
     (when (isnt circular-dependencies null?)
-      (print"circular dependencies between "
+      (report "circular dependencies between "
 	    circular-dependencies)
       (exit)))
 
-  (print "Layering the dependency graph...")
+  (report "Layering the dependency graph...")
 
   (define layered-modules
     (graph-layers module-dependency-graph source-modules))
 
-  (print "Gathering cache files...")
+  (report "Gathering cache files...")
 
   (define cached-files ::(list-of java.io.File)
     (list-files from: "build/cache"
@@ -447,7 +447,7 @@ Main-Class: "main-class-name"
 
   (define previous-package (previous 'package))
   
-  (print "Checking which files need to be recompiled...")
+  (report "Checking which files need to be recompiled...")
 
   (for class::java.io.File in cached-files
     (let* ((scm ::java.io.File (source-file class))
@@ -459,7 +459,7 @@ Main-Class: "main-class-name"
 		    (regex-match package (scm:toString))
 		    (and previous-package
 			 (regex-match previous-package (scm:toString))))
-	  (print "Unknown source for "class": "scm)))
+	  (report "Unknown source for "class": "scm)))
        ((is (class:lastModified) <= (scm:lastModified))
 	(let ((affected-modules `(,module . ,(module-users module))))
 	  (set! modules-to-regenerate
@@ -543,7 +543,7 @@ Main-Class: "main-class-name"
 					       (lambda (file::java.io.File)
 						 (file:isFile)))))
 	 (for file::java.io.File in files-to-remove
-	   (print "deleting "file)
+	   (report "deleting "file)
 	   (file:delete))
 	 (for depth from (length previous-package-components) to 1 by -1
 	      (let ((directory (string-append
@@ -551,7 +551,7 @@ Main-Class: "main-class-name"
 				(string-join
 				 (take depth previous-package-components)
 				 "/"))))
-		(print "deleting directory "directory)
+		(report "deleting directory "directory)
 		(delete-file directory))))
        
        (delete-if-exists "build/cache/classes.dex")
@@ -560,7 +560,7 @@ Main-Class: "main-class-name"
 		   ;;target-directory: "build/grasp-android"
 		   top-class-name: (string-append package ".GRASP")))
 
-     (print "Reindexing .class files...")
+     (report "Reindexing .class files...")
      (set! cached-files (list-files from: "build/cache"
 				    such-that: (is "[.]class$"
 						   regex-match
@@ -574,7 +574,7 @@ Main-Class: "main-class-name"
 	       (union (module-classes module) `(,class)))))
 
      (unless skip-android-class-update?
-       (print"building a list of classes to dex")
+       (report "building a list of classes to dex")
 
        (define classes-to-dex ::(list-of java.io.File)
 	 (let ((android-dependencies ::(list-of java.io.File)
@@ -607,11 +607,11 @@ Main-Class: "main-class-name"
 			  (is package regex-match path))))))))
 	    cached-files)))
 
-       (print"dexing "classes-to-dex)
+       (report "dexing "classes-to-dex)
 
        (update-dex-cache classes-to-dex (as-file "build/cache"))
 
-       (print"Generating the .dex index")
+       (report "Generating the .dex index")
 
        (define dex-files
 	 (list-files from: "build/cache"
@@ -623,7 +623,7 @@ Main-Class: "main-class-name"
 		     such-that: (is "[.]dex$" regex-match
 				    (_:getPath))))
 
-       (print "Integrating the .dex files")
+       (report "Integrating the .dex files")
 
        (integrate-dex `(,@dex-libraries ,@dex-files)
 		      (as-file "build/cache"))
@@ -632,7 +632,7 @@ Main-Class: "main-class-name"
   (concurrently
    (when (is 'android in targets)
      (let ((file-name (string-append "build/"name".apk")))
-       (print "building "file-name)
+       (report "building "file-name)
        (build-apk! output-name: file-name
 		   init: init
 		   package: package
@@ -644,7 +644,7 @@ Main-Class: "main-class-name"
    
    (when (is 'desktop in targets)
      (let ((file-name (string-append "build/" name"-desktop.jar")))
-       (print "building "file-name)
+       (report "building "file-name)
        (build-jar!
 	output-name: file-name
 	module-dependencies: module-dependencies
@@ -658,7 +658,7 @@ Main-Class: "main-class-name"
 
    (when (is 'terminal in targets)
      (let ((file-name (string-append "build/" name"-terminal.jar")))
-       (print "building "file-name)
+       (report "building "file-name)
        (build-jar!
 	output-name: file-name
 	module-dependencies: module-dependencies
@@ -695,9 +695,9 @@ Main-Class: "main-class-name"
 	...
 	('() . actions)
 	(_
-	 (print "Invalid argument: "args)
-	 (print "Available options:")
-	 (print "  --"(symbol->string 'name)" "help" ["default"]")
+	 (report "Invalid argument: "args)
+	 (report "Available options:")
+	 (report "  --"(symbol->string 'name)" "help" ["default"]")
 	 ...
 	 (exit))))))
 
