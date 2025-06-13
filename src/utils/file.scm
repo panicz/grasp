@@ -28,6 +28,9 @@
 			(string-join `(,path . ,fragments)
 				     java.io.File:separator)))))
 
+(define (join-path . fragments)
+  (string-join fragments java.io.File:separator))
+
 (define (save-mapping mapping ::(maps (Object)
 				      to: Object)
 		      filename ::string)

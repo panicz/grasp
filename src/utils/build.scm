@@ -26,22 +26,32 @@
     (display #\newline)
     (flush-output-port)))
 
+(define (escape-slashes regex::java.lang.String)
+  (regex:replaceAll "\\\\" "\\\\\\\\"))
+
+(define (pattern . fragments)
+  (escape-slashes (string-join fragments "")))
+
 (define (internal-module-name file ::java.io.File)
   ::(list-of symbol)
-  (match (regex-match "^(?:./)?src/([^.]*)[.]scm$" (file:getPath))
+  (match (regex-match (pattern "^(?:."java.io.File:separator")?src"
+			       java.io.File:separator"([^.]*)[.]scm$")
+		      (file:getPath))
     (`(,_ ,core)
-     (map string->symbol (string-split core "/")))
+     (map string->symbol (string-split core java.io.File:separator)))
     (_
      (error "Unable to parse file name "file))))
 
 (define (module-file module-name ::(list-of symbol))::java.io.File
-  (as-file (string-append "src/" (string-join module-name "/")
+  (as-file (string-append (string-join `("src" . ,module-name) java.io.File:separator)
 			  ".scm")))
 
 (define (target-class scm-source ::java.io.File)::java.io.File
-  (match (regex-match "^(?:./)?src/(.*)[.]scm$" (scm-source:getPath))
+  (match (regex-match (pattern "^(?:."java.io.File:separator")?src"
+			       java.io.File:separator"(.*)[.]scm$")
+		      (scm-source:getPath))
     (`(,_ ,core)
-     (as-file (string-append "build/cache/"core".class")))))
+     (as-file "build" "cache" (string-append core".class")))))
 
 (define (imported-modules file ::java.io.File
 			  source-modules ::(list-of (list-of symbol)))
@@ -73,17 +83,19 @@
     dependencies))
 
 (define (guess-source-file-from-name class-file ::java.io.File)::string
+
+  (define / (escape-slashes java.io.File:separator))
   
-  (define (try pattern::string)::(either string #f)
+  (define (try . pattern)::(either string #f)
     (and-let* ((`(,_ ,_ ,stem) (regex-match
-				pattern
+				(string-join pattern "")
 				(class-file:getPath))))
       stem))
   
   (let* ((stem
-	  (or (try "^build/cache(.*/)([^/]+)\\$frame[0-9]*[.]class$")
-	      (try "^build/cache(.*/)([^/]+)\\$[0-9]*[.]class$")
-	      (try "^build/cache(.*/)([^/]+)[.]class$")
+	  (or (try "^build"/"cache(.*"/")([^"/"]+)\\$frame[0-9]*[.]class$")
+	      (try "^build"/"cache(.*"/")([^"/"]+)\\$[0-9]*[.]class$")
+	      (try "^build"/"cache(.*"/")([^"/"]+)[.]class$")
 	      (error "invalid class file: "class-file)))
 	 (fixed-stem (fold-left (lambda (stem replacement)
 				  (and-let* ((`(,pattern ,replacement)
@@ -120,13 +132,15 @@
 			   (guess-source-file-from-name class-file)
 			   name)))
 	       (class-directory (class-file:getParentFile))
-	       (`(,_ ,path) (regex-match "^(?:./)?build/cache/(.*)$"
+	       (`(,_ ,path) (regex-match (pattern "^(?:."java.io.File:separator")?build"
+						  java.io.File:separator "cache"
+						  java.io.File:separator "(.*)$")
 					 (class-directory:getPath))))
-      (as-file (string-append "src/"path"/"name)))))
+      (as-file "src" path name))))
 
 (define (build-file source ::string
 		    #!key
-		    (target-directory ::string "build/cache")
+		    (target-directory ::string (join-path "build" "cache"))
 		    (top-class-name #!null))
   (let* ((messages ::gnu.text.SourceMessages
 		   (gnu.text.SourceMessages))
@@ -171,9 +185,9 @@
     (command:addProgramFiles (map file->path input))
     (command:addLibraryFiles (map file->path
 				  (list
- 				   (as-file "libs/kawa.jar")
-				   (as-file "libs/android.jar")
-				   (as-file "build/cache"))))
+ 				   (as-file "libs" "kawa.jar")
+				   (as-file "libs" "android.jar")
+				   (as-file "build" "cache"))))
     (command:setIntermediate #t)
     (command:setOutput
      (output:toPath)
@@ -192,9 +206,9 @@
     
     #;(command:addLibraryFiles (map file->path
 				  (list
- 				   (as-file "libs/kawa.jar")
-				   (as-file "libs/android.jar")
-				   (as-file "build/cache"))))
+ 				   (as-file "libs" "kawa.jar")
+				   (as-file "libs" "android.jar")
+				   (as-file "build" "cache"))))
     (command:setOutput (output:toPath)
 		       com.android.tools.r8.OutputMode:DexIndexed)
     (com.android.tools.r8.D8:run
@@ -214,11 +228,11 @@
 		    (available-modules ::(list-of(list-of symbol))'())
 		    (extra-dependencies ::(list-of string) '())
 		    (assets ::(list-of java.io.File) '())
-		    (init ::string "init/init.scm")
+		    (init ::string (join-path "init" "init.scm"))
 		    (package ::string "")
 		    output-name)
   (let* ((output-name (or output-name
-			  (string-append "build/" main-class ".jar")))
+			  (join-path "build" (string-append main-class ".jar"))))
 	 (main-class-name (fold-left (lambda (stem replacement)
 				       (and-let* ((`(,pattern
 						     ,replacement)
@@ -249,15 +263,15 @@
 				   init-file
 				   available-modules))))
 	 (external-dependencies ::(list-of string)
-				`("libs/kawa.jar"
+				`(,(join-path "libs" "kawa.jar")
 				  . ,extra-dependencies)))
   (when (output-jar:exists)
     (output-jar:delete))
   
   (let ((output (ZipBuilder output-jar)))
     (output:append-entries! (ZipFile
-			     (string-append
-			      "build/cache/"main-class".zip")))
+			     (join-path "build" "cache"
+					(string-append main-class".zip"))))
     (for class::java.io.File in internal-dependencies
       (output:add-file-at-level! 2 class))
     
@@ -274,35 +288,35 @@
     (for asset::java.io.File in assets
       (output:add-file-at-level! 0 asset))
 
-    (output:add-file-as! "assets/init.scm" init-file)
+    (output:add-file-as! (join-path "assets" "init.scm") init-file)
 
     (let ((content ::String (string-append "\
 Manifest-Version: 1.0
 Main-Class: "main-class-name"
 ")))
-      (output:add-file-with-text! content "META-INF/MANIFEST.MF"))
+      (output:add-file-with-text! content (join-path "META-INF" "MANIFEST.MF")))
     (output:close))))
 
 (define (build-apk! #!key
-		    (init ::string "init/init.scm")
+		    (init ::string (join-path "init" "init.scm"))
 		    (package ::string "io.github.panicz")
-		    (icon ::string "icons/grasp.png")
+		    (icon ::string (join-path "icons" "grasp.png"))
 		    (label ::string "GRASP")
-		    (keystore ::string "binary/keystore")
+		    (keystore ::string (join-path "binary" "keystore"))
 		    (password ::string "untrusted")
 		    (key ::string "grasp-public")
-		    (output-name ::string "build/grasp.apk"))
+		    (output-name ::string (join-path "build" "grasp.apk")))
   (let* ((apk-file ::java.io.File (as-file output-name))
 	 (temp-file ::java.io.File (java.io.File:createTempFile
 				    "grasp-" ".apk"
 				    (as-file "build")))
 	 (assets (list-files from: "assets"))
 	 (output (ZipBuilder temp-file)))
-    (output:add-file-as! "res/drawable/icon.png"
+    (output:add-file-as! (join-path "res" "drawable" "icon.png")
 			 (as-file icon))
     (for asset in assets
       (output:add-file-at-level! 0 asset))
-    (output:add-file-as! "assets/init.scm" (as-file init))
+    (output:add-file-as! (join-path "assets" "init.scm") (as-file init))
     (let* ((manifest ::AndroidXML
 		     (AndroidManifest package: package
 				      label: label))
@@ -314,7 +328,7 @@ Main-Class: "main-class-name"
 					   package)
 					  "resources.arsc")
     (output:add-file-at-level!
-     2 (as-file "build/cache/classes.dex"))
+     2 (as-file "build" "cache" "classes.dex"))
     (output:close)
     (com.iyxan23.zipalignjava.ZipAlign:alignZip
      (java.io.RandomAccessFile temp-file "r")
@@ -335,10 +349,10 @@ Main-Class: "main-class-name"
 					  'desktop))
 		       '(android desktop terminal))
 	       (name ::string "GRASP")
-	       (icon ::string "icons/grasp.png")
-	       (init ::string "init/init.scm")
+	       (icon ::string (join-path "icons" "grasp.png"))
+	       (init ::string (join-path "init" "init.scm"))
 	       (package ::string "io.github.grasp")
-	       (keystore ::string "binary/keystore")
+	       (keystore ::string (join-path "binary" "keystore"))
 	       (key ::string "grasp-public")
 	       (password ::string "untrusted"))
 
@@ -352,18 +366,25 @@ Main-Class: "main-class-name"
   
   (define dependency-files ::(list-of java.io.File)
     (list-files from: "src"
-		such-that: (is "^(?:./)?src/[^/]+/.+[.]scm$"
+		such-that: (is (pattern "^(?:."java.io.File:separator")?src"
+					java.io.File:separator"[^"
+					java.io.File:separator"]+"
+					java.io.File:separator".+[.]scm$")
 			       regex-match (_:getPath))))
   
   (define application-files ::(list-of java.io.File)
     (list-files from: "src"
-		such-that: (is "^(?:./)?src/grasp-[^/]+[.]scm"
+		such-that: (is (pattern "^(?:."java.io.File:separator
+					")?src"java.io.File:separator
+					"grasp-[^"java.io.File:separator"]+[.]scm")
 			       regex-match (_:getPath))
 		max-depth: 0))
 
   (define test-files ::(list-of java.io.File)
     (list-files from: "src"
-		such-that: (is "^(?:./)?src/test-[^/]+[.]scm"
+		such-that: (is (pattern "^(?:."java.io.File:separator")?src"
+					java.io.File:separator"test-[^"
+					java.io.File:separator"]+[.]scm")
 			       regex-match (_:getPath))
 		max-depth: 0))
 
@@ -381,9 +402,9 @@ Main-Class: "main-class-name"
   
   (define (main-class-file target)::string
     (match target
-      ('desktop "build/cache/grasp-desktop.zip")
-      ('terminal "build/cache/grasp-terminal.zip")
-      ('android "build/cache/classes.dex")))
+      ('desktop (join-path "build" "cache" "grasp-desktop.zip"))
+      ('terminal (join-path "build" "cache" "grasp-terminal.zip"))
+      ('android (join-path "build" "cache" "classes.dex"))))
   
   (define main-class-files (map main-class-file targets))
 
@@ -415,7 +436,7 @@ Main-Class: "main-class-name"
   (report "Gathering cache files...")
 
   (define cached-files ::(list-of java.io.File)
-    (list-files from: "build/cache"
+    (list-files from: (join-path "build" "cache")
 		such-that: (is "[.]class$" regex-match
 			       (_:getPath))))
 
@@ -443,7 +464,7 @@ Main-Class: "main-class-name"
   (define class-files-to-remove ::(list-of java.io.File)
     '())
 
-  (define previous (load-mapping "build/previous.map"))
+  (define previous (load-mapping (join-path "build" "previous.map")))
 
   (define previous-package (previous 'package))
   
@@ -503,7 +524,7 @@ Main-Class: "main-class-name"
     (or (isnt 'android in targets)
 	(and-let* (((equal? previous-package package))
 		   (classes-dex (existing-file
-				 "build/cache/classes.dex"))
+				 (join-path "build" "cache" "classes.dex")))
 		   (classes-dex-update (classes-dex:lastModified))
 		   ((every (is (_:lastModified) < classes-dex-update)
 			   `(,@application-files
@@ -518,11 +539,11 @@ Main-Class: "main-class-name"
   
   (concurrently
    (when (is 'desktop in targets)
-     (build-zip "src/grasp-desktop.scm"
+     (build-zip (join-path "src" "grasp-desktop.scm")
 		(main-class-file 'desktop)))
 
    (when (is 'terminal in targets)
-     (build-zip "src/grasp-terminal.scm"
+     (build-zip (join-path "src" "grasp-terminal.scm")
 		(main-class-file 'terminal)))
 
    (begin
@@ -533,10 +554,7 @@ Main-Class: "main-class-name"
 		  (previous-package-components
 		   (string-split previous-package "."))
 		  (previous-package-path
-		   (string-append
-		    "build/cache/"
-		    (string-join previous-package-components
-				 java.io.File:separator)))
+		   (join-path `("build" "cache" . ,previous-package-components)))
 		  ((file-exists? previous-package-path))
 		  (files-to-remove (list-files from: previous-package-path
 					       such-that: 
@@ -546,22 +564,19 @@ Main-Class: "main-class-name"
 	   (report "deleting "file)
 	   (file:delete))
 	 (for depth from (length previous-package-components) to 1 by -1
-	      (let ((directory (string-append
-				"build/cache/"
-				(string-join
-				 (take depth previous-package-components)
-				 "/"))))
+	      (let ((directory
+		     (join-path `("build" "cache" . ,(take depth previous-package-components)))))
 		(report "deleting directory "directory)
 		(delete-file directory))))
        
-       (delete-if-exists "build/cache/classes.dex")
+       (delete-if-exists (join-path "build" "cache" "classes.dex"))
 
-       (build-file "src/grasp-android.scm"
-		   ;;target-directory: "build/grasp-android"
+       (build-file (join-path "src" "grasp-android.scm")
+		   ;;target-directory: (join-path "build" "grasp-android")
 		   top-class-name: (string-append package ".GRASP")))
 
      (report "Reindexing .class files...")
-     (set! cached-files (list-files from: "build/cache"
+     (set! cached-files (list-files from: (join-path "build" "cache")
 				    such-that: (is "[.]class$"
 						   regex-match
 						   (_:getPath))))
@@ -609,12 +624,12 @@ Main-Class: "main-class-name"
 
        (report "dexing "classes-to-dex)
 
-       (update-dex-cache classes-to-dex (as-file "build/cache"))
+       (update-dex-cache classes-to-dex (as-file "build" "cache"))
 
        (report "Generating the .dex index")
 
        (define dex-files
-	 (list-files from: "build/cache"
+	 (list-files from: (join-path "build" "cache")
 		     such-that: (is "[.]dex$" regex-match
 				    (_:getPath))))
 
@@ -626,12 +641,12 @@ Main-Class: "main-class-name"
        (report "Integrating the .dex files")
 
        (integrate-dex `(,@dex-libraries ,@dex-files)
-		      (as-file "build/cache"))
+		      (as-file "build" "cache"))
        )))
   
   (concurrently
    (when (is 'android in targets)
-     (let ((file-name (string-append "build/"name".apk")))
+     (let ((file-name (join-path "build" (string-append name".apk"))))
        (report "building "file-name)
        (build-apk! output-name: file-name
 		   init: init
@@ -643,7 +658,7 @@ Main-Class: "main-class-name"
 		   password: password)))
    
    (when (is 'desktop in targets)
-     (let ((file-name (string-append "build/" name"-desktop.jar")))
+     (let ((file-name (join-path "build" (string-append name"-desktop.jar"))))
        (report "building "file-name)
        (build-jar!
 	output-name: file-name
@@ -654,10 +669,10 @@ Main-Class: "main-class-name"
 	package: package
 	main-class: "grasp-desktop"
 	assets: (list-files from: "assets")
-	extra-dependencies: '("libs/jsvg-1.0.0.jar"))))
+	extra-dependencies: (list (join-path "libs" "jsvg-1.0.0.jar")))))
 
    (when (is 'terminal in targets)
-     (let ((file-name (string-append "build/" name"-terminal.jar")))
+     (let ((file-name (join-path "build" (string-append name"-terminal.jar"))))
        (report "building "file-name)
        (build-jar!
 	output-name: file-name
@@ -671,13 +686,13 @@ Main-Class: "main-class-name"
 			    such-that: (is ".scm$" regex-match
 					   (_:getPath)))
 	extra-dependencies:
-	'("libs/lanterna-3.1.1.jar")))))
+	(list (join-path "libs" "lanterna-3.1.1.jar"))))))
 
   (set! (previous 'init-dependencies) init-dependencies)
   (set! (previous 'name) name)
   (set! (previous 'init) init)
   (set! (previous 'package) package)
-  (save-mapping previous "build/previous.map"))
+  (save-mapping previous (join-path "build" "previous.map")))
 
 (define-syntax-rule (with-command-line-arguments arg-list
 			 ((name help default)
@@ -706,10 +721,10 @@ Main-Class: "main-class-name"
       ((targets "<comma-separated list of targets>"
 		"android,desktop,terminal")
        (name "<target application name>" "GRASP")
-       (icon "<path to icon file>" "icons/grasp.png")
-       (init "<path to init file>" "init/init.scm")
+       (icon "<path to icon file>" (join-path "icons" "grasp.png"))
+       (init "<path to init file>" (join-path "init" "init.scm"))
        (package "<top class package>" "io.github.panicz")
-       (keystore "<path to keystore>" "binary/keystore")
+       (keystore "<path to keystore>" (join-path "binary" "keystore"))
        (key "<key alias>" "grasp-public")
        (password "<key password>" "untrusted"))
     (build targets: (map string->symbol (string-split targets ","))

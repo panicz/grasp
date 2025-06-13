@@ -19,6 +19,7 @@
 (import (utils print))
 (import (editor document history-tracking))
 (import (editor input screen))
+(import (utils build))
 
 (define open-documents ::(list-of Document)
   '())
