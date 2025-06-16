@@ -13,7 +13,7 @@
 (import (utils functions))
 (import (utils print))
 (import (editor document parse))
-(import (editor document documents))
+(import (editor document universe))
 (import (editor document cursor))
 (import (editor interfaces elements))
 (import (editor types primitive))

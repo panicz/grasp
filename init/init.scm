@@ -32,7 +32,7 @@
 (import (editor input document-editor))
 (import (editor input screen))
 (import (editor document parse))
-(import (editor document documents))
+(import (editor document universe))
 (import (editor document cursor))
 (import (editor types extensions widgets))
 (import (editor input gestures))

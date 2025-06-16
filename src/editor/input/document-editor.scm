@@ -32,7 +32,7 @@
 (import (editor document history-tracking))
 (import (editor types spaces))
 
-(import (editor document documents))
+(import (editor document universe))
 (import (editor types extensions extensions))
 
 (import (editor document parse))
