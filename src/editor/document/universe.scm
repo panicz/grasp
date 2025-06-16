@@ -7,6 +7,7 @@
 (import (language infix))
 (import (language match))
 (import (language mapping))
+(import (language examples))
 (import (srfi :11))
 (import (utils functions))
 (import (language fundamental))
@@ -19,6 +20,7 @@
 (import (utils print))
 (import (editor document history-tracking))
 (import (editor input screen))
+(import (utils file))
 (import (utils build))
 
 (define open-documents ::(list-of Document)
@@ -85,3 +87,37 @@
   (screen:close-document! document)
   (set! open-documents
     (only (isnt _ eq? document) open-documents)))
+
+(define (module-open? module::(list-of symbol))
+  (let ((module-path (string-append (apply join-path module) ".scm")))
+    (any (lambda (document::Document)
+	   (and-let* ((source ::java.io.File document:source)
+		      ((string-suffix? module-path (source:getPath))))
+	     document))
+	 open-documents)))
+
+(define (document-dependencies document::Document)
+  (append-map (lambda (toplevel)
+		(match toplevel
+		  (`(import . ,modules)
+		   modules)
+		  
+		  (_
+                   '())))
+	      (car document)))
+
+(e.g.
+ (let ((document (string->document "
+(import (module one))
+(import (module two))
+(import (module three))
+
+(sialalala) 
+(tralalala)
+
+(bum cyk cyk)
+")))
+   (with-eval-access
+    (match/equal? (document-dependencies document)
+		  '((module one) (module two) (module three))))))
+
