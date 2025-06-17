@@ -89,6 +89,20 @@
 (define (independent-documents)::(list-of Document)
   (only (is (module-dependers _) empty?) open-documents))
 
+(define (project-layers)
+  (let* ((base (independent-documents))
+         (all-dependencies (fold-left (lambda (set document)
+                                        (union! set (reach document-dependencies document)))
+                                      (set)
+                                      base))
+         (layers (graph-layers document-dependencies all-dependencies)))
+    (reverse
+     (match layers
+       (`(() . ,layers*)
+	`(,base . ,layers*))
+       (_
+	`(,base . ,layers))))))
+
 (define (load-document-from-port port::gnu.kawa.io.InPort source)
   ::Document
   (or (find (lambda (document::Document)

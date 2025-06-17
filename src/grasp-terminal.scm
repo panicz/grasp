@@ -53,6 +53,8 @@
 (import (editor types extensions testing))
 (import (editor types extensions canvas))
 (import (editor types extensions physics))
+(import (editor types extensions module-viewer))
+
 (import (editor input transforms))
 (import (editor input gestures))
 (import (utils reflection))
