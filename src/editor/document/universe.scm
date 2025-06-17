@@ -8,6 +8,7 @@
 (import (language match))
 (import (language mapping))
 (import (language examples))
+(import (language for))
 (import (srfi :11))
 (import (utils functions))
 (import (language fundamental))
@@ -16,15 +17,77 @@
 (import (editor types primitive))
 (import (language define-cache))
 (import (utils conversions))
+(import (utils hash-table))
 (import (editor document parse))
 (import (utils print))
 (import (editor document history-tracking))
 (import (editor input screen))
 (import (utils file))
+(import (utils graph))
 (import (utils build))
 
 (define open-documents ::(list-of Document)
   '())
+
+(define (loaded-document module::ModuleTag)::(maybe Document)
+  (let ((module-path (string-append (apply join-path module) ".scm")))
+    (any (lambda (document::Document)
+	   (and-let* ((source ::java.io.File document:source)
+		      ((string-suffix? module-path (source:getPath))))
+	     document))
+	 open-documents)))
+
+(define (document-dependency-modules document::Document)
+  ::(list-of ModuleTag)
+  (with-eval-access
+   (append-map (lambda (toplevel)
+		 (match toplevel
+		   (`(import . ,modules)
+		    (tree-map/preserve '() values modules))
+		  (_
+                   '())))
+	       (car document))))
+
+(e.g.
+ (let ((document (string->document "
+(import (module one))
+(import (module two))
+(import (module three))
+
+(sialalala) 
+(tralalala)
+
+(bum cyk cyk)
+")))
+   (document-dependency-modules document))
+ ===> ((module one) (module two) (module three)))
+
+(define (document-dependencies document ::(either Document ModuleTag))
+  :: (list-of (either Document ModuleTag))
+  (otherwise '()
+    (and-let* ((document ::Document (if (Document? document) 
+                                        document
+                                        (loaded-document document)))
+               (dependencies ::(list-of (list-of symbol))
+                             (document-dependency-modules document)))
+      (map (lambda (dependency)
+             (or (loaded-document dependency) dependency))
+           dependencies))))
+
+(define-attribute+ (module-dependers document ::(either Document ModuleTag))
+  ::(set-of (either Document ModuleTag))
+  (set))
+
+(define (update-document-dependers!)
+  (reset! module-dependers)
+  (for document ::Document in open-documents
+    (for dependency in (document-dependencies document)
+      (set! (module-dependers dependency) 
+        (union (module-dependers dependency)
+               (set document))))))
+
+(define (independent-documents)::(list-of Document)
+  (only (is (module-dependers _) empty?) open-documents))
 
 (define (load-document-from-port port::gnu.kawa.io.InPort source)
   ::Document
@@ -46,7 +109,8 @@
 	(lambda (port)
 	  (let ((document (Document (parse port) source)))
 	    (set! open-documents 
-		  (cons document open-documents))         
+		  (cons document open-documents))
+	    (update-document-dependers!)
 	    document)))))
 
 (define (new-document)::Document
@@ -55,7 +119,7 @@
       (let ((document (Document (parse port)
 				(java.time.LocalDateTime:now))))
 	(set! open-documents 
-	      (cons document open-documents))         
+	      (cons document open-documents))
 	document))))
 
 (define-attribute (last-save-point document)::list
@@ -74,7 +138,8 @@
     (lambda (port)
       (parameterize ((current-output-port port))
 	(show-document document))))
-  (set! document:source file))
+  (set! document:source file)
+  (update-document-dependers!))
 
 (define (document-saved? document::Document)::boolean
   (let ((document-history ::History (history document)))
@@ -87,37 +152,3 @@
   (screen:close-document! document)
   (set! open-documents
     (only (isnt _ eq? document) open-documents)))
-
-(define (module-open? module::(list-of symbol))
-  (let ((module-path (string-append (apply join-path module) ".scm")))
-    (any (lambda (document::Document)
-	   (and-let* ((source ::java.io.File document:source)
-		      ((string-suffix? module-path (source:getPath))))
-	     document))
-	 open-documents)))
-
-(define (document-dependencies document::Document)
-  (append-map (lambda (toplevel)
-		(match toplevel
-		  (`(import . ,modules)
-		   modules)
-		  
-		  (_
-                   '())))
-	      (car document)))
-
-(e.g.
- (let ((document (string->document "
-(import (module one))
-(import (module two))
-(import (module three))
-
-(sialalala) 
-(tralalala)
-
-(bum cyk cyk)
-")))
-   (with-eval-access
-    (match/equal? (document-dependencies document)
-		  '((module one) (module two) (module three))))))
-

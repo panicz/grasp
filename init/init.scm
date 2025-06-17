@@ -50,6 +50,7 @@
 (import (editor types extensions combinators))
 (import (editor input transforms))
 
+(import (utils graph))
 (import (utils server))
 (import (utils reflection))
 

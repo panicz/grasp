@@ -400,6 +400,11 @@
 	 clone))
       (fold-left list-union set sets)))
 
+(define (union! set::java.util.Set . sets)
+  (for collection ::java.util.Collection in sets
+       (set:addAll collection))
+  set)
+
 (e.g.
  (union '(a b c) '(b c d e))
  ===> (e d a b c))

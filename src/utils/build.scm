@@ -29,33 +29,32 @@
 (define (escape-slashes regex::java.lang.String)
   (regex:replaceAll "\\\\" "\\\\\\\\"))
 
-(define (pattern . fragments)
-  (escape-slashes (string-join fragments "")))
+(define // (escape-slashes java.io.File:separator))
 
-(define (internal-module-name file ::java.io.File)
-  ::(list-of symbol)
-  (match (regex-match (pattern "^(?:."java.io.File:separator")?src"
-			       java.io.File:separator"([^.]*)[.]scm$")
+(define-alias ModuleTag (list-of symbol))
+
+(define (file-module-tag file ::java.io.File)
+  ::ModuleTag
+  (match (regex-match (string-append "^(?:."//")?src"//"([^.]*)[.]scm$")
 		      (file:getPath))
     (`(,_ ,core)
      (map string->symbol (string-split core java.io.File:separator)))
     (_
      (error "Unable to parse file name "file))))
 
-(define (module-file module-name ::(list-of symbol))::java.io.File
+(define (module-file module-name ::ModuleTag)::java.io.File
   (as-file (string-append (string-join `("src" . ,module-name) java.io.File:separator)
 			  ".scm")))
 
 (define (target-class scm-source ::java.io.File)::java.io.File
-  (match (regex-match (pattern "^(?:."java.io.File:separator")?src"
-			       java.io.File:separator"(.*)[.]scm$")
+  (match (regex-match (string-append "^(?:."//")?src"//"(.*)[.]scm$")
 		      (scm-source:getPath))
     (`(,_ ,core)
      (as-file "build" "cache" (string-append core".class")))))
 
 (define (imported-modules file ::java.io.File
-			  source-modules ::(list-of (list-of symbol)))
-  ::(list-of (list-of symbol))
+			  source-modules ::(list-of ModuleTag))
+  ::(list-of ModuleTag)
   (let ((contents (with-input-from-file (file:getPath) read-all)))
     (append-map
      (lambda (expression)
@@ -74,11 +73,14 @@
      contents)))
 
 (define (build-module-dependency-graph files)
-  (let ((dependencies (mapping (module) '()))
-	(source-modules (map internal-module-name files)))
+  ::(maps ModuleTag to: (list-of ModuleTag))
+  (let ((dependencies (mapping (module ::ModuleTag)
+			::(list-of ModuleTag)
+			'()))
+	(source-modules (map file-module-tag files)))
     (for file ::java.io.File in files
       (let* ((imports (imported-modules file source-modules))
-	     (source-module (internal-module-name file)))
+	     (source-module (file-module-tag file)))
 	(set! (dependencies source-module) imports)))
     dependencies))
 
@@ -132,9 +134,7 @@
 			   (guess-source-file-from-name class-file)
 			   name)))
 	       (class-directory (class-file:getParentFile))
-	       (`(,_ ,path) (regex-match (pattern "^(?:."java.io.File:separator")?build"
-						  java.io.File:separator "cache"
-						  java.io.File:separator "(.*)$")
+	       (`(,_ ,path) (regex-match (string-append "^(?:."//")?build"//"cache"//"(.*)$")
 					 (class-directory:getPath))))
       (as-file "src" path name))))
 
@@ -219,13 +219,12 @@
   (compile-file source-file target-file))
 
 (define (build-jar! #!key
-		    module-dependencies ::(maps ((list-of symbol))
-					       to: (list-of
-						    (list-of symbol))) 
-		    module-classes ::(maps ((list-of symbol))
+		    module-dependencies ::(maps (ModuleTag)
+					       to: (list-of ModuleTag)) 
+		    module-classes ::(maps (ModuleTag)
 					  to: (list-of java.io.File)) 
 		    main-class ::(maybe string)
-		    (available-modules ::(list-of(list-of symbol))'())
+		    (available-modules ::(list-of ModuleTag)'())
 		    (extra-dependencies ::(list-of string) '())
 		    (assets ::(list-of java.io.File) '())
 		    (init ::string (join-path "init" "init.scm"))
@@ -366,30 +365,24 @@ Main-Class: "main-class-name"
   
   (define dependency-files ::(list-of java.io.File)
     (list-files from: "src"
-		such-that: (is (pattern "^(?:."java.io.File:separator")?src"
-					java.io.File:separator"[^"
-					java.io.File:separator"]+"
-					java.io.File:separator".+[.]scm$")
+		such-that: (is (string-append
+				"^(?:."//")?src"//"[^"//"]+"//".+[.]scm$")
 			       regex-match (_:getPath))))
   
   (define application-files ::(list-of java.io.File)
     (list-files from: "src"
-		such-that: (is (pattern "^(?:."java.io.File:separator
-					")?src"java.io.File:separator
-					"grasp-[^"java.io.File:separator"]+[.]scm")
+		such-that: (is (string-append "^(?:."//")?src"//"grasp-[^"//"]+[.]scm")
 			       regex-match (_:getPath))
 		max-depth: 0))
 
   (define test-files ::(list-of java.io.File)
     (list-files from: "src"
-		such-that: (is (pattern "^(?:."java.io.File:separator")?src"
-					java.io.File:separator"test-[^"
-					java.io.File:separator"]+[.]scm")
+		such-that: (is (string-append "^(?:."//")?src"//"test-[^"//"]+[.]scm")
 			       regex-match (_:getPath))
 		max-depth: 0))
 
-  (define dependency-modules ::(list-of (list-of symbol))
-    (map internal-module-name dependency-files))
+  (define dependency-modules ::(list-of ModuleTag)
+    (map file-module-tag dependency-files))
   
   (define init-dependencies 
     (imported-modules (as-file init) dependency-modules))
@@ -397,8 +390,8 @@ Main-Class: "main-class-name"
   (define all-files ::(list-of java.io.File)
     `(,@test-files ,@application-files ,@dependency-files))
 
-  (define source-modules ::(list-of (list-of symbol))
-    (map internal-module-name all-files))
+  (define source-modules ::(list-of ModuleTag)
+    (map file-module-tag all-files))
   
   (define (main-class-file target)::string
     (match target
@@ -413,8 +406,8 @@ Main-Class: "main-class-name"
   (define module-dependency-graph
     (build-module-dependency-graph all-files))
 
-  (define-cache (module-dependencies module ::(list-of symbol))
-    ::(list-of (list-of symbol))
+  (define-cache (module-dependencies module ::ModuleTag)
+    ::(list-of ModuleTag)
     (reach module-dependency-graph module))
 
   (report "Checking for circular dependencies...")
@@ -440,25 +433,25 @@ Main-Class: "main-class-name"
 		such-that: (is "[.]class$" regex-match
 			       (_:getPath))))
 
-  (define-cache (module-users module ::(list-of symbol))
-    ::(list-of (list-of symbol))
+  (define-cache (module-users module ::ModuleTag)
+    ::(list-of ModuleTag)
     (only (is module in (module-dependencies _))
 	  (keys module-dependency-graph)))
 
-  (define-mapping (module-classes module ::(list-of symbol))
+  (define-mapping (module-classes module ::ModuleTag)
     ::(list-of java.io.File)
     '())
 
   (for class ::java.io.File in cached-files
        (let* ((scm ::java.io.File (source-file class))
-	      (module (internal-module-name scm)))
+	      (module (file-module-tag scm)))
 	 (set! (module-classes module)
 	       (union (module-classes module) `(,class)))))
 
   (define source-files-to-build ::(list-of java.io.File)
     dependency-files)
 
-  (define modules-to-regenerate ::(list-of (list-of symbol))
+  (define modules-to-regenerate ::(list-of ModuleTag)
     '())
 
   (define class-files-to-remove ::(list-of java.io.File)
@@ -472,8 +465,8 @@ Main-Class: "main-class-name"
 
   (for class::java.io.File in cached-files
     (let* ((scm ::java.io.File (source-file class))
-	   (module ::(list-of symbol)
-		   (internal-module-name scm)))
+	   (module ::ModuleTag
+		   (file-module-tag scm)))
       (cond
        ((isnt scm in dependency-files)
 	(unless (or (is scm in application-files)
@@ -500,7 +493,7 @@ Main-Class: "main-class-name"
 		(map module-file modules-to-regenerate))))
 
   (define build-layers
-    (let ((modules-to-build (map internal-module-name
+    (let ((modules-to-build (map file-module-tag
 				 source-files-to-build)))
       (fold-left
        (lambda (a b)
@@ -584,7 +577,7 @@ Main-Class: "main-class-name"
 
      (for class::java.io.File in cached-files
        (let* ((scm ::java.io.File (source-file class))
-	      (module (internal-module-name scm)))
+	      (module (file-module-tag scm)))
 	 (set! (module-classes module)
 	       (union (module-classes module) `(,class)))))
 
@@ -604,7 +597,7 @@ Main-Class: "main-class-name"
 				       (module-dependencies '(grasp-android))
 				       (imported-modules
 					(as-file init)
-					(map internal-module-name
+					(map file-module-tag
 					     dependency-files))))))
 	   (only
 	    (lambda (class-file::java.io.File)

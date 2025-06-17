@@ -2,6 +2,7 @@
 
 (import (language infix))
 (import (utils functions))
+(import (utils print))
 
 (define (reach #;of graph #;from node)
   (define (walk #;from novel #;into visited)
@@ -16,7 +17,7 @@
 (define (graph-layers graph nodes)
   (let loop ((modules nodes)
 	     (layers '())
-	     (allowed-dependencies '()))
+	     (allowed-dependencies (set)))
     (let-values (((layer modules)
 		  (partition (is (graph _) subset?
 				 allowed-dependencies)
@@ -30,4 +31,4 @@
        (else
 	(loop modules
 	      `(,layer . ,layers)
-	      `(,@layer ,@allowed-dependencies)))))))
+	      (union! allowed-dependencies layer)))))))

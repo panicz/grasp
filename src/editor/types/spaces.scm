@@ -768,8 +768,10 @@ from the (editor interfaces elements) module
   head/tail-separator)
 
 (define (empty? x)::boolean
-  (and (is x gnu.lists.LList?)
-       (isnt x gnu.lists.Pair?)))
+  (or (and (is x gnu.lists.LList?)
+	   (isnt x gnu.lists.Pair?))
+      (and-let* ((x ::java.util.Set))
+	(x:isEmpty))))
 
 (define-object (EmptyListProxy space::Space)
   ::ResizableShadowedTile
