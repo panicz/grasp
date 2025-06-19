@@ -111,6 +111,10 @@
 
   (define (min-line-height)::real 1)
 
+  (define (module-view-interline)::real 3)
+
+  (define (module-view-interspace)::real 5)
+  
   (define (vertical-bar-width)::real 1)
 
   (define (horizontal-bar-height)::real 1)
@@ -529,6 +533,14 @@
      #\└     #\┘
      width height))
 
+  (define (draw-dashed-rectangle! width::real height::real)
+    ::void
+    (draw-custom-rectangle!
+     #\┌ #\┄ #\┐
+     #\┊
+     #\└     #\┘
+     width height))
+     
   (define (fill-background! width::real height::real)::void
     (for j from 0 below height
 	 (for i from 0 below width

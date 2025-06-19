@@ -161,6 +161,9 @@ def") ===> [Extent width: 3 height: 2])
   (line-simplification-resolution)::real
   (space-width)::real
 
+  (module-view-interline)::real
+  (module-view-interspace)::real
+
   (paren-width)::real
   (min-box-height)::real
   (min-line-height)::real
@@ -244,6 +247,8 @@ def") ===> [Extent width: 3 height: 2])
 
   (draw-rectangle! width::real height::real)::void
 
+  (draw-dashed-rectangle! width::real height::real)::void
+  
   (fill-background! width::real height::real)::void
   
   (draw-thick-line! x0::real y0::real x1::real y1::real)
@@ -263,7 +268,7 @@ def") ===> [Extent width: 3 height: 2])
   
   (precise-resolution-right)::ubyte
   (precise-resolution-down)::ubyte
-
+  
   (precise-inside-out px::real py::real)
   ::(Values real real)
 
@@ -412,6 +417,10 @@ def") ===> [Extent width: 3 height: 2])
 
   (define (stop-playing! animation::Animation)::void
     (values))
+
+  (define (module-view-interline)::real 1)
+  
+  (define (module-view-interspace)::real 1)
   
   (define (space-width)::real 1)
 
@@ -620,6 +629,9 @@ def") ===> [Extent width: 3 height: 2])
     ::void
     (values))
 
+  (define (draw-dashed-rectangle! width::real height::real)::void
+    (values))
+  
   (define (fill-background! width::real height::real)::void
     (values))
   

@@ -901,6 +901,10 @@
     (canvas:drawRect 0 0 (vertical-bar-width)
 		     height paint))
 
+  (define (module-view-interline)::real 40)
+
+  (define (module-view-interspace)::real 30)
+  
   (define (space-width)::real 16)
 
   (define (line-simplification-resolution)::real 20)
@@ -950,6 +954,14 @@
 		       paint)
       ))
 
+  (define (draw-dashed-rectangle! width::real height::real)::void
+    (paint:setPathEffect dashed-line)
+    (set-color! text-color)
+    (canvas:drawLine 0 0 width 0 paint)
+    (canvas:drawLine 0 0 0 height paint)
+    (canvas:drawLine width 0 width height paint)
+    (canvas:drawLine 0 height width height paint)
+    (paint:setPathEffect #!null))
 
   (define (draw-border! width::real
 			height::real

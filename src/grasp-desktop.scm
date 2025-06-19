@@ -930,6 +930,10 @@
   (define (border-size)::real 15)
 
   (define (height/width-ratio)::real 1)
+
+  (define (module-view-interline)::real 20)
+
+  (define (module-view-interspace)::real 15)
   
   (define (space-width)::real 8)
 
@@ -964,6 +968,12 @@
   (define (draw-rectangle! width::real height::real)::void
     (graphics:drawRect 0 0 (as int width) (as int height)))
 
+  (define (draw-dashed-rectangle! width::real height::real)::void
+    (let ((s ::LineDecoration (graphics:getStroke)))
+      (graphics:setStroke dashed)
+      (graphics:drawRect 0 0 (as int width) (as int height))
+      (graphics:setStroke s)))
+  
   (define (mark-editor-cursor! +left::real +top::real
 			       editor::WithCursor)
     ::void
