@@ -31,12 +31,95 @@
 
 (define-object (ModuleViewer)
   ::Enchanted
-  (define (draw! context ::Cursor) ::void
-    (values))
-
-  (define size ::Extent (Extent width: 10 height: 5))
+  (define total ::Extent (Extent width: 0 height: 0))
   
-  (define (extent)::Extent size)
+  (define (extent)::Extent total)
+
+  (define module-position ::(maps ((either Document ModuleTag)) to: Position)
+    (attribute+ (module ::(either Document ModuleTag))::Position
+		(Position left: 0 top: 0)))
+
+  (define module-extent ::(maps ((either Document ModuleTag)) to: Extent)
+    (attribute+ (module ::(either Document ModuleTag))::Extent
+		(Extent width: 0 height: 0)))
+
+  (define (draw-document-box! document ::Document measure ::Extent)::void
+    (let* ((caption (match document:source
+		      (file::java.io.File
+		       ;; TODO - docelowo chcemy tutaj zbudowac
+		       ;; "skrocony unikatowy identyfikator pliku"
+		       ;; wzgledem zbioru otwartych plikow
+		       ;; (mniej wiecej tak jak to robi Emacs)
+		       (file:getName))
+		      (#!null
+		       "#!null")
+		      (something-else
+		       (something-else:toString))))
+	   (extent ::Extent (painter:caption-extent caption))
+	   (top ::real (painter:caption-margin-top))
+	   (left ::real (painter:caption-horizontal-margin))
+	   (width ::real (+ (* 2 left) extent:width))
+	   (height ::real (+ top extent:height (painter:caption-margin-bottom))))
+      (painter:draw-rectangle! width height)
+      (with-translation (left top)
+	(painter:draw-caption! caption))
+      (set! measure:width width)
+      (set! measure:height height)))
+
+  (define (draw-module-box! module-tag ::ModuleTag measure ::Extent)::void
+    (let* ((caption-extents (map (lambda (part::symbol)
+				   (let ((caption (symbol->string part)))
+				     `(,caption ,(painter:caption-extent caption))))
+				 module-tag))
+	   (top ::real (painter:caption-margin-top))
+	   (left ::real (painter:caption-horizontal-margin))
+	   (width ::real (+ (* 2 left)
+			    (fold-left (lambda (w::real caption+extent)
+					 (and-let* ((`(,caption ,extent::Extent)
+						     caption+extent))
+					   (max w extent:width)))
+				       0
+				       caption-extents)))
+	   (height ::real (+ top (painter:caption-margin-bottom)
+			     (fold-left (lambda (h::real caption+extent)
+					  (and-let* ((`(,caption ,extent::Extent)
+						      caption+extent))
+					    (+ h extent:height)))
+					0
+					caption-extents))))
+      (painter:draw-dashed-rectangle! width height)
+      
+      (for (caption extent) in caption-extents
+	(with-translation (left top)
+	  (painter:draw-caption! caption))
+	(set! top (+ top extent:height)))
+      
+      (set! measure:width width)
+      (set! measure:height height)))
+
+  (define (draw! context ::Cursor) ::void
+    (let ((top ::real 0)
+	  (viewer-width ::real 0))
+      (for layer in (project-layers)
+	(let ((layer-height ::real 0)
+	      (left ::real 0))
+	  (for module in layer
+	    (let ((position (module-position module))
+		  (measured (module-extent module)))
+	      (set! position:left left)
+	      (set! position:top top)
+	      (with-translation (left top)
+		(match module
+		  (document::Document
+		   (draw-document-box! document measured))
+		  (_
+		   (draw-module-box! module measured))))
+	      (set! layer-height (max layer-height measured:height))
+	      (set! left (+ left measured:width (painter:module-view-interspace)))))
+	  (set! viewer-width (max viewer-width left))
+	  (set! top (+ top layer-height (painter:module-view-interline)))))
+      (set! total:width viewer-width)
+      (set! total:height top)))
   
   (Magic))
 
