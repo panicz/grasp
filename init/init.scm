@@ -246,6 +246,11 @@
 	(log-stack-trace! trace)
 	(WARN "(copied to clipboard)")))
 
+(set! open-documents
+      (cons (Document (cons (ModuleViewer) (empty))
+		      "Project Modules")
+	    open-documents))
+
 (if (null? input-files)
     (screen:set-content!
       (DocumentEditor
