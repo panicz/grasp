@@ -7,7 +7,7 @@
 (define (reach #;of graph #;from node)
   (define (walk #;from novel #;into visited)
     (let* ((vicinity (fold-left union '() (map graph novel)))
-	   (visited (union visited novel))
+	   (visited (append novel visited))
 	   (novel (difference vicinity visited)))
       (if (null? novel)
 	  visited

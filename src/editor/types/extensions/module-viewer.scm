@@ -87,12 +87,14 @@
 					    (+ h extent:height)))
 					0
 					caption-extents))))
-      (painter:draw-dashed-rectangle! width height)
+      
       
       (for (caption extent) in caption-extents
 	(with-translation (left top)
 	  (painter:draw-caption! caption))
 	(set! top (+ top extent:height)))
+
+      (painter:draw-dashed-rectangle! width height)
       
       (set! measure:width width)
       (set! measure:height height)))

@@ -3,6 +3,7 @@
 (import (language define-type))
 (import (language define-object))
 (import (language define-parameter))
+(import (language define-cache))
 (import (language attributes))
 (import (language infix))
 (import (language match))
@@ -68,7 +69,7 @@
     (and-let* ((document ::Document (if (Document? document) 
                                         document
                                         (loaded-document document)))
-               (dependencies ::(list-of (list-of symbol))
+               (dependencies ::(list-of ModuleTag)
                              (document-dependency-modules document)))
       (map (lambda (dependency)
              (or (loaded-document dependency) dependency))
@@ -89,12 +90,28 @@
 (define (independent-documents)::(list-of Document)
   (only (is (module-dependers _) empty?) open-documents))
 
+(define (module-identifier module ::(either Document ModuleTag))
+  (match module
+    (document::Document
+     (match document:source
+       (file::java.io.File
+	(file:getName))
+       (#!null
+	module)
+       (_
+	document:source)))
+    (_
+     module)))
+
 (define (project-layers)
   (let* ((base (independent-documents))
-         (all-dependencies (fold-left (lambda (set document)
-                                        (union! set (reach document-dependencies document)))
-                                      (set)
-                                      base))
+         (all-dependencies (fold-left
+			    (lambda (set document)
+			      (let ((dependencies (reach document-dependencies
+							 document)))
+				(union set dependencies)))
+                            '()
+                            base))
          (layers (graph-layers document-dependencies all-dependencies)))
     (reverse
      (match layers
