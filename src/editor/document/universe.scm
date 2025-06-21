@@ -91,7 +91,10 @@
                (set document))))))
 
 (define (independent-documents)::(list-of Document)
-  (only (is (module-dependers _) empty?) open-documents))
+  (only (lambda (document::Document)
+	  (and (isnt document:source string?)
+	       (is (module-dependers document) empty?)))
+	open-documents))
 
 (define (module-identifier module ::(either Document ModuleTag))
   (match module
