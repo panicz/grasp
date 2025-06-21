@@ -30,6 +30,9 @@
 (define open-documents ::(list-of Document)
   '())
 
+(define (register-document! document::Document)::void
+  (set! open-documents (cons document open-documents)))
+
 (define (loaded-document module::ModuleTag)::(maybe Document)
   (let ((module-path (string-append (apply join-path module) ".scm")))
     (any (lambda (document::Document)
@@ -127,8 +130,7 @@
 	      (eq? document:source source))
 	    open-documents)
       (let ((document (Document (parse port) source)))
-	(set! open-documents 
-	      (cons document open-documents))
+	(register-document! document)
 	document)))
 
 (define (open-document-file source::java.io.File)::Document
@@ -139,8 +141,7 @@
       (call-with-input-file (source:getAbsolutePath)
 	(lambda (port)
 	  (let ((document (Document (parse port) source)))
-	    (set! open-documents 
-		  (cons document open-documents))
+	    (register-document! document)
 	    (update-document-dependers!)
 	    document)))))
 
@@ -149,8 +150,7 @@
     (lambda (port)
       (let ((document (Document (parse port)
 				(java.time.LocalDateTime:now))))
-	(set! open-documents 
-	      (cons document open-documents))
+	(register-document! document)
 	document))))
 
 (define-attribute (last-save-point document)::list
