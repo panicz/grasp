@@ -16,25 +16,62 @@
 (import (utils file))
 (import (utils print))
 
+(define (utf16le s::string)::(list-of byte)
+  (append-map (lambda (c)
+		`(,(char->integer c) ,#x00))
+	      s))
+
+(define (ascii0 s::string)::(list-of byte)
+  `(,@(map char->integer s) #x00))
+
+(define (pad0 data::list block-size::int)::list
+  (let* ((data-size (length data))
+	 (excess (modulo data-size block-size)))
+    `(,@data ,@(make-list (- block-size excess) 0))))
+
+;; cf. https://android.googlesource.com/platform/frameworks/base/+/master/libs/androidfw/include/androidfw/ResourceTypes.h
+(define-enum RES-TYPE
+  (NULL              ;#x00
+   REFERENCE         ;#x01
+   ATTRIBUTE         ;#x02
+   STRING            ;#x03
+   FLOAT             ;#x04
+   DIMENSION         ;#x05
+   FRACTION          ;#x06
+   DYNAMIC-REFERENCE ;#x07
+   DYNAMIC-ATTRIBUTE ;#x08
+   ;; some valus omitted due to sparsity
+   ;; (in particular integers and color values)
+   ))
+
 (define (resources-arsc package-name ::string)::bytevector
   (list->u8vector
-   (append!
+   (append
     (list
-     #x02 #x00 #x0c #x00 #x50 #x02 #x00 #x00
-     #x01 #x00 #x00 #x00 #x01 #x00 #x1c #x00 
-     #x38 #x00 #x00 #x00 #x01 #x00 #x00 #x00
-     #x00 #x00 #x00 #x00 #x00 #x01 #x00 #x00 
-     #x20 #x00 #x00 #x00 #x00 #x00 #x00 #x00
-     #x00 #x00 #x00 #x00 #x15 #x15 #x72 #x65
-     #x73 #x2f #x64 #x72 #x61 #x77 #x61 #x62
-     #x6c #x65 #x2f #x69 #x63 #x6f #x6e #x2e
-     #x70 #x6e #x67 #x00 #x00 #x02 #x20 #x01
-     #x0c #x02 #x00 #x00 #x7f #x00 #x00 #x00)
-    (concatenate!
-     (map (lambda (c)
-	    `(,(char->integer c) ,#x00))
-	  package-name))
-    (make-list (- 256 (* 2 (string-length package-name))) 0)
+     ;; header:
+     #x02 #x00 ; RES_TYPE_TABLE = 0x0002
+     #x0c #x00 ; header size = 12
+     #x50 #x02 #x00 #x00 ; total size
+     #x01 #x00 #x00 #x00 ; package count
+
+     #x01 #x00 ; RES_STRING_POOL_TYPE = 0x0001
+     #x1c #x00 ; header size = 28
+     #x38 #x00 #x00 #x00 ; chunk size = 56
+     #x01 #x00 #x00 #x00 ; string count = 1
+     #x00 #x00 #x00 #x00 ; style count = 0
+     #x00 #x01 #x00 #x00 ; flags = 0 (UTF-16, not sorted)
+     #x20 #x00 #x00 #x00 ; string data offset = 32
+     #x00 #x00 #x00 #x00 ; style data offset = 0
+     #x00 #x00 #x00 #x00 ; string index array
+     #x15 ; string length
+     #x15 ; encoded string length
+     )
+    (ascii0 "res/drawable/icon.png")
+    (list      
+     #x00 #x02 #x20 #x01  ;?
+     #x0c #x02 #x00 #x00  ;??
+     #x7f #x00 #x00 #x00) ;???
+    (pad0 (utf16le package-name) 256)
     (list
      #x20 #x01 #x00 #x00 #x02 #x00 #x00 #x00
      #x58 #x01 #x00 #x00 #x01 #x00 #x00 #x00
@@ -494,60 +531,62 @@
 	content))))
   )
 
-(define (AndroidManifest #!key (package ::string "io.github.grasp")
-			 (label ::string "GRASP"))
+(define (AndroidManifest #!key
+			 (package ::string "io.github.grasp")
+			 (label ::string "GRASP")
+			 )
   ::AndroidXML
   (AndroidXML
    string-table:
    (AndroidXMLStringTable
     content:
     (vector
-     "versionCode"
-     "versionName"
-     "compileSdkVersion"
-     "compileSdkVersionCodename"
-     "minSdkVersion"
-     "targetSdkVersion"
-     "name"
-     "requestLegacyExternalStorage"
-     "label"
-     "icon"
-     "shell"
-     "theme"
-     "configChanges"
-     "android"
-     "http://schemas.android.com/apk/res/android"
-     ""
-     "package"
-     "platformBuildVersionCode"
-     "platformBuildVersionName"
-     "manifest"
-     package
-     "1.0"
-     "13"
-     "33"
-     "uses-sdk"
-     "uses-permission"
-     "android.permission.WAKE_LOCK"
-     "android.permission.READ_EXTERNAL_STORAGE"
-     "android.permission.WRITE_EXTERNAL_STORAGE"
-     "android.permission.MANAGE_EXTERNAL_STORAGE"
-     "android.permission.RECORD_AUDIO"
-     "android.permission.INTERNET"
-     "application"
-     label
-     "profileable"
-     "activity"
-     ".GRASP"
-     "intent-filter"
-     "action"
-     "android.intent.action.MAIN"
-     "category"
-     "android.intent.category.LAUNCHER"
-     "queries"
-     "intent"
-     "android.intent.action.TTS_SERVICE"
-     "android.speech.RecognitionService"))
+     "versionCode"                                 ;0
+     "versionName"                                 ;1
+     "compileSdkVersion"                           ;2
+     "compileSdkVersionCodename"                   ;3
+     "minSdkVersion"                               ;4
+     "targetSdkVersion"                            ;5
+     "name"                                        ;6
+     "requestLegacyExternalStorage"                ;7
+     "label"                                       ;8
+     "icon"                                        ;9
+     "shell"                                       ;10
+     "theme"                                       ;11
+     "configChanges"                               ;12
+     "android"                                     ;13
+     "http://schemas.android.com/apk/res/android"  ;14
+     ""                                            ;15
+     "package"                                     ;16
+     "platformBuildVersionCode"                    ;17
+     "platformBuildVersionName"                    ;18
+     "manifest"                                    ;19
+     package                                       ;20
+     "1.0"                                         ;21
+     "13"                                          ;22
+     "33"                                          ;23
+     "uses-sdk"                                    ;24
+     "uses-permission"                             ;25
+     "android.permission.WAKE_LOCK"                ;26
+     "android.permission.READ_EXTERNAL_STORAGE"    ;27
+     "android.permission.WRITE_EXTERNAL_STORAGE"   ;28
+     "android.permission.MANAGE_EXTERNAL_STORAGE"  ;29
+     "android.permission.RECORD_AUDIO"             ;30
+     "android.permission.INTERNET"                 ;31
+     "application"                                 ;32
+     label                                         ;33
+     "profileable"                                 ;34
+     "activity"                                    ;35
+     ".GRASP"                                      ;36
+     "intent-filter"                               ;37
+     "action"                                      ;38
+     "android.intent.action.MAIN"                  ;38
+     "category"                                    ;40
+     "android.intent.category.LAUNCHER"            ;41
+     "queries"                                     ;42
+     "intent"                                      ;43
+     "android.intent.action.TTS_SERVICE"           ;44
+     "android.speech.RecognitionService"))         ;45
    resource-table:
    (AndroidXMLResourceTable
     content:
