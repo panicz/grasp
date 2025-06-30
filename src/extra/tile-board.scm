@@ -24,19 +24,6 @@
 (import (editor types extensions extensions))
 (import (utils print))
 
-
-(define (letter-name letter::gnu.text.Char)::string
-  (match (char-downcase letter)
-    (#\a "a") (#\b "by") (#\c "cy") (#\d "dy")
-    (#\e "e") (#\f "fy") (#\g "g") (#\h "h")
-    (#\i "i") (#\j "j") (#\k "k") (#\l "ly")
-    (#\ł "ły") (#\m "my") (#\n "ny") (#\ń "ni")
-    (#\o "o") (#\p "py") (#\q "ku") (#\r "re")
-    (#\s "sy") (#\ś "śi") (#\t "ty") (#\u "u")
-    (#\v "wi") (#\w "wy") (#\x "ksy") (#\y "yj")
-    (#\z "zy") (#\ź "źi") (#\ż "ży")
-    (c (list->string (cons c '())))))
-
 (define-object (DragLetterTile tile::LetterTile board::LetterTileBoard)::Drag
   (define (move! x::real y::real dx::real dy::real)::void
     (set! tile:left (+ tile:left dx))
@@ -219,13 +206,14 @@
 	     (tile:below? x y))
 	   scattered-tiles)
       => (lambda (tile ::LetterTile)
-	   (future (say (letter-name tile:content)))
+	   (future (say tile:label))
 	   #t))
 
      ((utter-solution:below? x y)
       (future
        (begin
-	 (say "Aktualne hasło to "(string-downcase solution))
+	 (say "Aktualne hasło to "
+	      (string-downcase solution))
 	 (unless (is (word-break-indices:size) > 1)
 	   (say (string-join
 		 (string-split solution "")

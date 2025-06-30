@@ -221,7 +221,9 @@
 	 (set! name initialization)
 	 ...)))))
 
-(define-initializer (initialize-activity activity::GRASP)
+(define-initializer (initialize-activity
+		     activity::GRASP
+		     display-metrics::DisplayMetrics)
   (define the-activity ::AndroidActivity activity)
   
   (define Iosevka ::Typeface
@@ -284,7 +286,7 @@
   (define the-caption-font ::(parameter-of Font)
     (make-parameter
      (Font face: M+1p #;Oswald-Regular
-	   size: 34)))
+	   size: (* 34 (/ display-metrics:ydpi 160)))))
 
   (define the-text-input-font ::(parameter-of Font)
     (make-parameter
@@ -2027,14 +2029,19 @@
 		   #;AndroidView:SYSTEM_UI_FLAG_HIDE_NAVIGATION
 		   AndroidView:SYSTEM_UI_FLAG_FULLSCREEN
 		   #;AndroidView:SYSTEM_UI_FLAG_IMMERSIVE
-		   )))
+		   ))
+	   (resources ::AndroidResources (getResources))
+	   (metrics ::DisplayMetrics
+		    (resources:getDisplayMetrics))
+	   )
       (window:setSoftInputMode
        (logior
 	WindowManager:LayoutParams:SOFT_INPUT_STATE_VISIBLE
 	WindowManager:LayoutParams:SOFT_INPUT_ADJUST_RESIZE))
-      (decor:setSystemUiVisibility flags))
-    
-    (initialize-activity (this))
+      (decor:setSystemUiVisibility flags)
+      (DUMP metrics:xdpi metrics:ydpi metrics:densityDpi)
+      (initialize-activity (this) metrics)
+      )
 
     (safely
     (set! (file-display-name
