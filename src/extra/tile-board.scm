@@ -262,7 +262,10 @@
 	     (set! slot:content #!null))))
      (else
       #f)))
-     
+
+  (define (long-press! finger::byte x::real y::real)::boolean
+    (press! finger x y))
+
   (define random ::java.util.Random (java.util.Random))
 
   (define (utterance)::string
