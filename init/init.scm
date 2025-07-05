@@ -54,6 +54,7 @@
 
 (import (utils graph))
 (import (utils server))
+(import (utils localization))
 (import (utils reflection))
 
 ;;(import (extra tile-board))

@@ -57,6 +57,7 @@
 
 (import (editor input transforms))
 (import (editor input gestures))
+(import (utils localization))
 (import (utils reflection))
 
 (import (editor awt-clipboard))

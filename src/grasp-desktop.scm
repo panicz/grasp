@@ -52,7 +52,7 @@
 
 (import (editor input gestures))
 (import (editor awt-clipboard))
-
+(import (utils localization))
 (import (utils reflection))
 
 (define-alias Font java.awt.Font)
