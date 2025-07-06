@@ -54,6 +54,7 @@
 (import (editor types extensions canvas))
 (import (editor types extensions physics))
 (import (editor types extensions module-viewer))
+(import (editor types extensions gutenbergson))
 
 (import (editor input transforms))
 (import (editor input gestures))
