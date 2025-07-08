@@ -65,20 +65,24 @@
 		    (max-depth +inf.0))
   ::(list-of java.io.File)
   (let ((source ::java.io.File (as-file from)))
-    (if (source:isDirectory)
-	(let ((result '()))
-	  (for file ::java.io.File in (source:listFiles)
-	       (cond
-		((and (file:isDirectory)
-		      (is max-depth > 0))
-		 (set! result `(,@(list-files from: file
-					      such-that: such-that
-					      max-depth: (- max-depth 1))
-				,@result)))
-		((and (file:isFile) (such-that file))
-		 (set! result `(,file . ,result)))))
-	  result)
-	`(,source))))
+    (cond
+     ((source:isDirectory)
+      (let ((result '()))
+	(for file ::java.io.File in (source:listFiles)
+	     (cond
+	      ((and (file:isDirectory)
+		    (is max-depth > 0))
+	       (set! result `(,@(list-files from: file
+					    such-that: such-that
+					    max-depth: (- max-depth 1))
+			      ,@result)))
+	      ((and (file:isFile) (such-that file))
+	       (set! result `(,file . ,result)))))
+	result))
+     ((source:exists)
+      `(,source))
+     (else
+      '()))))
 
 (define (unzip archive ::string #!key (into ::string "."))::void
   ;;(print"decompressing "archive" into "into)

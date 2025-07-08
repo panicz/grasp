@@ -286,7 +286,7 @@
        (ZipFile library-path)))
     
     (for asset::java.io.File in assets
-      (output:add-file-at-level! 0 asset))
+      (output:add-file-as! (join-path "assets" (asset:getName)) asset))
 
     (output:add-file-as! (join-path "assets" "init.scm") init-file)
 
@@ -317,8 +317,8 @@ Main-Class: "main-class-name"
 	 (output (ZipBuilder temp-file)))
     (output:add-file-as! (join-path "res" "drawable" "icon.png")
 			 (as-file icon))
-    (for asset in assets
-      (output:add-file-at-level! 0 asset))
+    (for asset ::java.io.File in assets
+      (output:add-file-as! (join-path "assets" (asset:getName)) asset))
     (output:add-file-as! (join-path "assets" "init.scm") (as-file init))
     (let* ((manifest ::AndroidXML
 		     (AndroidManifest package: package
