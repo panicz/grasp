@@ -28,7 +28,7 @@
 			(string-join `(,path . ,fragments)
 				     java.io.File:separator)))))
 
-(define (join-path . fragments)
+(define (join-path . fragments)::String
   (string-join fragments java.io.File:separator))
 
 (define (save-mapping mapping ::(maps (Object)
@@ -61,23 +61,24 @@
 
 (define (list-files #!key
 		    (from ::(either string java.io.File) ".")
-		    (such-that always)
+		    (such-that ::(maps (java.io.File) to: boolean) always)
 		    (max-depth +inf.0))
   ::(list-of java.io.File)
-  (let ((directory ::java.io.File (as-file from))
-	(result '()))
-    (assert (directory:isDirectory))
-    (for file ::java.io.File in (directory:listFiles)
-	 (cond
-	  ((and (file:isDirectory)
-		(is max-depth > 0))
-	   (set! result `(,@(list-files from: file
-					such-that: such-that
-					max-depth: (- max-depth 1))
-			  ,@result)))
-	  ((and (file:isFile) (such-that file))
-	   (set! result `(,file . ,result)))))
-    result))
+  (let ((source ::java.io.File (as-file from)))
+    (if (source:isDirectory)
+	(let ((result '()))
+	  (for file ::java.io.File in (source:listFiles)
+	       (cond
+		((and (file:isDirectory)
+		      (is max-depth > 0))
+		 (set! result `(,@(list-files from: file
+					      such-that: such-that
+					      max-depth: (- max-depth 1))
+				,@result)))
+		((and (file:isFile) (such-that file))
+		 (set! result `(,file . ,result)))))
+	  result)
+	`(,source))))
 
 (define (unzip archive ::string #!key (into ::string "."))::void
   ;;(print"decompressing "archive" into "into)

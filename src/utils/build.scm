@@ -269,8 +269,9 @@
   
   (let ((output (ZipBuilder output-jar)))
     (output:append-entries! (ZipFile
-			     (join-path "build" "cache"
-					(string-append main-class".zip"))))
+			     (as String
+				 (join-path "build" "cache"
+					    (string-append main-class".zip")))))
     (for class::java.io.File in internal-dependencies
       (output:add-file-at-level! 2 class))
     
@@ -304,12 +305,15 @@ Main-Class: "main-class-name"
 		    (keystore ::string (join-path "binary" "keystore"))
 		    (password ::string "untrusted")
 		    (key ::string "grasp-public")
+		    (assets ::(list-of string) '("assets"))
 		    (output-name ::string (join-path "build" "grasp.apk")))
   (let* ((apk-file ::java.io.File (as-file output-name))
 	 (temp-file ::java.io.File (java.io.File:createTempFile
 				    "grasp-" ".apk"
 				    (as-file "build")))
-	 (assets (list-files from: "assets"))
+	 (assets (append-map (lambda (source::java.io.File)
+			       (list-files from: source))
+			     assets))
 	 (output (ZipBuilder temp-file)))
     (output:add-file-as! (join-path "res" "drawable" "icon.png")
 			 (as-file icon))
@@ -353,6 +357,7 @@ Main-Class: "main-class-name"
 	       (package ::string "io.github.grasp")
 	       (keystore ::string (join-path "binary" "keystore"))
 	       (key ::string "grasp-public")
+	       (assets ::(list-of string) '("assets"))
 	       (password ::string "untrusted"))
 
   (assert (or (is 'android in targets)
@@ -516,7 +521,8 @@ Main-Class: "main-class-name"
   (define skip-android-class-update? ::boolean
     (or (isnt 'android in targets)
 	(and-let* (((equal? previous-package package))
-		   (classes-dex (existing-file
+		   (classes-dex ::java.io.File
+				(existing-file
 				 (join-path "build" "cache" "classes.dex")))
 		   (classes-dex-update (classes-dex:lastModified))
 		   ((every (is (_:lastModified) < classes-dex-update)
@@ -648,6 +654,9 @@ Main-Class: "main-class-name"
 		   keystore: keystore
 		   key: key
 		   label: name
+		   assets: (append-map (lambda (source::string)
+					 (list-files from: source))
+				       assets)
 		   password: password)))
    
    (when (is 'desktop in targets)
@@ -661,7 +670,9 @@ Main-Class: "main-class-name"
 	init: init
 	package: package
 	main-class: "grasp-desktop"
-	assets: (list-files from: "assets")
+	assets: (append-map (lambda (source::string)
+			      (list-files from: source))
+			    assets)
 	extra-dependencies: (list (join-path "libs" "jsvg-1.0.0.jar")))))
 
    (when (is 'terminal in targets)
@@ -675,9 +686,13 @@ Main-Class: "main-class-name"
 	init: init
 	package: package
 	main-class: "grasp-terminal"
-	assets: (list-files from: "assets"
-			    such-that: (is ".scm$" regex-match
-					   (_:getPath)))
+	assets: (append-map (lambda (source::string)
+			      (list-files from: source
+					  such-that:
+					  (lambda (file::java.io.File)
+					    (none (is _ regex-match (file:getPath))
+						  '(".svg$" ".ttf$" ".otf$")))))
+			    assets)
 	extra-dependencies:
 	(list (join-path "libs" "lanterna-3.1.1.jar"))))))
 
@@ -687,44 +702,3 @@ Main-Class: "main-class-name"
   (set! (previous 'package) package)
   (save-mapping previous (join-path "build" "previous.map")))
 
-(define-syntax-rule (with-command-line-arguments arg-list
-			 ((name help default)
-			  ...)
-		       . actions)
-  (let ((name ::string default)
-	...)
-    (let process ((args arg-list))
-      (match args
-	(`(,,@(is _ string=? (string-append
-			      "--" (symbol->string 'name)))
-	   ,value . ,rest)
-	 (set! name value)
-	 (process rest))
-	...
-	('() . actions)
-	(_
-	 (report "Invalid argument: "args)
-	 (report "Available options:")
-	 (report "  --"(symbol->string 'name)" "help" ["default"]")
-	 ...
-	 (exit))))))
-
-(define (build-with command-line-args::(list-of string))
-  (with-command-line-arguments (cdr command-line-args)
-      ((targets "<comma-separated list of targets>"
-		"android,desktop,terminal")
-       (name "<target application name>" "GRASP")
-       (icon "<path to icon file>" (join-path "icons" "grasp.png"))
-       (init "<path to init file>" (join-path "init" "init.scm"))
-       (package "<top class package>" "io.github.panicz")
-       (keystore "<path to keystore>" (join-path "binary" "keystore"))
-       (key "<key alias>" "grasp-public")
-       (password "<key password>" "untrusted"))
-    (build targets: (map string->symbol (string-split targets ","))
-	   name: name
-	   icon: icon
-	   init: init
-	   package: package
-	   keystore: keystore
-	   key: key
-	   password: password)))
