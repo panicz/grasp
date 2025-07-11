@@ -38,6 +38,9 @@
 (define-syntax-rule (set-of type)
   ($bracket-apply$ java.util.Set type))
 
+(define-syntax-rule (EnumSetOf type)
+  ($bracket-apply$ java.util.EnumSet type))
+
 (define-syntax-rule (vector-of type)
   vector)
 

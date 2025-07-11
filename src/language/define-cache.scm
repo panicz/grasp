@@ -9,26 +9,32 @@
 (import (language match))
 (import (language curry))
 
-(define-synonym cache attribute+)
+(define-syntax cache
+  (syntax-rules (::)
+    ((cache args::type body)
+     (let* ((cached (curried attribute+ args body))
+	    (invoker (lambda/kw args::type
+				(curried-application cached . args))))
+       (set-procedure-property! invoker 'cache cached)
+       invoker))
+    ((cache args body)
+     (let* ((cached (curried attribute+ args body))
+	    (invoker (lambda/kw args
+				(curried-application cached . args))))
+       (set-procedure-property! invoker 'cache cached)
+       invoker))))
+    
 
 (define-syntax define-cache
   (syntax-rules (::)
     ((define-cache (name . args)::type body)
      (define-early-constant name
-       (let* ((cached (curried cache args body))
-	      (invoker (lambda/kw args::type
-			 (curried-application cached . args))))
-	 (set-procedure-property! invoker 'cache cached)
-	 invoker)))
+       (cache args::type body)))
 
     ((define-cache (name . args) body)
      (define-early-constant name
-       (let* ((cached (curried cache args body))
-	      (invoker (lambda/kw args
-			 (curried-application cached . args))))
-	 (set-procedure-property! invoker 'cache cached)
-	 invoker)))
-  ))
+       (cache args body)))
+    ))
 
 (define (invalidate! cache . point)
   (let ((table ::Map (procedure-property cache 'table)))
