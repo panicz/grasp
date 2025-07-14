@@ -284,12 +284,6 @@
 	(f (car xs) (car xs2)
 	   (fold-right2 f x0 (cdr xs) (cdr xs2)))))
 
-  (define (fold-right3 f x0 xs xs2 xs3)
-    (if (or (null? xs) (null? xs2) (null? xs3))
-	x0
-	(f (car xs) (car xs2) (car xs3)
-	   (fold-right3 f x0 (cdr xs) (cdr xs2) (cdr xs3)))))
-
   (define (fold-right* f x0 . xs*)
     (if (any null? xs*)
 	x0
@@ -302,7 +296,6 @@
    ((null? xs*) x0)
    ((null? (cdr xs*)) (fold-right1 f x0 (car xs*)))
    ((null? (cddr xs*)) (fold-right2 f x0 (car xs*) (cadr xs*)))
-   ((null? (cdddr xs*)) (fold-right3 f x0 (car xs*) (cadr xs*) (caddr xs*)))
    (else (apply fold-right* f x0 xs*))))
 
 (e.g.

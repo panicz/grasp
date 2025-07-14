@@ -106,8 +106,8 @@
 (define-cache (color red::int green::int blue::int)::Color
   (Color:RGB red green blue))
 
-(define-parameter (the-text-style)::TextStyle
-  (TextStyle:noneOf TextDecoration:class))
+(define-parameter (the-text-style)::TerminalTextStyle
+  (TerminalTextStyle:noneOf TerminalTextDecoration:class))
 
 (define-parameter (the-text-color)::Color
   (color 255 255 255))
@@ -152,7 +152,7 @@
     (Color:RGB r g b)))
 
 (define-cache (letter/cached character color::Color background::Color
-			     style::TextStyle)
+			     style::TerminalTextStyle)
   ::Letter
   (Letter character color background style))
   
@@ -160,7 +160,7 @@
 		   color: text-color::Color := (the-text-color)
 		   background: background::Color
 		   := (the-background-color)
-		   style: style::TextStyle := (the-text-style))
+		   style: style::TerminalTextStyle := (the-text-style))
   ::Letter
   (let ((color ::Color (blend text-color background
 			      (the-text-intensity))))

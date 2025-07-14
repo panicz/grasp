@@ -1848,7 +1848,7 @@
      (if (any (is (checkSelfPermission _)
 		  eq? PackageManager:PERMISSION_DENIED)
 	      permissions)
-	 (let ((request-code ::int (new-request-code)))
+	 (let ((request-code ::integer (new-request-code)))
 	   (set! (reaction-to-request-response
 		  request-code) action)
 	   (requestPermissions permissions request-code))

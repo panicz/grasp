@@ -1,6 +1,0 @@
-#!/bin/sh
-FLAGS=--no-warn-unreachable
-cp init/init.scm assets/
-java -cp "./libs/kawa.jar:.:./libs/jsvg-1.0.0.jar" kawa.repl \
-     $FLAGS -f src/grasp-desktop.scm "$@"
-rm assets/init.scm

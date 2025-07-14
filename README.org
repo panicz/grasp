@@ -53,24 +53,6 @@ In particular, the =--init= option can be used to pass in the =init=
 file, which is executed during GRASP's startup. (In case of the =.jar=
 packages, this file can also be later replaced/edited in the archives.)
 
-** Running the desktop/terminal client directly from source
-
-Both terminal and desktop clients can be run without (explicit)
-compilation. This can be achieved by typing
-
-#+BEGIN_SRC bash
-./grasp-terminal
-#+END_SRC
-
-to run the terminal client, or
-
-#+BEGIN_SRC bash
-./grasp-desktop
-#+END_SRC
-
-to run the desktop client. This way of running the project is not
-recommended, except for the purpose of development.
-
 ** Debugging the Android client
 
 Some builds of Android are capable of printing complete stack traces

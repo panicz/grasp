@@ -584,9 +584,9 @@
 
   (define playing-backwards? ::boolean #f)
   
-  (define (advance! timestep/ms::int)::boolean
+  (define (advance! timestep/ms ::int)::boolean
     (safely
-     (let ((change (/ timestep/ms duration/ms)))
+     (let ((change (/ (* 1.0 timestep/ms) duration/ms)))
        (if playing-backwards?
 	   (let ((new-progress (- current-morph:progress change)))
 	     (cond

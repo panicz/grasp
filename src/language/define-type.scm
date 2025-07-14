@@ -32,41 +32,6 @@
     ((chain object ,function . rest)
      (chain (function object) . rest))))
 
-(define-syntax-rule (list-of type)
-  list)
-
-(define-syntax-rule (set-of type)
-  ($bracket-apply$ java.util.Set type))
-
-(define-syntax-rule (EnumSetOf type)
-  ($bracket-apply$ java.util.EnumSet type))
-
-(define-syntax-rule (vector-of type)
-  vector)
-
-(define-syntax-rule (sequence-of type)
-  sequence)
-
-(define-syntax-rule (array-of type)
-  ($bracket-apply$ type))
-
-(define-syntax-rule (parameter-of type)
-  ($bracket-apply$ parameter type))
-
-(define-syntax subtype-of
-  (syntax-rules ()
-    ((subtype-of supertype . _)
-     supertype)))
-
-(define-syntax-rule (either type ...)
-  java.lang.Object)
-
-(define-syntax-rule (maybe type)
-  (either type #!null))
-
-(define-syntax-rule (Values type ...)
-  java.lang.Object)
-
 #|
 (define-simple-class Struct ()
   interface: #t

@@ -1,4 +1,5 @@
 (module-name (editor term))
+(import (language define-type))
 
 (define-alias DefaultTerminalFactory
   com.googlecode.lanterna.terminal.DefaultTerminalFactory)
@@ -44,10 +45,11 @@
 (define-alias Letter
   com.googlecode.lanterna.TextCharacter)
 
-(define-alias TextDecoration
+(define-alias TerminalTextDecoration
   com.googlecode.lanterna.SGR)
 
-(define-alias TextStyle java.util.EnumSet[TextDecoration])
+(define-alias TerminalTextStyle
+  (EnumSetOf TerminalTextDecoration))
 
 (define-alias CTRL+C-behaviour
   com.googlecode.lanterna.terminal.ansi.UnixLikeTerminal:CtrlCBehaviour)

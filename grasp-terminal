@@ -1,8 +1,0 @@
-#!/bin/sh
-stty susp ^-
-stty intr ^-
-FLAGS=--no-warn-unreachable
-cp init/init.scm assets/
-java -cp "./libs/kawa.jar:.:./libs/lanterna-3.1.1.jar" kawa.repl \
-     $FLAGS -f src/grasp-terminal.scm "$@"
-rm assets/init.scm

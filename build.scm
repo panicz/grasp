@@ -9,6 +9,7 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 (import (language define-syntax-rule))
 (import (language define-interface))
 (import (language define-object))
+(import (language fundamental))
 (import (language match))
 (import (language infix))
 (import (utils conversions))
@@ -64,3 +65,7 @@ exec java -cp "$JARS:build/cache" kawa.repl \
 (build-with (command-line))
 
 (exit)
+
+;; Local Variables:
+;; mode: scheme
+;; End:

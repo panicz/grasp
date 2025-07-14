@@ -9,6 +9,7 @@
  (language while)
  (language for)
  (language examples)
+ (language fundamental)
  (srfi :11)
  (language assert)
  (utils print)
@@ -17,8 +18,6 @@
  (utils functions)
  )
 
-(define-alias InputPort gnu.kawa.io.InPort)
-(define-alias OutputPort gnu.kawa.io.OutPort)
 
 (define (read-entire-input-to-string
 	 #!optional (in ::InputPort (current-input-port)))

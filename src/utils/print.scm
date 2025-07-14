@@ -161,12 +161,9 @@
        ((stack-trace-action) (stack-trace ex))
        #!null)))
 
-(define-syntax-rule (safely- actions ...)
-  (try-catch
-   (begin actions ...)
-   (ex java.lang.Throwable
-       ((stack-trace-action) (stack-trace ex))
-       (values))))
+(define (try action ::(maps () to: ,result))
+  ::(either ,result java.lang.Throwable)
+  (try-catch (action) (ex java.lang.Throwable ex)))
 
 (define-parameter (debugging?) #f)
 

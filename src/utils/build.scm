@@ -13,6 +13,7 @@
 (import (language mapping))
 (import (language while))
 (import (language for))
+(import (language fundamental))
 (import (language define-cache))
 (import (utils hash-table))
 (import (utils android))
