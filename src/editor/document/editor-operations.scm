@@ -1,5 +1,9 @@
 (module-name (editor document editor-operations))
 
+(import (language define-syntax-rule))
+(import (language define-interface))
+(import (language define-type))
+(import (language define-object))
 (import (language define-parameter))
 (import (language keyword-arguments))
 (import (language infix))

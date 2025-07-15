@@ -11,7 +11,7 @@
 (import (language match))
 (import (utils conversions))
 (import (utils functions))
-
+(import (language fundamental))
 
 (define-parameter (current-display-procedure)::procedure
   display)

@@ -193,7 +193,9 @@
   (define top ::Embeddable (NullPane))
 
   (define (active)::Embeddable
-    (top:active))
+    (match top
+      (top ::Splittable (top:active))
+      (_ (this))))
   
   (define content-stack ::java.util.Stack
     (java.util.Stack))
@@ -336,18 +338,22 @@
       (top:can-split-beside? line)))
 
   (define (split-beside! line::Area)::Embeddable
-    (and-let* ((t ::Splittable top))
-      (set! top (t:split-beside! line))
-      top))
+    (or
+     (and-let* ((t ::Splittable top))
+       (set! top (t:split-beside! line))
+       top)
+     (this)))
 
   (define (can-split-below? line::Area)::boolean
     (and-let* ((top ::Splittable))
       (top:can-split-below? line)))
 
   (define (split-below! line::Area)::Embeddable
-    (and-let* ((t ::Splittable top))
-      (set! top (t:split-below! line))
-      top))
+    (or
+     (and-let* ((t ::Splittable top))
+       (set! top (t:split-below! line))
+       top)
+     (this)))
 
   (define (scroll-up! x::real y::real)::boolean
     (parameterize ((the-pane-width size:width)

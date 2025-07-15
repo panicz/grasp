@@ -6,6 +6,7 @@
 (import (language define-interface))
 (import (language define-type))
 (import (language define-object))
+(import (language mapping))
 (import (language attributes))
 (import (language define-parameter))
 (import (language mapping))
@@ -578,7 +579,7 @@ operate on cursors.
     #f)
 
   (define (close-document! document)::void
-    (vales))
+    (values))
   
   (IgnoreInput))
 

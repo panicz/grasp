@@ -6,6 +6,7 @@
 (import (language define-type))
 (import (language mapping))
 (import (language define-parameter))
+(import (language fundamental))
 (import (language match))
 (import (language infix))
 (import (language for))

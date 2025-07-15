@@ -9,7 +9,7 @@
   (syntax-rules (::)
     ((mapping (object::key-type)::value-type default)
      (let* ((entries (make-hash-table[key-type value-type]))
-            (getter (lambda (object)
+            (getter (lambda (object::key-type)
                       (hash-ref entries object
 				(lambda () default)))))
        (set! (setter getter) (lambda (arg value)
