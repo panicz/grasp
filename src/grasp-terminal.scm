@@ -109,6 +109,19 @@
 (define-parameter (the-text-style)::TerminalTextStyle
   (TerminalTextStyle:noneOf TerminalTextDecoration:class))
 
+(define-constant RegularTerminalText ::TerminalTextStyle
+  (TerminalTextStyle:noneOf TerminalTextDecoration:class))
+
+(define-constant BoldTerminalText ::TerminalTextStyle
+  (TerminalTextStyle:of TerminalTextDecoration:BOLD))
+
+(define-constant ItalicTerminalText ::TerminalTextStyle
+  (TerminalTextStyle:of TerminalTextDecoration:ITALIC))
+
+(define-constant BoldItalicTerminalText ::TerminalTextStyle
+  (TerminalTextStyle:of TerminalTextDecoration:BOLD
+			TerminalTextDecoration:ITALIC))
+   
 (define-parameter (the-text-color)::Color
   (color 255 255 255))
 
@@ -352,6 +365,26 @@
   (define text-color-stack ::java.util.Stack (java.util.Stack))
   (define background-color-stack ::java.util.Stack (java.util.Stack))
 
+  (define (draw-styled-text! left::real top::real
+			     text::CharSequence style::TextDecoration)
+    ::void
+    (parameterize ((the-text-style
+		    (cond
+		     ((and (style:contains TextStyle:Italic)
+			   (style:contains TextStyle:Bold))
+		      BoldItalicTerminalText)
+
+		     ((style:contains TextStyle:Bold)
+		      BoldTerminalText)
+
+		     ((style:contains TextStyle:Italic)
+		      ItalicTerminalText)
+		     
+		     (_ RegularTerminalText))))
+      (for c in text
+	(put! c top left)
+	(set! left (+ left 1)))))
+  
   (define (put! c::char row::real col::real)::void
     (let ((screen ::Extent (screen:extent))
 	  (x (+ shiftLeft (nearby-int

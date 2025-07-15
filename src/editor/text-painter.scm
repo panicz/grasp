@@ -828,6 +828,16 @@
 	(handle-cursor-and-selection!)
 	(traversal:on-end-line #f))))
 
+  (define (styled-text-width text::Word style::TextDecoration)::real
+    (text:length))
+
+  (define (draw-styled-text! left::real top::real
+			     text::CharSequence style::TextDecoration)
+    ::void
+    (for c in text
+      (put! c top left)
+      (set! left (+ left 1))))
+  
   (define (measure-string-index-position-into!
 	   target::Position text::CharSequence index::int)
     ::Position

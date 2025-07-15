@@ -179,11 +179,23 @@
 (define-constant GloriaHallelujah ::Font
   (load-font "/assets/GloriaHallelujah.ttf" size: 16))
 
-(define-constant BasicRegular
+(define-constant BasicRegular ::Font
   (load-font "/assets/Basic-Regular.otf" size: 21))
 
 (define-constant NotoSerif-Regular ::Font
   (load-font "/assets/NotoSerif-Regular.ttf" size: 12))
+
+(define-constant Yrsa-Regular ::Font
+  (load-font "/assets/Yrsa-Regular.ttf" size: 12))
+
+(define-constant Yrsa-Bold ::Font
+  (load-font "/assets/Yrsa-Bold.ttf" size: 12))
+
+(define-constant Yrsa-Italic ::Font
+  (load-font "/assets/Yrsa-Italic.ttf" size: 12))
+
+(define-constant Yrsa-BoldItalic ::Font
+  (load-font "/assets/Yrsa-BoldItalic.ttf" size: 12))
 
 (define-constant directory-icon ::SVGDocument
   (load-svg "/assets/directory.svg"))
@@ -220,6 +232,18 @@
 
 (define-parameter+ (the-block-comment-margin) ::real
   10)
+
+(define-parameter+ (the-regular-text-font)::Font
+  Yrsa-Regular)
+
+(define-parameter+ (the-bold-text-font)::Font
+  Yrsa-Bold)
+
+(define-parameter+ (the-italic-text-font)::Font
+  Yrsa-Italic)
+
+(define-parameter+ (the-bold-italic-text-font)::Font
+  Yrsa-BoldItalic)
 
 (define-parameter (the-cursor-offset)::Position
   (Position left: 0 top: 16))
@@ -1175,7 +1199,7 @@
     ::void
     (set-color! (color c))
     (draw-thin-line! px0 py0 px1 py1))
-
+  
   (define (measure-text-index-position-into!
 	   target::Position text::CharSequence index::int
 	   font::Font)
@@ -1296,6 +1320,34 @@
 	  (mark-cursor! traversal:left traversal:top))
 	(traversal:on-end-line #f))))
 
+  (define (decorated-font style::TextDecoration)::Font
+    (cond
+     ((style:contains TextStyle:Monospace)
+      Iosevka)
+     ((and (style:contains TextStyle:Bold)
+	   (style:contains TextStyle:Italic))
+      (the-bold-italic-text-font))
+     ((style:contains TextStyle:Bold)
+      (the-bold-text-font))
+     ((style:contains TextStyle:Italic)
+      (the-italic-text-font))
+     (else
+      (the-regular-text-font))))
+  
+  (define (styled-text-width text::Word style::TextDecoration)::real
+    (let* ((font ::Font (decorated-font style))
+	   (metrics ::FontMetrics (graphics:getFontMetrics font)))
+      (metrics:stringWidth text)))
+  
+  (define (draw-styled-text! left::real top::real
+			     text::CharSequence style::TextDecoration)
+    ::void
+    (let* ((font ::Font (decorated-font style))
+	   (metrics ::FontMetrics (graphics:getFontMetrics font))
+	   (height ::float (metrics:getHeight)))
+      (graphics:setFont font)
+      (graphics:drawString text (as float left) (as float (+ top height)))))
+  
   (define (draw-string! text::CharSequence context::Cursor)::void
     (draw-text! text (the-string-font) context))
 

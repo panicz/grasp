@@ -48,6 +48,11 @@
 
 (define-alias CharSequence java.lang.CharSequence)
 
+;; We assume a CharSequence to be a Word if
+;; it does not contain white space - most
+;; importantly, it should not contain a newline
+(define-alias Word CharSequence)
+
 (define-syntax-rule (the property)
   (slot-ref (this) 'property))
 

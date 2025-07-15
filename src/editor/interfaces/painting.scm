@@ -22,6 +22,19 @@
   (to-previous-line)::real
   )
 
+(define-enum TextStyle
+  (Bold
+   Italic
+   Monospace))
+
+(define-alias TextDecoration
+  ($bracket-apply$ java.util.EnumSet TextStyle))
+
+(define (RegularText)::TextDecoration
+  (EnumSet:noneOf TextStyle))
+  
+(define-type (EndTextStyle style: TextStyle))
+
 (define (string-extent s::java.lang.CharSequence)::Extent
   (let ((line-length 0)
         (max-length 0)
@@ -128,7 +141,12 @@ def") ===> [Extent width: 3 height: 2])
    (painter:end-highlight! highlight-type)))
 
 (define-interface Painter ()
-  
+
+  (styled-text-width text::CharSequence style::TextDecoration)::real
+  (draw-styled-text! left::real top::real
+		     text::CharSequence style::TextDecoration)
+  ::void
+    
   (translate! x::real y::real)::void
   (rotate! angle::real)::void
   (with-clip w::real h::real action::(maps () to: void))::void
@@ -411,6 +429,15 @@ def") ===> [Extent width: 3 height: 2])
   )
 
 (define-object (NullPainter)::Painter
+
+  (define (styled-text-width text::CharSequence style::TextDecoration)::real
+    1)
+  
+  (define (draw-styled-text! left::real top::real
+			     text::CharSequence style::TextDecoration)
+    ::void
+    (values))
+
   (define (play! animation::Animation)::void (values))
 
   (define (playing? animation::Animation)::boolean #f)

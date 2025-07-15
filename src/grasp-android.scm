@@ -243,6 +243,18 @@
   (define NotoSerif-Regular ::Typeface
     (load-font "NotoSerif-Regular.ttf" activity))
 
+  (define Yrsa-Regular ::Typeface
+    (load-font "/assets/Yrsa-Regular.ttf" activity))
+
+  (define Yrsa-Bold ::Typeface
+    (load-font "/assets/Yrsa-Bold.ttf" activity))
+
+  (define Yrsa-Italic ::Typeface
+    (load-font "/assets/Yrsa-Italic.ttf" activity))
+
+  (define Yrsa-BoldItalic ::Typeface
+    (load-font "/assets/Yrsa-BoldItalic.ttf" activity))
+  
   (define M+1p ::Typeface
     (load-font "MPLUS1p-Medium.ttf" activity))
   
@@ -300,6 +312,26 @@
   (define the-block-comment-margin ::(parameter-of real)
     (make-parameter 6))
 
+  (define the-regular-text-font ::(parameter-of Font)
+    (make-parameter
+     (Font face: Yrsa-Regular
+	   size: 24)))
+
+  (define the-bold-text-font ::(parameter-of Font)
+    (make-parameter
+     (Font face: Yrsa-Bold
+	   size: 24)))
+
+  (define the-italic-text-font ::(parameter-of Font)
+    (make-parameter
+     (Font face: Yrsa-Italic
+	   size: 24)))
+
+  (define the-bold-italic-text-font ::(parameter-of Font)
+    (make-parameter
+     (Font face: Yrsa-BoldItalic
+	   size: 24)))
+  
   (define the-log-font ::(parameter-of Font)
     (make-parameter
      (Font face: Oswald-Regular
@@ -1439,6 +1471,32 @@
 				  string-end))
 	  (mark-cursor! traversal:left traversal:top))
 	(traversal:on-end-line #f))))
+
+  (define (decorated-font style::TextDecoration)::Font
+    (cond
+     ((style:contains TextStyle:Monospace)
+      (the-string-font))
+     ((and (style:contains TextStyle:Bold)
+	   (style:contains TextStyle:Italic))
+      (the-bold-italic-text-font))
+     ((style:contains TextStyle:Bold)
+      (the-bold-text-font))
+     ((style:contains TextStyle:Italic)
+      (the-italic-text-font))
+     (else
+      (the-regular-text-font))))
+
+  (define (styled-text-width text::Word style::TextDecoration)::real
+    (let ((font ::Font (decorated-font style)))
+      (text-width text font)))
+
+  (define (draw-styled-text! left::real top::real
+			     text::CharSequence style::TextDecoration)
+    ::void
+    (let ((font ::Font (decorated-font style)))
+      (paint:setTypeface font:face)
+      (paint:setTextSize font:size)
+      (canvas:drawText text left (+ top font:size) paint)))
 
   (define (draw-string! text::CharSequence context::Cursor)
     ::void

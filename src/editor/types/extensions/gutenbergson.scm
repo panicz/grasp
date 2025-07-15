@@ -8,7 +8,7 @@
 (import (language for))
 (import (utils functions))
 (import (language fundamental))
-
+(import (language assert))
 (import (language define-cache))
 
 (import (editor interfaces painting))
@@ -25,63 +25,60 @@
 
 (import (utils print))
 
-(define-alias Word string)
-
-(define-enum FontStyle
-  (Bold
-   Italic
-   Literal))
-
-(define-type (EndFontStyle style: FontStyle))
-
 (define-interface TextDivisionUnit ()
-  (render! max-line-width::real
-	   line-height::real
-	   draw-word!::(maps (real real CharSequence (EnumSetOf FontStyle))
-			     to: void))::real
+  (render! max-line-width::real line-height::real)::real
   (height max-line-width::real line-height::real)::real
   )
 
 (define-object (Paragraph content::(sequence-of
 				    (either
 				     Word
-				     FontStyle
-				     EndFontStyle)))
+				     TextStyle
+				     EndTextStyle)))
   ::TextDivisionUnit
-  (define (render! max-line-width::real
-		   line-height::real
-		   draw-word!::(maps (real real CharSequence (EnumSetOf FontStyle))
-				    to: void))::real
-    (let ((style ::(EnumSetOf FontStyle) (EnumSet:noneOf FontStyle))
+  (define (layout-words word-operation::(maps (real real Word TextDecoration)
+					      to: void)
+			max-line-width::real
+			line-height::real)
+    ::real
+    (let ((style ::TextDecoration (RegularText))
 	  (left ::real 0)
 	  (top ::real 0))
       (for token in content
 	(match token
 	  (word::Word
-	   (let* ((word-width ::real 10 #;(painter:styled-text-width word style))
+	   (let* ((word-width ::real (painter:styled-text-width word style))
+		  (space-width ::real (painter:styled-text-width " " style))
 		  (expanded ::real (+ left word-width)))
 	     (when (is expanded > max-line-width)
 	       (set! left 0)
 	       (set! top (+ top line-height)))
 
-	     (draw-word! left top word style)
+	     (word-operation left top word style)
 
 	     (set! left (+ expanded space-width))))
 	  
-	  (modifier::FontStyle
+	  (modifier::TextStyle
+	   (assert (not (style:contains modifier)))
 	   (style:add modifier))
 	  
-	  ((EndFontStyle style: modifier)
+	  ((EndTextStyle style: modifier)
+	   (assert (style:contains modifier))
 	   (style:remove modifier))))
       
       (+ top line-height)))
 
+  (define (render! max-line-width::real
+		   line-height::real)
+    ::real
+    (layout-words (lambda (left::real top::real word::Word style::TextDecoration)
+		    (painter:draw-styled-text! left top word style))
+		  max-line-width
+		  line-height))
+  
   (define cached-height
     (cache (max-line-width::real line-height::real)
-	   (render! max-line-width line-height
-		    (lambda (left::real top::real word::CharSequence
-					style::(EnumSetOf FontStyle))
-		      (values)))))
+	   (layout-words nothing max-line-width line-height)))
   
   (define (height max-line-width::real line-height::real)::real
     (cached-height max-line-width line-height))

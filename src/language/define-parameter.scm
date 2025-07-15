@@ -50,8 +50,8 @@
      (new-location:set value))))
 
 (define (make-shared-parameter name init #!optional (converter #!null))
-  (if (not (eq? converter #!null))
-      (set! init (converter init)))
+  (unless (eq? converter #!null)
+    (set! init (converter init)))
   (let* ((loc (SharedThreadLocation:new name init))
          (conv ::gnu.mapping.Procedure
                (if (or (eq? converter #!null)
