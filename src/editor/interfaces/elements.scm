@@ -9,7 +9,6 @@
 (import (language mapping))
 (import (language attributes))
 (import (language define-parameter))
-(import (language mapping))
 (import (language keyword-arguments))
 (import (language match))
 (import (language infix))

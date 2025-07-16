@@ -113,13 +113,13 @@
   (TerminalTextStyle:noneOf TerminalTextDecoration:class))
 
 (define-constant BoldTerminalText ::TerminalTextStyle
-  (TerminalTextStyle:of TerminalTextDecoration:BOLD))
+  (EnumSet:of TerminalTextDecoration:BOLD))
 
 (define-constant ItalicTerminalText ::TerminalTextStyle
-  (TerminalTextStyle:of TerminalTextDecoration:ITALIC))
+  (EnumSet:of TerminalTextDecoration:ITALIC))
 
 (define-constant BoldItalicTerminalText ::TerminalTextStyle
-  (TerminalTextStyle:of TerminalTextDecoration:BOLD
+  (EnumSet:of TerminalTextDecoration:BOLD
 			TerminalTextDecoration:ITALIC))
    
 (define-parameter (the-text-color)::Color

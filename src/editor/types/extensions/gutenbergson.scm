@@ -1,5 +1,7 @@
 (module-name (editor types extensions gutenbergson))
 
+(import (kawa regex))
+(import (language define-syntax-rule))
 (import (language define-interface))
 (import (language define-type))
 (import (language define-object))
@@ -10,22 +12,22 @@
 (import (language fundamental))
 (import (language assert))
 (import (language define-cache))
-
+(import (language define-parameter))
+(import (editor interfaces elements))
 (import (editor interfaces painting))
 (import (editor types primitive))
-(import (editor interfaces elements))
 (import (editor types texts))
 (import (editor types spaces))
 (import (editor document cursor))
 (import (editor input transforms))
-(import (editor input screen))
+;(import (editor input screen))
 
 (import (editor types extensions extensions))
-(import (editor types extensions combinators))
+;;(import (editor types extensions combinators))
 
 (import (utils print))
 
-(define-interface TextDivisionUnit ()
+(define-interface TextDivisionUnit (#;Enchanted)
   (render! max-line-width::real line-height::real)::real
   (height max-line-width::real line-height::real)::real
   )
@@ -82,17 +84,93 @@
   
   (define (height max-line-width::real line-height::real)::real
     (cached-height max-line-width line-height))
- 
+
+  #|
+  (define (draw! context::Cursor)::void
+    ...)
+
+  (define (extent)::Extent
+    ...)
+  
+  (Magic)
+  |#
   )
 
-(define-object (InteractiveBookReader document-source::string)
+(define-syntax-rule (match/regex subject (pattern . actions) ...)
+  (cond
+   ((regex-match pattern subject) . actions)
+   ...))
+
+(define (extract-style-modifiers word::Word)::(sequence-of
+					       (either
+						Word
+						TextStyle
+						EndTextStyle))
+  (match/regex
+   word
+   ("^[*](.+)$"
+    => (lambda (result)
+	 (match result
+	   (`(,_ ,word*)
+	    `(,TextStyle:Bold . ,(extract-style-modifiers word*))))))
+   ("^[/](.+)$"
+    => (lambda (result)
+	 (match result
+	   (`(,_ ,word*)
+	    `(,TextStyle:Italic . ,(extract-style-modifiers word*))))))
+   ("^[~](.+)$"
+    => (lambda (result)
+	 (match result
+	   (`(,_ ,word*) 
+	    `(,TextStyle:Monospace . ,(extract-style-modifiers word*))))))
+
+   ("^(.+)[*]([.,?!:;]*)$"
+    => (lambda (result)
+	 (match result
+	   (`(,_ ,prefix ,suffix)
+	    `(,(EndTextStyle style: TextStyle:Bold)
+	      . ,(extract-style-modifiers (string-append prefix suffix)))))))
+
+   ("^(.+)[/]([.,?!:;]*)$"
+    => (lambda (result)
+	 (match result
+	   (`(,_ ,prefix ,suffix)
+	    `(,(EndTextStyle style: TextStyle:Italic)
+	      . ,(extract-style-modifiers (string-append prefix suffix)))))))
+
+   ("^(.+)[~]([.,?!:;]*)$"
+    => (lambda (result)
+	 (match result
+	   (`(,_ ,prefix ,suffix)
+	    `(,(EndTextStyle style: TextStyle:Monospace)
+	      . ,(extract-style-modifiers (string-append prefix suffix)))))))
+
+   (".*"
+    `(,word))))
+
+(define (parse-paragraph paragraph ::string)::(sequence-of
+					       (either
+						Word
+						TextStyle
+						EndTextStyle))
+  (let ((words (regex-split "\\s+" paragraph)))
+    (append-map extract-style-modifiers words)))
+
+(define-type (Chapter content: (sequence-of TextDivisionUnit)))
+
+(define-type (Book chapters: (sequence-of Chapter)))
+
+(define-object (InteractiveBookReader book ::Book)
   ::Maximizable
+
+  (define current-chapter ::int 0)
+  
+  (define chapter-scroll ::(sequence-of real)
+    ((array-of real) length: (length book:chapters)))
   
   (define (draw! context::Cursor)::void
     (painter:draw-caption! "GutenBergSon"))
 
-  (define scroll ::real 0)
-  
   (define size ::Extent
     (painter:caption-extent "GutenBergSon"))
   
@@ -103,9 +181,8 @@
   (define (extent)::Extent size)
 
   (define (value)::Object
-    (cons (Atom "InteractiveBookReader")
-	  (cons document-source (empty))))
-
+    (cons (Atom "InteractiveBookReader") (empty)))
+  
   (MaximizableWidget))
 
 (set! (extension 'InteractiveBookReader)
