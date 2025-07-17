@@ -1490,6 +1490,10 @@
     (let ((font ::Font (decorated-font style)))
       (text-width text font)))
 
+  (define (styled-text-height)::real
+    (let ((font ::Font (the-regular-text-font)))
+      font:size))
+  
   (define (draw-styled-text! left::real top::real
 			     text::CharSequence style::TextDecoration)
     ::void

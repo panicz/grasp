@@ -143,6 +143,8 @@ def") ===> [Extent width: 3 height: 2])
 (define-interface Painter ()
 
   (styled-text-width text::CharSequence style::TextDecoration)::real
+  (styled-text-height)::real
+
   (draw-styled-text! left::real top::real
 		     text::CharSequence style::TextDecoration)
   ::void
@@ -431,6 +433,9 @@ def") ===> [Extent width: 3 height: 2])
 (define-object (NullPainter)::Painter
 
   (define (styled-text-width text::CharSequence style::TextDecoration)::real
+    1)
+
+  (define (styled-text-height)::real
     1)
   
   (define (draw-styled-text! left::real top::real

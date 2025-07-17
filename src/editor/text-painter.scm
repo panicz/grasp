@@ -831,6 +831,9 @@
   (define (styled-text-width text::Word style::TextDecoration)::real
     (text:length))
 
+  (define (styled-text-height)::real
+    1)
+  
   (define (draw-styled-text! left::real top::real
 			     text::CharSequence style::TextDecoration)
     ::void

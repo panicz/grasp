@@ -68,11 +68,29 @@
   (lambda (stx)
     (syntax-case stx (quasiquote
 		      unquote quote unquote-splicing
-		      and _ %typename :: $lookup$)
+		      and _ list %typename :: $lookup$)
       ((match-clause () condition bindings actions ... alternative)
        #'(check/unique condition bindings #f () ()
 		       actions ... alternative))
 
+      ((match-clause (((list items ...) root) . rest)
+                     condition
+                     bindings
+                     actions ... alternative)
+       #'(match-clause ((`(,items ...) root) . rest)
+                       condition
+                       bindings
+                       actions ... alternative))
+
+      ((match-clause (((list items ... . last) root) . rest)
+                     condition
+                     bindings
+                     actions ... alternative)
+       #'(match-clause ((`(,items ... . ,last) root) . rest)
+                       condition
+                       bindings
+                       actions ... alternative))
+      
       ((match-clause ((`,pattern::type root) . rest)
                      condition
                      bindings
@@ -433,6 +451,32 @@
                (_ #f)))))
 
       )))
+
+(define-syntax fn
+  (lambda (stx)
+    (syntax-case stx (quasiquote)
+      
+      #;((fn args docstring body + ...)
+       (string? (syntax->datum #'docstring))
+       #'(let ((f (fn args body + ...)))
+	   (set! (documentation f) docstring)
+	   f))
+
+      ((fn `pattern body + ...)
+       #'(lambda args
+	   (match args
+	     (`pattern body + ...))))
+      
+      ((fn pattern body + ...)
+       #'(lambda args
+	   (match args
+	     ((list . pattern) body + ...))))
+      
+      ((fn pattern)
+       #'(lambda args
+	   (match args
+	     ((list . pattern) #true)
+	     (_ #false)))))))
 
 (define-syntax otherwise
   (syntax-rules ()

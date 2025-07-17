@@ -1338,6 +1338,10 @@
     (let* ((font ::Font (decorated-font style))
 	   (metrics ::FontMetrics (graphics:getFontMetrics font)))
       (metrics:stringWidth text)))
+
+  (define (styled-text-height)::real
+    (let ((font ::Font (the-regular-text-font)))
+      (font:getSize)))
   
   (define (draw-styled-text! left::real top::real
 			     text::CharSequence style::TextDecoration)
