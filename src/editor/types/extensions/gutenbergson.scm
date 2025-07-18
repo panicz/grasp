@@ -93,7 +93,7 @@
 	  (top ::real 0))
       (for token in content
 	(match token
-	  (word::Word
+	  (word::string
 	   (let* ((word-length ::int (string-length word))
 		  (word-width ::real (painter:styled-text-width word style))
 		  (space-width ::real (painter:styled-text-width " " style))
@@ -168,27 +168,27 @@
   (match/regex
    word
    ("^[*](.+)$"
-    => (fn (_ word*)
+    => (fn (`(,_ ,word*))
 	   `(,TextStyle:Bold . ,(extract-style-modifiers word*))))
    ("^[/](.+)$"
-    => (fn (_ word*)
+    => (fn (`(,_ ,word*))
 	   `(,TextStyle:Italic . ,(extract-style-modifiers word*))))
    ("^[~](.+)$"
-    => (fn (_ word*) 
+    => (fn (`(,_ ,word*))
 	   `(,TextStyle:Monospace . ,(extract-style-modifiers word*))))
    
    ("^(.+)[*]$"
-    => (fn (_ word*)
+    => (fn (`(,_ ,word*))
 	   `(,@(extract-style-modifiers word*)
 	     ,(EndTextStyle style: TextStyle:Bold))))
 
    ("^(.+)[/]$"
-    => (fn (_ word*)
+    => (fn (`(,_ ,word*))
 	   `(,@(extract-style-modifiers word*)
 	     ,(EndTextStyle style: TextStyle:Italic))))
 
    ("^(.+)[~]$"
-    => (fn (_ word*)
+    => (fn (`(,_ ,word*))
 	   `(,@(extract-style-modifiers word*)
 	     ,(EndTextStyle style: TextStyle:Monospace))))
 
@@ -204,6 +204,16 @@
 
 (define-type (Book chapters: (sequence-of Chapter)))
 
+(define (sample-book)::Book
+  (Book chapters:
+	(vector
+	 (Chapter
+	  content:
+	  (vector
+	   (Paragraph (call-with-input-string "\
+These words are: *bold*, /italic/, */bold-italic/* and ~MonoSpace~.
+"parse-paragraph)))))))
+
 (define-object (InteractiveBookReader book ::Book)
   ::Maximizable
 
@@ -213,6 +223,11 @@
     ((array-of real) length: (length book:chapters)))
   
   (define (draw! context::Cursor)::void
+    (painter:precise-fill-rectangle!
+     0 0
+     (* (painter:precise-resolution-right) size:width)
+     (* (painter:precise-resolution-down) size:height)
+     #xffffffff)
     (let ((chapter ::Chapter (book:chapters current-chapter))
 	  (top ::real 0))
       (escape-with break

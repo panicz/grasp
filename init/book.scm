@@ -51,9 +51,9 @@
 (import (utils server))
 (import (utils reflection))
 
-
-(slot-set! screen 'top (InteractiveBookReader
-			"The Most Impressive Program Ever Written"))
+(slot-set! screen 'top
+	   (InteractiveBookReader
+	    (sample-book)))
 
 (invoke (slot-ref screen 'top) 'set-size!
 	(slot-ref (slot-ref screen 'size) 'width)

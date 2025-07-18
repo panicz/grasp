@@ -186,16 +186,16 @@
   (load-font "/assets/NotoSerif-Regular.ttf" size: 12))
 
 (define-constant Yrsa-Regular ::Font
-  (load-font "/assets/Yrsa-Regular.ttf" size: 12))
+  (load-font "/assets/Yrsa-Regular.ttf" size: 18))
 
 (define-constant Yrsa-Bold ::Font
-  (load-font "/assets/Yrsa-Bold.ttf" size: 12))
+  (load-font "/assets/Yrsa-Bold.ttf" size: 18))
 
 (define-constant Yrsa-Italic ::Font
-  (load-font "/assets/Yrsa-Italic.ttf" size: 12))
+  (load-font "/assets/Yrsa-Italic.ttf" size: 18))
 
 (define-constant Yrsa-BoldItalic ::Font
-  (load-font "/assets/Yrsa-BoldItalic.ttf" size: 12))
+  (load-font "/assets/Yrsa-BoldItalic.ttf" size: 18))
 
 (define-constant directory-icon ::SVGDocument
   (load-svg "/assets/directory.svg"))
@@ -1186,9 +1186,9 @@
 
   (define (precise-fill-rectangle! left::real top::real
 				   right::real bottom::real
-				   color::uint)
+				   rgb::uint)
     ::void
-    (set-color! (bitwise-xor #xff000000 color))
+    (set-color! (color (bitwise-xor #xff000000 rgb)))
     (graphics:fillRect (as int left) (as int top)
 		       (as int (- right left))
 		       (as int (- bottom top))))
@@ -1347,8 +1347,9 @@
 			     text::CharSequence style::TextDecoration)
     ::void
     (let* ((font ::Font (decorated-font style))
-	   (metrics ::FontMetrics (graphics:getFontMetrics font))
-	   (height ::float (metrics:getHeight)))
+	   #;(metrics ::FontMetrics (graphics:getFontMetrics font))
+	   (height ::float (Iosevka:getSize) #;(metrics:getHeight)))
+      (set-color! text-color)
       (graphics:setFont font)
       (graphics:drawString text (as float left) (as float (+ top height)))))
   
