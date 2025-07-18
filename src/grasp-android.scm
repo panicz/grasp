@@ -244,16 +244,16 @@
     (load-font "NotoSerif-Regular.ttf" activity))
 
   (define Yrsa-Regular ::Typeface
-    (load-font "/assets/Yrsa-Regular.ttf" activity))
+    (load-font "Yrsa-Regular.ttf" activity))
 
   (define Yrsa-Bold ::Typeface
-    (load-font "/assets/Yrsa-Bold.ttf" activity))
+    (load-font "Yrsa-Bold.ttf" activity))
 
   (define Yrsa-Italic ::Typeface
-    (load-font "/assets/Yrsa-Italic.ttf" activity))
+    (load-font "Yrsa-Italic.ttf" activity))
 
   (define Yrsa-BoldItalic ::Typeface
-    (load-font "/assets/Yrsa-BoldItalic.ttf" activity))
+    (load-font "Yrsa-BoldItalic.ttf" activity))
   
   (define M+1p ::Typeface
     (load-font "MPLUS1p-Medium.ttf" activity))
@@ -809,7 +809,7 @@
 				   right::real bottom::real
 				   color::uint)
     ::void
-    (set-color! (bitwise-xor #xff000000 c))
+    (set-color! (bitwise-xor #xff000000 color))
     (canvas:drawRect left top right bottom paint))
   
   (define (precise-draw-line! px0::real py0::real
