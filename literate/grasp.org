@@ -341,8 +341,8 @@ is equivalent to
 
 #+END_SRC
 
-The ~is~ operator - and its negated version, namely ~isnt~ -
-has been described at length in the [[https://srfi.schemers.org/srfi-156/srfi-156.html][SRFI-156]] document.
+The ~is~ operator - and its negated version ~isnt~ - has
+been described at length in the [[https://srfi.schemers.org/srfi-156/srfi-156.html][SRFI-156]] document.
 
 Its implementation is non-trivial, because it has to be able
 to extract the ~_~ literal symbol from arbitrarily nested
@@ -352,7 +352,7 @@ operators).
 
 For this reason - if you're not familiar with advanced macro
 programming in Scheme - it's OK to skip the analysis of the
-~extract-_~ helper macro.
+~extract-_~ helper macro. Othewise enjoy.
 
 #+BEGIN_SRC scheme :tangle language/extensions.scm
 
@@ -780,12 +780,433 @@ the ~::type~ and one that omits it.
 
 *** Defining classes and interfaces
 
+As mentioned earlier, Kawa provides some means of defining
+new JVM classes. In particular, there are two special
+forms - ~define-class~ and ~define-simple-class~ - that
+can be used for that purpose.
+
+The ~define-simple-class~ form is more rudimentary and
+allows to define JVM classes directly, whereas the
+~define-class~ form somehow supports multiple inheritance,
+and in addition to defining a class, also defines an
+interface.
+
+The exact syntax of those forms can be found in the
+[[https://www.gnu.org/software/kawa/Defining-new-classes.html][Defining new classes]] section of Kawa documentation.
+
+The syntax is fairly complicated, and for that reason
+GRASP never uses those forms directly. Instead it uses
+three derived forms, namely -- ~define-interface~,
+~define-object~ and ~define-type~.
 
 **** The ~define-interface~ macro
 
+One of the fundamental achievements of the Java programming
+language is that it popularized the notion of /interface/,
+which allows to express certain design ideas in abstract,
+without providing particular implementation details.
+
+While Kawa's ~define-simple-class~ macro allows to define
+interfaces, it only allows doing that in a very clumsy way.
+
+Therefore, GRASP provides the ~define-interface~ macro,
+which simplifies the definition of interfaces.
+
+It is used in the following way:
+
+#+BEGIN_SRC scheme :tangle no
+
+(define-interface InterfaceName (SuperInterfaces ...)
+  (method-name argument-types ...) :: return-value-type
+  ...)
+
+#+END_SRC
+
+The definition uses a helper macro ~interface-definition~,
+which isn't meant to be used directly - it allows to wrap
+the triples ~prototype :: return-type~ in an additional pair
+of parentheses, as required by the ~define-simple-class~
+form.
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-syntax-rule (define-interface name (supers ...) prototypes ...)
+  (interface-definition name (supers ...) (prototypes ...) ()))
+
+(define-syntax interface-definition
+  (syntax-rules (::)
+    ((_ name supers () methods)
+     (define-simple-class name supers interface: #t . methods))
+    
+    ((_ name supers (method :: result . rest) (methods ...))
+     (interface-definition
+      name supers rest
+      (methods ... (method :: result #!abstract))))
+    ))
+
+#+END_SRC
+
+We are going to see many instances of the ~define-interface~
+macro in the sequel of the text.
+
 **** The ~define-object~ macro
 
+The syntax of ~define-class~ and ~define-simple-class~ forms
+is very complex and somewhat arbitrary. Because of this, GRASP
+uses a wrapper that simplifies the definition of new classes.
+
+It is used in the following way:
+
+#+BEGIN_SRC scheme :tangle no
+
+(define-object (ClassName constructor-args ...)::ImplementedInterface
+  (define slot-name ::type init-value)
+  ...
+  (define (method-name method-args ...) :: return-value-type
+    method-body ...)
+  ...
+  (SuperClass superclass-args ...)
+  initialization-code
+  ...)
+
+#+END_SRC
+
+As you can see, it restricts the way classes can be defined by:
+- only allowing a single constructor
+- only allowing to provide a single interface
+
+The second limitation isn't problematic in practice, because
+it's always possible to agregate multiple interfaces
+together into a new interface.
+
+The ~define-object~ form deliberately resembles defining a
+function with nested definitions, thus reinforcing the idea
+that "an object is an environment that implements an
+interface".
+
+The ~define-object~ macro delegates all the actual work to
+the ~object-definition~ helper macro:
+
+#+BEGIN_SRC  scheme :tangle language/extensions.scm
+
+(define-syntax object-definition
+  (lambda (stx)
+    (syntax-case stx (::
+		      define
+		      define-private
+                      define-static)
+      
+      ((object-definition (object-name . args)
+			  (arg :: type . rest)
+			  supers
+			  (slots ...)
+			  methods
+			  (initializers ...)
+			  spec)
+       #'(object-definition (object-name . args)
+			    rest
+			    supers
+			    (slots ... (arg :: type))
+			    methods
+			    (initializers
+			     ...
+			     (slot-set! (this) 'arg arg))
+			    spec))
+
+      ((object-definition (object-name . args)
+			  (arg . rest)
+			  supers
+			  (slots ...)
+			  methods
+			  (initializers ...)
+			  spec)
+       #'(object-definition (object-name . args)
+			    rest
+			    supers
+			    (slots ... (arg))
+			    methods
+			    (initializers
+			     ...
+			     (slot-set! (this) 'arg arg))
+			    spec))
+
+      ((object-definition (object-name . args)
+			  rest
+			  supers
+			  (slots ...)
+			  methods
+			  (initializers ...)
+			  spec)
+       (identifier? #'rest)
+       #'(object-definition (object-name . args)
+			    ()
+			    supers
+			    (slots ... (rest::list))
+			    methods
+			    (initializers
+			     ...
+			     (slot-set! (this) 'rest rest))
+			    spec))
+      
+      ((object-definition (object-name . args)
+			  ()
+			  (supers ...)
+			  slots
+			  methods
+			  initializers
+			  (:: type . spec))
+       #'(object-definition (object-name . args)
+			    ()
+			    (supers ... type)
+			    slots
+			    methods
+			    initializers
+			    spec))
+
+      ((object-definition (object-name . args)
+			  ()
+			  supers
+			  slots
+			  (methods ...)
+			  initializers
+			  ((define-private (method . params)
+			     . body)
+			   . spec))
+       #'(object-definition (object-name . args)
+			    ()
+			    supers
+			    slots
+			    (methods
+			     ...
+			     ((method . params)
+			      access: 'private . body))
+			    initializers
+			    spec))
+
+      ((object-definition (object-name . args)
+			  ()
+			  supers
+			  (slots ...)
+			  methods
+			  (initializers ...)
+			  ((define-private slot :: type value)
+			  . spec))
+       #'(object-definition (object-name . args)
+			    ()
+			    supers
+			    (slots ... (slot :: type access: 'private))
+			    (initializers 
+                             ... 
+                             (set! slot value))
+			    spec))
+
+      ((object-definition (object-name . args)
+			  ()
+			  supers
+			  slots
+			  (methods ...)
+			  initializers
+			  ((define-static (method . params)
+			     . body)
+			   . spec))
+       #'(object-definition (object-name . args)
+			    ()
+			    supers
+			    slots
+			    (methods
+			     ...
+			     ((method . params)
+			      allocation: 'static . body))
+			    initializers
+			    spec))
+
+      ((object-definition (object-name . args)
+			  ()
+			  supers
+			  (slots ...)
+			  methods
+			  (initializers ...)
+			  ((define-static slot :: type value)
+			  . spec))
+       #'(object-definition (object-name . args)
+			    ()
+			    supers
+			    (slots ... (slot :: type allocation: 'static))
+			    (initializers 
+                             ... 
+                             (set! slot value))
+			    spec))
+
+      ((object-definition (object-name . args)
+			  ()
+			  supers
+			  slots
+			  (methods ...)
+			  initializers
+			  ((define (method . params) . body) . spec))
+       #'(object-definition (object-name . args)
+			    ()
+			    supers
+			    slots
+			    (methods ... ((method . params) . body))
+			    initializers
+			    spec))
+
+      ((object-definition (object-name . args)
+			  ()
+			  supers
+			  (slots ...)
+			  methods
+			  (initializers ...)
+			  ((define slot :: type value) . spec))
+       #'(object-definition (object-name . args)
+			    ()
+			    supers
+			    (slots
+			     ...
+			     (slot :: type))
+			    methods
+			    (initializers
+			     ...
+			     (set! slot value))
+			    spec))
+
+      ((object-definition (object-name . args)
+			  ()
+			  supers
+			  (slots ...)
+			  methods
+			  initializers
+			  ((define slot :: type) . spec))
+       #'(object-definition (object-name . args)
+			    ()
+			    supers
+			    (slots ... (slot :: type))
+			    methods
+			    initializers
+			    spec))
+      
+      ((object-definition (object-name . args)
+			  ()
+			  supers
+			  (slots ...)
+			  methods
+			  (initializers ...)
+			  ((define slot value) . spec))
+       #'(object-definition (object-name . args)
+			    ()
+			    supers
+			    (slots ... (slot))
+			    methods
+			    (initializers
+			     ...
+			     (set! slot value))
+			    spec))
+
+      ((object-definition (object-name)
+			  ()
+			  (supers ...)
+			  (slots ...)
+			  (methods ...)
+			  ()
+			  ())
+       #'(define-simple-class object-name (supers ...)
+	   slots ... methods ...))
+
+      ((object-definition (object-name . args)
+			  ()
+			  (supers ...)
+			  slots
+			  (methods ...)
+			  (initializers ...)
+			  ())
+       #'(object-definition (object-name)
+			    ()
+			    (supers ...)
+			    slots
+			    (methods
+			     ...
+			     ((*init* . args)
+			      initializers ...))
+			    ()
+			    ()))
+
+      ((object-definition (object-name . args)
+			  ()
+			  (supers ...)
+			  slots
+			  (methods ...)
+			  (initializers ...)
+			  ((super . args*) . init))
+       #'(object-definition (object-name)
+			    ()
+			    (supers ... super)
+			    slots
+			    (methods
+			     ...
+			     ((*init* . args)
+			      (invoke-special super (this)
+					      '*init*
+					      . args*)
+			      initializers ...
+			      . init))
+			    ()
+			    ()))
+      )))
+
+(define-syntax-rule (define-object (object-name . args) . spec)
+  (object-definition (object-name . args)
+		     #;args
+		     args
+		     #;supers
+		     ()
+		     #;slots
+		     ()
+		     #;methods
+		     ()
+		     #;initializers
+		     ()
+		     #;spec
+		     spec))
+
+#+END_SRC
+
 **** The ~define-type~ macro
+
+When Java first came out, it tried to pursue the idea that
+/everything is an object/ - where the word /object/ is
+understood as something that has its identity, class,
+methods and properties. But even from its earliest version
+it failed to maintain that illusion, because - for
+performance reason - it provided a set of primitive types
+which were not objects in the above sense. But even putting
+performace reasons aside, programmers had the urge to
+introduce the notion of /value objects/ that didn't have
+their unique identity, and were just simple carriers of
+information.
+
+Eventually Java came up with syntactic support for this
+/kind of objects/ in the form of records, and it further
+extends this support.
+
+(It may be instructive to watch a talk by Brian Goetz about
+/Project Valhalla/ to see how parting from the idea that
+/everything is an object/ helped unlock certain performance
+benefits, in addition to just writing simpler and more
+maintainable code.)
+
+In the meantime, GRASP comes with its own capability
+of defining records, using the ~define-type~ macro.
+
+Fundamentally, using the macro defines a new class whose
+identity is based on the equality of its fields, whose
+hash method only depends its fields, which can be trivially
+cloned by cloning all of its fields, and whose string
+representation consists of its type name and the names
+and values of all of its fields.
+
+In addition, we are going to allow the users of the macro
+to provide the /default values/ to some particular fields.
 
 *** Pattern matching
 
@@ -793,8 +1214,10 @@ the ~::type~ and one that omits it.
 
 **** The ~and-let*~ macro
 
-*** Hash tables
+*** Hash tables/attributes
 
+*** Caching and currying
+    
 *** Sets
 
 *** Optional and keyword arguments
