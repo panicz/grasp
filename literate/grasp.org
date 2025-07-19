@@ -1,0 +1,816 @@
+* The GRASP editor
+
+GRASP is an extensible structural code editor for languages
+that are based on s-expressions.
+
+** About this document
+
+This document is a literate program written in [[https://www.gnu.org/software/emacs/][Emacs]]
+[[https://orgmode.org/][org-mode]]. It contains snippets that are assembled to produce
+the actual program.
+
+In order to extract the source code from this file, one
+should execute the command ~M-x org-babel-tangle~ from Emacs.
+
+The document assumes that the Reader has some familiarity
+with the Scheme programming language, but if you're
+completely new to Scheme, don't let that assumption scare
+you off.
+
+Also, if you find something to be unclear, or have an idea
+how this text could be improved, feel free to file an issue
+or open a pull request.
+
+** The language used for developing GRASP
+
+GRASP is written in Kawa, which is a little known language
+based on Scheme that runs on the Java Virtual Machine.
+
+Kawa is an interesting language, because it extends Scheme
+with the type system of Java, which means in particular
+that:
+- it is possible to use existing Java classes from within
+  Kawa code
+- it is possible to define new Java classes from Kawa
+- it supports type annotations of variables
+
+Being a Scheme, Kawa provides good support for extending the
+syntax of the language via the mechanism called /macros/.
+
+As a matter of fact, it is a common adage among Lisp and
+Scheme programmers that in order to build a program, it is
+usually most convenient to first construct a language suited
+for building that program - which is exactly what we're
+going to do here.
+
+*** Simple macros
+
+The code snippets from this chapter will be placed in the
+=language/extensions.scm= file.
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm :mkdirp yes
+(module-name (language extensions))
+#+END_SRC
+
+The basic facility for defining macros is called
+~syntax-rules~, which allows to express syntactic
+transformations in terms of one or more /rewrite-rules/,
+where each rule consists of a pattern and a template.
+
+It is typically used in the following way:
+
+#+BEGIN_SRC scheme :tangle no
+
+;; note that this is not a valid code
+(define-syntax <defined-keyword>
+  (syntax-rules (<keywords> ...)
+    (<pattern-1> <template-1>)
+    (<pattern-2> <template-2>)
+    ...))
+
+#+END_SRC
+
+where ~<keywords>~ are a list of symbols that are meant to
+be treated as literals rather than variables inside patterns
+(this should become clearer later).
+
+**** The ~define-syntax-rule~ macro
+
+We are going to start by defining a simplified version of
+itself that is only going to be used when we have a simple
+transform consisting of a single rewrite rule:
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm :comment link
+
+(define-syntax define-syntax-rule
+  (syntax-rules ()
+    ((define-syntax-rule (<keyword> . <arguments>)
+       <substitution>)
+     (define-syntax <keyword>
+       (syntax-rules ()
+         ((<keyword> . <arguments>)
+          <substitution>))))))
+
+#+END_SRC
+
+While it may yet be unclear why the above macro can be useful,
+consider that if we had it available, we could have defined it
+in terms of itself in the following way:
+
+#+BEGIN_SRC scheme :tangle no
+
+(define-syntax-rule (define-syntax-rule <keyword> . <arguments>)
+  (define-syntax <keyword>
+    (syntax-rules ()
+      ((<keyword> . <arguments>)
+       <substitution>))))
+
+#+END_SRC
+
+Of course, if we had the ~define-syntax-rule~ form
+available, there would be no need for defining it!
+
+**** The ~comment~ macro
+
+We can now use it for defining our first utility macro,
+namely ~comment~ - which discards all of its arguments.
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm :comment org
+
+(define-syntax-rule (comment . <anything>)
+  (values))
+
+#+END_SRC
+
+This macro allows us to include some invalid code inside
+program text, without the risk of crashing the program. For
+example, we could include the content of the first snippet
+from this section inside our ~comment~ form:
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+;; this code is valid, even though the code
+;; inside the ~comment~ form is not - that's
+;; because it will be discarded according to
+;; our earlier definition of the ~comment~
+;; macro!
+(comment
+ (define-syntax <defined-keyword>
+   (syntax-rules (<keywords> ...)
+    (<pattern-1> <template-1>)
+    (<pattern-2> <template-2>)
+    ...)))
+
+#+END_SRC
+
+**** The ~assert~ macro
+
+An assertion is a belief about a certain state of
+affairs. In the context of programming assertions are often
+expressed using the ~assert~ construct.
+
+Since it is important to us to discover any false beliefs
+that we might have, the typical interpretation of asserting
+a false belief is to raise an error and stop the program:
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-syntax-rule (assert proposition)
+  (or proposition
+    (error "Assertion failed: "'proposition)))
+
+#+END_SRC
+
+**** The ~e.g.~ macro
+
+Another simple and very useful macro is intended to be used
+for writing examples of functions that we're going to be
+using during the development.
+
+The macro is going to use two helper function parameters,
+namely ~(valid-example)~ and ~(invalid-example)~, which are
+going to specify how to react to examples that are,
+accordingly, valid and invalid. Those functions are going to
+take three arguments:
+1. the source expression of the example
+2. the actual result of the expression
+3. (optionally) the expected result of the expression
+
+By default, the ~invalid-example~ function is going to
+report an error, and the ~valid-example~ function is going
+to return its second argument.
+
+The functions are going to be defined using the [[https://srfi.schemers.org/srfi-39/srfi-39.html][SRFI-39
+parameter objects]], so that the user would be able to tweak
+their behavior (for example, to count the number of evaluated
+examples)
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define invalid-example
+  (make-parameter
+    (lambda (expression result . expectation)
+      (if (pair? expectation)
+        (error "while evaluating\n\n  "
+	       expression
+	       "\n\nexpected:\n\n  "
+	       (car expectation)
+	       "\n\ngot:\n\n  "
+	       result)
+	(error "expected "expression" to be non-#false")))))
+
+(define valid-example
+  (make-parameter
+    (lambda (expression result . expectation)
+      result)))
+
+#+END_SRC
+
+This time, we're actually going to be using multiple clauses,
+so we'll use ~syntax-rules~ instead of ~define-syntax-rules~?
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+(define-syntax e.g.
+  (syntax-rules (===>)
+    
+    ((_ expression ===> value)
+     (let ((result expression)
+           (source 'expression)
+           (expectation 'value))
+       (if (equal? result expectation)
+          ((valid-example) source result expectation)
+          ((invalid-example) source result expectation))))
+
+    ((_ expression)
+     (let ((result expression)
+           (source 'expression))
+       (if result
+         ((valid-example) source result)
+         ((invalid-example) source result))))
+
+    ((_ expression ===> value ...)
+     (let ((source 'expression)
+           (expectation '(value ...)))
+       (call-with-values (lambda () expression)
+         (lambda results
+           (if (equal? results '(value ...))
+	     ((valid-example) source results expectation)
+	     ((invalid-example) source results expectation))))))
+    ))
+
+#+END_SRC
+
+As you can see, there are three rules in our ~e.g.~ macro.
+The first one corresponds to the usages such as
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(e.g. (+ 2 2) ===> 4)
+
+(e.g. (append '(a b c) '(d e)) ===> (a b c d e))
+
+#+END_SRC
+
+where some expected output is provided for some given input.
+
+The second rule corresponds to the usages of /predicates/, i.e.
+functions whose value is (typically) either true or false, as in
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(e.g. (even? 4))
+
+(e.g. (pair? (cons 1 2)))
+
+#+END_SRC
+
+This case makes the examples involving predicates somewhat
+shorter and more natural to read. It also fits nicely with
+Scheme's idea that everything else than ~#false~ is considered
+true in the context of a conditional. (Kawa also provides
+another value that is considered false in the context of
+conditionals, namely ~#!null~, which corresponds to the
+JVM's concept of ~null~).
+
+The last rule allows to express examples involving functions
+that are capable of returning multiple values:
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(e.g. (values 1 2 3) ===> 1 2 3)
+
+(e.g. (values) ===>)
+
+#+END_SRC
+
+**** The ~is~ and ~isnt~ macros
+
+Scheme is consistent in its usage of prefix notation.
+There are situations, however, when it would be handy
+to have prefix, or even postfix notation available.
+
+This can be done, of course, using the prefix notation.
+
+More specifically, we may want to transform
+
+#+BEGIN_SRC scheme :tangle no
+
+(is 2 < 3)
+
+#+END_SRC
+
+to
+
+#+BEGIN_SRC scheme :tangle no
+
+(< 2 3)
+
+#+END_SRC
+
+and 
+
+#+BEGIN_SRC scheme :tangle no
+
+(is 2 even?)
+
+#+END_SRC
+
+to
+
+#+BEGIN_SRC scheme :tangle no
+
+(even? 2)
+
+#+END_SRC
+
+Moreover, if we already decide to use ~is~ in this way, it
+opens for us an opportunity to also use it for constructing
+functions, so that
+
+#+BEGIN_SRC scheme :tangle no
+
+(is (length _) < 3)
+
+#+END_SRC
+
+is equivalent to
+
+#+BEGIN_SRC scheme :tangle no
+
+(lambda (x) (< (length x) 3))
+
+#+END_SRC
+
+The ~is~ operator - and its negated version, namely ~isnt~ -
+has been described at length in the [[https://srfi.schemers.org/srfi-156/srfi-156.html][SRFI-156]] document.
+
+Its implementation is non-trivial, because it has to be able
+to extract the ~_~ literal symbol from arbitrarily nested
+expressions (and it needs to account for the possibility of
+encountering nested occurrences of the ~is~ and ~isnt~
+operators).
+
+For this reason - if you're not familiar with advanced macro
+programming in Scheme - it's OK to skip the analysis of the
+~extract-_~ helper macro.
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-syntax infix/postfix
+  (syntax-rules ()
+    
+    ((infix/postfix x somewhat?)
+     (somewhat? x))
+
+    ((infix/postfix left related-to? right)
+     (related-to? left right))
+
+    ((infix/postfix left related-to? right . likewise)
+     (let ((right* right))
+       (and (infix/postfix left related-to? right*)
+	    (infix/postfix right* . likewise))))))
+
+(define-syntax extract-_
+  (syntax-rules (_ is isnt quote
+ 		   quasiquote unquote
+		   unquote-splicing)
+    ;; ok, it's a bit rough, so it requires an explanation.
+    ;; the macro operates on sequences of triples
+    ;;
+    ;;   (<remaining-expr> <arg-list> <processed-expr>) +
+    ;;
+    ;; where <remaining-expr> is being systematically
+    ;; rewritten to <processed-expr>. When the _ symbol
+    ;; is encountered, it is replaced with a fresh "arg"
+    ;; symbol, which is appended to both <arg-list>
+    ;; and <processed-expr>.
+    ;;
+    ;; The goal is to create a lambda where each
+    ;; consecutive _ is treated as a new argument
+    ;; -- unless there are no _s: then we do not
+    ;; create a lambda, but a plain expression.
+    ;;
+    ;; The nested "is" and "isnt" operators are treated
+    ;; specially, in that the _s within those operators are
+    ;; not extracted.
+    ;;
+    ;; Similarly, the _ isn't extracted from quoted forms,
+    ;; and is only extracted from quasi-quoted forms if
+    ;; it appears on unquoted positions.
+
+    ;; The support for quasiquote modifies the tuples
+    ;; to have the form
+    ;;
+    ;;   (<remaining-expr> <arg-list> <processed-expr> . qq*) +
+    ;;
+    ;; where qq* is a sequence of objects that expresses
+    ;; the nesting level of the 'quasiquote' operator
+    ;; (i.e. quasiquote inside quasiquote etc.)
+
+    ;; The macro consists of the following cases:
+    
+    ;; fin case with no _s
+    ((extract-_ fin (() () body))
+     (fin (infix/postfix . body)))
+
+    ;; fin case with some _s -- generate a lambda
+    ((extract-_ fin (() args body))
+     (lambda args
+       (with-compile-options
+	warn-unknown-member: #f
+	(fin (infix/postfix . body)))))
+
+    ;; treat 'is' and 'isnt' operators specially and
+    ;; don't touch their _s
+    ((extract-_ fin (((is . t) . rest) args (body ...)) . *)
+     (extract-_ fin (rest args (body ... (is . t))) . *))
+
+    ((extract-_ fin (((isnt . t) . rest) args (body ...)) . *)
+     (extract-_ fin (rest args (body ... (isnt . t))) . *))
+
+    ;; same with 'quote'
+    ((extract-_ fin (('literal . rest) args (body ...)) . *)
+     (extract-_ fin (rest args (body ... 'literal)) . *))
+
+    ;; when 'quasiquote' is encountered, we increase the
+    ;; level of quasiquotation (the length of the qq* sequence)
+    ((extract-_ fin
+		(((quasiquote x) . rest) args body . qq*) . *)
+     (extract-_ fin
+		((x) () (quasiquote) qq . qq*)
+		(rest args body) . *))
+
+    ;; on the other hand, for 'unquote' and
+    ;; 'unquote-splicing', we decrease the nesting level
+    ;; (i.e. we consume one element from the qq* sequence)
+    ((extract-_ fin
+		(((unquote x) . rest) args body qq . qq*) . *)
+     (extract-_ fin
+		((x) () (unquote) . qq*)
+		(rest args body qq . qq*) . *))
+
+    ((extract-_ fin
+		(((unquote-splicing x) . rest) args body
+		 qq . qq*) . *)
+     (extract-_ fin
+		((x) () (unquote-splicing) . qq*)
+		(rest args body qq . qq*) . *))
+
+    ;; push/unnest nested expression for processing
+    ((extract-_ fin (((h . t) . rest) args body . qq) . *)
+     (extract-_ fin ((h . t) () () . qq)
+		(rest args body . qq) . *))
+
+    ;; unquote in the tail position
+    ((extract-_ fin
+		((unquote x) args (body ...) qq . qq*) . *)
+     (extract-_ fin
+		((x) args (body ... unquote) . qq*) . *))
+    
+    ;; generate a new arg for the _ in the head position
+    ((extract-_ fin ((_ . rest) (args ...) (body ...)) . *)
+     (extract-_ fin (rest (args ... arg) (body ... arg)) . *))
+
+    ;; rewrite the term in the head position to the back
+    ;; of the processed terms
+    ((extract-_ fin ((term . rest) args (body ...) . qq) . *)
+     (extract-_ fin (rest args (body ... term) . qq) . *))
+
+    ;; _ in the tail position
+    ((extract-_ fin
+		(_ (args ...) (body ...) . qq)
+		(rest (args+ ...) (body+ ...) . qq+) . *)
+     (extract-_ fin
+		(rest (args+ ... args ... arg)
+		      (body+ ... (body ... . arg)) . qq+) . *))
+
+    ;; pop/nest back processed expression
+    ;; ('last' is an atom; most likely (), but can also
+    ;; be some value, e.g. in the case of assoc list literals)
+    ((extract-_ fin
+		(last (args ...) (body ...) . qq)
+		(rest (args+ ...) (body+ ...) . qq+) . *)
+     (extract-_ fin (rest (args+ ... args ...)
+			  (body+ ... (body ... . last))
+			  . qq+) . *))
+    ))
+
+(define-syntax-rule (identity-syntax form)
+  form)
+
+(define-syntax-rule (is . something)
+  (extract-_ identity-syntax (something () ())))
+
+(define-syntax-rule (isnt . something)
+  (extract-_ not (something () ())))
+
+#+END_SRC
+
+*** Control structures
+
+The Scheme language is known for its use of recursive
+functions and continuations to express iteration and
+other form of control structures.
+
+Unfortunately Kawa, being bound to the JVM, does not
+implement proper tail recursion in generale case and has a
+limited support for continuations. For this reason programs
+written in Kawa tend to utilize control structures known
+from more traditional languages.
+
+**** The ~while~ loop
+
+The ~while~ loop may not feel particularly needed in Scheme,
+because it is more idiomatic to just use the named-~let~
+construct. However, it is sometimes convenient to use it to
+rewrite some algorithms from more mainsteam languages.
+
+(Mind however, that I never use Scheme's ~do~ syntax, and I
+consider it to be evil and horrible, and that if you ever
+submit a pull-request containing a use of ~do~, I will most
+certainly reject it).
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-syntax-rule (while condition actions ...)
+  (let ()
+    (define (loop)
+      (when condition
+	actions ... (loop)))
+    (loop)))
+
+#+END_SRC
+
+**** Escaping
+
+If you're familiar with languages with control structures
+derived from C, such as C#, JavaScript, C++, PHP or Java,
+you know that it is possible to exit a ~while~ loop using
+the ~break~ statement - just like it is possible to exit
+from a function using the ~return~ statement.
+
+Scheme doesn't have that, but instead it has a construct
+known as ~call-with-current-continuation~, or ~call/cc~ for
+short. It is fun, because after a continuation has been
+captured, it can be passed around and invoked multiple
+times.
+
+Due to the limitations of the JVM Kawa doesn't have that.
+It does provide the ~call/cc~ function, but its capabilities
+are limited to breaking/returning, and the context cannot be
+reentered. (This type of continuations is sometimes called
+/escape continuations/).
+
+It makes it harder to write puzzling programs, which isn't
+necessarily a bad thing. The following ~escape-with~ macro
+arguably makes the intent slightly clearer (and it doesn't
+use the bad word /continuation/ which means nothing to
+anyone except a bunch of nerds):
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-syntax-rule (escape-with label . commands)
+  (call/cc (lambda (label) . commands)))
+
+#+END_SRC
+
+With that macro, we can introduce our own ~break~ statement
+(and name it however we like) and use it like this:
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(e.g.
+  (let ((x 0))
+    (escape-with break
+      (while #t
+        (set! x (+ x 1))
+        (when (is x >= 5)
+          (break)))
+    x) ===> 5)
+
+#+END_SRC
+
+**** Parallellism
+
+Before discussing the ~for~ loop, it's worth to say a few
+words about Kawa's approach to interfacing with threads.
+And it's pretty simple: Kawa provides a special form called
+~future~, which takes a single expression and starts
+evaluating it in a new thread, returning a promise.  In
+order to obtain the value of the expression (possibly
+waiting until it becomes available), one needs to invoke the
+~force~ operator on that promise (which is the same operator
+that is used in Scheme along with ~delay~ to implement lazy
+evaluation).
+
+So, if we have a few sub-programs that we want to run in
+parallel, we could define the following helper macro that
+blocks the current thread until all the sub-programs
+terminate:
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-syntax concurrently
+  (lambda (stx)
+    (syntax-case stx ()
+      ((concurrently actions ...)
+       (with-syntax (((futures ...)
+		      (generate-temporaries #'(actions ...))))
+	 #'(let ((futures (future actions)) ...)
+	     (force futures)
+	     ...))))))
+
+#+END_SRC
+
+The above macro is defined in terms of the ~syntax-case~
+macro system rather than ~syntax-rules~, because it is
+required to generate temporary identifiers using the
+~generate-temporaries~ funcion.
+
+**** The ~for~ loop
+
+The advantage of Kawa over most other Scheme implementations
+is its polymorphic behavior: functions such as ~map~ or
+~for-each~ can work on any sort of Java collections, not
+only on lists. So Kawa doesn't have to provide different
+versions of those functions, such as ~hash-for-each~,
+~vector-for-each~ etc.
+
+Yet the interface of the ~for-each~ function is somewhat
+cumbersome, requiring the user to provide a ~lambda~
+expression as its first argument.
+
+Which is why it can be more convenient to have a ~for~
+syntax that desugars to a ~for-each~ when iterating over
+a collection.
+
+Moreover, having such syntax creates an opportunity to
+provide different styles of iteration, including doing things
+in parallel, or iterating over a collection in reverse, or
+iterating over a range of numbers (without allocating array
+of numbers or creating coroutines):
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define (par-for-each function collection)
+  (let ((futures ::java.util.List
+		 (java.util.ArrayList)))
+    (for-each (lambda (x)
+		(futures:add (future (function x))))
+	      collection)
+    (for-each (lambda (f)
+		(force f))
+	      futures)
+    (futures:clear)))
+
+(define-syntax for
+  (syntax-rules (in from to below by
+		    in-reverse
+		    in-parallel ::)
+
+    ((_ var :: type in-reverse collection . actions)
+     (let ((it ::java.util.ListIterator (collection:listIterator
+					 (length collection))))
+       (while (it:hasPrevious)
+	 (let ((var ::type (it:previous)))
+	   . actions))))
+
+    ((_ var in-reverse collection . actions)
+     (let ((it ::java.util.ListIterator (collection:listIterator
+					 (length collection))))
+       (while (it:hasPrevious)
+	 (let ((var (it:previous)))
+	   . actions))))
+
+    ((_ var :: type in-parallel collection . actions)
+     (par-for-each (lambda (var :: type) . actions) collection))
+
+    ((_ var in-parallel collection . actions)
+     (par-for-each (lambda (var) . actions) collection))
+    
+    ((_ var :: type in collection . actions)
+     (for-each (lambda (var :: type) . actions) collection))
+
+    ((_ (vars ...) in collection . actions)
+     (for-each (lambda (var)
+		 (apply (lambda (vars ...) . actions) var))
+	       collection))
+    
+    ((_ var in collection . actions)
+     (for-each (lambda (var) . actions) collection))
+
+    ((_ var::type from start to end by increment actions ...)
+     (let loop ((var::type start))
+       (if (is var <= end)
+	   (begin
+	     actions ...
+	     (loop (+ var increment))))))
+    
+    ((_ var from start to end by increment actions ...)
+     (let loop ((var start))
+       (if (is var <= end)
+	   (begin
+	     actions ...
+	     (loop (+ var increment))))))
+
+    ((_ var::type from start below end by increment actions ...)
+     (let loop ((var start))
+       (if (is var < end)
+	   (begin
+	     actions ...
+	     (loop (+ var increment))))))
+    
+    ((_ var from start below end by increment actions ...)
+     (let loop ((var start))
+       (if (is var < end)
+	   (begin
+	     actions ...
+	     (loop (+ var increment))))))
+
+    ((_ var::type from start to end actions ...)
+     (let loop ((var start))
+       (if (is var <= end)
+	   (begin
+	     actions ...
+	     (loop (+ var 1))))))
+    
+    ((_ var from start to end actions ...)
+     (let loop ((var start))
+       (if (is var <= end)
+	   (begin
+	     actions ...
+	     (loop (+ var 1))))))
+
+    ((_ var::type from start below end actions ...)
+     (let loop ((var start))
+       (if (is var < end)
+	   (begin
+	     actions ...
+	     (loop (+ var 1))))))
+    
+    ((_ var from start below end actions ...)
+     (let loop ((var start))
+       (if (is var < end)
+	   (begin
+	     actions ...
+	     (loop (+ var 1))))))
+    ))
+#+END_SRC
+
+Note that in the above snippet, the ~::~ symbol appeared.
+It is used in Kawa for specifying types of variables. Kawa's
+reader treats the sequence of two consecutive colons as a
+separate token:
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(e.g.
+  (call-with-input-string "(a::b::c)" read)
+  ===> (a :: b :: c))
+
+(e.g.
+  (call-with-input-string "(:::::)" read)
+  ===> (:: :: :))
+
+#+END_SRC
+
+If you analyze this macro, you'll notice that there are
+always two variants of each clause -- one that includes
+the ~::type~ and one that omits it.
+
+*** Defining classes and interfaces
+
+
+**** The ~define-interface~ macro
+
+**** The ~define-object~ macro
+
+**** The ~define-type~ macro
+
+*** Pattern matching
+
+**** The ~match~ macro
+
+**** The ~and-let*~ macro
+
+*** Hash tables
+
+*** Sets
+
+*** Optional and keyword arguments
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+END_SRC
+
+
+* Emacs file-local variables
+
+This section contains some variables that are used by
+Emacs. To learn more, see
+[[https://www.gnu.org/software/emacs/manual/html_node/emacs/File-Variables.html]]
+
+# Local variables:
+# mode: org
+# fill-column: 60
+# indent-tabs-mode: nil
+# End:
