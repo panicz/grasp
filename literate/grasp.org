@@ -585,7 +585,7 @@ With that macro, we can introduce our own ~break~ statement
       (while #t
         (set! x (+ x 1))
         (when (is x >= 5)
-          (break)))
+          (break))))
     x) ===> 5)
 
 #+END_SRC
@@ -1207,6 +1207,118 @@ and values of all of its fields.
 
 In addition, we are going to allow the users of the macro
 to provide the /default values/ to some particular fields.
+
+We would like the record definitions to be used in the
+following way:
+
+#+BEGIN_SRC scheme :tangle no
+
+(define-type (TypeName field1-name: field1-type
+                       field2-name: field2-type := initializer
+                       ...)
+
+#+END_SRC
+
+Kawa reader treats symbols that end with a colon as /keywords/
+(that are typically used as named arguments to functions).
+
+Keywords are not a part of the standard Scheme, but they
+were described in the [[https://srfi.schemers.org/srfi-88/srfi-88.html][SRFI-88]] document and are fairly
+widespread among the practical Scheme implementations.
+
+But as we have seen before, the ~define-simple-class~ form
+requires slots to be named using symbols. Therefore we need
+a way to convert between symbols and keywords:
+
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define (keyword->symbol kw)
+  (string->symbol (keyword->string kw)))
+
+(define (symbol->keyword s)
+  (string->keyword (symbol->string s)))
+
+#+END_SRC
+
+Of course, in order to be able to call arbitrary Scheme
+functions during macro expansion, we need to resort to the
+~syntax-case~ macro system.
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-syntax-rule (define-type (type-name . fields))
+  (type-definition type-name fields #;slots () #;initializers (begin)))
+
+(define-syntax type-definition
+  (lambda (stx)
+    (syntax-case stx (:=)
+      ((_ type-name () ((slot-symbol . slot-spec) ...) (initializers ...))
+       #'(define-simple-class type-name (java.lang.Cloneable)
+           (slot-symbol . slot-spec)
+           ...
+           ((assign source ::type-name)::void
+            (set! slot-symbol (slot-ref source 'slot-symbol))
+            ...)
+
+           ((clone)::java.lang.Object
+            (let ((copy (type-name)))
+              (invoke copy 'assign (this))
+              copy))
+
+           ((toString)::java.lang.String
+            (string-append
+             "["(symbol->string 'type-name)
+             (string-append
+             " "(symbol->string 'slot-symbol)
+             ": "(call-with-output-string 
+                   (lambda (port) 
+                     (write slot-symbol port))))
+             ...
+             "]"))
+
+           ((equals another ::java.lang.Object)::boolean
+            (and (instance? another type-name)
+                 (let ((another ::type-name (as type-name another)))
+                    (and (equal? slot-symbol (slot-ref another 
+                                                       'slot-symbol))
+                         ...))))
+
+           ((hashCode)::int
+            (let ((hash ::int (invoke 'type-name 'hashCode)))
+              (set! hash (+ (* hash 31) (invoke slot-symbol 'hashCode)))
+              ...
+              hash))
+             
+           ((*init*)
+            (initializers ... (values)))
+          ))
+
+      ((_ type-name (slot-keyword slot-type := value . fields)
+	  (slot-definitions ...) (initializers ...))
+       (keyword? (syntax->datum #'slot-keyword))
+       (with-syntax ((slot-symbol
+		      (datum->syntax
+		       stx
+                       (keyword->symbol
+                        (syntax->datum #'slot-keyword)))))
+	 #'(type-definition type-name fields
+	    (slot-definitions ... (slot-symbol type: slot-type))
+	    (initializers ... (set! slot-symbol value)))))
+
+      ((_ type-name (slot-keyword slot-type . fields)
+        (slot-definitions ...) initializers)
+       (keyword? (syntax->datum #'slot-keyword))
+       (with-syntax ((slot-symbol (datum->syntax
+				   stx
+				   (keyword->symbol
+				    (syntax->datum #'slot-keyword)))))
+	 #'(type-definition type-name fields
+	    (slot-definitions ... (slot-symbol type: slot-type))
+	    initializers)))
+      )))
+
+#+END_SRC
 
 *** Pattern matching
 
