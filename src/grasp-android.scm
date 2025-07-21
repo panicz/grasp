@@ -315,22 +315,22 @@
   (define the-regular-text-font ::(parameter-of Font)
     (make-parameter
      (Font face: Yrsa-Regular
-	   size: 24)))
+	   size: 36)))
 
   (define the-bold-text-font ::(parameter-of Font)
     (make-parameter
      (Font face: Yrsa-Bold
-	   size: 24)))
+	   size: 36)))
 
   (define the-italic-text-font ::(parameter-of Font)
     (make-parameter
      (Font face: Yrsa-Italic
-	   size: 24)))
+	   size: 36)))
 
   (define the-bold-italic-text-font ::(parameter-of Font)
     (make-parameter
      (Font face: Yrsa-BoldItalic
-	   size: 24)))
+	   size: 36)))
   
   (define the-log-font ::(parameter-of Font)
     (make-parameter
@@ -802,21 +802,21 @@
   (define (precise-fill-circle! x0::real y0::real
 				r::real c::uint)
     ::void
-    (set-color! (bitwise-xor #xff000000 c))
+    (set-color! c)
     (canvas:drawCircle x0 y0 r paint))
 
   (define (precise-fill-rectangle! left::real top::real
 				   right::real bottom::real
 				   color::uint)
     ::void
-    (set-color! (bitwise-xor #xff000000 color))
+    (set-color! color)
     (canvas:drawRect left top right bottom paint))
   
   (define (precise-draw-line! px0::real py0::real
 			      px1::real py1::real
 			      color::uint)
     ::void
-    (set-color! (bitwise-xor #xff000000 color))
+    (set-color! color)
     (draw-thin-line! px0 py0 px1 py1))
   
   (define (draw-stroke! x0::real y0::real x1::real y1::real)
@@ -1497,10 +1497,12 @@
   (define (draw-styled-text! left::real top::real
 			     text::CharSequence style::TextDecoration)
     ::void
-    (let ((font ::Font (decorated-font style)))
+    (let ((font ::Font (decorated-font style))
+	  (mono ::Font (the-string-font)))
       (paint:setTypeface font:face)
       (paint:setTextSize font:size)
-      (canvas:drawText text left (+ top font:size) paint)))
+      (paint:setColor text-color)
+      (canvas:drawText text left (+ top mono:size) paint)))
 
   (define (draw-string! text::CharSequence context::Cursor)
     ::void
@@ -1658,7 +1660,7 @@
   (define atom-frame-color ::long #xffdddddd)
 
   (define (draw-atom! text::CharSequence context::Cursor)::void
-    (let* ((font (the-atom-font))
+    (let* ((font ::Font (the-atom-font))
 	   (extent ::Extent (text-extent text font)))
       (set-color! atom-frame-color)
       (canvas:drawRoundRect (as int 2) (as int 12)
@@ -2350,12 +2352,12 @@
 			   (import (editor interfaces painting))
 			   (import (editor interfaces elements))
 			   (set-painter! the-view))
-	(safely
-	 (eval expression)))
+	   (safely
+	     (eval expression)))
 
       (for expression in init-script
-	(safely
-	 (eval expression)))
+	   (safely
+	    (eval expression)))
       
       (screen:set-size! (span:width) (span:height)
 			(screen:resize-anchor (span:height)))
