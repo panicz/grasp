@@ -1320,29 +1320,524 @@ functions during macro expansion, we need to resort to the
 
 #+END_SRC
 
+Once a new type is defined, it can be instantiated by typing
+
+#+BEGIN_SRC scheme :tangle no
+
+(TypeName field1-name: field1-value
+          field2-name: field2-value
+                       ...)
+
+#+END_SRC
+
+This works largely because of the way Kawa treats keyword
+arguments in object constructors. To find out more, read the
+[[https://www.gnu.org/software/kawa/Allocating-objects.html][Allocating objects]] section of the Kawa reference manual.
+
+Of course, someone could ask why won't we (just) use the
+Scheme's ~define-record-type~ facility for, uhm, defining
+record types, to which we would respond:
+- which one? (R6RS and R7RS both come with incompatible
+  syntax)
+- because they all suck
+
 *** Pattern matching
+
+Pattern matching is a technique that allows to conditionally
+destrucutre compound data types and operate on their parts.
+
+Pioneered in functional languages, it has recently been
+paving its way into the mainstream languages.
+
+In Lisp and Scheme, pattern matching can be thought of as an
+operation that is the opposite of quasiquotation.
+
+But in our case, we would like to be able to destructure not
+only lists, but also records defined with our ~define-type~
+macro.
+
+During the process of pattern matching, a need for testing
+for object's equality is going to appear. Scheme programmers
+are familiar with a number of concepts of equality,
+including ~eq?~, ~eqv?~, ~equal?~, ~=~, ~string=?~ and so
+on. The we need to ask: which type of equality should we
+choose in our pattern matcher?
+
+One idea would be to introduce a parameter (like we did for
+the ~e.g.~ macro). But we will go with another one, namely:
+we'll introduce an interface called ~Matchable~ and a new
+predicate called ~match/equal?~:
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-interface Matchable ()
+  (matches? x)::boolean)
+
+(define (match/equal? a b)
+  (or (equal? a b)
+      (and (Matchable? a)
+	   (let ((a ::Matchable a))
+	     (a:matches? b)))))
+
+#+END_SRC
 
 **** The ~match~ macro
 
+The main interface of pattern matcher is the ~match~ macro,
+which is going to invoke a helper form, called
+~match/evaluated~, which in turn calls the ~match-clause~
+(which is the heart of our matcher). 
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-syntax match/evaluated
+  (syntax-rules (::)
+    ((match/evaluated value)
+     ;; This behavior is unspecified, and an "unspecified"
+     ;; value would also be fine here.
+     (error 'no-matching-pattern value))
+
+    ((match/evaluated value (pattern::type actions ...) final-clause)
+     (match-clause ((pattern::type value))
+                   (and)
+                   ()
+                   actions ...
+		   (with-compile-options
+		    warn-unreachable: #f
+                    (match/evaluated value final-clause))))
+    
+    ((match/evaluated value (pattern actions ...) final-clause)
+     (match-clause ((pattern value))
+                   (and)
+                   ()
+                   actions ...
+		   (with-compile-options
+		    warn-unreachable: #f		   
+                    (match/evaluated value final-clause))))
+    
+    ((match/evaluated value (pattern::type actions ...) . clauses)
+     (match-clause ((pattern::type value))
+                   (and)
+                   ()
+                   actions ...
+                   (match/evaluated value . clauses)))
+    
+    ((match/evaluated value (pattern actions ...) . clauses)
+     (match-clause ((pattern value))
+                   (and)
+                   ()
+                   actions ...
+                   (match/evaluated value . clauses)))
+    ))
+
+(define-syntax match-clause
+  (lambda (stx)
+    (syntax-case stx (quasiquote
+		      unquote quote unquote-splicing
+		      and _ list %typename :: $lookup$)
+      ((match-clause () condition bindings actions ... alternative)
+       #'(check/unique condition bindings #f () ()
+		       actions ... alternative))
+
+      ((match-clause (((list items ...) root) . rest)
+                     condition
+                     bindings
+                     actions ... alternative)
+       #'(match-clause ((`(,items ...) root) . rest)
+                       condition
+                       bindings
+                       actions ... alternative))
+
+      ((match-clause (((list items ... . last) root) . rest)
+                     condition
+                     bindings
+                     actions ... alternative)
+       #'(match-clause ((`(,items ... . ,last) root) . rest)
+                       condition
+                       bindings
+                       actions ... alternative))
+      
+      ((match-clause ((`,pattern::type root) . rest)
+                     condition
+                     bindings
+                     actions ... alternative)
+       #'(match-clause ((pattern::type root) . rest)
+                       condition
+                       bindings
+                       actions ... alternative))
+      
+      ((match-clause ((`,pattern root) . rest)
+                     condition
+                     bindings
+                     actions ... alternative)
+       #'(match-clause ((pattern root) . rest)
+                       condition
+                       bindings
+                       actions ... alternative))
+
+      ((match-clause ((,value::type root) . rest)
+                     (conditions ...)
+                     bindings
+                     actions ... alternative)
+       #'(match-clause rest
+                       (conditions
+			...
+			(instance? root type)
+			(match/equal? value root))
+                       bindings
+                       actions ... alternative))
+      
+      ((match-clause ((,value root) . rest)
+                     (conditions ...)
+                     bindings
+                     actions ... alternative)
+       #'(match-clause rest
+                       (conditions ... (match/equal? value root))
+                       bindings
+                       actions ... alternative))
+
+      ((match-clause ((,@predicate root) . rest)
+                     (conditions ...)
+                     bindings
+                     actions ... alternative)
+       #'(match-clause rest
+                       (conditions ... (predicate root))
+                       bindings
+                       actions ... alternative))
+      
+      ((match-clause ((_::type root) . rest)
+                     (conditions ...)
+                     bindings
+                     actions ... alternative)
+       #'(match-clause rest
+                       (conditions ... (instance? root type))
+                       bindings
+                       actions ... alternative))
+
+      ((match-clause ((_ root) . rest)
+                     condition
+                     bindings
+                     actions ... alternative)
+       #'(match-clause rest
+                       condition
+                       bindings
+                       actions ... alternative))
+
+      ((match-clause ((variable ::type root) . rest)
+                     (conditions ...)
+                     bindings
+                     actions ... alternative)
+       (identifier? #'variable)
+       #'(match-clause rest
+                       (conditions ... (instance? root type))
+                       ((variable ::type root) . bindings)
+                       actions ... alternative))
+      
+      ((match-clause ((variable root) . rest)
+                     condition
+                     bindings
+                     actions ... alternative)
+       (identifier? #'variable)
+       #'(match-clause rest
+                       condition
+                       ((variable root) . bindings)
+                       actions ... alternative))
+
+      ((match-clause (('datum root) . rest)
+                     (and conditions ...)
+                     bindings
+                     actions ... alternative)
+       #'(match-clause rest
+                       (and conditions ... (match/equal? root 'datum))
+                       bindings
+                       actions ... alternative))
+
+      ((match-clause ((object:key root) . rest)
+                     (and conditions ...)
+                     bindings
+                     actions ... alternative)
+       #'(match-clause rest
+                       (and conditions ... (match/equal? root
+							 object:key))
+                       bindings
+                       actions ... alternative))
+      
+      ((match-clause ((`(left::type . right) root) . rest)
+                     (and conditions ...)
+                     bindings
+                     actions ... alternative)
+       #'(match-clause ((`left::type (car root))
+			(`right (cdr root)) . rest)
+                       (and conditions ... (pair? root))
+                       bindings
+                       actions ... alternative))
+      
+      ((match-clause ((`(left . right) root) . rest)
+                     (and conditions ...)
+                     bindings
+                     actions ... alternative)
+       #'(match-clause ((`left (car root)) (`right (cdr root)) . rest)
+                       (and conditions ... (pair? root))
+                       bindings
+                       actions ... alternative))
+
+      ((match-clause ((`datum root) . rest)
+                     conditions
+                     bindings
+                     actions ... alternative)
+       #'(match-clause (('datum root) . rest)
+                        conditions
+                       bindings
+                       actions ... alternative))
+      
+      ((match-clause (((_ . fields) root) . rest)
+                     (and conditions ...)
+                     bindings
+                     actions ... alternative)
+       #'(match-clause (((%typename . fields) root) . rest)
+                       (and conditions ...)
+                       bindings
+                       actions ... alternative))
+      
+      ((match-clause (((%typename type) root) . rest)
+                     (and conditions ...)
+                     bindings
+                     actions ... alternative)
+       #'(match-clause rest
+                       (and conditions ...)
+                       bindings
+                       actions ... alternative))
+
+      ((match-clause (((%typename type key pat . etc) root) . rest)
+                     (and conditions ...)
+                     bindings
+                     actions ... alternative)
+       (and (keyword? (syntax->datum #'key))
+	    (identifier? #'type))
+       (with-syntax ((name (datum->syntax
+			    stx
+			    (keyword->symbol (syntax->datum #'key)))))
+	 #'(match-clause (((%typename type . etc) root)
+			  (pat (field (as type root) 'name)) . rest)
+			 (and conditions ...)
+			 bindings
+			 actions ... alternative)))
+
+      ((match-clause (((typename . fields) root) . rest)
+                     (and conditions ...)
+                     (bindings ...)
+                     actions ... alternative)
+       (and (identifier? #'typename) (identifier? #'root))
+       #'(match-clause (((%typename typename . fields) root) . rest)
+                       (and conditions ... (instance? root typename))
+                       (bindings ... (root ::typename root))
+                       actions ... alternative))
+
+      
+      ((match-clause (((typename . fields) root) . rest)
+                     (and conditions ...)
+                     bindings
+                     actions ... alternative)
+       (identifier? #'typename)
+       #'(match-clause (((%typename typename . fields) root) . rest)
+                       (and conditions ... (instance? root typename))
+                       bindings
+                       actions ... alternative))
+
+      ((match-clause ((literal root) . rest)
+                     (and conditions ...)
+                     bindings
+                     actions ...)
+       #'(match-clause rest
+                       (and conditions ... (match/equal? literal root))
+                       bindings
+                       actions ...))
+      )))
+
+#+END_SRC
+
+As we can see, the final rule of the ~match-clause~ macro
+invokes the ~check/unique~ macro, which checks whether all
+objects that are bound to the same identifier in the macro's
+pattern are ~match/equal?~ (the complexity of the test is
+quadratic, but since human-readable patterns are usually
+very small, this isn't a problem in practice):
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-syntax check/unique
+  (lambda (stx)
+    "add equality checks for repeated identifiers in patterns and remove them from bindings"
+    (syntax-case stx (and)
+      ((check/unique condition #;unchecked ()
+		     #;currently-checked #f
+		     #;checked ()
+		     #;final bindings actions ... alternative)
+       #'(if condition
+             (let bindings actions ...)
+             alternative))
+
+      ;; check the next binding from the list
+      ((check/unique condition
+                     ((variable type ... path) . bindings)
+                     #f
+                     bindings/checked
+                     bindings/final
+                     actions ... alternative)
+       #'(check/unique condition
+                       bindings
+                       (variable type ... path)
+                       bindings/checked
+                       bindings/final
+                       actions ... alternative))
+
+      ;; the binding is present: add equality check
+      ((check/unique (and conditions ...)
+                     ((variable type ... path) . bindings)
+                     (variable+ type+ ... path+)
+                     bindings/checked
+                     bindings/final
+                     actions ... alternative)
+       (bound-identifier=? #'variable #'variable+)
+       #'(check/unique (and conditions ... (match/equal? path path+))
+                       bindings
+                       (variable+ type+ ... path+)
+                       bindings/checked
+                       bindings/final
+                       actions ... alternative))
+      
+      ;; the binding is absent: go on
+      ((check/unique conditions
+                     ((variable type ... path) . bindings)
+                     (variable+ type+ ... path+)
+                     bindings/checked
+                     bindings/final
+                     actions ... alternative)
+       #'(check/unique conditions
+                       bindings
+                       (variable+ type+ ... path+)
+                       ((variable type ... path) . bindings/checked)
+                       bindings/final
+                       actions ... alternative))
+
+      ;; add binding to the "checked" list
+      ;; (and possibly start over)
+      ((check/unique conditions
+                     ()
+                     (variable type ... path)
+                     bindings/checked
+                     bindings/final
+                     actions ... alternative)
+       #'(check/unique conditions
+                       bindings/checked
+		       #f
+		       ()
+                       ((variable type ... path) . bindings/final)
+                       actions ... alternative))
+      )))
+
+#+END_SRC
+
 **** The ~and-let*~ macro
+
+One of the earliest SRFI documents is [[https://srfi.schemers.org/srfi-2/srfi-2.html][SRFI-2]] by Oleg
+Kiselyov, which introduces the ~and-let*~ macro. While its
+name isn't particularly appealing, it is very useful for
+practical programming.
+
+That being said, the presence of pattern matching and type
+annotations makes it even more useful. Therefore, we provide
+our own implementaiton of that macro, which provides exactly
+those features (and also supports multiple values):
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-syntax and-let*
+  (lambda (stx)
+    (syntax-case stx (::)
+
+      ((_)
+       #'#t)
+
+      ((_ ())
+       #'#t)
+
+      ((_ () . body)
+       #'(let () . body))
+
+      ((_ ((name binding) . rest) . body)
+       (identifier? #'name)
+       #'(let ((name binding))
+           (and name
+                (and-let* rest
+                  . body))))
+
+      ((_ ((name :: type binding) . rest) . body)
+       (identifier? #'name)
+       #'(let ((value binding))
+	   (and (instance? value type)
+		value
+		(let ((name ::type value))
+                  (and-let* rest
+		    . body)))))
+
+      ((_ ((name :: type) . rest) . body)
+       (identifier? #'name)
+       #'(and (instance? name type)
+	      name
+	      (let ((name ::type (as type name)))
+                (and-let* rest
+		  . body))))
+
+      ((_ ((value binding) . rest) . body)
+       #'(match binding
+           (value
+            (and-let* rest
+              . body))
+           (_ #f)))
+
+      ((_ ((condition) . rest) . body)
+       #'(and condition
+              (and-let* rest . body)))
+
+      ((_ ((value * ... expression) . rest) . body)
+       (identifier? #'value)
+       #'(call-with-values (lambda () expression)
+           (lambda args
+             (match args
+               (`(,value ,* ... . ,_)
+                (and value
+                     (and-let* rest . body)))
+               (_ #f)))))
+
+      ((_ ((value ... expression) . rest) . body)
+       #'(call-with-values (lambda () expression)
+           (lambda args
+             (match args
+               (`(,value ... . ,_)
+                (and-let* rest . body))
+               (_ #f)))))
+
+      )))
+
+#+END_SRC
 
 *** Hash tables/attributes
 
-*** Caching and currying
+*** Currying and caching
     
 *** Sets
 
 *** Optional and keyword arguments
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
-#+END_SRC
 
 
 * Emacs file-local variables
 
-This section contains some variables that are used by
-Emacs. To learn more, see
-[[https://www.gnu.org/software/emacs/manual/html_node/emacs/File-Variables.html]]
+This section contains some variables that are used
+internally by Emacs. They are not displayed in the rendered
+view.  To learn more, see the [[https://www.gnu.org/software/emacs/manual/html_node/emacs/File-Variables.html][File Variables]] section of the
+Emacs manual.
 
 # Local variables:
 # mode: org
