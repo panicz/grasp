@@ -43,6 +43,28 @@ usually most convenient to first construct a language suited
 for building that program - which is exactly what we're
 going to do here.
 
+***** Technical remarks
+
+Since R6RS the reader of the Scheme language became
+case-sensitive, which means that symbols ~foo~, ~Foo~
+and ~FOO~ are considered distinct.
+
+Kawa Scheme implements this properly. However, during
+compilation of a ~.scm~ file the Kawa compiler can generate
+many ~.class~ files, whose names are derived from the names
+of classes defined in the ~.scm~ file, as well as the name
+of the ~.scm~ file itself.
+
+This can cause trouble on case-insensitive file system
+(which in practice means mainly the machines running under
+the Windows operating system). For this reason it is
+discouraged to name files and classes with names that only
+differ with their case.
+
+(This restriction does not apply to names introduced by
+the ~lambda~ and ~let~ forms, i.e. function parameters
+and local variables.)
+
 *** Simple macros
 
 The code snippets from this chapter will be placed in the
@@ -192,12 +214,12 @@ examples)
     (lambda (expression result . expectation)
       (if (pair? expectation)
         (error "while evaluating\n\n  "
-	       expression
-	       "\n\nexpected:\n\n  "
-	       (car expectation)
-	       "\n\ngot:\n\n  "
-	       result)
-	(error "expected "expression" to be non-#false")))))
+               expression
+               "\n\nexpected:\n\n  "
+               (car expectation)
+               "\n\ngot:\n\n  "
+               result)
+        (error "expected "expression" to be non-#false")))))
 
 (define valid-example
   (make-parameter
@@ -234,8 +256,8 @@ so we'll use ~syntax-rules~ instead of ~define-syntax-rules~?
        (call-with-values (lambda () expression)
          (lambda results
            (if (equal? results '(value ...))
-	     ((valid-example) source results expectation)
-	     ((invalid-example) source results expectation))))))
+             ((valid-example) source results expectation)
+             ((invalid-example) source results expectation))))))
     ))
 
 #+END_SRC
@@ -368,12 +390,12 @@ programming in Scheme - it's OK to skip the analysis of the
     ((infix/postfix left related-to? right . likewise)
      (let ((right* right))
        (and (infix/postfix left related-to? right*)
-	    (infix/postfix right* . likewise))))))
+            (infix/postfix right* . likewise))))))
 
 (define-syntax extract-_
   (syntax-rules (_ is isnt quote
- 		   quasiquote unquote
-		   unquote-splicing)
+                    quasiquote unquote
+                   unquote-splicing)
     ;; ok, it's a bit rough, so it requires an explanation.
     ;; the macro operates on sequences of triples
     ;;
@@ -417,8 +439,8 @@ programming in Scheme - it's OK to skip the analysis of the
     ((extract-_ fin (() args body))
      (lambda args
        (with-compile-options
-	warn-unknown-member: #f
-	(fin (infix/postfix . body)))))
+        warn-unknown-member: #f
+        (fin (infix/postfix . body)))))
 
     ;; treat 'is' and 'isnt' operators specially and
     ;; don't touch their _s
@@ -435,37 +457,37 @@ programming in Scheme - it's OK to skip the analysis of the
     ;; when 'quasiquote' is encountered, we increase the
     ;; level of quasiquotation (the length of the qq* sequence)
     ((extract-_ fin
-		(((quasiquote x) . rest) args body . qq*) . *)
+                (((quasiquote x) . rest) args body . qq*) . *)
      (extract-_ fin
-		((x) () (quasiquote) qq . qq*)
-		(rest args body) . *))
+                ((x) () (quasiquote) qq . qq*)
+                (rest args body) . *))
 
     ;; on the other hand, for 'unquote' and
     ;; 'unquote-splicing', we decrease the nesting level
     ;; (i.e. we consume one element from the qq* sequence)
     ((extract-_ fin
-		(((unquote x) . rest) args body qq . qq*) . *)
+                (((unquote x) . rest) args body qq . qq*) . *)
      (extract-_ fin
-		((x) () (unquote) . qq*)
-		(rest args body qq . qq*) . *))
+                ((x) () (unquote) . qq*)
+                (rest args body qq . qq*) . *))
 
     ((extract-_ fin
-		(((unquote-splicing x) . rest) args body
-		 qq . qq*) . *)
+                (((unquote-splicing x) . rest) args body
+                 qq . qq*) . *)
      (extract-_ fin
-		((x) () (unquote-splicing) . qq*)
-		(rest args body qq . qq*) . *))
+                ((x) () (unquote-splicing) . qq*)
+                (rest args body qq . qq*) . *))
 
     ;; push/unnest nested expression for processing
     ((extract-_ fin (((h . t) . rest) args body . qq) . *)
      (extract-_ fin ((h . t) () () . qq)
-		(rest args body . qq) . *))
+                (rest args body . qq) . *))
 
     ;; unquote in the tail position
     ((extract-_ fin
-		((unquote x) args (body ...) qq . qq*) . *)
+                ((unquote x) args (body ...) qq . qq*) . *)
      (extract-_ fin
-		((x) args (body ... unquote) . qq*) . *))
+                ((x) args (body ... unquote) . qq*) . *))
     
     ;; generate a new arg for the _ in the head position
     ((extract-_ fin ((_ . rest) (args ...) (body ...)) . *)
@@ -478,21 +500,21 @@ programming in Scheme - it's OK to skip the analysis of the
 
     ;; _ in the tail position
     ((extract-_ fin
-		(_ (args ...) (body ...) . qq)
-		(rest (args+ ...) (body+ ...) . qq+) . *)
+                (_ (args ...) (body ...) . qq)
+                (rest (args+ ...) (body+ ...) . qq+) . *)
      (extract-_ fin
-		(rest (args+ ... args ... arg)
-		      (body+ ... (body ... . arg)) . qq+) . *))
+                (rest (args+ ... args ... arg)
+                      (body+ ... (body ... . arg)) . qq+) . *))
 
     ;; pop/nest back processed expression
     ;; ('last' is an atom; most likely (), but can also
     ;; be some value, e.g. in the case of assoc list literals)
     ((extract-_ fin
-		(last (args ...) (body ...) . qq)
-		(rest (args+ ...) (body+ ...) . qq+) . *)
+                (last (args ...) (body ...) . qq)
+                (rest (args+ ...) (body+ ...) . qq+) . *)
      (extract-_ fin (rest (args+ ... args ...)
-			  (body+ ... (body ... . last))
-			  . qq+) . *))
+                          (body+ ... (body ... . last))
+                          . qq+) . *))
     ))
 
 (define-syntax-rule (identity-syntax form)
@@ -536,7 +558,7 @@ certainly reject it).
   (let ()
     (define (loop)
       (when condition
-	actions ... (loop)))
+        actions ... (loop)))
     (loop)))
 
 #+END_SRC
@@ -615,10 +637,10 @@ terminate:
     (syntax-case stx ()
       ((concurrently actions ...)
        (with-syntax (((futures ...)
-		      (generate-temporaries #'(actions ...))))
-	 #'(let ((futures (future actions)) ...)
-	     (force futures)
-	     ...))))))
+                      (generate-temporaries #'(actions ...))))
+         #'(let ((futures (future actions)) ...)
+             (force futures)
+             ...))))))
 
 #+END_SRC
 
@@ -654,33 +676,33 @@ of numbers or creating coroutines):
 
 (define (par-for-each function collection)
   (let ((futures ::java.util.List
-		 (java.util.ArrayList)))
+                 (java.util.ArrayList)))
     (for-each (lambda (x)
-		(futures:add (future (function x))))
-	      collection)
+                (futures:add (future (function x))))
+              collection)
     (for-each (lambda (f)
-		(force f))
-	      futures)
+                (force f))
+              futures)
     (futures:clear)))
 
 (define-syntax for
   (syntax-rules (in from to below by
-		    in-reverse
-		    in-parallel ::)
+                    in-reverse
+                    in-parallel ::)
 
     ((_ var :: type in-reverse collection . actions)
      (let ((it ::java.util.ListIterator (collection:listIterator
-					 (length collection))))
+                                         (length collection))))
        (while (it:hasPrevious)
-	 (let ((var ::type (it:previous)))
-	   . actions))))
+         (let ((var ::type (it:previous)))
+           . actions))))
 
     ((_ var in-reverse collection . actions)
      (let ((it ::java.util.ListIterator (collection:listIterator
-					 (length collection))))
+                                         (length collection))))
        (while (it:hasPrevious)
-	 (let ((var (it:previous)))
-	   . actions))))
+         (let ((var (it:previous)))
+           . actions))))
 
     ((_ var :: type in-parallel collection . actions)
      (par-for-each (lambda (var :: type) . actions) collection))
@@ -693,8 +715,8 @@ of numbers or creating coroutines):
 
     ((_ (vars ...) in collection . actions)
      (for-each (lambda (var)
-		 (apply (lambda (vars ...) . actions) var))
-	       collection))
+                 (apply (lambda (vars ...) . actions) var))
+               collection))
     
     ((_ var in collection . actions)
      (for-each (lambda (var) . actions) collection))
@@ -702,58 +724,58 @@ of numbers or creating coroutines):
     ((_ var::type from start to end by increment actions ...)
      (let loop ((var::type start))
        (if (is var <= end)
-	   (begin
-	     actions ...
-	     (loop (+ var increment))))))
+           (begin
+             actions ...
+             (loop (+ var increment))))))
     
     ((_ var from start to end by increment actions ...)
      (let loop ((var start))
        (if (is var <= end)
-	   (begin
-	     actions ...
-	     (loop (+ var increment))))))
+           (begin
+             actions ...
+             (loop (+ var increment))))))
 
     ((_ var::type from start below end by increment actions ...)
      (let loop ((var start))
        (if (is var < end)
-	   (begin
-	     actions ...
-	     (loop (+ var increment))))))
+           (begin
+             actions ...
+             (loop (+ var increment))))))
     
     ((_ var from start below end by increment actions ...)
      (let loop ((var start))
        (if (is var < end)
-	   (begin
-	     actions ...
-	     (loop (+ var increment))))))
+           (begin
+             actions ...
+             (loop (+ var increment))))))
 
     ((_ var::type from start to end actions ...)
      (let loop ((var start))
        (if (is var <= end)
-	   (begin
-	     actions ...
-	     (loop (+ var 1))))))
+           (begin
+             actions ...
+             (loop (+ var 1))))))
     
     ((_ var from start to end actions ...)
      (let loop ((var start))
        (if (is var <= end)
-	   (begin
-	     actions ...
-	     (loop (+ var 1))))))
+           (begin
+             actions ...
+             (loop (+ var 1))))))
 
     ((_ var::type from start below end actions ...)
      (let loop ((var start))
        (if (is var < end)
-	   (begin
-	     actions ...
-	     (loop (+ var 1))))))
+           (begin
+             actions ...
+             (loop (+ var 1))))))
     
     ((_ var from start below end actions ...)
      (let loop ((var start))
        (if (is var < end)
-	   (begin
-	     actions ...
-	     (loop (+ var 1))))))
+           (begin
+             actions ...
+             (loop (+ var 1))))))
     ))
 #+END_SRC
 
@@ -892,282 +914,282 @@ the ~object-definition~ helper macro:
 (define-syntax object-definition
   (lambda (stx)
     (syntax-case stx (::
-		      define
-		      define-private
+                      define
+                      define-private
                       define-static)
       
       ((object-definition (object-name . args)
-			  (arg :: type . rest)
-			  supers
-			  (slots ...)
-			  methods
-			  (initializers ...)
-			  spec)
+                          (arg :: type . rest)
+                          supers
+                          (slots ...)
+                          methods
+                          (initializers ...)
+                          spec)
        #'(object-definition (object-name . args)
-			    rest
-			    supers
-			    (slots ... (arg :: type))
-			    methods
-			    (initializers
-			     ...
-			     (slot-set! (this) 'arg arg))
-			    spec))
+                            rest
+                            supers
+                            (slots ... (arg :: type))
+                            methods
+                            (initializers
+                             ...
+                             (slot-set! (this) 'arg arg))
+                            spec))
 
       ((object-definition (object-name . args)
-			  (arg . rest)
-			  supers
-			  (slots ...)
-			  methods
-			  (initializers ...)
-			  spec)
+                          (arg . rest)
+                          supers
+                          (slots ...)
+                          methods
+                          (initializers ...)
+                          spec)
        #'(object-definition (object-name . args)
-			    rest
-			    supers
-			    (slots ... (arg))
-			    methods
-			    (initializers
-			     ...
-			     (slot-set! (this) 'arg arg))
-			    spec))
+                            rest
+                            supers
+                            (slots ... (arg))
+                            methods
+                            (initializers
+                             ...
+                             (slot-set! (this) 'arg arg))
+                            spec))
 
       ((object-definition (object-name . args)
-			  rest
-			  supers
-			  (slots ...)
-			  methods
-			  (initializers ...)
-			  spec)
+                          rest
+                          supers
+                          (slots ...)
+                          methods
+                          (initializers ...)
+                          spec)
        (identifier? #'rest)
        #'(object-definition (object-name . args)
-			    ()
-			    supers
-			    (slots ... (rest::list))
-			    methods
-			    (initializers
-			     ...
-			     (slot-set! (this) 'rest rest))
-			    spec))
+                            ()
+                            supers
+                            (slots ... (rest::list))
+                            methods
+                            (initializers
+                             ...
+                             (slot-set! (this) 'rest rest))
+                            spec))
       
       ((object-definition (object-name . args)
-			  ()
-			  (supers ...)
-			  slots
-			  methods
-			  initializers
-			  (:: type . spec))
+                          ()
+                          (supers ...)
+                          slots
+                          methods
+                          initializers
+                          (:: type . spec))
        #'(object-definition (object-name . args)
-			    ()
-			    (supers ... type)
-			    slots
-			    methods
-			    initializers
-			    spec))
+                            ()
+                            (supers ... type)
+                            slots
+                            methods
+                            initializers
+                            spec))
 
       ((object-definition (object-name . args)
-			  ()
-			  supers
-			  slots
-			  (methods ...)
-			  initializers
-			  ((define-private (method . params)
-			     . body)
-			   . spec))
+                          ()
+                          supers
+                          slots
+                          (methods ...)
+                          initializers
+                          ((define-private (method . params)
+                             . body)
+                           . spec))
        #'(object-definition (object-name . args)
-			    ()
-			    supers
-			    slots
-			    (methods
-			     ...
-			     ((method . params)
-			      access: 'private . body))
-			    initializers
-			    spec))
+                            ()
+                            supers
+                            slots
+                            (methods
+                             ...
+                             ((method . params)
+                              access: 'private . body))
+                            initializers
+                            spec))
 
       ((object-definition (object-name . args)
-			  ()
-			  supers
-			  (slots ...)
-			  methods
-			  (initializers ...)
-			  ((define-private slot :: type value)
-			  . spec))
+                          ()
+                          supers
+                          (slots ...)
+                          methods
+                          (initializers ...)
+                          ((define-private slot :: type value)
+                          . spec))
        #'(object-definition (object-name . args)
-			    ()
-			    supers
-			    (slots ... (slot :: type access: 'private))
-			    (initializers 
+                            ()
+                            supers
+                            (slots ... (slot :: type access: 'private))
+                            (initializers 
                              ... 
                              (set! slot value))
-			    spec))
+                            spec))
 
       ((object-definition (object-name . args)
-			  ()
-			  supers
-			  slots
-			  (methods ...)
-			  initializers
-			  ((define-static (method . params)
-			     . body)
-			   . spec))
+                          ()
+                          supers
+                          slots
+                          (methods ...)
+                          initializers
+                          ((define-static (method . params)
+                             . body)
+                           . spec))
        #'(object-definition (object-name . args)
-			    ()
-			    supers
-			    slots
-			    (methods
-			     ...
-			     ((method . params)
-			      allocation: 'static . body))
-			    initializers
-			    spec))
+                            ()
+                            supers
+                            slots
+                            (methods
+                             ...
+                             ((method . params)
+                              allocation: 'static . body))
+                            initializers
+                            spec))
 
       ((object-definition (object-name . args)
-			  ()
-			  supers
-			  (slots ...)
-			  methods
-			  (initializers ...)
-			  ((define-static slot :: type value)
-			  . spec))
+                          ()
+                          supers
+                          (slots ...)
+                          methods
+                          (initializers ...)
+                          ((define-static slot :: type value)
+                          . spec))
        #'(object-definition (object-name . args)
-			    ()
-			    supers
-			    (slots ... (slot :: type allocation: 'static))
-			    (initializers 
+                            ()
+                            supers
+                            (slots ... (slot :: type allocation: 'static))
+                            (initializers 
                              ... 
                              (set! slot value))
-			    spec))
+                            spec))
 
       ((object-definition (object-name . args)
-			  ()
-			  supers
-			  slots
-			  (methods ...)
-			  initializers
-			  ((define (method . params) . body) . spec))
+                          ()
+                          supers
+                          slots
+                          (methods ...)
+                          initializers
+                          ((define (method . params) . body) . spec))
        #'(object-definition (object-name . args)
-			    ()
-			    supers
-			    slots
-			    (methods ... ((method . params) . body))
-			    initializers
-			    spec))
+                            ()
+                            supers
+                            slots
+                            (methods ... ((method . params) . body))
+                            initializers
+                            spec))
 
       ((object-definition (object-name . args)
-			  ()
-			  supers
-			  (slots ...)
-			  methods
-			  (initializers ...)
-			  ((define slot :: type value) . spec))
+                          ()
+                          supers
+                          (slots ...)
+                          methods
+                          (initializers ...)
+                          ((define slot :: type value) . spec))
        #'(object-definition (object-name . args)
-			    ()
-			    supers
-			    (slots
-			     ...
-			     (slot :: type))
-			    methods
-			    (initializers
-			     ...
-			     (set! slot value))
-			    spec))
+                            ()
+                            supers
+                            (slots
+                             ...
+                             (slot :: type))
+                            methods
+                            (initializers
+                             ...
+                             (set! slot value))
+                            spec))
 
       ((object-definition (object-name . args)
-			  ()
-			  supers
-			  (slots ...)
-			  methods
-			  initializers
-			  ((define slot :: type) . spec))
+                          ()
+                          supers
+                          (slots ...)
+                          methods
+                          initializers
+                          ((define slot :: type) . spec))
        #'(object-definition (object-name . args)
-			    ()
-			    supers
-			    (slots ... (slot :: type))
-			    methods
-			    initializers
-			    spec))
+                            ()
+                            supers
+                            (slots ... (slot :: type))
+                            methods
+                            initializers
+                            spec))
       
       ((object-definition (object-name . args)
-			  ()
-			  supers
-			  (slots ...)
-			  methods
-			  (initializers ...)
-			  ((define slot value) . spec))
+                          ()
+                          supers
+                          (slots ...)
+                          methods
+                          (initializers ...)
+                          ((define slot value) . spec))
        #'(object-definition (object-name . args)
-			    ()
-			    supers
-			    (slots ... (slot))
-			    methods
-			    (initializers
-			     ...
-			     (set! slot value))
-			    spec))
+                            ()
+                            supers
+                            (slots ... (slot))
+                            methods
+                            (initializers
+                             ...
+                             (set! slot value))
+                            spec))
 
       ((object-definition (object-name)
-			  ()
-			  (supers ...)
-			  (slots ...)
-			  (methods ...)
-			  ()
-			  ())
+                          ()
+                          (supers ...)
+                          (slots ...)
+                          (methods ...)
+                          ()
+                          ())
        #'(define-simple-class object-name (supers ...)
-	   slots ... methods ...))
+           slots ... methods ...))
 
       ((object-definition (object-name . args)
-			  ()
-			  (supers ...)
-			  slots
-			  (methods ...)
-			  (initializers ...)
-			  ())
+                          ()
+                          (supers ...)
+                          slots
+                          (methods ...)
+                          (initializers ...)
+                          ())
        #'(object-definition (object-name)
-			    ()
-			    (supers ...)
-			    slots
-			    (methods
-			     ...
-			     ((*init* . args)
-			      initializers ...))
-			    ()
-			    ()))
+                            ()
+                            (supers ...)
+                            slots
+                            (methods
+                             ...
+                             ((*init* . args)
+                              initializers ...))
+                            ()
+                            ()))
 
       ((object-definition (object-name . args)
-			  ()
-			  (supers ...)
-			  slots
-			  (methods ...)
-			  (initializers ...)
-			  ((super . args*) . init))
+                          ()
+                          (supers ...)
+                          slots
+                          (methods ...)
+                          (initializers ...)
+                          ((super . args*) . init))
        #'(object-definition (object-name)
-			    ()
-			    (supers ... super)
-			    slots
-			    (methods
-			     ...
-			     ((*init* . args)
-			      (invoke-special super (this)
-					      '*init*
-					      . args*)
-			      initializers ...
-			      . init))
-			    ()
-			    ()))
+                            ()
+                            (supers ... super)
+                            slots
+                            (methods
+                             ...
+                             ((*init* . args)
+                              (invoke-special super (this)
+                                              '*init*
+                                              . args*)
+                              initializers ...
+                              . init))
+                            ()
+                            ()))
       )))
 
 (define-syntax-rule (define-object (object-name . args) . spec)
   (object-definition (object-name . args)
-		     #;args
-		     args
-		     #;supers
-		     ()
-		     #;slots
-		     ()
-		     #;methods
-		     ()
-		     #;initializers
-		     ()
-		     #;spec
-		     spec))
+                     #;args
+                     args
+                     #;supers
+                     ()
+                     #;slots
+                     ()
+                     #;methods
+                     ()
+                     #;initializers
+                     ()
+                     #;spec
+                     spec))
 
 #+END_SRC
 
@@ -1295,28 +1317,76 @@ functions during macro expansion, we need to resort to the
           ))
 
       ((_ type-name (slot-keyword slot-type := value . fields)
-	  (slot-definitions ...) (initializers ...))
+          (slot-definitions ...) (initializers ...))
        (keyword? (syntax->datum #'slot-keyword))
        (with-syntax ((slot-symbol
-		      (datum->syntax
-		       stx
+                      (datum->syntax
+                       stx
                        (keyword->symbol
                         (syntax->datum #'slot-keyword)))))
-	 #'(type-definition type-name fields
-	    (slot-definitions ... (slot-symbol type: slot-type))
-	    (initializers ... (set! slot-symbol value)))))
+         #'(type-definition type-name fields
+            (slot-definitions ... (slot-symbol type: slot-type))
+            (initializers ... (set! slot-symbol value)))))
 
       ((_ type-name (slot-keyword slot-type . fields)
         (slot-definitions ...) initializers)
        (keyword? (syntax->datum #'slot-keyword))
        (with-syntax ((slot-symbol (datum->syntax
-				   stx
-				   (keyword->symbol
-				    (syntax->datum #'slot-keyword)))))
-	 #'(type-definition type-name fields
-	    (slot-definitions ... (slot-symbol type: slot-type))
-	    initializers)))
+                                   stx
+                                   (keyword->symbol
+                                    (syntax->datum #'slot-keyword)))))
+         #'(type-definition type-name fields
+            (slot-definitions ... (slot-symbol type: slot-type))
+            initializers)))
       )))
+
+#+END_SRC
+
+The above definition resorts to the ~copy~ procedure, which
+hasn't yet been defined. For certain reasons (that will
+hopefully become clearer later), the ~copy~ procedure is
+defined in the following way:
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define (clonable? object)::boolean
+  (or (instance? object java.lang.Cloneable)
+      (and (procedure? object)
+	   (procedure? (procedure-property object 'clone)))))
+
+(define (copy object)
+  (cond
+   ((instance? object java.util.WeakHashMap)
+    (let* ((hash-map ::java.util.WeakHashMap object)
+	   (cloned ::java.util.WeakHashMap
+		   (java.util.WeakHashMap)))
+      (for key in (hash-map:keySet)
+	(let ((value (hash-map:get key)))
+	  (cloned:put key value)))
+      cloned))
+   
+   ((instance? object java.lang.Cloneable)
+    (with-compile-options
+     warn-unknown-member: #f
+     (let ((clonable ::java.lang.Cloneable object))
+       (clonable:clone))))
+   
+   ((procedure? object)
+    (let ((clone (procedure-property object 'clone)))
+      (if (procedure? clone)
+	  (clone)
+	  (error "Unable to clone procedure "object))))
+   
+   ((pair? object)
+    (cons (copy (car object)) (copy (cdr object))))
+
+   ((or (null? object)
+	(number? object)
+	(boolean? object))
+    object)
+   
+   (else
+    (error "Unable to clone "object" "(object:getClass)))))
 
 #+END_SRC
 
@@ -1376,8 +1446,8 @@ predicate called ~match/equal?~:
 (define (match/equal? a b)
   (or (equal? a b)
       (and (Matchable? a)
-	   (let ((a ::Matchable a))
-	     (a:matches? b)))))
+           (let ((a ::Matchable a))
+             (a:matches? b)))))
 
 #+END_SRC
 
@@ -1389,6 +1459,10 @@ which is going to invoke a helper form, called
 (which is the heart of our matcher). 
 
 #+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-syntax-rule (match expression (pattern actions* ... value) ...)
+  (let ((evaluated expression))
+    (match/evaluated evaluated (pattern actions* ... value) ...)))
 
 (define-syntax match/evaluated
   (syntax-rules (::)
@@ -1402,8 +1476,8 @@ which is going to invoke a helper form, called
                    (and)
                    ()
                    actions ...
-		   (with-compile-options
-		    warn-unreachable: #f
+                   (with-compile-options
+                    warn-unreachable: #f
                     (match/evaluated value final-clause))))
     
     ((match/evaluated value (pattern actions ...) final-clause)
@@ -1411,8 +1485,8 @@ which is going to invoke a helper form, called
                    (and)
                    ()
                    actions ...
-		   (with-compile-options
-		    warn-unreachable: #f		   
+                   (with-compile-options
+                    warn-unreachable: #f                   
                     (match/evaluated value final-clause))))
     
     ((match/evaluated value (pattern::type actions ...) . clauses)
@@ -1433,11 +1507,11 @@ which is going to invoke a helper form, called
 (define-syntax match-clause
   (lambda (stx)
     (syntax-case stx (quasiquote
-		      unquote quote unquote-splicing
-		      and _ list %typename :: $lookup$)
+                      unquote quote unquote-splicing
+                      and _ list %typename :: $lookup$)
       ((match-clause () condition bindings actions ... alternative)
        #'(check/unique condition bindings #f () ()
-		       actions ... alternative))
+                       actions ... alternative))
 
       ((match-clause (((list items ...) root) . rest)
                      condition
@@ -1481,9 +1555,9 @@ which is going to invoke a helper form, called
                      actions ... alternative)
        #'(match-clause rest
                        (conditions
-			...
-			(instance? root type)
-			(match/equal? value root))
+                        ...
+                        (instance? root type)
+                        (match/equal? value root))
                        bindings
                        actions ... alternative))
       
@@ -1558,7 +1632,7 @@ which is going to invoke a helper form, called
                      actions ... alternative)
        #'(match-clause rest
                        (and conditions ... (match/equal? root
-							 object:key))
+                                                         object:key))
                        bindings
                        actions ... alternative))
       
@@ -1567,7 +1641,7 @@ which is going to invoke a helper form, called
                      bindings
                      actions ... alternative)
        #'(match-clause ((`left::type (car root))
-			(`right (cdr root)) . rest)
+                        (`right (cdr root)) . rest)
                        (and conditions ... (pair? root))
                        bindings
                        actions ... alternative))
@@ -1613,15 +1687,15 @@ which is going to invoke a helper form, called
                      bindings
                      actions ... alternative)
        (and (keyword? (syntax->datum #'key))
-	    (identifier? #'type))
+            (identifier? #'type))
        (with-syntax ((name (datum->syntax
-			    stx
-			    (keyword->symbol (syntax->datum #'key)))))
-	 #'(match-clause (((%typename type . etc) root)
-			  (pat (field (as type root) 'name)) . rest)
-			 (and conditions ...)
-			 bindings
-			 actions ... alternative)))
+                            stx
+                            (keyword->symbol (syntax->datum #'key)))))
+         #'(match-clause (((%typename type . etc) root)
+                          (pat (field (as type root) 'name)) . rest)
+                         (and conditions ...)
+                         bindings
+                         actions ... alternative)))
 
       ((match-clause (((typename . fields) root) . rest)
                      (and conditions ...)
@@ -1670,9 +1744,9 @@ very small, this isn't a problem in practice):
     "add equality checks for repeated identifiers in patterns and remove them from bindings"
     (syntax-case stx (and)
       ((check/unique condition #;unchecked ()
-		     #;currently-checked #f
-		     #;checked ()
-		     #;final bindings actions ... alternative)
+                     #;currently-checked #f
+                     #;checked ()
+                     #;final bindings actions ... alternative)
        #'(if condition
              (let bindings actions ...)
              alternative))
@@ -1730,8 +1804,8 @@ very small, this isn't a problem in practice):
                      actions ... alternative)
        #'(check/unique conditions
                        bindings/checked
-		       #f
-		       ()
+                       #f
+                       ()
                        ((variable type ... path) . bindings/final)
                        actions ... alternative))
       )))
@@ -1775,19 +1849,19 @@ those features (and also supports multiple values):
       ((_ ((name :: type binding) . rest) . body)
        (identifier? #'name)
        #'(let ((value binding))
-	   (and (instance? value type)
-		value
-		(let ((name ::type value))
+           (and (instance? value type)
+                value
+                (let ((name ::type value))
                   (and-let* rest
-		    . body)))))
+                    . body)))))
 
       ((_ ((name :: type) . rest) . body)
        (identifier? #'name)
        #'(and (instance? name type)
-	      name
-	      (let ((name ::type (as type name)))
+              name
+              (let ((name ::type (as type name)))
                 (and-let* rest
-		  . body))))
+                  . body))))
 
       ((_ ((value binding) . rest) . body)
        #'(match binding
@@ -1822,14 +1896,1473 @@ those features (and also supports multiple values):
 
 #+END_SRC
 
-*** Hash tables/attributes
+**** The ~match-let*~ macro
 
-*** Currying and caching
-    
-*** Sets
+Ideally, we'd like to have pattern matching available in all
+core binding forms, such as ~lambda~, ~let~ or ~let*~, the
+way it has been done for Guile in [[https://github.com/plande/grand-scheme][The Grand Scheme Glossary]],
+and the way it has been described in [[https://srfi.schemers.org/srfi-201/srfi-201.html][SRFI-201]].
+
+Unfortunately, this seems impossible without patching Kawa.
+So instead we are just going to provide the =match-let*= syntax.
+
+#+BEGIN_SRC  scheme :tangle language/extensions.scm
+
+(define-syntax match-let*
+  (lambda (stx)
+    (syntax-case stx ()
+      ((_ ((pattern value) . rest) . body)
+       (identifier? #'pattern)
+       #'(let ((pattern value))
+           (match-let* rest . body)))
+      
+      ((_ ((pattern::type value) . rest) . body)
+       #'(match value
+           (pattern
+            (match-let* rest . body))
+           (_
+            (error "Value failed to match pattern: "'value 'pattern))))
+      
+      ((_ ((pattern value) . rest) . body)
+       #'(match value
+           (pattern
+            (match-let* rest . body))
+           (_
+            (error "Value failed to match pattern: "'value 'pattern))))
+      ((_ () . body)
+       #'(let () . body)))))
+
+#+END_SRC
 
 *** Optional and keyword arguments
 
+Kawa provides syntax for optional and keyword arguments in
+the style similar to Common Lisp and DSSSL: it allows 3
+/special keywords/ inside of ~lambda~ parameter list, namely
+~#!optional~, ~#!key~ and ~#!rest~.
+
+On the other hand, in the above type definition, we only
+used one special symbol, namely ~:=~, for assigning default
+value to type constructors.
+
+Consider a function that we'd want to use in the following
+way:
+
+#+BEGIN_SRC scheme :tangle no
+
+(copy! data from: source to: destination)
+
+#+END_SRC
+
+If we wanted to define a function to be usable in that way,
+we'd have to write it as something like this:
+
+#+BEGIN_SRC scheme :tangle no
+
+(define (copy! data #!key (from default-source) (to default-target))
+  ...)
+
+#+END_SRC
+
+which isn't nice, because it break the symmetry between
+function's definition and its usage. Moreover, if we want
+our keywords to be prepositions, we need to use them as
+argument names, which is awkward.
+
+It would be more desirable to be able to write that
+definition as
+
+#+BEGIN_SRC scheme :tangle no
+
+(define (copy! data from: source := default-source 
+                    to: destination := default-target)
+  ...)
+
+#+END_SRC
+
+Unfortunately, unlike some other Scheme implementations,
+Kawa does not allow us to override its core forms.
+
+For this reason, we're going to introduce two new special
+forms, namely ~lambda*~ and ~define*~, that will enable the
+improved syntax. It will also allow to perform destructuring
+of its arguments.
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-syntax lambda*
+  (lambda (stx)
+    (syntax-case stx ()
+      ((_ args . body)
+       (identifier? #'args)
+       #'(lambda args . body))
+
+      ((_ args . body)
+       #'(%lambda* args #;req () #;opt () #;kw ()
+                     #;destruct () body)))))
+
+(define-syntax %lambda*
+  (lambda (stx)
+    (syntax-case stx (:= ::)
+            
+      ((_ () (req ...) (opt ...) (kw ...) (pat ...) (:: type . body))
+       #'(lambda (req ... #!optional opt ... #!key kw ...) :: type
+            (match-let* (pat ...) . body)))
+      
+      ((_ tail (req ...) (opt ...) (kw ...) (pat ...) (:: type . body))
+       (identifier? #'tail)
+       #'(lambda (req ... #!optional opt ... #!key kw ... #!rest tail) :: type
+            (match-let* (pat ...) . body)))
+
+      ((_ () (req ...) (opt ...) (kw ...) (pat ...) body)
+       #'(lambda (req ... #!optional opt ... #!key kw ...)
+           (match-let* (pat ...) . body)))
+      
+      ((_ tail (req ...) (opt ...) (kw ...) (pat ...) body)
+       (identifier? #'tail)
+       #'(lambda (req ... #!optional opt ... #!key kw ... #!rest tail)
+           (match-let* (pat ...) . body)))
+      
+      ;; keyword arguments:
+      
+      ((_ (key pattern :: type := init . rest) req opt (kw ...) (pat ...) body)
+       (keyword? (syntax->datum #'key))
+
+       (with-syntax ((sym (datum->syntax stx
+                            (keyword->symbol
+                             (syntax->datum #'key)))))
+         #'(%lambda* rest req opt (kw ... (sym :: type init))
+                       (pat ... (pattern sym)) body)))
+
+      ((_ (key pattern :: type . rest) req opt (kw ...) (pat ...) body)
+       (keyword? (syntax->datum #'key))
+       (with-syntax ((sym (datum->syntax stx
+                            (keyword->symbol
+                             (syntax->datum #'key)))))
+         #'(%lambda* rest req opt (kw ... (sym :: type #!null))
+                       (pat ... (pattern sym)) body)))
+      
+      ((_ (key pattern := init . rest) req opt (kw ...) (pat ...) body)
+       (keyword? (syntax->datum #'key))
+       (with-syntax ((sym (datum->syntax stx
+                            (keyword->symbol
+                             (syntax->datum #'key)))))
+         #'(%lambda* rest req opt (kw ... (sym init))
+                       (pat ... (pattern sym)) body)))
+
+      ((_ (key pattern . rest) req opt (kw ...) (pat ...) body)
+       (keyword? (syntax->datum #'key))
+       (with-syntax ((sym (datum->syntax stx
+                            (keyword->symbol
+                             (syntax->datum #'key)))))
+         #'(%lambda* rest req opt (kw ... (sym))
+                       (pat ... (pattern sym)) body)))
+
+      ;; optional arguments:
+      
+      ((_ (var :: type := init . rest) req (opt ...) kw pat body)
+       (identifier? #'var)
+       #'(%lambda* rest req (opt ... (var :: type init)) kw pat body))
+
+      ((_ (pattern :: type := init . rest) req (opt ...) kw (pat ...) body)
+       #'(%lambda* rest req (opt ... (var :: type init)) kw
+                     (pat ... (pattern var)) body))
+
+      ((_ (var := init . rest) req (opt ...) kw pat body)
+       (identifier? #'var)
+       #'(%lambda* rest req (opt ... (var init)) kw pat body))
+
+      ((_ (pattern := init . rest) req (opt ...) kw (pat ...) body)
+       #'(%lambda* rest req (opt ... (var init)) kw
+                     (pat ... (pattern var)) body))
+
+      ;; required arguments:
+      
+      ((_ (var :: type . rest) (req ...) opt kw pat body)
+       (identifier? #'var)
+       #'(%lambda* rest (req ... var :: type) opt kw pat body))
+
+      ((_ (var . rest) (req ...) opt kw pat body)
+       (identifier? #'var)
+       #'(%lambda* rest (req ... var) opt kw pat body))
+
+      ((_ (pattern . rest) (req ...) opt kw (pat ...) body)
+       #'(%lambda* rest (req ... var) opt kw
+                     (pat ... (pattern var)) body))
+      
+      )))
+
+
+(define-syntax define*
+  (syntax-rules (is ::)
+    ((_ (is arg special?) . body)
+     (define* (special? arg) . body))
+
+    ((_ (is arg-1 related-to? arg-2) . body)
+     (define* (related-to? arg-1 arg-2) . body))
+
+    ((_ ((head . tail) . args) . body)
+     (define* (head . tail) (lambda* args . body)))
+
+    ((_ (name . args) . body)
+     (define name (lambda* args . body)))
+    
+    ))
+
+#+END_SRC
+
+
+*** Hash tables, mappings and attributes
+
+#+BEGIN_QUOTE
+    Associative arrays are THE most useful single 
+    data structure. Period.
+
+    -- Brian W. Kernighan
+#+END_QUOTE
+
+It is widely known the name /LISP/ stands for /LISt
+Processing/, and that singly linked lists are the data
+structure best integrated with that language.
+
+And although all dialects of Lisp in widespread use provide
+some support for hash tables, this support usually feels at
+best second class. (One exception to this is Clojure, which
+comes with an excellent implementation of immutable hash
+tables that are tightly integrated with the language. But
+GRASP isn't written in Clojure.)
+
+Because of this, Lisp programmers often use associative
+arrays for associating keys with valuse, which is quite
+lame with its linear search complexity.
+
+The terms /hash table/ and /associative array/ both point to
+certain implementation details of the data structure under
+discussion. Even the traditional names of Scheme functions
+used for dealing with that data structure, such as
+~hash-set!~ or ~hash-table-ref~ underline this fact, which
+is mostly irrelevant from the point of view of people who
+read and write programs.
+
+In a sense, a hash table is just a function, which
+associates a set of keys with corresponding values. What may
+seem slightly awkward, is that this function can be mutable.
+
+Therefore, we should use a regular function invocation
+syntax for accessing a /hash table/, and it would also be
+desirable to use Scheme's regular assingment (~set!~)
+operator for assigning a particular value to a function at a
+particular point.
+
+This can be achieved using [[https://srfi.schemers.org/srfi-17/srfi-17.html][SRFI-17: Generalized ~set!~]],
+which has been proposed by Per Bothner, who also happens
+to be the creator of Kawa.
+
+Instead of using a technical name such as /hash table/,
+we are going to use a more semantic name, i.e. ~mapping~.
+
+We wish to use it in the following way:
+
+#+BEGIN_SRC scheme :tangle no
+(define-mapping (name key::key-type)::value-type
+  default-expression)
+#+END_SRC
+
+where ~default-expression~ is an arbitrary Scheme
+expression, so it can either provide some default value,
+some actual mapping, or throw an error for an unassigned
+key.
+
+Therefore, we could define a function that computes
+a /Fibonacci/ sequence in the following way:
+
+#+BEGIN_SRC scheme :tangle no
+
+(define-mapping (fib n::integer)::integer
+  (+ (fib (- n 1)) (fib (- n 2))))
+
+(set! (fib 0) 1)
+(set! (fib 1) 1)
+
+#+END_SRC
+
+**** Procedure properties
+
+Kawa Scheme provides a mechanism similar to the Lisp's
+/property lists/, but instead of associating properties with
+symbols, it associates them with procedures. Hence they are
+called /procedure properties/, and they are accessed using
+the ~(procedure-property <procedure> <symbol>)~ procedure,
+and modified using the ~(set-procedure-property! <procedure>
+<symbol> <value>)~. An entire list of all defined procedure
+properties can be accessed using the ~(procedure-properties
+<procedure>)~ function. See the [[https://www.gnu.org/software/kawa/Procedure-properties.html][Procedure properties]] section
+of the Kawa manual for more information.
+
+Since this interface is somewhat clumsy, it is convenient
+to define the following macro for augmenting a procedure
+with properties:
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-syntax-rule (with-procedure-properties ((name value) ...)
+                       procedure)
+  (let ((proc procedure))
+    (set-procedure-property! proc 'name value)
+    ...
+    proc))
+
+#+END_SRC
+
+**** The ~mapping~ and ~define-mapping~ macros
+
+Here's the definition of the ~mapping~ and ~define-mapping~ macros:
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-syntax mapping
+  (syntax-rules (::)
+    ((mapping (object::key-type)::value-type default)
+     (let* ((entries ($bracket-apply$ java.util.HashMap key-type value-type))
+            (getter (lambda (object::key-type)::value-type
+                      (if (entries:containsKey object)
+                          (entries:get object)
+                          default))))
+       (set! (setter getter) (lambda (arg value)
+                               (entries:put arg value)))
+       (with-procedure-properties ((table enties))
+          getter)))
+
+    ((mapping (object::key-type) default)
+     (mapping (object::key-type)::java.lang.Object
+               default))
+
+    ((mapping (object)::value-type default)
+     (mapping (object::java.lang.Object)::value-type
+               default))
+
+    ((mapping (object) default)
+     (mapping (object::java.lang.Object)::java.lang.Object
+              default))
+    ))
+
+#+END_SRC
+
+Note the use of ~$bracket-apply$~. Kawa has a limited
+support for Java's generic types (see the section
+[[https://www.gnu.org/software/kawa/Parameterized-Types.html][Parameterized Types]] in Kawa manual), and the counterpart of
+Java's ~java.util.Map<KeyType, ValueType>~ in Kawa is
+~java.util.Map[KeyType ValueType]~, which Kawa's reader
+reads as ~($bracket-apply$ java.util.map KeyType
+ValueType)~:
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+  (e.g.
+    (call-with-input-string "java.util.Map[KeyType ValueType]" read)
+  ===> ($bracket-apply$ java.util.Map KeyType ValueType))
+
+#+END_SRC
+
+Since GRASP does not support some of Kawa's reader
+extensions, including the one above, we are not using it in
+GRASP's source code in order to make it editable in GRASP.
+
+Once ~mapping~ is defined, defining ~define-mapping~ is
+fairly straightforward. The main difficulty is that we need
+to account for users omitting key and value type specifier:
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-syntax define-mapping
+  (syntax-rules (::)
+    ((define-mapping (mapping-name object::key-type)::value-type
+       default)
+     (define-early-constant mapping-name
+       (with-procedure-properties ((name 'mapping-name))
+         (mapping (object::key-type)::value-type default))))
+
+    ((define-mapping (mapping-name object::key-type) default)
+     (define-mapping (mapping-name object::key-type)
+       ::java.lang.Object
+       default))
+
+    ((define-mapping (mapping-name object)::value-type default)
+     (define-mapping (mapping-name object::java.lang.Object)
+       ::value-type
+       default))
+
+    ((define-mapping (mapping-name object) default)
+     (define-mapping (mapping-name object::java.lang.Object)
+       ::java.lang.Object
+       default))
+    ))
+
+#+END_SRC
+
+Mind however, that associating keys with values isn't the
+only capability of a hash table: it is a collection, which
+means that we iterate over its elements. In our case, we can
+obtain an iterable set of (assigned) keys of mapping by using
+the ~keys~ function:
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define (keys dict)
+  (let ((table ::java.util.Map (procedure-property dict 'table)))
+    (table:keySet)))
+
+#+END_SRC
+
+**** Inverse functions and two-directional mapping
+
+Sometimes the need emerges to define a /bidirectional mapping/,
+i.e. a pair of dictionaries, such that the keys of the first one
+are the values of the second, and vice-versa.
+
+In such cases, one mapping is an /inverse/ of another.
+
+The concept of an /inverse function/ is commonly used in
+mathematics, but automatic derivation of inverse functions
+from function definitions can generally be a difficult
+problem.
+
+What seems to be a much simpler solution is to push the
+burden onto the user:
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define (inverse function)
+  (procedure-property function 'inverse))
+
+(set! (setter inverse)
+      (lambda (function value)
+        (set! (procedure-property function 'inverse) value)))
+
+#+END_SRC
+
+Once we have it in place, we can use it to define bidirectional
+mappings:
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-syntax bimapping
+  (syntax-rules (::)
+    ((bimapping (object::key-type)::value-type default)
+     (let* ((entries (make-hash-table[key-type value-type]))
+            (inverse-entries (make-hash-table[value-type key-type]))
+            (getter (lambda (object)
+                      (hash-ref entries object
+                                (lambda () default))))
+            (inverse-getter (lambda (object)
+                              (hash-ref inverse-entries object
+                                        (lambda ()
+                                          (hash-ref entries object
+                                                    (lambda () default)))))))
+       (set! (setter getter) (lambda (arg value)
+                               (entries:put arg value)
+                               (inverse-entries:put value arg)))
+       (set! (setter inverse-getter) (lambda (arg value)
+                                       (entries:put arg value)
+                                       (inverse-entries:put value arg)))
+       (set-procedure-property! inverse-getter 'table inverse-entries)
+       (set-procedure-property! inverse-getter 'inverse getter)
+       (with-procedure-properties ((table entries)
+                                   (inverse inverse-getter))
+          getter)))
+    ((bimapping (object::key-type) default)
+     (bimapping (object::key-type)::java.lang.Object
+               default))
+
+    ((bimapping (object)::value-type default)
+     (bimapping (object::java.lang.Object)::value-type
+               default))
+
+    ((bimapping (object) default)
+     (bimapping (object::java.lang.Object)::java.lang.Object
+              default))
+    ))
+
+(define-syntax define-bimapping
+  (syntax-rules (::)
+    ((define-bimapping (bimapping-name object::key-type)::value-type
+       default)
+     (define-early-constant bimapping-name
+       (with-procedure-properties ((name 'bimapping-name))
+         (bimapping (object::key-type)::value-type default))))
+
+    ((define-bimapping (bimapping-name object::key-type) default)
+     (define-bimapping (bimapping-name object::key-type)
+       ::java.lang.Object
+       default))
+
+    ((define-bimapping (bimapping-name object)::value-type default)
+     (define-bimapping (bimapping-name object::java.lang.Object)
+       ::value-type
+       default))
+
+    ((define-bimapping (bimapping-name object) default)
+     (define-bimapping (bimapping-name object::java.lang.Object)
+       ::java.lang.Object
+       default))
+    ))
+
+#+END_SRC
+
+**** Attributes
+
+Object-oriented programming traditionally uses the term
+/property/ to refer to variables that /belong to/ a
+particular object. This is a very good name, because it
+indicates that those variables are essential for describing
+that object.
+
+But the English vocabulary contains yet another term that is
+used for describing objects, namely - /attribute/.
+
+An attribute is something that does not belong to an
+object - instead, it is something that someone /attributes/
+(well, duh) to that object. For example, while an object's
+mass or size can be its property, its position on the screen
+is its attribute (because it can be rendered multiple times
+from different points of view and on many screens).
+
+Technically, we are going to represent attributes using
+/weak hash tables/. Other than that, they are going to use
+the same interface (and a very similar implementation) as we
+did in case of ~mapping~.
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-syntax attribute
+  (syntax-rules (::)
+    ((attribute (object::key-type)::value-type default)
+     (let ((table ::java.util.Map
+                  (($bracket-apply$ java.util.WeakHashMap
+                                    key-type value-type))))
+       (define (create table::java.util.WeakHashMap)
+         (let ((getter ::procedure
+                       (lambda (object::key-type)::value-type
+                         (if (table:contains-key object)
+                             (table:get key)
+                             default))))
+           (set! (setter getter)
+                 (lambda (arg::key-type value::value-type)
+                   (table:put arg value)))
+           (with-procedure-properties ((table table)
+                                       (clone (lambda ()
+                                                (create (copy table)))))
+            getter)))
+
+       (create table)))
+
+    ((attribute (object::key-type) default)
+     (attribute (object::key-type)::java.lang.Object
+               default))
+
+    ((attribute (object)::value-type default)
+     (attribute (object::java.lang.Object)::value-type
+               default))
+
+    ((attribute (object) default)
+     (attribute (object::java.lang.Object)::java.lang.Object
+               default))
+    ))
+
+;; attribute+ is like attribute but it stores the default
+;; value for every enquired object
+(define-syntax attribute+
+  (syntax-rules (::)
+    ((attribute+ (object::key-type)::value-type default)
+     (let ((table ::java.util.Map
+                  (($bracket-apply$ java.util.WeakHashMap
+                                    key-type value-type))))
+       (define (create table::java.util.WeakHashMap)
+         (let ((getter ::procedure
+                       (lambda (object::key-type)::value-type
+                         (if (table:contains-key object)
+                             (table:get object)
+                             (let ((value default))
+                                (table:put object value)
+                                value)))))
+           (set! (setter getter)
+                 (lambda (arg::key-type value::value-type)
+                   (table:put arg value)))
+           (with-procedure-properties ((table table)
+                                       (clone (lambda ()
+                                                (create (copy table)))))
+              getter)))
+
+       (create table)))
+
+    ((attribute+ (object::key-type) default)
+     (attribute+ (object::key-type)::java.lang.Object
+                default))
+
+    ((attribute+ (object)::value-type default)
+     (attribute+ (object::java.lang.Object)::value-type
+                default))
+
+    ((attribute+ (object) default)
+     (attribute+ (object::java.lang.Object)::java.lang.Object
+                default))
+    ))
+
+(define-syntax define-attribute
+  (syntax-rules (::)
+    ((define-attribute (attribute-name object::key-type)
+       ::value-type
+       default)
+     (define-early-constant attribute-name
+       (with-procedure-properties
+        ((name 'attribute-name))
+        (attribute (object::key-type)::value-type default))))
+
+    ((define-attribute (attribute-name object::key-type) default)
+     (define-attribute (attribute-name object::key-type)
+       ::java.lang.Object
+       default))
+
+    ((define-attribute (attribute-name object)::value-type default)
+     (define-attribute (attribute-name object::java.lang.Object)
+       ::value-type
+       default))
+
+    ((define-attribute (attribute-name object) default)
+     (define-attribute (attribute-name object::java.lang.Object)
+       ::java.lang.Object
+       default))
+    ))
+
+(define-syntax define-attribute+
+  (syntax-rules (::)
+    ((define-attribute+ (attribute-name object::key-type)
+       ::value-type
+       default)
+     (define-early-constant attribute-name
+       (with-procedure-properties
+        ((name 'attribute-name))
+        (attribute+ (object::key-type)::value-type default))))
+
+    ((define-attribute+ (attribute-name object::key-type) default)
+     (define-attribute+ (attribute-name object::key-type)
+       ::java.lang.Object
+       default))
+
+    ((define-attribute+ (attribute-name object)::value-type
+       default)
+     (define-attribute+ (attribute-name object::java.lang.Object)
+       ::value-type
+       default))
+
+    ((define-attribute+ (attribute-name object) default)
+     (define-attribute+ (attribute-name object::java.lang.Object)
+       ::java.lang.Object
+       default))
+    ))
+
+#+END_SRC
+
+As you can see, we have defined two kinds of attributes, one
+simply called ~attribute~, and another ~attribute+~. The
+difference between the two is that if we ask for an
+attribute that is not present in the table, ~attribute+~
+will store the resut of evaluating the ~default~ form.
+
+**** Other operations on mappings
+
+Here we provide a bunch of functions and macros for
+removing all or some elements of a mapping:
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-syntax-rule (unset! (mapping object))
+  (let ((table (procedure-property mapping 'table)))
+    (when (java.util.Map? table)
+      (hash-remove! table object))))
+
+(define (reset! mapping)::void
+  (let ((table ::java.util.Map (procedure-property mapping 'table)))
+    (table:clear)))
+
+(define-syntax-rule (assigned? (mapping key))
+  (let ((table ::java.util.Map (procedure-property mapping 'table)))
+    (table:contains-key key)))
+
+#+END_SRC
+
+We also provide the ~update!~ macro, which adds a key-value
+pair to a mapping only when it is different from the current
+value. This allows to save space in case someone tries to
+add a default value to the mapping.
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-syntax-rule (update! (mapping object) expression)
+  (let ((value expression))
+    (unless (equal? (mapping object) value)
+      (set! (mapping object) value))))
+
+#+END_SRC
+
+*** Currying and caching
+
+Hash tables can be used for other purposes than attributing
+properties to objects. In particular, they can be used for
+caching the results of functions.
+
+The thing is that while mappings and attributes were
+both functions of a single argument, Scheme functions
+can in general take more than one argument.
+
+In case of caching, this means that we need to create
+multi-level hash tables. This can be achieved by means
+of syntactic currying:
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-syntax curried
+  (lambda (stx)
+    (syntax-case stx (:: :=)
+
+      ((_ kw (key arg :: type := value . args) body)
+       (keyword? (syntax->datum #'key))
+       #'(kw (arg::type) (curried kw args body)))
+
+      ((_ kw (key arg :: type . args) body)
+       (keyword? (syntax->datum #'key))
+       #'(kw (arg::type) (curried kw args body)))
+
+      ((_ kw (key arg := value . args) body)
+       (keyword? (syntax->datum #'key))
+       #'(kw (arg) (curried kw args body)))
+      
+      ((_ kw (key arg . args) body)
+       (keyword? (syntax->datum #'key))
+       #'(kw (arg) (curried kw args body)))
+
+      ((_ kw (arg :: type := value . args) body)
+       #'(kw (arg::type) (curried kw args body)))
+
+      ((_ kw (arg :: type . args) body)
+       #'(kw (arg::type) (curried kw args body)))
+
+      ((_ kw (arg := value . args) body)
+       #'(kw (arg) (curried kw args body)))
+      
+      ((_ kw (arg . args) body)
+       #'(kw (arg) (curried kw args body)))
+      
+      ((_ kw () body)
+       #'body)
+      )))
+
+(define-syntax curried-application
+  (lambda (stx)
+    (syntax-case stx (:: :=)
+      ((_ procedure)
+       #'procedure)
+
+      ((_ procedure key arg :: type := value args ...)
+       (keyword? (syntax->datum #'key))      
+       #'(curried-application (procedure arg) args ...))
+
+      ((_ procedure key arg :: type args ...)
+       (keyword? (syntax->datum #'key))
+       #'(curried-application (procedure arg) args ...))
+
+      ((_ procedure key arg := value args ...)
+       (keyword? (syntax->datum #'key))
+       #'(curried-application (procedure arg) args ...))
+
+      ((_ procedure key arg args ...)
+       (keyword? (syntax->datum #'key))
+       #'(curried-application (procedure arg) args ...))
+      
+      ((_ procedure arg :: type := value args ...)
+       #'(curried-application (procedure arg) args ...))
+
+      ((_ procedure arg :: type args ...)
+       #'(curried-application (procedure arg) args ...))
+
+      ((_ procedure arg := value args ...)
+       #'(curried-application (procedure arg) args ...))
+
+      ((_ procedure arg args ...)
+       #'(curried-application (procedure arg) args ...))
+      )))
+
+#+END_SRC
+
+Having currying in place, we can use it for defining cache:
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-syntax cache
+  (syntax-rules (::)
+    ((cache args::type body)
+     (let* ((cached (curried attribute+ args body))
+            (invoker (lambda* args::type
+                                (curried-application cached . args))))
+       (with-procedure-properties ((cache cached))
+         invoker)))
+    ((cache args body)
+     (let* ((cached (curried attribute+ args body))
+            (invoker (lambda* args
+                                (curried-application cached . args))))
+       (with-procedure-properties ((cache cached))
+         invoker)))))
+    
+(define-syntax define-cache
+  (syntax-rules (::)
+    ((define-cache (name . args)::type body)
+     (define-early-constant name
+       (cache args::type body)))
+
+    ((define-cache (name . args) body)
+     (define-early-constant name
+       (cache args body)))
+    ))
+
+(define (invalidate! cache . point)
+  (let ((table ::java.util.Map (procedure-property cache 'table)))
+    (match point
+      ('() (table:clear))
+      (`(,point) (table:remove point))
+      (`(,head . ,tail)
+       (apply invalidate! (cache head) tail)))))
+
+(define (invalidate-cache! invoker . point)
+  (apply invalidate! (procedure-property invoker 'cache) point))
+
+#+END_SRC
+
+We can use the cache defined that way to implement /hash
+consing/:
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-object (immutable-pair car cdr)
+
+  (define (setCar value)
+    (error "The pair is immutable: " (this)))
+
+  (define (setCdr value)
+    (error "The pair is immutable: "(this)))
+  (pair car cdr))
+
+(define-cache (hash-cons head tail)
+  (immutable-pair head tail))
+
+#+END_SRC
+
+*** Generic types
+
+Kawa's support for generic types is very limited.  It
+provides some syntax for using Java's generics, but very
+little beyond that. Moreover, the type of a procedure is
+simply ~procedure~, regardless of its argument types or
+result type (which is probably unthinkable to people
+accustomed to languages such as ML or Haskell, as well
+as some modern main-stream languages).
+
+Fortunately, expressions in type positions are also
+macro-expanded, which allows us to invent arbitrary
+notations for expressing various properties of types
+that we define.
+
+For example, we can define the following macro to
+express a type signature of a procedure:
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-syntax maps
+  (syntax-rules (to:)
+    ((_ input-types to: output-type + ...)
+     procedure)))
+
+#+END_SRC
+
+we can also define an identical macro to designate a
+procedure that is meant to be mutable (like ~attribute~
+or ~mapping~)
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-syntax !maps
+  (syntax-rules (to:)
+    ((_ input-types to: output-type + ...)
+     procedure)))
+
+#+END_SRC
+
+Likewise, we can define similar trivial macros to designate
+things like enum sets, uniform lists, sets, arrays, vectors,
+sequences, parameters, subtypes, variant types, optional
+types and multiple values:
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-alias EnumSet java.util.EnumSet)
+
+(define-syntax-rule (list-of type)
+  list)
+
+(define-syntax-rule (set-of type)
+  ($bracket-apply$ java.util.Set type))
+
+(define-syntax-rule (EnumSetOf type)
+  ($bracket-apply$ java.util.EnumSet type))
+
+(define-syntax-rule (vector-of type)
+  vector)
+
+(define-syntax-rule (sequence-of type)
+  sequence)
+
+(define-syntax-rule (array-of type)
+  ($bracket-apply$ type))
+
+(define-syntax-rule (parameter-of type)
+  ($bracket-apply$ parameter type))
+
+(define-syntax subtype-of
+  (syntax-rules ()
+    ((subtype-of supertype . _)
+     supertype)))
+
+(define-syntax-rule (either type ...)
+  java.lang.Object)
+
+(define-syntax-rule (maybe type)
+  (either type #!null))
+
+(define-syntax-rule (Values type ...)
+  java.lang.Object)
+#+END_SRC
+
+*** Basic functions
+
+There is a number of functions that are commonly known among
+schemers and functional programmers (via libraries such as
+[[https://srfi.schemers.org/srfi-1/srfi-1.html][SRFI-1]] or Haskell Prelude) for operating on sequences.
+
+We provide our own variants of those functions here. Some of
+them were adapted to operate on arbitrary Java collections,
+and others are generalized to operate on improper lists (their
+names end with the ~.~ (dot) character).
+
+The function commonly known as ~filter~ in SRFI-1 and
+Haskell prelude is named ~only~, because the name ~filter~
+is ambiguous.
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define (any satisfying? elements)
+  (escape-with return
+    (for x in elements
+      (let ((result (satisfying? x)))
+	(when result
+	  (return result))))
+    #f))
+
+(e.g.
+ (any even? '(1 2 3)))
+
+(define (none satisfying? elements)
+  (not (any satisfying? elements)))
+
+(e.g.
+ (none odd? '(2 4 6)))
+
+(define (any. satisfying? elements)
+  (match elements
+    (`(,h . ,t)
+     (or (satisfying? h)
+	 (any. satisfying? t)))
+    ('()
+     #f)
+    (x
+     (satisfying? x))))
+(e.g.
+ (any. zero? '(3 2 1 . 0)))
+
+(define (every satisfying? elements)::boolean
+  (escape-with return
+    (for x in elements
+      (unless (satisfying? x)
+	(return #f)))
+    #t))
+
+(e.g.
+ (every even? '(2 4 6)))
+
+(define (every. satisfying? elements)
+  (match elements
+    (`(,h . ,t)
+     (and (satisfying? h)
+	  (every. satisfying? t)))
+    ('()
+     #t)
+    (x
+     (satisfying? x))))
+
+(e.g.
+ (every. even? '(2 4 6 . 8)))
+
+(define (only cool? stuff)
+  (let* ((result (cons #f '()))
+	 (cone result))
+    (for x in stuff
+      (when (cool? x)
+	(set-cdr! cone (cons x '()))
+	(set! cone (cdr cone))))
+    (cdr result)))
+
+(e.g.
+ (only even? '(1 2 3 4 5 6))
+ ===> (2 4 6))
+
+(define (fold-left f x0 . xs*)
+  
+  (define (fold-left1 xs::java.util.List)
+    (for x in xs
+      (set! x0 (f x0 x)))
+    x0)
+
+  (define (fold-left2 xs1::java.util.List xs2::java.util.List)
+    (let ((xi1 ::java.util.Iterator (xs1:listIterator))
+	  (xi2 ::java.util.Iterator (xs2:listIterator)))
+      (let loop ((xo x0))
+	(if (and (xi1:hasNext) (xi2:hasNext))
+	    (loop (f xo (xi1:next) (xi2:next)))
+	    xo))))
+
+  (define (fold-left3 xs1::java.util.List
+		      xs2::java.util.List
+		      xs3::java.util.List)
+    (let ((xi1 ::java.util.Iterator (xs1:listIterator))
+	  (xi2 ::java.util.Iterator (xs2:listIterator))
+	  (xi3 ::java.util.Iterator (xs3:listIterator)))
+      (let loop ((xo x0))
+	(if (and (xi1:hasNext) (xi2:hasNext) (xi3:hasNext))
+	    (loop (f xo (xi1:next) (xi2:next) (xi3:next)))
+	    xo))))
+
+  (define (fold-left* . xs*)
+    (let ((iterators (map (lambda (x::java.util.List)
+			    (x:listIterator))
+			  xs*)))
+      (let loop ((xo x0))
+	(if (every (lambda (it::java.util.Iterator)
+		     (it:hasNext))
+		   iterators)
+	    (loop
+	     (apply
+	      f xo
+	      (map (lambda (it::java.util.Iterator)
+		     (it:next))
+		   iterators)))
+	    xo))))
+  (cond
+   ((null? xs*) x0)
+   ((null? (cdr xs*)) (fold-left1 (car xs*)))
+   ((null? (cddr xs*)) (fold-left2 (car xs*)
+				   (cadr xs*)))
+   ((null? (cdddr xs*)) (fold-left3 (car xs*)
+				    (cadr xs*)
+				    (caddr xs*)))
+   (else (apply fold-left* xs*))))
+
+(e.g.
+ (fold-left (lambda (a b) `(,a + ,b)) 'e '(a b c d))
+ ===> ((((e + a) + b) + c) + d))
+
+(define (fold-right f x0 . xs*)
+  (define (fold-right1 f x0 xs)
+    (if (null? xs)
+	x0
+	(f (car xs) (fold-right1 f x0 (cdr xs)))))
+
+  (define (fold-right2 f x0 xs xs2)
+    (if (or (null? xs) (null? xs2))
+	x0
+	(f (car xs) (car xs2)
+	   (fold-right2 f x0 (cdr xs) (cdr xs2)))))
+
+  (define (fold-right* f x0 . xs*)
+    (if (any null? xs*)
+	x0
+	(apply f (fold-right1
+		  (lambda (x y)
+		    (cons (car x) y))
+		  (list (apply fold-right* f x0 (map cdr xs*)))
+		  xs*))))
+  (cond
+   ((null? xs*) x0)
+   ((null? (cdr xs*)) (fold-right1 f x0 (car xs*)))
+   ((null? (cddr xs*)) (fold-right2 f x0 (car xs*) (cadr xs*)))
+   (else (apply fold-right* f x0 xs*))))
+
+(e.g.
+ (fold-right (lambda (a b) `(,a + ,b)) 'e '(a b c d))
+ ===> (a + (b + (c + (d + e)))))
+
+(define (nothing . _)::void (values))
+
+(define (never . _)::boolean #f)
+
+(define (always . _) ::boolean #t)
+
+(define (negation proc)
+  (lambda args
+    (not (apply proc args))))
+
+(define (find satisfying-element?::(maps (,a) to: boolean) in::sequence)
+  (escape-with return
+    (for-each (lambda (x)
+		(when (satisfying-element? x)
+		  (return x)))
+	      in)
+    #f))
+
+(e.g.
+ (find even? '(1 2 3)) ===> 2)
+
+(define (map! f inout . in*)
+  (cond
+   ((isnt inout list?)
+    (cond 
+     ((null? in*)
+      (for i from 0 below (length inout)
+	   (set! (inout i) (f (inout i))))
+      inout)
+     ((null? (cdr in*))
+      (escape-with return
+	(let ((i 0)
+	      (n (length inout)))
+	  (for x in (cdr in*)
+	    (set! (inout i) (f (inout i) x))
+	    (set! i (+ i 1))
+	    (when (is i >= n)
+	      (return inout)))
+	  (return inout))))
+     (else
+      (let ((n (length inout))
+	    (its (map (lambda (l::java.util.List)
+			(l:listIterator))
+		      in*)))
+	(escape-with return
+	  (for i from 0 below n
+	       (if (every (lambda (it::java.util.Iterator)
+			    (it:hasNext)) its)
+		   (set! (inout i)
+		     (apply f (inout i)
+			    (map (lambda (it::java.util.Iterator)
+				   (it:next)) its)))
+		   (return inout)))
+	  (return inout))))))
+   ((null? in*)
+    (let loop ((tip inout))
+      (if (pair? tip)
+	  (begin
+	    (set! (car tip) (f (car tip)))
+	    (loop (cdr tip)))
+	  inout)))
+   ((null? (cdr in*))
+    (let loop ((tip1 inout)
+	       (tip2 (car in*)))
+      (if (and (pair? tip1) (pair? tip2))
+	  (begin
+	    (set! (car tip1) (f (car tip1) (car tip2)))
+	    (loop (cdr tip1) (cdr tip2)))
+	  inout)))
+   ((null? (cddr in*))
+    (let loop ((tip1 inout)
+		  (tip2 (car in*))
+		  (tip3 (cadr in*)))
+	 (if (and (pair? tip1) (pair? tip2) (pair? tip3))
+	     (begin
+	       (set! (car tip1) (f (car tip1) (car tip2) (car tip3)))
+	       (loop (cdr tip1) (cdr tip2) (cdr tip3))
+	       inout))))
+   (else
+    (let loop ((tip inout)
+	       (tips in*))
+	 (if (and (pair? tip) (every pair? tips))
+	     (begin
+	       (set! (car tip) (apply f (car tip) (map car tips)))
+	       (loop (cdr tip) (map! cdr tips)))
+	     inout)))))
+
+(define (only. satisfying? elements . moreso)
+  (cond ((null? elements)
+	 (apply values '() moreso))
+	((pair? elements)
+	 (let ((result (cons (car elements) (map car moreso))))
+	   (cond
+	    ((apply satisfying? result)
+	     (map! list result)
+	     (let ((tips (map values result)))
+	       (let loop ((elements (cdr elements))
+			  (moreso (map cdr moreso)))
+		 (cond
+		  ((null? elements)
+		   (apply values result))
+		  ((pair? elements)
+		   (when (apply satisfying? (car elements)
+				(map car moreso))
+		     (map! (lambda (tip elem)
+			     (set-cdr! tip (cons (car elem) '()))
+			     (cdr tip))
+			   tips (cons elements moreso)))
+		   (loop (cdr elements)
+			 (map cdr moreso)))
+		  ((apply satisfying? elements moreso)
+		   (map! (lambda (tip item)
+			   (set-cdr! tip item)
+			   tip)
+			 tips (cons elements moreso))
+		   (apply values result))
+		  (else
+		   (apply values result))))))
+	    (else
+	     (apply only. satisfying? (cdr elements)
+		    (map cdr moreso))))))
+	((apply satisfying? elements moreso)
+	 (apply values elements moreso))
+	(else
+	 (apply values '() (map (lambda _ '()) moreso)))))
+
+(e.g. (only. even? '(2 . 3)) ===> (2))
+
+(e.g. (only. even? '(3 . 2)) ===> 2)
+
+(e.g. (only. even? 2) ===> 2)
+
+(e.g. (only. even? 3) ===> ())
+
+(e.g. (only. (is (+ _ _) even?)
+	     '(1 2 3 4 . 5) '(2 4 6 8 . 9))
+      ===>    (  2   4 . 5)  (  4   8 . 9))
+
+(e.g. (only. (is (+ _ _) even?)
+	     '(1 2 3 4 . 5) '(2 4 6 8 . 9))
+      ===>    (  2   4 . 5)  (  4   8 . 9))
+
+#+END_SRC
+
+*** Sets
+
+In theory, a set could be represented by a mapping whose
+keys are the elements of the set, and whose values
+are ~boolean~ values, i.e. either ~#true~ or ~#false~.
+
+On the other hand, sets are often considered to be the most
+fundamental concept of mathematics, with a distinct and well
+known set of operations, such as ~union~, ~intersection~
+or ~difference~.
+
+Our implementation of sets piggybacks on that provided by
+Java. But in the spirit of SRFI-1, we also allow to treat
+lists as sets.
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-simple-class set (java.util.HashSet)
+  ((toString)::String
+   (let ((builder ::java.lang.StringBuilder (java.lang.StringBuilder)))
+     (builder:append "[set")
+     (for item in (this)
+       (builder:append " ")
+       (cond
+	((or (string? item) (String? item))
+	 (builder:append "\"")
+	 (builder:append (item:toString))
+	 (builder:append "\""))
+	((char? item)
+	 (builder:append "#\\")
+	 (builder:append (as char item)))
+	(else
+	 (builder:append (item:toString)))))
+     (builder:append "]")
+     (builder:toString))))
+
+(define* (is element in collection)
+  (if (instance? collection java.util.Set)
+      (let ((set ::java.util.Set (as java.util.Set collection)))
+	(set:contains element))
+      (any (is _ equal? element) collection)))
+
+(define (union set . sets)
+  (define (list-union a b)
+    (fold-left (lambda (set element)
+		 (if (is element in set)
+		     set
+		     `(,element . ,set)))
+	       a b))
+  (if (and (instance? set java.util.Set)
+	   (instance? set java.lang.Cloneable))
+      (with-compile-options
+       warn-unknown-member: #f
+       (let ((clone ::java.util.Set (set:clone)))
+	 (for collection ::java.util.Collection in sets
+	      (clone:addAll collection))
+	 clone))
+      (fold-left list-union set sets)))
+
+(define (union! set::java.util.Set . sets)
+  (for collection ::java.util.Collection in sets
+       (set:addAll collection))
+  set)
+
+(e.g.
+ (union '(a b c) '(b c d e))
+ ===> (e d a b c))
+
+(define (intersection set . sets)
+  (define (list-intersection a b)
+    (only (is _ in b) a))
+  (if (and (instance? set java.util.Set)
+	   (instance? set java.lang.Cloneable))
+      (with-compile-options
+       warn-unknown-member: #f
+       (let ((clone ::java.util.Set (set:clone)))
+	 (for collection ::java.util.Collection in sets
+	      (clone:retainAll collection))
+	 clone))
+      (fold-left list-intersection set sets)))
+
+(e.g.
+ (intersection '(a b c) '(b c d) '(c d e))
+ ===> (c))
+
+(define (difference set . sets)
+  (define (list-difference a b)
+    (fold-left (lambda (set element)
+		 (if (is element in set)
+		     (only (isnt _ equal? element) set)
+		     set))
+	       a b))
+  (if (and (instance? set java.util.Set)
+	   (instance? set java.lang.Cloneable))
+      (with-compile-options
+       warn-unknown-member: #f
+       (let ((clone ::java.util.Set (set:clone)))
+	 (for collection ::java.util.Collection in sets
+	      (clone:removeAll collection))
+	 clone))
+      (fold-left list-difference set sets)))
+
+(e.g.
+ (difference '(a b c) '(b c d))
+ ===> (a))
+
+(define (subset? a b)
+  (if (instance? b java.util.Set)
+      (let ((set ::java.util.Set (as java.util.Set b)))
+	(set:containsAll a))
+      (every (is _ in b) a)))
+
+(e.g.
+ (is '(a b) subset? '(b a c)))
+
+(define (same-sets? a b)
+  (and (is a subset? b)
+       (is b subset? a)))
+
+(e.g.
+ (same-sets? '(a b c) '(b a c)))
+
+#+END_SRC
+
+*** Miscellaneous macros
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-syntax otherwise
+  (syntax-rules ()
+    ((_)
+     #f)
+    ((_ value)
+     value)
+    ((_ default . precedents)
+     (or (otherwise . precedents) default))))
+
+(define-syntax-rule (begin/or clause ...)
+  (let ((result #f))
+    (set! result (or clause result))
+    ...
+    result))
+
+(define-syntax-rule (begin/and clause ...)
+  (let ((result #t))
+    (set! result (and clause result))
+    ...
+    result))
+
+(define (memoize proc)
+  (let ((table ::java.util.Map (java.util.HashMap)))
+    (with-procedure-properties ((table table))
+      (lambda args
+        (if (table:contains-key args)
+            (apply values (table:get args))
+            (call-with-values (lambda () (apply proc args))
+              (lambda result
+                (table:put args result)
+                (apply values result))))))))
+
+(define-syntax-rule (define/memoized (name . args) . body)
+  (define name (memoize (lambda args . body))))
+
+(define-syntax with
+  (lambda (stx)
+    (syntax-case stx ()
+      ((with ((variable type* ... value) ...) . actions)
+       (with-syntax (((previous-value ...)
+		      (generate-temporaries #'(variable ...))))
+		    #'(let ((previous-value variable) ...)
+			(set! variable value)
+			...
+			(try-finally
+			 (begin . actions)
+			 (begin
+			   (set! variable previous-value)
+			   ...))))))))
+
+#+END_SRC
+
+** Input/output operations
+
+#+BEGIN_SRC scheme :tangle language/io.scm
+
+(define-alias InputPort gnu.kawa.io.InPort)
+
+(define-alias OutputPort gnu.kawa.io.OutPort)
+
+(define (with-output-to-string proc)
+  (call-with-output-string
+    (lambda (port)
+      (parameterize ((current-output-port port))
+	(proc)))))
+
+(define (with-output-to-port port proc)
+  (parameterize ((current-output-port port))
+    (proc)))
+
+(define (with-input-from-string s proc)
+  (call-with-input-string s
+    (lambda (port)
+      (parameterize ((current-input-port port))
+	(proc)))))
+
+(define (with-input-from-port port proc)
+  (parameterize ((current-input-port port))
+    (proc)))
+
+#+END_SRC
+
+** Mathematical functions and constants
 
 
 * Emacs file-local variables
