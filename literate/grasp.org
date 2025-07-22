@@ -65,10 +65,10 @@ differ with their case.
 the ~lambda~ and ~let~ forms, i.e. function parameters
 and local variables.)
 
-*** Simple macros
-
 The code snippets from this chapter will be placed in the
 =language/extensions.scm= file.
+
+*** Simple macros
 
 #+BEGIN_SRC scheme :tangle language/extensions.scm :mkdirp yes
 (module-name (language extensions))
@@ -2799,7 +2799,9 @@ or ~mapping~)
 Likewise, we can define similar trivial macros to designate
 things like enum sets, uniform lists, sets, arrays, vectors,
 sequences, parameters, subtypes, variant types, optional
-types and multiple values:
+types and multiple values. We also redefine the ~unquote~
+operator outside of the ~quasiquote~ context to designate
+a type variable (rather than syntax error):
 
 #+BEGIN_SRC scheme :tangle language/extensions.scm
 
@@ -2839,6 +2841,10 @@ types and multiple values:
 
 (define-syntax-rule (Values type ...)
   java.lang.Object)
+
+(define-syntax-rule (unquote x)
+  java.lang.Object)
+
 #+END_SRC
 
 *** Basic functions
@@ -3276,6 +3282,153 @@ lists as sets.
 
 #+END_SRC
 
+*** Parameters
+
+Parameters seem to be a mechanism fairly unique to Scheme,
+although in some ways it resembles Scala's /implicits/, and
+has recently been considered for inclusion in Java, under
+the name of /scoped values/ (see [[https://openjdk.org/jeps/446][JEP 446]]). Its heritage
+traces back to the notion of /dynamic scoping/ in early
+LISP, which has been preserved as /special variables/ in
+Common Lisp.
+
+Kawa provides parameters, but they cannot be shared between
+threads.
+
+Because of that, the developers of GRASP had to implement a
+variant of parameters whose instant value is shared between
+theads.
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-simple-class SharedThreadLocation (gnu.mapping.ThreadLocation)
+
+  (location-name ::gnu.mapping.Symbol)
+  (default-value)
+  
+  ((setWithSave value) access: 'synchronized
+   (let* ((old-location (invoke-special gnu.mapping.ThreadLocation (this) 'get))
+	  (new-location (gnu.mapping.SharedLocation
+			 location-name
+			 #!null
+			 (java.lang.System:currentTimeMillis))))
+     (invoke-special gnu.mapping.ThreadLocation (this) 'set new-location)
+     (new-location:set value)
+     old-location))
+  
+  ((setRestore old-location) access: 'synchronized
+   (invoke-special gnu.mapping.ThreadLocation (this) 'set old-location))
+  
+  ((set value) access: 'synchronized
+   (let ((location ::gnu.mapping.SharedLocation
+		   (invoke-special gnu.mapping.ThreadLocation
+				   (this) 'get)))
+     (if location
+	 (location:set value)
+	 (let ((new-location (gnu.mapping.SharedLocation
+			      location-name
+			      #!null
+			      (java.lang.System:currentTimeMillis))))
+	   (invoke-special gnu.mapping.ThreadLocation (this) 'set new-location)
+	   (new-location:set value)))))
+  
+  ((get) access: 'synchronized
+   (let ((location ::gnu.mapping.SharedLocation
+		   (invoke-special gnu.mapping.ThreadLocation
+				   (this) 'get)))
+     (if location
+	 (location:get)
+	 default-value)))
+  
+  ((*init* name ::gnu.mapping.Symbol value)
+   (set! location-name name)
+   (set! default-value value)
+   (let ((new-location (gnu.mapping.SharedLocation
+			location-name
+			#!null
+			(java.lang.System:currentTimeMillis))))
+     (invoke-special gnu.mapping.ThreadLocation (this) 'set new-location)
+     (new-location:set value))))
+
+(define (make-shared-parameter name init #!optional (converter #!null))
+  (unless (eq? converter #!null)
+    (set! init (converter init)))
+  (let* ((loc (SharedThreadLocation:new name init))
+         (conv ::gnu.mapping.Procedure
+               (if (or (eq? converter #!null)
+                       (gnu.mapping.Procedure? converter))
+                   converter
+                   (lambda (x) (converter x)))))
+    (gnu.mapping.LocationProc:new loc conv)))
+
+(define-syntax define-parameter
+  (syntax-rules (::)
+    
+    ((_ (parameter-name) :: type initial-value)
+     (define-early-constant parameter-name :: parameter[type]
+       (make-shared-parameter 'parameter-name initial-value)))
+
+    ((_ (parameter-name) :: type)
+     (define-early-constant parameter-name :: parameter[type]
+       (make-shared-parameter 'parameter-name #!null)))
+    
+    ((_ (parameter-name) initial-value)
+     (define-early-constant parameter-name :: parameter
+       (make-shared-parameter 'parameter-name initial-value)))
+
+    ((_ (parameter-name))
+     (define-early-constant parameter-name :: parameter
+       (make-shared-parameter 'parameter-name #!null)))
+    ))
+
+(define-syntax define-parameter+
+  (syntax-rules (::)
+    
+    ((_ (parameter-name) :: type initial-value)
+     (define parameter-name :: parameter[type]
+       (make-shared-parameter 'parameter-name initial-value)))
+
+    ((_ (parameter-name) :: type)
+     (define parameter-name :: parameter[type]
+       (make-shared-parameter 'parameter-name #!null)))
+    
+    ((_ (parameter-name) initial-value)
+     (define parameter-name :: parameter
+       (make-shared-parameter 'parameter-name initial-value)))
+
+    ((_ (parameter-name))
+     (define parameter-name :: parameter
+       (make-shared-parameter 'parameter-name #!null)))
+    ))
+
+#+END_SRC
+
+Sometimes, when the value of a parameter comes from another
+location, and the value of the parameter has been mutated,
+it may be desirable to propagate the change to the original
+location, which can be achieved with the
+~parameterize/update-sources~ macro:
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-syntax parameterize/update-sources
+  (lambda (stx)
+    (syntax-case stx ()
+      ((_ ((param source) ...) body + ...)
+       (with-syntax (((previous-value ...)
+		      (generate-temporaries
+		       #'(source ...))))
+	 #'(parameterize ((param source) ...)
+	     (let ((previous-value source) ...)
+	       (try-finally
+		(begin body + ...)
+		(begin
+		  (when (eqv? previous-value source)
+		    (set! source (param)))
+		  ...)))))))))
+
+#+END_SRC
+
 *** Miscellaneous macros
 
 #+BEGIN_SRC scheme :tangle language/extensions.scm
@@ -3332,38 +3485,58 @@ lists as sets.
 
 #+END_SRC
 
-** Input/output operations
+*** Input/output operations
 
-#+BEGIN_SRC scheme :tangle language/io.scm
+Kawa Scheme lacks certain port operations that are present
+in other Scheme implementations, so we make up for this
+shoritcoming.
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
 
 (define-alias InputPort gnu.kawa.io.InPort)
 
 (define-alias OutputPort gnu.kawa.io.OutPort)
 
-(define (with-output-to-string proc)
+(define (with-output-to-string proc::(maps () to: ,a))::string
   (call-with-output-string
-    (lambda (port)
+    (lambda (port::OutputPort)
       (parameterize ((current-output-port port))
 	(proc)))))
 
-(define (with-output-to-port port proc)
+(define (with-output-to-port port::OutputPort proc::(maps () to: ,a))::,a
   (parameterize ((current-output-port port))
     (proc)))
 
-(define (with-input-from-string s proc)
+(define (with-input-from-string s::string proc::(maps () to: ,a))::,a
   (call-with-input-string s
-    (lambda (port)
+    (lambda (port::InputPort)::,a
       (parameterize ((current-input-port port))
 	(proc)))))
 
-(define (with-input-from-port port proc)
+(define (with-input-from-port port::InputPort proc::(maps () to: ,a))::,a
   (parameterize ((current-input-port port))
     (proc)))
 
 #+END_SRC
 
-** Mathematical functions and constants
+** The architecture of GRASP
 
+
+** The implementations of GRASP clients
+
+*** The teletype client
+
+*** The terminal client
+
+*** The desktop client
+
+*** The Android client
+
+** Building GRASP
+
+*** Building the JVM client
+
+*** Building the Android client
 
 * Emacs file-local variables
 
