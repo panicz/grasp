@@ -3,6 +3,23 @@
 GRASP is an extensible structural code editor for languages
 that are based on s-expressions.
 
+GRASP represents s-expressions as nestable boxes. The boxes
+can be edited using keyboard, but also using touch
+interface/mouse pointer.
+
+Most importantly, users can define their own extensions,
+which occupy rectangular area, and present themselves and
+behave in a custom (user-defined) way (this feature is
+sometimes called /interactive visual syntax/, and has been
+explained by Leif Andersen in [[https://www.youtube.com/watch?v=8htgAxJuK5c][this video]]).
+
+Moreover, some of those extensions can be /maximized/,
+playing the role of an entire application.
+
+This document derives presents the complete source code for
+GRASP, but more importantly, it instructs how to define new
+interactive extensions.
+
 ** About this document
 
 This document is a literate program written in [[https://www.gnu.org/software/emacs/][Emacs]]
@@ -3030,7 +3047,7 @@ is ambiguous.
 		(when (satisfying-element? x)
 		  (return x)))
 	      in)
-    #f))
+    #!null))
 
 (e.g.
  (find even? '(1 2 3)) ===> 2)
@@ -3429,6 +3446,10 @@ location, which can be achieved with the
 
 #+END_SRC
 
+where ~try-finally~ is Kawa's (non-reentrable) counterpart
+of ~dynamic-wind~ that can be found in some Scheme
+implementations.
+
 *** Miscellaneous macros
 
 #+BEGIN_SRC scheme :tangle language/extensions.scm
@@ -3468,21 +3489,6 @@ location, which can be achieved with the
 (define-syntax-rule (define/memoized (name . args) . body)
   (define name (memoize (lambda args . body))))
 
-(define-syntax with
-  (lambda (stx)
-    (syntax-case stx ()
-      ((with ((variable type* ... value) ...) . actions)
-       (with-syntax (((previous-value ...)
-		      (generate-temporaries #'(variable ...))))
-		    #'(let ((previous-value variable) ...)
-			(set! variable value)
-			...
-			(try-finally
-			 (begin . actions)
-			 (begin
-			   (set! variable previous-value)
-			   ...))))))))
-
 #+END_SRC
 
 *** Input/output operations
@@ -3521,10 +3527,111 @@ shoritcoming.
 
 ** The architecture of GRASP
 
+So far, reading this text may have seen a bit like reading a
+grammar book or a dictionary: it didn't seem to have any
+specific topic, or /thing it is about/.
+
+In this part we're going to finally tackle the actual subject
+of this book, namely -- the GRASP editor.
+
+GRASP is designed to run in many different environments.
+And while the code for things like handling input and
+rendering graphics is going to be different in all of its
+environments, the core architecture will be shared among
+them.
+
+The code snippets from this chapter will be placed in the
+=editor/architecture.scm= file.
+
+#+BEGIN_SRC scheme :tangle editor/architecture.scm :mkdirp yes
+(module-name (editor architecture))
+(import (language extensions))
+#+END_SRC
+
+*** An overview
+
+Every interactive program needs to be able to gather user
+input, use it to modify some internal state, and present at
+least some part of that state back to the user.
+
+
+*** Document structure
+
+As mentioned at the beginning, the primary representation of
+documents in GRASP consists of /nested boxes/ that are
+arranged in /textual order/.
+
+#+BEGIN_SRC scheme :tangle editor/architecture.scm
+
+(define-interface Visual ()
+  (render! active?::boolean)::void)
+
+#+END_SRC
+
+The text representation of GRASP documents is based on the
+syntax of Scheme. Therefore we need to be able to represent
+the following syntactic components:
+- lists (and dotted pairs)
+- atoms (such as symbols and numbers)
+- strings
+- whitespace
+- line comments
+- block comments
+- expression comments
+
+Among those expressions, lists, atoms, strings, block
+comments and expression comments have a rectangular shape,
+so they can be characterized by providing its width and
+height. We are going to use the name ~Tile~ to characterize
+that property. 
+
+#+BEGIN_SRC scheme :tangle editor/architecture.scm
+
+(define-interface Tile ()
+  (width)::real
+  (height)::real)
+
+#+END_SRC
+
+Whitespace and line comments are closely related, and in
+some sense irregular. On the other hand, when it comes to
+tiles, 
+
+#+BEGIN_SRC scheme :tangle editor/architecture.scm
+
+(define-interface Interactive ()
+  ;; by convention, the function that reacted to the input
+  ;; ought to return #true
+  (tap! finger::byte #;at x::real y::real)::boolean
+  (press! finger::byte #;at x::real y::real)::boolean
+  (second-press! finger::byte #;at x::real y::real)::boolean
+  (double-tap! finger::byte x::real y::real)::boolean
+  (long-press! finger::byte x::real y::real)::boolean
+  (key-typed! key-code::long)::boolean)
+
+(define-interface KeyboardNavigable ()
+  ;; likewise, the above functions should return #true
+  ;; only if the cursor has actually been moved
+  (move-cursor-left!)::boolean
+  (move-cursor-right!)::boolean
+  (move-cursor-up!)::boolean
+  (move-cursor-down!)::boolean)
+
+(define-interface Undoable ()
+  (undo!)::boolean
+  (redo!)::boolean)
+
+#|
+(define-interface Selectable ()
+  (expand-selection-left!)::boolean
+  (expand-selection-right!)::boolean
+  (expand-selection-up!)::boolean
+  (expand-selection-down!)::boolean)
+|#
+
+#+END_SRC
 
 ** The implementations of GRASP clients
-
-*** The teletype client
 
 *** The terminal client
 
