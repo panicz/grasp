@@ -3554,6 +3554,30 @@ Every interactive program needs to be able to gather user
 input, use it to modify some internal state, and present at
 least some part of that state back to the user.
 
+Most of the input comes from the following two sources:
+- keyboard
+- pointing device (such as a mouse or a touch screen)
+
+Some other sources of input are also possible (such as
+microphone or accelerometer), but we're not going to worry
+about them for now.
+
+All input is going to be passed to a singleton object called
+~screen~. The ~screen~ object keeps a reference to an object
+that satisfies the ~Application~ interface, and passes all
+of the received input to that object.
+
+The reason for that indirection is that GRASP isn't just a
+code editor, but is also an application platform: some of
+the user-defined /interactive visual syntactic extensions/
+can serve as actual applications.
+
+The reference is assigned during the initialization of
+GRASP.  Normally this is done by interpreting the
+~assets/init.scm~ script that is bundled with the ~.jar~ /
+~.apk~ file that is used for GRASP's distribution (they're
+both ~.zip~ files), but it could also be done by passing
+additional parameter through the command line.
 
 *** Document structure
 
