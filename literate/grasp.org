@@ -89,6 +89,7 @@ The code snippets from this chapter will be placed in the
 
 #+BEGIN_SRC scheme :tangle language/extensions.scm :mkdirp yes
 (module-name (language extensions))
+
 #+END_SRC
 
 The basic facility for defining macros is called
@@ -817,6 +818,46 @@ If you analyze this macro, you'll notice that there are
 always two variants of each clause -- one that includes
 the ~::type~ and one that omits it.
 
+
+*** Input/output operations
+
+Kawa Scheme lacks certain port operations that are present
+in other Scheme implementations, so we make up for this
+shoritcoming.
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-alias InputPort gnu.kawa.io.InPort)
+
+(define-alias OutputPort gnu.kawa.io.OutPort)
+
+(define (with-output-to-string proc::(maps () to: ,a))::string
+  (call-with-output-string
+    (lambda (port::OutputPort)
+      (parameterize ((current-output-port port))
+	(proc)))))
+
+(define (with-output-to-port port::OutputPort proc::(maps () to: ,a))::,a
+  (parameterize ((current-output-port port))
+    (proc)))
+
+(define (with-input-from-string s::string proc::(maps () to: ,a))::,a
+  (call-with-input-string s
+    (lambda (port::InputPort)::,a
+      (parameterize ((current-input-port port))
+	(proc)))))
+
+(define (with-input-from-port port::InputPort proc::(maps () to: ,a))::,a
+  (parameterize ((current-input-port port))
+    (proc)))
+
+(define (print . messages)
+  (for message in messages
+    (display message))
+  (newline))
+
+#+END_SRC
+
 *** Defining classes and interfaces
 
 As mentioned earlier, Kawa provides some means of defining
@@ -1305,16 +1346,36 @@ functions during macro expansion, we need to resort to the
               (invoke copy 'assign (this))
               copy))
 
+           ((prettyPrint port ::OutputPort)::void
+            (kawa.lib.kawa.pprint:pprintStartLogicalBlock "[" #f "]" port)
+            (try-finally
+              (begin
+               (display 'type-name port)
+               (kawa.lib.kawa.pprint:pprintNewline 'miser port)
+               (begin
+                (write-char #\space port)
+                (kawa.lib.kawa.pprint:pprintNewline 'fill port)
+                (write 'slot-symbol port)
+                (write-char #\: port)
+                (write-char #\space port)
+                (kawa.lib.kawa.pprint:pprintNewline 'linear port)
+                (cond ((string? slot-symbol)
+                       (write slot-symbol port))
+                      ((java.util.Collection? slot-symbol)
+                       (kawa.lib.kawa.pprint:pprintStartLogicalBlock "[" #f "]" port)
+                       (try-finally
+                        (for item in slot-symbol
+                         (kawa.lib.kawa.pprint:pprint item port))
+                        (kawa.lib.kawa.pprint:pprintEndLogicalBlock "]" port)))
+                      (else
+                       (kawa.lib.kawa.pprint:pprint slot-symbol port))))
+               ...)
+             (kawa.lib.kawa.pprint:pprintEndLogicalBlock "]" port)))
+
            ((toString)::java.lang.String
-            (string-append
-             "["(symbol->string 'type-name)
-             (string-append
-             " "(symbol->string 'slot-symbol)
-             ": "(call-with-output-string 
-                   (lambda (port) 
-                     (write slot-symbol port))))
-             ...
-             "]"))
+            (call-with-output-string 
+              (lambda (port ::OutputPort) 
+                (invoke (this) 'prettyPrint port))))
 
            ((equals another ::java.lang.Object)::boolean
             (and (instance? another type-name)
@@ -1339,8 +1400,9 @@ functions during macro expansion, we need to resort to the
        (with-syntax ((slot-symbol
                       (datum->syntax
                        stx
-                       (keyword->symbol
-                        (syntax->datum #'slot-keyword)))))
+                       (string->symbol
+                        (keyword->string
+                         (syntax->datum #'slot-keyword))))))
          #'(type-definition type-name fields
             (slot-definitions ... (slot-symbol type: slot-type))
             (initializers ... (set! slot-symbol value)))))
@@ -1350,8 +1412,9 @@ functions during macro expansion, we need to resort to the
        (keyword? (syntax->datum #'slot-keyword))
        (with-syntax ((slot-symbol (datum->syntax
                                    stx
-                                   (keyword->symbol
-                                    (syntax->datum #'slot-keyword)))))
+                                   (string->symbol
+                                    (keyword->string
+                                     (syntax->datum #'slot-keyword))))))
          #'(type-definition type-name fields
             (slot-definitions ... (slot-symbol type: slot-type))
             initializers)))
@@ -3173,6 +3236,22 @@ is ambiguous.
 	     '(1 2 3 4 . 5) '(2 4 6 8 . 9))
       ===>    (  2   4 . 5)  (  4   8 . 9))
 
+(define (concatenate list-of-lists)
+  (apply append list-of-lists))
+
+(e.g.
+ (concatenate '((a b) (c) (d e f)))
+ ===> (a b c d e f))
+
+(define (append-map f l . ls)
+  (if (null? ls)
+    (concatenate (map f l))
+   (concatenate (apply map f ls))))
+
+(define (current-working-directory)::string
+  (let ((working-directory ::java.io.File (java.io.File ".")))
+    (working-directory:getAbsolutePath)))
+
 #+END_SRC
 
 *** Sets
@@ -3491,39 +3570,6 @@ implementations.
 
 #+END_SRC
 
-*** Input/output operations
-
-Kawa Scheme lacks certain port operations that are present
-in other Scheme implementations, so we make up for this
-shoritcoming.
-
-#+BEGIN_SRC scheme :tangle language/extensions.scm
-
-(define-alias InputPort gnu.kawa.io.InPort)
-
-(define-alias OutputPort gnu.kawa.io.OutPort)
-
-(define (with-output-to-string proc::(maps () to: ,a))::string
-  (call-with-output-string
-    (lambda (port::OutputPort)
-      (parameterize ((current-output-port port))
-	(proc)))))
-
-(define (with-output-to-port port::OutputPort proc::(maps () to: ,a))::,a
-  (parameterize ((current-output-port port))
-    (proc)))
-
-(define (with-input-from-string s::string proc::(maps () to: ,a))::,a
-  (call-with-input-string s
-    (lambda (port::InputPort)::,a
-      (parameterize ((current-input-port port))
-	(proc)))))
-
-(define (with-input-from-port port::InputPort proc::(maps () to: ,a))::,a
-  (parameterize ((current-input-port port))
-    (proc)))
-
-#+END_SRC
 
 ** The architecture of GRASP
 
