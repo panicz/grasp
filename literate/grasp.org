@@ -35,7 +35,7 @@ emacs --batch grasp.org -l org --eval "(org-babel-tangle)"
 #+END_SRC
 
 The files generated from this file will begin with
-the following information
+the following ~<<header>>~:
 
 #+NAME: header
 #+BEGIN_SRC scheme :tangle no
@@ -103,13 +103,13 @@ and local variables.)
 The code snippets from this chapter will be placed in the
 =language/extensions.scm= file.
 
-*** Simple macros
-
 #+BEGIN_SRC scheme :tangle language/extensions.scm :mkdirp yes :noweb yes
 <<header>>
 (module-name (language extensions))
 
 #+END_SRC
+
+*** Simple macros
 
 The basic facility for defining macros is called
 ~syntax-rules~, which allows to express syntactic
@@ -346,7 +346,7 @@ that are capable of returning multiple values:
 
 Scheme is consistent in its usage of prefix notation.
 There are situations, however, when it would be handy
-to have prefix, or even postfix notation available.
+to have infix, or even postfix notation available.
 
 This can be done, of course, using the prefix notation.
 
@@ -2082,8 +2082,8 @@ Kawa does not allow us to override its core forms.
 
 For this reason, we're going to introduce two new special
 forms, namely ~lambda*~ and ~define*~, that will enable the
-improved syntax. It will also allow to perform destructuring
-of its arguments.
+improved syntax. They will also allow to perform
+destructuring of the arguments of the defined functions.
 
 #+BEGIN_SRC scheme :tangle language/extensions.scm
 
@@ -3606,7 +3606,8 @@ them.
 The code snippets from this chapter will be placed in the
 =editor/architecture.scm= file.
 
-#+BEGIN_SRC scheme :tangle editor/architecture.scm :mkdirp yes
+#+BEGIN_SRC scheme :tangle editor/architecture.scm :mkdirp yes :noweb yes
+<<header>>
 (module-name (editor architecture))
 (import (language extensions))
 #+END_SRC
@@ -3626,7 +3627,7 @@ microphone or accelerometer), but we're not going to worry
 about them for now.
 
 All input is going to be passed to a singleton object called
-~screen~. The ~screen~ object keeps a reference to an object
+~main~. The ~main~ object keeps a reference to an object
 that satisfies the ~Application~ interface, and passes all
 of the received input to that object.
 
@@ -3642,18 +3643,112 @@ GRASP.  Normally this is done by interpreting the
 both ~.zip~ files), but it could also be done by passing
 additional parameter through the command line.
 
+An ~Application~ must be capable of receiving user input,
+rendering itself to the screen and getting
+maximized/unmaximized (and therefore resized).
+
+As to user input, it can either be a typed key, or some kind
+of pointer (mouse, pencil, finger).
+
+#+BEGIN_SRC scheme :tangle editor/architecture.scm
+
+(define-interface Interactive ()
+  ;; by convention, the function that reacted to the input
+  ;; ought to return #true
+  (tap! finger::byte #;at x::real y::real)::boolean
+  (press! finger::byte #;at x::real y::real)::boolean
+  (second-press! finger::byte #;at x::real y::real)::boolean
+  (double-tap! finger::byte x::real y::real)::boolean
+  (long-press! finger::byte x::real y::real)::boolean
+  (key-typed! key-code::long)::boolean)
+
+#+END_SRC
+
+You can see that the return type of each method of the
+~Interactive~ interface is ~boolean~. This way, the object
+informs its caller whether the input has been consumed (if
+it hasn't, the caller can decide to handle it for itself).
+
+This may seem irrelevant now, but we'll see that apart from
+~Application~ there are many other instances of
+~Interactive~ objects in the GRASP code base.
+
+You may also have noticed that there are no events
+responsible for handling pointer movements. This is because
+they are handled by a separate mechanism - the ~main~ object
+contains an array of 10 objects (because 10 is the maximum
+number of pointers handled by Android) that implement the
+~Drag~ interface:
+
+#+BEGIN_SRC scheme :tangle editor/architecture.scm
+
+(define-interface Drag ()
+  (move! x::real y::real dx::real dy::real)::void
+  (drop! x::real y::real vx::real vy::real)::void
+  )
+
+#+END_SRC
+
+The rendering is done via a single function called
+~render!~, which receives a single parameter - a boolean
+value that is ~#true~ when the rendered thing is considered
+/active/ (or /in focus/) and ~#false~ otherwise.
+
+#+BEGIN_SRC scheme :tangle editor/architecture.scm
+
+(define-interface Visual ()
+  (render! active? ::boolean)::void)
+
+#+END_SRC
+
+Rendering occurs through a global object called ~painter~,
+which implements the ~Painter~ interface. It will be
+discussed later on.
+
+The application window/frame is always rectangular (i.e.  a
+~Tile~), so it can be characterized by giving its width and
+height.:
+
+#+BEGIN_SRC scheme :tangle editor/architecture.scm
+
+(define-interface Tile ()
+  (width)::real
+  (height)::real)
+
+#+END_SRC
+
+as we mentioned before, a we need to be able to set the size
+of the application. A ~Tile~ that can be resized is
+(hopefully unsurprisingly) called a ~ResizableTile~. It can
+be arbitrarily large, but it can declare its own minimal
+size (which shouldn't be smaller than the size of the
+screen):
+
+#+BEGIN_SRC scheme :tangle editor/architecture.scm
+
+(define-interface ResizableTile (Tile)
+  (min-width)::real
+  (min-height)::real
+  (set-size! new-width::real new-height::real anchor::(maybe Object))::void)
+
+#+END_SRC
+
+Now we can specify more formally what we mean by an ~Application~:
+
+#+BEGIN_SRC scheme :tangle editor/architecture.scm
+
+(define-interface Application (Interactive Visual ResizableTile))
+
+#+END_SRC
+
+*** The editor
+
 *** Document structure
 
 As mentioned at the beginning, the primary representation of
 documents in GRASP consists of /nested boxes/ that are
 arranged in /textual order/.
 
-#+BEGIN_SRC scheme :tangle editor/architecture.scm
-
-(define-interface Visual ()
-  (render! active?::boolean)::void)
-
-#+END_SRC
 
 The text representation of GRASP documents is based on the
 syntax of Scheme. Therefore we need to be able to represent
@@ -3686,15 +3781,6 @@ tiles,
 
 #+BEGIN_SRC scheme :tangle editor/architecture.scm
 
-(define-interface Interactive ()
-  ;; by convention, the function that reacted to the input
-  ;; ought to return #true
-  (tap! finger::byte #;at x::real y::real)::boolean
-  (press! finger::byte #;at x::real y::real)::boolean
-  (second-press! finger::byte #;at x::real y::real)::boolean
-  (double-tap! finger::byte x::real y::real)::boolean
-  (long-press! finger::byte x::real y::real)::boolean
-  (key-typed! key-code::long)::boolean)
 
 (define-interface KeyboardNavigable ()
   ;; likewise, the above functions should return #true
@@ -3717,6 +3803,10 @@ tiles,
 |#
 
 #+END_SRC
+
+*** Extensions
+
+*** Combinators
 
 ** The implementations of GRASP clients
 
