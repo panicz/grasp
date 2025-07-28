@@ -988,12 +988,27 @@ the ~object-definition~ helper macro:
 
 #+BEGIN_SRC  scheme :tangle language/extensions.scm
 
+(define-syntax delegate
+  (syntax-rules (::)
+    ((delegate (method . params) :: type object)
+     (delegate (method . params) object))
+
+    ((delegate (method) object args ...)
+     (invoke object 'method args ...))
+
+    ((delegate (method param :: type . params) object args ...)
+     (delegate (method . params) object args ... param))
+
+    ((delegate (method param . params) object args ...)
+     (delegate (method . params) object args ... param))))
+
 (define-syntax object-definition
   (lambda (stx)
     (syntax-case stx (::
                       define
                       define-private
-                      define-static)
+                      define-static
+                      delegate)
       
       ((object-definition (object-name . args)
                           (arg :: type . rest)
@@ -1088,12 +1103,30 @@ the ~object-definition~ helper macro:
                           (slots ...)
                           methods
                           (initializers ...)
-                          ((define-private slot :: type value)
-                          . spec))
+                          ((define-private slot :: type value) . spec))
        #'(object-definition (object-name . args)
                             ()
                             supers
                             (slots ... (slot :: type access: 'private))
+                            methods
+                            (initializers 
+                             ... 
+                             (set! slot value))
+                            spec))
+
+      ((object-definition (object-name . args)
+                          ()
+                          supers
+                          (slots ...)
+                          methods
+                          (initializers ...)
+                          ((define-private slot value)
+                          . spec))
+       #'(object-definition (object-name . args)
+                            ()
+                            supers
+                            (slots ... (slot access: 'private))
+                            methods
                             (initializers 
                              ... 
                              (set! slot value))
@@ -1124,16 +1157,30 @@ the ~object-definition~ helper macro:
                           supers
                           (slots ...)
                           methods
-                          (initializers ...)
+                          initializers
                           ((define-static slot :: type value)
                           . spec))
        #'(object-definition (object-name . args)
                             ()
                             supers
-                            (slots ... (slot :: type allocation: 'static))
-                            (initializers 
-                             ... 
-                             (set! slot value))
+                            (slots ... (slot :: type allocation: 'static init: value))
+                            methods
+                            initializers
+                            spec))
+
+      ((object-definition (object-name . args)
+                          ()
+                          supers
+                          (slots ...)
+                          methods
+                          initializers
+                          ((define-static slot value) . spec))
+       #'(object-definition (object-name . args)
+                            ()
+                            supers
+                            (slots ... (slot allocation: 'static init: value))
+                            methods
+                            initializers
                             spec))
 
       ((object-definition (object-name . args)
@@ -1148,6 +1195,38 @@ the ~object-definition~ helper macro:
                             supers
                             slots
                             (methods ... ((method . params) . body))
+                            initializers
+                            spec))
+
+      ((object-definition (object-name . args)
+                          ()
+                          supers
+                          slots
+                          (methods ...)
+                          initializers
+                          ((delegate (method . params)::type object) . spec))
+       #'(object-definition (object-name . args)
+                            ()
+                            supers
+                            slots
+                            (methods ... ((method . params)::type 
+                                          (delegate (method . params) object)))
+                            initializers
+                            spec))
+
+      ((object-definition (object-name . args)
+                          ()
+                          supers
+                          slots
+                          (methods ...)
+                          initializers
+                          ((delegate (method . params) object) . spec))
+       #'(object-definition (object-name . args)
+                            ()
+                            supers
+                            slots
+                            (methods ... ((method . params) 
+                                          (delegate (method . params) object)))
                             initializers
                             spec))
 
@@ -2313,21 +2392,48 @@ with properties:
 
 **** The ~mapping~ and ~define-mapping~ macros
 
-Here's the definition of the ~mapping~ and ~define-mapping~ macros:
+Kawa has a limited support for Java's generic types (see the
+section [[https://www.gnu.org/software/kawa/Parameterized-Types.html][Parameterized Types]] in Kawa manual), and the
+counterpart of Java's ~java.util.Map<KeyType, ValueType>~ in
+Kawa is ~java.util.Map[KeyType ValueType]~, which Kawa's
+reader reads as ~($bracket-apply$ java.util.map KeyType
+ValueType)~:
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+  (e.g.
+    (call-with-input-string "java.util.Map[KeyType ValueType]" read)
+  ===> ($bracket-apply$ java.util.Map KeyType ValueType))
+
+#+END_SRC
+
+Since GRASP does not support some of Kawa's reader
+extensions, including the one above, we are not using it in
+GRASP's source code in order to make it editable in GRASP.
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-syntax-rule (specialize generic-type concrete-types ...)
+  ($bracket-apply$ generic-type concrete-types ...))
+
+#+END_SRC
+
+Here are the definitions of the ~mapping~ and ~define-mapping~ macros:
 
 #+BEGIN_SRC scheme :tangle language/extensions.scm
 
 (define-syntax mapping
   (syntax-rules (::)
     ((mapping (object::key-type)::value-type default)
-     (let* ((entries ($bracket-apply$ java.util.HashMap key-type value-type))
+     (let* ((entries ::java.util.Map ((specialize java.util.HashMap 
+                                                  key-type value-type)))
             (getter (lambda (object::key-type)::value-type
                       (if (entries:containsKey object)
                           (entries:get object)
                           default))))
        (set! (setter getter) (lambda (arg value)
                                (entries:put arg value)))
-       (with-procedure-properties ((table enties))
+       (with-procedure-properties ((table entries))
           getter)))
 
     ((mapping (object::key-type) default)
@@ -2344,26 +2450,6 @@ Here's the definition of the ~mapping~ and ~define-mapping~ macros:
     ))
 
 #+END_SRC
-
-Note the use of ~$bracket-apply$~. Kawa has a limited
-support for Java's generic types (see the section
-[[https://www.gnu.org/software/kawa/Parameterized-Types.html][Parameterized Types]] in Kawa manual), and the counterpart of
-Java's ~java.util.Map<KeyType, ValueType>~ in Kawa is
-~java.util.Map[KeyType ValueType]~, which Kawa's reader
-reads as ~($bracket-apply$ java.util.map KeyType
-ValueType)~:
-
-#+BEGIN_SRC scheme :tangle language/extensions.scm
-
-  (e.g.
-    (call-with-input-string "java.util.Map[KeyType ValueType]" read)
-  ===> ($bracket-apply$ java.util.Map KeyType ValueType))
-
-#+END_SRC
-
-Since GRASP does not support some of Kawa's reader
-extensions, including the one above, we are not using it in
-GRASP's source code in order to make it editable in GRASP.
 
 Once ~mapping~ is defined, defining ~define-mapping~ is
 fairly straightforward. The main difficulty is that we need
@@ -2535,8 +2621,8 @@ did in case of ~mapping~.
   (syntax-rules (::)
     ((attribute (object::key-type)::value-type default)
      (let ((table ::java.util.Map
-                  (($bracket-apply$ java.util.WeakHashMap
-                                    key-type value-type))))
+                  ((specialize java.util.WeakHashMap
+                               key-type value-type))))
        (define (create table::java.util.WeakHashMap)
          (let ((getter ::procedure
                        (lambda (object::key-type)::value-type
@@ -2572,7 +2658,7 @@ did in case of ~mapping~.
   (syntax-rules (::)
     ((attribute+ (object::key-type)::value-type default)
      (let ((table ::java.util.Map
-                  (($bracket-apply$ java.util.WeakHashMap
+                  ((specialize java.util.WeakHashMap
                                     key-type value-type))))
        (define (create table::java.util.WeakHashMap)
          (let ((getter ::procedure
@@ -2674,9 +2760,8 @@ removing all or some elements of a mapping:
 #+BEGIN_SRC scheme :tangle language/extensions.scm
 
 (define-syntax-rule (unset! (mapping object))
-  (let ((table (procedure-property mapping 'table)))
-    (when (java.util.Map? table)
-      (hash-remove! table object))))
+  (let ((table ::java.util.Map (procedure-property mapping 'table)))
+    (table:remove object)))
 
 (define (reset! mapping)::void
   (let ((table ::java.util.Map (procedure-property mapping 'table)))
@@ -2908,10 +2993,10 @@ a type variable (rather than syntax error):
   list)
 
 (define-syntax-rule (set-of type)
-  ($bracket-apply$ java.util.Set type))
+  (specialize java.util.Set type))
 
 (define-syntax-rule (EnumSetOf type)
-  ($bracket-apply$ java.util.EnumSet type))
+  (specialize java.util.EnumSet type))
 
 (define-syntax-rule (vector-of type)
   vector)
@@ -2920,10 +3005,10 @@ a type variable (rather than syntax error):
   sequence)
 
 (define-syntax-rule (array-of type)
-  ($bracket-apply$ type))
+  (specialize type))
 
 (define-syntax-rule (parameter-of type)
-  ($bracket-apply$ parameter type))
+  (specialize parameter type))
 
 (define-syntax subtype-of
   (syntax-rules ()
@@ -3244,10 +3329,6 @@ is ambiguous.
 (e.g. (only. even? 2) ===> 2)
 
 (e.g. (only. even? 3) ===> ())
-
-(e.g. (only. (is (+ _ _) even?)
-	     '(1 2 3 4 . 5) '(2 4 6 8 . 9))
-      ===>    (  2   4 . 5)  (  4   8 . 9))
 
 (e.g. (only. (is (+ _ _) even?)
 	     '(1 2 3 4 . 5) '(2 4 6 8 . 9))
@@ -3738,6 +3819,117 @@ Now we can specify more formally what we mean by an ~Application~:
 #+BEGIN_SRC scheme :tangle editor/architecture.scm
 
 (define-interface Application (Interactive Visual ResizableTile))
+#+END_SRC
+
+In object-oriented programming, it is customary to create a
+/null object/, i.e. a trivial object that does nothing
+interesting, but can be used as an initial value before the
+proper initialization takes place. A null object for
+~Application~ might look like this:
+
+#+BEGIN_SRC scheme :tangle editor/architecture.scm
+
+(define-object (Passive)::Interactive
+  (define (tap! finger::byte #;at x::real y::real)::boolean #false)
+  (define (press! finger::byte #;at x::real y::real)::boolean #false)
+  (define (second-press! finger::byte #;at x::real y::real)::boolean #false)
+  (define (double-tap! finger::byte x::real y::real)::boolean #false)
+  (define (long-press! finger::byte x::real y::real)::boolean #false)
+  (define (key-typed! key-code::long)::boolean #false))
+
+(define-object (NullApplication)::Application
+  (define (render! active? ::boolean)::void (values))
+  (define (width)::real 1)
+  (define (height)::real 1)
+  (define (min-width)::real 1)
+  (define (min-height)::real 1)
+  (define (set-size! new-width::real new-height::real 
+                     anchor::(maybe Object))
+    ::void
+    (values))
+
+  (Passive))
+
+#+END_SRC
+
+**** The ~main~ object
+
+In a sense, GRASP can be thought of as a two-dimensional
+extension of a UNIX shell. A shell is sometimes called a
+/command line/, and similarly, a GRASP application could be
+considered /command surface/.
+
+The entry point to a program written in a language such as C
+is - by convention - a ~main~ function. In the case of a
+GRASP application the analogous role is played by the ~main~
+object.
+
+The ~main~ object serves as a gateway between the host's
+input system and the world of GRASP's extensions.
+
+Another such gateway (but for the rendering system)
+will be the ~painter~ object. The ~main~ object delegates
+input and rendering to its ~application~, and is responsible
+for managing ~Drag~ objects
+
+#+BEGIN_SRC scheme :tangle editor/architecture.scm
+
+(define-object (Main application ::Application)::Application
+
+  (define (set-application! new-application ::Application)
+    (set! application new-application))
+
+  (delegate (render! active? ::boolean)::void application)
+
+  (delegate (width)::real application)
+
+  (delegate (height)::real application)
+
+  (delegate (min-width)::real application)
+
+  (delegate (min-height)::real application)
+
+  (delegate (set-size! new-width::real new-height::real 
+                       anchor::(maybe Object))
+    ::void
+    application)
+
+  (define dragging ;;(maps byte to: Drag)
+    (mapping (finger::byte)::Drag #!null))
+
+  (define (drag! finger::byte action::Drag)::void
+    (set! (dragging finger) action))
+
+  (define (undrag! finger::byte)::void
+    (unset! (dragging finger)))
+
+  (delegate (tap! finger::byte #;at x::real y::real)::boolean application)
+
+  (delegate (press! finger::byte #;at x::real y::real)::boolean application)
+
+  (define (release! finger::byte x::real y::real
+		    vx::real vy::real)
+    ::boolean
+    (and-let* ((drag ::Drag (dragging finger)))
+      (drag:drop! x y vx vy)
+      (unset! (dragging finger))
+      #t))
+
+  (define (move! finger::byte x::real y::real dx::real dy::real)
+    ::boolean
+    (and-let* ((drag ::Drag (dragging finger)))
+      (drag:move! x y dx dy)
+      #t))
+
+  (delegate (second-press! finger::byte #;at x::real y::real)::boolean application)
+
+  (delegate (double-tap! finger::byte x::real y::real)::boolean application)
+
+  (delegate (long-press! finger::byte x::real y::real)::boolean application)
+
+  (delegate (key-typed! key-code::long)::boolean application))
+
+(define-early-constant main ::Main (Main (NullApplication)))
 
 #+END_SRC
 
@@ -3763,24 +3955,12 @@ the following syntactic components:
 
 Among those expressions, lists, atoms, strings, block
 comments and expression comments have a rectangular shape,
-so they can be characterized by providing its width and
-height. We are going to use the name ~Tile~ to characterize
-that property. 
-
-#+BEGIN_SRC scheme :tangle editor/architecture.scm
-
-(define-interface Tile ()
-  (width)::real
-  (height)::real)
-
-#+END_SRC
+so each of them is considered to be a ~Tile~.
 
 Whitespace and line comments are closely related, and in
-some sense irregular. On the other hand, when it comes to
-tiles, 
+some sense irregular. 
 
 #+BEGIN_SRC scheme :tangle editor/architecture.scm
-
 
 (define-interface KeyboardNavigable ()
   ;; likewise, the above functions should return #true

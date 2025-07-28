@@ -423,12 +423,27 @@
       (methods ... (method :: result #!abstract))))
     ))
 
+(define-syntax delegate
+  (syntax-rules (::)
+    ((delegate (method . params) :: type object)
+     (delegate (method . params) object))
+
+    ((delegate (method) object args ...)
+     (invoke object 'method args ...))
+
+    ((delegate (method param :: type . params) object args ...)
+     (delegate (method . params) object args ... param))
+
+    ((delegate (method param . params) object args ...)
+     (delegate (method . params) object args ... param))))
+
 (define-syntax object-definition
   (lambda (stx)
     (syntax-case stx (::
                       define
                       define-private
-                      define-static)
+                      define-static
+                      delegate)
       
       ((object-definition (object-name . args)
                           (arg :: type . rest)
@@ -523,12 +538,30 @@
                           (slots ...)
                           methods
                           (initializers ...)
-                          ((define-private slot :: type value)
-                          . spec))
+                          ((define-private slot :: type value) . spec))
        #'(object-definition (object-name . args)
                             ()
                             supers
                             (slots ... (slot :: type access: 'private))
+                            methods
+                            (initializers 
+                             ... 
+                             (set! slot value))
+                            spec))
+
+      ((object-definition (object-name . args)
+                          ()
+                          supers
+                          (slots ...)
+                          methods
+                          (initializers ...)
+                          ((define-private slot value)
+                          . spec))
+       #'(object-definition (object-name . args)
+                            ()
+                            supers
+                            (slots ... (slot access: 'private))
+                            methods
                             (initializers 
                              ... 
                              (set! slot value))
@@ -559,16 +592,30 @@
                           supers
                           (slots ...)
                           methods
-                          (initializers ...)
+                          initializers
                           ((define-static slot :: type value)
                           . spec))
        #'(object-definition (object-name . args)
                             ()
                             supers
-                            (slots ... (slot :: type allocation: 'static))
-                            (initializers 
-                             ... 
-                             (set! slot value))
+                            (slots ... (slot :: type allocation: 'static init: value))
+                            methods
+                            initializers
+                            spec))
+
+      ((object-definition (object-name . args)
+                          ()
+                          supers
+                          (slots ...)
+                          methods
+                          initializers
+                          ((define-static slot value) . spec))
+       #'(object-definition (object-name . args)
+                            ()
+                            supers
+                            (slots ... (slot allocation: 'static init: value))
+                            methods
+                            initializers
                             spec))
 
       ((object-definition (object-name . args)
@@ -583,6 +630,38 @@
                             supers
                             slots
                             (methods ... ((method . params) . body))
+                            initializers
+                            spec))
+
+      ((object-definition (object-name . args)
+                          ()
+                          supers
+                          slots
+                          (methods ...)
+                          initializers
+                          ((delegate (method . params)::type object) . spec))
+       #'(object-definition (object-name . args)
+                            ()
+                            supers
+                            slots
+                            (methods ... ((method . params)::type 
+                                          (delegate (method . params) object)))
+                            initializers
+                            spec))
+
+      ((object-definition (object-name . args)
+                          ()
+                          supers
+                          slots
+                          (methods ...)
+                          initializers
+                          ((delegate (method . params) object) . spec))
+       #'(object-definition (object-name . args)
+                            ()
+                            supers
+                            slots
+                            (methods ... ((method . params) 
+                                          (delegate (method . params) object)))
                             initializers
                             spec))
 
@@ -1405,17 +1484,25 @@
     ...
     proc))
 
+(e.g.
+  (call-with-input-string "java.util.Map[KeyType ValueType]" read)
+===> ($bracket-apply$ java.util.Map KeyType ValueType))
+
+(define-syntax-rule (specialize generic-type concrete-types ...)
+  ($bracket-apply$ generic-type concrete-types ...))
+
 (define-syntax mapping
   (syntax-rules (::)
     ((mapping (object::key-type)::value-type default)
-     (let* ((entries ($bracket-apply$ java.util.HashMap key-type value-type))
+     (let* ((entries ::java.util.Map ((specialize java.util.HashMap 
+                                                  key-type value-type)))
             (getter (lambda (object::key-type)::value-type
                       (if (entries:containsKey object)
                           (entries:get object)
                           default))))
        (set! (setter getter) (lambda (arg value)
                                (entries:put arg value)))
-       (with-procedure-properties ((table enties))
+       (with-procedure-properties ((table entries))
           getter)))
 
     ((mapping (object::key-type) default)
@@ -1430,10 +1517,6 @@
      (mapping (object::java.lang.Object)::java.lang.Object
               default))
     ))
-
-(e.g.
-  (call-with-input-string "java.util.Map[KeyType ValueType]" read)
-===> ($bracket-apply$ java.util.Map KeyType ValueType))
 
 (define-syntax define-mapping
   (syntax-rules (::)
@@ -1535,8 +1618,8 @@
   (syntax-rules (::)
     ((attribute (object::key-type)::value-type default)
      (let ((table ::java.util.Map
-                  (($bracket-apply$ java.util.WeakHashMap
-                                    key-type value-type))))
+                  ((specialize java.util.WeakHashMap
+                               key-type value-type))))
        (define (create table::java.util.WeakHashMap)
          (let ((getter ::procedure
                        (lambda (object::key-type)::value-type
@@ -1572,7 +1655,7 @@
   (syntax-rules (::)
     ((attribute+ (object::key-type)::value-type default)
      (let ((table ::java.util.Map
-                  (($bracket-apply$ java.util.WeakHashMap
+                  ((specialize java.util.WeakHashMap
                                     key-type value-type))))
        (define (create table::java.util.WeakHashMap)
          (let ((getter ::procedure
@@ -1659,9 +1742,8 @@
     ))
 
 (define-syntax-rule (unset! (mapping object))
-  (let ((table (procedure-property mapping 'table)))
-    (when (java.util.Map? table)
-      (hash-remove! table object))))
+  (let ((table ::java.util.Map (procedure-property mapping 'table)))
+    (table:remove object)))
 
 (define (reset! mapping)::void
   (let ((table ::java.util.Map (procedure-property mapping 'table)))
@@ -1812,10 +1894,10 @@
   list)
 
 (define-syntax-rule (set-of type)
-  ($bracket-apply$ java.util.Set type))
+  (specialize java.util.Set type))
 
 (define-syntax-rule (EnumSetOf type)
-  ($bracket-apply$ java.util.EnumSet type))
+  (specialize java.util.EnumSet type))
 
 (define-syntax-rule (vector-of type)
   vector)
@@ -1824,10 +1906,10 @@
   sequence)
 
 (define-syntax-rule (array-of type)
-  ($bracket-apply$ type))
+  (specialize type))
 
 (define-syntax-rule (parameter-of type)
-  ($bracket-apply$ parameter type))
+  (specialize parameter type))
 
 (define-syntax subtype-of
   (syntax-rules ()
@@ -2129,10 +2211,6 @@
 (e.g. (only. even? 2) ===> 2)
 
 (e.g. (only. even? 3) ===> ())
-
-(e.g. (only. (is (+ _ _) even?)
-	     '(1 2 3 4 . 5) '(2 4 6 8 . 9))
-      ===>    (  2   4 . 5)  (  4   8 . 9))
 
 (e.g. (only. (is (+ _ _) even?)
 	     '(1 2 3 4 . 5) '(2 4 6 8 . 9))

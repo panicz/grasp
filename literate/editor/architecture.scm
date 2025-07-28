@@ -36,9 +36,83 @@
 
 (define-interface Application (Interactive Visual ResizableTile))
 
-(define-interface Tile ()
-  (width)::real
-  (height)::real)
+(define-object (Passive)::Interactive
+  (define (tap! finger::byte #;at x::real y::real)::boolean #false)
+  (define (press! finger::byte #;at x::real y::real)::boolean #false)
+  (define (second-press! finger::byte #;at x::real y::real)::boolean #false)
+  (define (double-tap! finger::byte x::real y::real)::boolean #false)
+  (define (long-press! finger::byte x::real y::real)::boolean #false)
+  (define (key-typed! key-code::long)::boolean #false))
+
+(define-object (NullApplication)::Application
+  (define (render! active? ::boolean)::void (values))
+  (define (width)::real 1)
+  (define (height)::real 1)
+  (define (min-width)::real 1)
+  (define (min-height)::real 1)
+  (define (set-size! new-width::real new-height::real 
+                     anchor::(maybe Object))
+    ::void
+    (values))
+
+  (Passive))
+
+(define-object (Main application ::Application)::Application
+
+  (define (set-application! new-application ::Application)
+    (set! application new-application))
+
+  (delegate (render! active? ::boolean)::void application)
+
+  (delegate (width)::real application)
+
+  (delegate (height)::real application)
+
+  (delegate (min-width)::real application)
+
+  (delegate (min-height)::real application)
+
+  (delegate (set-size! new-width::real new-height::real 
+                       anchor::(maybe Object))
+    ::void
+    application)
+
+  (define dragging ;;(maps byte to: Drag)
+    (mapping (finger::byte)::Drag #!null))
+
+  (define (drag! finger::byte action::Drag)::void
+    (set! (dragging finger) action))
+
+  (define (undrag! finger::byte)::void
+    (unset! (dragging finger)))
+
+  (delegate (tap! finger::byte #;at x::real y::real)::boolean application)
+
+  (delegate (press! finger::byte #;at x::real y::real)::boolean application)
+
+  (define (release! finger::byte x::real y::real
+		    vx::real vy::real)
+    ::boolean
+    (and-let* ((drag ::Drag (dragging finger)))
+      (drag:drop! x y vx vy)
+      (unset! (dragging finger))
+      #t))
+
+  (define (move! finger::byte x::real y::real dx::real dy::real)
+    ::boolean
+    (and-let* ((drag ::Drag (dragging finger)))
+      (drag:move! x y dx dy)
+      #t))
+
+  (delegate (second-press! finger::byte #;at x::real y::real)::boolean application)
+
+  (delegate (double-tap! finger::byte x::real y::real)::boolean application)
+
+  (delegate (long-press! finger::byte x::real y::real)::boolean application)
+
+  (delegate (key-typed! key-code::long)::boolean application))
+
+(define-early-constant main ::Main (Main (NullApplication)))
 
 (define-interface KeyboardNavigable ()
   ;; likewise, the above functions should return #true
