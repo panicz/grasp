@@ -2,6 +2,11 @@
 (import (kawa pprint))
 (import (language extensions))
 
+(define-syntax-rule (match/regex subject (pattern . actions) ...)
+  (cond ((regex-match pattern subject)
+	 . actions)
+	...))
+
 (define-enum TextStyle
   (Bold
    Italic
@@ -46,17 +51,48 @@
                               (loop))))))))
 	 (cons word (read-words input-port)))))))
 
-(define* (rewrite-characters from: input ::InputPort := (current-input-port)
-			     to: output ::OutputPort := (current-output-port))
-  (let next ()
-    (let ((c (read-char input)))
-      (unless (eof-object? c)
-	(write-char c output)
-	(next)))))
-
-(define-syntax-rule (match/regex subject (pattern . actions) ...)
-  (cond ((regex-match pattern subject) . actions)
-	...))
+(define* (read-paragraphs input-port ::InputPort := (current-input-port))
+  ::(sequence-of string)
+  (let ((paragraphs ::java.util.List (java.util.ArrayList))
+	(current-paragraph ::java.lang.StringBuilder
+			   (java.lang.StringBuilder)))
+    
+    (define (finish-paragraph!)
+      (when (is (current-paragraph:length) > 0)
+	(paragraphs:add (current-paragraph:toString))
+	(current-paragraph:setLength 0)))
+    
+    (let next ()
+      (let ((line (read-line input-port)))
+	(cond
+	 ((eof-object? line)
+	  (finish-paragraph!)
+	  paragraphs)
+	 ((regex-match "^[ \t]*$" line)
+	  (finish-paragraph!)
+	  (next))
+	 ((regex-match "^[#][+]BEGIN_SRC" line)
+	  (finish-paragraph!)
+	  (current-paragraph:append line)
+	  (let snip ()
+	    (let ((line (read-line input-port)))
+	      (assert (isnt line eof-object?))
+	      (current-paragraph:append (as char #\newline))
+	      (current-paragraph:append line)
+	      (cond
+	       ((regex-match "^[#][+]END_SRC" line)
+		(finish-paragraph!)
+		(next))
+	       (else
+		(snip))))))
+	 (else
+	  (and-let* ((n ::int (current-paragraph:length))
+		     ((is n > 0))
+		     ((isnt (current-paragraph:charAt (- n 1))
+			    eq? (as char #\space))))
+	    (current-paragraph:append (as char #\space)))
+	  (current-paragraph:append line)
+	  (next)))))))
 
 (define (extract-style-modifiers word::Word)::(sequence-of
 					       (either
@@ -125,10 +161,7 @@
  ===> "The Most Impressive Program Ever Written")
 
 (define* (parse-book input ::InputPort := (current-input-port))::Book
-  (let* ((text ::string (call-with-output-string
-			  (lambda (string ::OutputPort)
-			    (rewrite-characters from: input to: string))))
-	 (paragraphs ::(list-of string) (regex-split "\n[ \t]*\n+" text))
+  (let* ((paragraphs ::(sequence-of input) (read-paragraphs input))
 	 (book ::Book (Book chapters: (java.util.ArrayList)))
 	 (current-chapter ::Chapter #!null))
     (for paragraph in paragraphs
@@ -147,7 +180,7 @@
 	=> (lambda (title ::string)
 	     (current-chapter:paragraphs:add (Section title: title))))
 
-       ((regex-match "^[#][+]BEGIN_" paragraph)
+       ((regex-match "^[#][+]BEGIN_SRC" paragraph)
 	(current-chapter:paragraphs:add (string-append "\n\n" paragraph "\n\n")))
        
        (else
@@ -159,10 +192,6 @@
 		 "../../the-most-impressive-program-ever-written/book.org"
 	       parse-book)))
   (pprint book))
-  
- 
-
-
 
 ;; Local Variables:
 ;; eval: (put 'match/regex 'scheme-indent-function 1)
