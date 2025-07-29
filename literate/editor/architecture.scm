@@ -19,8 +19,7 @@
 
 (define-interface Drag ()
   (move! x::real y::real dx::real dy::real)::void
-  (drop! x::real y::real vx::real vy::real)::void
-  )
+  (drop! x::real y::real vx::real vy::real)::void)
 
 (define-interface Visual ()
   (render! active? ::boolean)::void)
@@ -81,7 +80,7 @@
     ::void
     application)
 
-  (define dragging ;;(maps byte to: Drag)
+  (define dragging ::(maps (byte) to: Drag)
     (mapping (finger::byte)::Drag #!null))
 
   (define (drag! finger::byte action::Drag)::void

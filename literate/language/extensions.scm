@@ -2487,3 +2487,26 @@
 
 (define-syntax-rule (define/memoized (name . args) . body)
   (define name (memoize (lambda args . body))))
+
+
+(define-object (InputPortLineIterator port::InputPort)
+  ::(specialize java.util.Iterator string)
+  (define next-line ::(maybe (either string gnu.lists.EofClass)) #!null)
+
+  (define (hasNext) ::boolean
+    (unless next-line
+      (set! next-line (read-line port)))
+    (isnt next-line eof-object?))
+
+  (define (next)
+    (unless next-line
+      (set! next-line (read-line port)))
+    (unless (string? next-line)
+      (throw (java.util.NoSuchElementException)))
+    (let ((result next-line))
+      (set! next-line #!null)
+      result)))
+
+(define-object (lines port::InputPort)::(specialize java.lang.Iterable string)
+  (define (iterator)::(specialize java.util.Iterator string)
+    (InputPortLineIterator port)))
