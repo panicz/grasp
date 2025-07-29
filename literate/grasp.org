@@ -3839,14 +3839,18 @@ proper initialization takes place. A null object for
 
 (define-object (NullApplication)::Application
   (define (render! active? ::boolean)::void (values))
-  (define (width)::real 1)
-  (define (height)::real 1)
+  (define-private internal-width ::real 1)
+  (define-private internal-height ::real 1)
+
+  (define (width)::real internal-width)
+  (define (height)::real internal-height)
   (define (min-width)::real 1)
   (define (min-height)::real 1)
   (define (set-size! new-width::real new-height::real 
                      anchor::(maybe Object))
     ::void
-    (values))
+    (set! internal-width (max (min-width) new-width))
+    (set! internal-height (max (min-height) new-height)))
 
   (Passive))
 
@@ -3933,6 +3937,34 @@ for managing ~Drag~ objects
 
 #+END_SRC
 
+**** The ~Painter~ interface
+
+GRASP is designed to work in a variety of environments,
+spanning from high-fidelity vector graphics output
+to simple text rendering.
+
+These environments provide very different rendering
+capabilities and complexity of programming interfaces.
+
+One of the purposes of GRASP is to provide an interface
+that may not have a particularly high fidelity, but that
+is easy to use and covers the most common cases.
+
+The definition of the ~Painter~ interface provided here is
+probably very far from perfect, and should not be thought of
+as engraved in stone. It is perhaps most convenient to think
+of the ~Painter~ as a whimsical artist who wears a fancy hat
+and long shawl.
+
+**** The implementations of GRASP clients
+
+***** The terminal client
+
+***** The desktop client
+
+***** The Android client
+
+
 *** The editor
 
 *** Document structure
@@ -3942,7 +3974,7 @@ documents in GRASP consists of /nested boxes/ that are
 arranged in /textual order/.
 
 
-The text representation of GRASP documents is based on the
+The tdext representation of GRASP documents is based on the
 syntax of Scheme. Therefore we need to be able to represent
 the following syntactic components:
 - lists (and dotted pairs)
@@ -3987,14 +4019,6 @@ some sense irregular.
 *** Extensions
 
 *** Combinators
-
-** The implementations of GRASP clients
-
-*** The terminal client
-
-*** The desktop client
-
-*** The Android client
 
 ** Building GRASP
 

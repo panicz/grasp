@@ -46,14 +46,18 @@
 
 (define-object (NullApplication)::Application
   (define (render! active? ::boolean)::void (values))
-  (define (width)::real 1)
-  (define (height)::real 1)
+  (define-private internal-width ::real 1)
+  (define-private internal-height ::real 1)
+
+  (define (width)::real internal-width)
+  (define (height)::real internal-height)
   (define (min-width)::real 1)
   (define (min-height)::real 1)
   (define (set-size! new-width::real new-height::real 
                      anchor::(maybe Object))
     ::void
-    (values))
+    (set! internal-width (max (min-width) new-width))
+    (set! internal-height (max (min-height) new-height)))
 
   (Passive))
 
