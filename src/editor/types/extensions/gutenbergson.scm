@@ -29,6 +29,11 @@
 
 (import (utils print))
 
+(define-syntax-rule (match/regex subject (pattern . actions) ...)
+  (cond
+   ((regex-match pattern subject) . actions)
+   ...))
+
 (define-type (Section title: string))
 
 (define-alias Paragraph (either
@@ -131,10 +136,6 @@
 	  (current-paragraph:append line)
 	  (next)))))))
 
-(define-syntax-rule (match/regex subject (pattern . actions) ...)
-  (cond
-   ((regex-match pattern subject) . actions)
-   ...))
 
 (define (extract-style-modifiers word::Word)::(sequence-of
 					       (either
@@ -175,6 +176,18 @@
   ::(sequence-of (either Word TextStyle EndTextStyle))
   (let ((words (read-words input)))
     (append-map extract-style-modifiers words)))
+
+(define (book-title? text ::string)::(maybe string)
+  (and-let* ((`(,_ ,title) (regex-match "^[*] ([^\n]+)$" text)))
+    title))
+
+(define (chapter-title? text ::string)::(maybe string)
+  (and-let* ((`(,_ ,title) (regex-match "^[*][*] ([^\n]+)$" text)))
+    title))
+
+(define (section-title? text ::string)::(maybe string)
+  (and-let* ((`(,_ ,title) (regex-match "^[*][*][*]+ ([^\n]+)$" text)))
+    title))
 
 (define (layout-paragraph
 	 paragraph::Paragraph
@@ -247,6 +260,34 @@
 				line-height::real)
   ::real
   (layout-words nothing max-line-width line-height))
+
+(define (parse-book #!optional (input ::InputPort (current-input-port)))::Book
+  (let* ((paragraphs ::(sequence-of input) (read-paragraphs input))
+	 (book ::Book (Book chapters: (java.util.ArrayList)))
+	 (current-chapter ::Chapter #!null))
+    (for paragraph in paragraphs
+      (cond
+       ((is paragraph book-title?)
+	=> (lambda (title ::string)
+             (assert (eq? book:title #!null))
+             (set! book:title title)))
+       ((is paragraph chapter-title?)
+	=> (lambda (title ::string)
+             (when current-chapter
+               (book:chapters:add current-chapter))
+             (set! current-chapter (Chapter title: title
+					    paragraphs: (java.util.ArrayList)))))
+       ((is paragraph section-title?)
+	=> (lambda (title ::string)
+	     (current-chapter:paragraphs:add (Section title: title))))
+
+       ((regex-match "^[#][+]BEGIN_SRC" paragraph)
+	(current-chapter:paragraphs:add (string-append "\n\n" paragraph "\n\n")))
+       
+       (else
+        (current-chapter:paragraphs:add 
+         (call-with-input-string paragraph parse-paragraph)))))
+    book))
 
 (define (sample-book)::Book
   (Book title: "Sample Book"

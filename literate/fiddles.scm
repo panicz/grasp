@@ -7,6 +7,23 @@
 	 . actions)
 	...))
 
+(define-type (Section title: string))
+
+(define-alias Paragraph (either
+			 Section
+			 string ;; verbatim
+			 (sequence-of
+			  (either
+			   string
+			   TextStyle
+			   EndTextSTyle))))
+
+(define-type (Chapter title: string
+		      paragraphs: (sequence-of Paragraph) := (java.util.ArrayList)))
+
+(define-type (Book title: string
+		   chapters: (sequence-of Chapter) := (java.util.ArrayList)))
+
 (define-enum TextStyle
   (Bold
    Italic
@@ -123,23 +140,6 @@
 	    ,(EndTextStyle style: TextStyle:Monospace))))
     (".*"
      `(,word))))
-
-(define-type (Section title: string))
-
-(define-alias Paragraph (either
-			 Section
-			 string ;; verbatim
-			 (sequence-of
-			  (either
-			   string
-			   TextStyle
-			   EndTextSTyle))))
-
-(define-type (Chapter title: string
-		      paragraphs: (sequence-of Paragraph) := (java.util.ArrayList)))
-
-(define-type (Book title: string
-		   chapters: (sequence-of Chapter) := (java.util.ArrayList)))
 
 (define* (parse-paragraph input ::InputPort := (current-input-port))
   ::(sequence-of (either Word TextStyle EndTextStyle))
