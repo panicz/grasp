@@ -29,10 +29,22 @@
 
 (import (utils print))
 
-(define-interface TextDivisionUnit (#;Enchanted)
-  (render! max-line-width::real line-height::real)::real
-  (height max-line-width::real line-height::real)::real
-  )
+(define-type (Section title: string))
+
+(define-alias Paragraph (either
+			 Section
+			 string ;; verbatim
+			 (sequence-of
+			  (either
+			   string
+			   TextStyle
+			   EndTextSTyle))))
+
+(define-type (Chapter title: string
+		      paragraphs: (sequence-of Paragraph) := (java.util.ArrayList)))
+
+(define-type (Book title: string
+		   chapters: (sequence-of Chapter) := (java.util.ArrayList)))
 
 (define-private opening-brackets ::(set-of gnu.text.Char)
   (set #\( #\[ #\{))
@@ -42,6 +54,9 @@
 
 (define-private punctuation ::(set-of gnu.text.Char)
   (set #\; #\. #\: #\, #\? #\!))
+
+(define-private brackets&punctuation ::(set-of gnu.text.Char)
+  (union opening-brackets closing-brackets punctuation))
 
 (define-cache (char->string single-char ::gnu.text.Char)
   ::string
@@ -57,9 +72,7 @@
       ((char-whitespace? c)
        (read-words input-port))
        
-      ((or (is c in punctuation)
-	   (is c in opening-brackets)
-	   (is c in closing-brackets))
+      ((is c in brackets&punctuation)
        (cons (char->string c) (read-words input-port)))
       
       (else
@@ -70,90 +83,53 @@
                          (let ((c (peek-char input-port)))
                             (unless (or (eof-object? c)
                                         (char-whitespace? c)
-					(is c in punctuation)
-					(is c in opening-brackets)
-					(is c in closing-brackets))
+					(is c in brackets&punctuation))
                               (write-char (read-char input-port) p)
                               (loop))))))))
 	 (cons word (read-words input-port)))))))
 
-(define-object (Paragraph content::(sequence-of
-				    (either
-				     Word
-				     TextStyle
-				     EndTextStyle)))
-  ::TextDivisionUnit
-  (define (layout-words word-operation::(maps (real real Word TextDecoration)
-					      to: void)
-			max-line-width::real
-			line-height::real)
-    ::real
-    (let ((style ::TextDecoration (RegularText))
-	  (left ::real 0)
-	  (top ::real 0))
-      (for token in content
-	(match token
-	  (word::string
-	   (let* ((word-length ::int (string-length word))
-		  (word-width ::real (painter:styled-text-width word style))
-		  (space-width ::real (painter:styled-text-width " " style))
-		  (expanded ::real (+ left word-width)))
-
-	     (cond
-	      ((and (= word-length 1)
-		    (or (is (word 0) in punctuation)
-			(is (word 0) in closing-brackets))
-		    (is left > space-width))
-	       (set! left (- left space-width)))
-	      
-	      ((is expanded > max-line-width)
-	       (set! left 0)
-	       (set! top (+ top line-height))))
-	     
-	     (word-operation left top word style)
-
-	     (set! left (+ left word-width
-			   (if (and (= word-length 1)
-				    (is (word 0) in opening-brackets))
-			       0
-			       space-width)))))
-	  
-	  (modifier::TextStyle
-	   (assert (not (style:contains modifier)))
-	   (style:add modifier))
-	  
-	  ((EndTextStyle style: modifier)
-	   (assert (style:contains modifier))
-	   (style:remove modifier))))
-      
-      (+ top line-height)))
-
-  (define (render! max-line-width::real
-		   line-height::real)
-    ::real
-    (layout-words (lambda (left::real top::real word::Word
-				      style::TextDecoration)
-		    (painter:draw-styled-text! left top word style))
-		  max-line-width
-		  line-height))
-  
-  (define cached-height
-    (cache (max-line-width::real line-height::real)
-	   (layout-words nothing max-line-width line-height)))
-  
-  (define (height max-line-width::real line-height::real)::real
-    (cached-height max-line-width line-height))
-
-  #|
-  (define (draw! context::Cursor)::void
-    ...)
-
-  (define (extent)::Extent
-    ...)
-  
-  (Magic)
-  |#
-  )
+(define (read-paragraphs #!optional (input-port ::InputPort (current-input-port)))
+  ::(sequence-of string)
+  (let ((paragraphs ::java.util.List (java.util.ArrayList))
+	(current-paragraph ::java.lang.StringBuilder
+			   (java.lang.StringBuilder)))
+    
+    (define (finish-paragraph!)
+      (when (is (current-paragraph:length) > 0)
+	(paragraphs:add (current-paragraph:toString))
+	(current-paragraph:setLength 0)))
+    
+    (let next ()
+      (let ((line (read-line input-port)))
+	(cond
+	 ((eof-object? line)
+	  (finish-paragraph!)
+	  paragraphs)
+	 ((regex-match "^[ \t]*$" line)
+	  (finish-paragraph!)
+	  (next))
+	 ((regex-match "^[#][+]BEGIN_SRC" line)
+	  (finish-paragraph!)
+	  (current-paragraph:append line)
+	  (let snip ()
+	    (let ((line (read-line input-port)))
+	      (assert (isnt line eof-object?))
+	      (current-paragraph:append (as char #\newline))
+	      (current-paragraph:append line)
+	      (cond
+	       ((regex-match "^[#][+]END_SRC" line)
+		(finish-paragraph!)
+		(next))
+	       (else
+		(snip))))))
+	 (else
+	  (and-let* ((n ::int (current-paragraph:length))
+		     ((is n > 0))
+		     ((isnt (current-paragraph:charAt (- n 1))
+			    eq? (as char #\space))))
+	    (current-paragraph:append (as char #\space)))
+	  (current-paragraph:append line)
+	  (next)))))))
 
 (define-syntax-rule (match/regex subject (pattern . actions) ...)
   (cond
@@ -200,19 +176,89 @@
   (let ((words (read-words input)))
     (append-map extract-style-modifiers words)))
 
-(define-type (Chapter content: (sequence-of TextDivisionUnit)))
+(define (layout-paragraph
+	 paragraph::Paragraph
+	 word-operation::(maps (real real Word TextDecoration) to: void)
+	 max-line-width::real
+	 line-height::real)
+  ::real
+  (match paragraph
+    (verbatim::string
+     (WARN "skipping verbatim string "verbatim)
+     0)
+    ((Section title: title)
+     (WARN "skipping section title "title)
+     0)
+    (words
+     ::(sequence-of Word)
+     (let ((top ::real 0)(left ::real 0)
+	   (style ::TextDecoration (RegularText)))
+       (for token in words
+	 (match token
+	   (word::string
+	    (let* ((word-length ::int (string-length word))
+		   (word-width ::real (painter:styled-text-width word style))
+		   (space-width ::real (painter:styled-text-width " " style))
+		   (expanded ::real (+ left word-width)))
 
-(define-type (Book chapters: (sequence-of Chapter)))
+	      (cond
+	       ((and (= word-length 1)
+		     (or (is (word 0) in punctuation)
+			 (is (word 0) in closing-brackets))
+		     (is left > space-width))
+		(set! left (- left space-width)))
+	       
+	       ((is expanded > max-line-width)
+		(set! left 0)
+		(set! top (+ top line-height))))
+	      
+	      (word-operation left top word style)
+
+	      (set! left (+ left word-width
+			    (if (and (= word-length 1)
+				     (is (word 0) in opening-brackets))
+				0
+				space-width)))))
+	   
+	   (modifier::TextStyle
+	    (assert (not (style:contains modifier)))
+	    (style:add modifier))
+	   
+	   ((EndTextStyle style: modifier)
+	    (assert (style:contains modifier))
+	    (style:remove modifier))))
+	 
+	 (+ top line-height)))))
+
+(define (render-paragraph! paragraph::Paragraph
+			   max-line-width::real
+			   line-height::real)
+  ::real
+  (layout-paragraph
+   paragraph
+   (lambda (left::real top::real word::Word
+		       style::TextDecoration)
+     (painter:draw-styled-text! left top word style))
+   max-line-width
+   line-height))
+
+(define-cache (paragraph-height words::(sequence-of word)
+				max-line-width::real
+				line-height::real)
+  ::real
+  (layout-words nothing max-line-width line-height))
 
 (define (sample-book)::Book
-  (Book chapters:
+  (Book title: "Sample Book"
+	chapters:
 	(vector
 	 (Chapter
-	  content:
+	  title: "First chapter"
+	  paragraphs:
 	  (vector
-	   (Paragraph (call-with-input-string "\
+	   (call-with-input-string "\
 These words are: *bold*, /italic/, */bold-italic/* and ~MonoSpace~.
-"parse-paragraph)))))))
+"parse-paragraph))))))
 
 (define-object (InteractiveBookReader book ::Book)
   ::Maximizable
@@ -231,15 +277,21 @@ These words are: *bold*, /italic/, */bold-italic/* and ~MonoSpace~.
     (let ((chapter ::Chapter (book:chapters current-chapter))
 	  (top ::real 0))
       (escape-with break
-	(for fragment::TextDivisionUnit in chapter:content
+	(for paragraph::Paragraph in chapter:paragraphs
 	  (let ((height
 		 (with-translation (0 top)
-		   (fragment:render! size:width
-				     (painter:styled-text-height)))))
+		   (render-paragraph! paragraph
+				      (min max-text-width size:width)
+				      (painter:styled-text-height)))))
 	    (set! top (+ top height))
 	    (when (is top > size:height)
 	      (break)))))))
 
+  (define max-text-width ::real
+    (painter:styled-text-width
+     "Abc def ghi jkl mno pq rst uvw xyz abcdefghijklmnopqrstuvwxyz"
+     (RegularText)))
+  
   (define size ::Extent
     (Extent width: (* 60 (painter:space-width))
 	    height: (* 25 (painter:styled-text-height))))
