@@ -106,6 +106,12 @@ The code snippets from this chapter will be placed in the
 #+BEGIN_SRC scheme :tangle language/extensions.scm :mkdirp yes :noweb yes
 <<header>>
 (module-name (language extensions))
+;; mind that, for some reason, importing ANY module from this
+;; one causes the compiler to break, probably because of the
+;; way macroexpander is implemented in Kawa. This could likely
+;; be solved by splitting this module into a bunch of smaller
+;; ones, to enforce the proper staging, but that would only
+;; complicate things
 
 #+END_SRC
 
@@ -3685,9 +3691,14 @@ implementations.
       (set! next-line #!null)
       result)))
 
-(define-object (lines port::InputPort)::(specialize java.lang.Iterable string)
+(define-object (InputPortLines port::InputPort)
+  ::(specialize java.lang.Iterable string)
   (define (iterator)::(specialize java.util.Iterator string)
     (InputPortLineIterator port)))
+
+(define* (lines port ::InputPort := (current-input-port))
+  ::(specialize java.lang.Iterable string)
+  (InputPortLines port))
 
 #+END_SRC
 
@@ -3958,6 +3969,28 @@ for managing ~Drag~ objects
 
 #+END_SRC
 
+**** The animation system
+
+GRASP is fundamentally an interactive programming
+environment. In order to be able to effectively communicate
+with its users, it needs to be able to display animations.
+
+An animation in GRASP is an interface that has exactly one
+method - ~advance!)~ - that takes a timestep (a 32-bit
+integer that expresses a time step in milliseconds) and
+returns a ~boolean~ value that is ~#true~ if the animation
+hasn't ended yet.
+
+#+BEGIN_SRC scheme :tangle editor/architecture.scm
+
+(define-interface Animation ()
+  ;; if this method returns #f, it means
+  ;; that the animation has ended and can be
+  ;; discarded by the animation system
+  (advance! timestep/ms::uint)::boolean)
+
+#+END_SRC
+
 **** The ~Painter~ interface
 
 GRASP is designed to work in a variety of environments,
@@ -3975,12 +4008,128 @@ The definition of the ~Painter~ interface provided here is
 probably very far from perfect, and should not be thought of
 as engraved in stone. It is perhaps most convenient to think
 of the ~Painter~ as a whimsical artist who wears a fancy hat
-and long shawl.
+and long shawl and pretends to know French.
+
+A lot of complication of the ~Painter~ interface stems from
+the fact that it's designd to support not only rich visual
+environments/graphics APIs, but also character terminals.
+
+By necessity, the specificity of the operations provided by
+~Painter~ is determined by the capabilities of terminals,
+which, for example, make it easy to draw horizontal and
+vertical lines, but drawing skewed lines of varying angles
+cannot be done with comparable fidelity.
+
+It is also impossible to draw scalable fonts, or to zoom and
+rotate the content of the screen inside terminal. But we
+don't want those deficiencies to limit the usability of the
+GRASP clients that are capable of rendering scalable vector
+graphics.
+
+***** The rendering context
+
+The origin of the coordinate system is the top left corner
+of the screen (which agrees with the /textual order/ that is
+employed for the code in GRASP). The origin can be shifted
+using the ~with-translation~ method. All rendering is done
+with respect to the origin, and for example text rendering
+naturally flows to the right and downwards.
+
+Likewise, it is possible (and often useful) to limit the
+area that can be rendered to using the ~with-clip~
+method. The coordinate system can also be uniformly scaled
+using ~with-scale~, rotated using ~with-rotation~ and scaled
+non-uniformly using ~with-stretch~.
+
+It is also possible to decrease the intensity (opaqueness)
+of the rendered fragment using ~with-intensity~, where 0.0
+means no rendering, and 1.0 - fully opaque rendering.
+
+***** Fonts and colors
+
+Colors are represented using 32-bit RGBA scheme (red is the
+most significant byte, while alpha, i.e. opaqueness is the
+least significant byte).
+
+The painter stores two colors in its state: the current
+lead color, which is used for rendering font, but also
+contours of shapes, and the current fill color, which
+is used to fill shapes.
+
+The graphical versions of GRASP are capable of rendering
+TrueType fonts. The terminal version, in addition to being
+able to render normal text, can also render FIGlet fonts.
+
+In either case, the rendering is done so that the origin
+is the top left corner of the text.
+
+***** Rendering routines
+
+
+
+
+
+#+BEGIN_SRC scheme :tangle editor/architecture.scm
+
+;; Android, Desktop and Terminal/Text use different
+;; representations of font. For this reason, we need
+;; to coerce it to Object in the interface
+(define-alias FontProxy java.lang.Object)
+
+;; we are going to represent colors as 32-bit numbers
+;; using the #xRRGGBBAA format, meaning that the most
+;; significant byte is Red, and the least byte significant
+;; - Alpha (transparency). So for example 0 is a completely
+;; trasparent color, #x000000FF is opaque black,
+;; and #xFFFFFFFF is opaque white.
+;; 
+(define-alias RGBA uint)
+
+(define-type (Extent width: real height: real))
+
+(define-enum LineDecoration (Thick Dashed))
+
+(define-alias LineStyle (EnumSetOf LineDecoration))
+
+(define-interface Painter ()
+
+  (set-lead-color! color ::RGBA)::RGBA
+  (current-lead-color)::RGBA
+
+  (set-fill-color! color ::RGBA)::RGBA
+  (current-fill-color)::RGBA
+
+  (set-font! font ::FontProxy)::FontProxy
+  (current-font)::FontProxy
+
+  (set-line-style! style ::LineStyle)::LineStyle
+  (current-line-style)
+
+  (with-translation left ::real top ::real action ::(maps () to: ,a))::,a
+  (with-rotation angle/radians ::real action ::(maps () to: ,a))::,a
+  (with-clip width ::real height ::real action ::(maps () to: ,a))::,a
+  (with-stretch rightward ::real downward ::real action ::(maps () to: ,a))::,a
+  (with-intensity fraction ::real action ::(maps () to: ,a))::,a
+
+  (draw-text! text ::CharSequence)::Extent
+  (draw-line! x0 ::real y0 ::real x1 ::real y1 ::real)::void
+  (draw-line-rightward! width ::real)::void
+  (draw-line-downward! height ::real)::void
+
+  (draw-rounded-rectangle! width ::real height ::real)::void
+  (draw-rectangle! width ::real height ::real)::void
+
+  
+
+  )
+
+#+END_SRC
+
 
 **** The implementations of GRASP clients
 
 ***** The terminal client
-
+      
 ***** The desktop client
 
 ***** The Android client
