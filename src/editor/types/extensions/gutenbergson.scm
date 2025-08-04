@@ -190,10 +190,10 @@
     title))
 
 (define (layout-paragraph
-	 paragraph::Paragraph
-	 word-operation::(maps (real real Word TextDecoration) to: void)
-	 max-line-width::real
-	 line-height::real)
+	 paragraph ::Paragraph
+	 word-operation ::(maps (real real Word TextDecoration) to: void)
+	 max-line-width ::real
+	 line-height ::real)
   ::real
   (match paragraph
     (verbatim::string
@@ -255,11 +255,11 @@
    max-line-width
    line-height))
 
-(define-cache (paragraph-height words::(sequence-of word)
+(define #;-cache (paragraph-height words::Paragraph
 				max-line-width::real
 				line-height::real)
   ::real
-  (layout-words nothing max-line-width line-height))
+  (layout-paragraph words nothing max-line-width line-height))
 
 (define (parse-book #!optional (input ::InputPort (current-input-port)))::Book
   (let* ((paragraphs ::(sequence-of input) (read-paragraphs input))
@@ -289,6 +289,16 @@
          (call-with-input-string paragraph parse-paragraph)))))
     book))
 
+(define #;-cache (chapter-height chapter ::Chapter
+			      max-line-width ::real
+			      line-height ::real)
+  ::real
+  (fold-left (lambda (height::float paragraph::Paragraph)
+	       ::float
+	       (+ height (paragraph-height paragraph max-line-width line-height)))
+	     0.0
+	     chapter:paragraphs))
+
 (define (sample-book)::Book
   (Book title: "Sample Book"
 	chapters:
@@ -307,26 +317,45 @@ These words are: *bold*, /italic/, */bold-italic/* and ~MonoSpace~.
   (define current-chapter ::int 0)
   
   (define chapter-scroll ::(sequence-of real)
-    ((array-of real) length: (length book:chapters)))
+    ((array-of float) length: (length book:chapters)))
+
+  (define (next-chapter!)::boolean
+    (let ((next-chapter (+ current-chapter 1)))
+      (cond
+       ((is next-chapter < (length book:chapters))
+	(set! current-chapter next-chapter)
+	#t)
+       (else
+	#f))))
+	    
+  (define (previous-chapter!)::boolean
+    (let ((previous-chapter (- current-chapter 1)))
+      (cond
+       ((is previous-chapter >= 0)
+	(set! current-chapter previous-chapter)
+	#t)
+       (else
+	#f))))
   
   (define (draw! context::Cursor)::void
-    (painter:precise-fill-rectangle!
-     0 0
-     (* (painter:precise-resolution-right) size:width)
-     (* (painter:precise-resolution-down) size:height)
-     #xffffffff)
-    (let ((chapter ::Chapter (book:chapters current-chapter))
-	  (top ::real 0))
-      (escape-with break
-	(for paragraph::Paragraph in chapter:paragraphs
-	  (let ((height
-		 (with-translation (0 top)
-		   (render-paragraph! paragraph
-				      (min max-text-width size:width)
-				      (painter:styled-text-height)))))
-	    (set! top (+ top height))
-	    (when (is top > size:height)
-	      (break)))))))
+    (safely
+     (painter:precise-fill-rectangle!
+      0 0
+      (* (painter:precise-resolution-right) size:width)
+      (* (painter:precise-resolution-down) size:height)
+      #xffffffff)
+     (let ((chapter ::Chapter (book:chapters current-chapter))
+	   (top ::real (chapter-scroll current-chapter)))
+       (escape-with break
+	 (for paragraph::Paragraph in chapter:paragraphs
+	   (let ((height
+		  (with-translation (0 top)
+		    (render-paragraph! paragraph
+				       (min max-text-width size:width)
+				       (painter:styled-text-height)))))
+	     (set! top (+ top height))
+	     (when (is top > size:height)
+	       (break))))))))
 
   (define max-text-width ::real
     (painter:styled-text-width
@@ -345,6 +374,37 @@ These words are: *bold*, /italic/, */bold-italic/* and ~MonoSpace~.
 
   (define (value)::Object
     (cons (Atom "InteractiveBookReader") (empty)))
+
+  (define (key-typed! key-code::long context::Cursor)::boolean
+    (match (key-code-name key-code)
+      ('left
+       (previous-chapter!))
+      ('right
+       (next-chapter!))
+      ('up
+       (WARN 'scroll-up)
+       #t)
+      ('down
+       (WARN 'scroll-down)
+       #t)
+      ('page-up
+       (set! (chapter-scroll current-chapter)
+	     (as float (min 0 (+ (chapter-scroll current-chapter) 1))))
+       #t)
+      ('page-down
+       (let* ((chapter ::Chapter (book:chapters current-chapter))
+	      (max-height ::float (chapter-height chapter
+						  (min max-text-width size:width)
+						  (painter:styled-text-height))))
+	 (DUMP max-height)
+	 (set! (chapter-scroll current-chapter)
+	       (as float
+		   (max (- max-height)
+			(- (chapter-scroll current-chapter) 1))))
+	 #t))
+      (name
+       (WARN "unsupported key: "name)
+       #f)))
   
   (MaximizableWidget))
 
