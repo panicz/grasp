@@ -3703,6 +3703,27 @@ implementations.
 #+END_SRC
 
 
+*** Ending remarks
+
+The language extensions described in this chapter are not
+perfect. For example, the type signatures for collections
+and optional elements are clearly a hoax. Moreover, the
+classes that can be defined using the ~define-object~ form
+cannot contain inner classes. We don't provide syntax for
+defining anonymous classes. It would also be desirable to be
+able to define /callable/ classes, whose instances could be
+invoked just like regular functions.
+
+There are probably many other things that could be improved.
+Such improvements would require either modifying the host
+Kawa compiler, or implementing a programming language
+completely from scratch.
+
+We hope that over time we'll be able to improve those areas.
+Or maybe - if you enjoy the aesthetics of this language -
+you'll be willing to contribute and, for example, implement
+more decent type checking for the language.
+
 ** The architecture of GRASP
 
 So far, reading this text may have seen a bit like reading a
