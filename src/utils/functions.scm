@@ -376,6 +376,12 @@
 	(set:contains element))
       (any (is _ equal? element) collection)))
 
+(define (empty? x)::boolean
+  (or (and (is x gnu.lists.LList?)
+	   (isnt x gnu.lists.Pair?))
+      (and-let* ((x ::java.util.Set))
+	(x:isEmpty))))
+
 (define (union set . sets)
   (define (list-union a b)
     (fold-left (lambda (set element)
