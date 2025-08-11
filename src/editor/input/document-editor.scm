@@ -157,8 +157,7 @@
   (define (move! x::real y::real dx::real dy::real)::void
     (target:translate! dx dy))
 
-  (define (drop! x::real y::real vx::real vy::real)::void
-    (values)))
+  (NoDrop))
 
 (define-object (ParentDirectory directory::String)
   (define (getName)::String
@@ -1048,7 +1047,7 @@
 		       (editor ::DocumentEditor (this)))
 		  (screen:drag!
 		   stroke:finger
-		   (object (Drag)
+		   (object (NoDrop)
 		     ((move! x::real y::real
 			     dx::real dy::real)
 		      ::void
@@ -1058,15 +1057,11 @@
 			 p0:left p0:top p1:left p1:top
 			 p0:left p0:top p1x  p1y)
 			(set! p1:left p1x)
-			(set! p1:top p1y)))
-		     ((drop! x::real y::real
-			     dx::real dy::real)
-		      ::void
-		      (values))))
+			(set! p1:top p1y)))))
 
 		  (screen:drag!
 		   finger
-		   (object (Drag)
+		   (object (NoDrop)
 		     ((move! x::real y::real
 			     dx::real dy::real)
 		      ::void
@@ -1076,11 +1071,7 @@
 			 p0:left p0:top p1:left p1:top
 			 p0x  p0y  p1:left p1:top)
 			(set! p0:left p0x)
-			(set! p0:top p0y)))
-		     ((drop! x::real y::real
-			     dx::real dy::real)
-		      ::void
-		      (values)))))))
+			(set! p0:top p0y))))))))
 
 	  ((Enchanted? target)
 	   (let ((target ::Enchanted target))

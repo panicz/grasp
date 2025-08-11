@@ -587,6 +587,11 @@ operate on cursors.
   (drop! x::real y::real vx::real vy::real)::void
   )
 
+(define-object (NoDrop)::Drag
+  (define (move! x::real y::real dx::real dy::real)::void #!abstract)
+  (define (drop! x::real y::real vx::real vy::real)::void (values))
+  )
+
 (define-alias ResizeAnchor java.lang.Object)
 
 (define-interface Resizable (Extensive)
