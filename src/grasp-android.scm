@@ -2310,6 +2310,7 @@
 		before-possible-exit
 		open-asset
 		input-files
+		screen
 		)))
     
     (let* ((resources ::AndroidResources (getResources))
