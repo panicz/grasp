@@ -24,7 +24,7 @@
 (import (editor types spaces))
 (import (editor document cursor))
 (import (editor input transforms))
-;(import (editor input screen))
+(import (editor input screen))
 
 (import (editor types extensions extensions))
 ;;(import (editor types extensions combinators))
