@@ -15,6 +15,8 @@
 (import (language assert))
 (import (language define-cache))
 (import (language define-parameter))
+(import (language mapping))
+
 (import (editor interfaces elements))
 (import (editor interfaces painting))
 (import (editor types primitive))
@@ -255,7 +257,7 @@
    max-line-width
    line-height))
 
-(define #;-cache (paragraph-height words::Paragraph
+(define-cache (paragraph-height words::Paragraph
 				max-line-width::real
 				line-height::real)
   ::real
@@ -289,7 +291,7 @@
          (call-with-input-string paragraph parse-paragraph)))))
     book))
 
-(define #;-cache (chapter-height chapter ::Chapter
+(define-cache (chapter-height chapter ::Chapter
 			      max-line-width ::real
 			      line-height ::real)
   ::real
@@ -299,32 +301,52 @@
 	     0.0
 	     chapter:paragraphs))
 
-(define (sample-book)::Book
-  (Book title: "Sample Book"
-	chapters:
-	(vector
-	 (Chapter
-	  title: "First chapter"
-	  paragraphs:
-	  (vector
-	   (call-with-input-string "\
-These words are: *bold*, /italic/, */bold-italic/* and ~MonoSpace~.
-"parse-paragraph))))))
-
-(define-object (ScrollBookReader reader ::InteractiveBookReader)::Drag
+(define-object (ScrollBookReader reader ::InteractiveBookReader
+				 x0 ::real y0 ::real)
+  ::Drag
   (define (move! x ::real y ::real dx ::real dy ::real)::void
-    (set! (reader:chapter-scroll reader:current-chapter)
-	  (as float
-	      (clamp (- (reader:current-chapter-height))
-		     (+ (reader:chapter-scroll reader:current-chapter) dy)
-		     0))))
+    (reader:scroll-by! dy))
+  (NoDrop))
 
-  (define (drop! x ::real y ::real vx ::real vy ::real)::void
-    (values)))
+(define-type (TransformCorrection dx: real dy: real
+				  new-scale: real
+				  new-angle: real))
+
+(define (pinch x00 ::real y00 ::real x10 ::real y10 ::real
+	       x01 ::real y01 ::real x11 ::real y11 ::real
+	       scale ::real angle/rad ::real)
+    ::TransformCorrection
+    (let* ((px ::real (- x00 x10))
+	   (py ::real (- y00 y10))
+	   (d1 ::real (hypotenuse px py))
+	   (sx ::real (- x01 x11))
+	   (sy ::real (- y01 y11))
+	   (d2 ::real (hypotenuse sx sy))
+	   (s (sin angle/rad))
+	   (c (cos angle/rad))
+	   (scale* ::real (/ (* scale d2) d1))
+	   (da ::real (- (atan sy sx) (atan py px)))
+	   (angle*/rad ::real (+ angle/rad da))
+	   (s* ::real (sin angle*/rad))
+	   (c* ::real (cos angle*/rad))
+	   (dx ::real (- (/ (+ (* c x00) (* s y00))
+			    scale)
+			 (/ (+ (* c* x01) (* s* y01))
+			    scale*)))
+	   (dy ::real (- (/ (- (* c y00) (* s x00))
+			    scale)
+			 (/ (- (* c* y01) (* s* x01))
+			    scale*))))
+      (TransformCorrection dx: dx
+			   dy: dy
+			   new-scale: scale*
+			   new-angle: angle*/rad)))
 
 (define-object (InteractiveBookReader book ::Book)
   ::Maximizable
 
+  (define scale ::float 1.0)
+  
   (define current-chapter ::int 0)
   
   (define chapter-scroll ::(sequence-of real)
@@ -356,21 +378,71 @@ These words are: *bold*, /italic/, */bold-italic/* and ~MonoSpace~.
       (* (painter:precise-resolution-down) size:height)
       #xffffffff)
      (let ((chapter ::Chapter (book:chapters current-chapter))
-	   (top ::real (chapter-scroll current-chapter)))
+	   (top ::real (chapter-scroll current-chapter))
+	   (width (min max-text-width (/ size:width scale)))
+	   (line-height (painter:styled-text-height)))
+       (painter:scale! scale)
        (escape-with break
 	 (for paragraph::Paragraph in chapter:paragraphs
 	   (let ((height
 		  (with-translation (0 top)
-		    (render-paragraph! paragraph
-				       (min max-text-width size:width)
-				       (painter:styled-text-height)))))
+		    (render-paragraph! paragraph width line-height))))
 	     (set! top (+ top height))
 	     (when (is top > size:height)
-	       (break))))))))
+	       (break)))))
+       (painter:scale! (/ 1.0 scale)))))
 
   (define (press! finger::byte #;at x ::real y ::real)::boolean
-    (screen:drag! finger (ScrollBookReader (this))))
-  
+    (if (empty? screen:dragging)
+	(screen:drag! finger (ScrollBookReader (this) x y))
+	(let ((fingers ::java.util.Set (keys screen:dragging)))
+	  (when (and (is (fingers:size) = 1)
+		     (isnt finger in fingers))
+	    (let* ((other-finger (the-element-of fingers))
+		   (p0 ::Position (Position left: x top: y))
+		   (p1 ::Position (copy
+				   (last-known-pointer-position
+				    other-finger))))
+	      (screen:undrag! other-finger)
+	      (screen:drag!
+	       stroke:finger
+	       (object (NoDrop)
+		 ((move! x::real y::real
+			 dx::real dy::real)
+		  ::void
+		  (let* ((p1x ::real (+ p1:left dx))
+			 (p1y ::real (+ p1:top dy))
+			 (correct ::TransformCorrection
+				  (pinch
+				   p0:left p0:top p1:left p1:top
+				   p0:left p0:top p1x  p1y
+				   scale 0)))
+		    (set! scale correct:new-scale)
+		    (scroll-by! correct:dy)
+		    (set! p1:left p1x)		    
+		    (set! p1:top p1y)))))
+
+	      (screen:drag!
+	       finger
+	       (object (NoDrop)
+		 ((move! x::real y::real
+			 dx::real dy::real)
+		  ::void
+		  (let* ((p0x ::real (+ p0:left dx))
+			 (p0y ::real (+ p0:top dy))
+			 (correct ::TransformCorrection
+				  (pinch
+				   p0:left p0:top p1:left p1:top
+				   p0x  p0y  p1:left p1:top
+				   scale 0)))
+		    (set! scale correct:new-scale)
+		    (scroll-by! correct:dy)		    
+		    (set! p0:left p0x)
+		    (set! p0:top p0y)))))
+
+	      
+	      )))))
+    
   (define max-text-width ::real
     (painter:styled-text-width
      "Abc def ghi jkl mno pq rst uvw xyz abcdefghijklmnopqrstuvwxyz"
@@ -393,31 +465,45 @@ These words are: *bold*, /italic/, */bold-italic/* and ~MonoSpace~.
     (chapter-height (book:chapters current-chapter)
 		    (min max-text-width size:width)
 		    (painter:styled-text-height)))
+
+  (define (scroll-by! delta ::real)::void
+    (set! (chapter-scroll current-chapter)
+	  (as float (clamp (- (current-chapter-height))
+			   (+ (chapter-scroll current-chapter) delta)
+			   0))))
   
   (define (key-typed! key-code::long context::Cursor)::boolean
     (match (key-chord key-code)
       ('left
        (previous-chapter!))
+      
       ('right
        (next-chapter!))
+      
       ('up
        (WARN 'scroll-up)
        #t)
+      
       ('down
        (WARN 'scroll-down)
        #t)
+      
       ('page-up
-       (set! (chapter-scroll current-chapter)
-	     (as float (min 0 (+ (chapter-scroll current-chapter)
-				 (painter:styled-text-height)))))
+       (scroll-by! (painter:styled-text-height))
        #t)
+
       ('page-down
-       (set! (chapter-scroll current-chapter)
-	       (as float
-		   (max (- (current-chapter-height))
-			(- (chapter-scroll current-chapter)
-			   (painter:styled-text-height)))))
+       (scroll-by! (- (painter:styled-text-height)))
        #t)
+      
+      ('(ctrl page-up)
+       (set! scale (* scale 1.25))
+       #t)
+
+      ('(ctrl page-down)
+       (set! scale (/ scale 1.25))
+       #t)
+      
       (name
        (WARN "unsupported key: "name)
        #f)))
