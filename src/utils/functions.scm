@@ -465,6 +465,12 @@
 (e.g.
  (same-sets? '(a b c) '(b a c)))
 
+(define (the-element-of singleton ::java.util.Collection)
+  (escape-with return
+    (for element in singleton
+      (return element))
+    (error "No elements in "singleton)))
+
 (define (concatenate list)
   (apply append list))
 
