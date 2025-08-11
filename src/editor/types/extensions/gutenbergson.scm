@@ -393,12 +393,12 @@
        (painter:scale! (/ 1.0 scale)))))
 
   (define (press! finger::byte #;at x ::real y ::real)::boolean
-    (if (empty? screen:dragging)
-	(screen:drag! finger (ScrollBookReader (this) x y))
-	(let ((fingers ::java.util.Set (keys screen:dragging)))
-	  (when (and (is (fingers:size) = 1)
-		     (isnt finger in fingers))
-	    (let* ((other-finger (the-element-of fingers))
+    (let ((dragging-fingers  (screen:dragging-fingers)))
+      (if (empty? dragging-fingers)
+	  (screen:drag! finger (ScrollBookReader (this) x y))
+	  (when (and (is (dragging-fingers:size) = 1)
+		     (isnt finger in dragging-fingers))
+	    (let* ((other-finger (the-element-of dragging-fingers))
 		   (p0 ::Position (Position left: x top: y))
 		   (p1 ::Position (copy
 				   (last-known-pointer-position
@@ -439,8 +439,6 @@
 		    (scroll-by! correct:dy)		    
 		    (set! p0:left p0x)
 		    (set! p0:top p0y)))))
-
-	      
 	      )))))
     
   (define max-text-width ::real
