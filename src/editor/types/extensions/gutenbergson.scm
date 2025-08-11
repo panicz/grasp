@@ -406,7 +406,7 @@
 				    other-finger))))
 	      (screen:undrag! other-finger)
 	      (screen:drag!
-	       stroke:finger
+	       other-finger
 	       (object (NoDrop)
 		 ((move! x::real y::real
 			 dx::real dy::real)
