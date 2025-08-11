@@ -379,8 +379,11 @@
 (define (empty? x)::boolean
   (or (and (is x gnu.lists.LList?)
 	   (isnt x gnu.lists.Pair?))
-      (and-let* ((x ::java.util.Set))
-	(x:isEmpty))))
+      (and-let* ((x ::java.util.Collection))
+	(x:isEmpty))
+      (and-let* (((procedure? x))
+		 (table ::java.util.Collection (procedure-property x 'table)))
+	(empty? table))))
 
 (define (union set . sets)
   (define (list-union a b)
