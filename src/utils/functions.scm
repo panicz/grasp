@@ -381,8 +381,10 @@
 	   (isnt x gnu.lists.Pair?))
       (and-let* ((x ::java.util.Collection))
 	(x:isEmpty))
+      (and-let* ((x ::java.util.Map))
+	(x:isEmpty))
       (and-let* (((procedure? x))
-		 (table ::java.util.Collection (procedure-property x 'table)))
+		 (table (procedure-property x 'table)))
 	(empty? table))))
 
 (define (union set . sets)
