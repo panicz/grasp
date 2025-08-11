@@ -25,6 +25,7 @@
 (import (editor document cursor))
 (import (editor input transforms))
 (import (editor input screen))
+(import (editor input input))
 
 (import (editor types extensions extensions))
 ;;(import (editor types extensions combinators))
