@@ -2311,6 +2311,7 @@
 		open-asset
 		input-files
 		screen
+		last-known-pointer-position
 		)))
     
     (let* ((resources ::AndroidResources (getResources))
