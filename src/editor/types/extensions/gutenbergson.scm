@@ -419,7 +419,7 @@
 				   p0:left p0:top p1x  p1y
 				   scale 0)))
 		    (set! scale correct:new-scale)
-		    (scroll-by! correct:dy)
+		    (scroll-by! (- correct:dy))
 		    (set! p1:left p1x)		    
 		    (set! p1:top p1y)))))
 
@@ -437,7 +437,7 @@
 				   p0x  p0y  p1:left p1:top
 				   scale 0)))
 		    (set! scale correct:new-scale)
-		    (scroll-by! correct:dy)		    
+		    (scroll-by! (- correct:dy))	    
 		    (set! p0:left p0x)
 		    (set! p0:top p0y)))))
 	      )))))
