@@ -53,7 +53,8 @@
 
 (slot-set! screen 'top
 	   (InteractiveBookReader
-	    (sample-book)))
+	    (let ((book (open-asset "book.org")))
+	      (parse-book book))))
 
 (invoke (slot-ref screen 'top) 'set-size!
 	(slot-ref (slot-ref screen 'size) 'width)

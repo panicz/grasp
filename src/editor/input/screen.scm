@@ -190,6 +190,9 @@
   (define dragging ::(maps byte to: Drag)
     (mapping (finger::byte)::Drag #!null))
 
+  (define (dragging-fingers)::java.util.Set
+    (keys dragging))
+  
   (define top ::Embeddable (NullPane))
 
   (define (active)::Embeddable

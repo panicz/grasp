@@ -35,6 +35,11 @@
 (define (inverse function)
   (procedure-property function 'inverse))
 
+(define (listify item)
+  (if (list? item)
+      item
+      (list item)))
+
 (set! (setter inverse)
       (lambda (function value)
 	(set! (procedure-property function 'inverse) value)))

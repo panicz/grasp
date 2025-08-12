@@ -587,6 +587,11 @@ operate on cursors.
   (drop! x::real y::real vx::real vy::real)::void
   )
 
+(define-object (NoDrop)::Drag
+  (define (move! x::real y::real dx::real dy::real)::void #!abstract)
+  (define (drop! x::real y::real vx::real vy::real)::void (values))
+  )
+
 (define-alias ResizeAnchor java.lang.Object)
 
 (define-interface Resizable (Extensive)
@@ -653,6 +658,8 @@ operate on cursors.
 			  Interactive)
   (drag! finger::byte action::Drag)::void
   (undrag! finger::byte)::void
+
+  (dragging-fingers)::java.util.Set
   
   (add-overlay! layer::Layer)::void
   (pop-overlay!)::Layer
@@ -664,6 +671,9 @@ operate on cursors.
   (overlay-cursor layer::Layer)::Cursor
   (set-overlay-cursor! layer::Layer cursor::Cursor)::void
   (has-layer satisfying::predicate)::Layer
+  
+  (move! finger::byte x::real y::real dx::real dy::real)::boolean
+  (release! finger::byte x::real y::real vx::real vy::real)::boolean
 
   (after-tap action::(maps (byte real real) to: void))::void
 

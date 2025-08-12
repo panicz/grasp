@@ -376,6 +376,17 @@
 	(set:contains element))
       (any (is _ equal? element) collection)))
 
+(define (empty? x)::boolean
+  (or (and (is x gnu.lists.LList?)
+	   (isnt x gnu.lists.Pair?))
+      (and-let* ((x ::java.util.Collection))
+	(x:isEmpty))
+      (and-let* ((x ::java.util.Map))
+	(x:isEmpty))
+      (and-let* (((procedure? x))
+		 (table (procedure-property x 'table)))
+	(empty? table))))
+
 (define (union set . sets)
   (define (list-union a b)
     (fold-left (lambda (set element)
@@ -455,6 +466,12 @@
 
 (e.g.
  (same-sets? '(a b c) '(b a c)))
+
+(define (the-element-of singleton ::java.util.Collection)
+  (escape-with return
+    (for element in singleton
+      (return element))
+    (error "No elements in "singleton)))
 
 (define (concatenate list)
   (apply append list))

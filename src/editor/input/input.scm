@@ -73,6 +73,21 @@
      ((inverse key-code-name) key))
     (,@(isnt _ pair?)
      ((inverse key-code-name) combination))))
-  
+
+(define (key-chord key-code ::long)
+  ::(either symbol (list-of symbol))
+  (cond
+   ((isnt (bitwise-and key-code CTRL_MASK) zero?)
+    `(ctrl . ,(listify (key-chord (bitwise-and (bitwise-not CTRL_MASK) key-code)))))
+
+   ((isnt (bitwise-and key-code ALT_MASK) zero?)
+    `(alt . ,(listify (key-chord (bitwise-and (bitwise-not ALT_MASK) key-code)))))
+
+   ((isnt (bitwise-and key-code SHIFT_MASK) zero?)
+    `(shift . ,(listify (key-chord (bitwise-and (bitwise-not SHIFT_MASK) key-code)))))
+
+   (else
+    (key-code-name key-code))))
+
 (define (set-key! combination action::(maps () to: boolean))
   (hash-set! keymap (keychord-code combination) action))
