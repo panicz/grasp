@@ -312,11 +312,17 @@
   (define the-block-comment-margin ::(parameter-of real)
     (make-parameter 6))
 
+  ;; regular
   (define the-regular-text-font ::(parameter-of Font)
     (make-parameter
      (Font face: Yrsa-Regular
 	   size: 36)))
 
+  (define the-monospace-font ::(parameter-of Font)
+    (make-parameter
+     (Font face: Iosevka
+	   size: 32)))
+  
   (define the-bold-text-font ::(parameter-of Font)
     (make-parameter
      (Font face: Yrsa-Bold
@@ -331,7 +337,85 @@
     (make-parameter
      (Font face: Yrsa-BoldItalic
 	   size: 36)))
+
+  ;; Large
+  (define the-large-text-font ::(parameter-of Font)
+    (make-parameter
+     (Font face: Yrsa-Regular
+	   size: 48)))
+
+  (define the-large-monospace-font ::(parameter-of Font)
+    (make-parameter
+     (Font face: Iosevka
+	   size: 43)))
+
+  (define the-large-bold-text-font ::(parameter-of Font)
+    (make-parameter
+     (Font face: Yrsa-Bold
+	   size: 48)))
+
+  (define the-large-italic-text-font ::(parameter-of Font)
+    (make-parameter
+     (Font face: Yrsa-Italic
+	   size: 48)))
+
+  (define the-large-bold-italic-text-font ::(parameter-of Font)
+    (make-parameter
+     (Font face: Yrsa-BoldItalic
+	   size: 48)))
+
+  ;; Extra
+  (define the-extra-text-font ::(parameter-of Font)
+    (make-parameter
+     (Font face: Yrsa-Regular
+	   size: 60)))
+
+  (define the-extra-monospace-font ::(parameter-of Font)
+    (make-parameter
+     (Font face: Iosevka
+	   size: 54)))
   
+  (define the-extra-bold-text-font ::(parameter-of Font)
+    (make-parameter
+     (Font face: Yrsa-Bold
+	   size: 60)))
+
+  (define the-extra-italic-text-font ::(parameter-of Font)
+    (make-parameter
+     (Font face: Yrsa-Italic
+	   size: 60)))
+
+  (define the-extra-bold-italic-text-font ::(parameter-of Font)
+    (make-parameter
+     (Font face: Yrsa-BoldItalic
+	   size: 60)))
+
+  ;; Extra Large
+  (define the-extra-large-text-font ::(parameter-of Font)
+    (make-parameter
+     (Font face: Yrsa-Regular
+	   size: 72)))
+
+  (define the-extra-large-monospace-font ::(parameter-of Font)
+    (make-parameter
+     (Font face: Iosevka
+	   size: 64)))
+
+  (define the-extra-large-bold-text-font ::(parameter-of Font)
+    (make-parameter
+     (Font face: Yrsa-Bold
+	   size: 72)))
+
+  (define the-extra-large-italic-text-font ::(parameter-of Font)
+    (make-parameter
+     (Font face: Yrsa-Italic
+	   size: 72)))
+
+  (define the-extra-large-bold-italic-text-font ::(parameter-of Font)
+    (make-parameter
+     (Font face: Yrsa-BoldItalic
+	   size: 72)))
+    
   (define the-log-font ::(parameter-of Font)
     (make-parameter
      (Font face: Oswald-Regular
@@ -1475,30 +1559,93 @@
   (define (decorated-font style::TextDecoration)::Font
     (cond
      ((style:contains TextStyle:Monospace)
-      (the-string-font))
+      (cond
+       ((and (is TextStyle:Extra in style)
+	     (is TextStyle:Large in style))
+	(the-extra-large-monospace-font))
+       ((is TextStyle:Extra in style)
+	(the-extra-monospace-font))
+       ((is TextStyle:Large in style)
+	(the-large-monospace-font))
+       (else
+	(the-monospace-font))))
      ((and (style:contains TextStyle:Bold)
 	   (style:contains TextStyle:Italic))
-      (the-bold-italic-text-font))
+      (cond
+       ((and (is TextStyle:Extra in style)
+	     (is TextStyle:Large in style))
+	(the-extra-large-bold-italic-text-font))
+       ((is TextStyle:Extra in style)
+	(the-extra-bold-italic-text-font))
+       ((is TextStyle:Large in style)
+	(the-large-bold-italic-text-font))
+       (else
+	(the-bold-italic-text-font))))
      ((style:contains TextStyle:Bold)
-      (the-bold-text-font))
+      (cond
+       ((and (is TextStyle:Extra in style)
+	     (is TextStyle:Large in style))
+	(the-extra-large-bold-text-font))
+       ((is TextStyle:Extra in style)
+	(the-extra-bold-text-font))
+       ((is TextStyle:Large in style)
+	(the-large-bold-text-font))
+       (else
+	(the-bold-text-font))))
      ((style:contains TextStyle:Italic)
-      (the-italic-text-font))
+      (cond
+       ((and (is TextStyle:Extra in style)
+	     (is TextStyle:Large in style))
+	(the-extra-large-italic-text-font))
+       ((is TextStyle:Extra in style)
+	(the-extra-italic-text-font))
+       ((is TextStyle:Large in style)
+	(the-large-italic-text-font))
+       (else
+	(the-italic-text-font))))
      (else
-      (the-regular-text-font))))
+      (cond
+       ((and (is TextStyle:Extra in style)
+	     (is TextStyle:Large in style))
+	(the-extra-large-text-font))
+       ((is TextStyle:Extra in style)
+	(the-extra-text-font))
+       ((is TextStyle:Large in style)
+	(the-large-text-font))
+       (else
+	(the-regular-text-font))))))
 
   (define (styled-text-width text::Word style::TextDecoration)::real
     (let ((font ::Font (decorated-font style)))
       (text-width text font)))
 
-  (define (styled-text-height)::real
-    (let ((font ::Font (the-regular-text-font)))
+  (define (styled-text-height style::TextDecoration)::real
+    (let ((font ::Font (cond
+			((and (is TextStyle:Extra in style)
+			      (is TextStyle:Large in style))
+			 (the-extra-large-text-font))
+			((is TextStyle:Extra in style)
+			 (the-extra-text-font))
+			((is TextStyle:Large in style)
+			 (the-large-text-font))
+			(else
+			 (the-regular-text-font)))))
       font:size))
   
   (define (draw-styled-text! left::real top::real
 			     text::CharSequence style::TextDecoration)
     ::void
     (let ((font ::Font (decorated-font style))
-	  (mono ::Font (the-string-font)))
+	  (mono ::Font (cond
+			((and (is TextStyle:Extra in style)
+			      (is TextStyle:Large in style))
+			 (the-extra-large-monospace-font))
+			((is TextStyle:Extra in style)
+			 (the-extra-monospace-font))
+			((is TextStyle:Large in style)
+			 (the-large-monospace-font))
+			(else
+			 (the-monospace-font)))))
       (paint:setTypeface font:face)
       (paint:setTextSize font:size)
       (paint:setColor text-color)
