@@ -1832,8 +1832,8 @@ by the AWT framework."))
 	 (as long
 	     (bitwise-ior
 	      (if (is direction < 0)
-		  KeyEvent:VK_UP
-		  KeyEvent:VK_DOWN)
+		  KeyEvent:WHEEL_UP
+		  KeyEvent:WHEEL_DOWN)
 	      (if (event:control-down?) CTRL_MASK 0)
 	      (if (event:alt-down?) ALT_MASK 0)
 	      (if (event:shift-down?) SHIFT_MASK 0)))
@@ -1925,7 +1925,11 @@ by the AWT framework."))
   (rendering-hints:put RenderingHints:KEY_ANTIALIASING
 		       RenderingHints:VALUE_ANTIALIAS_ON)
   (rendering-hints:put RenderingHints:KEY_RENDERING
-		       RenderingHints:VALUE_RENDER_QUALITY))
+		       RenderingHints:VALUE_RENDER_QUALITY)
+  (rendering-hints:put RenderingHints:KEY_FRACTIONALMETRICS
+		       RenderingHints:VALUE_FRACTIONALMETRICS_ON)
+  
+  )
 
 (define-parameter (ctrl-pressed?) ::boolean #f)
 (define-parameter (shift-pressed?) ::boolean #f)
