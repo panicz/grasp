@@ -202,9 +202,11 @@
     (verbatim::string
      (WARN "skipping verbatim string "verbatim)
      0)
+    
     ((Section title: title)
-     (WARN "skipping section title "title)
-     0)
+     (word-operation 0 0 title (EnumSet:of TextStyle:Bold TextStyle:Large))
+     (* 2 (painter:styled-text-height (EnumSet:of TextStyle:Large))))
+    
     (words
      ::(sequence-of Word)
      (let ((top ::real 0)(left ::real 0)
@@ -530,11 +532,11 @@
        (scroll-by! (- (- size:height (painter:styled-text-height (RegularText)))))
        #t)
       
-      ('(ctrl page-up)
+      ('(ctrl up)
        (set! scale (* scale 1.25))
        #t)
 
-      ('(ctrl page-down)
+      ('(ctrl down)
        (set! scale (/ scale 1.25))
        #t)
       
