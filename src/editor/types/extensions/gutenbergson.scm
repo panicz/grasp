@@ -523,6 +523,14 @@
       ('down
        (scroll-by! (- (painter:styled-text-height (RegularText))))
        #t)
+
+      ('mouse-wheel-up
+       (scroll-by! (painter:styled-text-height (RegularText)))
+       #t)
+      
+      ('mouse-wheel-down
+       (scroll-by! (- (painter:styled-text-height (RegularText))))
+       #t)
       
       ('page-up
        (scroll-by! (- size:height (painter:styled-text-height (RegularText))))
@@ -532,11 +540,11 @@
        (scroll-by! (- (- size:height (painter:styled-text-height (RegularText)))))
        #t)
       
-      ('(ctrl up)
+      ('(ctrl mouse-wheel-up)
        (set! scale (* scale 1.25))
        #t)
 
-      ('(ctrl down)
+      ('(ctrl mouse-wheel-down)
        (set! scale (/ scale 1.25))
        #t)
       
