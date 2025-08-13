@@ -200,8 +200,14 @@
   ::real
   (match paragraph
     (verbatim::string
-     (WARN "skipping verbatim string "verbatim)
-     0)
+     (let ((top ::real 0)
+	   (style ::TextDecoration (EnumSet:of TextStyle:Monospace)))
+       (call-with-input-string verbatim
+	 (lambda (input)
+	   (for line in (lines input)
+	     (word-operation 0 top line style)
+	     (set! top (+ top (painter:styled-text-height style))))))
+       top))
     
     ((Section title: title)
      (word-operation 0 0 title (EnumSet:of TextStyle:Bold TextStyle:Large))
@@ -239,11 +245,11 @@
 				space-width)))))
 	   
 	   (modifier::TextStyle
-	    (assert (not (style:contains modifier)))
+	    ;(assert (not (style:contains modifier)))
 	    (style:add modifier))
 	   
 	   ((EndTextStyle style: modifier)
-	    (assert (style:contains modifier))
+	    ;;(assert (style:contains modifier))
 	    (style:remove modifier))))
 	 
 	 (+ top line-height line-height)))))
