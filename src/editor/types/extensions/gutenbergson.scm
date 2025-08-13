@@ -307,8 +307,27 @@
   ::Drag
   (define (move! x ::real y ::real dx ::real dy ::real)::void
     (reader:scroll-by! dy))
-  (NoDrop))
 
+  (define (drop! x ::real y ::real vx ::real vy ::real)::void
+    (let ((x-x0 (- x x0))
+	  (y-y0 (- y y0))
+	  (line-height (painter:styled-text-height))
+	  (threshold (painter:styled-text-width "turn" (RegularText))))
+	  
+      (when (is (abs y-y0) < (* 3 line-height))
+	(cond
+	 ((is x-x0 > threshold)
+	  (reader:scroll-by! (- reader:size:height
+				(abs y-y0)))
+	  )
+
+	 ((is x-x0 < (- threshold))
+	  (reader:scroll-by! (- (- reader:size:height
+				   (abs y-y0))))
+	  )
+	 ))))
+  )
+      
 (define-type (TransformCorrection dx: real dy: real
 				  new-scale: real
 				  new-angle: real))
@@ -419,7 +438,7 @@
 				   p0:left p0:top p1x  p1y
 				   scale 0)))
 		    (set! scale correct:new-scale)
-		    (scroll-by! correct:dy)
+		    (scroll-by! (- correct:dy))
 		    (set! p1:left p1x)		    
 		    (set! p1:top p1y)))))
 
@@ -437,7 +456,7 @@
 				   p0x  p0y  p1:left p1:top
 				   scale 0)))
 		    (set! scale correct:new-scale)
-		    (scroll-by! correct:dy)		    
+		    (scroll-by! (- correct:dy))	    
 		    (set! p0:left p0x)
 		    (set! p0:top p0y)))))
 	      )))))
@@ -480,19 +499,19 @@
        (next-chapter!))
       
       ('up
-       (WARN 'scroll-up)
+       (scroll-by! (painter:styled-text-height))
        #t)
       
       ('down
-       (WARN 'scroll-down)
+       (scroll-by! (- (painter:styled-text-height)))
        #t)
       
       ('page-up
-       (scroll-by! (painter:styled-text-height))
+       (scroll-by! (- size:height (painter:styled-text-height)))
        #t)
 
       ('page-down
-       (scroll-by! (- (painter:styled-text-height)))
+       (scroll-by! (- (- size:height (painter:styled-text-height))))
        #t)
       
       ('(ctrl page-up)
