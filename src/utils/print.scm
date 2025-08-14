@@ -179,3 +179,30 @@
 (define-syntax-rule (DEBUG-DUMP expr ...)
   (when (debugging?)
     (DUMP expr ...)))
+
+(define-object (InputPortLineIterator port::InputPort)
+  ::($bracket-apply$ java.util.Iterator string)
+  (define next-line ::(maybe (either string gnu.lists.EofClass)) #!null)
+
+  (define (hasNext) ::boolean
+    (unless next-line
+      (set! next-line (read-line port)))
+    (isnt next-line eof-object?))
+
+  (define (next)
+    (unless next-line
+      (set! next-line (read-line port)))
+    (unless (string? next-line)
+      (throw (java.util.NoSuchElementException)))
+    (let ((result next-line))
+      (set! next-line #!null)
+      result)))
+
+(define-object (InputPortLines port::InputPort)
+  ::($bracket-apply$ java.lang.Iterable string)
+  (define (iterator)::($bracket-apply$ java.util.Iterator string)
+    (InputPortLineIterator port)))
+
+(define (lines #!optional (port ::InputPort (current-input-port)))
+  ::($bracket-apply$ java.lang.Iterable string)
+  (InputPortLines port))

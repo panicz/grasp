@@ -78,13 +78,22 @@
   ::(either symbol (list-of symbol))
   (cond
    ((isnt (bitwise-and key-code CTRL_MASK) zero?)
-    `(ctrl . ,(listify (key-chord (bitwise-and (bitwise-not CTRL_MASK) key-code)))))
+    (let ((unmasked (bitwise-and (bitwise-not CTRL_MASK) key-code)))
+      (if (eqv? unmasked ((inverse key-code-name) 'ctrl))
+	  'ctrl
+	  `(ctrl . ,(listify (key-chord unmasked))))))
 
    ((isnt (bitwise-and key-code ALT_MASK) zero?)
-    `(alt . ,(listify (key-chord (bitwise-and (bitwise-not ALT_MASK) key-code)))))
+    (let ((unmasked (bitwise-and (bitwise-not ALT_MASK) key-code)))
+      (if (eqv? unmasked ((inverse key-code-name) 'alt))
+	  'alt
+	  `(alt . ,(listify (key-chord unmasked))))))
 
    ((isnt (bitwise-and key-code SHIFT_MASK) zero?)
-    `(shift . ,(listify (key-chord (bitwise-and (bitwise-not SHIFT_MASK) key-code)))))
+    (let ((unmasked (bitwise-and (bitwise-not SHIFT_MASK) key-code)))
+      (if (eqv? unmasked ((inverse key-code-name) 'shift))
+	  'shift
+	  `(shift . ,(listify (key-chord unmasked))))))
 
    (else
     (key-code-name key-code))))

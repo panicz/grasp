@@ -197,6 +197,55 @@
 (define-constant Yrsa-BoldItalic ::Font
   (load-font "/assets/Yrsa-BoldItalic.ttf" size: 18))
 
+;; large
+(define-constant Iosevka-Large ::Font
+  (load-font "/assets/iosevka-fixed-semibold.ttf" size: 19))
+
+(define-constant Yrsa-Large ::Font
+  (load-font "/assets/Yrsa-Regular.ttf" size: 24))
+
+(define-constant Yrsa-LargeBold ::Font
+  (load-font "/assets/Yrsa-Bold.ttf" size: 24))
+
+(define-constant Yrsa-LargeItalic ::Font
+  (load-font "/assets/Yrsa-Italic.ttf" size: 24))
+
+(define-constant Yrsa-LargeBoldItalic ::Font
+  (load-font "/assets/Yrsa-BoldItalic.ttf" size: 24))
+
+;; extra
+(define-constant Iosevka-Extra ::Font
+  (load-font "/assets/iosevka-fixed-semibold.ttf" size: 23))
+
+(define-constant Yrsa-Extra ::Font
+  (load-font "/assets/Yrsa-Regular.ttf" size: 30))
+
+(define-constant Yrsa-ExtraBold ::Font
+  (load-font "/assets/Yrsa-Bold.ttf" size: 30))
+
+(define-constant Yrsa-ExtraItalic ::Font
+  (load-font "/assets/Yrsa-Italic.ttf" size: 30))
+
+(define-constant Yrsa-ExtraBoldItalic ::Font
+  (load-font "/assets/Yrsa-BoldItalic.ttf" size: 30))
+
+;; extra
+(define-constant Iosevka-ExtraLarge ::Font
+  (load-font "/assets/iosevka-fixed-semibold.ttf" size: 28))
+
+(define-constant Yrsa-ExtraLarge ::Font
+  (load-font "/assets/Yrsa-Regular.ttf" size: 36))
+
+(define-constant Yrsa-ExtraLargeBold ::Font
+  (load-font "/assets/Yrsa-Bold.ttf" size: 36))
+
+(define-constant Yrsa-ExtraLargeItalic ::Font
+  (load-font "/assets/Yrsa-Italic.ttf" size: 36))
+
+(define-constant Yrsa-ExtraLargeBoldItalic ::Font
+  (load-font "/assets/Yrsa-BoldItalic.ttf" size: 36))
+
+
 (define-constant directory-icon ::SVGDocument
   (load-svg "/assets/directory.svg"))
 
@@ -236,6 +285,9 @@
 (define-parameter+ (the-regular-text-font)::Font
   Yrsa-Regular)
 
+(define-parameter+ (the-monospace-font) ::Font
+  Iosevka)
+
 (define-parameter+ (the-bold-text-font)::Font
   Yrsa-Bold)
 
@@ -244,6 +296,54 @@
 
 (define-parameter+ (the-bold-italic-text-font)::Font
   Yrsa-BoldItalic)
+
+;; large
+(define-parameter+ (the-large-text-font)::Font
+  Yrsa-Large)
+
+(define-parameter+ (the-large-monospace-font) ::Font
+  Iosevka-Large)
+
+(define-parameter+ (the-large-bold-text-font)::Font
+  Yrsa-LargeBold)
+
+(define-parameter+ (the-large-italic-text-font)::Font
+  Yrsa-LargeItalic)
+
+(define-parameter+ (the-large-bold-italic-text-font)::Font
+  Yrsa-LargeBoldItalic)
+
+;; extra
+(define-parameter+ (the-extra-text-font)::Font
+  Yrsa-Extra)
+
+(define-parameter+ (the-extra-monospace-font) ::Font
+  Iosevka-Extra)
+
+(define-parameter+ (the-extra-bold-text-font)::Font
+  Yrsa-ExtraBold)
+
+(define-parameter+ (the-extra-italic-text-font)::Font
+  Yrsa-ExtraItalic)
+
+(define-parameter+ (the-extra-bold-italic-text-font)::Font
+  Yrsa-ExtraBoldItalic)
+
+;; extra large
+(define-parameter+ (the-extra-large-text-font)::Font
+  Yrsa-ExtraLarge)
+
+(define-parameter+ (the-extra-large-monospace-font) ::Font
+  Iosevka-ExtraLarge)
+
+(define-parameter+ (the-extra-large-bold-text-font)::Font
+  Yrsa-ExtraLargeBold)
+
+(define-parameter+ (the-extra-large-italic-text-font)::Font
+  Yrsa-ExtraLargeItalic)
+
+(define-parameter+ (the-extra-large-bold-italic-text-font)::Font
+  Yrsa-ExtraLargeBoldItalic)
 
 (define-parameter (the-cursor-offset)::Position
   (Position left: 0 top: 16))
@@ -1323,32 +1423,95 @@
   (define (decorated-font style::TextDecoration)::Font
     (cond
      ((style:contains TextStyle:Monospace)
-      Iosevka)
+      (cond
+       ((and (is TextStyle:Extra in style)
+	     (is TextStyle:Large in style))
+	(the-extra-large-monospace-font))
+       ((is TextStyle:Extra in style)
+	(the-extra-monospace-font))
+       ((is TextStyle:Large in style)
+	(the-large-monospace-font))
+       (else
+	(the-monospace-font))))
      ((and (style:contains TextStyle:Bold)
 	   (style:contains TextStyle:Italic))
-      (the-bold-italic-text-font))
+      (cond
+       ((and (is TextStyle:Extra in style)
+	     (is TextStyle:Large in style))
+	(the-extra-large-bold-italic-text-font))
+       ((is TextStyle:Extra in style)
+	(the-extra-bold-italic-text-font))
+       ((is TextStyle:Large in style)
+	(the-large-bold-italic-text-font))
+       (else
+	(the-bold-italic-text-font))))
      ((style:contains TextStyle:Bold)
-      (the-bold-text-font))
+      (cond
+       ((and (is TextStyle:Extra in style)
+	     (is TextStyle:Large in style))
+	(the-extra-large-bold-text-font))
+       ((is TextStyle:Extra in style)
+	(the-extra-bold-text-font))
+       ((is TextStyle:Large in style)
+	(the-large-bold-text-font))
+       (else
+	(the-bold-text-font))))
      ((style:contains TextStyle:Italic)
-      (the-italic-text-font))
+      (cond
+       ((and (is TextStyle:Extra in style)
+	     (is TextStyle:Large in style))
+	(the-extra-large-italic-text-font))
+       ((is TextStyle:Extra in style)
+	(the-extra-italic-text-font))
+       ((is TextStyle:Large in style)
+	(the-large-italic-text-font))
+       (else
+	(the-italic-text-font))))
      (else
-      (the-regular-text-font))))
+      (cond
+       ((and (is TextStyle:Extra in style)
+	     (is TextStyle:Large in style))
+	(the-extra-large-text-font))
+       ((is TextStyle:Extra in style)
+	(the-extra-text-font))
+       ((is TextStyle:Large in style)
+	(the-large-text-font))
+       (else
+	(the-regular-text-font))))))
   
   (define (styled-text-width text::Word style::TextDecoration)::real
     (let* ((font ::Font (decorated-font style))
 	   (metrics ::FontMetrics (graphics:getFontMetrics font)))
       (metrics:stringWidth text)))
 
-  (define (styled-text-height)::real
-    (let ((font ::Font (the-regular-text-font)))
+  (define (styled-text-height style::TextDecoration)::real
+    (let ((font ::Font (cond
+			((and (is TextStyle:Extra in style)
+			      (is TextStyle:Large in style))
+			 (the-extra-large-text-font))
+			((is TextStyle:Extra in style)
+			 (the-extra-text-font))
+			((is TextStyle:Large in style)
+			 (the-large-text-font))
+			(else
+			 (the-regular-text-font)))))
       (font:getSize)))
   
   (define (draw-styled-text! left::real top::real
 			     text::CharSequence style::TextDecoration)
     ::void
     (let* ((font ::Font (decorated-font style))
-	   #;(metrics ::FontMetrics (graphics:getFontMetrics font))
-	   (height ::float (Iosevka:getSize) #;(metrics:getHeight)))
+	   (mono ::Font (cond
+			 ((and (is TextStyle:Extra in style)
+			       (is TextStyle:Large in style))
+			  (the-extra-large-monospace-font))
+			 ((is TextStyle:Extra in style)
+			  (the-extra-monospace-font))
+			 ((is TextStyle:Large in style)
+			  (the-large-monospace-font))
+			 (else
+			  (the-monospace-font))))
+	   (height ::float (mono:getSize)))
       (set-color! text-color)
       (graphics:setFont font)
       (graphics:drawString text (as float left) (as float (+ top height)))))
@@ -1669,8 +1832,8 @@ by the AWT framework."))
 	 (as long
 	     (bitwise-ior
 	      (if (is direction < 0)
-		  KeyEvent:VK_PAGE_UP
-		  KeyEvent:VK_PAGE_DOWN)
+		  KeyEvent:WHEEL_UP
+		  KeyEvent:WHEEL_DOWN)
 	      (if (event:control-down?) CTRL_MASK 0)
 	      (if (event:alt-down?) ALT_MASK 0)
 	      (if (event:shift-down?) SHIFT_MASK 0)))
@@ -1762,7 +1925,11 @@ by the AWT framework."))
   (rendering-hints:put RenderingHints:KEY_ANTIALIASING
 		       RenderingHints:VALUE_ANTIALIAS_ON)
   (rendering-hints:put RenderingHints:KEY_RENDERING
-		       RenderingHints:VALUE_RENDER_QUALITY))
+		       RenderingHints:VALUE_RENDER_QUALITY)
+  (rendering-hints:put RenderingHints:KEY_FRACTIONALMETRICS
+		       RenderingHints:VALUE_FRACTIONALMETRICS_ON)
+  
+  )
 
 (define-parameter (ctrl-pressed?) ::boolean #f)
 (define-parameter (shift-pressed?) ::boolean #f)

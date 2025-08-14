@@ -200,11 +200,19 @@
   ::real
   (match paragraph
     (verbatim::string
-     (WARN "skipping verbatim string "verbatim)
-     0)
+     (let ((top ::real 0)
+	   (style ::TextDecoration (EnumSet:of TextStyle:Monospace)))
+       (call-with-input-string verbatim
+	 (lambda (input)
+	   (for line in (lines input)
+	     (word-operation 0 top line style)
+	     (set! top (+ top (painter:styled-text-height style))))))
+       top))
+    
     ((Section title: title)
-     (WARN "skipping section title "title)
-     0)
+     (word-operation 0 0 title (EnumSet:of TextStyle:Bold TextStyle:Large))
+     (* 2 (painter:styled-text-height (EnumSet:of TextStyle:Large))))
+    
     (words
      ::(sequence-of Word)
      (let ((top ::real 0)(left ::real 0)
@@ -237,11 +245,11 @@
 				space-width)))))
 	   
 	   (modifier::TextStyle
-	    (assert (not (style:contains modifier)))
+	    ;(assert (not (style:contains modifier)))
 	    (style:add modifier))
 	   
 	   ((EndTextStyle style: modifier)
-	    (assert (style:contains modifier))
+	    ;;(assert (style:contains modifier))
 	    (style:remove modifier))))
 	 
 	 (+ top line-height line-height)))))
@@ -311,23 +319,21 @@
   (define (drop! x ::real y ::real vx ::real vy ::real)::void
     (let ((x-x0 (- x x0))
 	  (y-y0 (- y y0))
-	  (line-height (painter:styled-text-height))
+	  (line-height (painter:styled-text-height (RegularText)))
 	  (threshold (painter:styled-text-width "turn" (RegularText))))
 	  
       (when (is (abs y-y0) < (* 3 line-height))
 	(cond
 	 ((is x-x0 > threshold)
 	  (reader:scroll-by! (- reader:size:height
-				(abs y-y0)))
-	  )
+				(abs y-y0))))
 
 	 ((is x-x0 < (- threshold))
 	  (reader:scroll-by! (- (- reader:size:height
-				   (abs y-y0))))
-	  )
+				   (abs y-y0)))))
 	 ))))
   )
-      
+
 (define-type (TransformCorrection dx: real dy: real
 				  new-scale: real
 				  new-angle: real))
@@ -400,7 +406,7 @@
      (let ((chapter ::Chapter (book:chapters current-chapter))
 	   (top ::real (chapter-scroll current-chapter))
 	   (width (min max-text-width (/ size:width scale)))
-	   (line-height (painter:styled-text-height)))
+	   (line-height (painter:styled-text-height (RegularText))))
        (painter:scale! scale)
        (escape-with break
 	 (for paragraph::Paragraph in chapter:paragraphs
@@ -426,7 +432,7 @@
 	      (screen:undrag! other-finger)
 	      (screen:drag!
 	       other-finger
-	       (object (NoDrop)
+	       (object (Drag)
 		 ((move! x::real y::real
 			 dx::real dy::real)
 		  ::void
@@ -440,11 +446,20 @@
 		    (set! scale correct:new-scale)
 		    (scroll-by! (- correct:dy))
 		    (set! p1:left p1x)		    
-		    (set! p1:top p1y)))))
+		    (set! p1:top p1y)))
+
+		 ((drop! x::real y::real
+			 vx::real vy::real)
+		  ::void
+		  ;; jezeli jest jeszcze inny palec,
+		  ;; to powinnismy przywrocic do niego
+		  ;; ~ScrollBookReader~
+		  (values))
+		 ))
 
 	      (screen:drag!
 	       finger
-	       (object (NoDrop)
+	       (object (Drag)
 		 ((move! x::real y::real
 			 dx::real dy::real)
 		  ::void
@@ -458,7 +473,16 @@
 		    (set! scale correct:new-scale)
 		    (scroll-by! (- correct:dy))	    
 		    (set! p0:left p0x)
-		    (set! p0:top p0y)))))
+		    (set! p0:top p0y)))
+
+		 ((drop! x::real y::real
+			 vx::real vy::real)
+		  ::void
+		  ;; jezeli jest jeszcze inny palec,
+		  ;; to powinnismy przywrocic do niego
+		  ;; ~ScrollBookReader~
+		  (values))
+		 ))
 	      )))))
     
   (define max-text-width ::real
@@ -468,7 +492,7 @@
   
   (define size ::Extent
     (Extent width: (* 60 (painter:space-width))
-	    height: (* 25 (painter:styled-text-height))))
+	    height: (* 25 (painter:styled-text-height (RegularText)))))
   
   (define (set-size! width::real height::real anchor::ResizeAnchor)::void
     (set! size:width width)
@@ -482,7 +506,7 @@
   (define (current-chapter-height)::real
     (chapter-height (book:chapters current-chapter)
 		    (min max-text-width size:width)
-		    (painter:styled-text-height)))
+		    (painter:styled-text-height (RegularText))))
 
   (define (scroll-by! delta ::real)::void
     (set! (chapter-scroll current-chapter)
@@ -499,26 +523,34 @@
        (next-chapter!))
       
       ('up
-       (scroll-by! (painter:styled-text-height))
+       (scroll-by! (painter:styled-text-height (RegularText)))
        #t)
       
       ('down
-       (scroll-by! (- (painter:styled-text-height)))
+       (scroll-by! (- (painter:styled-text-height (RegularText))))
+       #t)
+
+      ('mouse-wheel-up
+       (scroll-by! (painter:styled-text-height (RegularText)))
+       #t)
+      
+      ('mouse-wheel-down
+       (scroll-by! (- (painter:styled-text-height (RegularText))))
        #t)
       
       ('page-up
-       (scroll-by! (- size:height (painter:styled-text-height)))
+       (scroll-by! (- size:height (painter:styled-text-height (RegularText))))
        #t)
 
       ('page-down
-       (scroll-by! (- (- size:height (painter:styled-text-height))))
+       (scroll-by! (- (- size:height (painter:styled-text-height (RegularText)))))
        #t)
       
-      ('(ctrl page-up)
+      ('(ctrl mouse-wheel-up)
        (set! scale (* scale 1.25))
        #t)
 
-      ('(ctrl page-down)
+      ('(ctrl mouse-wheel-down)
        (set! scale (/ scale 1.25))
        #t)
       

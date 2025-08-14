@@ -25,7 +25,9 @@
 (define-enum TextStyle
   (Bold
    Italic
-   Monospace))
+   Monospace
+   Large
+   Extra))
 
 (define-alias TextDecoration
   ($bracket-apply$ java.util.EnumSet TextStyle))
@@ -143,7 +145,7 @@ def") ===> [Extent width: 3 height: 2])
 (define-interface Painter ()
 
   (styled-text-width text::CharSequence style::TextDecoration)::real
-  (styled-text-height)::real
+  (styled-text-height style::TextDecoration)::real
 
   (draw-styled-text! left::real top::real
 		     text::CharSequence style::TextDecoration)
@@ -435,7 +437,7 @@ def") ===> [Extent width: 3 height: 2])
   (define (styled-text-width text::CharSequence style::TextDecoration)::real
     1)
 
-  (define (styled-text-height)::real
+  (define (styled-text-height style::TextDecoration)::real
     1)
   
   (define (draw-styled-text! left::real top::real

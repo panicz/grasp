@@ -3,10 +3,16 @@
 (import (editor input input))
 (define-alias KeyEvent java.awt.event.KeyEvent)
 
+(define-early-constant KeyEvent:WHEEL_UP   #x10001)
+(define-early-constant KeyEvent:WHEEL_DOWN #x10002)
+
 (define (set-key-code-name! key-code::long name)
   (set! (key-code-name key-code) name))
   
 (define (initialize-keymap)
+  (set-key-code-name! KeyEvent:WHEEL_UP 'mouse-wheel-up)  
+  (set-key-code-name! KeyEvent:WHEEL_DOWN 'mouse-wheel-down)
+    
   (set-key-code-name! KeyEvent:VK_ACCEPT 'accept)
   (set-key-code-name! KeyEvent:VK_ADD 'add)
   (set-key-code-name! KeyEvent:VK_AGAIN 'again)

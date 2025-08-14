@@ -831,7 +831,7 @@
   (define (styled-text-width text::Word style::TextDecoration)::real
     (text:length))
 
-  (define (styled-text-height)::real
+  (define (styled-text-height style::TextDecoration)::real
     1)
   
   (define (draw-styled-text! left::real top::real
