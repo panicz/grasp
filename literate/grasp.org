@@ -16,8 +16,15 @@ explained by Leif Andersen in [[https://www.youtube.com/watch?v=8htgAxJuK5c][thi
 Moreover, some of those extensions can be /maximized/,
 playing the role of an entire application.
 
-This document derives presents the complete source code for
-GRASP, but more importantly, it instructs how to define new
+GRASP is not a single program. Instead it is a family of
+programs that share a common structure (and most of their
+code), and that can be run in various environments,
+including (at the moment of writing) terminal, desktop and
+Android. These programs are called /clients/ or /frontends/
+of GRASP.
+
+This document presents the complete source code for GRASP,
+but more importantly, it instructs how to define new
 interactive extensions.
 
 ** About this document
@@ -28,7 +35,8 @@ the actual program.
 
 In order to extract the application code from this file, one
 should execute the command ~M-x org-babel-tangle~ from
-Emacs. The command can also be run from Emacs' batch mode:
+Emacs. The command can also be run from command line using
+Emacs' batch mode:
 
 #+BEGIN_SRC bash :tangle no
 emacs --batch grasp.org -l org --eval "(org-babel-tangle)"
@@ -52,7 +60,9 @@ The document assumes that the Reader has some familiarity
 with the Scheme programming language, but if you're
 completely new to Scheme, don't let that assumption scare
 you off (especially if you're familiar with modern Object
-Oriented languages such as Java or C#).
+Oriented languages such as Java or C#). The mainstream
+languages tend to have more complex and rigid syntax, while
+the syntax of Scheme is much simpler and more flexible.
 
 Also, if you find something to be unclear, or have an idea
 how this text could be improved, feel free to file an issue
@@ -78,13 +88,14 @@ As a matter of fact, it is a common adage among Lisp and
 Scheme programmers that in order to build a program, it is
 usually most convenient to first construct a language suited
 for building that program - which is exactly what we're
-going to do here.
+going to do in the first chapter of this book.
 
 ***** Technical remarks
 
-Since R6RS the reader of the Scheme language became
-case-sensitive, which means that symbols ~foo~, ~Foo~
-and ~FOO~ are considered distinct.
+Since the 6th revision of the Scheme language specification
+([[https://www.r6rs.org/][R6RS]]) the reader of the Scheme language became
+case-sensitive, which means that symbols ~foo~, ~Foo~ and
+~FOO~ are considered distinct.
 
 Kawa Scheme implements this properly. However, during
 compilation of a ~.scm~ file the Kawa compiler can generate
@@ -92,7 +103,7 @@ many ~.class~ files, whose names are derived from the names
 of classes defined in the ~.scm~ file, as well as the name
 of the ~.scm~ file itself.
 
-This can cause trouble on case-insensitive file system
+This can cause trouble on case-insensitive file systems
 (which in practice means mainly the machines running under
 the Windows operating system). For this reason it is
 discouraged to name files and classes with names that only
@@ -103,7 +114,7 @@ the ~lambda~ and ~let~ forms, i.e. function parameters
 and local variables.)
 
 The code snippets from this chapter will be placed in the
-=language/extensions.scm= file.
+~language/extensions.scm~ file.
 
 #+BEGIN_SRC scheme :tangle language/extensions.scm :mkdirp yes :noweb yes
 <<header>>
@@ -2090,7 +2101,7 @@ way it has been done for Guile in [[https://github.com/plande/grand-scheme][The 
 and the way it has been described in [[https://srfi.schemers.org/srfi-201/srfi-201.html][SRFI-201]].
 
 Unfortunately, this seems impossible without patching Kawa.
-So instead we are just going to provide the =match-let*= syntax.
+So instead we are just going to provide the ~match-let*~ syntax.
 
 #+BEGIN_SRC  scheme :tangle language/extensions.scm
 
@@ -3757,7 +3768,7 @@ environments, the core architecture will be shared among
 them.
 
 The code snippets from this chapter will be placed in the
-=editor/architecture.scm= file.
+~editor/architecture.scm~ file.
 
 #+BEGIN_SRC scheme :tangle editor/architecture.scm :mkdirp yes :noweb yes
 <<header>>
@@ -3863,7 +3874,7 @@ Rendering occurs through a global object called ~painter~,
 which implements the ~Painter~ interface. It will be
 discussed later on.
 
-The application window/frame is always rectangular (i.e.  a
+The application window/frame is always rectangular (i.e. a
 ~Tile~), so it can be characterized by giving its width and
 height.:
 
@@ -4071,134 +4082,134 @@ long press, second press and double tap gestures.
 
 #+BEGIN_SRC scheme :tangle editor/architecture.scm
 
-(define-type (Position left: real top: real))
+  (define-type (Position left: real top: real))
 
-(define-early-constant last-known-pointer-position
-  ;; here we initialize 10 values, because Android can support
-  ;; up to 10 pointers. That they'll be unused with other clients?
-  ;; We don't care! 
-  ((array-of Position)
-   (Position left: 0 top: 0)
-   (Position left: 0 top: 0)
-   (Position left: 0 top: 0)
-   (Position left: 0 top: 0)
-   (Position left: 0 top: 0)
-   (Position left: 0 top: 0)
-   (Position left: 0 top: 0)
-   (Position left: 0 top: 0)
-   (Position left: 0 top: 0)
-   (Position left: 0 top: 0)))
+  (define-early-constant last-known-pointer-position
+    ;; here we initialize 10 values, because Android can support up to
+    ;; 10 pointers. That they'll be unused with other clients?  We don't
+    ;; care!
+    ((array-of Position)
+     (Position left: 0 top: 0)
+     (Position left: 0 top: 0)
+     (Position left: 0 top: 0)
+     (Position left: 0 top: 0)
+     (Position left: 0 top: 0)
+     (Position left: 0 top: 0)
+     (Position left: 0 top: 0)
+     (Position left: 0 top: 0)
+     (Position left: 0 top: 0)
+     (Position left: 0 top: 0)))
 
-(define-object (TouchEventProcessor finger::byte
-				    target::Main
-				    run::Postponed)
+  (define-object (TouchEventProcessor finger::byte
+                                      target::Main
+                                      run::Postponed)
   
-  (define (distance x1::real y1::real x2::real y2::real)::real
-    (hypotenuse (- x2 x1) (- y2 y1)))
+    (define (distance x1::real y1::real x2::real y2::real)::real
+      (hypotenuse (- x2 x1) (- y2 y1)))
 
-  (define last-known-position ::Position
-    (last-known-pointer-position finger))
+    (define last-known-position ::Position
+      (last-known-pointer-position finger))
   
-  (define x0 ::real +nan.0)
-  (define y0 ::real +nan.0)
+    (define x0 ::real +nan.0)
+    (define y0 ::real +nan.0)
 
-  (define vx ::float 0.0)
-  (define vy ::float 0.0)
+    (define vx ::float 0.0)
+    (define vy ::float 0.0)
 
-  (define dx ::real +nan.0)
-  (define dy ::real +nan.0)
+    (define dx ::real +nan.0)
+    (define dy ::real +nan.0)
   
-  (define vicinity ::real 1.0)
+    (define vicinity ::real 1.0)
   
-  (define suppressed-presses ::byte 0)
+    (define suppressed-presses ::byte 0)
   
-  (define press-time-ms ::real -inf.0)
+    (define press-time-ms ::real -inf.0)
   
-  (define release-time-ms ::real -inf.0)
+    (define release-time-ms ::real -inf.0)
 
-  (define move-time-ms ::real -inf.0)
+    (define move-time-ms ::real -inf.0)
 
-  (define long-press-time-ms ::real 700)
+    (define long-press-time-ms ::real 700)
 
-  (define double-tap-timeout-ms ::real 350)
+    (define double-tap-timeout-ms ::real 350)
   
-  (define timeout ::Cancellable cancellable-nothing)
+    (define timeout ::Cancellable cancellable-nothing)
 
-  (define (move! x::real y::real time-ms::real)::boolean
-    (cond
-     ((zero? suppressed-presses)
-      (set! timeout (timeout:cancel))
-      (let ((delta-ms ::real (- time-ms move-time-ms)))
-	(set! dx (- x last-known-position:left))
-	(set! dy (- y last-known-position:top))
-	(set! vx (/ dx delta-ms))
-	(set! vy (/ dy delta-ms))
-	(set! last-known-position:left x)
-	(set! last-known-position:top y)
-	(set! move-time-ms time-ms)
-	(target:move! finger x y dx dy)))
+    (define (move! x::real y::real time-ms::real)::boolean
+      (cond
+       ((zero? suppressed-presses)
+        (set! timeout (timeout:cancel))
+        (let ((delta-ms ::real (- time-ms move-time-ms)))
+          (set! dx (- x last-known-position:left))
+          (set! dy (- y last-known-position:top))
+          (set! vx (/ dx delta-ms))
+          (set! vy (/ dy delta-ms))
+          (set! last-known-position:left x)
+          (set! last-known-position:top y)
+          (set! move-time-ms time-ms)
+          (target:move! finger x y dx dy)))
      
-     ((is (distance x0 y0 x y) > vicinity)
-      (set! timeout (timeout:cancel))
-      (let ((suppressed ::int suppressed-presses))
-	(set! suppressed-presses 0)
-	(begin/or
-	 (if (is suppressed >= 2)
-	     (target:second-press! finger x0 y0)
-	     (target:press! finger x0 y0))
-	 (target:move! finger x0 y0 0 0)
-	 (target:move! finger x y (- x x0) (- y y0)))))
+       ((is (distance x0 y0 x y) > vicinity)
+        (set! timeout (timeout:cancel))
+        (let ((suppressed ::int suppressed-presses))
+          (set! suppressed-presses 0)
+          (begin/or
+           (if (is suppressed >= 2)
+               (target:second-press! finger x0 y0)
+               (target:press! finger x0 y0))
+           (target:move! finger x0 y0 0 0)
+           (target:move! finger x y (- x x0) (- y y0)))))
      
-     (else
-      #f)))
+       (else
+        #f)))
 
-  (define (press! x::real y::real time-ms::real)::boolean
-    (set! timeout (timeout:cancel))
-    (set! last-known-position:left x)
-    (set! last-known-position:top y)
-    (set! vx 0)
-    (set! vy 0)
-    (set! press-time-ms time-ms)
-    (set! move-time-ms time-ms)
+    (define (press! x::real y::real time-ms::real)::boolean
+      (set! timeout (timeout:cancel))
+      (set! last-known-position:left x)
+      (set! last-known-position:top y)
+      (set! vx 0)
+      (set! vy 0)
+      (set! press-time-ms time-ms)
+      (set! move-time-ms time-ms)
 
-    (match suppressed-presses
-      (0 (set! suppressed-presses 1)
-	 (set! x0 x)
-	 (set! y0 y)
-	 (set! timeout
-	       (run:after
-		long-press-time-ms
-		(lambda ()
-		  (set! suppressed-presses 0)
-		  (target:long-press! finger x0 y0))))
-	 #f)
-      (1 (cond
-	  ((is (distance x0 y0 x y) <= vicinity)
-	   (set! suppressed-presses 2)
-	   #f)
-	  (else
-	   (let ((x0- x0)
-		 (y0- y0))
-	     (set! x0 x)
-	     (set! y0 y)
-	     (target:tap! finger x0- y0-)))))))
+      (match suppressed-presses
+        (0 (set! suppressed-presses 1)
+           (set! x0 x)
+           (set! y0 y)
+           (set! timeout
+                 (run:after
+                  long-press-time-ms
+                  (lambda ()
+                    (set! suppressed-presses 0)
+                    (target:long-press! finger x0 y0))))
+           #f)
+        (1 (cond
+            ((is (distance x0 y0 x y) <= vicinity)
+             (set! suppressed-presses 2)
+             #f)
+            (else
+             (let ((x0- x0)
+                   (y0- y0))
+               (set! x0 x)
+               (set! y0 y)
+               (target:tap! finger x0- y0-)))))))
 
-  (define (release! x::real y::real time-ms::real)::boolean
-    (set! timeout (timeout:cancel))
-    (match suppressed-presses
-      (0 (target:release! finger x y vx vy))
-      (1 (set! timeout
-	       (run:after
-		double-tap-timeout-ms
-		(lambda ()
-		  (set! suppressed-presses 0)
-		  (target:tap! finger x0 y0))))
-	 #f)
-      (2 (set! suppressed-presses 0)
-	 (target:double-tap! finger x y))))
+    (define (release! x::real y::real time-ms::real)::boolean
+      (set! timeout (timeout:cancel))
+      (match suppressed-presses
+        (0 (target:release! finger x y vx vy))
+        (1 (set! timeout
+                 (run:after
+                  double-tap-timeout-ms
+                  (lambda ()
+                    (set! suppressed-presses 0)
+                    (target:tap! finger x0 y0))))
+           #f)
+        (2 (set! suppressed-presses 0)
+           (target:double-tap! finger x y))))
 
-  #;(assert (is finger < (length last-known-pointer-position)))
-  )
+    #;(assert (is finger < (length last-known-pointer-position)))
+    )
 
 #+END_SRC
 
@@ -4344,7 +4355,9 @@ is the top left corner of the text.
 ***** The "textual" client
 
 The code snippets from this chapter will be placed in the
-=editor/text-painter.scm= file.
+~editor/text-painter.scm~ file.
+
+A ~TextPainter~
 
 #+BEGIN_SRC scheme :tangle editor/text-painter.scm :mkdirp yes :noweb yes
 <<header>>
@@ -4357,7 +4370,7 @@ The code snippets from this chapter will be placed in the
 ***** The terminal client
 
 The code snippets from this chapter will be placed in the
-=grasp-terminal.scm= file.
+~grasp-terminal.scm~ file.
 
 #+BEGIN_SRC scheme :tangle grasp-terminal.scm :mkdirp yes :noweb yes
 <<header>>
@@ -4373,7 +4386,7 @@ The code snippets from this chapter will be placed in the
 ***** The desktop (AWT) client
 
 The code snippets from this chapter will be placed in the
-=grasp-awt.scm= file.
+~grasp-awt.scm~ file.
 
 #+BEGIN_SRC scheme :tangle grasp-awt.scm :mkdirp yes :noweb yes
 <<header>>
@@ -4389,7 +4402,7 @@ The code snippets from this chapter will be placed in the
 ***** The desktop (JavaFX) client
 
 The code snippets from this chapter will be placed in the
-=grasp-fx.scm= file.
+~grasp-fx.scm~ file.
 
 #+BEGIN_SRC scheme :tangle grasp-fx.scm :mkdirp yes :noweb yes
 <<header>>
@@ -4406,7 +4419,7 @@ The code snippets from this chapter will be placed in the
 ***** The Android client
 
 The code snippets from this chapter will be placed in the
-=grasp-android.scm= file.
+~grasp-android.scm~ file.
 
 #+BEGIN_SRC scheme :tangle grasp-android.scm :mkdirp yes :noweb yes
 <<header>>
@@ -4472,7 +4485,7 @@ some sense irregular.
 
 ** Building GRASP
 
-*** Building the JVM client
+*** Building the JVM clients
 
 *** Building the Android client
 
