@@ -48,7 +48,7 @@
 			   TextStyle
 			   EndTextSTyle))))
 
-(define-type (Chapter title: string
+(define-type (Chapter title: (sequence-of Word)
 		      paragraphs: (sequence-of Paragraph) := (java.util.ArrayList)))
 
 (define-type (Book title: string
@@ -293,7 +293,7 @@
 	=> (lambda (title ::string)
              (when current-chapter
                (book:chapters:add current-chapter))
-             (set! current-chapter (Chapter title: title
+             (set! current-chapter (Chapter title: (string-split title " ")
 					    paragraphs: (java.util.ArrayList)))))
        ((is paragraph section-title?)
 	=> (lambda (title ::string)
@@ -301,7 +301,7 @@
 	      (Section title: (string-split title " ")))))
 
        ((regex-match "^[#][+]BEGIN_SRC" paragraph)
-	(current-chapter:paragraphs:add (string-append "\n\n" paragraph "\n\n")))
+	(current-chapter:paragraphs:add (string-append paragraph "\n\n")))
        
        (else
         (current-chapter:paragraphs:add 
@@ -314,7 +314,8 @@
   (fold-left (lambda (height::float paragraph::Paragraph)
 	       ::float
 	       (+ height (paragraph-height paragraph max-line-width)))
-	     0.0
+	     (paragraph-height chapter:title max-line-width
+			       (EnumSet:of TextStyle:Bold TextStyle:Large))
 	     chapter:paragraphs))
 
 (define-object (ScrollBookReader reader ::InteractiveBookReader
@@ -412,8 +413,14 @@
       #xffffffff)
      (let ((chapter ::Chapter (book:chapters current-chapter))
 	   (top ::real (chapter-scroll current-chapter))
-	   (width (min max-text-width (/ size:width scale))))
+	   (width ::real (min max-text-width (/ size:width scale))))
        (painter:scale! scale)
+       (with-translation (0 top)
+	 (let ((height (render-paragraph! chapter:title width: width
+					  style: (EnumSet:of TextStyle:Bold
+							     TextStyle:Extra))))
+	   (set! top
+		 (+ top height))))
        (escape-with break
 	 (for paragraph::Paragraph in chapter:paragraphs
 	   (let ((height
