@@ -37,7 +37,7 @@
    ((regex-match pattern subject) . actions)
    ...))
 
-(define-type (Section title: string))
+(define-type (Section title: (sequence-of Word)))
 
 (define-alias Paragraph (either
 			 Section
@@ -191,12 +191,14 @@
 (define (section-title? text ::string)::(maybe string)
   (and-let* ((`(,_ ,title) (regex-match "^[*][*][*]+ ([^\n]+)$" text)))
     title))
+   
 
 (define (layout-paragraph
 	 paragraph ::Paragraph
 	 word-operation ::(maps (real real Word TextDecoration) to: void)
-	 max-line-width ::real
-	 line-height ::real)
+	 #!key
+	 (width ::real +inf.0)
+	 (style ::TextDecoration (RegularText)))
   ::real
   (match paragraph
     (verbatim::string
@@ -210,13 +212,15 @@
        top))
     
     ((Section title: title)
-     (word-operation 0 0 title (EnumSet:of TextStyle:Bold TextStyle:Large))
-     (* 2 (painter:styled-text-height (EnumSet:of TextStyle:Large))))
+     (layout-paragraph title word-operation
+		       width: width
+		       style: (EnumSet:of TextStyle:Bold TextStyle:Large)))
     
     (words
      ::(sequence-of Word)
-     (let ((top ::real 0)(left ::real 0)
-	   (style ::TextDecoration (RegularText)))
+     (let ((top ::real 0)
+	   (left ::real 0)
+	   (line-height (painter:styled-text-height style)))
        (for token in words
 	 (match token
 	   (word::string
@@ -232,7 +236,7 @@
 		     (is left > space-width))
 		(set! left (- left space-width)))
 	       
-	       ((is expanded > max-line-width)
+	       ((is expanded > width)
 		(set! left 0)
 		(set! top (+ top line-height))))
 	      
@@ -255,22 +259,25 @@
 	 (+ top line-height line-height)))))
 
 (define (render-paragraph! paragraph::Paragraph
-			   max-line-width::real
-			   line-height::real)
+			   #!key
+			   (width::real +inf.0)
+			   (style ::TextDecoration (RegularText)))
   ::real
   (layout-paragraph
    paragraph
    (lambda (left::real top::real word::Word
 		       style::TextDecoration)
      (painter:draw-styled-text! left top word style))
-   max-line-width
-   line-height))
+   width: width
+   style: style))
 
 (define-cache (paragraph-height words::Paragraph
-				max-line-width::real
-				line-height::real)
+				width ::real := +inf.0
+				style ::TextDecoration := (RegularText))
   ::real
-  (layout-paragraph words nothing max-line-width line-height))
+  (layout-paragraph words nothing
+		    width: width
+		    style: style))
 
 (define (parse-book #!optional (input ::InputPort (current-input-port)))::Book
   (let* ((paragraphs ::(sequence-of input) (read-paragraphs input))
@@ -290,7 +297,8 @@
 					    paragraphs: (java.util.ArrayList)))))
        ((is paragraph section-title?)
 	=> (lambda (title ::string)
-	     (current-chapter:paragraphs:add (Section title: title))))
+	     (current-chapter:paragraphs:add
+	      (Section title: (string-split title " ")))))
 
        ((regex-match "^[#][+]BEGIN_SRC" paragraph)
 	(current-chapter:paragraphs:add (string-append "\n\n" paragraph "\n\n")))
@@ -301,12 +309,11 @@
     book))
 
 (define-cache (chapter-height chapter ::Chapter
-			      max-line-width ::real
-			      line-height ::real)
+			      max-line-width ::real)
   ::real
   (fold-left (lambda (height::float paragraph::Paragraph)
 	       ::float
-	       (+ height (paragraph-height paragraph max-line-width line-height)))
+	       (+ height (paragraph-height paragraph max-line-width)))
 	     0.0
 	     chapter:paragraphs))
 
@@ -405,14 +412,13 @@
       #xffffffff)
      (let ((chapter ::Chapter (book:chapters current-chapter))
 	   (top ::real (chapter-scroll current-chapter))
-	   (width (min max-text-width (/ size:width scale)))
-	   (line-height (painter:styled-text-height (RegularText))))
+	   (width (min max-text-width (/ size:width scale))))
        (painter:scale! scale)
        (escape-with break
 	 (for paragraph::Paragraph in chapter:paragraphs
 	   (let ((height
 		  (with-translation (0 top)
-		    (render-paragraph! paragraph width line-height))))
+		    (render-paragraph! paragraph width: width))))
 	     (set! top (+ top height))
 	     (when (is top > size:height)
 	       (break)))))
@@ -505,8 +511,7 @@
 
   (define (current-chapter-height)::real
     (chapter-height (book:chapters current-chapter)
-		    (min max-text-width size:width)
-		    (painter:styled-text-height (RegularText))))
+		    (min max-text-width size:width)))
 
   (define (scroll-by! delta ::real)::void
     (set! (chapter-scroll current-chapter)
