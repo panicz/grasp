@@ -413,7 +413,8 @@
       #xffffffff)
      (let ((chapter ::Chapter (book:chapters current-chapter))
 	   (top ::real (chapter-scroll current-chapter))
-	   (width ::real (min max-text-width (/ size:width scale))))
+	   (width ::real (min max-text-width (/ size:width scale)))
+	   (visible-height ::real (/ size:height scale)))
        (painter:scale! scale)
        (with-translation (0 top)
 	 (let ((height (render-paragraph! chapter:title width: width
@@ -422,13 +423,14 @@
 	   (set! top
 		 (+ top height))))
        (escape-with break
-	 (for paragraph::Paragraph in chapter:paragraphs
-	   (let ((height
-		  (with-translation (0 top)
-		    (render-paragraph! paragraph width: width))))
-	     (set! top (+ top height))
-	     (when (is top > size:height)
-	       (break)))))
+	 (for i from 0 below (length chapter:paragraphs) 
+	      (let* ((paragraph ::Paragraph (chapter:paragraphs i))
+		     (height
+		      (with-translation (0 top)
+			(render-paragraph! paragraph width: width))))
+		(set! top (+ top height))
+		(when (is top > visible-height)
+		  (break)))))
        (painter:scale! (/ 1.0 scale)))))
 
   (define (press! finger::byte #;at x ::real y ::real)::boolean
@@ -522,7 +524,7 @@
 
   (define (scroll-by! delta ::real)::void
     (set! (chapter-scroll current-chapter)
-	  (as float (clamp (- (current-chapter-height))
+	  (as float (clamp (- size:height (current-chapter-height))
 			   (+ (chapter-scroll current-chapter) delta)
 			   0))))
   

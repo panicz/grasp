@@ -51,10 +51,14 @@
 (import (utils server))
 (import (utils reflection))
 
+(define the-book
+  (let ((book (open-asset "book.org")))
+    (parse-book book)))
+  
 (slot-set! screen 'top
-	   (InteractiveBookReader
-	    (let ((book (open-asset "book.org")))
-	      (parse-book book))))
+	   (InteractiveBookReader the-book))
+
+(set-window-title! (slot-ref the-book 'title))
 
 (invoke (slot-ref screen 'top) 'set-size!
 	(slot-ref (slot-ref screen 'size) 'width)

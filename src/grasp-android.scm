@@ -2441,6 +2441,9 @@
 	   (java.io.InputStreamReader
 	    (assets:open filename)))))
 
+      (define (set-window-title! title::string)::void
+	(invoke (this) 'setTitle title))
+      
       (define input-files '())
       
       (let-syntax ((export (syntax-rules ()
@@ -2459,6 +2462,7 @@
 		input-files
 		screen
 		last-known-pointer-position
+		set-window-title!
 		)))
     
     (let* ((resources ::AndroidResources (getResources))

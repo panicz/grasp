@@ -683,6 +683,11 @@
 			(set! save-state action)))
 
     (env:define 'open-asset #!null open-asset)
+
+    (env:define 'set-window-title! #!null
+		(lambda (title::string)
+		  (and-let* ((terminal ::ExtendedTerminal io))
+		    (terminal:setTile title))))
     
     (for expression in init-script
       (safely

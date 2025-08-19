@@ -1998,6 +1998,10 @@ by the AWT framework."))
 			 java.lang.System
 			 'getProperty "user.home")))
     
+    (env:define 'set-window-title! #!null
+		(lambda (title::string)::void
+			(window:setTitle title)))
+
     (env:define 'maximize/unmaximize! #!null
 		(lambda ()
 		  (let ((state (window:getExtendedState))
