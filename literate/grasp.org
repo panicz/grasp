@@ -3,8 +3,25 @@
 GRASP is an extensible structural code editor for languages
 that are based on s-expressions.
 
-GRASP represents s-expressions as nestable boxes. The boxes
-can be edited using keyboard, but also using touch
+GRASP represents s-expressions as nestable boxes, such as
+this one:
+
+#+BEGIN_SRC
+╭        ╭     ╮                      ╮
+│ define │ ! n │                      │
+│        ╰     ╯                      │
+│   ╭    ╭        ╮                 ╮ │
+│   │ if │ <= n 0 │                 │ │
+│   │    ╰        ╯                 │ │
+│   │                               │ │
+│   │       1                       │ │
+│   │                               │ │
+│   │       ╭     ╭   ╭       ╮ ╮ ╮ │ │
+│   │       │ * n │ ! │ - n 1 │ │ │ │ │
+╰   ╰       ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
+#+END_SRC
+
+The boxes can be edited using keyboard, but also using touch
 interface/mouse pointer.
 
 Most importantly, users can define their own extensions,
@@ -24,8 +41,8 @@ Android. These programs are called /clients/ or /frontends/
 of GRASP.
 
 This document presents the complete source code for GRASP,
-but more importantly, it instructs how to define new
-interactive extensions.
+but more importantly, it instructs its readers how to define
+new interactive extensions.
 
 ** About this document
 
@@ -35,8 +52,9 @@ the actual program.
 
 In order to extract the application code from this file, one
 should execute the command ~M-x org-babel-tangle~ from
-Emacs. The command can also be run from command line using
-Emacs' batch mode:
+Emacs. The command will generate (or regenerate, as needed)
+all the required files, and it can also be run from command
+line using Emacs' batch mode:
 
 #+BEGIN_SRC bash :tangle no
 emacs --batch grasp.org -l org --eval "(org-babel-tangle)"
@@ -59,8 +77,8 @@ the following ~<<header>>~:
 The document assumes that the Reader has some familiarity
 with the Scheme programming language, but if you're
 completely new to Scheme, don't let that assumption scare
-you off (especially if you're familiar with modern Object
-Oriented languages such as Java or C#). The mainstream
+you off, especially if you're familiar with modern Object
+Oriented languages such as Java or C#. The mainstream
 languages tend to have more complex and rigid syntax, while
 the syntax of Scheme is much simpler and more flexible.
 
