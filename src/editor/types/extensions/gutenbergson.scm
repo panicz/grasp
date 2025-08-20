@@ -403,6 +403,7 @@
 	#t)
        (else
 	#f))))
+
   
   (define (draw! context::Cursor)::void
     (safely
@@ -524,19 +525,23 @@
 
   (define (scroll-by! delta ::real)::void
     (let* ((previous-scroll (chapter-scroll current-chapter))
-           (new-scroll ::float (as float (+ previous-scroll delta))))
+           (new-scroll ::float (as float (+ previous-scroll delta)))
+	   (scroll-limit ::float (- (current-chapter-height))))
       (cond 
-       ((is new-scroll < (- size:height (current-chapter-height)))
+       ((is new-scroll < scroll-limit)
+	(when (is delta < 0)
+	  (set! (chapter-scroll current-chapter) scroll-limit))
         (when (is current-chapter < (- (length book:chapters) 1))
           (set! current-chapter (+ current-chapter 1))
           (set! (chapter-scroll current-chapter) (as float 0))))
 
        ((is new-scroll > 0)
+	(when (is delta > 0)
+	  (set! (chapter-scroll current-chapter) (as float 0)))
         (when (is current-chapter > 0)
           (set! current-chapter (- current-chapter 1))
           (set! (chapter-scroll current-chapter)
-		(as float
-		    (- size:height (current-chapter-height))))))
+		(as float (- (current-chapter-height))))))
 
        (else
         (set! (chapter-scroll current-chapter) new-scroll)))))
