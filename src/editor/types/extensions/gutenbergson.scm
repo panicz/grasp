@@ -523,10 +523,23 @@
 		    (min max-text-width size:width)))
 
   (define (scroll-by! delta ::real)::void
-    (set! (chapter-scroll current-chapter)
-	  (as float (clamp (- size:height (current-chapter-height))
-			   (+ (chapter-scroll current-chapter) delta)
-			   0))))
+    (let* ((previous-scroll (chapter-scroll current-chapter))
+           (new-scroll ::float (as float (+ previous-scroll delta))))
+      (cond 
+       ((is new-scroll < (- size:height (current-chapter-height)))
+        (when (is current-chapter < (- (length book:chapters) 1))
+          (set! current-chapter (+ current-chapter 1))
+          (set! (chapter-scroll current-chapter) (as float 0))))
+
+       ((is new-scroll > 0)
+        (when (is current-chapter > 0)
+          (set! current-chapter (- current-chapter 1))
+          (set! (chapter-scroll current-chapter)
+		(as float
+		    (- size:height (current-chapter-height))))))
+
+       (else
+        (set! (chapter-scroll current-chapter) new-scroll)))))
   
   (define (key-typed! key-code::long context::Cursor)::boolean
     (match (key-chord key-code)
