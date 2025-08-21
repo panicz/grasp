@@ -27,6 +27,8 @@
 (import (editor input screen))
 (import (editor input input))
 
+(import (editor document parse))
+
 (import (editor types extensions extensions))
 ;;(import (editor types extensions combinators))
 
@@ -177,18 +179,20 @@
   (let ((words (read-words input)))
     (append-map extract-style-modifiers words)))
 
-(define (book-title? text ::string)::(maybe string)
-  (and-let* ((`(,_ ,title) (regex-match "^[*] ([^\n]+)$" text)))
+(define (book-title? text)::(maybe string)
+  (and-let* (((string? text))
+	     (`(,_ ,title) (regex-match "^[*] ([^\n]+)$" text)))
     title))
 
-(define (chapter-title? text ::string)::(maybe string)
-  (and-let* ((`(,_ ,title) (regex-match "^[*][*] ([^\n]+)$" text)))
+(define (chapter-title? text)::(maybe string)
+  (and-let* (((string? text))
+	     (`(,_ ,title) (regex-match "^[*][*] ([^\n]+)$" text)))
     title))
 
-(define (section-title? text ::string)::(maybe string)
-  (and-let* ((`(,_ ,title) (regex-match "^[*][*][*]+ ([^\n]+)$" text)))
+(define (section-title? text)::(maybe string)
+  (and-let* (((string? text))
+	     (`(,_ ,title) (regex-match "^[*][*][*]+ ([^\n]+)$" text)))
     title))
-   
 
 (define (layout-paragraph
 	 paragraph ::Paragraph
@@ -262,7 +266,9 @@
   ::real
   (match paragraph
     (tile::Tile
-     (tile:draw! '()))
+     (tile:draw! '())
+     (let ((extent ::Extent (tile:extent)))
+       extent:height))
     (_
      (layout-paragraph
       paragraph
@@ -293,7 +299,7 @@
      (cached-paragraph-height paragraph width style))))
 
 (define (parse-book #!optional (input ::InputPort (current-input-port)))::Book
-  (let* ((paragraphs ::(sequence-of input) (read-paragraphs input))
+  (let* ((paragraphs ::(sequence-of Paragraph) (read-paragraphs input))
 	 (book ::Book (Book chapters: (java.util.ArrayList)))
 	 (current-chapter ::Chapter #!null))
     (for paragraph in paragraphs
@@ -314,7 +320,13 @@
 	      (Section title: (string-split title " ")))))
 
        ((regex-match "^[#][+]BEGIN_SRC" paragraph)
-	(current-chapter:paragraphs:add (string-append paragraph "\n\n")))
+	(match (regex-match "(?s)^[#][+]BEGIN_SRC scheme(.*)[#][+]END_SRC"
+			    paragraph)
+	  (`(,_ ,code)
+	   (let ((document (call-with-input-string code parse-document)))
+	     (current-chapter:paragraphs:add document)))
+	  (_
+	   (current-chapter:paragraphs:add (string-append paragraph "\n\n")))))
        
        (else
         (current-chapter:paragraphs:add 
