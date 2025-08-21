@@ -39,14 +39,11 @@
 
 (define-type (Section title: (sequence-of Word)))
 
-(define-alias Paragraph (either
-			 Section
-			 string ;; verbatim
-			 (sequence-of
-			  (either
-			   string
-			   TextStyle
-			   EndTextSTyle))))
+(define-alias StyledText
+  (sequence-of (either string TextStyle EndTextStyle)))
+
+(define-alias Paragraph
+  (either Section string StyledText Tile))
 
 (define-type (Chapter title: (sequence-of Word)
 		      paragraphs: (sequence-of Paragraph) := (java.util.ArrayList)))
@@ -263,21 +260,37 @@
 			   (width::real +inf.0)
 			   (style ::TextDecoration (RegularText)))
   ::real
-  (layout-paragraph
-   paragraph
-   (lambda (left::real top::real word::Word
-		       style::TextDecoration)
-     (painter:draw-styled-text! left top word style))
-   width: width
-   style: style))
+  (match paragraph
+    (tile::Tile
+     (tile:draw! '()))
+    (_
+     (layout-paragraph
+      paragraph
+      (lambda (left::real top::real word::Word
+			  style::TextDecoration)
+	(painter:draw-styled-text! left top word style))
+      width: width
+      style: style))))
 
-(define-cache (paragraph-height words::Paragraph
-				width ::real := +inf.0
-				style ::TextDecoration := (RegularText))
+(define-cache (cached-paragraph-height words::Paragraph
+				       width ::real := +inf.0
+				       style ::TextDecoration := (RegularText))
   ::real
   (layout-paragraph words nothing
 		    width: width
 		    style: style))
+
+(define (paragraph-height paragraph::Paragraph
+			  #!optional
+			  (width ::real +inf.0)
+			  (style ::TextDecoration (RegularText)))
+  ::real
+  (match paragraph
+    (tile::Tile
+     (let ((extent ::Extent (tile:extent)))
+       extent:height))
+    (_
+     (cached-paragraph-height paragraph width style))))
 
 (define (parse-book #!optional (input ::InputPort (current-input-port)))::Book
   (let* ((paragraphs ::(sequence-of input) (read-paragraphs input))
@@ -308,8 +321,8 @@
          (call-with-input-string paragraph parse-paragraph)))))
     book))
 
-(define-cache (chapter-height chapter ::Chapter
-			      max-line-width ::real)
+(define (chapter-height chapter ::Chapter
+			max-line-width ::real)
   ::real
   (fold-left (lambda (height::float paragraph::Paragraph)
 	       ::float
@@ -403,7 +416,6 @@
 	#t)
        (else
 	#f))))
-
   
   (define (draw! context::Cursor)::void
     (safely
