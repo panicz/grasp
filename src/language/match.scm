@@ -478,6 +478,9 @@
 	     ((list . pattern) #true)
 	     (_ #false)))))))
 
+(define-syntax-rule (function args . body)
+  (fn args . body))
+
 (define-syntax otherwise
   (syntax-rules ()
     ((_)

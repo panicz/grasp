@@ -30,6 +30,8 @@
 (import (editor document parse))
 
 (import (editor types extensions extensions))
+(import (editor types extensions visual-stepper))
+
 ;;(import (editor types extensions combinators))
 
 (import (utils print))
@@ -79,7 +81,7 @@
       ((char-whitespace? c)
        (read-words input-port))
        
-      ((is c in brackets&punctuation)
+      ((is c in punctuation)
        (cons (char->string c) (read-words input-port)))
       
       (else
@@ -90,7 +92,7 @@
                          (let ((c (peek-char input-port)))
                             (unless (or (eof-object? c)
                                         (char-whitespace? c)
-					(is c in brackets&punctuation))
+					(is c in punctuation))
                               (write-char (read-char input-port) p)
                               (loop))))))))
 	 (cons word (read-words input-port)))))))
@@ -325,29 +327,33 @@
 	 ("(?s)^[#][+]BEGIN_SRC scheme :evaluate yes(.*)[#][+]END_SRC"
 	  => (fn (`(,_ ,code))
 		 (let ((document (call-with-input-string code parse-document)))
-		   (let evaluate ((expressions document))
+		   (let evaluate ((expressions (car document)))
 		     (match expressions
 		       (`(,first . ,rest)
-			(eval first)
+			(with-eval-access
+			 (WARN "evaluating "first)
+			 (eval first))
 			(evaluate rest))
 		       (_
-			(values)))))
-		 (current-chapter:paragraphs:add document)))
+			(values))))
+		   (current-chapter:paragraphs:add document))))
 
 	 ("(?s)^[#][+]BEGIN_SRC scheme :extension yes(.*)[#][+]END_SRC"
 	  => (fn (`(,_ ,code))
 		 (let ((document (call-with-input-string code parse-document)))
-		   (let enchant ((expressions document))
-		     (match expressions
-		       (`(,first . ,rest)
-			(and-let* ((`(,keyword::symbol . ,data) expression)
-				   (magic ::Extension (extension keyword))
-				   (enchanted ::Enchanted (magic:enchant
-							   expression)))
-			  (set-car! expressions enchanted))
-			(enchant rest))
-		       (_
-			(values))))
+		   (parameterize ((cell-access-mode
+				   CellAccessMode:Evaluating))
+		     (let enchant ((expressions (car document)))
+		       (match expressions
+			 (`(,expression . ,rest)
+			  (and-let* ((`(,keyword::symbol . ,data) expression)
+				     (magic ::Extension (extension keyword))
+				     (enchanted ::Enchanted (magic:enchant
+							     expression)))
+			    (set-car! expressions enchanted))
+			  (enchant rest))
+			 (_
+			  (values)))))
 		   (current-chapter:paragraphs:add document))))
 	 
 	 ("(?s)^[#][+]BEGIN_SRC scheme(.*)[#][+]END_SRC"
