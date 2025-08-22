@@ -320,13 +320,42 @@
 	      (Section title: (string-split title " ")))))
 
        ((regex-match "^[#][+]BEGIN_SRC" paragraph)
-	(match (regex-match "(?s)^[#][+]BEGIN_SRC scheme(.*)[#][+]END_SRC"
-			    paragraph)
-	  (`(,_ ,code)
-	   (let ((document (call-with-input-string code parse-document)))
-	     (current-chapter:paragraphs:add document)))
-	  (_
-	   (current-chapter:paragraphs:add (string-append paragraph "\n\n")))))
+	(match/regex
+	 paragraph
+	 ("(?s)^[#][+]BEGIN_SRC scheme :evaluate yes(.*)[#][+]END_SRC"
+	  => (fn (`(,_ ,code))
+		 (let ((document (call-with-input-string code parse-document)))
+		   (let evaluate ((expressions document))
+		     (match expressions
+		       (`(,first . ,rest)
+			(eval first)
+			(evaluate rest))
+		       (_
+			(values)))))
+		 (current-chapter:paragraphs:add document)))
+
+	 ("(?s)^[#][+]BEGIN_SRC scheme :extension yes(.*)[#][+]END_SRC"
+	  => (fn (`(,_ ,code))
+		 (let ((document (call-with-input-string code parse-document)))
+		   (let enchant ((expressions document))
+		     (match expressions
+		       (`(,first . ,rest)
+			(and-let* ((`(,keyword::symbol . ,data) expression)
+				   (magic ::Extension (extension keyword))
+				   (enchanted ::Enchanted (magic:enchant
+							   expression)))
+			  (set-car! expressions enchanted))
+			(enchant rest))
+		       (_
+			(values))))
+		   (current-chapter:paragraphs:add document))))
+	 
+	 ("(?s)^[#][+]BEGIN_SRC scheme(.*)[#][+]END_SRC"
+	  => (fn (`(,_ ,code))
+		 (let ((document (call-with-input-string code parse-document)))
+		   (current-chapter:paragraphs:add document))))
+	 (".*"
+	  (current-chapter:paragraphs:add (string-append paragraph "\n\n")))))
        
        (else
         (current-chapter:paragraphs:add 
