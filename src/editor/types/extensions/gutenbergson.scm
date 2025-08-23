@@ -17,6 +17,7 @@
 (import (language define-parameter))
 (import (language mapping))
 
+(import (utils hash-table))
 (import (editor interfaces elements))
 (import (editor interfaces painting))
 (import (editor types primitive))
@@ -266,19 +267,13 @@
 			   (width::real +inf.0)
 			   (style ::TextDecoration (RegularText)))
   ::real
-  (match paragraph
-    (tile::Tile
-     (tile:draw! '())
-     (let ((extent ::Extent (tile:extent)))
-       extent:height))
-    (_
-     (layout-paragraph
+  (layout-paragraph
       paragraph
       (lambda (left::real top::real word::Word
 			  style::TextDecoration)
 	(painter:draw-styled-text! left top word style))
       width: width
-      style: style))))
+      style: style))
 
 (define-cache (cached-paragraph-height words::Paragraph
 				       width ::real := +inf.0
@@ -331,7 +326,6 @@
 		     (match expressions
 		       (`(,first . ,rest)
 			(with-eval-access
-			 (WARN "evaluating "first)
 			 (eval first))
 			(evaluate rest))
 		       (_
@@ -436,6 +430,9 @@
 			   new-scale: scale*
 			   new-angle: angle*/rad)))
 
+(define-type (Range start: real
+		    end: real))
+
 (define-object (InteractiveBookReader book ::Book)
   ::Maximizable
 
@@ -454,7 +451,7 @@
 	#t)
        (else
 	#f))))
-	    
+
   (define (previous-chapter!)::boolean
     (let ((previous-chapter (- current-chapter 1)))
       (cond
@@ -463,6 +460,9 @@
 	#t)
        (else
 	#f))))
+
+  (define visible-extensions ::(maps (Range) to: (maybe Enchanted))
+    (mapping (range ::Range)::Enchanted #!null))
   
   (define (draw! context::Cursor)::void
     (safely
@@ -471,6 +471,7 @@
       (* (painter:precise-resolution-right) size:width)
       (* (painter:precise-resolution-down) size:height)
       #xffffffff)
+     (reset! visible-extensions)
      (let ((chapter ::Chapter (book:chapters current-chapter))
 	   (top ::real (chapter-scroll current-chapter))
 	   (width ::real (min max-text-width (/ size:width scale)))
@@ -480,14 +481,25 @@
 	 (let ((height (render-paragraph! chapter:title width: width
 					  style: (EnumSet:of TextStyle:Bold
 							     TextStyle:Extra))))
-	   (set! top
-		 (+ top height))))
+	   (set! top (+ top height))))
        (escape-with break
 	 (for i from 0 below (length chapter:paragraphs) 
 	      (let* ((paragraph ::Paragraph (chapter:paragraphs i))
 		     (height
 		      (with-translation (0 top)
-			(render-paragraph! paragraph width: width))))
+			(match paragraph
+			  (tile::Tile
+			   (tile:draw! '())
+			   (let ((extent ::Extent (tile:extent)))
+			     (when (is tile Enchanted?)
+			       (set! (visible-extensions
+				      (Range start: top
+					     end: (+ top
+						     extent:height)))
+				     tile))
+			     extent:height))
+			  (_
+			   (render-paragraph! paragraph width: width))))))
 		(set! top (+ top height))
 		(when (is top > visible-height)
 		  (break)))))
