@@ -3245,12 +3245,12 @@ is ambiguous.
   (lambda args
     (not (apply proc args))))
 
-(define (find satisfying-element?::(maps (,a) to: boolean) in::sequence)
+(define (find satisfying-element?::(maps (,a) to: boolean) collection)
   (escape-with return
     (for-each (lambda (x)
 		(when (satisfying-element? x)
 		  (return x)))
-	      in)
+	      collection)
     #!null))
 
 (e.g.

@@ -75,16 +75,16 @@
 (define (read-words #!optional (input-port ::InputPort (current-input-port)))
   ::(list-of Word)
   (let ((c (read-char input-port)))
-    (cond 
+    (cond
       ((eof-object? c)
        '())
-       
+
       ((char-whitespace? c)
        (read-words input-port))
-       
+
       ((is c in punctuation)
        (cons (char->string c) (read-words input-port)))
-      
+
       (else
        (let ((word (call-with-output-string
                      (lambda (p)
@@ -103,12 +103,12 @@
   (let ((paragraphs ::java.util.List (java.util.ArrayList))
 	(current-paragraph ::java.lang.StringBuilder
 			   (java.lang.StringBuilder)))
-    
+
     (define (finish-paragraph!)
       (when (is (current-paragraph:length) > 0)
 	(paragraphs:add (current-paragraph:toString))
 	(current-paragraph:setLength 0)))
-    
+
     (let next ()
       (let ((line (read-line input-port)))
 	(cond
@@ -158,7 +158,7 @@
    ("^[~](.+)$"
     => (fn (`(,_ ,word*))
 	   `(,TextStyle:Monospace . ,(extract-style-modifiers word*))))
-   
+
    ("^(.+)[*]$"
     => (fn (`(,_ ,word*))
 	   `(,@(extract-style-modifiers word*)
@@ -214,12 +214,12 @@
 	     (word-operation 0 top line style)
 	     (set! top (+ top (painter:styled-text-height style))))))
        top))
-    
+
     ((Section title: title)
      (layout-paragraph title word-operation
 		       width: width
 		       style: (EnumSet:of TextStyle:Bold TextStyle:Large)))
-    
+
     (words
      ::(sequence-of Word)
      (let ((top ::real 0)
@@ -239,11 +239,11 @@
 			 (is (word 0) in closing-brackets))
 		     (is left > space-width))
 		(set! left (- left space-width)))
-	       
+
 	       ((is expanded > width)
 		(set! left 0)
 		(set! top (+ top line-height))))
-	      
+
 	      (word-operation left top word style)
 
 	      (set! left (+ left word-width
@@ -251,15 +251,15 @@
 				     (is (word 0) in opening-brackets))
 				0
 				space-width)))))
-	   
+
 	   (modifier::TextStyle
 	    ;(assert (not (style:contains modifier)))
 	    (style:add modifier))
-	   
+
 	   ((EndTextStyle style: modifier)
 	    ;;(assert (style:contains modifier))
 	    (style:remove modifier))))
-	 
+
 	 (+ top line-height line-height)))))
 
 (define (render-paragraph! paragraph::Paragraph
@@ -325,40 +325,63 @@
 		   (let evaluate ((expressions (car document)))
 		     (match expressions
 		       (`(,first . ,rest)
+			(safely
+			 (match first
+			   (`(define (,name . ,args) . ,value)
+			    (invoke (default-context) 'define! name
+				    (cons (Atom "lambda") (cons args value))))
+
+			   (`(define ,name ,value)
+			    (invoke (default-context) 'define! name value))
+
+			   (_
+			    (values))))
 			(with-eval-access
 			 (eval first))
 			(evaluate rest))
 		       (_
 			(values))))
-		   (current-chapter:paragraphs:add document))))
+		   (match document
+		     (`((,single))
+		      (current-chapter:paragraphs:add single))
+		     (_
+		      (current-chapter:paragraphs:add document))))))
 
 	 ("(?s)^[#][+]BEGIN_SRC scheme :extension yes(.*)[#][+]END_SRC"
 	  => (fn (`(,_ ,code))
 		 (let ((document (call-with-input-string code parse-document)))
 		   (parameterize ((cell-access-mode
 				   CellAccessMode:Evaluating))
-		     (let enchant ((expressions (car document)))
-		       (match expressions
-			 (`(,expression . ,rest)
-			  (and-let* ((`(,keyword::symbol . ,data) expression)
+		     (match document
+		       (`((,expression))
+			(and-let* ((`(,keyword::symbol . ,data) expression)
 				     (magic ::Extension (extension keyword))
 				     (enchanted ::Enchanted (magic:enchant
 							     expression)))
-			    (set-car! expressions enchanted))
-			  (enchant rest))
-			 (_
-			  (values)))))
-		   (current-chapter:paragraphs:add document))))
-	 
+			  (current-chapter:paragraphs:add enchanted)))
+		       (_
+			(let enchant ((expressions (car document)))
+			  (match expressions
+			    (`(,expression . ,rest)
+			     (and-let* ((`(,keyword::symbol . ,data) expression)
+					(magic ::Extension (extension keyword))
+					(enchanted ::Enchanted (magic:enchant
+								expression)))
+			       (set-car! expressions enchanted))
+			     (enchant rest))
+			    (_
+			     (values))))
+			(current-chapter:paragraphs:add document)))))))
+
 	 ("(?s)^[#][+]BEGIN_SRC scheme(.*)[#][+]END_SRC"
 	  => (fn (`(,_ ,code))
 		 (let ((document (call-with-input-string code parse-document)))
 		   (current-chapter:paragraphs:add document))))
 	 (".*"
 	  (current-chapter:paragraphs:add (string-append paragraph "\n\n")))))
-       
+
        (else
-        (current-chapter:paragraphs:add 
+        (current-chapter:paragraphs:add
          (call-with-input-string paragraph parse-paragraph)))))
     book))
 
@@ -383,7 +406,7 @@
 	  (y-y0 (- y y0))
 	  (line-height (painter:styled-text-height (RegularText)))
 	  (threshold (painter:styled-text-width "turn" (RegularText))))
-	  
+
       (when (is (abs y-y0) < (* 3 line-height))
 	(cond
 	 ((is x-x0 > threshold)
@@ -437,9 +460,9 @@
   ::Maximizable
 
   (define scale ::float 1.0)
-  
+
   (define current-chapter ::int 0)
-  
+
   (define chapter-scroll ::(sequence-of real)
     ((array-of float) length: (length book:chapters)))
 
@@ -461,9 +484,9 @@
        (else
 	#f))))
 
-  (define visible-extensions ::(maps (Range) to: (maybe Enchanted))
+  (define visible-snippets ::(maps (Range) to: (maybe Enchanted))
     (mapping (range ::Range)::Enchanted #!null))
-  
+
   (define (draw! context::Cursor)::void
     (safely
      (painter:precise-fill-rectangle!
@@ -471,7 +494,7 @@
       (* (painter:precise-resolution-right) size:width)
       (* (painter:precise-resolution-down) size:height)
       #xffffffff)
-     (reset! visible-extensions)
+     (reset! visible-snippets)
      (let ((chapter ::Chapter (book:chapters current-chapter))
 	   (top ::real (chapter-scroll current-chapter))
 	   (width ::real (min max-text-width (/ size:width scale)))
@@ -483,16 +506,16 @@
 							     TextStyle:Extra))))
 	   (set! top (+ top height))))
        (escape-with break
-	 (for i from 0 below (length chapter:paragraphs) 
+	 (for i from 0 below (length chapter:paragraphs)
 	      (let* ((paragraph ::Paragraph (chapter:paragraphs i))
 		     (height
 		      (with-translation (0 top)
 			(match paragraph
 			  (tile::Tile
-			   (tile:draw! '())
 			   (let ((extent ::Extent (tile:extent)))
-			     (when (is tile Enchanted?)
-			       (set! (visible-extensions
+			     (tile:draw! '())
+			     (unless (is (+ top extent:height) < 0)
+			       (set! (visible-snippets
 				      (Range start: top
 					     end: (+ top
 						     extent:height)))
@@ -505,82 +528,98 @@
 		  (break)))))
        (painter:scale! (/ 1.0 scale)))))
 
+  (define (tap! finger::byte #;at x::real y::real)::boolean
+    (and-let* ((range ::Range (find (lambda (range::Range)
+				      (is range:start <= y <= range:end))
+				    (keys visible-snippets)))
+	       (item ::Enchanted (visible-snippets range))
+	       (extent ::Extent (item:extent))
+	       ((is 0 <= x < extent:width)))
+      (item:tap! finger x (- y range:start))))
+
   (define (press! finger::byte #;at x ::real y ::real)::boolean
-    (let ((dragging-fingers  (screen:dragging-fingers)))
-      (if (empty? dragging-fingers)
-	  (screen:drag! finger (ScrollBookReader (this) x y))
-	  (when (and (is (dragging-fingers:size) = 1)
-		     (isnt finger in dragging-fingers))
-	    (let* ((other-finger (the-element-of dragging-fingers))
-		   (p0 ::Position (Position left: x top: y))
-		   (p1 ::Position (copy
-				   (last-known-pointer-position
-				    other-finger))))
-	      (screen:undrag! other-finger)
-	      (screen:drag!
-	       other-finger
-	       (object (Drag)
-		 ((move! x::real y::real
-			 dx::real dy::real)
-		  ::void
-		  (let* ((p1x ::real (+ p1:left dx))
-			 (p1y ::real (+ p1:top dy))
-			 (correct ::TransformCorrection
-				  (pinch
-				   p0:left p0:top p1:left p1:top
-				   p0:left p0:top p1x  p1y
-				   scale 0)))
-		    (set! scale correct:new-scale)
-		    (scroll-by! (- correct:dy))
-		    (set! p1:left p1x)		    
-		    (set! p1:top p1y)))
+    (or (and-let* ((range ::Range (find (lambda (range::Range)
+					  (is range:start <= y <= range:end))
+					(keys visible-snippets)))
+		   (item ::Enchanted (visible-snippets range))
+		   (extent ::Extent (item:extent))
+		   ((is 0 <= x < extent:width)))
+	  (item:press! finger x (- y range:start)))
+	(let ((dragging-fingers  (screen:dragging-fingers)))
+	  (if (empty? dragging-fingers)
+	      (screen:drag! finger (ScrollBookReader (this) x y))
+	      (when (and (is (dragging-fingers:size) = 1)
+			 (isnt finger in dragging-fingers))
+		(let* ((other-finger (the-element-of dragging-fingers))
+		       (p0 ::Position (Position left: x top: y))
+		       (p1 ::Position (copy
+				       (last-known-pointer-position
+					other-finger))))
+		  (screen:undrag! other-finger)
+		  (screen:drag!
+		   other-finger
+		   (object (Drag)
+		     ((move! x::real y::real
+			     dx::real dy::real)
+		      ::void
+		      (let* ((p1x ::real (+ p1:left dx))
+			     (p1y ::real (+ p1:top dy))
+			     (correct ::TransformCorrection
+				      (pinch
+				       p0:left p0:top p1:left p1:top
+				       p0:left p0:top p1x  p1y
+				       scale 0)))
+			(set! scale correct:new-scale)
+			(scroll-by! (- correct:dy))
+			(set! p1:left p1x)
+			(set! p1:top p1y)))
 
-		 ((drop! x::real y::real
-			 vx::real vy::real)
-		  ::void
-		  ;; jezeli jest jeszcze inny palec,
-		  ;; to powinnismy przywrocic do niego
-		  ;; ~ScrollBookReader~
-		  (values))
-		 ))
+		     ((drop! x::real y::real
+			     vx::real vy::real)
+		      ::void
+		      ;; jezeli jest jeszcze inny palec,
+		      ;; to powinnismy przywrocic do niego
+		      ;; ~ScrollBookReader~
+		      (values))
+		     ))
 
-	      (screen:drag!
-	       finger
-	       (object (Drag)
-		 ((move! x::real y::real
-			 dx::real dy::real)
-		  ::void
-		  (let* ((p0x ::real (+ p0:left dx))
-			 (p0y ::real (+ p0:top dy))
-			 (correct ::TransformCorrection
-				  (pinch
-				   p0:left p0:top p1:left p1:top
-				   p0x  p0y  p1:left p1:top
-				   scale 0)))
-		    (set! scale correct:new-scale)
-		    (scroll-by! (- correct:dy))	    
-		    (set! p0:left p0x)
-		    (set! p0:top p0y)))
+		  (screen:drag!
+		   finger
+		   (object (Drag)
+		     ((move! x::real y::real
+			     dx::real dy::real)
+		      ::void
+		      (let* ((p0x ::real (+ p0:left dx))
+			     (p0y ::real (+ p0:top dy))
+			     (correct ::TransformCorrection
+				      (pinch
+				       p0:left p0:top p1:left p1:top
+				       p0x  p0y  p1:left p1:top
+				       scale 0)))
+			(set! scale correct:new-scale)
+			(scroll-by! (- correct:dy))
+			(set! p0:left p0x)
+			(set! p0:top p0y)))
 
-		 ((drop! x::real y::real
-			 vx::real vy::real)
-		  ::void
-		  ;; jezeli jest jeszcze inny palec,
-		  ;; to powinnismy przywrocic do niego
-		  ;; ~ScrollBookReader~
-		  (values))
-		 ))
-	      )))))
-    
+		     ((drop! x::real y::real
+			     vx::real vy::real)
+		      ::void
+		      ;; jezeli jest jeszcze inny palec,
+		      ;; to powinnismy przywrocic do niego
+		      ;; ~ScrollBookReader~
+		      (values))
+		     ))
+		  ))))))
+
   (define max-text-width ::real
     (painter:styled-text-width
      "Abc def ghi jkl mno pq rst uvw xyz abcdefghijklmnopqrstuvwxyz"
      (RegularText)))
-  
+
   (define size ::Extent
     (Extent width: (* 60 (painter:space-width))
 	    height: (* 25 (painter:styled-text-height (RegularText)))))
-  
+
   (define (set-size! width::real height::real anchor::ResizeAnchor)::void
     (set! size:width width)
     (set! size:height height))
@@ -598,7 +637,7 @@
     (let* ((previous-scroll (chapter-scroll current-chapter))
            (new-scroll ::float (as float (+ previous-scroll delta)))
 	   (scroll-limit ::float (- (current-chapter-height))))
-      (cond 
+      (cond
        ((is new-scroll < scroll-limit)
 	(when (is delta < 0)
 	  (set! (chapter-scroll current-chapter) scroll-limit))
@@ -616,19 +655,19 @@
 
        (else
         (set! (chapter-scroll current-chapter) new-scroll)))))
-  
+
   (define (key-typed! key-code::long context::Cursor)::boolean
     (match (key-chord key-code)
       ('left
        (previous-chapter!))
-      
+
       ('right
        (next-chapter!))
-      
+
       ('up
        (scroll-by! (painter:styled-text-height (RegularText)))
        #t)
-      
+
       ('down
        (scroll-by! (- (painter:styled-text-height (RegularText))))
        #t)
@@ -636,11 +675,11 @@
       ('mouse-wheel-up
        (scroll-by! (painter:styled-text-height (RegularText)))
        #t)
-      
+
       ('mouse-wheel-down
        (scroll-by! (- (painter:styled-text-height (RegularText))))
        #t)
-      
+
       ('page-up
        (scroll-by! (- size:height (painter:styled-text-height (RegularText))))
        #t)
@@ -648,7 +687,7 @@
       ('page-down
        (scroll-by! (- (- size:height (painter:styled-text-height (RegularText)))))
        #t)
-      
+
       ('(ctrl mouse-wheel-up)
        (set! scale (* scale 1.25))
        #t)
@@ -656,11 +695,11 @@
       ('(ctrl mouse-wheel-down)
        (set! scale (/ scale 1.25))
        #t)
-      
+
       (name
        (WARN "unsupported key: "name)
        #f)))
-  
+
   (MaximizableWidget))
 
 (set! (extension 'InteractiveBookReader)

@@ -750,12 +750,12 @@
 	    '(1 2 3 4 5))
  ===> (4 5))
 
-(define (find satisfying-element?::predicate in::sequence)
+(define (find satisfying-element?::predicate collection)
   (escape-with return
     (for-each (lambda (x)
 		(when (satisfying-element? x)
 		  (return x)))
-	      in)
+	      collection)
     #f))
 
 (e.g.
