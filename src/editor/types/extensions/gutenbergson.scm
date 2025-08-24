@@ -27,6 +27,7 @@
 (import (editor input transforms))
 (import (editor input screen))
 (import (editor input input))
+(import (editor input evaluation))
 
 (import (editor document parse))
 
@@ -332,7 +333,8 @@
 				    (cons (Atom "lambda") (cons args value))))
 
 			   (`(define ,name ,value)
-			    (invoke (default-context) 'define! name value))
+			    (invoke (default-context)
+				    'define! name value))
 
 			   (_
 			    (values))))
