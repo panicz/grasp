@@ -384,8 +384,18 @@
       (and-let* ((x ::java.util.Map))
 	(x:isEmpty))
       (and-let* (((procedure? x))
+		 (x ::gnu.mapping.Procedure)
 		 (table (procedure-property x 'table)))
 	(empty? table))))
+
+(define fresh-symbol
+  (let ((counter ::int 0))
+    (lambda (prefix ::symbol)
+      (let ((output ::string (string-append
+			     (symbol->string prefix) "~"
+			     (number->string counter))))
+	(set! counter (+ counter 1))
+	(string->symbol output)))))
 
 (define (union set . sets)
   (define (list-union a b)
