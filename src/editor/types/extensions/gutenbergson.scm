@@ -27,6 +27,7 @@
 (import (editor input transforms))
 (import (editor input screen))
 (import (editor input input))
+(import (editor input evaluation))
 
 (import (editor document parse))
 
