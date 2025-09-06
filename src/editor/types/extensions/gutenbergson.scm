@@ -488,7 +488,31 @@
 
   (define visible-snippets ::(maps (Range) to: (maybe Enchanted))
     (mapping (range ::Range)::Enchanted #!null))
+  
+  (define first-visible-paragraph-index ::uint 0)
 
+  (define first-visible-paragraph-position ::real 0)
+  
+  (define (first-visible-paragraph+position)::(Values uint real)
+    (escape-with return
+      (let* ((chapter ::Chapter (book:chapters current-chapter))
+	     (position ::real (paragraph-height chapter:title
+						(min max-text-width
+						     (/ size:width scale))
+						(EnumSet:of TextStyle:Bold
+							    TextStyle:Extra)))
+	     (scroll (- (chapter-scroll current-chapter)))
+	     (last-paragraph (- (length chapter:paragraphs) 1)))
+	(for i::uint from 0 to last-paragraph 
+	     (let* ((height (paragraph-height (chapter:paragraphs i)
+					      (min max-text-width
+						   size:width)))
+		    (bottom (+ position height)))
+	       (when (is bottom >= scroll)
+		 (return i position))
+	       (set! position bottom)))
+	(return last-paragraph position))))
+  
   (define (draw! context::Cursor)::void
     (safely
      (painter:precise-fill-rectangle!
@@ -503,12 +527,12 @@
 	   (visible-height ::real (/ size:height scale)))
        (painter:scale! scale)
        (with-translation (0 top)
-	 (let ((height (render-paragraph! chapter:title width: width
-					  style: (EnumSet:of TextStyle:Bold
-							     TextStyle:Extra))))
-	   (set! top (+ top height))))
+	 (render-paragraph! chapter:title width: width
+				     style: (EnumSet:of TextStyle:Bold
+							TextStyle:Extra)))
+       (set! top (+ top first-visible-paragraph-position))
        (escape-with break
-	 (for i from 0 below (length chapter:paragraphs)
+	 (for i from first-visible-paragraph-index below (length chapter:paragraphs)
 	      (let* ((paragraph ::Paragraph (chapter:paragraphs i))
 		     (height
 		      (with-translation (0 top)
@@ -631,10 +655,10 @@
   (define (value)::Object
     (cons (Atom "InteractiveBookReader") (empty)))
 
-  (define (current-chapter-height)::real
-    (chapter-height (book:chapters current-chapter)
-		    (min max-text-width size:width)))
-
+  (define (current-chapter-height)::float
+    (as float (chapter-height (book:chapters current-chapter)
+			      (min max-text-width size:width))))
+    
   (define (scroll-by! delta ::real)::void
     (let* ((previous-scroll (chapter-scroll current-chapter))
            (new-scroll ::float (as float (+ previous-scroll delta)))
@@ -656,7 +680,11 @@
 		(as float (- (current-chapter-height))))))
 
        (else
-        (set! (chapter-scroll current-chapter) new-scroll)))))
+        (set! (chapter-scroll current-chapter) new-scroll)))
+
+      (let-values (((index position) (first-visible-paragraph+position)))
+	(set! first-visible-paragraph-index index)
+	(set! first-visible-paragraph-position position))))
 
   (define (key-typed! key-code::long context::Cursor)::boolean
     (match (key-chord key-code)
@@ -702,7 +730,8 @@
        (WARN "unsupported key: "name)
        #f)))
 
-  (MaximizableWidget))
+  (MaximizableWidget)
+  (scroll-by! 0))
 
 (set! (extension 'InteractiveBookReader)
       (object (Extension)
