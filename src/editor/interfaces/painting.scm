@@ -243,6 +243,8 @@ def") ===> [Extent width: 3 height: 2])
    height::real highlighted?::boolean)
   ::void
 
+  ;; these are used for "dotted tails"
+  ;; rendered as "bars"
   (vertical-bar-width)::real
   (horizontal-bar-height)::real
 
@@ -250,6 +252,19 @@ def") ===> [Extent width: 3 height: 2])
 	     context::Cursor)
   ::void
 
+  (vertical-scrollbar-width)::real
+  (horizontal-scrollbar-height)::real
+  (draw-horizontal-scrollbar!
+   total-width ::real
+   bar-width ::real
+   relative-bar-position ::real)
+  ::void
+  
+  (draw-vertical-scrollbar!
+   total-height ::real
+   bar-height ::real
+   relative-bar-position ::real)::void
+    
   (draw-border! width::real height::real
 		highlight::(subtype-of
 			    gnu.text.Char
@@ -471,6 +486,24 @@ def") ===> [Extent width: 3 height: 2])
   (define (vertical-bar-width)::real 1)
 
   (define (horizontal-bar-height)::real 1)
+
+  (define (vertical-scrollbar-width)::real 1)
+
+  (define (horizontal-scrollbar-height)::real 1)
+  
+  (define (draw-horizontal-scrollbar!
+	   total-width ::real
+	   bar-width ::real
+	   relative-bar-position ::real)
+    ::void
+    (values))
+  
+  (define (draw-vertical-scrollbar!
+	   total-height ::real
+	   bar-height ::real
+	   relative-bar-position ::real)
+    ::void
+    (values))
 
   (define (icon-extent)::Extent
     (Extent width: 1 height: 1))

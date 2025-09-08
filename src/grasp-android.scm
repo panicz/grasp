@@ -1018,6 +1018,35 @@
     (canvas:drawRect 0 0 (vertical-bar-width)
 		     height paint))
 
+  (define (vertical-scrollbar-width)::real 6)
+  
+  (define (horizontal-scrollbar-height)::real 6)
+  
+  (define (draw-horizontal-scrollbar!
+	   total-width ::real
+	   bar-width ::real
+	   relative-bar-position ::real)
+    ::void
+    (set-color! #xdddddd)
+    (canvas:drawRect 0 0 total-width (horizontal-scrollbar-height) paint)
+    (set-color! #x333333)
+    (let ((bar-position (round (* relative-bar-position total-width))))
+      (canvas:drawRect bar-position 1 bar-width
+		       (- (horizontal-scrollbar-height) 1)
+		       paint)))
+
+  (define (draw-vertical-scrollbar!
+	   total-height ::real
+	   bar-height ::real
+	   relative-bar-position ::real)
+    ::void
+    (set-color! #xdddddd)
+    (canvas:drawRect 0 0 (vertical-scrollbar-width) total-height paint)
+    (set-color! #x333333)
+    (let ((bar-position (round (* relative-bar-position total-height))))
+      (canvas:drawRect 1 bar-position (- (vertical-scrollbar-width) 1)
+		       bar-height paint)))
+  
   (define (module-view-interline)::real 40)
 
   (define (module-view-interspace)::real 30)
