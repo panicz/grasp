@@ -397,6 +397,19 @@
 			       (EnumSet:of TextStyle:Bold TextStyle:Large))
 	     chapter:paragraphs))
 
+(define auto-scrolling ::Animation #!null)
+
+(define-object (Inertia reader ::InteractiveBookReader velocity ::real)
+  ::Animation
+  (define (advance! timestep/ms ::int)::boolean
+    (reader:scroll-by! (* velocity timestep/ms 0.1))
+    (set! velocity (* velocity 0.9))
+    (cond
+     ((is (abs velocity) > 0.1) #t)
+     (else
+      (set! auto-scrolling #!null)
+      #f))))
+      
 (define-object (ScrollBookReader reader ::InteractiveBookReader
 				 x0 ::real y0 ::real)
   ::Drag
@@ -404,7 +417,10 @@
     (reader:scroll-by! dy))
 
   (define (drop! x ::real y ::real vx ::real vy ::real)::void
-    (let ((x-x0 (- x x0))
+    (when (finite? vy)
+      (set! auto-scrolling (Inertia reader vy))
+      (painter:play! auto-scrolling))
+    #;(let ((x-x0 (- x x0))
 	  (y-y0 (- y y0))
 	  (line-height (painter:styled-text-height (RegularText)))
 	  (threshold (painter:styled-text-width "turn" (RegularText))))
@@ -418,8 +434,11 @@
 	 ((is x-x0 < (- threshold))
 	  (reader:scroll-by! (- (- reader:size:height
 				   (abs y-y0)))))
-	 ))))
-  )
+    ))))
+  (java.lang.Object)
+  (when auto-scrolling
+    (painter:stop-playing! auto-scrolling)
+    (set! auto-scrolling #!null)))
 
 (define-type (TransformCorrection dx: real dy: real
 				  new-scale: real
