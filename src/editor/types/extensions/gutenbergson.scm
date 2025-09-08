@@ -521,12 +521,22 @@
       (* (painter:precise-resolution-down) size:height)
       #xffffffff)
      (reset! visible-snippets)
-     (let ((chapter ::Chapter (book:chapters current-chapter))
-	   (top ::real (chapter-scroll current-chapter))
-	   (width ::real (min max-text-width (/ size:width scale)))
-	   (visible-height ::real (/ size:height scale)))
+     (let* ((chapter ::Chapter (book:chapters current-chapter))
+	    (top ::real (chapter-scroll current-chapter))
+	    (width ::real (min max-text-width (/ size:width scale)))
+	    (visible-height ::real (/ size:height scale))
+	    (chapter-height ::real (current-chapter-height))
+	    (margin ::real (painter:vertical-scrollbar-width))
+	    (relative-scroll (/ (- top) chapter-height))
+	    (scrollbar-height (/ (* size:height size:height)
+				 chapter-height)))
+       (with-translation ((- size:width margin) 0)
+	 (painter:draw-vertical-scrollbar!
+	  size:height
+	  scrollbar-height
+	  relative-scroll))
        (painter:scale! scale)
-       (with-translation (0 top)
+       (with-translation (margin top)
 	 (render-paragraph! chapter:title width: width
 				     style: (EnumSet:of TextStyle:Bold
 							TextStyle:Extra)))
@@ -535,7 +545,7 @@
 	 (for i from first-visible-paragraph-index below (length chapter:paragraphs)
 	      (let* ((paragraph ::Paragraph (chapter:paragraphs i))
 		     (height
-		      (with-translation (0 top)
+		      (with-translation (margin top)
 			(match paragraph
 			  (tile::Tile
 			   (let ((extent ::Extent (tile:extent)))
@@ -638,9 +648,10 @@
 		  ))))))
 
   (define max-text-width ::real
-    (painter:styled-text-width
-     "Abc def ghi jkl mno pq rst uvw xyz abcdefghijklmnopqrstuvwxyz"
-     (RegularText)))
+    (- (painter:styled-text-width
+	"Abc def ghi jkl mno pq rst uvw xyz abcdefghijklmnopqrstuvwxyz"
+	(RegularText))
+       (* 3 (painter:vertical-scrollbar-width))))
 
   (define size ::Extent
     (Extent width: (* 60 (painter:space-width))
