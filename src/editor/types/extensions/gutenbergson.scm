@@ -511,21 +511,25 @@
   (define first-visible-paragraph-index ::uint 0)
 
   (define first-visible-paragraph-position ::real 0)
-  
+
+  (define (available-text-width)::real
+    (min max-text-width
+	 (- (/ size:width scale)
+	    (* 2 (painter:vertical-scrollbar-width)))))
+    
   (define (first-visible-paragraph+position)::(Values uint real)
     (escape-with return
       (let* ((chapter ::Chapter (book:chapters current-chapter))
+	     (text-width ::real (available-text-width))
 	     (position ::real (paragraph-height chapter:title
-						(min max-text-width
-						     (/ size:width scale))
+						text-width
 						(EnumSet:of TextStyle:Bold
 							    TextStyle:Extra)))
 	     (scroll (- (chapter-scroll current-chapter)))
 	     (last-paragraph (- (length chapter:paragraphs) 1)))
 	(for i::uint from 0 to last-paragraph 
 	     (let* ((height (paragraph-height (chapter:paragraphs i)
-					      (min max-text-width
-						   size:width)))
+					      text-width))
 		    (bottom (+ position height)))
 	       (when (is bottom >= scroll)
 		 (return i position))
@@ -542,13 +546,13 @@
      (reset! visible-snippets)
      (let* ((chapter ::Chapter (book:chapters current-chapter))
 	    (top ::real (chapter-scroll current-chapter))
-	    (width ::real (min max-text-width (/ size:width scale)))
+	    (width ::real (available-text-width))
 	    (visible-height ::real (/ size:height scale))
 	    (chapter-height ::real (current-chapter-height))
 	    (margin ::real (painter:vertical-scrollbar-width))
 	    (relative-scroll (/ (- top) chapter-height))
 	    (scrollbar-height (/ (* size:height size:height)
-				 chapter-height)))
+				 (* scale chapter-height))))
        (with-translation ((- size:width margin) 0)
 	 (painter:draw-vertical-scrollbar!
 	  size:height
@@ -670,7 +674,7 @@
     (- (painter:styled-text-width
 	"Abc def ghi jkl mno pq rst uvw xyz abcdefghijklmnopqrstuvwxyz"
 	(RegularText))
-       (* 3 (painter:vertical-scrollbar-width))))
+       (* 2 (painter:vertical-scrollbar-width))))
 
   (define size ::Extent
     (Extent width: (* 60 (painter:space-width))
@@ -686,11 +690,14 @@
     (cons (Atom "InteractiveBookReader") (empty)))
 
   (define (current-chapter-height)::float
-    (as float (chapter-height (book:chapters current-chapter)
-			      (min max-text-width size:width))))
+    (as float (chapter-height
+	       (book:chapters current-chapter)
+	       (min max-text-width
+		    (- size:width (* 2 (painter:vertical-scrollbar-width)))))))
     
   (define (scroll-by! delta ::real)::void
-    (let* ((previous-scroll (chapter-scroll current-chapter))
+    (let* ((delta ::real (/ delta scale))
+	   (previous-scroll (chapter-scroll current-chapter))
            (new-scroll ::float (as float (+ previous-scroll delta)))
 	   (scroll-limit ::float (- (current-chapter-height))))
       (cond
