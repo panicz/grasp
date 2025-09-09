@@ -414,7 +414,7 @@
 				 x0 ::real y0 ::real)
   ::Drag
   (define (move! x ::real y ::real dx ::real dy ::real)::void
-    (reader:scroll-by! dy))
+    (reader:scroll-by! (/ dy reader:scale)))
 
   (define (drop! x ::real y ::real vx ::real vy ::real)::void
     (when (finite? vy)
@@ -696,10 +696,10 @@
 		    (- size:width (* 2 (painter:vertical-scrollbar-width)))))))
     
   (define (scroll-by! delta ::real)::void
-    (let* ((delta ::real (/ delta scale))
-	   (previous-scroll (chapter-scroll current-chapter))
+    (let* ((previous-scroll (chapter-scroll current-chapter))
            (new-scroll ::float (as float (+ previous-scroll delta)))
 	   (scroll-limit ::float (- (current-chapter-height))))
+     
       (cond
        ((is new-scroll < scroll-limit)
 	(when (is delta < 0)
@@ -756,11 +756,17 @@
        #t)
 
       ('(ctrl mouse-wheel-up)
-       (set! scale (* scale 1.25))
+       (let* ((scroll (chapter-scroll current-chapter))
+	      (shift (- (* scroll 1.25) scroll)))
+	 (set! scale (* scale 1.25))
+	 (scroll-by! shift))
        #t)
 
       ('(ctrl mouse-wheel-down)
-       (set! scale (/ scale 1.25))
+       (let* ((scroll (chapter-scroll current-chapter))
+	      (shift (- (/ scroll 1.25) scroll)))
+	 (set! scale (/ scale 1.25))
+	 (scroll-by! shift))
        #t)
 
       (name
