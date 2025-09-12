@@ -397,14 +397,30 @@
 			       (EnumSet:of TextStyle:Bold TextStyle:Large))
 	     chapter:paragraphs))
 
+(define auto-scrolling ::Animation #!null)
+
+(define-object (Inertia reader ::InteractiveBookReader velocity ::real)
+  ::Animation
+  (define (advance! timestep/ms ::int)::boolean
+    (reader:scroll-by! (* velocity timestep/ms 0.2))
+    (set! velocity (* velocity 0.95))
+    (cond
+     ((is (abs velocity) > 0.1) #t)
+     (else
+      (set! auto-scrolling #!null)
+      #f))))
+      
 (define-object (ScrollBookReader reader ::InteractiveBookReader
 				 x0 ::real y0 ::real)
   ::Drag
   (define (move! x ::real y ::real dx ::real dy ::real)::void
-    (reader:scroll-by! dy))
+    (reader:scroll-by! (/ dy reader:scale)))
 
   (define (drop! x ::real y ::real vx ::real vy ::real)::void
-    (let ((x-x0 (- x x0))
+    (when (finite? vy)
+      (set! auto-scrolling (Inertia reader vy))
+      (painter:play! auto-scrolling))
+    #;(let ((x-x0 (- x x0))
 	  (y-y0 (- y y0))
 	  (line-height (painter:styled-text-height (RegularText)))
 	  (threshold (painter:styled-text-width "turn" (RegularText))))
@@ -418,8 +434,11 @@
 	 ((is x-x0 < (- threshold))
 	  (reader:scroll-by! (- (- reader:size:height
 				   (abs y-y0)))))
-	 ))))
-  )
+    ))))
+  (java.lang.Object)
+  (when auto-scrolling
+    (painter:stop-playing! auto-scrolling)
+    (set! auto-scrolling #!null)))
 
 (define-type (TransformCorrection dx: real dy: real
 				  new-scale: real
@@ -492,26 +511,40 @@
   (define first-visible-paragraph-index ::uint 0)
 
   (define first-visible-paragraph-position ::real 0)
+
+  (define (available-text-width)::real
+    ;; Najpierw policz "inner" width w pikselach (odejmij paski),
+    ;; potem skonwertuj do content units przez podzielenie przez scale.
+    (let* ((scrollbar-px (* 2 (painter:vertical-scrollbar-width)))
+           (inner-px (max 0.0 (- size:width scrollbar-px)))
+           (inner-content (/ inner-px scale)))
+      (max 0.0 (min max-text-width inner-content))))
   
   (define (first-visible-paragraph+position)::(Values uint real)
     (escape-with return
       (let* ((chapter ::Chapter (book:chapters current-chapter))
-	     (position ::real (paragraph-height chapter:title
-						(min max-text-width
-						     (/ size:width scale))
+             (text-width ::real (available-text-width))
+             (position ::real (paragraph-height chapter:title
+						text-width
 						(EnumSet:of TextStyle:Bold
-							    TextStyle:Extra)))
-	     (scroll (- (chapter-scroll current-chapter)))
-	     (last-paragraph (- (length chapter:paragraphs) 1)))
-	(for i::uint from 0 to last-paragraph 
-	     (let* ((height (paragraph-height (chapter:paragraphs i)
-					      (min max-text-width
-						   size:width)))
-		    (bottom (+ position height)))
-	       (when (is bottom >= scroll)
+                                                            TextStyle:Extra)))
+             (scroll (- (chapter-scroll current-chapter)))
+             (last-paragraph (max 0 (- (length chapter:paragraphs) 1))))
+	(for i::uint from 0 to last-paragraph
+             (let* ((height (paragraph-height (chapter:paragraphs i)
+                                              text-width))
+                    (bottom (+ position height)))
+               (when (is bottom >= scroll)
 		 (return i position))
-	       (set! position bottom)))
-	(return last-paragraph position))))
+               (set! position bottom)))
+	;; jeśli nie znaleźliśmy paragrafu (scroll > bottom_of_last),
+	;; to zwróć indeks ostatniego paragrafu i jego *start* (nie bottom).
+	(let ((last-idx last-paragraph)
+              (last-h (if (>= last-paragraph 0)
+                          (paragraph-height (chapter:paragraphs last-paragraph)
+                                            text-width)
+                          0.0)))
+          (return last-idx (max 0.0 (- position last-h)))))))
   
   (define (draw! context::Cursor)::void
     (safely
@@ -521,12 +554,25 @@
       (* (painter:precise-resolution-down) size:height)
       #xffffffff)
      (reset! visible-snippets)
-     (let ((chapter ::Chapter (book:chapters current-chapter))
-	   (top ::real (chapter-scroll current-chapter))
-	   (width ::real (min max-text-width (/ size:width scale)))
-	   (visible-height ::real (/ size:height scale)))
+     (let* ((chapter ::Chapter (book:chapters current-chapter))
+	    (top ::real (chapter-scroll current-chapter))
+	    (width ::real (available-text-width))
+	    (visible-height ::real (/ size:height scale))
+	    (chapter-height ::real (current-chapter-height))
+	    (margin ::real (painter:vertical-scrollbar-width))
+	    (rel (if (<= chapter-height 0.0) 0.0 (/ (- top) chapter-height)))
+	    (relative-scroll (max 0.0 (min 1.0 rel)))
+	    (scrollbar-height (if (<= chapter-height 0.0)
+				  size:height
+				  (/ (* size:height size:height)
+                                     (* scale chapter-height)))))
+       (with-translation ((- size:width margin) 0)
+	 (painter:draw-vertical-scrollbar!
+	  size:height
+	  scrollbar-height
+	  relative-scroll))
        (painter:scale! scale)
-       (with-translation (0 top)
+       (with-translation (margin top)
 	 (render-paragraph! chapter:title width: width
 				     style: (EnumSet:of TextStyle:Bold
 							TextStyle:Extra)))
@@ -535,7 +581,7 @@
 	 (for i from first-visible-paragraph-index below (length chapter:paragraphs)
 	      (let* ((paragraph ::Paragraph (chapter:paragraphs i))
 		     (height
-		      (with-translation (0 top)
+		      (with-translation (margin top)
 			(match paragraph
 			  (tile::Tile
 			   (let ((extent ::Extent (tile:extent)))
@@ -555,7 +601,10 @@
        (painter:scale! (/ 1.0 scale)))))
 
   (define (tap! finger::byte #;at x::real y::real)::boolean
-    (and-let* ((range ::Range (find (lambda (range::Range)
+    (and-let* ((margin ::real (painter:vertical-scrollbar-width))   
+	       (x ::real (/ (- x margin) scale))
+	       (y ::real (/ y scale))
+	       (range ::Range (find (lambda (range::Range)
 				      (is range:start <= y <= range:end))
 				    (keys visible-snippets)))
 	       (item ::Enchanted (visible-snippets range))
@@ -564,7 +613,10 @@
       (item:tap! finger x (- y range:start))))
 
   (define (press! finger::byte #;at x ::real y ::real)::boolean
-    (or (and-let* ((range ::Range (find (lambda (range::Range)
+    (or (and-let* ((margin ::real (painter:vertical-scrollbar-width))   
+		   (x ::real (/ (- x margin) scale))
+		   (y ::real (/ y scale))
+		   (range ::Range (find (lambda (range::Range)
 					  (is range:start <= y <= range:end))
 					(keys visible-snippets)))
 		   (item ::Enchanted (visible-snippets range))
@@ -638,9 +690,10 @@
 		  ))))))
 
   (define max-text-width ::real
-    (painter:styled-text-width
-     "Abc def ghi jkl mno pq rst uvw xyz abcdefghijklmnopqrstuvwxyz"
-     (RegularText)))
+    (- (painter:styled-text-width
+	"Abc def ghi jkl mno pq rst uvw xyz abcdefghijklmnopqrstuvwxyz"
+	(RegularText))
+       (* 2 (painter:vertical-scrollbar-width))))
 
   (define size ::Extent
     (Extent width: (* 60 (painter:space-width))
@@ -656,36 +709,48 @@
     (cons (Atom "InteractiveBookReader") (empty)))
 
   (define (current-chapter-height)::float
-    (as float (chapter-height (book:chapters current-chapter)
-			      (min max-text-width size:width))))
-    
+    (as float
+	(chapter-height
+	 (book:chapters current-chapter)
+	 (available-text-width))))
+  
   (define (scroll-by! delta ::real)::void
     (let* ((previous-scroll (chapter-scroll current-chapter))
-           (new-scroll ::float (as float (+ previous-scroll delta)))
-	   (scroll-limit ::float (- (current-chapter-height))))
+           (new-scroll (as float (+ previous-scroll delta)))
+           (chapter-height (current-chapter-height))
+           (scroll-limit (- chapter-height)) ; content units
+           (last-idx (- (length book:chapters) 1)))
       (cond
-       ((is new-scroll < scroll-limit)
-	(when (is delta < 0)
-	  (set! (chapter-scroll current-chapter) scroll-limit))
-        (when (is current-chapter < (- (length book:chapters) 1))
-          (set! current-chapter (+ current-chapter 1))
-          (set! (chapter-scroll current-chapter) (as float 0))))
+       ;; przesunięcie zbyt daleko w dół
+       ((< new-scroll scroll-limit)
+	(if (is current-chapter < last-idx)
+            ;; przejdź do następnego rozdziału, przenieś overshoot
+            (let ((overshoot (- new-scroll scroll-limit))) ; zwykle negatywny
+              (set! current-chapter (+ current-chapter 1))
+              (set! (chapter-scroll current-chapter) overshoot))
+            ;; jeśli to ostatni rozdział: obetnij do dołu
+            (set! (chapter-scroll current-chapter) scroll-limit)))
 
-       ((is new-scroll > 0)
-	(when (is delta > 0)
-	  (set! (chapter-scroll current-chapter) (as float 0)))
-        (when (is current-chapter > 0)
-          (set! current-chapter (- current-chapter 1))
-          (set! (chapter-scroll current-chapter)
-		(as float (- (current-chapter-height))))))
+       ;; przesunięcie za bardzo w górę
+       ((> new-scroll 0)
+	(if (is current-chapter > 0)
+            ;; przejdź do poprzedniego rozdziału, ustaw scroll blisko końca z overshootem
+            (let ((overshoot new-scroll)) ; dodatni
+              (set! current-chapter (- current-chapter 1))
+              (set! (chapter-scroll current-chapter)
+                    (+ (- (current-chapter-height)) overshoot)))
+            ;; jeśli to pierwszy rozdział: obetnij do góry
+            (set! (chapter-scroll current-chapter) 0.0)))
 
+       ;; normalne przesunięcie w obrębie rozdziału
        (else
-        (set! (chapter-scroll current-chapter) new-scroll)))
+	(set! (chapter-scroll current-chapter) new-scroll)))
 
+      ;; zaktualizuj indeks/pozycję pierwszego widocznego paragrafu
       (let-values (((index position) (first-visible-paragraph+position)))
 	(set! first-visible-paragraph-index index)
 	(set! first-visible-paragraph-position position))))
-
+  
   (define (key-typed! key-code::long context::Cursor)::boolean
     (match (key-chord key-code)
       ('left
@@ -719,11 +784,17 @@
        #t)
 
       ('(ctrl mouse-wheel-up)
-       (set! scale (* scale 1.25))
+       (let* ((scroll (chapter-scroll current-chapter))
+	      (shift (- (* scroll 1.25) scroll)))
+	 (set! scale (* scale 1.25))
+	 (scroll-by! shift))
        #t)
 
       ('(ctrl mouse-wheel-down)
-       (set! scale (/ scale 1.25))
+       (let* ((scroll (chapter-scroll current-chapter))
+	      (shift (- (/ scroll 1.25) scroll)))
+	 (set! scale (/ scale 1.25))
+	 (scroll-by! shift))
        #t)
 
       (name

@@ -3680,6 +3680,30 @@ where ~try-finally~ is Kawa's (non-reentrable) counterpart
 of ~dynamic-wind~ that can be found in some Scheme
 implementations.
 
+*** Numeric type aliases
+
+Real numbers are pervasive in the branches of mathematics
+that have some connection to geometry. Yet their
+interpretation often depends on certain conventions.  A
+fraction of a thing can be expressed using percent, or a
+value between 0 and 1. Angle can be expressed using radians
+(from 0 to 2pi) or degrees (from 0 to 360), and so on.  In
+this section, we present type aliases for the ~real~ type in
+Kawa, to make their interpretation more apparent to the
+reader.
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+(define-alias 0-1 real)
+
+(define-alias percent real)
+
+(define-alias degrees real)
+
+(define-alias radian real)
+
+#+END_SRC
+
 *** Miscellaneous macros, classes and functions
 
 #+BEGIN_SRC scheme :tangle language/extensions.scm

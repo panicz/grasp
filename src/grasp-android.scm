@@ -1018,6 +1018,38 @@
     (canvas:drawRect 0 0 (vertical-bar-width)
 		     height paint))
 
+  (define (vertical-scrollbar-width)::real 6)
+  
+  (define (horizontal-scrollbar-height)::real 6)
+  
+  (define (draw-horizontal-scrollbar!
+	   total-width ::real
+	   bar-width ::real
+	   relative-bar-position ::real)
+    ::void
+    (set-color! #xffdddddd)
+    (canvas:drawRect 0 0 total-width (horizontal-scrollbar-height) paint)
+    (set-color! #xff333333)
+    (let ((bar-position (round (* relative-bar-position
+				  total-width))))
+      (canvas:drawRect bar-position 1
+		       (+ bar-position bar-width)
+		       (- (horizontal-scrollbar-height) 2)
+		       paint)))
+
+  (define (draw-vertical-scrollbar!
+	   total-height ::real
+	   bar-height ::real
+	   relative-bar-position ::real)
+    ::void
+    (set-color! #xffdddddd)
+    (canvas:drawRect 0 0 (vertical-scrollbar-width) total-height paint)
+    (set-color! #xff333333)
+    (let ((bar-position (round (* relative-bar-position total-height))))
+      (canvas:drawRect 1 bar-position
+		       (- (vertical-scrollbar-width) 2)
+		       (+ bar-position bar-height) paint)))
+  
   (define (module-view-interline)::real 40)
 
   (define (module-view-interspace)::real 30)
@@ -1965,7 +1997,7 @@
 	(set! last-animation-event-time-ms now)
 	(invalidate)
 	(unless (pending-animations:isEmpty)
-	  (sync:postDelayed (lambda () (animate!)) 40)))))
+	  (sync:postDelayed (lambda () (animate!)) 25)))))
 
   (define (playing? animation::Animation)::boolean
     (any (is _ eq? animation) pending-animations))
@@ -1979,7 +2011,7 @@
 	(pending-animations:add animation)
 	(when was-empty?
 	  (set! last-animation-event-time-ms (current-time-ms))
-	  (sync:postDelayed (lambda () (animate!)) 40)))))
+	  (sync:postDelayed (lambda () (animate!)) 25)))))
 
   (define window-position ::(array-of int)
     ((array-of int) length: 2))

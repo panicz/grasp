@@ -1205,6 +1205,35 @@
 	(set-color! (parenthesis-color)))
     (graphics:fillRect 0 0 (vertical-bar-width) height))
 
+
+  (define (vertical-scrollbar-width)::real 6)
+  
+  (define (horizontal-scrollbar-height)::real 6)
+  
+  (define (draw-horizontal-scrollbar!
+	   total-width ::real
+	   bar-width ::real
+	   relative-bar-position ::real)
+    ::void
+    (set-color! (color #xdddddd))
+    (graphics:fillRect 0 0 total-width (horizontal-scrollbar-height))
+    (set-color! (color #x333333))
+    (let ((bar-position (round (* relative-bar-position total-width))))
+      (graphics:fillRect bar-position 1 bar-width
+			 (- (horizontal-scrollbar-height) 1))))
+
+  (define (draw-vertical-scrollbar!
+	   total-height ::real
+	   bar-height ::real
+	   relative-bar-position ::real)
+    ::void
+    (set-color! (color #xdddddd))
+    (graphics:fillRect 0 0 (vertical-scrollbar-width) total-height)
+    (set-color! (color #x333333))
+    (let ((bar-position (round (* relative-bar-position total-height))))
+      (graphics:fillRect 1 bar-position (- (vertical-scrollbar-width) 1)
+			 bar-height)))
+  
   (define (horizontal-split-height)::real 10)
 
   (define (vertical-split-width)::real 10)

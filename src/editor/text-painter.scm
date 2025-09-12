@@ -161,7 +161,32 @@
       (put! #\╵ (- height 1) 0)
       (when highlighted?
 	(end-highlight! HighlightType:Selection))))
- 
+
+  (define (vertical-scrollbar-width)::real 1)
+  (define (horizontal-scrollbar-height)::real 1)
+
+  (define (draw-horizontal-scrollbar!
+	   total-width ::real
+	   bar-width ::real
+	   relative-bar-position ::real)
+    ::void
+    (for i from 0 below total-width
+	 (put! #\space 0 i))
+    (let ((bar-position (round (* relative-bar-position total-width))))
+      (for i from 0 below bar-height
+	   (put! #\━ 0 i))))
+  
+  (define (draw-vertical-scrollbar!
+	   total-height ::real
+	   bar-height ::real
+	   relative-bar-position ::real)
+    ::void
+    (for i from 0 below total-height
+	 (put! #\space i 0))
+    (let ((bar-position (round (* relative-bar-position total-width))))
+      (for i from 0 below bar-height
+	   (put! #\┃ i 0))))
+
   (define icon-size ::Extent
     (Extent width: 2
 	    height: 1))
