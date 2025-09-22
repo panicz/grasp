@@ -158,6 +158,7 @@ It is typically used in the following way:
 #+BEGIN_SRC scheme :tangle no
 
 ;; note that this is not a valid code
+;; (and is not exported to the output)
 (define-syntax <defined-keyword>
   (syntax-rules (<keywords> ...)
     (<pattern-1> <template-1>)
@@ -4311,8 +4312,8 @@ means no rendering, and 1.0 - fully opaque rendering.
 
 ***** Fonts and colors
 
-Colors are represented using 32-bit RGBA scheme (red is the
-most significant byte, while alpha, i.e. opaqueness is the
+Colors are represented using 32-bit ARGB scheme (alpha, i.e.
+opaquenes is the most significant byte, while blue is the
 least significant byte).
 
 The painter stores two colors in its state: the current
@@ -4341,13 +4342,14 @@ is the top left corner of the text.
 (define-alias FontProxy java.lang.Object)
 
 ;; we are going to represent colors as 32-bit numbers
-;; using the #xRRGGBBAA format, meaning that the most
-;; significant byte is Red, and the least byte significant
-;; - Alpha (transparency). So for example 0 is completely
-;; trasparent "black", #x000000FF is opaque black,
-;; and #xFFFFFFFF is opaque white.
+;; using the #xAARRGGBB format, meaning that the most
+;; significant byte is Alpha (transparency), and the 
+;; least byte significant - Blue. So for example 0 is 
+;; completely trasparent "black", #xFF000000 is opaque 
+;; black, and #xFFFFFFFF is opaque white.
 ;; 
-(define-alias RGBA uint)
+
+(define-alias ARGB uint)
 
 (define-type (Extent width: real height: real))
 
@@ -4368,11 +4370,14 @@ is the top left corner of the text.
   (playing? animation::Animation)::boolean
   (stop-playing! animation::Animation)::void
 
-  (set-lead-color! color ::RGBA)::RGBA
-  (current-lead-color)::RGBA
+  ;; the main color is the one that is used for text, lines etc.
+  (set-main-color! color ::ARGB)::ARGB
+  (current-main-color)::ARGB
 
-  (set-fill-color! color ::RGBA)::RGBA
-  (current-fill-color)::RGBA
+  ;; the fill color is used as a background for text, but also
+  ;; as a fill color for paths
+  (set-fill-color! color ::ARGB)::ARGB
+  (current-fill-color)::ARGB
 
   (set-font! font ::FontProxy)::FontProxy
   (current-font)::FontProxy
