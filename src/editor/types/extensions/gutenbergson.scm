@@ -296,6 +296,29 @@
     (_
      (cached-paragraph-height paragraph width style))))
 
+(define (chapter-height chapter ::Chapter
+			max-line-width ::real)
+  ::real
+  (fold-left (lambda (height::float paragraph::Paragraph)
+	       ::float
+	       (+ height (paragraph-height paragraph max-line-width)))
+	     (paragraph-height chapter:title max-line-width
+			       (EnumSet:of TextStyle:Bold TextStyle:Large))
+	     chapter:paragraphs))
+
+(define-cache (cached-chapter-height
+	       chapter ::Chapter
+	       max-width ::real := +inf.0)::real
+  (chapter-height chapter max-width))
+
+(define-cache (cached-book-height book ::Book
+				  max-line-width ::real := +inf.0)::real
+  (fold-left (lambda (height::float paragraph::Paragraph)
+	       ::float
+	       (+ height (cached-chapter-height paragraph max-line-width)))
+	     0.0
+	     book:chapters))
+
 (define (parse-book #!optional (input ::InputPort (current-input-port)))::Book
   (let* ((paragraphs ::(sequence-of Paragraph) (read-paragraphs input))
 	 (book ::Book (Book chapters: (java.util.ArrayList)))
@@ -386,16 +409,6 @@
         (current-chapter:paragraphs:add
          (call-with-input-string paragraph parse-paragraph)))))
     book))
-
-(define (chapter-height chapter ::Chapter
-			max-line-width ::real)
-  ::real
-  (fold-left (lambda (height::float paragraph::Paragraph)
-	       ::float
-	       (+ height (paragraph-height paragraph max-line-width)))
-	     (paragraph-height chapter:title max-line-width
-			       (EnumSet:of TextStyle:Bold TextStyle:Large))
-	     chapter:paragraphs))
 
 (define auto-scrolling ::Animation #!null)
 
@@ -559,6 +572,7 @@
 	    (width ::real (available-text-width))
 	    (visible-height ::real (/ size:height scale))
 	    (chapter-height ::real (current-chapter-height))
+	    (book-height ::real (cached-book-height book width))
 	    (margin ::real (painter:vertical-scrollbar-width))
 	    (rel (if (<= chapter-height 0.0) 0.0 (/ (- top) chapter-height)))
 	    (relative-scroll (max 0.0 (min 1.0 rel)))
@@ -571,6 +585,23 @@
 	  size:height
 	  scrollbar-height
 	  relative-scroll))
+       
+       (with-translation (0 (- size:height (painter:precise-line-thickness)))
+	 (let ((left ::real 1)
+	       (span (- size:width (+ 1 (length book:chapters)))))
+	   (painter:precise-draw-line! 0 0 size:width 0 #xffffff)
+	   (for i::uint from 0 below (length book:chapters)
+		(let ((width (floor
+			      (* span
+				 (/ (cached-chapter-height (book:chapters i)
+							   width)
+				    book-height)))))
+		  (painter:precise-draw-line! left 0 (+ left width) 0
+					      (if (= i current-chapter)
+						  #x242424
+						  #x707070))
+		  (set! left (+ left width))))))
+       
        (painter:scale! scale)
        (with-translation (margin top)
 	 (render-paragraph! chapter:title width: width
