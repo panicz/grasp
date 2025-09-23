@@ -1328,7 +1328,10 @@
     ::void
     (set-color! (color c))
     (draw-thin-line! px0 py0 px1 py1))
-  
+
+  (define (precise-line-thickness)::real
+    1)
+
   (define (measure-text-index-position-into!
 	   target::Position text::CharSequence index::int
 	   font::Font)

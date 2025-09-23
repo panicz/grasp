@@ -760,6 +760,9 @@
 			      color::uint)
     ::void
     (draw-line-8pix! x0 y0 x1 y1))
+
+  (define (precise-line-thickness)::real
+    1)
   
   (define (draw-quoted-text! s::CharSequence
 			     context::Cursor)

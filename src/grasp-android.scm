@@ -902,6 +902,9 @@
     ::void
     (set-color! color)
     (draw-thin-line! px0 py0 px1 py1))
+
+  (define (precise-line-thickness)::real
+    1)
   
   (define (draw-stroke! x0::real y0::real x1::real y1::real)
     ::void

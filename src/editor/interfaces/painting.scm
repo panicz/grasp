@@ -325,6 +325,8 @@ def") ===> [Extent width: 3 height: 2])
 		      color::uint)
   ::void
 
+  (precise-line-thickness)::real
+  
   (precise-fill-rectangle! left::real top::real
 			   right::real bottom::real
 			   color::uint)
@@ -597,13 +599,16 @@ def") ===> [Extent width: 3 height: 2])
 				   color::uint)
     ::void
     (values))
-  
+
   (define (precise-draw-line!
 	   px0::real py0::real px1::real py1::real 
 	   color::uint)
     ::void
     (values))
-  
+
+  (define (precise-line-thickness)::real
+    1)
+
   (define (horizontal-split-height)::real
     0)
 
