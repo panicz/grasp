@@ -66,9 +66,19 @@
 	      default))
     ))
 
+(define (object-mapping object . keys)
+  (let ((getter (lambda (key)
+		  (slot-ref object key))))
+    (set! (setter getter)
+	  (lambda (key value)
+	    (slot-set! object key value)))
+    (set-procedure-property! getter 'keys (java.util.HashSet keys))
+    getter))
+
 (define (keys dict)
-  (let ((table (procedure-property dict 'table)))
-    (invoke (as java.util.Map table) 'keySet)))
+  (or (procedure-property dict 'keys)
+      (let ((table (procedure-property dict 'table)))
+	(invoke (as java.util.Map table) 'keySet))))
 
 (define-syntax define-mapping
   (syntax-rules (::)
