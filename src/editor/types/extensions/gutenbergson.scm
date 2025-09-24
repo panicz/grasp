@@ -497,8 +497,7 @@
 
   (define current-chapter ::int 0)
 
-  (define chapter-scroll ::(sequence-of real)
-    ((array-of float) length: (length book:chapters)))
+  (define scroll ::real 0)
 
   (define (next-chapter!)::boolean
     (let ((next-chapter (+ current-chapter 1)))
@@ -541,7 +540,7 @@
 						text-width
 						(EnumSet:of TextStyle:Bold
                                                             TextStyle:Extra)))
-             (scroll (- (chapter-scroll current-chapter)))
+             (scroll (- scroll))
              (last-paragraph (max 0 (- (length chapter:paragraphs) 1))))
 	(for i::uint from 0 to last-paragraph
              (let* ((height (paragraph-height (chapter:paragraphs i)
@@ -568,7 +567,7 @@
       #xffffffff)
      (reset! visible-snippets)
      (let* ((chapter ::Chapter (book:chapters current-chapter))
-	    (top ::real (chapter-scroll current-chapter))
+	    (top ::real scroll)
 	    (width ::real (available-text-width))
 	    (visible-height ::real (/ size:height scale))
 	    (chapter-height ::real (current-chapter-height))
@@ -746,7 +745,7 @@
 	 (available-text-width))))
   
   (define (scroll-by! delta ::real)::void
-    (let* ((previous-scroll (chapter-scroll current-chapter))
+    (let* ((previous-scroll scroll)
            (new-scroll (as float (+ previous-scroll delta)))
            (chapter-height (current-chapter-height))
            (scroll-limit (- chapter-height)) ; content units
@@ -758,9 +757,9 @@
             ;; przejdź do następnego rozdziału, przenieś overshoot
             (let ((overshoot (- new-scroll scroll-limit))) ; zwykle negatywny
               (set! current-chapter (+ current-chapter 1))
-              (set! (chapter-scroll current-chapter) overshoot))
+              (set! scroll overshoot))
             ;; jeśli to ostatni rozdział: obetnij do dołu
-            (set! (chapter-scroll current-chapter) scroll-limit)))
+            (set! scroll scroll-limit)))
 
        ;; przesunięcie za bardzo w górę
        ((> new-scroll 0)
@@ -768,14 +767,13 @@
             ;; przejdź do poprzedniego rozdziału, ustaw scroll blisko końca z overshootem
             (let ((overshoot new-scroll)) ; dodatni
               (set! current-chapter (- current-chapter 1))
-              (set! (chapter-scroll current-chapter)
-                    (+ (- (current-chapter-height)) overshoot)))
+              (set! scroll (+ (- (current-chapter-height)) overshoot)))
             ;; jeśli to pierwszy rozdział: obetnij do góry
-            (set! (chapter-scroll current-chapter) 0.0)))
+            (set! scroll 0.0)))
 
        ;; normalne przesunięcie w obrębie rozdziału
        (else
-	(set! (chapter-scroll current-chapter) new-scroll)))
+	(set! scroll new-scroll)))
 
       ;; zaktualizuj indeks/pozycję pierwszego widocznego paragrafu
       (let-values (((index position) (first-visible-paragraph+position)))
@@ -815,15 +813,13 @@
        #t)
 
       ('(ctrl mouse-wheel-up)
-       (let* ((scroll (chapter-scroll current-chapter))
-	      (shift (- (* scroll 1.25) scroll)))
+       (let* ((shift (- (* scroll 1.25) scroll)))
 	 (set! scale (* scale 1.25))
 	 (scroll-by! shift))
        #t)
 
       ('(ctrl mouse-wheel-down)
-       (let* ((scroll (chapter-scroll current-chapter))
-	      (shift (- (/ scroll 1.25) scroll)))
+       (let* ((shift (- (/ scroll 1.25) scroll)))
 	 (set! scale (/ scale 1.25))
 	 (scroll-by! shift))
        #t)

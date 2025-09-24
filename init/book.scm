@@ -12,6 +12,7 @@
 (import (language for))
 (import (language while))
 (import (language examples))
+(import (language mapping))
 
 (import (utils functions))
 (import (utils conversions))
@@ -51,12 +52,34 @@
 (import (utils server))
 (import (utils reflection))
 
+(import (utils file))
+
+
+(define settings-file
+  (join-path
+   (application-directory)
+   "tmipew-settings.scm"))
+
 (define the-book
   (let ((book (open-asset "book.org")))
     (parse-book book)))
-  
-(slot-set! screen 'top
-	   (InteractiveBookReader the-book))
+
+(define the-reader
+  (InteractiveBookReader the-book))
+
+(define reader-settings
+  (object-mapping the-reader 'current-chapter 'scroll 'scale))
+
+(when (file-exists? settings-file)
+  (WARN "loading "settings-file)
+  (load-mapping settings-file into: reader-settings))
+
+(slot-set! screen 'top the-reader)
+
+(before-possible-exit
+ (lambda ()
+   (WARN "saving "settings-file)
+   (save-mapping reader-settings settings-file)))
 
 (set-window-title! (slot-ref the-book 'title))
 
