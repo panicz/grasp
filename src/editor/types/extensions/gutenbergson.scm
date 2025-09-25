@@ -402,6 +402,11 @@
 	  => (fn (`(,_ ,code))
 		 (let ((document (call-with-input-string code parse-document)))
 		   (current-chapter:paragraphs:add document))))
+	 
+	 ("(?s)^[#][+]BEGIN_SRC[^\n]*\n(.*)\n[#][+]END_SRC"
+	  => (fn (`(,_ ,verbatim))
+		 (current-chapter:paragraphs:add (string-append verbatim "\n\n"))))
+	 
 	 (".*"
 	  (current-chapter:paragraphs:add (string-append paragraph "\n\n")))))
 
