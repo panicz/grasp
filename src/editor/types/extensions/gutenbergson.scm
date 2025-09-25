@@ -338,7 +338,7 @@
        ((is paragraph section-title?)
 	=> (lambda (title ::string)
 	     (current-chapter:paragraphs:add
-	      (Section title: (string-split title " ")))))
+	      (Section title: (call-with-input-string title parse-paragraph)))))
 
        ((regex-match "^[#][+]BEGIN_SRC" paragraph)
 	(match/regex

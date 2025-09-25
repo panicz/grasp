@@ -71,14 +71,12 @@
   (object-mapping the-reader 'current-chapter 'scroll 'scale))
 
 (when (file-exists? settings-file)
-  (WARN "loading "settings-file)
   (load-mapping settings-file into: reader-settings))
 
 (slot-set! screen 'top the-reader)
 
 (before-possible-exit
  (lambda ()
-   (WARN "saving "settings-file)
    (save-mapping reader-settings settings-file)))
 
 (set-window-title! (slot-ref the-book 'title))
