@@ -420,7 +420,8 @@
 (define-object (Inertia reader ::InteractiveBookReader velocity ::real)
   ::Animation
   (define (advance! timestep/ms ::int)::boolean
-    (reader:scroll-by! (* velocity timestep/ms 0.2))
+    (reader:scroll-by! (/ (* velocity timestep/ms 0.2)
+			  reader:scale))
     (set! velocity (* velocity 0.95))
     (cond
      ((is (abs velocity) > 0.1) #t)
