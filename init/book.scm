@@ -71,7 +71,8 @@
   (object-mapping the-reader 'current-chapter 'scroll 'scale))
 
 (when (file-exists? settings-file)
-  (load-mapping settings-file into: reader-settings))
+  (load-mapping-from settings-file
+		     #;into reader-settings))
 
 (slot-set! screen 'top the-reader)
 

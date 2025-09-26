@@ -13,6 +13,7 @@
 (import (language match))
 (import (language while))
 (import (language for))
+(import (language mapping))
 
 (import (utils hash-table))
 (import (utils functions))

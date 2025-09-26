@@ -61,6 +61,16 @@
 	      (loop)))))))
   into)
 
+;; this is a workaround that allows us to call
+;; the function from an i terpreter on Android
+;; (which has problems with keyword arguments)
+(define (load-mapping-from
+	 filename ::string
+	 destination ::(!maps (Object)
+			      to: Object))
+  (load-mapping filename into: destination))
+
+
 (define (list-files #!key
 		    (from ::(either string java.io.File) ".")
 		    (such-that ::(maps (java.io.File) to: boolean) always)
