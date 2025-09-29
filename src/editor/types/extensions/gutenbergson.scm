@@ -64,7 +64,7 @@
   (set #\) #\] #\}))
 
 (define-private punctuation ::(set-of gnu.text.Char)
-  (set #\; #\. #\: #\, #\? #\!))
+  (set #\; #\. #\,)) ; #\: #\? #\!
 
 (define-private brackets&punctuation ::(set-of gnu.text.Char)
   (union opening-brackets closing-brackets punctuation))
@@ -549,9 +549,12 @@
              (scroll (- scroll))
              (last-paragraph (max 0 (- (length chapter:paragraphs) 1))))
 	(for i::uint from 0 to last-paragraph
-             (let* ((height (paragraph-height (chapter:paragraphs i)
-                                              text-width))
-                    (bottom (+ position height)))
+             (let* ((height ::float
+			    (as float
+				(paragraph-height (chapter:paragraphs i)
+						  text-width)))
+                    (bottom ::float
+			    (as float (+ position height))))
                (when (is bottom >= scroll)
 		 (return i position))
                (set! position bottom)))
@@ -603,8 +606,8 @@
 				    book-height)))))
 		  (painter:precise-draw-line! left 0 (+ left width) 0
 					      (if (= i current-chapter)
-						  #x242424
-						  #x707070))
+						  #x777777
+						  #xeeeeee))
 		  (set! left (+ left width))))))
        
        (painter:scale! scale)
