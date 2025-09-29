@@ -2005,7 +2005,10 @@ by the AWT framework."))
     (initialize-keymap)
 
     (window:addKeyListener application)
-    (window:setSize 640 480)
+    (let ((content-pane ::java.awt.Container (window:getContentPane)))
+      (content-pane:setPreferredSize (java.awt.Dimension 640 480)))
+
+    (window:pack)
     (window:setDefaultCloseOperation
      javax.swing.JFrame:EXIT_ON_CLOSE)
     (window:setFocusTraversalKeysEnabled #f)
@@ -2060,8 +2063,7 @@ by the AWT framework."))
 
     (for expression in init-script
       (safely (eval expression)))
-    (screen:set-size! (window:getWidth) (window:getHeight)
-		      (screen:resize-anchor (window:getHeight)))
+
     (window:repaint)))
 
 ;;(set! *print-base* 16)
