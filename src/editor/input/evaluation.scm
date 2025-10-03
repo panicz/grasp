@@ -57,6 +57,7 @@
       (add "pred" (lambda (x) (- x 1)))
       (add "*" *)
       (add "/" /)
+      (add "remainder" remainder)
       (add "<" <)
       (add "<=" <=)
       (add ">" >)

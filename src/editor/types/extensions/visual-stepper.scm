@@ -376,14 +376,16 @@
     (match variables
       (`(,,variable . ,_)
        (let* ((result (deep-copy (car values)))
-	      (result (if (self-evaluating? result)
+	      (result (if (or (self-evaluating? result)
+			      (and (Atom? result)
+				   (context:primitive? result)))
 			  result
-			  (cons (Atom "quote") result))))
+			  (cons (Atom "quote") (cons result (empty))))))
 	 (eradicate! result when?: always)
 	 (add-origin! result (car variables))
 	 result))
       (,variable
-       (let ((result (cons (Atom "quote") (copy values))))
+       (let ((result (cons (Atom "quote") (cons (copy values) (empty)))))
 	 (add-origin! result variable)
 	 result))
       (`(,_ . ,rest)
@@ -543,7 +545,8 @@
 		    expression))))))
       (_
        (if (and (Atom? expression)
-		(context:defines? expression))
+		(context:defines? expression)
+		(not (context:primitive? expression)))
 	   (let ((result (copy (context:value expression))))
 	     (dissolve! expression)
 	     (mark-origin! result expression)
