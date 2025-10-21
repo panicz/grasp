@@ -567,8 +567,8 @@
 	 (attribute (e::Element)::(list-of Element)
 	   (recons e '()))))
 
-(define/memoized (morph-from expression::Tile)::Morph
-  (let*-values (((reduced origins progenies) (reduce expression))
+(define/memoized (morph-from expression::Tile context::EvaluationContext)::Morph
+  (let*-values (((reduced origins progenies) (reduce expression context: context))
 		((result) (Morph expression reduced
 				 origins progenies)))
     
@@ -576,14 +576,15 @@
       (set! (morph-to reduced) result))
     result))
 
-(define-object (ExpressionReducer initial-expression::Tile)::Player
+(define-object (ExpressionReducer initial-expression ::Tile
+				  context ::EvaluationContext)::Player
 
   (define (typename)::String "Stepper")
 
   (define duration/ms ::float 700.0)
   
   (define current-morph ::Morph
-    (morph-from initial-expression))
+    (morph-from initial-expression context))
 
   (define playing-backwards? ::boolean #f)
   
@@ -607,7 +608,7 @@
 	     (cond
 	      ((is new-progress >= 1.0)
 	       (let ((final current-morph:final))
-		 (set! current-morph (morph-from final))
+		 (set! current-morph (morph-from final context))
 		 (set! current-morph:progress 0.0)
 		 (when (match/equal? final current-morph:final)
 		   (set! now-playing? #f)))
@@ -617,7 +618,7 @@
 	       #t)))))))
   
   (define (rewind!)::void
-    (set! current-morph (morph-from initial-expression))
+    (set! current-morph (morph-from initial-expression context))
     (set! current-morph:progress 0.0))
   
   (define (back!)::void
@@ -643,7 +644,7 @@
       (set! playing-backwards? #f)
       (is current-morph:progress >= 1.0)
       (when (is current-morph:progress >= 1.0)
-	(set! current-morph (morph-from current-morph:final))
+	(set! current-morph (morph-from current-morph:final context))
 	(set! current-morph:progress 0.0))
       (painter:play! (this))))
       
@@ -676,7 +677,7 @@
   (Magic))
 
 (define-simple-extension (Stepper expression::Tile)
-  (PlayerWithControls (ExpressionReducer expression)))
+  (PlayerWithControls (ExpressionReducer expression (default-context))))
 
 (set! (extension 'Stepper)
       (object (Extension)
