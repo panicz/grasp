@@ -45,7 +45,7 @@
 (define-attribute (preserve-identity? item::Tile)::boolean
   #f)
 
-(define-object (EvaluationContext)
+(define-object (EvaluationContext)::java.lang.Cloneable
   ;;(define macro-definitions ::)
 
   (define definitions ::java.util.Map
@@ -95,6 +95,11 @@
 	 (let ((value (definitions:get atom:name)))
 	   (or (procedure? value)
 	       (type? value)))))
+
+  (define (clone)
+    (let ((twin ::EvaluationContext (EvaluationContext)))
+      (set! twin:definitions (copy definitions))
+      twin))
   )
 
 (define-parameter (default-context) ::EvaluationContext

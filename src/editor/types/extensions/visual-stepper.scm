@@ -525,6 +525,7 @@
 			  (_
 			   `(,operator* . ,operands)))))
 		     (else
+		      (WARN atom" is not defined in the context")
 		      expression)))
 		   (`(lambda ,args ,body)
 		    (dissolve! expression)
@@ -571,7 +572,6 @@
   (let*-values (((reduced origins progenies) (reduce expression context: context))
 		((result) (Morph expression reduced
 				 origins progenies)))
-    
     (unless (match/equal? expression reduced)
       (set! (morph-to reduced) result))
     result))
@@ -676,8 +676,8 @@
   
   (Magic))
 
-(define-simple-extension (Stepper expression::Tile)
-  (PlayerWithControls (ExpressionReducer expression (default-context))))
+(define-simple-extension (Stepper expression::Tile context::EvaluationContext)
+  (PlayerWithControls (ExpressionReducer expression context)))
 
 (set! (extension 'Stepper)
       (object (Extension)
@@ -686,5 +686,19 @@
 		      (WARN "Unable to create Stepper from "source)
 		      #!null)
 	   (parameterize ((cell-access-mode CellAccessMode:Editing))
-	     (and-let* ((`(Stepper ,expression) source))
-	       (Stepper expression)))))))
+	     (match source
+	       (`(Stepper ,expression)
+		(Stepper expression (default-context)))
+	       (`(Stepper ,expression . ,indefinibles)
+		(let ((context ::EvaluationContext (copy (default-context))))
+		  (let loop ((indefinibles indefinibles))
+		    (unless (empty? indefinibles)
+		      (let* ((atom ::Atom (car indefinibles))
+			     (symbol ::symbol (string->symbol atom:name))
+			     (value (eval symbol)))
+			(context:define! atom value)
+			(loop (cdr indefinibles)))))
+		  (Stepper expression context)))))))))
+	     
+
+
