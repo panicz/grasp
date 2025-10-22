@@ -6,6 +6,9 @@
 (import (utils functions))
 (import (language examples))
 (import (utils print))
+(import (kawa pprint))
+(import (language for))
+
 
 ;; This is a reference stepper module, from which
 ;; the actual stepper is derived. The difference
@@ -18,7 +21,7 @@
       (and-let* ((`(quote ,_) x)))
       (and (isnt x list?)
 	   (isnt x pair?)
-	   (isnt x symbol?))))
+	   #;(isnt x symbol?))))
 
 (define-object (EvaluationContext)
   ;;(define macro-definitions ::)
@@ -135,7 +138,8 @@
 		  `(,operator . ,operands)))))))
     (_
      (if (and (symbol? expression)
-	      (context:defines? expression))
+	      (context:defines? expression)
+	      (isnt expression context:primitive?))
 	 (context:value expression)
 	 expression))))
 
@@ -308,3 +312,23 @@
  (cons 1 '(2 3 4 5))
 
  '(1 2 3 4 5)))
+
+(default-context:define! 'each
+  '(lambda (f l)
+     (if (null? l)
+	 '()
+	 (cons (f (car l))
+	       (each f (cdr l))))))
+
+#;(default-context:define! 'square
+  '(lambda (x)
+     (* x x)))
+
+(default-context:definitions:put 'square (lambda (x) (* x x)))
+
+(let ((reductions (fix-list reduce '(each square '(1 2 3)))))
+  (for expression in reductions
+    (pprint expression)
+    (newline)))
+
+
