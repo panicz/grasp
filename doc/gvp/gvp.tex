@@ -1,0 +1,361 @@
+\documentclass[preprint,12pt,authoryear]{elsarticle}
+
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{natbib}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{fancyvrb}
+\usepackage{mathtools}
+\usepackage{qtree}
+
+\newenvironment{Snippet}{\Verbatim[samepage=true]}{\endVerbatim}
+
+
+\journal{Information and Software Technology}
+
+\begin{document}
+
+\begin{frontmatter}
+
+\title{GRASP as a General Visual Programming System}
+
+\author[1]{Maciej Godek}
+\address[1]{Gdynia Maritime University, Department of Computer Science, Gdynia, Poland}
+\ead{m.godek@wi.umg.edu.pl}
+
+\begin{abstract}
+We investigate the apparent failure of visual programming to gain
+mainstream adoption and introduce the notion of General Visual
+Programming (GVP) as a framework for analyzing such systems. We review
+several existing approaches in light of this definition and identify
+which of them can be considered GVP systems, discussing their
+limitations that go beyond visual representation itself. We also
+examine two real-world, non-visual programming environments that can
+be regarded as successful according to our criteria. Finally, we
+present the design and implementation of GRASP, our experimental GVP
+system, highlighting major design decisions, lessons learned, and
+future directions. The paper concludes with reflections on how a
+general visual programming paradigm might reshape programming practice
+\end{abstract}
+
+\begin{keyword}
+Visual programming \sep Programming environments \sep Human-computer
+interaction \sep Program comprehension \sep Cognitive dimensions \sep
+Programming tools
+\end{keyword}
+
+\end{frontmatter}
+
+\section{Introduction}
+
+Visual programming systems appear to improve the efficiency of certain
+aspects of programming, compared to their textual counterparts. This
+advantage is followed by deserved popularity in certain niches - for
+example, the makers of the educational visual programming environment
+\textit{Scratch} claim to have over 135 million registered users (as of 2025).
+
+The success of visual programming environments isn't limited to
+education, though. Some other important domains, such as dynamic
+system modeling, game scripting or instrument control and industrial
+automation, are also covered by visual programming tools like
+Simulink, Unreal Engine Blueprint or LabVIEW.
+
+However, when we look at programming language popularity rankings, it
+turns out that they are firmly dominated by programming languages that
+are based on text. According to the programming language popularity
+ranking maintained by TIOBE (as of 2025), the most popular visual
+programming language included in the ranking is Scratch, whose peak
+popularity between 2009 and 2025 was around 1.8\% (by comparison, the
+peak popularity of the highest-ranked language, Python, is over
+25\%). And although the methodology employed by TIOBE is not
+infallible, it seems to reflect the everyday experiences of
+programmers: that in the professional setup, the dominance of textual
+programming languages is unquestionable.
+
+It is not hard to see why this is the case: text is, overall, a very
+elastic medium to impose strict meaning on, and the digital
+infrastructure -- from teletypes to e-mail communication to copy-paste
+clipboard operations -- is very well adapted to working with textual
+data, and the ubiquitous ASCII encoding maps very nicely to computer
+memory.
+
+On the other hand, even the most popular visual programming systems
+seem to struggle to escape from their usually shallow niches to the
+realm of ``general programming, where everything is possible''.  It is
+rather uncommon for such systems to be used for the development of
+themselves (while using text-based tools, such as Emacs or Eclipse,
+for their own development, is completely unsurprising, and being
+\textit{self-hosted} is a very desirable property for compilers).
+
+Moreover, if we take a closer look at e.g. the way Scratch stores its
+programs, it turns out that underneath they are just ZIP archives
+containing a bunch of files storing objects serialized to the textual
+JSON format.
+
+\section{General Visual Programming}
+
+Perhaps the fundamental problem with the framing of visual programming
+systems is that researchers often try to draw a sharp boundary between
+them and textual programming languages (even despite the fact that
+text itself is a visual medium), rather than trying to see the
+continuity between them. Even programs written in the most classic
+text-based environments can be presented and explored visually as
+icons embedded in a hierarchical structure, using tools such as
+Windows Explorer, Apple Finder or a programming environment's file
+browser - only such visualizations are typically shallow and do not
+expose the underlying semantic structure of programs.
+
+Visual programming systems have proven their worth only in very
+specific and very limited domains. In this regard, they resemble
+\textit{Domain-Specific Languages} (DSLs), which are specialized
+languages of limited applicability, suitable for describing problems
+that appear in particular subject domains.
+
+The approach to system construction based on designing DSLs is
+sometimes called \textit{Language-Oriented Programming}.
+
+Probably the best known example of Language-Oriented Programming is
+the Racket programming system, developed by the PLT group.
+
+In this paper, we propose the notion of \textit{General Visual
+  Programming}, which is an extension to Language-Oriented Programming
+that allows to define arbitrary Domain-Specific Notations/ways of
+interaction for programmers to work with their code.
+
+General Visual Programming requires a specialized editor in order to
+be carried out. The editor needs to have the following properties:
+
+\begin{itemize}
+\item it needs to provide a base system, in which programmers can
+  define specialized editors
+\item it needs to be able to embed the specialized editors within
+  the base system
+\item the state of the specialized editors needs to be persisted along
+  with the representation of code expressed in the base system
+\end{itemize}
+
+In principle, we cannot exclude the possibility of programmers
+designing their own Domain-Specific Notations, whose domain would be
+the design of particular Domain-Specific Notations. On the contrary,
+we consider this endeavour to be an interesting research direction in
+its own right.
+
+The generality of General Visual Programming does not mean that the
+editor should be able to support every existing programming
+language. It only means that it should support at least one
+general-purpose programming language as its base system.
+
+\section{Evaluating existing General Visual Programming systems}
+
+A number of existing programming systems can be analyzed through the
+lens of General Visual Programming.
+
+\subsection{Dr Racket}
+
+Dr Racket is an Integrated Development Environment designed for the
+Racket programming system with programming education in mind.
+Racket itself is derived from the Scheme programming language,
+and in addition to being an academic research vehicle, it comes
+with a rich educational curriculum.
+
+The Dr Racket environment is focused mainly on textual languages,
+although it is quite unique in that it allows to use images (inserted
+to the editor via system clipboard or file browser).  However,
+inserting an image to the program source makes the whole program
+incomprehensible to people who use plain text editors.
+
+The images (called \textit{snips}) can be assigned to variables
+and passed to functions. They can also be used to create other
+images via means of composition provided by the language.
+
+The Racket programming environment provides a very interesting purely
+functional model of creating interactive applications called
+\textit{Big Bang}. Racket has also been used as the core of an
+artistic live-programming environment called Fluxus.
+
+Despite very good support for graphics, and being an explicitly
+language-oriented programming system, Dr Racket cannot be considered a
+General Visual Programming system. However, the design of the
+environment is fundamentally open to visual extensions, and there is a
+line of research from the Racket community which tries to adapt it as
+such.
+
+It is going to be described in the next section.
+
+\subsection{Interactive Visual Syntax}
+
+The paper \textit{Adding Interactive Syntax to Textual Code} describes
+a principled attempt to turn dr Racket into a General Visual
+Programming environment. It dwells on the notion of code execution
+phases that were specified for the Racket programming language (which
+allows for arbitrary code execution during compilation time for the
+purpose of macro expansion) - so for example, there is a syntax
+expansion phase, as well as runtime execution phase.
+
+The \textit{Interactive Syntax} project adds another conceptual
+phase, namely \textit{editing} phase.
+
+It provides special forms analogous to \texttt{define-syntax} and
+\texttt{begin-for-syntax} (which are used for writing code that runs
+at macro-expansion time), namely \texttt{define-interactive-syntax}
+and \texttt{begin-for-interactive-syntax}, which are evaluated at edit
+time.
+
+The \texttt{define-interactive-syntax} form requires to define
+the following methods:
+
+\begin{itemize}
+\item \texttt{draw}, which specifies how the visual interactive
+  extension should be rendered
+  
+\item \texttt{on-event}, which specifies how the visual interactive
+  extension should react to user input
+
+\item an \textit{elaborator}, which specifies how the visual extension
+  should be converted back to the textual form
+
+\item code that handles \textit{persistent storage} of the
+  visualization (the motivational example provided in the paper is
+  that ``user may expect the text [of some particular visual
+    extension] to be saved in the file, but not the current cursor
+  position. However, the user does expect the cursor to remain in
+  place while the document is open''.).
+  
+\end{itemize}
+
+The language extension also adds two buttons to the Dr Racket IDE -
+\textit{Insert Editor} and \textit{Update Editors}. The latter forces
+the program text to be re-scanned in search of the occurrences of the
+\texttt{\#editor} special form.
+
+Unfortunately, even though using interactive syntax doesn't spoil the
+textuality of the source code the same way that using snips with
+images does, the \texttt{\#editor} special form is mostly illegible to
+humans. 
+
+The \textit{Interactive Syntax} project has been further elaborated in
+Leif Andersen's PhD thesis, \textit{Adding Visual and
+  Interactive-Syntax to Textual Programs}. In the course of her work,
+she concluded that the Racket's GUI library (used, among other things,
+to build the Dr Racket IDE) isn't flexible enough to be reused inside
+the domain-specific editors.
+
+For this reason, Andersen decided to build a browser-based IDE that
+would implement interactive visual syntax for ClojureScript, where the
+common GUI elements could be reused between the visual extensions and
+the application being developed.
+
+This new approach also improved the textual representation of
+domain-specific editors, and the visual interface allows to present
+the textual variant of code alongside the visual one.
+
+The treatment of visual extensions as ``syntax'', in the tradition of
+Lisp-based systems, is probably the most general approach to General
+Visual Programming conceivable: it is imaginable to not only use
+domain-specific editors for representing data structures, but also the
+code itself: it's possible to imagine control-flow or data-flow
+editors that would expand directly to code that implements the same
+logic.
+
+Even though the examples presented in Andersen's work do not reflect
+this generality entirely, they exemplify the following roles of
+interactive syntax:
+\begin{itemize}
+\item data literals
+\item templates (from which literals can be constructed)
+\item algebraic matcher's patterns
+\item binding forms
+\end{itemize}
+
+The Racket-based realization of interactive syntax presented an
+implementation of Tsuro board game, Okasaki's algorithm of Black-Red
+Tree balancing, Form Builders and a few other \textit{worked examples}
+(most of which are available in the evaluation artifacts
+repository\footnote{\url{https://github.com/LeifAndersen/artifact2020}}).
+
+In particular, the Black-Red Tree example is notable for using visual
+extensions not only in regular code position, but also as patterns
+inside a pattern matching form, and templates for constructing a tree.
+
+The ClojureScript realization of interactive syntax goes even further
+in this regard -- it provides a new special form to the language
+called \texttt{g/let}, that can be used with a particular type of
+visual extensions that are desugared to an expression that can be
+placed inside of ClojureScript's core binding form, so that the
+components of the visual extension can serve to name certain
+components of some structure that is represented by that extension.
+
+The exact definition of the \texttt{g/let} form in ClojureScript
+is the following:
+
+\begin{Snippet}
+  (defmacro (g/let [diagram] & body)
+    `(clojure.core/let ~(macroexpand diagram) ~@body))
+\end{Snippet}
+
+The ClojureScript realization of visual interactive syntax also
+includes the Tsuro example, Form Builders, Bézier curve mid-point
+computation, a hexagonal board for the game Settlers of Catan (serving
+as a demonstration of the synergy that interactive syntax can get from
+running in the web browser environment, as it is based on a
+third-party JavaScript library) and a few others.
+
+Andersen also build a ``bridge'' to be able to execute Racket code
+from within the browser by connecting the browser-based IDE to a
+language server via websockets. While she called this solution ``a
+Frankenstein monster'', she admitted that one user, Cameron Moy,
+managed to use it to build visual syntax for PLT Redex programming
+language build in the Racket system.
+
+\subsection{Hazel}
+
+Hazel is a browser-based programming environment and a functional
+programming language developed to explore the notion of \textit{typed
+  holes}, where even incomplete programs can be properly typed, and
+thus various software services such as autocomplete can be implemented
+in a principled manner. Unlike Andersen, who focuses on adding visual
+extensions to textual code, the makers of Hazel decided to create a
+structure editor in such a way that the experience of using it
+resembles textual programming -- but at every moment of program
+development the program code is properly structured (even if it
+contains holes).
+
+Hazel comes with the concept of \textit{live literals} or
+\textit{livelits}, which are user-defined visual extensions
+
+\subsection{Other General Visual Programming Systems}
+
+Polytope, JetBrains MPS, Glamorous Toolkit, maria.cloud
+
+\section{Successful Programming Systems}
+
+While the systems described in the previous section are hugely
+impressive, they are both still closer to the category of ``research
+prototypes'' than ``production-ready software''.
+
+In this section, we evaluate two programming systems of academic
+origin that are used by a large number of people.
+
+\subsection{Emacs}
+
+
+
+\subsection{TeX and LaTeX}
+
+\subsection{Summary}
+
+\section{The GRASP System}
+% opis koncepcji, architektury, doświadczeń
+
+\subsection{}
+
+
+\section{Discussion and Future Work}
+% refleksja + wątki dalszych badań
+
+%\bibliographystyle{elsarticle-harv} \bibliography{gvp_refs}
+
+\end{document}
