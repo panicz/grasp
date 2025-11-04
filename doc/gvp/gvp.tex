@@ -161,6 +161,10 @@ Racket itself is derived from the Scheme programming language,
 and in addition to being an academic research vehicle, it comes
 with a rich educational curriculum.
 
+The IDE is implemented in the Racket programming language, which
+extends the Scheme language with its idiosyncratic Object-Oriented
+Programming system.
+
 The Dr Racket environment is focused mainly on textual languages,
 although it is quite unique in that it allows to use images (inserted
 to the editor via system clipboard or file browser).  However,
@@ -226,10 +230,13 @@ the following methods:
   
 \end{itemize}
 
-The language extension also adds two buttons to the Dr Racket IDE -
-\textit{Insert Editor} and \textit{Update Editors}. The latter forces
-the program text to be re-scanned in search of the occurrences of the
-\texttt{\#editor} special form.
+The implementation of the \texttt{define-interactiv-syntax} form
+leans on Racket's Object-Orientation system.
+
+Taken as a whole, the language extension also adds two buttons to the
+Dr Racket IDE - \textit{Insert Editor} and \textit{Update
+  Editors}. The latter forces the program text to be re-scanned in
+search of the occurrences of the \texttt{\#editor} special form.
 
 Unfortunately, even though using interactive syntax doesn't spoil the
 textuality of the source code the same way that using snips with
@@ -271,12 +278,12 @@ interactive syntax:
 \end{itemize}
 
 The Racket-based realization of interactive syntax presented an
-implementation of Tsuro board game, Okasaki's algorithm of Black-Red
+implementation of Tsuro board game, Okasaki's algorithm of Red-Black
 Tree balancing, Form Builders and a few other \textit{worked examples}
 (most of which are available in the evaluation artifacts
 repository\footnote{\url{https://github.com/LeifAndersen/artifact2020}}).
 
-In particular, the Black-Red Tree example is notable for using visual
+In particular, the Red-Black Tree example is notable for using visual
 extensions not only in regular code position, but also as patterns
 inside a pattern matching form, and templates for constructing a tree.
 
@@ -323,12 +330,61 @@ resembles textual programming -- but at every moment of program
 development the program code is properly structured (even if it
 contains holes).
 
+Being of functional programming descent, Hazel is implemented in
+ReasonML, which is a functional language that can be compiled to
+native code and to JavaScript.
+
 Hazel comes with the concept of \textit{live literals} or
-\textit{livelits}, which are user-defined visual extensions
+\textit{livelits}, which are user-defined visual extensions.
+
+A live literal can be defined for some specific (concrete) type using
+the \texttt{livelit} keyword, and it consists of two type definitions
+(\texttt{Model} and \texttt{Action}) and four function definitions
+(\texttt{init}, \texttt{update}, \texttt{view} and \texttt{expand}).
+
+Livelit definition is therefore very similar to the
+\texttt{define-interactive-syntax} form, where the \texttt{update}
+function corresponds to the \texttt{on-event} method, the
+\texttt{view} function corresponds to the \texttt{draw} method, and
+the \texttt{expand} function corresponds to the elaborator.
+
+The creators of Hazel claim that the live literals are
+\textit{compositional}, in the sense that it is possible to embed
+livelits inside other livelits. The compositionality of livelits
+is achieved via a mechanism called \textit{splices}.
+
+The paper which describes livelits presents the following examples: a
+slider, a color picker, a data frame (which is like a spreadsheet
+embedded in the source code), a specialized widget for adjusting
+school grade cutoffs, and another specialized widget for adjusting
+image filters (brightess and contrast).
+
+However, the examination of the code
+base\footnote{\url{https://github.com/hazelgrove/hazel/blob/livelits/src/hazelcore/livelits/BuiltinLivelits.re}}
+shows that most of those livelits are built-in (implemented in
+ReasonML), and therefore do not use the extension system described in
+the paper. The only example of a livelit defined and used from Hazel
+itself available for
+examination\footnote{\url{https://hazel.org/build/livelits/}} is a
+variant of slider named \texttt{\$slidy}. However, the exact extension
+method differs from the one described in the paper, and it resorts to
+techniques invoking inline JavaScript code.
+
+Despite those apparent shortcommings, Hazel is a fine example of a
+General Visual Programming system. Although on the surface it may not
+seem as general as Interactive Visual Syntax, because it only allows
+to specify visual representations of literals (rather than arbitrary
+pieces of program), there is nothining in principle that should
+prevent programmers from e.g. defining literals that would express
+control flow diagrams, and then write interpreters for those diagrams
+(on the other hand, it isn't obvious whether it would be possible to
+use livelits as either patterns or templates in a pattern matching
+construct, as it was the case in Andersen's Red-Black Tree balancing
+example).
 
 \subsection{Other General Visual Programming Systems}
 
-Polytope, JetBrains MPS, Glamorous Toolkit, maria.cloud
+Polytope, JetBrains MPS, Enso, Glamorous Toolkit, maria.cloud
 
 \section{Successful Programming Systems}
 
@@ -336,16 +392,48 @@ While the systems described in the previous section are hugely
 impressive, they are both still closer to the category of ``research
 prototypes'' than ``production-ready software''.
 
-In this section, we evaluate two programming systems of academic
-origin that are used by a large number of people.
+Interestingly, being \textit{production-ready} doesn't necessarily
+refer to any intrinsic qualities of particular software. On the
+contrary, it might mean that, on one hand, there is a group of people
+whose needs are addressed by a particular piece of software, and who
+incline to use that software in their everyday work, and on the other
+-- that the maintainers of the particular software package have the
+capacity to resolve the problems of their users. In other words,
+production-readiness is a property of a specific social structure
+around a particular piece of software, and the intrinsic properties of
+that software only matter to the extent in which they appeal to users'
+needs.
+
+The fact that a piece of software is production-ready doesn't imply
+that it is a commercial offering. In this section, we evaluate two
+programming systems of academic origin that are used by a fairly large
+number of people.
 
 \subsection{Emacs}
 
+Emacs is often advertised as a \textit{text editor}, but it's better
+described as a \textit{programmable, text-based interface to the realm
+  of computation}.
+
+Emacs started its life at an MIT lab
 
 
 \subsection{TeX and LaTeX}
 
+TeX is a typesetting system created by Donald Knuth. Someone on the
+Internet\footnote{\url{https://mastodon.social/@tef/115193821056258942}}
+characterized Donald Knuth in the following way:
+
+he wrote a book about programs, \\
+then a program to write books, \\
+and then wrote a book about the program, \\
+in the program to write books
+
+
 \subsection{Summary}
+
+
+
 
 \section{The GRASP System}
 % opis koncepcji, architektury, doświadczeń
