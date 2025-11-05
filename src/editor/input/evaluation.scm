@@ -73,6 +73,8 @@
       (add "null?" null?)
       (add "even?" even?)
       (add "odd?" odd?)
+      (add "host-apply" apply)
+      (add "host-function?" procedure?)
       table))
 
   (define (value atom::Atom)
@@ -152,7 +154,8 @@
 			   operands))
 	    (result (apply operator operands)))
        (if (or (pair? result)
-	       (list? result))
+	       (list? result)
+	       (symbol? result))
 	   `',result
 	   result)))))
 

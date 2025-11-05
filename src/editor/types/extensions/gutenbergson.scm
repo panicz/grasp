@@ -791,12 +791,15 @@
   
   (define (key-typed! key-code::long context::Cursor)::boolean
     (match (key-chord key-code)
+      #|
       ('left
-       (previous-chapter!))
+       (move-cursor-left!)
+       #;(previous-chapter!))
 
       ('right
-       (next-chapter!))
-
+       (move-cursor-right!)
+       #;(next-chapter!))
+|#
       ('up
        (scroll-by! (painter:styled-text-height (RegularText)))
        #t)
@@ -833,6 +836,11 @@
 	 (scroll-by! shift))
        #t)
 
+      
+      
+      ('F1
+       (DUMP (the-cursor)))
+      
       (name
        (WARN "unsupported key: "name)
        #f)))
