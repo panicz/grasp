@@ -73,6 +73,7 @@
       (add "null?" null?)
       (add "even?" even?)
       (add "odd?" odd?)
+      (add "symbol?" symbol?)
       (add "host-apply" apply)
       (add "host-function?" procedure?)
       table))
