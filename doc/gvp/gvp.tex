@@ -20,7 +20,7 @@
 
 \begin{frontmatter}
 
-\title{GRASP as a General Visual Programming System}
+\title{Towards a Standard General Visual Programming System}
 
 \author[1]{Maciej Godek}
 \address[1]{Gdynia Maritime University, Department of Computer Science, Gdynia, Poland}
@@ -37,8 +37,7 @@ examine two real-world, non-visual programming environments that can
 be regarded as successful according to our criteria. Finally, we
 present the design and implementation of GRASP, our experimental GVP
 system, highlighting major design decisions, lessons learned, and
-future directions. The paper concludes with reflections on how a
-general visual programming paradigm might reshape programming practice
+future directions.
 \end{abstract}
 
 \begin{keyword}
@@ -382,12 +381,68 @@ use livelits as either patterns or templates in a pattern matching
 construct, as it was the case in Andersen's Red-Black Tree balancing
 example).
 
-\subsection{Other General Visual Programming Systems}
+\subsection{Polytope}
 
-Polytope, JetBrains MPS, Enso, Glamorous Toolkit, maria.cloud
+Another General Programming System to consider is Polytope, developed
+by Elliot Evans. Polytope is an editor written in TypeScript and
+running in the browser, which also provides fundamental architecture.
+The current implementation of Polytope is designed to work with
+JavaScript code.  It comes with a bunch of specialized editors,
+including editors for directed and undirected graphs, math formulas,
+markdown and music staff. It should in principle be possible for
+developers to define their own editors and use them post hoc, but
+there is no distinct automatic mechanism for scanning and installing
+definitons in the system.
+
+Editors are implemented by subclassing \texttt{EditorElement} (which
+itself is a subclass of browser's builtin \texttt{HTMLElement}),
+implementing \texttt{render} method (for displaying editor content on
+its HTML canvas or in another DOM element) and \texttt{toOutput}
+method (for converting an element to text, usually a JSON string) and
+registering event listeners (using the JavaScript's
+\texttt{addEventListener} method) and adding a parser/recognizer to
+the global \texttt{builders} array. Moreover, to make the extension
+available via a drop-down context menu, one needs to add an entry to
+the global \texttt{dropdownItems} array.
+
+There is no universal mechanism that would connect the names of
+extensions with their occurrences within the source code.  Instead,
+the particular extensions tend to check whether a considered object
+has some particular structure. For example, if a JSON object
+contains the keys \texttt{nodes} and \texttt{edges} (and their values
+are arrays), it will be considered a graph, and if it's an array and
+its first element is an object containing the key \texttt{note}, it
+will be considered music staff.
+
+Polytope is also capable of typesetting certain mathematical
+functions, for example \texttt{exp(x, y)} can be rendered as
+$\mathtt{x}^\mathtt{y}$, and \texttt{div(x, y)} -- as
+$\frac{\mathtt{x}}{\mathtt{y}}$. However, this feature doesn't appear
+automatically when the code is typed in the textual editor.  It
+appears either when the code is loaded from a file, or when the
+user invokes the math editor.
+
+The decision to base Polytope directly on the browser is a very
+interesting one, because it allows to reuse a lot of the existing
+infrastructure. On the other hand, it narrows the design space and
+constrains implementation techniques.
+
+The editors in Polytope resemble Hazel's livelits in many ways, but
+the assumption to base the environment around text, rather than
+structure editing, is very much like in the Interactive Visual Syntax
+project.
+
+\subsection{JetBrains MPS}
+
+
+\subsection{Glamorous Toolkit}
+
+Glamorous Toolkit is a \textit{moldable} development environment
+developed by Tudor Girba and his associates
+
 
 \section{Successful Programming Systems}
-
+/
 While the systems described in the previous section are hugely
 impressive, they are both still closer to the category of ``research
 prototypes'' than ``production-ready software''.
