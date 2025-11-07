@@ -444,6 +444,40 @@ project.
 
 \subsection{JetBrains MPS}
 
+JetBrains MPS (MetaProgramming System) is a \textit{language
+  workbench} for creating domain-specific languages developed by the
+same company that develops and maintains numerous Integrated
+Development Environments for various programming systems, including
+IntelliJ IDEA, Android Studio, CLion, PyCharm, PhpStorm, WebStorm and
+a few others. Despite being developed by a commercial software company,
+MPS is available with full source code under the Apache License.
+
+MPS is a complex piece of software. One of its important components is
+the \textit{projectional editor} which is able to operate directly on
+the edited program's abstract syntax tree, even though the process
+resembles working with text. For this purpose, the editor must
+understand the structure of a programming language that it's supposed
+to edit.
+
+MPS uses a non-standard terminology to refer to the units from which a
+program is built (and it might therefore be misleading). In
+particular, the thing referred to as \textit{a concept} in MPS roughly
+corresponds to \textit{a grammar production rule} in the theory of
+parsing. However, MPS operates directly on the programs' abstract
+syntax trees (which are called \textit{models} in MPS terminology), so
+it is not a parser-based system -- and in this sense MPS's concept can
+be thought of as \textit{a syntax tree node type}.
+
+The \texttt{.mps} files that are stored on the disk represent syntax
+trees that are serialized to a variant of the \texttt{XML} format,
+although they are neither readable to nor editable by humans (which
+probably defies the purpose of using XML for storing data).
+
+The definition of a language in MPS consists of a few \textit{aspects}.
+The most fundamental type is the language's \textit{structure}, which
+consists of a set of language units (the aforementioned \textit{concepts}
+or \textit{syntax tree node types}). 
+
 
 
 \subsection{Glamorous Toolkit}
