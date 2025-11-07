@@ -116,8 +116,11 @@ that appear in particular subject domains.
 The approach to system construction based on designing DSLs is
 sometimes called \textit{Language-Oriented Programming}.
 
-Probably the best known example of Language-Oriented Programming is
-the Racket programming system, developed by the PLT group.
+Probably the most striking example of Language-Oriented Programming is
+the Racket programming system, developed by the PLT group, although
+even the UNIX operating system, whose components are known to employ
+parser generators such as TMG or YACC, is also sometimes considered a
+Language-Oriented Programming environment.
 
 In this paper, we propose the notion of \textit{General Visual
   Programming}, which is an extension to Language-Oriented Programming
@@ -155,9 +158,13 @@ lens of General Visual Programming.
 \subsection{Dr Racket}
 
 Dr Racket is an Integrated Development Environment designed for the
-Racket programming system with programming education in mind.
-Racket itself is derived from the Scheme programming language,
-and in addition to being an academic research vehicle, it comes
+Racket programming system with programming education in mind.  The
+Racket itself is derived from the Scheme programming language, so it
+inherits its \textit{heavily-parenthesized} syntax of
+\textit{s-expressions}. However, its \texttt{\#lang} extension
+mechanism allows to support languages with arbitrary syntaxes.
+
+In addition to being an academic research vehicle, it comes
 with a rich educational curriculum.
 
 The IDE is implemented in the Racket programming language, which
@@ -180,11 +187,11 @@ functional model of creating interactive applications called
 artistic live-programming environment called Fluxus.
 
 Despite very good support for graphics, and being an explicitly
-language-oriented programming system, Dr Racket cannot be considered a
-General Visual Programming system. However, the design of the
-environment is fundamentally open to visual extensions, and there is a
-line of research from the Racket community which tries to adapt it as
-such.
+language-oriented programming system, Dr Racket alone cannot be
+considered a General Visual Programming system. However, the design of
+the environment is fundamentally open to visual extensions, and there
+is a line of research from the Racket community which tries to adapt
+it as such.
 
 It is going to be described in the next section.
 
@@ -331,7 +338,10 @@ contains holes).
 
 Being of functional programming descent, Hazel is implemented in
 ReasonML, which is a functional language that can be compiled to
-native code and to JavaScript.
+native code and to JavaScript. The code expressed in Hazel is
+internally serialized to s-expressions, although this representation
+is never exposed to users, and could easily be changed to any other
+format.
 
 Hazel comes with the concept of \textit{live literals} or
 \textit{livelits}, which are user-defined visual extensions.
@@ -435,6 +445,7 @@ project.
 \subsection{JetBrains MPS}
 
 
+
 \subsection{Glamorous Toolkit}
 
 Glamorous Toolkit is a \textit{moldable} development environment
@@ -442,7 +453,7 @@ developed by Tudor Girba and his associates
 
 
 \section{Successful Programming Systems}
-/
+
 While the systems described in the previous section are hugely
 impressive, they are both still closer to the category of ``research
 prototypes'' than ``production-ready software''.
