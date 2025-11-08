@@ -20,7 +20,7 @@
 
 \begin{frontmatter}
 
-\title{Towards a Standard General Visual Programming System}
+\title{Towards a Common General Visual Programming System}
 
 \author[1]{Maciej Godek}
 \address[1]{Gdynia Maritime University, Department of Computer Science, Gdynia, Poland}
@@ -449,15 +449,17 @@ JetBrains MPS (MetaProgramming System) is a \textit{language
 same company that develops and maintains numerous Integrated
 Development Environments for various programming systems, including
 IntelliJ IDEA, Android Studio, CLion, PyCharm, PhpStorm, WebStorm and
-a few others. Despite being developed by a commercial software company,
-MPS is available with full source code under the Apache License.
+a few others. The company also created the Kotlin programming
+language. Despite being developed by a commercial software company,
+MPS is available with full source code under the Apache License.  It
+runs on the JVM platform.
 
 MPS is a complex piece of software. One of its important components is
-the \textit{projectional editor} which is able to operate directly on
-the edited program's abstract syntax tree, even though the process
-resembles working with text. For this purpose, the editor must
-understand the structure of a programming language that it's supposed
-to edit.
+a highly tweakable \textit{projectional editor} which is able to
+operate directly on the edited program's abstract syntax tree, even
+though the process is made to resemble working with text. For this
+purpose, the editor has to understand the structure of a programming
+language that it's supposed to edit.
 
 MPS uses a non-standard terminology to refer to the units from which a
 program is built (and it might therefore be misleading). In
@@ -473,12 +475,61 @@ trees that are serialized to a variant of the \texttt{XML} format,
 although they are neither readable to nor editable by humans (which
 probably defies the purpose of using XML for storing data).
 
-The definition of a language in MPS consists of a few \textit{aspects}.
-The most fundamental type is the language's \textit{structure}, which
-consists of a set of language units (the aforementioned \textit{concepts}
-or \textit{syntax tree node types}). 
+The definition of a language in MPS consists of a few
+\textit{aspects}.  The most fundamental type is the language's
+\textit{structure}, which consists of a set of language units (the
+aforementioned \textit{concepts} or \textit{syntax tree node
+  types}). In other words, the \textit{structure} aspect of a language
+definition determines which components are available in the language,
+and how they can be composed.
 
+Another -- closely related -- aspect in MPS is called
+\textit{constraints}, and this one -- in turn -- limits the way
+certain components can be composed.
 
+A crucial -- and very interesting -- aspect of a language defined in
+MPS is called \textit{editor}. It specifies the way the particular
+types of program nodes ought to be rendered. A seemingly fundamental
+language decision -- whether to use a Python-style indentation-based
+syntax, or a Java-style syntax based on curly braces -- in MPS is only
+a matter of tweaking an editor.
+
+Editors in MPS don't necessarily have to be textual -- according to
+the documentation, it is also possible to define editors that render
+arbitary graphics (based on the Java Swing API). This feature makes
+MPS a fine example of a General Visual Programming system.
+
+That being said, the current set of practices focuses mainly on
+textual editors or some of their blends (such as decision tables and
+other tabular data, or matrix literals). A notable exception includes
+state machine definitions in the \textit{mbeddr} project.
+
+Two aspects that are related to editing the language in the structure
+editor are called \textit{actions} (for elaborating the syntax tree)
+and \textit{intents} (for transforming sub-trees of the syntax tree).
+
+Another aspect of language definition is \textit{generator}, which
+determines how certain nodes are transformed to the constructs of some
+simpler language. In the LISP tradition, this step is usually called
+\textit{macro expansion}. This aspect concerns transforming trees in
+one language into trees in another language. But in order to be able
+to integrate with some existing ecosystems, MPS also provides the
+notion of \textit{base languages}, which can be transformed to text
+(the most typical base language of MPS
+\texttt{jetbrains.mps.baseLanguage}, which is in 1-1 correspondence to
+Java, and from which Java text can be generated).
+
+The remaining aspects of language definition in MPS have to do with
+interfacing with its dataflow analysis engine and typechecking system.
+
+At the moment of writing this, MPS has been available as a
+corporate-backed open source project for over 15 years. Yet despite a
+few documented use cases, its success seems very limited. This is
+probably due to the fact that the system itself seems to have a very
+steep learning curve, and it doesn't integrate well with existing
+tools (e.g. it is possible to use the \texttt{diff} tool on
+\texttt{.mps} files, but the information one can get from reading such
+diffs is close to none).
 
 \subsection{Glamorous Toolkit}
 
