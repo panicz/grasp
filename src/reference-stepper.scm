@@ -45,6 +45,7 @@
       (table:put 'cons cons)
       (table:put 'car car)
       (table:put 'cdr cdr)
+      (table:put 'list list)
       (table:put 'pair? pair?)
       (table:put 'null? null?)
       (table:put 'even? even?)
@@ -335,9 +336,132 @@
 
 (default-context:definitions:put 'square (lambda (x) (* x x)))
 
-(let ((reductions (fix-list reduce '(each square '(1 2 3)))))
-  (for expression in reductions
-    (pprint expression)
-    (newline)))
+(define (pprinting function)
+  (lambda args
+    (let ((result (apply function args)))
+      (pprint result)
+      (newline)
+      result)))
+
+(fix-list (pprinting reduce) '(each square '(1 2 3)))
+
+(default-context:define! 'lookup
+  '(lambda (key dictionary) 
+     (if (eq? (car (car dictionary)) key)
+	 (cdr (car dictionary)) 
+	 (lookup key (cdr dictionary)))))
+
+(default-context:define! 'run
+  '(lambda (prog env) 
+     (if (eq? (expression-type (car prog)) 'define)
+	 (run (cdr prog) 
+	      (cons 
+	       (cons (second (car prog)) 
+		     (third (car prog))) 
+	       env)) 
+	 (value (car prog) env))))
+
+(default-context:define! 'expression-type
+  '(lambda ( expression)
+     (if (pair? expression)
+	 (car expression)
+	 'literal)))
+
+(default-context:define! 'value
+  '(lambda (exp env) 
+     #| If the expression is a symbol, 
+     then we need to look up its value in
+     the environment (to make the recursion 
+     work, we also calculate the value 
+     after the lookup): |#
+     (if (symbol? exp) 
+	 (value (lookup exp env) env) 
+	 #| In case of quote, we simply return 
+	 the quoted expression: |#
+	 (if (eq? (expression-type exp) 'quote)  
+	     (second exp)
+	     #| In case of if, we first evaluate 
+	     the condition (second subexpression).
+	     If it succeeds, we return the value 
+	     of the consequent (third subexpression), 
+	     and otherwise we return the value of 
+	     alternative (fourth subexpression): |#
+	     (if (eq? (expression-type exp) 'if)
+		 (if (value (second exp) env) 
+		     (value (third exp) env) 
+		     (value (fourth exp) env))
+		 #| We can consider functions to be 
+		 self-evaluating: |#
+		 (if (eq? (expression-type exp) 'lambda)
+		     exp 
+		     #| The case of function application 
+		     will be explained shortly.  Note that
+		     we apply the value of the head of 
+		     a function to the values of arguments: |#
+		     (if (pair? exp) 
+			 (applied (value (car exp) env)
+				  (map (lambda (arg)
+					 (value arg env))
+				       (cdr exp))
+				  env)
+			 #| If the expression does not belong 
+			 to any of the aforementioned types
+			 (e.g. it is a number or a boolean value), 
+			 then we do not reduce it any further. |#
+			 exp)))))))
 
 
+(default-context:define! 'applied
+  '(lambda (operator arguments env) 
+     (if (host-function? operator) 
+	 (host-apply operator arguments) 
+	 (run (cdr (cdr operator)) 
+	      (extended env 
+			(second operator) 
+			arguments)))))
+
+(default-context:define! 'extended
+  '(lambda (env names vals) 
+     (if (pair? names) 
+	 (extended 
+	  (cons (cons (car names) 
+		      (list 'quote 
+			    (car vals))) 
+		env) 
+	  (cdr names) 
+	  (cdr vals)) 
+	 (if (symbol? names) 
+	     (cons (cons names  
+			 (list 'quote  
+			       vals))  
+		   env) 
+	     env))))
+
+(default-context:define! 'initial-environment 
+  (list 
+   (cons '* *)
+   (cons '+ +)
+   (cons '- -)
+   (cons '= =)
+   (cons '< <)
+   (cons 'eq? eq?)
+   (cons 'list list)
+   (cons 'cons cons)
+   (cons 'car car)
+   (cons 'cdr cdr)
+   (cons 'pair? pair?)
+   (cons 'symbol? symbol?)
+   (cons 'fresh-symbol fresh-symbol)))
+
+(pass
+ '(run
+   '((define ! (lambda (n)
+		 (if (< n 1)
+		     1
+		     (* n (! (- n 1))))))
+     (! 5))
+   initial-environment)
+ (pprinting reduce)
+ (pprinting reduce)
+
+ )
