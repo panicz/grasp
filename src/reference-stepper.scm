@@ -118,6 +118,10 @@
      expression)
     (`(quote ,_)
      expression)
+    (`(literal (quote ,expression))
+     expression)
+    (`(literal ,expression)
+     expression)
     (`(,operator . ,operands)
      (if (and (symbol? operator)
 	      (context:defines-macro? operator))
@@ -336,6 +340,22 @@
 
 (default-context:definitions:put 'square (lambda (x) (* x x)))
 
+(default-context:define! 'first
+  '(lambda (list)
+     (car list)))
+
+(default-context:define! 'second
+  '(lambda(list)
+     (car (cdr list))))
+
+(default-context:define! 'third
+  '(lambda (list)
+     (car (cdr (cdr list)))))
+
+(default-context:define! 'fourth
+  '(lambda (list)
+     (car (cdr (cdr (cdr list))))))
+
 (define (pprinting function)
   (lambda args
     (let ((result (apply function args)))
@@ -343,13 +363,29 @@
       (newline)
       result)))
 
-(fix-list (pprinting reduce) '(each square '(1 2 3)))
+(define (having-read-char char-spec function)
+  (lambda args
+    (let loop ((c (read-char)))
+      (cond
+       ((procedure? char-spec)
+	(unless (char-spec c)
+	  (loop (read-char))))
+       ((char? char-spec)
+	(unless (eqv? c char-spec)
+	  (loop (read-char)))))
+      (apply function args))))
+
+
+(fix-list (pprinting reduce)
+	  '(each square '(1 2 3)))
 
 (default-context:define! 'lookup
-  '(lambda (key dictionary) 
-     (if (eq? (car (car dictionary)) key)
-	 (cdr (car dictionary)) 
-	 (lookup key (cdr dictionary)))))
+  '(lambda (key dictionary)
+     (if (pair? dictionary)
+	 (if (eq? (car (car dictionary)) key)
+	     (cdr (car dictionary)) 
+	     (lookup key (cdr dictionary)))
+	 (literal key))))
 
 (default-context:define! 'run
   '(lambda (prog env) 
@@ -436,9 +472,9 @@
 			       vals))  
 		   env) 
 	     env))))
-
 (default-context:define! 'initial-environment 
-  (list 
+  (list
+   #|
    (cons '* *)
    (cons '+ +)
    (cons '- -)
@@ -451,9 +487,12 @@
    (cons 'cdr cdr)
    (cons 'pair? pair?)
    (cons 'symbol? symbol?)
-   (cons 'fresh-symbol fresh-symbol)))
+   (cons 'fresh-symbol fresh-symbol)
+|#
+   ))
 
-(pass
+
+(fix-list (pprinting (having-read-char #\newline reduce))
  '(run
    '((define ! (lambda (n)
 		 (if (< n 1)
@@ -461,7 +500,4 @@
 		     (* n (! (- n 1))))))
      (! 5))
    initial-environment)
- (pprinting reduce)
- (pprinting reduce)
-
  )
