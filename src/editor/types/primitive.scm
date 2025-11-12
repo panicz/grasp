@@ -223,6 +223,33 @@
   
   (set! builder (java.lang.StringBuilder name)))
 
+(define-object (PrimOp operation::procedure)::MatchableShadowedTextualTile
+  ;; PrimOp is used by the visual evaluator to display
+  ;; primitive operations
+
+  (define (clone)::Element
+    (PrimOp operation))
+
+  (define (draw! context::Cursor)
+    ::void
+    (painter:draw-quoted-text! name context))
+
+  (define (measure-position #;of cursor::Cursor
+				 #;into target::Position
+					#;within context::Cursor)
+    ::Position
+    (match cursor
+      (`(,index::integer . ,_)
+       (painter:measure-quoted-index-position-into! target
+						    name
+						    index))))
+  (define (extent)::Extent
+    (painter:quoted-text-extent name))
+  
+  (Atom (*:toString
+	 (or (procedure-property operation 'name)
+	     operation))))
+
 (define/kw (cursor-position cursor ::Cursor := (the-cursor)
 			    in: document := (the-document)
 			    context: context ::Cursor := '()
