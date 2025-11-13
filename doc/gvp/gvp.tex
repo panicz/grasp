@@ -33,11 +33,10 @@ Programming (GVP) as a framework for analyzing such systems. We review
 several existing approaches in light of this definition and identify
 which of them can be considered GVP systems, discussing their
 limitations that go beyond visual representation itself. We also
-examine two real-world, non-visual programming environments that can
-be regarded as successful according to our criteria. Finally, we
-present the design and implementation of GRASP, our experimental GVP
-system, highlighting major design decisions, lessons learned, and
-future directions.
+consider some desirable features of programming environments that are
+not related to GVP. Finally, we present the design and implementation
+of GRASP, our experimental GVP system, highlighting major design
+decisions, lessons learned, and future directions.
 \end{abstract}
 
 \begin{keyword}
@@ -572,51 +571,18 @@ Programming system. Conversely, projects such as eToys or Sandblocks
 have proven that Smalltalk-based systems offer a lot of flexibility
 when it comes to non-standard program representations.
 
-\section{Successful Programming Systems}
+\section{Some Desirable Features of a Programming System}
 
-While the systems described in the previous section are hugely
-impressive, they are both still closer to the category of ``research
-prototypes'' than ``production-ready software''.
+In the previous section, we have presented a number of existing
+systems, and we have analyzed them through the lens of General
+Functional Programming. The systems ranged from research prototypes to
+industrial-grade programming environments, but the systems which were
+more focused on visual programming tended to be more immature and less
+useful than the ones that treated programming more textually.
 
-Interestingly, being \textit{production-ready} doesn't necessarily
-refer to any intrinsic qualities of particular software. On the
-contrary, it might mean that, on one hand, there is a group of people
-whose needs are addressed by a particular piece of software, and who
-incline to use that software in their everyday work, and on the other
--- that the maintainers of the particular software package have the
-capacity to resolve the problems of their users. In other words,
-production-readiness is a property of a specific social structure
-around a particular piece of software, and the intrinsic properties of
-that software only matter to the extent in which they appeal to users'
-needs.
-
-The fact that a piece of software is production-ready doesn't imply
-that it is a commercial offering. In this section, we evaluate two
-programming systems of academic origin that are used by a fairly large
-number of people.
-
-\subsection{Emacs}
-
-Emacs is often advertised as a \textit{text editor}, but it's better
-described as a \textit{programmable, text-based interface to the realm
-  of computation}.
-
-Emacs started its life at an MIT lab
-
-
-\subsection{TeX and LaTeX}
-
-TeX is a typesetting system created by Donald Knuth. Someone on the
-Internet\footnote{\url{https://mastodon.social/@tef/115193821056258942}}
-characterized Donald Knuth in the following way:
-
-he wrote a book about programs, \\
-then a program to write books, \\
-and then wrote a book about the program, \\
-in the program to write books
-
-
-\subsection{Summary}
+This is not to say that visual programming is inherently worse or less
+capable than textual programming. But there is no doubt that textual
+programming has an uncomparably more established tradition.
 
 
 
