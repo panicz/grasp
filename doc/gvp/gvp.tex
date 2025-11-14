@@ -34,9 +34,9 @@ several existing approaches in light of this definition and identify
 which of them can be considered GVP systems, discussing their
 limitations that go beyond visual representation itself. We also
 consider some desirable features of programming environments that are
-not related to GVP. Finally, we present the design and implementation
-of GRASP, our experimental GVP system, highlighting major design
-decisions, lessons learned, and future directions.
+not necessarily related to GVP. Finally, we present the design and
+implementation of GRASP, our experimental GVP system, highlighting
+major design decisions, lessons learned, and future directions.
 \end{abstract}
 
 \begin{keyword}
@@ -575,15 +575,42 @@ when it comes to non-standard program representations.
 
 In the previous section, we have presented a number of existing
 systems, and we have analyzed them through the lens of General
-Functional Programming. The systems ranged from research prototypes to
+Visual Programming. The systems ranged from research prototypes to
 industrial-grade programming environments, but the systems which were
 more focused on visual programming tended to be more immature and less
 useful than the ones that treated programming more textually.
 
-This is not to say that visual programming is inherently worse or less
-capable than textual programming. But there is no doubt that textual
-programming has an uncomparably more established tradition.
+This is not to say that general visual programming is inherently worse
+or less capable than textual programming. But there is no doubt that
+purely textual programming has an uncomparably more established
+tradition. Moreover, text is both a very simple and a very elastic
+medium, and generic tools for working with text (including text
+editors, but also operating system facilities such as a system
+clipboard which allows to perform copy and paste operations between
+different applications) often turn out to be sufficient for developing
+computer programs.
 
+Lastly, the paradigm which treats programs as \textit{plain text} is
+agnostic of any particular authoring tools, so it decouples the act of
+creating a program from the act of interpreting it, effectively
+allowing programmers to use the editors of their preference. It also
+allows to develop programming language tools independently of editors.
+
+In this sense, textual programming is on a privileged position
+compared to visual programming. It seems that, if we are to develop a
+compelling visual programming system (that could compete with the
+existing textual programming systems), we somehow need to tackle the
+question of universality: is it possible to construct a generic hybrid
+visual-textual editor that would support a wide variety of programming
+languages, the same way a generic text editor supports them?
+
+The alternative is to focus on a single specific programming language
+(possibly even to design a new one), which may simplify the work
+greatly, but it can also limit the potential audience of the system.
+It may also not be immediately clear how to choose the particular
+programming language -- by the merits of popularity, expected demand
+for visual extensions, personal preference, simplicity of
+implementation or some other reason.
 
 
 
