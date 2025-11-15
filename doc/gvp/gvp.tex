@@ -1,18 +1,48 @@
 \documentclass[preprint,12pt,authoryear]{elsarticle}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
 
 \usepackage{graphicx}
 \usepackage{amsmath}
+\usepackage{textcomp}
+\usepackage{capt-of}
+
 \usepackage{hyperref}
+\usepackage{newunicodechar}
+\usepackage{pmboxdraw}
+
 \usepackage{natbib}
 \usepackage{url}
 \usepackage{booktabs}
 \usepackage{enumitem}
+\RequirePackage{fancyvrb}
+\usepackage{anyfontsize}
+\usepackage{pifont}
+
 \usepackage{fancyvrb}
 \usepackage{mathtools}
 \usepackage{qtree}
+\usepackage[shortcuts]{extdash}
 
-\newenvironment{Snippet}{\Verbatim[samepage=true]}{\endVerbatim}
 
+\newenvironment{Snippet}{\Verbatim[samepage=true,fontsize=\small]}{\endVerbatim}
+
+\DefineVerbatimEnvironment{verbatim}{Verbatim}{samepage=true}
+\newunicodechar{─}{\textSFx}
+\newunicodechar{│}{\textSFxi}
+\newunicodechar{╭}{\textSFi}
+\newunicodechar{╰}{\textSFii}
+\newunicodechar{╮}{\textSFiii}
+\newunicodechar{╯}{\textSFiv}
+\newunicodechar{═}{\textSFxliii}
+\newunicodechar{║}{\textSFxxiv}
+\newunicodechar{╔}{\textSFxxxix}
+\newunicodechar{╚}{\textSFxxxviii}
+\newunicodechar{╗}{\textSFxxv}
+\newunicodechar{╝}{\textSFxxvi}
+\newunicodechar{◀}{$\triangleleft$}
+\newunicodechar{▶}{$\triangleright$}
+\newunicodechar{▮}{\hspace{0.6pt}|\hspace{0.6pt}}
 
 \journal{Information and Software Technology}
 
@@ -612,13 +642,92 @@ programming language -- by the merits of popularity, expected demand
 for visual extensions, personal preference, simplicity of
 implementation or some other reason.
 
+Of course, the intrinsic qualities of a software tool are not enough
+to determine its success -- even the highest-quality seed needs the
+right soil in order to take root and flourish.
 
+The single most important feature that a system must possess in order
+to become succssful, is that it must address some of the needs of its
+potential users.  It must also be simple enough to be understandable
+by users, or at least it must provide some learning path that
+eventually leads to sufficient understanding.
 
 \section{The GRASP System}
-% opis koncepcji, architektury, doświadczeń
 
-\subsection{}
+This section describes our experience with the development of the
+GRASP programming system.
 
+Like most systems described in this paper, GRASP is a General Visual
+Programming system. It is neither a text-based system (like Polytope
+or Visual Interactive Syntax) nor a projectional editor (like MPS or
+Hazel). Instead, it is a generic structure editor for s-expressions,
+so while it allows to create malformed programs (or rather
+structures), the textual representation of those structures
+necessarily consists of balanced parentheses.
+
+GRASP renders a balanced pair of parentheses as a \textit{box}.
+
+For example, here's what a definition of the \textit{factorial}
+function in the Scheme programming language looks like when rendered
+using the GRASP representation:
+
+\begin{Snippet}
+╭        ╭     ╮                      ╮
+│ define │ ! n │                      │
+│        ╰     ╯                      │
+│   ╭    ╭        ╮                 ╮ │
+│   │ if │ <= n 1 │                 │ │
+│   │    ╰        ╯                 │ │
+│   │                               │ │
+│   │       1                       │ │
+│   │                               │ │
+│   │       ╭     ╭   ╭       ╮ ╮ ╮ │ │
+│   │       │ * n │ ! │ - n 1 │ │ │ │ │
+╰   ╰       ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
+\end{Snippet}
+
+The boxes in GRASP occupy a rectangular area. The left parentheses
+can be used for dragging a given box out of the document
+and moving it elsewhere, and the right parentheses -- for resizing
+the box.
+
+GRASP also allows users to define \textit{extensions} or \textit{magic
+  boxes}, which are essentially an incarnation of the domain-specific
+editors discussed in the earlier section.
+
+\subsection{A Brief History}
+
+At the time of writing, GRASP went through four iterations of
+development. The first prototype was written in Racket, and its
+development was preceded by announcing a \textit{draggable rectangle
+  challenge} on the Quora social
+network{\url{https://eidolon-language.quora.com/Draggable-rectangle-challenge-part-I-the-introduction}}, which consisted of three tasks:
+
+\begin{quote}
+  \begin{enumerate}
+  \item Implement a program where I can freely drag rectangles
+    around the screen
+  \item Implement a program like above, but the rectangles can also
+    contain draggable rectangles (and so on)
+  \item Implement a program where I can move the rectangles from
+    one “inner rectangle” into some others.
+  \end{enumerate}
+\end{quote}
+
+The purpose of the challenge was to explore a number of alternative
+designs when it comes to the fundamental mechanics of GRASP editing.
+
+The particular tension was between functional programming (immutable)
+designs and object-oriented (mutable) designs.
+
+The initial implementation in the Scheme programming language explored
+the technique of \textit{mix-in composition}, where all the features
+were implemented as mix-ins. This technique, however, turned out to be
+problematic for several reasons.
+
+\subsection{The Architecture of GRASP}
+
+\subsection{Hardships and Design Mistakes}
 
 \section{Discussion and Future Work}
 % refleksja + wątki dalszych badań
