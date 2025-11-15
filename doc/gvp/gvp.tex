@@ -6,13 +6,14 @@
 \usepackage{amsmath}
 \usepackage{textcomp}
 \usepackage{capt-of}
+\usepackage{float}
 
-\usepackage{hyperref}
 \usepackage{newunicodechar}
 \usepackage{pmboxdraw}
 
 \usepackage{natbib}
-\usepackage{url}
+\PassOptionsToPackage{hyphens}{url}\usepackage{hyperref}
+
 \usepackage{booktabs}
 \usepackage{enumitem}
 \RequirePackage{fancyvrb}
@@ -667,24 +668,29 @@ necessarily consists of balanced parentheses.
 
 GRASP renders a balanced pair of parentheses as a \textit{box}.
 
-For example, here's what a definition of the \textit{factorial}
-function in the Scheme programming language looks like when rendered
-using the GRASP representation:
+For example, a definition of the \textit{factorial} function that uses
+the GRASP representation is depicted on figure
+\ref{fig:grasp-factorial}.
 
-\begin{Snippet}
-╭        ╭     ╮                      ╮
-│ define │ ! n │                      │
-│        ╰     ╯                      │
-│   ╭    ╭        ╮                 ╮ │
-│   │ if │ <= n 1 │                 │ │
-│   │    ╰        ╯                 │ │
-│   │                               │ │
-│   │       1                       │ │
-│   │                               │ │
-│   │       ╭     ╭   ╭       ╮ ╮ ╮ │ │
-│   │       │ * n │ ! │ - n 1 │ │ │ │ │
-╰   ╰       ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
-\end{Snippet}
+\begin{figure}[h]
+  \begin{Snippet}
+    ╭        ╭     ╮                      ╮
+    │ define │ ! n │                      │
+    │        ╰     ╯                      │
+    │   ╭    ╭        ╮                 ╮ │
+    │   │ if │ <= n 1 │                 │ │
+    │   │    ╰        ╯                 │ │
+    │   │                               │ │
+    │   │       1                       │ │
+    │   │                               │ │
+    │   │       ╭     ╭   ╭       ╮ ╮ ╮ │ │
+    │   │       │ * n │ ! │ - n 1 │ │ │ │ │
+    ╰   ╰       ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
+  \end{Snippet}
+  \caption{A definition of the factorial function rendered using the
+    GRASP representation}
+  \label{fig:grasp-factorial}
+\end{figure}
 
 The boxes in GRASP occupy a rectangular area. The left parentheses
 can be used for dragging a given box out of the document
@@ -699,9 +705,9 @@ editors discussed in the earlier section.
 
 At the time of writing, GRASP went through four iterations of
 development. The first prototype was written in Racket, and its
-development was preceded by announcing a \textit{draggable rectangle
-  challenge} on the Quora social
-network{\url{https://eidolon-language.quora.com/Draggable-rectangle-challenge-part-I-the-introduction}}, which consisted of three tasks:
+development was preceded by announcing the \textit{Draggable Rectangle
+  Challenge} on the Quora social
+network\footnote{\url{https://eidolon-language.quora.com/Draggable-rectangle-challenge-part-I-the-introduction}}, which consisted of three tasks:
 
 \begin{quote}
   \begin{enumerate}
@@ -720,10 +726,120 @@ designs when it comes to the fundamental mechanics of GRASP editing.
 The particular tension was between functional programming (immutable)
 designs and object-oriented (mutable) designs.
 
-The initial implementation in the Scheme programming language explored
-the technique of \textit{mix-in composition}, where all the features
-were implemented as mix-ins. This technique, however, turned out to be
-problematic for several reasons.
+\subsection{The first prototype (2018-2019)}
+
+The initial implementation in the Racket programming
+language\footnote{the source code of the prototype and the solutions
+to the Draggable Rectangle Challenge is available at
+\url{https://github.com/panicz/sracket}} explored the technique of
+\textit{mix-in composition}, where all the features were implemented
+as mix-ins. This technique, however, turned out to be problematic for
+several reasons. First, because we relied on the identity of closures
+of the Scheme programming language as the identity of objects, and
+each mix-in created a new closure, the identity of objects was
+inconsistent. This could probably be improved by modeling object
+identity more explicitly. The other problem was that each mix-in
+created a new layer of indirection in runtime, which -- without a
+proper language support -- incurred a  performance penalty.
+
+While the prototype allowed to perform drag\&drop and resize the
+boxes, its editing capabilities were very limited. It was not possible
+to open or save files, and while the elements could be removed, the
+only kind of elements that could be added were boxes (using the
+\texttt{[} key).
+
+The content of the screen could not be scrolled, and the support for
+keyboard editing was very limited. Nevertheless, even though both the
+content of the edited document and the list of supported visual
+extensions were hardcoded in the editor, the extension mechanism was
+already designed to be convenient to the users: it simply required to
+create an object that is able to understand the messages
+\texttt{as-image} (which is supposed to produce a Racket image) and
+\texttt{as-expression} (which is supposed to return a list that stands
+for an expression).
+
+Registering an extension is based on a special form called
+\texttt{define-interaction}.
+
+The entire prototype consisted of less than 1000 lines of code, and it
+came with a built-in extension for rendering directed graphs (see figure
+\ref{fig:digraph-extension} for its definition).
+
+\begin{figure}[h]
+  \begin{Snippet}
+(define (Graph neighbour-list)
+  (let* ((vertices (in-circle
+		    (map (lambda (`(,node . ,neigbours))
+			   (Vertex node))
+			 neighbour-list)))
+	 (collection (Collection vertices)))
+      (lambda message
+	(match message
+  \end{Snippet}
+  \begin{Snippet}
+	  (`(as-image)
+	   (let ((image (collection 'as-image)))
+	     (for `(,source (,node . ,neighbours)) in (zip vertices
+							   neighbour-list)
+	       (for neighbour in neighbours
+		 (let ((target (find (lambda (v)
+				       (eq? neighbour (v 'as-expression)))
+				     vertices)))
+		   (draw-edge! source target image))))
+	     image))
+  \end{Snippet}
+  \begin{Snippet}
+	  (`(as-expression)
+	   `(digraph . ,neighbour-list))
+  \end{Snippet}
+  \begin{Snippet}
+	  (`(acquire-element!)
+	   #false)
+  \end{Snippet}
+  \begin{Snippet}
+	  (_
+	   (apply collection message))))))
+  \end{Snippet}
+  \begin{Snippet}
+(define-interaction (digraph . neighbour-list)
+  (Graph neighbour-list))
+  \end{Snippet}
+  \caption{A code that defines the \texttt{digraph} extension in the
+    first prototype of GRASP}
+  \label{fig:digraph-extension}
+\end{figure}
+
+\begin{figure}[h]
+  \centering%
+  \includegraphics[width=.45\linewidth]{images/digraph-1}\hfill%
+  \includegraphics[width=.45\linewidth]{images/digraph-2}\hfill%
+  \caption{A structural representation of a directed graph and its visualization}
+  \label{fig:digraph-example}
+\end{figure}
+
+\subsection{The second prototype (2020)}
+
+The choice for the Racket programming language certainly had its
+merits. Racket fits naturally with an editor that operates on
+s-expressions, and it is maintained for the three major platforms
+(Windows, Linux and OS X).
+
+However, Racket also has its limitations. In particular, it does not
+support the creation of applications for the Android platform, which
+was of our interest, because despite being very popular, it offered
+very few programming tools, most of which were scaled-down versions of
+desktop applications, and none of which tried to explore the specifics
+of programming that would involve small multitouch-capable touch
+screens.
+
+
+\subsection{The third prototype (2020-2021)}
+
+
+\subsection{The fourth prototype (2022-2025)}
+
+
+
 
 \subsection{The Architecture of GRASP}
 
