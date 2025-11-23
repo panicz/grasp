@@ -645,13 +645,13 @@ implementation or some other reason.
 
 Of course, the intrinsic qualities of a software tool are not enough
 to determine its success -- even the highest-quality seed needs the
-right soil in order to take root and flourish.
+right soil in which to take root and flourish.
 
-The single most important feature that a system must possess in order
-to become succssful, is that it must address some of the needs of its
-potential users.  It must also be simple enough to be understandable
-by users, or at least it must provide some learning path that
-eventually leads to sufficient understanding.
+The single most important feature a system must possess in order to
+become successful is that it addresses the actual needs of its
+potential users.  It must also be simple enough to be understandable,
+or at least it must provide some learning path that eventually leads
+to sufficient understanding.
 
 \section{The GRASP System}
 
@@ -659,11 +659,11 @@ This section describes our experience with the development of the
 GRASP programming system.
 
 Like most systems described in this paper, GRASP is a General Visual
-Programming system. It is neither a text-based system (like Polytope
-or Visual Interactive Syntax) nor a projectional editor (like MPS or
-Hazel). Instead, it is a generic structure editor for s-expressions,
-so while it allows to create malformed programs (or rather
-structures), the textual representation of those structures
+Programming system. It is neither a text-based system (such as
+Polytope or Visual Interactive Syntax) nor a projectional editor (such
+as MPS or Hazel). Instead, it is a generic structure editor for
+s-expressions, so while it allows to create malformed programs (or
+rather structures), the textual representation of those structures
 necessarily consists of balanced parentheses.
 
 GRASP renders a balanced pair of parentheses as a \textit{box}.
@@ -692,22 +692,22 @@ the GRASP representation is depicted on figure
   \label{fig:grasp-factorial}
 \end{figure}
 
-The boxes in GRASP occupy a rectangular area. The left parentheses
-can be used for dragging a given box out of the document
-and moving it elsewhere, and the right parentheses -- for resizing
-the box.
+Boxes in GRASP occupy a rectangular area. The left parentheses can be
+used to drag a given box out of the document and move it elsewhere,
+and the right parentheses are used to resize the box.
 
 GRASP also allows users to define \textit{extensions} or \textit{magic
-  boxes}, which are essentially an incarnation of the domain-specific
-editors discussed in the earlier section.
+  boxes}, which are an instances of the domain-specific editors
+discussed in the earlier section.
 
 \subsection{A Brief History}
 
-At the time of writing, GRASP went through four iterations of
+At the time of writing, GRASP has gone through four iterations of
 development. The first prototype was written in Racket, and its
 development was preceded by announcing the \textit{Draggable Rectangle
   Challenge} on the Quora social
-network\footnote{\url{https://eidolon-language.quora.com/Draggable-rectangle-challenge-part-I-the-introduction}}, which consisted of three tasks:
+network\footnote{\url{https://eidolon-language.quora.com/Draggable-rectangle-challenge-part-I-the-introduction}},
+which consisted of three tasks:
 
 \begin{quote}
   \begin{enumerate}
@@ -720,11 +720,11 @@ network\footnote{\url{https://eidolon-language.quora.com/Draggable-rectangle-cha
   \end{enumerate}
 \end{quote}
 
-The purpose of the challenge was to explore a number of alternative
-designs when it comes to the fundamental mechanics of GRASP editing.
+The purpose of the challenge was to explore alternative designs for
+the fundamental mechanics of GRASP editing.
 
-The particular tension was between functional programming (immutable)
-designs and object-oriented (mutable) designs.
+The key tension was between functional programming (immutable) designs
+and object-oriented (mutable) ones.
 
 \subsection{The first prototype (2018-2019)}
 
@@ -751,8 +751,8 @@ only kind of elements that could be added were boxes (using the
 The content of the screen could not be scrolled, and the support for
 keyboard editing was very limited. Nevertheless, even though both the
 content of the edited document and the list of supported visual
-extensions were hardcoded in the editor, the extension mechanism was
-already designed to be convenient to the users: it simply required to
+extensions were hard-coded in the editor, the extension mechanism was
+already designed to be convenient for users: it simply required to
 create an object that is able to understand the messages
 \texttt{as-image} (which is supposed to produce a Racket image) and
 \texttt{as-expression} (which is supposed to return a list that stands
@@ -765,7 +765,7 @@ The entire prototype consisted of less than 1000 lines of code, and it
 came with a built-in extension for rendering directed graphs (see figure
 \ref{fig:digraph-extension} for its definition).
 
-\begin{figure}[h]
+\begin{figure}[!h]
   \begin{Snippet}
 (define (Graph neighbour-list)
   (let* ((vertices (in-circle
@@ -809,11 +809,12 @@ came with a built-in extension for rendering directed graphs (see figure
   \label{fig:digraph-extension}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[!h]
   \centering%
   \includegraphics[width=.45\linewidth]{images/digraph-1}\hfill%
   \includegraphics[width=.45\linewidth]{images/digraph-2}\hfill%
-  \caption{A structural representation of a directed graph and its visualization}
+  \caption{A structural representation of a directed graph and its
+    visualization in the first prototype of GRASP}
   \label{fig:digraph-example}
 \end{figure}
 
@@ -829,25 +830,195 @@ support the creation of applications for the Android platform, which
 was of our interest, because despite being very popular, it offered
 very few programming tools, most of which were scaled-down versions of
 desktop applications, and none of which tried to explore the specifics
-of programming that would involve small multitouch-capable touch
-screens.
+of programming that would involve small multi-touch screens.
 
+For this reason, we decided to develop the next prototype in Java,
+which has been the recommended language for Android development since
+the inception of the platform.
+
+After doing some research, we made the decision to not only develop
+the next version of GRASP for Android, but also -- to develop it
+\textbf{on} an Android phone, using the Termux environment. There were
+several reasons for this decision. This mode of development provided a
+faster feedback and better continuity than having to attach a phone to
+a desktop computer after each modification of the application. But
+more importantly, the constraints of the environment were forcing us
+to think about the editor features that would ease the development
+in the future.
+
+The second prototype was rather clumsy. It used a box representation
+that was similar to the one employed by the Racket prototype.  It did
+support drag\&drop and the creation of boxes, as well as some
+rudimentary text editing, but it wasn't able to persist the created
+structures, nor to evaluate them. Despite having some placeholders in
+the user interface, it did not support any extensions.
+
+The main purpose was to check whether editing code on a multi-touch
+screen was feasible. The most valuable artefact from the development
+is a three-minute video showing the construction of a definition of
+the factorial
+function\footnote{\url{https://www.youtube.com/watch?v=BmZ39IfElzg}}. The
+fact that it took entire 3 minutes was rather alarming (entering the
+same text using a traditional keyboard takes about 15 seconds, or
+about 30 seconds using an on-screen keyboard on a phone), but it also
+encouraged to look for optimizations in the editing process.
+
+Despite being in some ways less capable than the first prototype, the
+second prototype consisted of almost 3000 lines of Java code.
 
 \subsection{The third prototype (2020-2021)}
 
+Architecture-wise, the second prototype turned out to be a dead-end.
+
+The third prototype was planned in stages, to allow to backtrack on
+bad design decisions without having to start everything over.
+
+The initial stages for the third prototype featured splitting the
+screen into multiple panes, as is possible in such editors as Emacs,
+vi or Blender 3D. The documents visible inside the panes could be
+scrolled and rotated (using pinch-zoom).
+
+It was also the first prototype of GRASP which supported loading and
+saving s-expression text files (but the supported syntax only included
+lists and atoms -- no strings, vectors or comments). The editing
+capabilities were also vastly improved: the left parenthesis was now
+responsible for dragging expressions, and the rigth one -- for
+resizing them. The expressions could be removed by throwing them
+quickly off the screen, and the attempt to throw the right parenthesis
+off the screen would cause the content of the list to be spliced into
+its parent.
+
+Double-tapping on the left parenthesis would make a copy of the entire
+expression.
+
+The third prototype of GRASP also supported several gestures: drawing
+a rectangle would add a new box to the document, drawing a spike would
+cause an expression under the spike to be evaluated, and drawing an
+underscore gesture (down-right-up) would add a new atom. Adding a new
+atom involved opening a floating text editor window. This prototype
+was also capable of reading the data from the phone's inertial
+measurement unit, and use the act of shaking to invoke code
+reindentation.
+
+The support for those gestures allowed to reduce the time required to
+define the \texttt{factorial} function from 3 minutes to about 1
+minute after some training, and (according to the only known user, who
+also happens to be the developer of GRASP) the editor itself was
+fairly pleasant to use, even despite lack of support for operations
+such as \textit{undo} or \textit{copy-paste}.
+
+The document representation could be described by the following
+Haskell-like type definitions:
+
+\begin{Snippet}
+Bit = Atom following_space: (Space|null) 
+           text: String
+    | Box following_space: (Space|null) 
+          first_interline: Interline;
+\end{Snippet}
+\begin{Snippet}
+Space = Space width: float 
+              following_bit: (Bit|null);
+\end{Snippet}
+\begin{Snippet}
+Interline = Interline height: float 
+                      following_line: (Line|null);
+\end{Snippet}
+\begin{Snippet}
+Line = Line first_space: (Space|null) 
+            next_interline: (Interline|null);
+\end{Snippet}
+
+so \texttt{Bit} was an interface with two implementations --
+\texttt{Box} and \texttt{Atom}, where a \texttt{Box} consisted of
+\texttt{Interline}s interleaved with \texttt{Line}s, and each line
+consisted of \texttt{Bit}s interleaved with \texttt{Space}s.
+
+Because of its complexity, this representation wasn't particularly
+pleasant to work with, and it was hard to integrate it with any
+extension system (although with some effort we managed to create an
+extension which allowed to present a green rectangle).
+
+Despite having been planned in stages, the third prototype had some
+flaws that were hard to backtrack. After integrating with the Kawa
+evaluator, the build times became much longer and were often using up
+all the available memory. Moreover, the third prototype only ran on
+Android, and testing changes required the full build-install cycle.
+
+But the bigger issue was that the Java programming language, which was
+used for the development, wasn't based on s-expressions, which meant
+that there would be no option to use GRASP for the further development
+of GRASP. This reason alone was a sufficient to drop almost 10000
+lines of Java code and start over.
 
 \subsection{The fourth prototype (2022-2025)}
 
+The fourth prototype was started after a a successful attempt to use
+Kawa Scheme to create an application for Android. This time the editor
+was supposed to run (and developed) not only on Android, but also on
+the PC. An additional requirement was to be able to run various pieces
+of code without rebuilding the entire project. Since GRASP is a visual
+and interactive application and the support for graphics in
+terminal-based environments is rather poor, we decided that we also
+want to be able to render the ``graphical'' output of GRASP to text,
+and also to run the entire GRASP appliaction in a terminal emulator.
+
+This decision had significant implications on the architecture of
+GRASP. All the rendering in the system is performed via the interface
+called \texttt{Painter}. The code base of GRASP provides four
+implementations of that interface: one for Android, one for desktop,
+one for string rendering, and one for terminal rendering (the latter
+two share a lot of their implementations).
+
+Excluding tests, there are three main entry points to the fourth
+prototype of GRASP -- one for the desktop client, one for the terminal
+client and one for the Android client. Each of those clients also uses
+different code for handling events, but from the perspective of GRASP
+itself, these are unified.
+
+The decision to make GRASP available on PC wasn't dictated only by the
+desire of making tests more efficient. Just like Android phone seems
+to be a natural environment to develop apps that are meant to run on
+Android phones and utilize multi-touch screens, developing on a PC
+seems to be a good fit if we want to create applications that are
+controlled by a keyboard and a mouse. 
+
+A few words need to be said about the Kawa language. Before developing
+the fourth prototype of GRASP, we had over ten years of experience with
+programming in Scheme (mainly Guile and Racket), and while we were
+mostly enthusiastic about the language, we felt that it lacked some
+important features, such as type signatures or robust record type
+definitions.
+
+To our surprise, the Kawa language either addressed these deficiencies
+(by providing optional type annotations for variables and procedure
+return values) or offered mechanisms that allowed us to address them
+ourselves. It also came with very good JVM interoperability and a
+mostly tasteful (in our opinion) set of syntactic extensions.
+
+On the other hand, during development we encountered several issues
+stemming from the behaviour of the Kawa compiler. The available
+community support was limited, mainly because Kawa is no longer
+actively maintained, which made it difficult to resolve problems or
+obtain clarifications.
+
+Overall, despite these problems, we feel that the combination of
+Java-like, strongly typed, interface-based object orientation with the
+syntactic flexibility and minimalism of the Scheme programming
+language was an excellent match for building the GRASP project.
+
+The fourth prototype of GRASP consists of over 30000 lines of code, so
+it is a failry large project. It is also the most feature-complete
+version -- it supports most of the syntax of the Scheme programming
+language, including of course lists and atoms, but also strings
+and three types of comments (line comments, block comments and
+expression comments). 
 
 
 
-\subsection{The Architecture of GRASP}
-
-\subsection{Hardships and Design Mistakes}
+\section{The Architecture of GRASP}
 
 \section{Discussion and Future Work}
-% refleksja + wątki dalszych badań
 
-%\bibliographystyle{elsarticle-harv} \bibliography{gvp_refs}
 
 \end{document}
