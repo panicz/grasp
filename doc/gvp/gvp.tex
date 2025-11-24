@@ -761,7 +761,7 @@ for an expression).
 Registering an extension is based on a special form called
 \texttt{define-interaction}.
 
-The entire prototype consisted of less than 1000 lines of code, and it
+The entire prototype consisted of less than 1,000 lines of code, and it
 came with a built-in extension for rendering directed graphs (see figure
 \ref{fig:digraph-extension} for its definition).
 
@@ -864,7 +864,7 @@ about 30 seconds using an on-screen keyboard on a phone), but it also
 encouraged to look for optimizations in the editing process.
 
 Despite being in some ways less capable than the first prototype, the
-second prototype consisted of almost 3000 lines of Java code.
+second prototype consisted of almost 3,000 lines of Java code.
 
 \subsection{The third prototype (2020-2021)}
 
@@ -948,7 +948,7 @@ Android, and testing changes required the full build-install cycle.
 But the bigger issue was that the Java programming language, which was
 used for the development, wasn't based on s-expressions, which meant
 that there would be no option to use GRASP for the further development
-of GRASP. This reason alone was a sufficient to drop almost 10000
+of GRASP. This reason alone was a sufficient to drop almost 10,000
 lines of Java code and start over.
 
 \subsection{The fourth prototype (2022-2025)}
@@ -976,12 +976,15 @@ client and one for the Android client. Each of those clients also uses
 different code for handling events, but from the perspective of GRASP
 itself, these are unified.
 
-The decision to make GRASP available on PC wasn't dictated only by the
-desire of making tests more efficient. Just like Android phone seems
-to be a natural environment to develop apps that are meant to run on
-Android phones and utilize multi-touch screens, developing on a PC
-seems to be a good fit if we want to create applications that are
-controlled by a keyboard and a mouse. 
+The decision to make GRASP available on PCs was not driven solely by
+the desire to make testing more efficient. Just as an Android device
+is a natural environment for developing applications intended to run
+on Android and make use of multi-touch interaction, a PC is the
+natural platform for building applications controlled primarily via
+keyboard and mouse. One of the design goals for the fourth prototype
+of GRASP was to make keyboard editing at least as efficient as in a
+traditional text editor -- and we believe that this goal has largely
+been achieved.
 
 A few words need to be said about the Kawa language. Before developing
 the fourth prototype of GRASP, we had over ten years of experience with
@@ -1007,16 +1010,22 @@ Java-like, strongly typed, interface-based object orientation with the
 syntactic flexibility and minimalism of the Scheme programming
 language was an excellent match for building the GRASP project.
 
-The fourth prototype of GRASP consists of over 30000 lines of code, so
-it is a failry large project. It is also the most feature-complete
-version -- it supports most of the syntax of the Scheme programming
-language, including of course lists and atoms, but also strings
-and three types of comments (line comments, block comments and
-expression comments). 
+The fourth prototype of GRASP consists of over 30,000 lines of code,
+making it a fairly large project. It is also the most feature-complete
+version to date -- it supports most of the syntax of the Scheme
+programming language, including not only lists and atoms, but also
+strings and three kinds of comments defined by the Scheme language
+specification (line comments, block comments and expression comments).
 
-
+It also includes a working mechanism for writing extensions (described
+in more detail in the next section), and at the time of writing the
+repository contains over a dozen different extensions.
 
 \section{The Architecture of GRASP}
+
+
+
+\section{GRASP as an Application Platform}
 
 \section{Discussion and Future Work}
 
