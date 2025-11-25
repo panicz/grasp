@@ -953,28 +953,28 @@ lines of Java code and start over.
 
 \subsection{The fourth prototype (2022-2025)}
 
-The fourth prototype was started after a a successful attempt to use
+The fourth prototype was started after a successful attempt to use
 Kawa Scheme to create an application for Android. This time the editor
-was supposed to run (and developed) not only on Android, but also on
-the PC. An additional requirement was to be able to run various pieces
-of code without rebuilding the entire project. Since GRASP is a visual
-and interactive application and the support for graphics in
+was intended to run (and be developed) not only on Android, but also
+on the PC. An additional requirement was to be able to run various
+pieces of code without rebuilding the entire project. Since GRASP is a
+visual and interactive application and the support for graphics in
 terminal-based environments is rather poor, we decided that we also
-want to be able to render the ``graphical'' output of GRASP to text,
-and also to run the entire GRASP appliaction in a terminal emulator.
+want to be able to render GRASP's ``graphical'' output to text, and
+also to run the entire GRASP application in a terminal emulator.
 
 This decision had significant implications on the architecture of
-GRASP. All the rendering in the system is performed via the interface
-called \texttt{Painter}. The code base of GRASP provides four
-implementations of that interface: one for Android, one for desktop,
-one for string rendering, and one for terminal rendering (the latter
+GRASP. All the rendering in the system is performed through an
+interface called \texttt{Painter}. The code base of GRASP provides
+four implementations of that interface: one for Android, one for
+desktop, one for terminal, and one for string rendering (the latter
 two share a lot of their implementations).
 
 Excluding tests, there are three main entry points to the fourth
 prototype of GRASP -- one for the desktop client, one for the terminal
-client and one for the Android client. Each of those clients also uses
-different code for handling events, but from the perspective of GRASP
-itself, these are unified.
+client, and one for the Android client. Each of those clients also
+uses different code for handling events, but from the perspective of
+GRASP itself, these are unified.
 
 The decision to make GRASP available on PCs was not driven solely by
 the desire to make testing more efficient. Just as an Android device
@@ -984,7 +984,7 @@ natural platform for building applications controlled primarily via
 keyboard and mouse. One of the design goals for the fourth prototype
 of GRASP was to make keyboard editing at least as efficient as in a
 traditional text editor -- and we believe that this goal has largely
-been achieved.
+been met.
 
 A few words need to be said about the Kawa language. Before developing
 the fourth prototype of GRASP, we had over ten years of experience with
@@ -993,9 +993,9 @@ mostly enthusiastic about the language, we felt that it lacked some
 important features, such as type signatures or robust record type
 definitions.
 
-To our surprise, the Kawa language either addressed these deficiencies
+To our surprise, the Kawa language either resolved these deficiencies
 (by providing optional type annotations for variables and procedure
-return values) or offered mechanisms that allowed us to address them
+return values) or offered mechanisms that allowed us to resolve them
 ourselves. It also came with very good JVM interoperability and a
 mostly tasteful (in our opinion) set of syntactic extensions.
 
@@ -1019,13 +1019,16 @@ specification (line comments, block comments and expression comments).
 
 It also includes a working mechanism for writing extensions (described
 in more detail in the next section), and at the time of writing the
-repository contains over a dozen different extensions.
+repository contains over a dozen different extensions, including
+buttons, a visual stepper and a simple two-dimensional physics engine
+(which is capable of using the phone's accelerometer for accessing
+gravity information).
 
 The representation of documents in the fourth prototype of GRASP is
 somewhat convoluted: initially we tried to design an editor that would
 operate directly on Lisp's \texttt{cons}-cells. This was a bit
 challenging, because the document must also store information about
-whitespaces and comments. We therefore decided to use a bunch of hash
+whitespaces and comments. We therefore decided to use a few hash
 tables, called \texttt{pre-head-space}, \texttt{post-head-space},
 \texttt{pre-tail-space} and \texttt{post-tail-space} to store the
 whitespace/comment information. There was an additional table called
@@ -1041,8 +1044,8 @@ reference to the empty list.
 The use of hash tables turned out to be problematic, because the
 developers of Kawa decided to override their \texttt{cons}-cell's
 \texttt{equals} method with Scheme's \texttt{equal?}-like semantics,
-which meant that all the occurrences of lists that contain the same
-elements would be considered the same list.
+which caused all lists with identical contents to be treated as the
+same list instance.
 
 If we wanted to stick with our design, we therefore either had to
 patch the Kawa compiler, or to subclass its class that represents
@@ -1062,9 +1065,10 @@ editing capability. There were a few problems that we were facing:
 \end{itemize}
 
 For this reason, we decided to create a mutable proxy called
-\texttt{Atom}, that could stand for various different atoms (symbols,
-numbers, boolean). This change had an unfortunate impact, though: the
-parts of the document could no longer be evaluated.
+\texttt{Atom}, that could stand for different kinds of atoms (symbols,
+numbers, booleans). This change had an unfortunate impact, though: the
+parts of the document could no longer be interpreted by the Kawa
+evaluator.
 
 To account for that, we introduced a \textit{parameter object} called
 \texttt{cell-access-mode}, which could take one of the two enum values
@@ -1075,9 +1079,9 @@ returned the \texttt{Atom}, or the result of invoking \texttt{read} on
 the \texttt{Atom}'s content.
 
 In addition to lists and atoms, GRASP provides a distinct
-representation of string objects. Strings are deliberately rendered
-using a monospace font, so that the textual representation of GRASP
-objects can also be viewed from the graphical clients.
+representation of string objects. Strings are deliberately rendered in
+a monospace font, enabling textual representation of GRASP objects to
+be displayed consistently in graphical clients.
 
 Another kind of primitive objects that can be present in the document
 are spaces. A \texttt{Space} object holds a list of integer numbers
@@ -1093,7 +1097,7 @@ clipboard, but it maintains its internal clipboard.} and the
 \textit{undo} mechanism.
 
 \textit{Undo} is implemented by tracking invertible operations on the
-mutable document object, and it effectively maintains a history tree
+mutable document object, and it conceptually maintains a history tree
 (although currently it isn't visualized in any way, and the part of
 the undone history becomes inaccessible after new operations).
 
@@ -1102,16 +1106,45 @@ position. This task is fairly easy for regular text editors, where
 a cursor can be represented by a line number and a column number,
 but it becomes more complicated for a structure editor.
 
-In the case of GRASP, a cursor is represented by a sequence of indices.
+In the case of GRASP, a cursor is represented by a sequence of
+indices, where the length of the sequence depends on the nesting level
+of the expression. One challenging aspect in the case of GRASP is the
+vertical cursor movement, for which no satisfactory solution has yet
+been found.
 
+Like the third prototype, the fourth prototype implements screen
+splitting by means of gestures. Other kinds of gestures are currently
+not supported.
+
+We made several attempts to use the fourth prototype of GRASP to
+further develop GRASP. In theory that should be possible, but in
+practice we found several shortcomings that were severely impeding the
+process. The biggest problem was that the editor was fairly slow when
+handling large files. One feature that we considered essential for
+code editing was the \textit{search} facility -- which we implemented,
+but we feel that the textual search is somewhat limiting for a
+structure editor. Moreover, because the representation of the document
+was so convoluted, some editing operations were not implemented
+correctly, which made the use of the editor somewhat frustrating.
+Nevertheless, we managed to use GRASP on the phone successfully to
+develop solutions to some of the 2024 Advent of Code riddles.
 
 \section{The Architecture of GRASP}
 
+This section is based mainly on our developments of the fourth
+prototype of GRASP, but it describes architectural decisions that we
+believe are going to be preserved in all future versions of GRASP.
 
+
+
+elements, tiles, spaces
+extension mechanism
 
 \section{GRASP as an Application Platform}
 
-\section{Discussion and Future Work}
+\section{Future Work}
 
+
+document representation, C4 browser
 
 \end{document}
