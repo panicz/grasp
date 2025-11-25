@@ -1021,6 +1021,90 @@ It also includes a working mechanism for writing extensions (described
 in more detail in the next section), and at the time of writing the
 repository contains over a dozen different extensions.
 
+The representation of documents in the fourth prototype of GRASP is
+somewhat convoluted: initially we tried to design an editor that would
+operate directly on Lisp's \texttt{cons}-cells. This was a bit
+challenging, because the document must also store information about
+whitespaces and comments. We therefore decided to use a bunch of hash
+tables, called \texttt{pre-head-space}, \texttt{post-head-space},
+\texttt{pre-tail-space} and \texttt{post-tail-space} to store the
+whitespace/comment information. There was an additional table called
+\texttt{dotted?}, which contained \texttt{\#true} if a given cell was
+written down using the dotted-pair notation. Moreover, since there is
+only one instance of an empty list in most Lisps (including Kawa), but
+lists can also contain whitespace and comments, we created additional
+pair of tables -- \texttt{null-head-space} and
+\texttt{null-tail-space} -- to store the whitespace/comment
+information if, respectively, a head or a tail of the cell contained a
+reference to the empty list.
+
+The use of hash tables turned out to be problematic, because the
+developers of Kawa decided to override their \texttt{cons}-cell's
+\texttt{equals} method with Scheme's \texttt{equal?}-like semantics,
+which meant that all the occurrences of lists that contain the same
+elements would be considered the same list.
+
+If we wanted to stick with our design, we therefore either had to
+patch the Kawa compiler, or to subclass its class that represents
+\texttt{cons}-cells. After running some experiments, we chose the
+latter option.
+
+The complication grew even further when we started implementing atom
+editing capability. There were a few problems that we were facing:
+\begin{itemize}
+\item since most atoms (e.g. symbols or numbers) are immutable, every
+  keystroke would have to generate a new object
+\item during editing, certain kinds of atoms would need to be
+  transformed into other kinds of atoms (e.g. numbers into symbols)
+\item certain atoms can have many different representations (for
+  example, numbers can be represented as decimal, hexadecimal, octal
+  or binary)
+\end{itemize}
+
+For this reason, we decided to create a mutable proxy called
+\texttt{Atom}, that could stand for various different atoms (symbols,
+numbers, boolean). This change had an unfortunate impact, though: the
+parts of the document could no longer be evaluated.
+
+To account for that, we introduced a \textit{parameter object} called
+\texttt{cell-access-mode}, which could take one of the two enum values
+(\texttt{Editing} or \texttt{Evaluating}) and we further modified our
+subclass of Kawa's \texttt{cons}-cell class: its \texttt{getCar} and
+\texttt{getCdr} methods checked the value of the parameter, and either
+returned the \texttt{Atom}, or the result of invoking \texttt{read} on
+the \texttt{Atom}'s content.
+
+In addition to lists and atoms, GRASP provides a distinct
+representation of string objects. Strings are deliberately rendered
+using a monospace font, so that the textual representation of GRASP
+objects can also be viewed from the graphical clients.
+
+Another kind of primitive objects that can be present in the document
+are spaces. A \texttt{Space} object holds a list of integer numbers
+that represent single spaces. Two consecutive integers in the list
+represent a line break. The list can also contain \texttt{Comment}
+objects, which can be of three types: \texttt{LineComment},
+\texttt{BlockComment} and \texttt{ExpressionComment}. A
+\texttt{LineComment} also induces a line break.
+
+The fourth prototype also features clipboard integration\footnote{For
+some reason, the terminal client is unable to connect to the system
+clipboard, but it maintains its internal clipboard.} and the
+\textit{undo} mechanism.
+
+\textit{Undo} is implemented by tracking invertible operations on the
+mutable document object, and it effectively maintains a history tree
+(although currently it isn't visualized in any way, and the part of
+the undone history becomes inaccessible after new operations).
+
+The implementation of keyboard editing requires tracking cursor
+position. This task is fairly easy for regular text editors, where
+a cursor can be represented by a line number and a column number,
+but it becomes more complicated for a structure editor.
+
+In the case of GRASP, a cursor is represented by a sequence of indices.
+
+
 \section{The Architecture of GRASP}
 
 
