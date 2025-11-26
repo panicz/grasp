@@ -246,11 +246,14 @@
 
 
 (define-type (Button action: (maps () to: void)
-		     label: string)
+		     label: (either string (maps () to: string)))
   extending Magic
   with
   ((draw! context::Cursor)::void
-   (let* ((inner ::Extent (painter:caption-extent label))
+   (let* ((label ::String (if (string? label)
+			      label
+			      (label)))
+	  (inner ::Extent (painter:caption-extent label))
 	  (horizontal-margin
 	   ::real (painter:caption-horizontal-margin))
 	  (top-margin ::real
@@ -267,7 +270,10 @@
    (origin (this)))
 
   ((extent)::Extent
-   (let* ((inner ::Extent (painter:caption-extent label))
+   (let* ((label ::String (if (string? label)
+			      label
+			      (label)))
+	  (inner ::Extent (painter:caption-extent label))
 	  (horizontal-margin
 	   ::real (painter:caption-horizontal-margin))
 	  (top-margin ::real
@@ -501,17 +507,12 @@
      (Button label: "▮◀ "
 	     action: (lambda ()
 		       (player:back!)))
-     (let ((play/pause (Button label: " ▶ ")))
-       (set! play/pause:action
-	 (lambda ()
-	   (cond
-	    ((player:playing?)
-	     (player:pause!)
-	     (set! play/pause:label " ▶ "))
-	    (else
-	     (player:play!)
-	     (set! play/pause:label "▮ ▮")))))
-       play/pause)
+     (Button label: (lambda ()
+		      (if (player:playing?) "▮ ▮" " ▶ "))
+	     action: (lambda ()
+		       (if (player:playing?)
+			   (player:pause!)
+			   (player:play!))))
      (Button label: " ▶▮"
 	     action: (lambda ()
 		       (player:next!)))
