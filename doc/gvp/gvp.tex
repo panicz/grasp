@@ -45,6 +45,8 @@
 \newunicodechar{▶}{$\triangleright$}
 \newunicodechar{▮}{\hspace{0.168pt}|\hspace{0.168pt}}
 
+% \newunicodechar{▮}{\rule{0.36em}{0.82em}}
+
 \journal{Information and Software Technology}
 
 \begin{document}
@@ -1131,42 +1133,47 @@ develop solutions to some of the 2024 Advent of Code riddles.
 
 \section{The Architecture of GRASP}
 
-This section is based mainly on our developments of the fourth
-prototype of GRASP, but it describes architectural decisions that we
-believe are going to be preserved in all future versions of GRASP.
+This section is based primarily on our work on the fourth prototype of
+GRASP, but it describes architectural decisions that we expect to be
+preserved in all future versions of the system.
 
-The most fundamental component of GRASP is called \texttt{Element}.
-\texttt{Element}s are fundamentally of two kinds -- they either are
-\texttt{Space}s or \texttt{Tile}s. The main difference between them is
-that \texttt{Tile}s are rectangular (so they can be characterized by
-their width and height), whereas \texttt{Space}s are not.
+The most fundamental component of GRASP is the \texttt{Element}.
+\texttt{Element}s come in two basic kinds: \texttt{Space}s and
+\texttt{Tile}s. The main difference between them is that \texttt{Tile}s
+are rectangular objects (and therefore have a width and height),
+whereas \texttt{Space}s are not.
 
-What all \texttt{Element}s have in common is that they can be used to
-move the cursor's index forward or backward and to fetch the element
-under the cursor's index. They can also be rendered in the document.
+What all \texttt{Element}s have in common is that they support cursor
+navigation (moving the cursor index forward or backward) and allow
+retrieving the element located at a given cursor index. They can also
+be rendered as part of the document.
 
-GRASP comes with a number of primitive implementations of the
-\texttt{Tile} interface -- most notably the ones that represent boxes,
-atoms, strings and block comments.
+The document model in GRASP differs significantly from the one that is
+widely known from the web browser environments in that its elements do
+not store a pointer to their parent, and they are always positioned
+with respect to their parent (so they cannot have \textit{absolute}
+position).
+
+GRASP provides several primitive implementations of the \texttt{Tile}
+interface — most notably those representing boxes, atoms, strings and
+block comments.
 
 Users can also define their own implementations of the \texttt{Tile}
-interface by means of its \textit{extension mechanism}. User-defined
-extensions provide their own rendering procedure, and they are
-typically \texttt{Interactive}, which means that the are able to
-respond to user input (i.e. key presses and mouse/pointer events).
-The aggregation of the \texttt{Interactive} and \texttt{Tile}
-interfaces is called \texttt{Enchanted}.
+interface through the \textit{extension mechanism}. User-defined
+extensions provide their own rendering procedures, and they are
+typically \texttt{Interactive}, meaning that they can respond to user
+input (keystrokes and mouse/pointer events). The combination of the
+\texttt{Interactive} and \texttt{Tile} interfaces is called
+\texttt{Enchanted}.
 
-There are fundamentally two ways of defining extensions: the first one
-requires defining all the required methods (for drawing and input
-handling). The second allows to define extensions from simpler
-extensions by means of \textit{combinators}.
+There are two fundamental ways to define extensions. The first requires
+implementing all necessary methods (for drawing and input handling).
+The second allows constructing extensions from simpler extensions using
+\textit{combinators}.
 
-Figure \ref{fig:player-with-controls} shows the definition of
-\texttt{PlayerWithControls}, which uses three combinators
-(\texttt{bordered}, \texttt{beside} and \texttt{below}). This
-definition is in turn used to define a \texttt{Stepper} widget, whose
-instance is shown on figure \ref{fig:visual-stepper}.
+Figure~\ref{fig:player-with-controls} shows the definition of
+\texttt{PlayerWithControls}, which uses three combinators:
+\texttt{bordered}, \texttt{beside}, and \texttt{below}.
 
 \begin{figure}[!h]
   \begin{Snippet}
@@ -1178,30 +1185,29 @@ instance is shown on figure \ref{fig:visual-stepper}.
     player
     (beside
      (Button label: "▮◀◀"
-	     action: (lambda ()
-		       (player:rewind!)))
+             action: (lambda () (player:rewind!)))
      (Button label: "▮◀ "
-	     action: (lambda ()
-		       (player:back!)))
+             action: (lambda () (player:back!)))
      (Button label: (lambda ()
-		      (if (player:playing?)
-			  "▮ ▮"
-			  " ▶ "))
-	     action: (lambda ()
-		       (if (player:playing?)
-			   (player:pause!)
-			   (player:play!))))
+                      (if (player:playing?) "▮ ▮" " ▶ "))
+             action: (lambda ()
+                       (if (player:playing?)
+                           (player:pause!)
+                           (player:play!))))
      (Button label: " ▶▮"
-	     action: (lambda ()
-		       (player:next!)))
+             action: (lambda () (player:next!)))
      (Button label: "▶▶▮"
-	     action: (lambda ()
-		       (player:fast-forward!)))))))
+             action: (lambda () (player:fast-forward!)))))))
   \end{Snippet}
-  \caption{An example usage of combinators (\texttt{bordered}, \texttt{beside},
-    \texttt{below}) in the definition of another combinator}
+  \caption{An example of combinator usage (\texttt{bordered},
+    \texttt{beside}, \texttt{below}) in the definition of another
+    combinator}
   \label{fig:player-with-controls}
 \end{figure}
+
+This definition is in turn used to implement the \texttt{Stepper}
+widget, an instance of which is shown in
+Figure~\ref{fig:visual-stepper}.
 
 \begin{figure}[!h]
   \begin{Snippet}
@@ -1220,13 +1226,52 @@ instance is shown on figure \ref{fig:visual-stepper}.
 ║╰─────╯╰─────╯╰─────╯╰─────╯╰─────╯║
 ╚═══════════════════════════════════╝
   \end{Snippet}
-  \caption{\texttt{PLayerWithControls} used in the implementation of
+  \caption{\texttt{PlayerWithControls} used in the implementation of
     the visual \texttt{Stepper}}
   \label{fig:visual-stepper}
 \end{figure}
 
+Most visual components which are used in the interface of GRASP itself
+(such as file lists, buttons, text fields etc.) are also GRASP
+extensions, and as such they can be embedded in the GRASP document.
 
-\section{GRASP as an Application Platform}
+Currently every extension must have a name, although this might change
+in the future. In addition to being a \texttt{Tile}, an extension
+should know how to serialize itself to an s-expression. However, when
+the editor turns an s-expression into a magic box, it remembers the
+original s-expression, so that certain extensions which consist of
+non-serializable components (such as closures) can be properly
+serialized.
+
+Unfortunately at this point there is no mechanism that would force all
+extensions to behave property with regard to their serialization, and
+some extensions are created by explicitly calling \texttt{eval}, which
+is a potential security vulnerability.
+
+During the operation of GRASP, there is a Scheme interpreter running
+in the background. The first thing that the interpreter does is the
+interpretation of the expressions from the \texttt{init.scm}
+file\footnote{The current implementation of GRASP is typically bundled
+in a \texttt{.jar} or \texttt{.apk} files, which are actually
+\texttt{.zip} archives, and the \texttt{init.scm} file is stored in
+its \texttt{assets} subdirectory}.
+
+The \texttt{init.scm} file is responsible for setting up the key
+bindings, and for setting the content of the \texttt{screen}.
+
+By default, the \texttt{screen} contains an \texttt{Editor} or -- if
+the user decides to split the \texttt{screen} -- a \texttt{Split}.
+However, it is possible to set any user-defined extension that is
+\texttt{Maximizable}. The idea behind this mechanism is to turn GRASP
+into an \textit{application platform}, rather than merely an
+editor\footnote{As a proof of concept, we developed a simple game for
+kids that uses Android \textit{Text to Speech} and \textit{Speech to
+  Text} services, where the player assembles uttered words from
+letters.}.
+
+
+
+
 
 \section{Discussion and Future Work}
 
