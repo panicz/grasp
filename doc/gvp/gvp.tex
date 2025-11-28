@@ -1306,8 +1306,42 @@ enhance the clarity the source code of their programs.
 
 In the course of our work we observed that various parts of a computer
 program can differ drastically with regard to their ease of
-understanding.
+understanding, and that -- in particular -- it is possible to write
+code that clarifies some other code. Consider, for example, the
+following definition in the Scheme programming language:
 
+\begin{Snippet}
+(define (f lol)
+  (apply map list lol))
+\end{Snippet}
+
+We've found that even though the body of the definition consists only
+of four symbols, even programmers who are presented with the meanings
+of the functions \texttt{apply}, \texttt{map} and \texttt{list} find
+it troublesome to understand the intent behind that definition.
+
+However, if we present them with a usage example such as
+
+\begin{Snippet}
+(e.g. (f '((a b c)
+           (d e f))) ===> ((a d)
+                           (b e)
+                           (c f)))
+\end{Snippet}
+
+the intent becomes much clearer to them (those of them who went
+through a course in linear algebra are typically also able to suggest
+the name \texttt{transpose} instead of \texttt{f}, which shows that
+naming is also a technique of making programs clearer).
+
+The difference between the snippet containing the definition of
+\texttt{f} and the snippet containing its example usage is that the
+first one is \textit{abstract} and introduces a new concept into the
+system, while the second is \textit{concrete} and it only puts certain
+content in front of the mind's eye.
+
+Professional programmers have a habit of \textit{writing tests} for
+their code. 
 
 
 
