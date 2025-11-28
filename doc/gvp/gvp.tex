@@ -1138,20 +1138,21 @@ GRASP, but it describes architectural decisions that we expect to be
 preserved in all future versions of the system.
 
 The most fundamental component of GRASP is the \texttt{Element}.
-\texttt{Element}s come in two basic kinds: \texttt{Space}s and
-\texttt{Tile}s. The main difference between them is that \texttt{Tile}s
-are rectangular objects (and therefore have a width and height),
-whereas \texttt{Space}s are not.
+\texttt{Element}s come in two basic categories: \texttt{Space}s and
+\texttt{Tile}s. The main difference between them is that
+\texttt{Tile}s are rectangular objects (and therefore have a width and
+height), whereas \texttt{Space}s are only used to ensure
+\textit{textual ordering} between elements.
 
-What all \texttt{Element}s have in common is that they support cursor
-navigation (moving the cursor index forward or backward) and allow
-retrieving the element located at a given cursor index. They can also
-be rendered as part of the document.
+All \texttt{Elements} support cursor navigation (moving the cursor
+index forward or backward) and allow retrieving the element located at
+a given cursor index. They can also be rendered as part of the
+document.
 
 The document model in GRASP differs significantly from the one that is
-widely known from the web browser environments in that its elements do
-not store a pointer to their parent, and they are always positioned
-with respect to their parent (so they cannot have \textit{absolute}
+widely known from the browser environments in that its elements do not
+store a pointer to their parent, and they are always positioned with
+respect to their parent (so they cannot have \textit{absolute}
 position).
 
 GRASP provides several primitive implementations of the \texttt{Tile}
@@ -1232,29 +1233,29 @@ Figure~\ref{fig:visual-stepper}.
 \end{figure}
 
 Most visual components which are used in the interface of GRASP itself
-(such as file lists, buttons, text fields etc.) are also GRASP
-extensions, and as such they can be embedded in the GRASP document.
+(such as file lists, buttons, text fields) are also GRASP extensions,
+and as such they can be embedded in the GRASP document.
 
 Currently every extension must have a name, although this might change
 in the future. In addition to being a \texttt{Tile}, an extension
 should know how to serialize itself to an s-expression. However, when
-the editor turns an s-expression into a magic box, it remembers the
-original s-expression, so that certain extensions which consist of
-non-serializable components (such as closures) can be properly
-serialized.
+the editor turns an s-expression into a \textit{magic box}, it
+remembers the original s-expression, so that certain extensions which
+consist of non-serializable components (such as closures) can be
+properly serialized.
 
 Unfortunately at this point there is no mechanism that would force all
-extensions to behave property with regard to their serialization, and
+extensions to behave properly with regard to their serialization, and
 some extensions are created by explicitly calling \texttt{eval}, which
-is a potential security vulnerability.
+is a well-known potential security vulnerability.
 
 During the operation of GRASP, there is a Scheme interpreter running
-in the background. The first thing that the interpreter does is the
-interpretation of the expressions from the \texttt{init.scm}
-file\footnote{The current implementation of GRASP is typically bundled
-in a \texttt{.jar} or \texttt{.apk} files, which are actually
-\texttt{.zip} archives, and the \texttt{init.scm} file is stored in
-its \texttt{assets} subdirectory}.
+in the background. The first thing that the interpreter does is
+interpret the expressions from the \texttt{init.scm} file\footnote{The
+current implementation of GRASP is typically bundled in a
+\texttt{.jar} or \texttt{.apk} file, which are actually \texttt{.zip}
+archives, and the \texttt{init.scm} file is stored in its
+\texttt{assets} subdirectory}.
 
 The \texttt{init.scm} file is responsible for setting up the key
 bindings, and for setting the content of the \texttt{screen}.
@@ -1269,12 +1270,47 @@ kids that uses Android \textit{Text to Speech} and \textit{Speech to
   Text} services, where the player assembles uttered words from
 letters.}.
 
+We mentioned in the previous section that rendering in GRASP is
+mediated through the \texttt{Painter} interface. The \texttt{Painter}
+interface is designed to account for the capabilities and limitations
+of character terminals, so for example it provides different routines
+for rendering lines that are perpendicular or parallel to the screen,
+and different ones for drawing lines that can be skewed. It also has
+very limited options regarding font rendering.
 
+At the time of writing, the \texttt{Painter} interface consists of
+over 100 methods, and it needs to be simplified.
 
+\texttt{Painter} is also capable of handling \texttt{Animation}s.
+\texttt{Animation} is an interface that has one method,
+\texttt{advance!}, which accepts a time step in milliseconds and
+returns a Boolean value -- \texttt{\#false} if the animation has
+finished, and \texttt{\#true} if the animation should continue.
 
+GRASP also features a \texttt{TouchEventProcessor} akin to Android's
+\texttt{GestureDetector} (for detecting events such as double tap or
+long press), but designed so that it can be used also by desktop and
+terminal clients.
 
 \section{Discussion and Future Work}
 
-document representation, C4 browser
+We began by describing the concept of General Visual Programming and
+analyzing various existing GVP systms. But we never explained why such
+systems might be worth pursuing.
+
+The fundamental reason behind our developments is simply to make the
+implementations of computer programs more understandable. This goal
+cannot be achieved by merely using even the finest tools -- it also
+requires programmers to apply deliberate practices whose purpose is to
+enhance the clarity the source code of their programs.
+
+In the course of our work we observed that various parts of a computer
+program can differ drastically with regard to their ease of
+understanding.
+
+
+
+
+motivation, document representation, C4 browser, JS/WASM version,
 
 \end{document}
