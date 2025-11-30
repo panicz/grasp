@@ -1347,10 +1347,66 @@ poorly: we test things in order to find out how they work (or
 \textit{if} they work the way we think they should). Of course, there
 is tremendous value in having automated \textit{integration tests} for
 complex systems, but many \textit{unit tests} play mainly the role of
-a \textit{system documentation} or a \textit{learning resource} for
-programmers to figure the system out.
+\textit{system documentation} or a \textit{learning resource} for
+programmers to figure the system out without even running the code.
+
+The \texttt{transpose} example may seem appealing, but that's mainly
+because its domain is well-represented using text. However, there are
+many domains -- such as graphs or geometry -- that do not share this
+property. A convex hull algorithm could be \textit{unit-tested} using
+a set of pairs of numbers, but those numbers would likely not appeal
+to the imagination of the readers of the code the same way a picture
+of those points would.
+
+Likewise, we might consider this example usage of the \textit{A*
+  search algorithm} (herein called \texttt{optimal-path}):
+
+\begin{Snippet}
+    (e.g. 
+     (let ((graph-from-Wikipedia '((start (a 1.5) (d 2)) 
+                                   (a (b 2) (start 1.5)) 
+                                   (b (c 3) (a 2)) 
+                                   (c (end 4) (b 3)) 
+                                   (d (e 3) (start 2)) 
+                                   (e (end 2) (d 3)) 
+                                   (end (c 4) (e 2)))) 
+           (heuristics '((a . 4) 
+                         (b . 2) 
+                         (c . 4) 
+                         (d . 4.5) 
+                         (e . 2) 
+                         (end . 0)))) 
+     
+       (define ((callable alist) key) 
+         (assoc-ref alist key)) 
+        
+       (optimial-path :on (callable graph-from-Wikipedia) 
+              :from 'start 
+              :until (is _ equal? 'end) 
+              :guided-by (callable heuristics))) 
+     ===> (start d e end) 7) 
+\end{Snippet}
+
+The example above is quite complex, and it's not easy to even figure
+out what it is about. It would be much better if we could just see
+the graph and the path on the graph -- or better yet, to see how
+the algorithm operates step by step.
+
+Our hope is that we will be able to adjust our visual stepper to make
+it possible to look at algorithms that operate on the \textit{natural
+  representations} of data structures, and that we will be able to
+employ animations for observing the operations of algorithms, without
+paying much overhead in the development time.
+
+But in order for this goal to be attainable, a general visual
+programming system should be simple in its construction and no more
+difficult to use than regular (text-based) programming systems.
 
 
-motivation, document representation, C4 browser, JS/WASM version,
+
+
+
+motivation, document representation, indentation, C4 browser, web
+version, user studies
 
 \end{document}
