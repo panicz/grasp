@@ -1380,10 +1380,10 @@ Likewise, we might consider this example usage of the \textit{A*
        (define ((callable alist) key) 
          (assoc-ref alist key)) 
         
-       (optimial-path :on (callable graph-from-Wikipedia) 
-              :from 'start 
-              :until (is _ equal? 'end) 
-              :guided-by (callable heuristics))) 
+       (optimial-path on: (callable graph-from-Wikipedia) 
+              from: 'start 
+              until: (is _ equal? 'end) 
+              guided-by: (callable heuristics))) 
      ===> (start d e end) 7) 
 \end{Snippet}
 
@@ -1401,6 +1401,35 @@ paying much overhead in the development time.
 But in order for this goal to be attainable, a general visual
 programming system should be simple in its construction and no more
 difficult to use than regular (text-based) programming systems.
+
+With this regard, there is still some work to be done. Probably the
+most important is the simplification of the document representation,
+which -- being based on Lisp's linked lists -- is quite convoluted.
+For the next iteration, we plan to represent expressions using a pair
+of arrays -- the first one, containing $n$ elements, would contain
+\texttt{Tile}s, and the second, containing $n+1$ elements, would
+contain \texttt{Space}s. (We call this a \texttt{Comb} representation,
+because it makes the tiles somewhat resemble comb's spikes, but also
+because it represents \textit{combinations} of expressions.)
+
+Another important aspect is the extension system. Although the current
+concept of extensions in GRASP is satisfactory, the way extensions are
+defined by users could be significantly improved -- with regard of
+both ergonomics and safety.
+
+Lastly, although the most recent prototype of GRASP is able to load
+and save Scheme files, there is a sort of \textit{impedance mismatch}
+when it comes to the preferred \textit{indentation style}. More
+specifically, unlike the editors that operate on text, GRASP prefers
+very little to no indentation, because the \textit{nested boxes}
+represetation already works like a sort of an indentation, and the
+code that uses the traditional Lisp-style identation looks \textit{too
+  indented} in GRASP.
+
+Obviously this could be solved by removing indentation when a file is
+loaded and adding it back when it is saved, but it would work only for
+files which use standard indentation. Otherwise using GRASP to load
+and save a file without any edits would mess up the indentation.
 
 
 
