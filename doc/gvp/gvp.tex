@@ -1431,7 +1431,35 @@ loaded and adding it back when it is saved, but it would work only for
 files which use standard indentation. Otherwise using GRASP to load
 and save a file without any edits would mess up the indentation.
 
+So far we've been mainly considering the \textit{close-up} perspective
+on programming -- which is the usual perspective when people discuss
+programming tools. But the pinch zoom that is present in GRASP also
+provides a fairly unusual way of looking at code -- it allows to
+smoothly zoom out to see entire documents at once. This perspective is
+not particularly useful though -- those documents usually look like
+vertical white stripes with some illegible dark spots on them.
 
+This is particularly frustrating when we think that it is possible to
+construct a \textit{bird's eye view} of a program module that would
+actually be useful, and that such view could contain a class
+diagram or function signatures, devoid of their actual implmentations.
+
+And when we zoom out even further, we should no longer see a single
+module, but instead we should see the modules from the entire project.
+
+Currently this is usually done by means of a file browser. But this
+representation usually represents a module as a generic icon with a
+file name, residing in a directory tree. While this representation
+gives some information, there is a lot of information that it misses.
+In particular, the size of the icon could depend (logarithmically or
+otherwise) on the size of the module. Moreover, in module systems that
+preclude circular dependencies, the modules that make up a project
+naturally form a layered graph, where the topmost modules are the ones
+that have no dependencies, and the bottommost ones usually contain
+application-related code. It would also be desirable to be able to
+highlight all modules that a given module depends on, as well as all
+the modules that depend on a given module (but in order to remain
+legible, this visualization would need to be dynamic).
 
 
 
