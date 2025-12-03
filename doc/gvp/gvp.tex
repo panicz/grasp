@@ -1459,14 +1459,30 @@ that have no dependencies, and the bottommost ones usually contain
 application-related code. It would also be desirable to be able to
 highlight all modules that a given module depends on, as well as all
 the modules that depend on a given module (but in order to remain
-legible, this visualization would need to be dynamic).
+legible, this visualization would need to be dynamic)\footnote{This
+idea is reminescent of the \textit{C4 model} developed by Simon Brown,
+as well as the demo from Ivan Daniluk's 2019 GopherCon Europe talk
+titled \textit{Rethinking Visual Programming}.}.
 
 Another thing that might be important for the adaption of the concepts
 presented here is the availability of systems which support them.
 
 In particular, it would be worth to integrate the GRASP system with
-web browsers and their JavaScript/WebAssembly runtime environment in
+web browsers and their JavaScript/WebAssembly runtime environments in
 order to be able to have GRASP snippets (including extensions such as
 its visual stepper) available on web pages.
+
+There is also a number of smaller things that could be added to or
+improved in the system. For example, it could be handy to have a
+generic object inspector, which would allow to add arbitrary Java
+objects to the document.  Another nice feature would be an integration
+of GRASP with a popular version control system such as git, which also
+has a great potential of interesting and valuabe
+visualizations\footnote{There is a number of code quality assessment
+techniques developed by Adam Tornhill that were inspired by forensic
+analysis}. 
+
+But, in order for those developments to make sense, GRASP must first
+become sufficiently usable and robust to acquire a user base.
 
 \end{document}
