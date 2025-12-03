@@ -150,10 +150,11 @@ The approach to system construction based on designing DSLs is
 sometimes called \textit{Language-Oriented Programming}.
 
 Probably the most striking example of Language-Oriented Programming is
-the Racket programming system, developed by the PLT group, although
-even the UNIX operating system, whose components are known to employ
-parser generators such as TMG or YACC, is also sometimes considered a
-Language-Oriented Programming environment.
+the Racket programming system\cite{Felleisen2018}, developed by the
+PLT group, although even the UNIX operating system, whose components
+are known to employ parser generators such as TMG or YACC, is also
+sometimes considered a Language-Oriented Programming
+environment\cite{Kernighan2019}.
 
 In this paper, we propose the notion of \textit{General Visual
   Programming}, which is an extension to Language-Oriented Programming
@@ -1296,14 +1297,14 @@ terminal clients.
 \section{Discussion and Future Work}
 
 We began by describing the concept of General Visual Programming and
-analyzing various existing GVP systms. But we never explained why such
-systems might be worth pursuing.
+analyzing various existing GVP systems. However, we did not explain
+why such systems might be worth pursuing.
 
 The fundamental reason behind our developments is simply to make the
 implementations of computer programs more understandable. This goal
 cannot be achieved by merely using even the finest tools -- it also
 requires programmers to apply deliberate practices whose purpose is to
-enhance the clarity the source code of their programs.
+enhance the clarity of the source code of their programs.
 
 In the course of our work we observed that various parts of a computer
 program can differ drastically with regard to their ease of
@@ -1335,11 +1336,10 @@ through a course in linear algebra are typically also able to suggest
 the name \texttt{transpose} instead of \texttt{f}, which shows that
 naming is also a technique of making programs clearer).
 
-The difference between the snippet containing the definition of
-\texttt{f} and the snippet containing its example usage is that the
-first one is \textit{abstract} and introduces a new concept into the
-system, while the second is \textit{concrete} and it only puts certain
-content in front of the mind's eye.
+The difference between the definition of \texttt{f} and its example
+usage is that the first one is \textit{abstract} and introduces a new
+concept into the system, while the second is \textit{concrete} and it
+only puts certain content in front of the mind's eye.
 
 Professional programmers have a habit of \textit{writing tests} for
 their code. This name is unfortunate, and it shapes our expectations
@@ -1351,14 +1351,14 @@ complex systems, but many \textit{unit tests} play mainly the role of
 programmers to figure the system out without even running the code.
 
 The \texttt{transpose} example may seem appealing, but that's mainly
-because its domain is well-represented using text. However, there are
+because its domain is naturally expressed in text. However, there are
 many domains -- such as graphs or geometry -- that do not share this
 property. A convex hull algorithm could be \textit{unit-tested} using
 a set of pairs of numbers, but those numbers would likely not appeal
 to the imagination of the readers of the code the same way a picture
 of those points would.
 
-Likewise, we might consider this example usage of the \textit{A*
+Similarly, consider the following example of the \textit{A*
   search algorithm} (herein called \texttt{optimal-path}):
 
 \begin{Snippet}
@@ -1387,10 +1387,10 @@ Likewise, we might consider this example usage of the \textit{A*
      ===> (start d e end) 7) 
 \end{Snippet}
 
-The example above is quite complex, and it's not easy to even figure
-out what it is about. It would be much better if we could just see
-the graph and the path on the graph -- or better yet, to see how
-the algorithm operates step by step.
+This example is quite complex; even understanding what it is about
+requires effort. It would be much better if we could just see the
+graph and the path on the graph -- or better yet, to see how the
+algorithm operates step by step.
 
 Our hope is that we will be able to adjust our visual stepper to make
 it possible to look at algorithms that operate on the \textit{natural
@@ -1400,21 +1400,21 @@ paying much overhead in the development time.
 
 But in order for this goal to be attainable, a general visual
 programming system should be simple in its construction and no more
-difficult to use than regular (text-based) programming systems.
+difficult to use than conventional text-based systems.
 
 With this regard, there is still some work to be done. Probably the
 most important is the simplification of the document representation,
 which -- being based on Lisp's linked lists -- is quite convoluted.
 For the next iteration, we plan to represent expressions using a pair
-of arrays -- the first one, containing $n$ elements, would contain
+of arrays: the first one, containing $n$ elements, would contain
 \texttt{Tile}s, and the second, containing $n+1$ elements, would
 contain \texttt{Space}s. (We call this a \texttt{Comb} representation,
-because it makes the tiles somewhat resemble comb's spikes, but also
-because it represents \textit{combinations} of expressions.)
+because it makes the tiles resemble comb teeth, but also because it
+represents \textit{combinations} of expressions.)
 
 Another important aspect is the extension system. Although the current
 concept of extensions in GRASP is satisfactory, the way extensions are
-defined by users could be significantly improved -- with regard of
+defined by users could be significantly improved -- with regard to
 both ergonomics and safety.
 
 Lastly, although the most recent prototype of GRASP is able to load
@@ -1422,9 +1422,9 @@ and save Scheme files, there is a sort of \textit{impedance mismatch}
 when it comes to the preferred \textit{indentation style}. More
 specifically, unlike the editors that operate on text, GRASP prefers
 very little to no indentation, because the \textit{nested boxes}
-represetation already works like a sort of an indentation, and the
-code that uses the traditional Lisp-style identation looks \textit{too
-  indented} in GRASP.
+representation already works like a sort of an indentation, and the
+code that uses the traditional Lisp-style indentation looks
+\textit{too indented} in GRASP.
 
 Obviously this could be solved by removing indentation when a file is
 loaded and adding it back when it is saved, but it would work only for
@@ -1435,23 +1435,23 @@ So far we've been mainly considering the \textit{close-up} perspective
 on programming -- which is the usual perspective when people discuss
 programming tools. But the pinch zoom that is present in GRASP also
 provides a fairly unusual way of looking at code -- it allows to
-smoothly zoom out to see entire documents at once. This perspective is
-not particularly useful though -- those documents usually look like
-vertical white stripes with some illegible dark spots on them.
+smoothly zoom out to see entire documents at once. Unfortunately,
+these zoomed-out views are not very informative: they typically appear
+as vertical white stripes with some illegible dark spots on them.
 
 This is particularly frustrating when we think that it is possible to
 construct a \textit{bird's eye view} of a program module that would
-actually be useful, and that such view could contain a class
-diagram or function signatures, devoid of their actual implmentations.
+actually be useful, and that such view could contain a class diagram
+or function signatures, devoid of their actual implementations.
 
 And when we zoom out even further, we should no longer see a single
 module, but instead we should see the modules from the entire project.
 
 Currently this is usually done by means of a file browser. But this
-representation usually represents a module as a generic icon with a
-file name, residing in a directory tree. While this representation
-gives some information, there is a lot of information that it misses.
-In particular, the size of the icon could depend (logarithmically or
+representation usually shows a module as a generic icon with a file
+name, residing in a directory tree. While this representation gives
+some information, there is a lot of information that it misses.  In
+particular, the size of the icon could depend (logarithmically or
 otherwise) on the size of the module. Moreover, in module systems that
 preclude circular dependencies, the modules that make up a project
 naturally form a layered graph, where the topmost modules are the ones
@@ -1467,10 +1467,9 @@ titled \textit{Rethinking Visual Programming}.}.
 Another thing that might be important for the adaption of the concepts
 presented here is the availability of systems which support them.
 
-In particular, it would be worth to integrate the GRASP system with
-web browsers and their JavaScript/WebAssembly runtime environments in
-order to be able to have GRASP snippets (including extensions such as
-its visual stepper) available on web pages.
+In particular, integrating GRASP with web browsers would make it
+possible to have GRASP snippets (including extensions such as its
+visual stepper) available on web pages.
 
 There is also a number of smaller things that could be added to or
 improved in the system. For example, it could be handy to have a
@@ -1484,5 +1483,59 @@ analysis}.
 
 But, in order for those developments to make sense, GRASP must first
 become sufficiently usable and robust to acquire a user base.
+
+\begin{thebibliography}{14}
+
+\bibitem{Andersen2020}
+  Leif Andersen, Michael Ballantyne, Mathias Felleisen,
+  \emph{Adding Interactive Visual Syntax to Textual Code},
+  Proceedings of the ACM on Programming Languages (OOPSLA),
+  Vol. 4, Article 222, pp.~1--28, 2020.
+  \url{https://doi.org/10.1145/3428290}
+  
+\bibitem{Andersen2022} Leif Andersen,
+  \emph{Adding Visual and Interactive-Syntax to Textual Programs},
+  PhD Thesis, Northeastern University, 2022.
+  Available at:
+  \url{https://www2.ccs.neu.edu/racket/pubs/dissertation-andersen.pdf}
+  
+\bibitem{Andersen2024}
+  Leif Andersen, Cameron Moy, Stephen Chang, Matthias Felleisen,
+  \emph{Making Hybrid Languages: A Recipe},
+  arXiv preprint arXiv:2403.01335, 2024.
+  \url{https://arxiv.org/abs/2403.01335}
+
+\bibitem{Felleisen2018} Matthias Felleisen, Robert Bruce Findler,
+  Matthew Flatt, Shriram Krishnamurthi, Eli Barzilay, Jay McCarthy,
+  Sam Tobin-Hochstadt,
+  \empth{A programmable programming language},
+  Communications of the ACM, Volume 61, Issue 3,
+  \url{https://doi.org/10.1145/3127323}
+  
+\bibitem{Godek2023} Maciej Godek. \emph{GRASP: An Extensible
+  Tactile Interface for Editing S-expressions}. In Proceedings of the
+  16th European Lisp Symposium (ELS’23). 
+  \url{https://doi.org/10.5281/zenodo.7816633}
+
+\bibitem{Godek2024} Maciej Godek. \emph{An Implementation of a Visual
+Stepper in the GRASP programming system},
+  arXiv preprint:2508.04859
+  \url{https://www.arxiv.org/abs/2508.04859}
+
+\bibitem{Hazel2021}
+  Cyrus Omar, David Moon, Andrew Blinn, Ian Voysey, Nick Collins,
+  Ravi Chugh,
+  \emph{Filling typed holes with live GUIs},
+  PLDI 2021: Proceedings of the 42nd ACM SIGPLAN International
+  Conference on Programming Language Design and Implementation.
+  \url{https://doi.org/10.1145/3453483.3454059}
+
+\bibitem{Kernighan2019}
+  Brian W. Kernighan,
+  \emph{UNIX: A History and a Memoir},
+  independently published, 2019.
+  
+\end{thebibliography}
+
 
 \end{document}
