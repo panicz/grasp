@@ -1,4 +1,4 @@
-\documentclass[preprint,12pt,authoryear]{elsarticle}
+\documentclass{article}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 
@@ -11,7 +11,6 @@
 \usepackage{newunicodechar}
 \usepackage{pmboxdraw}
 
-\usepackage{natbib}
 \PassOptionsToPackage{hyphens}{url}\usepackage{hyperref}
 
 \usepackage{booktabs}
@@ -25,6 +24,13 @@
 \usepackage{qtree}
 \usepackage[shortcuts]{extdash}
 
+\usepackage[
+    backend=biber,
+    style=authoryear,
+    sorting=nyt
+]{biblatex}
+
+\addbibresource{bibliography.bib}
 
 \newenvironment{Snippet}{\Verbatim[samepage=true,fontsize=\small]}{\endVerbatim}
 
@@ -48,17 +54,17 @@
 
 % \newunicodechar{▮}{\rule{0.36em}{0.82em}}
 
-\journal{Information and Software Technology}
+%\journal{Information and Software Technology}
 
 \begin{document}
 
-\begin{frontmatter}
+%\begin{frontmatter}
 
 \title{Towards a Common General Visual Programming System}
 
 \author[1]{Maciej Godek}
-\address[1]{Gdynia Maritime University, Department of Computer Science, Gdynia, Poland}
-\ead{m.godek@wi.umg.edu.pl}
+%\address[1]{Gdynia Maritime University, Department of Computer Science, Gdynia, Poland}
+%\ead{m.godek@wi.umg.edu.pl}
 
 \begin{abstract}
 We investigate the apparent failure of visual programming to gain
@@ -73,13 +79,13 @@ implementation of GRASP, our experimental GVP system, highlighting
 major design decisions, lessons learned, and future directions.
 \end{abstract}
 
-\begin{keyword}
-Visual programming \sep Programming environments \sep Human-computer
-interaction \sep Program comprehension \sep Cognitive dimensions \sep
-Programming tools
-\end{keyword}
+%\begin{keyword}
+%Visual programming \sep Programming environments \sep Human-computer
+%interaction \sep Program comprehension \sep Cognitive dimensions \sep
+%Programming tools
+%\end{keyword}
 
-\end{frontmatter}
+%\end{frontmatter}
 
 \section{Introduction}
 
@@ -1484,58 +1490,6 @@ analysis}.
 But, in order for those developments to make sense, GRASP must first
 become sufficiently usable and robust to acquire a user base.
 
-\begin{thebibliography}{14}
-
-\bibitem{Andersen2020}
-  Leif Andersen, Michael Ballantyne, Mathias Felleisen,
-  \emph{Adding Interactive Visual Syntax to Textual Code},
-  Proceedings of the ACM on Programming Languages (OOPSLA),
-  Vol. 4, Article 222, pp.~1--28, 2020.
-  \url{https://doi.org/10.1145/3428290}
-  
-\bibitem{Andersen2022} Leif Andersen,
-  \emph{Adding Visual and Interactive-Syntax to Textual Programs},
-  PhD Thesis, Northeastern University, 2022.
-  Available at:
-  \url{https://www2.ccs.neu.edu/racket/pubs/dissertation-andersen.pdf}
-  
-\bibitem{Andersen2024}
-  Leif Andersen, Cameron Moy, Stephen Chang, Matthias Felleisen,
-  \emph{Making Hybrid Languages: A Recipe},
-  arXiv preprint arXiv:2403.01335, 2024.
-  \url{https://arxiv.org/abs/2403.01335}
-
-\bibitem{Felleisen2018} Matthias Felleisen, Robert Bruce Findler,
-  Matthew Flatt, Shriram Krishnamurthi, Eli Barzilay, Jay McCarthy,
-  Sam Tobin-Hochstadt,
-  \empth{A programmable programming language},
-  Communications of the ACM, Volume 61, Issue 3,
-  \url{https://doi.org/10.1145/3127323}
-  
-\bibitem{Godek2023} Maciej Godek. \emph{GRASP: An Extensible
-  Tactile Interface for Editing S-expressions}. In Proceedings of the
-  16th European Lisp Symposium (ELS’23). 
-  \url{https://doi.org/10.5281/zenodo.7816633}
-
-\bibitem{Godek2024} Maciej Godek. \emph{An Implementation of a Visual
-Stepper in the GRASP programming system},
-  arXiv preprint:2508.04859
-  \url{https://www.arxiv.org/abs/2508.04859}
-
-\bibitem{Hazel2021}
-  Cyrus Omar, David Moon, Andrew Blinn, Ian Voysey, Nick Collins,
-  Ravi Chugh,
-  \emph{Filling typed holes with live GUIs},
-  PLDI 2021: Proceedings of the 42nd ACM SIGPLAN International
-  Conference on Programming Language Design and Implementation.
-  \url{https://doi.org/10.1145/3453483.3454059}
-
-\bibitem{Kernighan2019}
-  Brian W. Kernighan,
-  \emph{UNIX: A History and a Memoir},
-  independently published, 2019.
-  
-\end{thebibliography}
 
 
 \end{document}
