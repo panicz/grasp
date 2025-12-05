@@ -156,11 +156,11 @@ The approach to system construction based on designing DSLs is
 sometimes called \textit{Language-Oriented Programming}.
 
 Probably the most striking example of Language-Oriented Programming is
-the Racket programming system\cite{Felleisen2018}, developed by the
+the Racket programming system\parencite{Felleisen2018}, developed by the
 PLT group, although even the UNIX operating system, whose components
 are known to employ parser generators such as TMG or YACC, is also
 sometimes considered a Language-Oriented Programming
-environment\cite{Kernighan2019}.
+environment\parencite{Kernighan2019}.
 
 In this paper, we propose the notion of \textit{General Visual
   Programming}, which is an extension to Language-Oriented Programming
@@ -198,9 +198,10 @@ lens of General Visual Programming.
 \subsection{Dr Racket}
 
 Dr Racket is an Integrated Development Environment designed for the
-Racket programming system with programming education in mind.  The
-Racket itself is derived from the Scheme programming language, so it
-inherits its \textit{heavily-parenthesized} syntax of
+Racket programming system with programming education in
+mind\parencite{Findler2010_DrRacket}. The Racket itself is derived
+from the Scheme programming language, so it inherits its
+\textit{heavily-parenthesized} syntax of
 \textit{s-expressions}. However, its \texttt{\#lang} extension
 mechanism allows to support languages with arbitrary syntaxes.
 
@@ -209,7 +210,7 @@ with a rich educational curriculum.
 
 The IDE is implemented in the Racket programming language, which
 extends the Scheme language with its idiosyncratic Object-Oriented
-Programming system.
+Programming system\parencite{Flatt2006SchemeWithClasses}.
 
 The Dr Racket environment is focused mainly on textual languages,
 although it is quite unique in that it allows to use images (inserted
@@ -223,8 +224,9 @@ images via means of composition provided by the language.
 
 The Racket programming environment provides a very interesting purely
 functional model of creating interactive applications called
-\textit{Big Bang}. Racket has also been used as the core of an
-artistic live-programming environment called Fluxus.
+\textit{Universe}\parencite{Felleisen2htdpUniverse}. Racket has also
+been used as the core of an artistic live-programming environment
+called \cite{Fluxus}.
 
 Despite very good support for graphics, and being an explicitly
 language-oriented programming system, Dr Racket alone cannot be
@@ -237,13 +239,13 @@ It is going to be described in the next section.
 
 \subsection{Interactive Visual Syntax}
 
-The paper \textit{Adding Interactive Syntax to Textual Code} describes
-a principled attempt to turn dr Racket into a General Visual
-Programming environment. It dwells on the notion of code execution
-phases that were specified for the Racket programming language (which
-allows for arbitrary code execution during compilation time for the
-purpose of macro expansion) - so for example, there is a syntax
-expansion phase, as well as runtime execution phase.
+The paper \textit{Adding Interactive Syntax to Textual
+  Code}\parencite{Andersen2020} describes a principled attempt to turn
+dr Racket into a General Visual Programming environment. It dwells on
+the notion of code execution phases that were specified for the Racket
+programming language (which allows for arbitrary code execution during
+compilation time for the purpose of macro expansion) -- so for example,
+there is a syntax expansion phase, as well as runtime execution phase.
 
 The \textit{Interactive Syntax} project adds another conceptual
 phase, namely \textit{editing} phase.
@@ -291,10 +293,10 @@ humans.
 
 The \textit{Interactive Syntax} project has been further elaborated in
 Leif Andersen's PhD thesis, \textit{Adding Visual and
-  Interactive-Syntax to Textual Programs}. In the course of her work,
-she concluded that the Racket's GUI library (used, among other things,
-to build the Dr Racket IDE) isn't flexible enough to be reused inside
-the domain-specific editors.
+  Interactive-Syntax to Textual Programs}\parencite{Andersen2022}. In
+the course of her work, she concluded that the Racket's GUI library
+(used, among other things, to build the Dr Racket IDE) isn't flexible
+enough to be reused inside the domain-specific editors.
 
 For this reason, Andersen decided to build a browser-based IDE that
 would implement interactive visual syntax for ClojureScript, where the
@@ -341,8 +343,8 @@ placed inside of ClojureScript's core binding form, so that the
 components of the visual extension can serve to name certain
 components of some structure that is represented by that extension.
 
-The exact definition of the \texttt{g/let} form in ClojureScript
-is the following:
+The exact definition of the \texttt{g/let} form in ClojureScript is
+the following\parencite{Andersen2024}:
 
 \begin{Snippet}
   (defmacro (g/let [diagram] & body)
@@ -369,12 +371,12 @@ Hazel is a browser-based programming environment and a functional
 programming language developed to explore the notion of \textit{typed
   holes}, where even incomplete programs can be properly typed, and
 thus various software services such as autocomplete can be implemented
-in a principled manner. Unlike Andersen, who focuses on adding visual
-extensions to textual code, the makers of Hazel decided to create a
-structure editor in such a way that the experience of using it
-resembles textual programming -- but at every moment of program
-development the program code is properly structured (even if it
-contains holes).
+in a principled manner\parencite{Omar2016Hazelnut}. Unlike Andersen,
+who focuses on adding visual extensions to textual code, the makers of
+Hazel decided to create a structure editor in such a way that the
+experience of using it resembles textual programming -- but at every
+moment of program development the program code is properly structured
+(even if it contains holes).
 
 Being of functional programming descent, Hazel is implemented in
 ReasonML, which is a functional language that can be compiled to
@@ -384,7 +386,8 @@ is never exposed to users, and could easily be changed to any other
 format.
 
 Hazel comes with the concept of \textit{live literals} or
-\textit{livelits}, which are user-defined visual extensions.
+\textit{livelits}, which are user-defined visual
+extensions\parencite{Omar2021LiveLits}.
 
 A live literal can be defined for some specific (concrete) type using
 the \texttt{livelit} keyword, and it consists of two type definitions
@@ -433,16 +436,16 @@ example).
 
 \subsection{Polytope}
 
-Another General Programming System to consider is Polytope, developed
-by Elliot Evans. Polytope is an editor written in TypeScript and
-running in the browser, which also provides fundamental architecture.
-The current implementation of Polytope is designed to work with
-JavaScript code.  It comes with a bunch of specialized editors,
-including editors for directed and undirected graphs, math formulas,
-markdown and music staff. It should in principle be possible for
-developers to define their own editors and use them post hoc, but
-there is no distinct automatic mechanism for scanning and installing
-definitons in the system.
+Another General Programming System to consider is
+Polytope\parencite{Evans2025Polytope}. Polytope is an editor written
+in TypeScript and running in the browser, which also provides
+fundamental architecture.  The current implementation of Polytope is
+designed to work with JavaScript code.  It comes with a bunch of
+specialized editors, including editors for directed and undirected
+graphs, math formulas, markdown and music staff. It should in
+principle be possible for developers to define their own editors and
+use them post hoc, but there is no distinct automatic mechanism for
+scanning and installing definitons in the system.
 
 Editors are implemented by subclassing \texttt{EditorElement} (which
 itself is a subclass of browser's builtin \texttt{HTMLElement}),
@@ -1490,6 +1493,6 @@ analysis}.
 But, in order for those developments to make sense, GRASP must first
 become sufficiently usable and robust to acquire a user base.
 
-
+\printbibliography
 
 \end{document}
