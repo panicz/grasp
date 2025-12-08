@@ -49,7 +49,7 @@
 \newunicodechar{╝}{\textSFxxvi}
 \newunicodechar{◀}{$\triangleleft$}
 \newunicodechar{▶}{$\triangleright$}
-\newunicodechar{▮}{\hspace{0.168pt}|\hspace{0.168pt}}
+\newunicodechar{▮}{\hspace{0.12pt}|\hspace{0.12pt}}
 
 
 % \newunicodechar{▮}{\rule{0.36em}{0.82em}}
@@ -62,7 +62,7 @@
 
 \title{Towards a Common General Visual Programming System}
 
-\author[1]{Maciej Godek}
+\author{Maciej Godek}
 %\address[1]{Gdynia Maritime University, Department of Computer Science, Gdynia, Poland}
 %\ead{m.godek@wi.umg.edu.pl}
 
@@ -93,25 +93,28 @@ Visual programming systems appear to improve the efficiency of certain
 aspects of programming, compared to their textual counterparts. This
 advantage is followed by deserved popularity in certain niches - for
 example, the makers of the educational visual programming environment
-\textit{Scratch} claim to have over 135 million registered users (as of 2025).
+\textit{Scratch} \parencite{Resnick2009Scratch} claim to have over 135
+million registered users as of 2024
+\parencite{ScratchFoundationAnnualReport2024}.
 
 The success of visual programming environments isn't limited to
 education, though. Some other important domains, such as dynamic
 system modeling, game scripting or instrument control and industrial
-automation, are also covered by visual programming tools like
-Simulink, Unreal Engine Blueprint or LabVIEW.
+automation, are also covered by visual programming tools like Simulink
+\parencite{Simulink2025}, Unreal Engine Blueprint
+\parencite{UEBlueprints2025} or LabVIEW \parencite{LabVIEW2025}.
 
 However, when we look at programming language popularity rankings, it
 turns out that they are firmly dominated by programming languages that
 are based on text. According to the programming language popularity
-ranking maintained by TIOBE (as of 2025), the most popular visual
+ranking maintained by TIOBE as of 2025, the most popular visual
 programming language included in the ranking is Scratch, whose peak
 popularity between 2009 and 2025 was around 1.8\% (by comparison, the
 peak popularity of the highest-ranked language, Python, is over
 25\%). And although the methodology employed by TIOBE is not
 infallible, it seems to reflect the everyday experiences of
 programmers: that in the professional setup, the dominance of textual
-programming languages is unquestionable.
+programming languages is unquestionable \parencite{TIOBEIndex2025}.
 
 It is not hard to see why this is the case: text is, overall, a very
 elastic medium to impose strict meaning on, and the digital
@@ -156,11 +159,11 @@ The approach to system construction based on designing DSLs is
 sometimes called \textit{Language-Oriented Programming}.
 
 Probably the most striking example of Language-Oriented Programming is
-the Racket programming system\parencite{Felleisen2018}, developed by the
+the Racket programming system \parencite{Felleisen2018}, developed by the
 PLT group, although even the UNIX operating system, whose components
 are known to employ parser generators such as TMG or YACC, is also
 sometimes considered a Language-Oriented Programming
-environment\parencite{Kernighan2019}.
+environment \parencite{Kernighan2019}.
 
 In this paper, we propose the notion of \textit{General Visual
   Programming}, which is an extension to Language-Oriented Programming
@@ -199,7 +202,7 @@ lens of General Visual Programming.
 
 Dr Racket is an Integrated Development Environment designed for the
 Racket programming system with programming education in
-mind\parencite{Findler2010_DrRacket}. The Racket itself is derived
+mind \parencite{Findler2010_DrRacket}. The Racket itself is derived
 from the Scheme programming language, so it inherits its
 \textit{heavily-parenthesized} syntax of
 \textit{s-expressions}. However, its \texttt{\#lang} extension
@@ -210,7 +213,7 @@ with a rich educational curriculum.
 
 The IDE is implemented in the Racket programming language, which
 extends the Scheme language with its idiosyncratic Object-Oriented
-Programming system\parencite{Flatt2006SchemeWithClasses}.
+Programming system \parencite{Flatt2006SchemeWithClasses}.
 
 The Dr Racket environment is focused mainly on textual languages,
 although it is quite unique in that it allows to use images (inserted
@@ -224,7 +227,7 @@ images via means of composition provided by the language.
 
 The Racket programming environment provides a very interesting purely
 functional model of creating interactive applications called
-\textit{Universe}\parencite{Felleisen2htdpUniverse}. Racket has also
+\textit{Universe} \parencite{Felleisen2htdpUniverse}. Racket has also
 been used as the core of an artistic live-programming environment
 called \cite{Fluxus}.
 
@@ -240,7 +243,7 @@ It is going to be described in the next section.
 \subsection{Interactive Visual Syntax}
 
 The paper \textit{Adding Interactive Syntax to Textual
-  Code}\parencite{Andersen2020} describes a principled attempt to turn
+  Code} \parencite{Andersen2020} describes a principled attempt to turn
 dr Racket into a General Visual Programming environment. It dwells on
 the notion of code execution phases that were specified for the Racket
 programming language (which allows for arbitrary code execution during
@@ -293,7 +296,7 @@ humans.
 
 The \textit{Interactive Syntax} project has been further elaborated in
 Leif Andersen's PhD thesis, \textit{Adding Visual and
-  Interactive-Syntax to Textual Programs}\parencite{Andersen2022}. In
+  Interactive-Syntax to Textual Programs} \parencite{Andersen2022}. In
 the course of her work, she concluded that the Racket's GUI library
 (used, among other things, to build the Dr Racket IDE) isn't flexible
 enough to be reused inside the domain-specific editors.
@@ -333,7 +336,18 @@ repository\footnote{\url{https://github.com/LeifAndersen/artifact2020}}).
 
 In particular, the Red-Black Tree example is notable for using visual
 extensions not only in regular code position, but also as patterns
-inside a pattern matching form, and templates for constructing a tree.
+inside a pattern matching form, and templates for constructing a tree
+(cf. figure \ref{fig:rbtree-visr}).
+
+\begin{figure}[!h]
+  \centering%
+  \includegraphics[width=1.0\linewidth]{images/rbtree-visr}\hfill%
+  \caption{A definition of Okasaki's Red-Black Tree balancing
+    algorithm that uses Andersen's Visual Interactive Syntax running
+    in dr Racket}
+  \label{fig:rbtree-visr}
+\end{figure}
+
 
 The ClojureScript realization of interactive syntax goes even further
 in this regard -- it provides a new special form to the language
@@ -344,7 +358,7 @@ components of the visual extension can serve to name certain
 components of some structure that is represented by that extension.
 
 The exact definition of the \texttt{g/let} form in ClojureScript is
-the following\parencite{Andersen2024}:
+the following \parencite{Andersen2024}:
 
 \begin{Snippet}
   (defmacro (g/let [diagram] & body)
@@ -371,7 +385,7 @@ Hazel is a browser-based programming environment and a functional
 programming language developed to explore the notion of \textit{typed
   holes}, where even incomplete programs can be properly typed, and
 thus various software services such as autocomplete can be implemented
-in a principled manner\parencite{Omar2016Hazelnut}. Unlike Andersen,
+in a principled manner \parencite{Omar2016Hazelnut}. Unlike Andersen,
 who focuses on adding visual extensions to textual code, the makers of
 Hazel decided to create a structure editor in such a way that the
 experience of using it resembles textual programming -- but at every
@@ -387,7 +401,7 @@ format.
 
 Hazel comes with the concept of \textit{live literals} or
 \textit{livelits}, which are user-defined visual
-extensions\parencite{Omar2021LiveLits}.
+extensions \parencite{Omar2021LiveLits}.
 
 A live literal can be defined for some specific (concrete) type using
 the \texttt{livelit} keyword, and it consists of two type definitions
@@ -408,19 +422,25 @@ is achieved via a mechanism called \textit{splices}.
 The paper which describes livelits presents the following examples: a
 slider, a color picker, a data frame (which is like a spreadsheet
 embedded in the source code), a specialized widget for adjusting
-school grade cutoffs, and another specialized widget for adjusting
-image filters (brightess and contrast).
+school grade cutoffs (see figure \ref{fig:hazel-livelits}), and
+another specialized widget for adjusting image filters (brightess and
+contrast).
 
-However, the examination of the code
-base\footnote{\url{https://github.com/hazelgrove/hazel/blob/livelits/src/hazelcore/livelits/BuiltinLivelits.re}}
-shows that most of those livelits are built-in (implemented in
-ReasonML), and therefore do not use the extension system described in
-the paper. The only example of a livelit defined and used from Hazel
-itself available for
-examination\footnote{\url{https://hazel.org/build/livelits/}} is a
-variant of slider named \texttt{\$slidy}. However, the exact extension
-method differs from the one described in the paper, and it resorts to
-techniques invoking inline JavaScript code.
+\begin{figure}[!h]
+  \centering%
+  \includegraphics[width=1.0\linewidth]{images/hazel-livelits}\hfill%
+  \caption{Examples of \textit{livelits} in the Hazel programming system}
+  \label{fig:hazel-livelits}
+\end{figure}
+
+
+However, the examination of the code base shows that most of those
+livelits are built-in (implemented in ReasonML), and therefore do not
+use the extension system described in the paper. The only example of a
+livelit defined and used from Hazel itself available for examination
+is a variant of slider named \texttt{\$slidy}. However, the exact
+extension method differs from the one described in the paper, and it
+resorts to techniques invoking inline JavaScript code.
 
 Despite those apparent shortcommings, Hazel is a fine example of a
 General Visual Programming system. Although on the surface it may not
@@ -437,7 +457,7 @@ example).
 \subsection{Polytope}
 
 Another General Programming System to consider is
-Polytope\parencite{Evans2025Polytope}. Polytope is an editor written
+Polytope \parencite{Evans2025Polytope}. Polytope is an editor written
 in TypeScript and running in the browser, which also provides
 fundamental architecture.  The current implementation of Polytope is
 designed to work with JavaScript code.  It comes with a bunch of
@@ -475,34 +495,43 @@ automatically when the code is typed in the textual editor.  It
 appears either when the code is loaded from a file, or when the
 user invokes the math editor.
 
+\begin{figure}[!h]
+  \centering%
+  \includegraphics[width=1.0\linewidth]{images/polytope-examples}\hfill%
+  \caption{Some specialized editors that are available in the Polytope
+    editor.}
+  \label{fig:polytope-examples}
+\end{figure}
+
 The decision to base Polytope directly on the browser is a very
 interesting one, because it allows to reuse a lot of the existing
 infrastructure. On the other hand, it narrows the design space and
 constrains implementation techniques.
 
 The editors in Polytope resemble Hazel's livelits in many ways, but
-the assumption to base the environment around text, rather than
-structure editing, is very much like in the Interactive Visual Syntax
-project.
+the assumption to base the editing environment around text, rather
+than structure editing, is very much like in the Interactive Visual
+Syntax project.
 
 \subsection{JetBrains MPS}
 
 JetBrains MPS (MetaProgramming System) is a \textit{language
-  workbench} for creating domain-specific languages developed by the
-same company that develops and maintains numerous Integrated
-Development Environments for various programming systems, including
-IntelliJ IDEA, Android Studio, CLion, PyCharm, PhpStorm, WebStorm and
-a few others. The company also created the Kotlin programming
-language. Despite being developed by a commercial software company,
-MPS is available with full source code under the Apache License.  It
-runs on the JVM platform.
+  workbench} for creating domain-specific programming environments
+developed by the same company that develops and maintains numerous
+Integrated Development Environments for various programming systems,
+including IntelliJ IDEA, Android Studio, CLion, PyCharm, PhpStorm,
+WebStorm and a few others. The company also created the Kotlin
+programming language. Despite being developed by a commercial software
+company, MPS is available with full source code under the Apache
+License.  It runs on the JVM platform.
 
-MPS is a complex piece of software. One of its important components is
-a highly tweakable \textit{projectional editor} which is able to
-operate directly on the edited program's abstract syntax tree, even
-though the process is made to resemble working with text. For this
-purpose, the editor has to understand the structure of a programming
-language that it's supposed to edit.
+MPS is a complex piece of software \parencite{JetBrainsMPS_UserGuide}.
+One of its important components is a highly tweakable
+\textit{projectional editor} which is able to operate directly on the
+edited program's abstract syntax tree, even though the process is made
+to resemble working with text. For this purpose, the editor has to
+understand the structure of a programming language that it's supposed
+to edit.
 
 MPS uses a non-standard terminology to refer to the units from which a
 program is built (and it might therefore be misleading). In
@@ -545,7 +574,8 @@ MPS a fine example of a General Visual Programming system.
 That being said, the current set of practices focuses mainly on
 textual editors or some of their blends (such as decision tables and
 other tabular data, or matrix literals). A notable exception includes
-state machine definitions in the \textit{mbeddr} project.
+state machine definitions in the \textit{mbeddr}
+project \parencite{Voelter2017_mbeddr}.
 
 Two aspects that are related to editing the language in the structure
 editor are called \textit{actions} (for elaborating the syntax tree)
@@ -577,7 +607,8 @@ diffs is close to none).
 \subsection{Glamorous Toolkit}
 
 Glamorous Toolkit is a \textit{moldable} development environment
-developed by Tudor Girba and his associates. It is based on Pharo
+developed by Tudor Girba and his associates
+\parencite{nierstrasz2024moldabledevelopmentpatterns}. It is based on Pharo
 Smalltalk and it inherits many properties that are typically
 associated with Smalltalk-based systems. In particular, it comes with
 a bunch of tools that can be used to explore the running system, and
@@ -611,9 +642,11 @@ be no attempts among the developers of Glamorous Toolkit to experiment
 with program representation; the main purpose of the custom
 visualizations is system analysis. This is not to say that Glamorous
 Toolkit wouldn't be the right substrate to develop a General Visual
-Programming system. Conversely, projects such as eToys or Sandblocks
-have proven that Smalltalk-based systems offer a lot of flexibility
-when it comes to non-standard program representations.
+Programming system. Conversely, projects such as eToys
+\parencite{Kay1997_EtoysSimStories, Kay2007_ChildrenLearningByDoing}
+or Sandblocks \parencite{Beckmann2020VisualProjectionalEditor} have
+proven that Smalltalk-based systems offer a lot of flexibility when it
+comes to non-standard program representations.
 
 \section{Some Desirable Features of a Programming System}
 
@@ -918,7 +951,7 @@ define the \texttt{factorial} function from 3 minutes to about 1
 minute after some training, and (according to the only known user, who
 also happens to be the developer of GRASP) the editor itself was
 fairly pleasant to use, even despite lack of support for operations
-such as \textit{undo} or \textit{copy-paste}.
+such as \textit{undo} or \textit{copy-paste} \parencite{Godek2023}.
 
 The document representation could be described by the following
 Haskell-like type definitions:
@@ -1033,9 +1066,9 @@ specification (line comments, block comments and expression comments).
 It also includes a working mechanism for writing extensions (described
 in more detail in the next section), and at the time of writing the
 repository contains over a dozen different extensions, including
-buttons, a visual stepper and a simple two-dimensional physics engine
-(which is capable of using the phone's accelerometer for accessing
-gravity information).
+buttons, a visual stepper \parencite{Godek2024} and a simple
+two-dimensional physics engine (which is capable of using the phone's
+accelerometer for accessing gravity information).
 
 The representation of documents in the fourth prototype of GRASP is
 somewhat convoluted: initially we tried to design an editor that would
@@ -1462,16 +1495,17 @@ name, residing in a directory tree. While this representation gives
 some information, there is a lot of information that it misses.  In
 particular, the size of the icon could depend (logarithmically or
 otherwise) on the size of the module. Moreover, in module systems that
-preclude circular dependencies, the modules that make up a project
+xpreclude circular dependencies, the modules that make up a project
 naturally form a layered graph, where the topmost modules are the ones
 that have no dependencies, and the bottommost ones usually contain
 application-related code. It would also be desirable to be able to
 highlight all modules that a given module depends on, as well as all
 the modules that depend on a given module (but in order to remain
 legible, this visualization would need to be dynamic)\footnote{This
-idea is reminescent of the \textit{C4 model} developed by Simon Brown,
-as well as the demo from Ivan Daniluk's 2019 GopherCon Europe talk
-titled \textit{Rethinking Visual Programming}.}.
+idea is reminescent of the \textit{C4 model} developed by Simon Brown
+\parencite{Brown_SAfD}, as well as the demo from Ivan Daniluk's 2019
+GopherCon Europe talk titled \textit{Rethinking Visual Programming}
+\parencite{Daniluk_GopherCon2019}.}.
 
 Another thing that might be important for the adaption of the concepts
 presented here is the availability of systems which support them.
@@ -1488,7 +1522,7 @@ of GRASP with a popular version control system such as git, which also
 has a great potential of interesting and valuabe
 visualizations\footnote{There is a number of code quality assessment
 techniques developed by Adam Tornhill that were inspired by forensic
-analysis}. 
+analysis \parencite{Tornhill2015CrimeScene}}. 
 
 But, in order for those developments to make sense, GRASP must first
 become sufficiently usable and robust to acquire a user base.
