@@ -6,3 +6,10 @@
 *.scm#*
 .#*.scm
 build
+*.log
+*.aux
+*.out
+*.spl
+*.bcf
+*.bbl
+*.blg

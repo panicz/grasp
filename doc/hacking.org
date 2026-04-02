@@ -25,22 +25,28 @@ to become an actually usable application. However, we believe
 that some of its current qualities can already be valuable
 to some hackers -- which is why we wrote this guide.
 
-GRASP comes bundled with a set of dependencies (except for
-the JVM runtime). They are included in the =libs/= directory.
-Among them there's =android.jar= which I've found in my
-distribution of Termux, there's =kawa.jar= that I have built
-myself from Kawa sources (pointing to the included =android.jar=),
-as well as =androidsvg-1.4.jar=, =lanterna-3.1.1.jar=
-and =jsvg-1.0.0.jar= that I think I downloaded from Maven Central.
+GRASP comes bundled with a set of dependencies (except for the JVM
+runtime). They are included in the =libs/= directory.  Among them
+there's =android.jar= which I've found in my distribution of Termux,
+there's =kawa.jar= that I have built myself from Kawa sources
+(pointing to the included =android.jar=), as well as
+=androidsvg-1.4.jar= and =jsvg-1.0.0.jar= that I think I downloaded
+from Maven Central.
 
 None of them was built by me from the source, and I never
 audited them for any security issues, so I cannot attest
 that they don't do anything malicious (even though I never
 had any reason to suspect that they do).
 
+The only exception is the Lanterna library, which was built from a
+fork available at
+[[https://github.com/panicz/lanterna/tree/fix-x10-mouse-fallback]] that
+was patched by Claude Code to fix some issues related to the mouse
+behavior on high-resolution terminals.
+
 There are also two =.dex= files: =kawa.dex= and =androidsvg-1.4.dex=,
 which simply are "pre-dexed" versions of the corresponding .jar
-files (using the d8 tool provided by the Androud SDK). They are
+files (using the d8 tool provided by the Android SDK). They are
 provided in order to reduce build times of the Android client.
 
 Note also, that this document was written around the commit
