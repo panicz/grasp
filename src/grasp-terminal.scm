@@ -277,7 +277,7 @@
 		      (type ::KeyType (key:getKeyType))
 		      (caret ::TerminalPosition (io:getCursorPosition)))
 		 (match type
-		   (,KeyType:MouseEvent
+		   (,KeyType:MOUSE_EVENT
 		    (let* ((action ::MouseAction
 				   (as MouseAction key))
 			   (position ::TerminalPosition
@@ -304,13 +304,13 @@
 			   (set! last-position:left left)
 			   (set! last-position:top top)
 			   (screen:key-typed!
-			    (special-key-code KeyType:PageUp)
+			    (special-key-code KeyType:PAGE_UP)
 			    '()))
 			  (,MouseButton:WheelDown
 			   (set! last-position:left left)
 			   (set! last-position:top top)
 			   (screen:key-typed!
-			    (special-key-code KeyType:PageDown)
+			    (special-key-code KeyType:PAGE_DOWN)
 			    '()))
 			  (_
 			   (values))))
@@ -325,13 +325,13 @@
 			(set! last-position:left left)
 			(set! last-position:top top)
 			(screen:key-typed!
-			 (special-key-code KeyType:PageUp)
+			 (special-key-code KeyType:PAGE_UP)
 			 '()))
 		       (,MouseActionType:SCROLL_DOWN
 			(set! last-position:left left)
 			(set! last-position:top top)
 			(screen:key-typed!
-			 (special-key-code KeyType:PageDown)
+			 (special-key-code KeyType:PAGE_DOWN)
 			 '()))
 		       )))
 

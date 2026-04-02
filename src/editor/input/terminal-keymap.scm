@@ -20,7 +20,7 @@
      (if (input:ctrl-down?) CTRL_MASK 0)
      (if (input:alt-down?) ALT_MASK 0)
      (if (or (input:shift-down?)
-	     (and (eq? (input:getKeyType) KeyType:Character)
+	     (and (eq? (input:getKeyType) KeyType:CHARACTER)
 		  (or (input:ctrl-down?)
 		      (input:alt-down?))
 		  (let ((c (input:getCharacter)))
@@ -29,14 +29,14 @@
      code))
   
   (match (input:getKeyType)
-    (,KeyType:Character
+    (,KeyType:CHARACTER
      (let ((c ::java.lang.Character (input:getCharacter)))
        (with-modifiers
 	(char->integer
 	 (char-downcase
 	  (integer->char (c:charValue)))))))
-    (,KeyType:ReverseTab
-     (bitwise-ior SHIFT_MASK (special-key-code KeyType:Tab)))
+    (,KeyType:REVERSE_TAB
+     (bitwise-ior SHIFT_MASK (special-key-code KeyType:TAB)))
 
     (type
      (with-modifiers (special-key-code type)))))
@@ -50,28 +50,28 @@
 	#\null)))
 
 (define (initialize-keymap)  
-  (set! (key-code-name (special-key-code KeyType:Escape)) 'esc)
-  (set! (key-code-name (special-key-code KeyType:Escape)) 'escape)
-  (set! (key-code-name (special-key-code KeyType:Backspace))
+  (set! (key-code-name (special-key-code KeyType:ESCAPE)) 'esc)
+  (set! (key-code-name (special-key-code KeyType:ESCAPE)) 'escape)
+  (set! (key-code-name (special-key-code KeyType:BACKSPACE))
 	#\backspace)
-  (set! (key-code-name (special-key-code KeyType:Backspace))
+  (set! (key-code-name (special-key-code KeyType:BACKSPACE))
 	'backspace)
-  (set! (key-code-name (special-key-code KeyType:ArrowLeft)) 'left)
-  (set! (key-code-name (special-key-code KeyType:ArrowRight)) 'right)
-  (set! (key-code-name (special-key-code KeyType:ArrowUp)) 'up)
-  (set! (key-code-name (special-key-code KeyType:ArrowDown)) 'down)
-  (set! (key-code-name (special-key-code KeyType:Insert)) 'ins)
-  (set! (key-code-name (special-key-code KeyType:Insert)) 'insert)
-  (set! (key-code-name (special-key-code KeyType:Delete)) 'del)
-  (set! (key-code-name (special-key-code KeyType:Delete)) 'delete)
-  (set! (key-code-name (special-key-code KeyType:Home)) 'home)
-  (set! (key-code-name (special-key-code KeyType:End)) 'end)
-  (set! (key-code-name (special-key-code KeyType:PageUp)) 'page-up)
-  (set! (key-code-name (special-key-code KeyType:PageDown)) 'page-down)
-  (set! (key-code-name (special-key-code KeyType:Tab)) #\tab)
-  (set! (key-code-name (special-key-code KeyType:Tab)) 'tab)
-  (set! (key-code-name (special-key-code KeyType:Enter)) #\newline)
-  (set! (key-code-name (special-key-code KeyType:Enter)) 'enter)
+  (set! (key-code-name (special-key-code KeyType:ARROW_LEFT)) 'left)
+  (set! (key-code-name (special-key-code KeyType:ARROW_RIGHT)) 'right)
+  (set! (key-code-name (special-key-code KeyType:ARROW_UP)) 'up)
+  (set! (key-code-name (special-key-code KeyType:ARROW_DOWN)) 'down)
+  (set! (key-code-name (special-key-code KeyType:INSERT)) 'ins)
+  (set! (key-code-name (special-key-code KeyType:INSERT)) 'insert)
+  (set! (key-code-name (special-key-code KeyType:DELETE)) 'del)
+  (set! (key-code-name (special-key-code KeyType:DELETE)) 'delete)
+  (set! (key-code-name (special-key-code KeyType:HOME)) 'home)
+  (set! (key-code-name (special-key-code KeyType:END)) 'end)
+  (set! (key-code-name (special-key-code KeyType:PAGE_UP)) 'page-up)
+  (set! (key-code-name (special-key-code KeyType:PAGE_DOWN)) 'page-down)
+  (set! (key-code-name (special-key-code KeyType:TAB)) #\tab)
+  (set! (key-code-name (special-key-code KeyType:TAB)) 'tab)
+  (set! (key-code-name (special-key-code KeyType:ENTER)) #\newline)
+  (set! (key-code-name (special-key-code KeyType:ENTER)) 'enter)
 
   (set! (key-code-name (special-key-code KeyType:F1)) 'f1)
   (set! (key-code-name (special-key-code KeyType:F2)) 'f2)

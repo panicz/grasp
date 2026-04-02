@@ -695,7 +695,7 @@ Main-Class: "main-class-name"
 						  '(".svg$" ".ttf$" ".otf$")))))
 			    assets)
 	extra-dependencies:
-	(list (join-path "libs" "lanterna-3.1.1.jar"))))))
+	(list (join-path "libs" "lanterna-3.2.0-SNAPSHOT.jar"))))))
 
   (set! (previous 'init-dependencies) init-dependencies)
   (set! (previous 'name) name)
