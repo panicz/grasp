@@ -259,7 +259,8 @@
 				(header-size)))
     (concatenate! (map little-endian-bytes-u32 content)))))
 
-(define-bimapping (AndroidXMLAttributeTypeName code::uint)::symbol
+(define-bimapping (AndroidXMLAttributeTypeName code::uint 0)
+  ::symbol
   (error "Unknown AndroidXMLAttribute type" code))
 
 (set! (AndroidXMLAttributeTypeName (as uint #x01000008)) 'id-reference)

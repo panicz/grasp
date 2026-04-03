@@ -57,7 +57,7 @@
   (as long (char->integer c)))
 
 (define-early-constant key-code-name
-  (bimapping (key-code::long)
+  (bimapping (key-code::long 0)
     ;; this table should be populated by particular clients
     'unknown-key))
 

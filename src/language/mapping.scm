@@ -31,38 +31,51 @@
 
 (define-syntax bimapping
   (syntax-rules (::)
-    ((bimapping (object::key-type)::value-type default)
+    ((bimapping (object::key-type default-inverse)::value-type
+		default)
      (let* ((entries (make-hash-table[key-type value-type]))
 	    (inverse-entries (make-hash-table[value-type key-type]))
             (getter (lambda (object)
                       (hash-ref entries object
 				(lambda () default))))
             (inverse-getter (lambda (object)
-			      (hash-ref inverse-entries object
-					(lambda ()
-					  (hash-ref entries object
-						    (lambda () default)))))))
+			      (hash-ref
+			       inverse-entries object
+			       (lambda ()
+				 (hash-ref
+				  entries object
+				  (lambda ()
+				    default-inverse)))))))
        (set! (setter getter) (lambda (arg value)
                                (hash-set! entries arg value)
-			       (hash-set! inverse-entries value arg)))
+			       (hash-set! inverse-entries
+					  value arg)))
        (set! (setter inverse-getter) (lambda (arg value)
-				       (hash-set! entries arg value)
-				       (hash-set! inverse-entries value arg)))
+				       (hash-set!
+					entries
+					arg value)
+				       (hash-set!
+					inverse-entries
+					value arg)))
        (set-procedure-property! getter 'table entries)
-       (set-procedure-property! inverse-getter 'table inverse-entries)
+       (set-procedure-property! inverse-getter
+				'table inverse-entries)
        (set-procedure-property! getter 'inverse inverse-getter)
        (set-procedure-property! inverse-getter 'inverse getter)
        getter))
-    ((bimapping (object::key-type) default)
-     (bimapping (object::key-type)::java.lang.Object
+    ((bimapping (object::key-type default-inverse) default)
+     (bimapping (object::key-type default-inverse)
+		::java.lang.Object
 	       default))
 
-    ((bimapping (object)::value-type default)
-     (bimapping (object::java.lang.Object)::value-type
+    ((bimapping (object default-inverse)::value-type default)
+     (bimapping (object::java.lang.Object
+		 default-inverse)::value-type
 	       default))
 
-    ((bimapping (object) default)
-     (bimapping (object::java.lang.Object)::java.lang.Object
+    ((bimapping (object default-inverse) default)
+     (bimapping (object::java.lang.Object
+		 default-inverse)::java.lang.Object
 	      default))
     ))
 
@@ -106,24 +119,39 @@
 
 (define-syntax define-bimapping
   (syntax-rules (::)
-    ((define-bimapping (bimapping-name object::key-type)::value-type
+    ((define-bimapping (bimapping-name object::key-type
+				       default-inverse)
+       ::value-type
        default)
      (define-early-constant bimapping-name
-       (with-procedure-properties ((name 'bimapping-name))
-	 (bimapping (object::key-type)::value-type default))))
+       (with-procedure-properties
+	((name 'bimapping-name))
+	(bimapping (object::key-type default-inverse)
+		   ::value-type default))))
 
-    ((define-bimapping (bimapping-name object::key-type) default)
-     (define-bimapping (bimapping-name object::key-type)
+    ((define-bimapping (bimapping-name object::key-type
+				       default-inverse)
+       default)
+     (define-bimapping (bimapping-name object::key-type
+				       default-inverse)
        ::java.lang.Object
        default))
 
-    ((define-bimapping (bimapping-name object)::value-type default)
-     (define-bimapping (bimapping-name object::java.lang.Object)
+    ((define-bimapping (bimapping-name object
+				       default-inverse)
+       ::value-type
+       default)
+     (define-bimapping (bimapping-name
+			object::java.lang.Object
+			default-inverse)
        ::value-type
        default))
 
-    ((define-bimapping (bimapping-name object) default)
-     (define-bimapping (bimapping-name object::java.lang.Object)
+    ((define-bimapping (bimapping-name object default-inverse)
+       default)
+     (define-bimapping (bimapping-name
+			object::java.lang.Object
+			default-inverse)
        ::java.lang.Object
        default))
     ))
