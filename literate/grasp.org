@@ -3886,7 +3886,7 @@ The reference is assigned during the initialization of
 GRASP.  Normally this is done by interpreting the
 ~assets/init.scm~ script that is bundled with the ~.jar~ /
 ~.apk~ file that is used for GRASP's distribution (they're
-both ~.zip~ files), but it could also be done by passing
+both ~zip~ archives), but it could also be done by passing
 additional parameter through the command line.
 
 An ~Application~ must be capable of receiving user input,
@@ -3962,7 +3962,7 @@ height.:
 
 #+BEGIN_SRC scheme :tangle editor/architecture.scm
 
-(define-interface Tile ()
+(define-interface Tile (Visual)
   (width)::real
   (height)::real)
 
@@ -3977,18 +3977,22 @@ screen):
 
 #+BEGIN_SRC scheme :tangle editor/architecture.scm
 
-(define-interface ResizableTile (Tile)
-  (min-width)::real
-  (min-height)::real
-  (set-size! new-width::real new-height::real anchor::(maybe Object))::void)
+  (define-interface ResizableTile (Tile)
+    (min-width)::real
+    (min-height)::real
+    (set-size! new-width::real
+  	     new-height::real
+  	     anchor::(maybe Object))::void)
 
 #+END_SRC
 
-Now we can specify more formally what we mean by an ~Application~:
+Now we can specify more formally what we mean by an
+~Application~:
 
 #+BEGIN_SRC scheme :tangle editor/architecture.scm
 
-(define-interface Application (Interactive Visual ResizableTile))
+  (define-interface Application (Interactive ResizableTile))
+  
 #+END_SRC
 
 In object-oriented programming, it is customary to create a
@@ -4048,62 +4052,64 @@ for managing ~Drag~ objects
 
 #+BEGIN_SRC scheme :tangle editor/architecture.scm
 
-(define-object (Main application ::Application)::Application
+  (define-object (Main application ::Application)::Application
 
-  (define (set-application! new-application ::Application)
-    (set! application new-application))
+    (define (set-application! new-application ::Application)
+      (set! application new-application))
 
-  (delegate (render! active? ::boolean)::void application)
+    (delegate (render! active? ::boolean)::void application)
 
-  (delegate (width)::real application)
+    (delegate (width)::real application)
 
-  (delegate (height)::real application)
+    (delegate (height)::real application)
 
-  (delegate (min-width)::real application)
+    (delegate (min-width)::real application)
 
-  (delegate (min-height)::real application)
+    (delegate (min-height)::real application)
 
-  (delegate (set-size! new-width::real new-height::real 
-                       anchor::(maybe Object))
-    ::void
-    application)
+    (delegate (set-size! new-width::real new-height::real 
+                         anchor::(maybe Object))
+      ::void
+      application)
 
-  (define dragging ::(maps (byte) to: Drag)
-    (mapping (finger::byte)::Drag #!null))
+    (define dragging ::(maps (byte) to: Drag)
+      (mapping (finger::byte)::Drag #!null))
 
-  (define (drag! finger::byte action::Drag)::void
-    (set! (dragging finger) action))
+    (define (drag! finger::byte action::Drag)::void
+      (set! (dragging finger) action))
 
-  (define (undrag! finger::byte)::void
-    (unset! (dragging finger)))
+    (define (undrag! finger::byte)::void
+      (unset! (dragging finger)))
 
-  (delegate (tap! finger::byte #;at x::real y::real)::boolean application)
+    (delegate (tap! finger::byte #;at x::real y::real)::boolean
+  	    application)
 
-  (delegate (press! finger::byte #;at x::real y::real)::boolean application)
+    (delegate (press! finger::byte #;at x::real y::real)::boolean
+  	    application)
 
-  (define (release! finger::byte x::real y::real
-		    vx::real vy::real)
-    ::boolean
-    (and-let* ((drag ::Drag (dragging finger)))
-      (drag:drop! x y vx vy)
-      (unset! (dragging finger))
-      #t))
+    (define (release! finger::byte x::real y::real
+  		    vx::real vy::real)
+      ::boolean
+      (and-let* ((drag ::Drag (dragging finger)))
+        (drag:drop! x y vx vy)
+        (unset! (dragging finger))
+        #t))
 
-  (define (move! finger::byte x::real y::real dx::real dy::real)
-    ::boolean
-    (and-let* ((drag ::Drag (dragging finger)))
-      (drag:move! x y dx dy)
-      #t))
+    (define (move! finger::byte x::real y::real dx::real dy::real)
+      ::boolean
+      (and-let* ((drag ::Drag (dragging finger)))
+        (drag:move! x y dx dy)
+        #t))
 
-  (delegate (second-press! finger::byte #;at x::real y::real)::boolean application)
+    (delegate (second-press! finger::byte #;at x::real y::real)::boolean application)
 
-  (delegate (double-tap! finger::byte x::real y::real)::boolean application)
+    (delegate (double-tap! finger::byte x::real y::real)::boolean application)
 
-  (delegate (long-press! finger::byte x::real y::real)::boolean application)
+    (delegate (long-press! finger::byte x::real y::real)::boolean application)
 
-  (delegate (key-typed! key-code::long)::boolean application))
+    (delegate (key-typed! key-code::long)::boolean application))
 
-(define-early-constant main ::Main (Main (NullApplication)))
+  (define-early-constant main ::Main (Main (NullApplication)))
 
 #+END_SRC
 
@@ -4185,13 +4191,13 @@ long press, second press and double tap gestures.
   (define-object (TouchEventProcessor finger::byte
                                       target::Main
                                       run::Postponed)
-  
+
     (define (distance x1::real y1::real x2::real y2::real)::real
       (hypotenuse (- x2 x1) (- y2 y1)))
 
     (define last-known-position ::Position
       (last-known-pointer-position finger))
-  
+
     (define x0 ::real +nan.0)
     (define y0 ::real +nan.0)
 
@@ -4200,13 +4206,13 @@ long press, second press and double tap gestures.
 
     (define dx ::real +nan.0)
     (define dy ::real +nan.0)
-  
+
     (define vicinity ::real 1.0)
-  
+
     (define suppressed-presses ::byte 0)
-  
+
     (define press-time-ms ::real -inf.0)
-  
+
     (define release-time-ms ::real -inf.0)
 
     (define move-time-ms ::real -inf.0)
@@ -4214,7 +4220,7 @@ long press, second press and double tap gestures.
     (define long-press-time-ms ::real 700)
 
     (define double-tap-timeout-ms ::real 350)
-  
+
     (define timeout ::Cancellable cancellable-nothing)
 
     (define (move! x::real y::real time-ms::real)::boolean
@@ -4295,6 +4301,94 @@ long press, second press and double tap gestures.
 
 #+END_SRC
 
+**** Handling keyboard input
+
+GRASP is designed to be hosted on a wide variety of systems,
+from desktop applications to mobile devices to terminal
+emulators (and one day perhaps also inside web browsers).
+
+Each of those systems has its own set of key names, and
+its own philosophy of handling modifier keys. Thus GRASP
+needs to provide a set of key names and functions that
+would unify its various host systems.
+
+This is done in three stages. In the first stage, we provide
+a set of procedures, parameters and data structures to be
+used by GRASP applications. In the second stage, the data
+structures are filled with appropriate values by the
+particular GRASP front-ends. In the third stage, the
+front-ends start their particular input systems which make
+use of the facilities from the first stage. Then the
+front-ends load the ~init.scm~ file which initializes all
+keyboard shortcuts (and which should be interpreted
+identically by each front-end).
+
+#+BEGIN_SRC scheme :tangle editor/architecture.scm
+  ;;(define-early-constant META_MASK ::long #x8000000000000000)
+  (define-early-constant CTRL_MASK  ::long #x4000000000000000)
+  (define-early-constant ALT_MASK   ::long #x2000000000000000)
+  (define-early-constant SHIFT_MASK ::long #x1000000000000000)
+  (define-early-constant MODIFIERS_MASK ::long #x7000000000000000)
+
+  (define-parameter (unicode-input)::gnu.text.Char #\null)
+
+  (define (char-code c::char)::long
+    (as long (char->integer c)))
+
+  (define-early-constant key-code-name
+    (bimapping (key-code::long 0)
+  	     ;; this table should be populated by particular clients
+  	     'unknown-key))
+
+  (define (keychord-code combination)::long
+    (match combination
+      (`(shift . ,rest)
+       (bitwise-ior SHIFT_MASK (keychord-code rest)))
+      (`(ctrl . ,rest)
+       (bitwise-ior CTRL_MASK (keychord-code rest)))
+      (`(alt . ,rest)
+       (bitwise-ior ALT_MASK (keychord-code rest)))
+      (`(,key)
+       ((inverse key-code-name) key))
+      (,@(isnt _ pair?)
+       ((inverse key-code-name) combination))))
+
+  (define (key-chord key-code ::long)
+    ::(either symbol (list-of symbol))
+    (cond
+     ((isnt (bitwise-and key-code CTRL_MASK) zero?)
+      (let ((unmasked (bitwise-and (bitwise-not CTRL_MASK)
+  				 key-code)))
+        (if (eqv? unmasked ((inverse key-code-name) 'ctrl))
+  	  'ctrl
+  	  `(ctrl . ,(listify (key-chord unmasked))))))
+
+     ((isnt (bitwise-and key-code ALT_MASK) zero?)
+      (let ((unmasked (bitwise-and (bitwise-not ALT_MASK)
+  				 key-code)))
+        (if (eqv? unmasked ((inverse key-code-name) 'alt))
+  	  'alt
+  	  `(alt . ,(listify (key-chord unmasked))))))
+
+     ((isnt (bitwise-and key-code SHIFT_MASK) zero?)
+      (let ((unmasked (bitwise-and (bitwise-not SHIFT_MASK)
+  				 key-code)))
+        (if (eqv? unmasked ((inverse key-code-name) 'shift))
+  	  'shift
+  	  `(shift . ,(listify (key-chord unmasked))))))
+
+     (else
+      (key-code-name key-code))))
+
+  (define (set-key! combination action::(maps () to: boolean))
+    (hash-set! keymap (keychord-code combination) action))
+
+#+END_SRC
+
+Because keyboard initialization consists of code that isn't very
+interesting, it can be found in the Appendices section at the end
+of this work.
+
 **** The ~Painter~ interface
 
 GRASP is designed to work in a variety of environments,
@@ -4368,7 +4462,6 @@ In either case, the rendering is done so that the origin
 is the top left corner of the text.
 
 ***** Rendering routines
-
 
 #+BEGIN_SRC scheme :tangle editor/architecture.scm
 
@@ -4522,7 +4615,6 @@ As mentioned at the beginning, the primary representation of
 documents in GRASP consists of /nested boxes/ that are
 arranged in /textual order/.
 
-
 The text representation of GRASP documents is based on the
 syntax of Scheme. Therefore we need to be able to represent
 the following syntactic components:
@@ -4574,6 +4666,1215 @@ some sense irregular.
 *** Building the JVM clients
 
 *** Building the Android client
+
+* Appendices
+
+This section contains code that is too lengthy to be
+incorporated into the main body of text, but is still
+required for the project to run.
+
+** Keyboard initialization
+*** Keyboard initialization of Android client
+
+#+BEGIN_SRC scheme :tangle editor/input/android-keymap.scm :mkdirp yes :noweb yes
+
+<<header>>
+(module-name (editor input android-keymap))
+(import (language extensions))
+(import (editor architecture))
+
+(define-alias KeyEvent android.view.KeyEvent)
+
+(define (set-key-code-name! key-code name)
+  (set! (key-code-name (as long key-code)) name))
+
+(define (initialize-keymap)
+
+  (set-key-code-name! KeyEvent:KEYCODE_11 11)
+  (set-key-code-name! KeyEvent:KEYCODE_12 12)
+  (set-key-code-name! KeyEvent:KEYCODE_3D_MODE '3d-mode)
+  ;;(set-key-code-name! KeyEvent:KEYCODE_ALL_CAPS 'all-caps)
+  (set-key-code-name! KeyEvent:KEYCODE_ALT_LEFT 'alt-left)
+  (set-key-code-name! KeyEvent:KEYCODE_ALT_RIGHT 'alt-right)
+  (set-key-code-name! KeyEvent:KEYCODE_APP_SWITCH 'app-switch)
+  (set-key-code-name! KeyEvent:KEYCODE_ASSIST 'assist)
+  (set-key-code-name! KeyEvent:KEYCODE_AVR_INPUT 'avr-input)
+  (set-key-code-name! KeyEvent:KEYCODE_AVR_POWER 'avr-power)
+  (set-key-code-name! KeyEvent:KEYCODE_BACK 'back)
+  (set-key-code-name! KeyEvent:KEYCODE_BOOKMARK 'bookmark)
+  (set-key-code-name! KeyEvent:KEYCODE_BRIGHTNESS_DOWN
+	'brightness-down)
+  (set-key-code-name! KeyEvent:KEYCODE_BRIGHTNESS_UP 'brightness-up)
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_1 'button1)
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_2 'button2)
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_3 'button3)
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_4 'button4)
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_5 'button5)
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_6 'button6)
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_7 'button7)
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_8 'button8)
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_9 'button9)
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_10 'button10)
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_11 'button11)
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_12 'button12)
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_13 'button13)
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_14 'button14)
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_15 'button15)
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_16 'button16)
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_A 'buttonA)
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_B 'buttonB)
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_C 'buttonC)
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_MODE 'button-mode)
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_L1 'buttonL1)
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_L2 'buttonL2)
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_R1 'buttonR1)
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_R2 'buttonR2)
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_SELECT 'button-select)
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_START 'button-start)
+  #;(set-key-code-name! KeyEvent:KEYCODE_BUTTON_THUMB_LEFT
+	'button-thumb-left)
+  #;(set-key-code-name! KeyEvent:KEYCODE_BUTTON_THUMB_RIGHT
+	'button-thumb-right) 
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_START 'buttonX)
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_START 'buttonY)
+  (set-key-code-name! KeyEvent:KEYCODE_BUTTON_START 'buttonZ)
+  (set-key-code-name! KeyEvent:KEYCODE_CALCULATOR 'calculator)
+  (set-key-code-name! KeyEvent:KEYCODE_CALENDAR 'calendar)
+  (set-key-code-name! KeyEvent:KEYCODE_CALL 'call)
+  (set-key-code-name! KeyEvent:KEYCODE_CAMERA 'camera)
+  (set-key-code-name! KeyEvent:KEYCODE_CAPTIONS 'captions)
+  (set-key-code-name! KeyEvent:KEYCODE_CHANNEL_UP 'channel-up)
+  (set-key-code-name! KeyEvent:KEYCODE_CHANNEL_DOWN 'channel-down)
+  (set-key-code-name! KeyEvent:KEYCODE_CLEAR 'clear)
+  (set-key-code-name! KeyEvent:KEYCODE_CONTACTS 'contacts)
+  (set-key-code-name! KeyEvent:KEYCODE_COPY 'copy)
+  (set-key-code-name! KeyEvent:KEYCODE_CTRL_LEFT 'ctrl-left)
+  (set-key-code-name! KeyEvent:KEYCODE_CTRL_RIGHT 'ctrl-right)
+  (set-key-code-name! KeyEvent:KEYCODE_CUT 'cut)
+  ;;(set-key-code-name! KeyEvent:KEYCODE_DEMO_APP_1 'demo-app1)
+  ;;(set-key-code-name! KeyEvent:KEYCODE_DEMO_APP_2 'demo-app2)
+  ;;(set-key-code-name! KeyEvent:KEYCODE_DEMO_APP_3 'demo-app3)
+  ;;(set-key-code-name! KeyEvent:KEYCODE_DEMO_APP_4 'demo-app4)
+  (set-key-code-name! KeyEvent:KEYCODE_DVR 'dvr)
+  (set-key-code-name! KeyEvent:KEYCODE_EISU 'eisu)
+  (set-key-code-name! KeyEvent:KEYCODE_ENDCALL 'endcall)
+  (set-key-code-name! KeyEvent:KEYCODE_ENVELOPE 'envelope)
+  (set-key-code-name! KeyEvent:KEYCODE_EXPLORER 'explorer)
+  #|
+  (set-key-code-name! KeyEvent:KEYCODE_FEATURED_APP_1 'featured-app1)
+  (set-key-code-name! KeyEvent:KEYCODE_FEATURED_APP_2 'featured-app2)
+  (set-key-code-name! KeyEvent:KEYCODE_FEATURED_APP_3 'featured-app3)
+  (set-key-code-name! KeyEvent:KEYCODE_FEATURED_APP_4 'featured-app4)
+  |#
+  (set-key-code-name! KeyEvent:KEYCODE_FOCUS 'focus)
+  (set-key-code-name! KeyEvent:KEYCODE_FORWARD 'forward)
+
+  (set-key-code-name! KeyEvent:KEYCODE_GRAVE #\`)
+  (set-key-code-name! KeyEvent:KEYCODE_GRAVE 'backquote)
+  
+  (set-key-code-name! KeyEvent:KEYCODE_INFO 'info)
+  (set-key-code-name! KeyEvent:KEYCODE_KANA 'kana)
+  (set-key-code-name! KeyEvent:KEYCODE_LANGUAGE_SWITCH
+	'switch-language)
+  (set-key-code-name! KeyEvent:KEYCODE_LAST_CHANNEL 'last-channel)
+  (set-key-code-name! KeyEvent:KEYCODE_MANNER_MODE 'manner-mode)
+  (set-key-code-name! KeyEvent:KEYCODE_MEDIA_CLOSE 'media-close)
+  (set-key-code-name! KeyEvent:KEYCODE_MEDIA_EJECT 'media-eject)
+  (set-key-code-name! KeyEvent:KEYCODE_MEDIA_FAST_FORWARD
+	'media-fast-forward)
+  (set-key-code-name! KeyEvent:KEYCODE_MEDIA_NEXT 'media-next)
+  (set-key-code-name! KeyEvent:KEYCODE_MEDIA_PAUSE 'media-pause)
+  (set-key-code-name! KeyEvent:KEYCODE_MEDIA_PLAY_PAUSE
+	'media-play/pause)
+  (set-key-code-name! KeyEvent:KEYCODE_MEDIA_PREVIOUS
+	'media-previous)
+  (set-key-code-name! KeyEvent:KEYCODE_MEDIA_RECORD 'media-record)
+  (set-key-code-name! KeyEvent:KEYCODE_MEDIA_REWIND 'media-rewind)
+  (set-key-code-name! KeyEvent:KEYCODE_MEDIA_SKIP_BACKWARD
+	'media-skip-backward)
+  (set-key-code-name! KeyEvent:KEYCODE_MEDIA_SKIP_FORWARD
+	'media-skip-forward)
+  (set-key-code-name! KeyEvent:KEYCODE_MEDIA_STEP_BACKWARD
+	'media-step-backward)
+  (set-key-code-name! KeyEvent:KEYCODE_MEDIA_STEP_FORWARD
+	'media-step-forward)
+  (set-key-code-name! KeyEvent:KEYCODE_MEDIA_STOP 'media-stop)
+  (set-key-code-name! KeyEvent:KEYCODE_MEDIA_TOP_MENU
+	'media-top-menu)
+  (set-key-code-name! KeyEvent:KEYCODE_MENU 'menu)
+  (set-key-code-name! KeyEvent:KEYCODE_META_LEFT 'meta-left)
+  (set-key-code-name! KeyEvent:KEYCODE_META_RIGHT 'meta-right)
+  (set-key-code-name! KeyEvent:KEYCODE_MOVE_END 'move-end)
+  (set-key-code-name! KeyEvent:KEYCODE_MOVE_HOME 'move-home)
+  (set-key-code-name! KeyEvent:KEYCODE_MUHENKAN 'muhenkan)
+  (set-key-code-name! KeyEvent:KEYCODE_MUSIC 'music)
+  (set-key-code-name! KeyEvent:KEYCODE_MUTE 'mute)
+  (set-key-code-name! KeyEvent:KEYCODE_NAVIGATE_IN 'navigate-in)
+  (set-key-code-name! KeyEvent:KEYCODE_NAVIGATE_NEXT 'navigate-next)
+  (set-key-code-name! KeyEvent:KEYCODE_NAVIGATE_OUT 'navigate-out)
+  (set-key-code-name! KeyEvent:KEYCODE_NAVIGATE_PREVIOUS
+	'navigate-previous)
+  (set-key-code-name! KeyEvent:KEYCODE_NOTIFICATION 'notification)
+  (set-key-code-name! KeyEvent:KEYCODE_NUM 'num)
+  
+  (set-key-code-name! KeyEvent:KEYCODE_NUMPAD_0 'num0)
+  (set-key-code-name! KeyEvent:KEYCODE_NUMPAD_1 'num1)
+  (set-key-code-name! KeyEvent:KEYCODE_NUMPAD_2 'num2)
+  (set-key-code-name! KeyEvent:KEYCODE_NUMPAD_3 'num3)
+  (set-key-code-name! KeyEvent:KEYCODE_NUMPAD_4 'num4)
+  (set-key-code-name! KeyEvent:KEYCODE_NUMPAD_5 'num5)
+  (set-key-code-name! KeyEvent:KEYCODE_NUMPAD_6 'num6)
+  (set-key-code-name! KeyEvent:KEYCODE_NUMPAD_7 'num7)
+  (set-key-code-name! KeyEvent:KEYCODE_NUMPAD_8 'num8)
+  (set-key-code-name! KeyEvent:KEYCODE_NUMPAD_9 'num9)
+
+  (set-key-code-name! KeyEvent:KEYCODE_NUMPAD_ADD 'num+)
+  (set-key-code-name! KeyEvent:KEYCODE_NUMPAD_DIVIDE
+	'numpad-divide)
+  (set-key-code-name! KeyEvent:KEYCODE_NUMPAD_DIVIDE 'num/)
+  (set-key-code-name! KeyEvent:KEYCODE_NUMPAD_COMMA 'numpad-comma)
+  (set-key-code-name! KeyEvent:KEYCODE_NUMPAD_DOT 'num.)
+  (set-key-code-name! KeyEvent:KEYCODE_NUMPAD_DOT 'numpad-dot)
+  (set-key-code-name! KeyEvent:KEYCODE_NUMPAD_ENTER 'numpad-enter)
+  (set-key-code-name! KeyEvent:KEYCODE_NUMPAD_EQUALS 'num=)
+  (set-key-code-name! KeyEvent:KEYCODE_NUMPAD_EQUALS 'numpad-equals)
+  (set-key-code-name! KeyEvent:KEYCODE_NUMPAD_MULTIPLY 'num*)
+  (set-key-code-name! KeyEvent:KEYCODE_NUMPAD_MULTIPLY
+	'numpad-multiply)
+  (set-key-code-name! KeyEvent:KEYCODE_NUMPAD_LEFT_PAREN
+	'numpad-left-paren)
+  (set-key-code-name! KeyEvent:KEYCODE_NUMPAD_RIGHT_PAREN
+	'numpad-right-paren)
+  (set-key-code-name! KeyEvent:KEYCODE_NUMPAD_SUBTRACT 'num-)
+  (set-key-code-name! KeyEvent:KEYCODE_NUMPAD_SUBTRACT
+	'numpad-subtract)
+  (set-key-code-name! KeyEvent:KEYCODE_BREAK 'pause)
+  (set-key-code-name! KeyEvent:KEYCODE_PAIRING 'pairing)
+  (set-key-code-name! KeyEvent:KEYCODE_PASTE 'paste)
+  (set-key-code-name! KeyEvent:KEYCODE_PICTSYMBOLS 'pict-symbols)
+  (set-key-code-name! KeyEvent:KEYCODE_POWER 'power)
+  #;(set-key-code-name! KeyEvent:KEYCODE_PROFILE_SWITCH
+	'profile-switch)
+  (set-key-code-name! KeyEvent:KEYCODE_PROG_BLUE 'programmable-blue)
+  (set-key-code-name! KeyEvent:KEYCODE_PROG_GREEN
+	'programmable-green)
+  (set-key-code-name! KeyEvent:KEYCODE_PROG_RED 'programmable-red)
+  (set-key-code-name! KeyEvent:KEYCODE_PROG_YELLOW
+	'programmable-yellow)
+  ;;(set-key-code-name! KeyEvent:KEYCODE_REFRESH 'refresh)
+  (set-key-code-name! KeyEvent:KEYCODE_RO 'ro)
+  (set-key-code-name! KeyEvent:KEYCODE_SEARCH 'search)
+  (set-key-code-name! KeyEvent:KEYCODE_SETTINGS 'settings)
+  (set-key-code-name! KeyEvent:KEYCODE_SEARCH 'search)
+  (set-key-code-name! KeyEvent:KEYCODE_SEARCH 'settings)
+  (set-key-code-name! KeyEvent:KEYCODE_SHIFT_LEFT 'shift-left)
+  (set-key-code-name! KeyEvent:KEYCODE_SHIFT_RIGHT 'shift-right)
+  (set-key-code-name! KeyEvent:KEYCODE_SLEEP 'sleep)
+  (set-key-code-name! KeyEvent:KEYCODE_SOFT_LEFT 'soft-left)
+  (set-key-code-name! KeyEvent:KEYCODE_SOFT_RIGHT 'soft-right)
+  (set-key-code-name! KeyEvent:KEYCODE_SOFT_SLEEP 'soft-sleep)
+  (set-key-code-name! KeyEvent:KEYCODE_STB_INPUT 'stb-input)
+  (set-key-code-name! KeyEvent:KEYCODE_STB_POWER 'stb-power)
+  (set-key-code-name! KeyEvent:KEYCODE_STB_POWER 'stb-power)
+  (set-key-code-name! KeyEvent:KEYCODE_STEM_1 'stem1)
+  (set-key-code-name! KeyEvent:KEYCODE_STEM_2 'stem2)
+  (set-key-code-name! KeyEvent:KEYCODE_STEM_3 'stem3)
+  (set-key-code-name! KeyEvent:KEYCODE_STEM_PRIMARY 'stem-primary)
+  (set-key-code-name! KeyEvent:KEYCODE_SWITCH_CHARSET
+	'switch-charset)
+  (set-key-code-name! KeyEvent:KEYCODE_SYSRQ 'print-screen)
+
+  #|
+  (set-key-code-name! KeyEvent:KEYCODE_SYSTEM_NAVIGATION_DOWN
+	'system-navigation-down)
+  (set-key-code-name! KeyEvent:KEYCODE_SYSTEM_NAVIGATION_LEFT
+	'system-navigation-left)
+  (set-key-code-name! KeyEvent:KEYCODE_SYSTEM_NAVIGATION_RIGHT
+	'system-navigation-right)
+  (set-key-code-name! KeyEvent:KEYCODE_SYSTEM_NAVIGATION_UP
+  'system-navigation-up)
+  |#
+  ;;(set-key-code-name! KeyEvent:KEYCODE_THUMBS_DOWN 'thumbs-down)
+  ;;(set-key-code-name! KeyEvent:KEYCODE_THUMBS_UP 'thumbs-up)
+  (set-key-code-name! KeyEvent:KEYCODE_TV 'tv)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_ANTENNA_CABLE
+	'tv-antenna-cable)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_AUDIO_DESCRIPTION
+	'tv-audio-description)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_AUDIO_DESCRIPTION_MIX_DOWN
+	'tv-audio-description-mix-down)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_AUDIO_DESCRIPTION_MIX_UP
+	'tv-audio-description-mix-up)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_CONTENTS_MENU
+	'tv-contents-menu)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_DATA_SERVICE
+	'tv-data-service)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_INPUT 'tv-input)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_INPUT_COMPONENT_1
+	'tv-input-component1)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_INPUT_COMPONENT_2
+	'tv-input-component2)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_INPUT_COMPOSITE_1
+	'tv-input-composite1)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_INPUT_COMPOSITE_2
+	'tv-input-composite2)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_INPUT_HDMI_1
+	'tv-input-hdmi1)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_INPUT_HDMI_2
+	'tv-input-hdmi2)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_INPUT_HDMI_3
+	'tv-input-hdmi3)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_INPUT_HDMI_4
+	'tv-input-hdmi4)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_INPUT_VGA_1
+	'tv-input-vga1)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_MEDIA_CONTEXT_MENU
+	'tv-media-context-menu)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_NETWORK 'tv-network)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_NUMBER_ENTRY
+	'tv-number-entry)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_POWER 'tv-power)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_RADIO_SERVICE
+	'tv-radio-service)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_SATELLITE
+	'tv-satellite)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_SATELLITE_BS
+	'tv-satellite-bs)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_SATELLITE_SERVICE
+	'tv-satellite-service)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_TELETEXT 'tv-teletext)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_TERRESTRIAL_ANALOG
+	'tv-terrestrial-analog)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_TERRESTRIAL_DIGITAL
+	'tv-terrestrial-digital)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_TIMER_PROGRAMMING
+	'tv-timer-programming)
+  (set-key-code-name! KeyEvent:KEYCODE_TV_ZOOM_MODE
+	'tv-zoom-mode)
+  #|
+  (set-key-code-name! KeyEvent:KEYCODE_VIDEO_APP_1 'video-app1)
+  (set-key-code-name! KeyEvent:KEYCODE_VIDEO_APP_2 'video-app2)
+  (set-key-code-name! KeyEvent:KEYCODE_VIDEO_APP_3 'video-app3)
+  (set-key-code-name! KeyEvent:KEYCODE_VIDEO_APP_4 'video-app4)
+  (set-key-code-name! KeyEvent:KEYCODE_VIDEO_APP_5 'video-app5)
+  (set-key-code-name! KeyEvent:KEYCODE_VIDEO_APP_6 'video-app6)
+  (set-key-code-name! KeyEvent:KEYCODE_VIDEO_APP_7 'video-app7)
+  (set-key-code-name! KeyEvent:KEYCODE_VIDEO_APP_8 'video-app8)
+  |#
+  (set-key-code-name! KeyEvent:KEYCODE_VOICE_ASSIST 'voice-assist)
+  (set-key-code-name! KeyEvent:KEYCODE_VOLUME_DOWN 'volume-down)
+  (set-key-code-name! KeyEvent:KEYCODE_VOLUME_UP 'volume-up)
+  (set-key-code-name! KeyEvent:KEYCODE_VOLUME_MUTE 'volume-mute)
+  (set-key-code-name! KeyEvent:KEYCODE_WAKEUP 'wakeup)
+  (set-key-code-name! KeyEvent:KEYCODE_WINDOW 'window)
+  (set-key-code-name! KeyEvent:KEYCODE_YEN 'yen)
+  (set-key-code-name! KeyEvent:KEYCODE_ZENKAKU_HANKAKU
+	'zenkaku/hankaku)
+  (set-key-code-name! KeyEvent:KEYCODE_ZOOM_IN 'zoom-in)
+  (set-key-code-name! KeyEvent:KEYCODE_ZOOM_OUT 'zoom-out)
+  
+  (set-key-code-name! KeyEvent:KEYCODE_UNKNOWN
+	'unknown-key)
+
+  (set-key-code-name! KeyEvent:KEYCODE_APOSTROPHE 'quote)
+  (set-key-code-name! KeyEvent:KEYCODE_APOSTROPHE 'apostrophe)
+  (set-key-code-name! KeyEvent:KEYCODE_APOSTROPHE #\')
+  (set-key-code-name! KeyEvent:KEYCODE_BACKSLASH 'backslash)
+  (set-key-code-name! KeyEvent:KEYCODE_BACKSLASH #\\)
+  (set-key-code-name! KeyEvent:KEYCODE_ESCAPE 'esc)
+  (set-key-code-name! KeyEvent:KEYCODE_ESCAPE 'escape)
+
+  (set-key-code-name! KeyEvent:KEYCODE_EQUALS 'equals)
+  (set-key-code-name! KeyEvent:KEYCODE_EQUALS #\=)
+  (set-key-code-name! KeyEvent:KEYCODE_EQUALS '=)
+
+  (set-key-code-name! KeyEvent:KEYCODE_STAR 'asterisk)
+  (set-key-code-name! KeyEvent:KEYCODE_STAR #\*)
+  (set-key-code-name! KeyEvent:KEYCODE_STAR '*)
+  
+  (set-key-code-name! KeyEvent:KEYCODE_AT #\@)
+  (set-key-code-name! KeyEvent:KEYCODE_AT 'at)
+  (set-key-code-name! KeyEvent:KEYCODE_COMMA #\,)
+  (set-key-code-name! KeyEvent:KEYCODE_COMMA 'comma)
+  (set-key-code-name! KeyEvent:KEYCODE_MINUS 'minus)
+  (set-key-code-name! KeyEvent:KEYCODE_MINUS #\-)
+  (set-key-code-name! KeyEvent:KEYCODE_MINUS '-)
+  (set-key-code-name! KeyEvent:KEYCODE_PERIOD 'dot)
+  (set-key-code-name! KeyEvent:KEYCODE_PERIOD 'period)
+  (set-key-code-name! KeyEvent:KEYCODE_PERIOD #\.)
+  (set-key-code-name! KeyEvent:KEYCODE_PLUS 'plus)
+  (set-key-code-name! KeyEvent:KEYCODE_PLUS #\+)
+  (set-key-code-name! KeyEvent:KEYCODE_PLUS '+)
+  (set-key-code-name! KeyEvent:KEYCODE_POUND 'hash)
+  (set-key-code-name! KeyEvent:KEYCODE_POUND #\#)
+
+  (set-key-code-name! KeyEvent:KEYCODE_SEMICOLON 'semicolon)
+  (set-key-code-name! KeyEvent:KEYCODE_SEMICOLON #\;)
+  
+  (set-key-code-name! KeyEvent:KEYCODE_SLASH #\/)
+  (set-key-code-name! KeyEvent:KEYCODE_SLASH '/)
+
+  (set-key-code-name! KeyEvent:KEYCODE_F1 'f1)
+  (set-key-code-name! KeyEvent:KEYCODE_F2 'f2)
+  (set-key-code-name! KeyEvent:KEYCODE_F3 'f3)
+  (set-key-code-name! KeyEvent:KEYCODE_F4 'f4)
+  (set-key-code-name! KeyEvent:KEYCODE_F5 'f5)
+  (set-key-code-name! KeyEvent:KEYCODE_F6 'f6)
+  (set-key-code-name! KeyEvent:KEYCODE_F7 'f7)
+  (set-key-code-name! KeyEvent:KEYCODE_F8 'f8)
+  (set-key-code-name! KeyEvent:KEYCODE_F9 'f9)
+  (set-key-code-name! KeyEvent:KEYCODE_F10 'f10)
+  (set-key-code-name! KeyEvent:KEYCODE_F11 'f11)
+  (set-key-code-name! KeyEvent:KEYCODE_F12 'f12)
+  
+  (set-key-code-name! KeyEvent:KEYCODE_F1 'F1)
+  (set-key-code-name! KeyEvent:KEYCODE_F2 'F2)
+  (set-key-code-name! KeyEvent:KEYCODE_F3 'F3)
+  (set-key-code-name! KeyEvent:KEYCODE_F4 'F4)
+  (set-key-code-name! KeyEvent:KEYCODE_F5 'F5)
+  (set-key-code-name! KeyEvent:KEYCODE_F6 'F6)
+  (set-key-code-name! KeyEvent:KEYCODE_F7 'F7)
+  (set-key-code-name! KeyEvent:KEYCODE_F8 'F8)
+  (set-key-code-name! KeyEvent:KEYCODE_F9 'F9)
+  (set-key-code-name! KeyEvent:KEYCODE_F10 'F10)
+  (set-key-code-name! KeyEvent:KEYCODE_F11 'F11)
+  (set-key-code-name! KeyEvent:KEYCODE_F12 'F12)
+
+  (set-key-code-name! KeyEvent:KEYCODE_0 #\0)
+  (set-key-code-name! KeyEvent:KEYCODE_1 #\1)
+  (set-key-code-name! KeyEvent:KEYCODE_2 #\2)
+  (set-key-code-name! KeyEvent:KEYCODE_3 #\3)
+  (set-key-code-name! KeyEvent:KEYCODE_4 #\4)
+  (set-key-code-name! KeyEvent:KEYCODE_5 #\5)
+  (set-key-code-name! KeyEvent:KEYCODE_6 #\6)
+  (set-key-code-name! KeyEvent:KEYCODE_7 #\7)
+  (set-key-code-name! KeyEvent:KEYCODE_8 #\8)
+  (set-key-code-name! KeyEvent:KEYCODE_9 #\9)
+  
+  (set-key-code-name! KeyEvent:KEYCODE_0 0)
+  (set-key-code-name! KeyEvent:KEYCODE_1 1)
+  (set-key-code-name! KeyEvent:KEYCODE_2 2)
+  (set-key-code-name! KeyEvent:KEYCODE_3 3)
+  (set-key-code-name! KeyEvent:KEYCODE_4 4)
+  (set-key-code-name! KeyEvent:KEYCODE_5 5)
+  (set-key-code-name! KeyEvent:KEYCODE_6 6)
+  (set-key-code-name! KeyEvent:KEYCODE_7 7)
+  (set-key-code-name! KeyEvent:KEYCODE_8 8)
+  (set-key-code-name! KeyEvent:KEYCODE_9 9)
+
+  (set-key-code-name! KeyEvent:KEYCODE_A #\a)
+  (set-key-code-name! KeyEvent:KEYCODE_B #\b)
+  (set-key-code-name! KeyEvent:KEYCODE_C #\c)
+  (set-key-code-name! KeyEvent:KEYCODE_D #\d)
+  (set-key-code-name! KeyEvent:KEYCODE_E #\e)
+  (set-key-code-name! KeyEvent:KEYCODE_F #\f)
+  (set-key-code-name! KeyEvent:KEYCODE_G #\g)
++  (set-key-code-name! KeyEvent:KEYCODE_H #\h)
+  (set-key-code-name! KeyEvent:KEYCODE_I #\i)
+  (set-key-code-name! KeyEvent:KEYCODE_J #\j)
+  (set-key-code-name! KeyEvent:KEYCODE_K #\k)
+  (set-key-code-name! KeyEvent:KEYCODE_L #\l)
+  (set-key-code-name! KeyEvent:KEYCODE_M #\m)
+  (set-key-code-name! KeyEvent:KEYCODE_N #\n)
+  (set-key-code-name! KeyEvent:KEYCODE_O #\o)
+  (set-key-code-name! KeyEvent:KEYCODE_P #\p)
+  (set-key-code-name! KeyEvent:KEYCODE_Q #\q)
+  (set-key-code-name! KeyEvent:KEYCODE_R #\r)
+  (set-key-code-name! KeyEvent:KEYCODE_S #\s)
+  (set-key-code-name! KeyEvent:KEYCODE_T #\t)
+  (set-key-code-name! KeyEvent:KEYCODE_U #\u)
+  (set-key-code-name! KeyEvent:KEYCODE_V #\v)
+  (set-key-code-name! KeyEvent:KEYCODE_W #\w)
+  (set-key-code-name! KeyEvent:KEYCODE_X #\x)
+  (set-key-code-name! KeyEvent:KEYCODE_Y #\y)
+  (set-key-code-name! KeyEvent:KEYCODE_Z #\z)
+  
+  (set-key-code-name! KeyEvent:KEYCODE_A 'a)
+  (set-key-code-name! KeyEvent:KEYCODE_B 'b)
+  (set-key-code-name! KeyEvent:KEYCODE_C 'c)
+  (set-key-code-name! KeyEvent:KEYCODE_D 'd)
+  (set-key-code-name! KeyEvent:KEYCODE_E 'e)
+  (set-key-code-name! KeyEvent:KEYCODE_F 'f)
+  (set-key-code-name! KeyEvent:KEYCODE_G 'g)
+  (set-key-code-name! KeyEvent:KEYCODE_H 'h)
+  (set-key-code-name! KeyEvent:KEYCODE_I 'i)
+  (set-key-code-name! KeyEvent:KEYCODE_J 'j)
+  (set-key-code-name! KeyEvent:KEYCODE_K 'k)
+  (set-key-code-name! KeyEvent:KEYCODE_L 'l)
+  (set-key-code-name! KeyEvent:KEYCODE_M 'm)
+  (set-key-code-name! KeyEvent:KEYCODE_N 'n)
+  (set-key-code-name! KeyEvent:KEYCODE_O 'o)
+  (set-key-code-name! KeyEvent:KEYCODE_P 'p)
+  (set-key-code-name! KeyEvent:KEYCODE_Q 'q)
+  (set-key-code-name! KeyEvent:KEYCODE_R 'r)
+  (set-key-code-name! KeyEvent:KEYCODE_S 's)
+  (set-key-code-name! KeyEvent:KEYCODE_T 't)
+  (set-key-code-name! KeyEvent:KEYCODE_U 'u)
+  (set-key-code-name! KeyEvent:KEYCODE_V 'v)
+  (set-key-code-name! KeyEvent:KEYCODE_W 'w)
+  (set-key-code-name! KeyEvent:KEYCODE_X 'x)
+  (set-key-code-name! KeyEvent:KEYCODE_Y 'y)
+  (set-key-code-name! KeyEvent:KEYCODE_Z 'z)
+
+  (set-key-code-name! KeyEvent:KEYCODE_DPAD_LEFT 'left)
+  (set-key-code-name! KeyEvent:KEYCODE_DPAD_RIGHT 'right)
+  (set-key-code-name! KeyEvent:KEYCODE_DPAD_UP 'up)
+  (set-key-code-name! KeyEvent:KEYCODE_DPAD_DOWN 'down)
+  
+  (set-key-code-name! KeyEvent:KEYCODE_DPAD_CENTER 'center)
+  (set-key-code-name! KeyEvent:KEYCODE_DPAD_UP_LEFT 'up-left)
+  (set-key-code-name! KeyEvent:KEYCODE_DPAD_UP_RIGHT 'up-right)
+  (set-key-code-name! KeyEvent:KEYCODE_DPAD_DOWN_LEFT 'down-left)
+  (set-key-code-name! KeyEvent:KEYCODE_DPAD_DOWN_RIGHT 'down-right)
+
+  (set-key-code-name! KeyEvent:KEYCODE_INSERT 'ins)
+  (set-key-code-name! KeyEvent:KEYCODE_INSERT 'insert)
+  (set-key-code-name! KeyEvent:KEYCODE_HOME 'home)
+
+  (set-key-code-name! KeyEvent:KEYCODE_PAGE_UP 'pgup)
+  (set-key-code-name! KeyEvent:KEYCODE_PAGE_UP 'page-up)
+
+  (set-key-code-name! KeyEvent:KEYCODE_PAGE_DOWN 'pgdn)
+  (set-key-code-name! KeyEvent:KEYCODE_PAGE_DOWN 'page-down)
+
+  (set-key-code-name! KeyEvent:KEYCODE_NUM_LOCK 'num-lock)  
+  (set-key-code-name! KeyEvent:KEYCODE_CAPS_LOCK 'caps-lock)
+  (set-key-code-name! KeyEvent:KEYCODE_SCROLL_LOCK 'scroll-lock)
+  
+  (set-key-code-name! KeyEvent:KEYCODE_SPACE #\space)
+  (set-key-code-name! KeyEvent:KEYCODE_SPACE 'space)
+  (set-key-code-name! KeyEvent:KEYCODE_DEL 'backspace)
+  (set-key-code-name! KeyEvent:KEYCODE_FORWARD_DEL 'del)
+  (set-key-code-name! KeyEvent:KEYCODE_FORWARD_DEL 'delete)
+
+  (set-key-code-name! KeyEvent:KEYCODE_ENTER 'enter)
+
+  (set-key-code-name! KeyEvent:KEYCODE_TAB #\tab)
+  (set-key-code-name! KeyEvent:KEYCODE_TAB 'tab)
+
+  (set-key-code-name! KeyEvent:KEYCODE_LEFT_BRACKET 'left-bracket)
+  (set-key-code-name! KeyEvent:KEYCODE_LEFT_BRACKET 'open-bracket)
+  (set-key-code-name! KeyEvent:KEYCODE_LEFT_BRACKET 'opening-bracket)
+  (set-key-code-name! KeyEvent:KEYCODE_LEFT_BRACKET #\[)
+
+  (set-key-code-name! KeyEvent:KEYCODE_RIGHT_BRACKET 'right-bracket)
+  (set-key-code-name! KeyEvent:KEYCODE_RIGHT_BRACKET 'close-bracket)
+  (set-key-code-name! KeyEvent:KEYCODE_RIGHT_BRACKET
+	'closing-bracket)
+  (set-key-code-name! KeyEvent:KEYCODE_RIGHT_BRACKET #\])
+  
+  )
+
+#+END_SRC
+
+*** Keyboard initialization of Terminal client
+
+#+BEGIN_SRC scheme :tangle editor/input/terminal-keymap.scm :mkdirp yes :noweb yes
+<<header>>
+(module-name (editor input terminal-keymap))
+(import (language extensions))
+(import (editor architecture))
+
+(define (special-key-code key::KeyType)::long
+  (bitwise-arithmetic-shift (as long (key:ordinal))
+			    java.lang.Integer:SIZE))
+
+(define (regular-key-code c::char)::long
+  (as long (char->integer c)))
+
+(define (scancode input::KeyStroke)::long
+  (define (with-modifiers code::long)::long
+    (bitwise-ior
+     (if (input:ctrl-down?) CTRL_MASK 0)
+     (if (input:alt-down?) ALT_MASK 0)
+     (if (or (input:shift-down?)
+	     (and (eq? (input:getKeyType) KeyType:CHARACTER)
+		  (or (input:ctrl-down?)
+		      (input:alt-down?))
+		  (let ((c (input:getCharacter)))
+		    (char-upper-case? (integer->char (c:charValue))))))
+	 SHIFT_MASK 0)
+     code))
+  
+  (match (input:getKeyType)
+    (,KeyType:CHARACTER
+     (let ((c ::java.lang.Character (input:getCharacter)))
+       (with-modifiers
+	(char->integer
+	 (char-downcase
+	  (integer->char (c:charValue)))))))
+    (,KeyType:REVERSE_TAB
+     (bitwise-ior SHIFT_MASK (special-key-code KeyType:TAB)))
+
+    (type
+     (with-modifiers (special-key-code type)))))
+
+(define (input-character input::KeyStroke)::char
+  (let* ((c ::java.lang.Character (input:getCharacter)))
+    (or (and c
+	     (not (input:ctrl-down?))
+	     (not (input:alt-down?))
+	     (integer->char (c:charValue)))
+	#\null)))
+
+(define (initialize-keymap)  
+  (set! (key-code-name (special-key-code KeyType:ESCAPE)) 'esc)
+  (set! (key-code-name (special-key-code KeyType:ESCAPE)) 'escape)
+  (set! (key-code-name (special-key-code KeyType:BACKSPACE))
+	#\backspace)
+  (set! (key-code-name (special-key-code KeyType:BACKSPACE))
+	'backspace)
+  (set! (key-code-name (special-key-code KeyType:ARROW_LEFT)) 'left)
+  (set! (key-code-name (special-key-code KeyType:ARROW_RIGHT)) 'right)
+  (set! (key-code-name (special-key-code KeyType:ARROW_UP)) 'up)
+  (set! (key-code-name (special-key-code KeyType:ARROW_DOWN)) 'down)
+  (set! (key-code-name (special-key-code KeyType:INSERT)) 'ins)
+  (set! (key-code-name (special-key-code KeyType:INSERT)) 'insert)
+  (set! (key-code-name (special-key-code KeyType:DELETE)) 'del)
+  (set! (key-code-name (special-key-code KeyType:DELETE)) 'delete)
+  (set! (key-code-name (special-key-code KeyType:HOME)) 'home)
+  (set! (key-code-name (special-key-code KeyType:END)) 'end)
+  (set! (key-code-name (special-key-code KeyType:PAGE_UP)) 'page-up)
+  (set! (key-code-name (special-key-code KeyType:PAGE_DOWN)) 'page-down)
+  (set! (key-code-name (special-key-code KeyType:TAB)) #\tab)
+  (set! (key-code-name (special-key-code KeyType:TAB)) 'tab)
+  (set! (key-code-name (special-key-code KeyType:ENTER)) #\newline)
+  (set! (key-code-name (special-key-code KeyType:ENTER)) 'enter)
+
+  (set! (key-code-name (special-key-code KeyType:F1)) 'f1)
+  (set! (key-code-name (special-key-code KeyType:F2)) 'f2)
+  (set! (key-code-name (special-key-code KeyType:F3)) 'f3)
+  (set! (key-code-name (special-key-code KeyType:F4)) 'f4)
+  (set! (key-code-name (special-key-code KeyType:F5)) 'f5)
+  (set! (key-code-name (special-key-code KeyType:F6)) 'f6)
+  (set! (key-code-name (special-key-code KeyType:F7)) 'f7)
+  (set! (key-code-name (special-key-code KeyType:F8)) 'f8)
+  (set! (key-code-name (special-key-code KeyType:F9)) 'f9)
+  (set! (key-code-name (special-key-code KeyType:F10)) 'f10)
+  (set! (key-code-name (special-key-code KeyType:F11)) 'f11)
+  (set! (key-code-name (special-key-code KeyType:F12)) 'f12)
+  (set! (key-code-name (special-key-code KeyType:F13)) 'f13)
+  (set! (key-code-name (special-key-code KeyType:F14)) 'f14)
+  (set! (key-code-name (special-key-code KeyType:F15)) 'f15)
+  (set! (key-code-name (special-key-code KeyType:F16)) 'f16)
+  (set! (key-code-name (special-key-code KeyType:F17)) 'f17)
+  (set! (key-code-name (special-key-code KeyType:F18)) 'f18)
+  (set! (key-code-name (special-key-code KeyType:F19)) 'f19)
+  
+  (set! (key-code-name (special-key-code KeyType:F1)) 'F1)
+  (set! (key-code-name (special-key-code KeyType:F2)) 'F2)
+  (set! (key-code-name (special-key-code KeyType:F3)) 'F3)
+  (set! (key-code-name (special-key-code KeyType:F4)) 'F4)
+  (set! (key-code-name (special-key-code KeyType:F5)) 'F5)
+  (set! (key-code-name (special-key-code KeyType:F6)) 'F6)
+  (set! (key-code-name (special-key-code KeyType:F7)) 'F7)
+  (set! (key-code-name (special-key-code KeyType:F8)) 'F8)
+  (set! (key-code-name (special-key-code KeyType:F9)) 'F9)
+  (set! (key-code-name (special-key-code KeyType:F10)) 'F10)
+  (set! (key-code-name (special-key-code KeyType:F11)) 'F11)
+  (set! (key-code-name (special-key-code KeyType:F12)) 'F12)
+  (set! (key-code-name (special-key-code KeyType:F13)) 'F13)
+  (set! (key-code-name (special-key-code KeyType:F14)) 'F14)
+  (set! (key-code-name (special-key-code KeyType:F15)) 'F15)
+  (set! (key-code-name (special-key-code KeyType:F16)) 'F16)
+  (set! (key-code-name (special-key-code KeyType:F17)) 'F17)
+  (set! (key-code-name (special-key-code KeyType:F18)) 'F18)
+  (set! (key-code-name (special-key-code KeyType:F19)) 'F19)
+
+  (set! (key-code-name (regular-key-code #\space)) #\space)
+  (set! (key-code-name (regular-key-code #\space)) 'space)
+#|
+  (set! (key-code-name (regular-key-code #\newline)) #\newline)
+  (set! (key-code-name (regular-key-code #\newline)) 'enter)
+  |#
+  (set! (key-code-name (regular-key-code #\0)) #\0)
+  (set! (key-code-name (regular-key-code #\1)) #\1)
+  (set! (key-code-name (regular-key-code #\2)) #\2)
+  (set! (key-code-name (regular-key-code #\3)) #\3)
+  (set! (key-code-name (regular-key-code #\4)) #\4)
+  (set! (key-code-name (regular-key-code #\5)) #\5)
+  (set! (key-code-name (regular-key-code #\6)) #\6)
+  (set! (key-code-name (regular-key-code #\7)) #\7)
+  (set! (key-code-name (regular-key-code #\8)) #\8)
+  (set! (key-code-name (regular-key-code #\9)) #\9)
+  
+  (set! (key-code-name (regular-key-code #\0)) 0)
+  (set! (key-code-name (regular-key-code #\1)) 1)
+  (set! (key-code-name (regular-key-code #\2)) 2)
+  (set! (key-code-name (regular-key-code #\3)) 3)
+  (set! (key-code-name (regular-key-code #\4)) 4)
+  (set! (key-code-name (regular-key-code #\5)) 5)
+  (set! (key-code-name (regular-key-code #\6)) 6)
+  (set! (key-code-name (regular-key-code #\7)) 7)
+  (set! (key-code-name (regular-key-code #\8)) 8)
+  (set! (key-code-name (regular-key-code #\9)) 9)
+
+  (set! (key-code-name (regular-key-code #\a)) #\a)
+  (set! (key-code-name (regular-key-code #\b)) #\b)
+  (set! (key-code-name (regular-key-code #\c)) #\c)
+  (set! (key-code-name (regular-key-code #\d)) #\d)
+  (set! (key-code-name (regular-key-code #\e)) #\e)
+  (set! (key-code-name (regular-key-code #\f)) #\f)
+  (set! (key-code-name (regular-key-code #\g)) #\g)
+  (set! (key-code-name (regular-key-code #\h)) #\h)
+  (set! (key-code-name (regular-key-code #\i)) #\i)
+  (set! (key-code-name (regular-key-code #\j)) #\j)
+  (set! (key-code-name (regular-key-code #\k)) #\k)
+  (set! (key-code-name (regular-key-code #\l)) #\l)
+  (set! (key-code-name (regular-key-code #\m)) #\m)
+  (set! (key-code-name (regular-key-code #\n)) #\n)
+  (set! (key-code-name (regular-key-code #\o)) #\o)
+  (set! (key-code-name (regular-key-code #\p)) #\p)
+  (set! (key-code-name (regular-key-code #\q)) #\q)
+  (set! (key-code-name (regular-key-code #\r)) #\r)
+  (set! (key-code-name (regular-key-code #\s)) #\s)
+  (set! (key-code-name (regular-key-code #\t)) #\t)
+  (set! (key-code-name (regular-key-code #\u)) #\u)
+  (set! (key-code-name (regular-key-code #\v)) #\v)
+  (set! (key-code-name (regular-key-code #\w)) #\w)
+  (set! (key-code-name (regular-key-code #\x)) #\x)
+  (set! (key-code-name (regular-key-code #\y)) #\y)
+  (set! (key-code-name (regular-key-code #\z)) #\z)
+
+  (set! (key-code-name (regular-key-code #\a)) 'a)
+  (set! (key-code-name (regular-key-code #\b)) 'b)
+  (set! (key-code-name (regular-key-code #\c)) 'c)
+  (set! (key-code-name (regular-key-code #\d)) 'd)
+  (set! (key-code-name (regular-key-code #\e)) 'e)
+  (set! (key-code-name (regular-key-code #\f)) 'f)
+  (set! (key-code-name (regular-key-code #\g)) 'g)
+  (set! (key-code-name (regular-key-code #\h)) 'h)
+  (set! (key-code-name (regular-key-code #\i)) 'i)
+  (set! (key-code-name (regular-key-code #\j)) 'j)
+  (set! (key-code-name (regular-key-code #\k)) 'k)
+  (set! (key-code-name (regular-key-code #\l)) 'l)
+  (set! (key-code-name (regular-key-code #\m)) 'm)
+  (set! (key-code-name (regular-key-code #\n)) 'n)
+  (set! (key-code-name (regular-key-code #\o)) 'o)
+  (set! (key-code-name (regular-key-code #\p)) 'p)
+  (set! (key-code-name (regular-key-code #\q)) 'q)
+  (set! (key-code-name (regular-key-code #\r)) 'r)
+  (set! (key-code-name (regular-key-code #\s)) 's)
+  (set! (key-code-name (regular-key-code #\t)) 't)
+  (set! (key-code-name (regular-key-code #\u)) 'u)
+  (set! (key-code-name (regular-key-code #\v)) 'v)
+  (set! (key-code-name (regular-key-code #\w)) 'w)
+  (set! (key-code-name (regular-key-code #\x)) 'x)
+  (set! (key-code-name (regular-key-code #\y)) 'y)
+  (set! (key-code-name (regular-key-code #\z)) 'z)
+
+  (set! (key-code-name (regular-key-code #\&)) #\&)
+  (set! (key-code-name (regular-key-code #\&)) '&)
+
+  (set! (key-code-name (regular-key-code #\*)) #\*)
+  (set! (key-code-name (regular-key-code #\*)) 'asterisk)
+  (set! (key-code-name (regular-key-code #\*)) '*)
+
+  (set! (key-code-name (regular-key-code #\@)) #\@)
+  (set! (key-code-name (regular-key-code #\@)) 'at)
+
+  (set! (key-code-name (regular-key-code #\@)) #\`)
+  (set! (key-code-name (regular-key-code #\@)) 'backquote)
+  
+  (set! (key-code-name (regular-key-code #\\)) #\\)
+  (set! (key-code-name (regular-key-code #\\)) '\\)
+  (set! (key-code-name (regular-key-code #\\)) 'backslash)
+
+  (set! (key-code-name (regular-key-code #\^)) #\^)
+  (set! (key-code-name (regular-key-code #\^)) '^)
+
+  (set! (key-code-name (regular-key-code #\:)) #\:)
+  (set! (key-code-name (regular-key-code #\:)) ':)
+  (set! (key-code-name (regular-key-code #\:)) 'colon)
+
+  (set! (key-code-name (regular-key-code #\,)) #\,)
+  (set! (key-code-name (regular-key-code #\,)) 'comma)
+
+  (set! (key-code-name (regular-key-code #\$)) #\$)
+  (set! (key-code-name (regular-key-code #\$)) '$)
+  (set! (key-code-name (regular-key-code #\$)) 'dollar)
+
+  (set! (key-code-name (regular-key-code #\=)) #\=)
+  (set! (key-code-name (regular-key-code #\=)) '=)
+  (set! (key-code-name (regular-key-code #\=)) 'equals)
+
+  (set! (key-code-name (regular-key-code #\!)) #\!)
+  (set! (key-code-name (regular-key-code #\!)) 'exclamation-mark)
+  (set! (key-code-name (regular-key-code #\!)) '!)
+
+  (set! (key-code-name (regular-key-code #\>)) #\>)
+  (set! (key-code-name (regular-key-code #\>)) 'greater)
+  (set! (key-code-name (regular-key-code #\>)) '>)
+
+  (set! (key-code-name (regular-key-code #\<)) #\<)
+  (set! (key-code-name (regular-key-code #\<)) 'less)
+  (set! (key-code-name (regular-key-code #\<)) '<)
+
+  (set! (key-code-name (regular-key-code #\-)) #\-)
+  (set! (key-code-name (regular-key-code #\-)) 'minus)
+  (set! (key-code-name (regular-key-code #\-)) '-)
+
+  (set! (key-code-name (regular-key-code #\#)) #\#)
+  (set! (key-code-name (regular-key-code #\#)) 'hash)
+
+  (set! (key-code-name (regular-key-code #\.)) 'period)
+  (set! (key-code-name (regular-key-code #\.)) 'dot)
+  (set! (key-code-name (regular-key-code #\.)) #\.)
+
+  (set! (key-code-name (regular-key-code #\+)) 'plus)
+  (set! (key-code-name (regular-key-code #\+)) #\+)
+  (set! (key-code-name (regular-key-code #\+)) '+)
+
+  (set! (key-code-name (regular-key-code #\+)) 'quote)
+  (set! (key-code-name (regular-key-code #\')) #\')
+
+  (set! (key-code-name (regular-key-code #\")) 'double-quote)
+  (set! (key-code-name (regular-key-code #\")) #\")
+
+  (set! (key-code-name (regular-key-code #\;)) 'semicolon)
+  (set! (key-code-name (regular-key-code #\;)) #\;)
+
+  (set! (key-code-name (regular-key-code #\/)) 'slash)
+  (set! (key-code-name (regular-key-code #\/)) #\/)
+  (set! (key-code-name (regular-key-code #\/)) '/)
+
+  (set! (key-code-name (regular-key-code #\_)) 'underscore)
+  (set! (key-code-name (regular-key-code #\_)) #\_)
+  (set! (key-code-name (regular-key-code #\_)) '_)
+
+  (set! (key-code-name (regular-key-code #\())
+	'opening-parenthesis)
+  (set! (key-code-name (regular-key-code #\()) 'opening-paren)
+  (set! (key-code-name (regular-key-code #\()) 'open-parenthesis)
+  (set! (key-code-name (regular-key-code #\()) 'open-paren)
+  (set! (key-code-name (regular-key-code #\()) 'left-parenthesis)
+  (set! (key-code-name (regular-key-code #\()) 'left-paren)
+  (set! (key-code-name (regular-key-code #\()) #\()
+  
+  (set! (key-code-name (regular-key-code #\)))
+	'closing-parenthesis)
+  (set! (key-code-name (regular-key-code #\)))
+	'closing-paren)
+  (set! (key-code-name (regular-key-code #\)))
+	'close-parenthesis)
+  (set! (key-code-name (regular-key-code #\))) 'close-paren)
+  (set! (key-code-name (regular-key-code #\)))
+	'right-parenthesis)
+  (set! (key-code-name (regular-key-code #\))) 'right-paren)
+  (set! (key-code-name (regular-key-code #\))) #\))
+  
+  (set! (key-code-name (regular-key-code #\[)) 'opening-bracket)
+  (set! (key-code-name (regular-key-code #\[)) 'open-bracket)
+  (set! (key-code-name (regular-key-code #\[)) 'left-bracket)
+  (set! (key-code-name (regular-key-code #\[)) #\[)
+  
+  (set! (key-code-name (regular-key-code #\])) 'closing-bracket)
+  (set! (key-code-name (regular-key-code #\])) 'close-bracket)
+  (set! (key-code-name (regular-key-code #\])) 'right-bracket)
+  (set! (key-code-name (regular-key-code #\])) #\])
+  
+  (set! (key-code-name (regular-key-code #\{)) 'opening-brace)
+  (set! (key-code-name (regular-key-code #\{)) 'open-brace)
+  (set! (key-code-name (regular-key-code #\{)) 'left-brace)
+  (set! (key-code-name (regular-key-code #\{)) #\{)
+  
+  (set! (key-code-name (regular-key-code #\})) 'closing-brace)
+  (set! (key-code-name (regular-key-code #\})) 'close-brace)
+  (set! (key-code-name (regular-key-code #\})) 'right-brace)
+  (set! (key-code-name (regular-key-code #\})) #\})
+
+  )
+
+#+END_SRC
+
+*** Keyboard initialization of Desktop client
+
+#+BEGIN_SRC scheme :tangle editor/input/desktop-keymap.scm :mkdirp yes :noweb yes
+<<header>>
+(module-name (editor input desktop-keymap)
+(import (language extensions))
+(import (editor architecture))
+
+(define-alias KeyEvent java.awt.event.KeyEvent)
+
+(define-early-constant KeyEvent:WHEEL_UP   #x10001)
+(define-early-constant KeyEvent:WHEEL_DOWN #x10002)
+
+(define (set-key-code-name! key-code::long name)
+  (set! (key-code-name key-code) name))
+  
+(define (initialize-keymap)
+  (set-key-code-name! KeyEvent:WHEEL_UP 'mouse-wheel-up)  
+  (set-key-code-name! KeyEvent:WHEEL_DOWN 'mouse-wheel-down)
+    
+  (set-key-code-name! KeyEvent:VK_ACCEPT 'accept)
+  (set-key-code-name! KeyEvent:VK_ADD 'add)
+  (set-key-code-name! KeyEvent:VK_AGAIN 'again)
+  (set-key-code-name! KeyEvent:VK_ALL_CANDIDATES 'all-candidates)
+  (set-key-code-name! KeyEvent:VK_ALPHANUMERIC 'alphanumeric)
+  (set-key-code-name! KeyEvent:VK_BEGIN 'begin)
+  (set-key-code-name! KeyEvent:VK_CANCEL 'cancel)
+  (set-key-code-name! KeyEvent:VK_CODE_INPUT 'code-input)
+  (set-key-code-name! KeyEvent:VK_COMPOSE 'compose)
+  (set-key-code-name! KeyEvent:VK_CONTEXT_MENU 'context-menu)
+  (set-key-code-name! KeyEvent:VK_CONVERT 'convert)
+  (set-key-code-name! KeyEvent:VK_COPY 'copy)
+  (set-key-code-name! KeyEvent:VK_CUT 'cut)
+  (set-key-code-name! KeyEvent:VK_PASTE 'paste)
+  (set-key-code-name! KeyEvent:VK_UNDO 'undo)
+
+  (set-key-code-name! KeyEvent:VK_DEAD_ABOVEDOT 'dead-above-dot)
+  (set-key-code-name! KeyEvent:VK_DEAD_ABOVERING 'dead-above-ring)
+  (set-key-code-name! KeyEvent:VK_DEAD_ACUTE 'dead-acute)
+  (set-key-code-name! KeyEvent:VK_DEAD_BREVE 'dead-breve)
+  (set-key-code-name! KeyEvent:VK_DEAD_CARON 'dead-caron)
+  (set-key-code-name! KeyEvent:VK_DEAD_CEDILLA 'dead-cedilla)
+  (set-key-code-name! KeyEvent:VK_DEAD_CIRCUMFLEX 'dead-circumflex)
+  (set-key-code-name! KeyEvent:VK_DEAD_DIAERESIS 'dead-diaeresis)
+  (set-key-code-name! KeyEvent:VK_DEAD_DOUBLEACUTE
+	'dead-double-acute)
+  (set-key-code-name! KeyEvent:VK_DEAD_GRAVE 'dead-grave)
+  (set-key-code-name! KeyEvent:VK_DEAD_IOTA 'dead-iota)
+  (set-key-code-name! KeyEvent:VK_DEAD_MACRON 'dead-macron)
+  (set-key-code-name! KeyEvent:VK_DEAD_OGONEK 'dead-ogonek)
+  (set-key-code-name! KeyEvent:VK_DEAD_SEMIVOICED_SOUND
+	'dead-semivoiced-sound)
+  (set-key-code-name! KeyEvent:VK_DEAD_TILDE 'dead-tilde)
+  (set-key-code-name! KeyEvent:VK_DEAD_VOICED_SOUND
+	'dead-voiced-sound)
+  (set-key-code-name! KeyEvent:VK_DECIMAL 'decimal)
+  (set-key-code-name! KeyEvent:VK_DIVIDE 'divide)
+  (set-key-code-name! KeyEvent:VK_FIND 'find)
+  (set-key-code-name! KeyEvent:VK_FULL_WIDTH 'full-width)
+  (set-key-code-name! KeyEvent:VK_HALF_WIDTH 'half-width)
+  (set-key-code-name! KeyEvent:VK_HELP 'help)
+  (set-key-code-name! KeyEvent:VK_HIRAGANA 'hiragana)
+  (set-key-code-name! KeyEvent:VK_INPUT_METHOD_ON_OFF
+	'input-method-on/off)
+  (set-key-code-name! KeyEvent:VK_INVERTED_EXCLAMATION_MARK
+	'inverted-exclamation-mark)
+  (set-key-code-name! KeyEvent:VK_JAPANESE_HIRAGANA
+	'japanese-hiragana)
+  (set-key-code-name! KeyEvent:VK_JAPANESE_KATAKANA
+	'japanese-katakana)
+  (set-key-code-name! KeyEvent:VK_JAPANESE_ROMAN
+	'japanese-roman)
+  (set-key-code-name! KeyEvent:VK_KANA 'kana)
+  (set-key-code-name! KeyEvent:VK_KANA_LOCK 'kana-lock)
+  (set-key-code-name! KeyEvent:VK_KANJI 'kanji)
+  (set-key-code-name! KeyEvent:VK_KATAKANA 'katakana)
+  (set-key-code-name! KeyEvent:VK_MULTIPLY 'multiply)
+  (set-key-code-name! KeyEvent:VK_MODECHANGE 'mode-change)
+  (set-key-code-name! KeyEvent:VK_NONCONVERT 'non-convert)
+  (set-key-code-name! KeyEvent:VK_PREVIOUS_CANDIDATE
+	'previous-candidate)
+  (set-key-code-name! KeyEvent:VK_PROPS 'props)
+  (set-key-code-name! KeyEvent:VK_ROMAN_CHARACTERS
+	'roman-characters)
+  
+  (set-key-code-name! 0 'unknown-key)
+  (set-key-code-name! KeyEvent:VK_CONTROL 'control)
+  (set-key-code-name! KeyEvent:VK_CONTROL 'ctrl)
+  (set-key-code-name! KeyEvent:VK_META 'meta)
+  (set-key-code-name! KeyEvent:VK_SHIFT 'shift)
+  (set-key-code-name! KeyEvent:VK_WINDOWS 'windows)
+  (set-key-code-name! KeyEvent:VK_ALT 'alt)
+  
+  (set-key-code-name! KeyEvent:VK_STOP 'stop)
+  (set-key-code-name! KeyEvent:VK_SUBTRACT 'subtract)
+  
+  (set-key-code-name! KeyEvent:VK_AMPERSAND 'ampersand)
+  (set-key-code-name! KeyEvent:VK_AMPERSAND #\&)
+  (set-key-code-name! KeyEvent:VK_AMPERSAND '&)
+
+  (set-key-code-name! KeyEvent:VK_ASTERISK 'asterisk)
+  (set-key-code-name! KeyEvent:VK_ASTERISK #\*)
+  (set-key-code-name! KeyEvent:VK_ASTERISK '*)
+  
+  (set-key-code-name! KeyEvent:VK_AT #\@)
+  (set-key-code-name! KeyEvent:VK_AT 'at)
+  
+  (set-key-code-name! KeyEvent:VK_BACK_QUOTE #\`)
+  (set-key-code-name! KeyEvent:VK_BACK_QUOTE 'backquote)
+  
+  (set-key-code-name! KeyEvent:VK_BACK_SLASH '\\)
+  (set-key-code-name! KeyEvent:VK_BACK_SLASH #\\)
+  (set-key-code-name! KeyEvent:VK_BACK_SLASH 'backslash)
+
+  (set-key-code-name! KeyEvent:VK_CAPS_LOCK 'caps-lock)
+  (set-key-code-name! KeyEvent:VK_CIRCUMFLEX #\^)
+  (set-key-code-name! KeyEvent:VK_CIRCUMFLEX '^)
+  (set-key-code-name! KeyEvent:VK_CLEAR 'clear)
+  (set-key-code-name! KeyEvent:VK_COLON #\:)
+  (set-key-code-name! KeyEvent:VK_COLON ':)
+  (set-key-code-name! KeyEvent:VK_COLON 'colon)
+
+  (set-key-code-name! KeyEvent:VK_COMMA #\,)
+  (set-key-code-name! KeyEvent:VK_COMMA 'comma)
+  (set-key-code-name! KeyEvent:VK_DOLLAR 'dollar)
+  (set-key-code-name! KeyEvent:VK_DOLLAR #\$)
+  (set-key-code-name! KeyEvent:VK_DOLLAR '$)
+  (set-key-code-name! KeyEvent:VK_EQUALS 'equals)
+  (set-key-code-name! KeyEvent:VK_EQUALS #\=)
+  (set-key-code-name! KeyEvent:VK_EQUALS '=)
+  (set-key-code-name! KeyEvent:VK_EURO_SIGN 'euro)
+  (set-key-code-name! KeyEvent:VK_EXCLAMATION_MARK
+	'exclamation-mark)
+  (set-key-code-name! KeyEvent:VK_EXCLAMATION_MARK #\!)
+  (set-key-code-name! KeyEvent:VK_EXCLAMATION_MARK '!)
+  (set-key-code-name! KeyEvent:VK_GREATER 'greater)
+  (set-key-code-name! KeyEvent:VK_GREATER #\>)  
+  (set-key-code-name! KeyEvent:VK_GREATER '>)
+  (set-key-code-name! KeyEvent:VK_LESS 'less)
+  (set-key-code-name! KeyEvent:VK_LESS #\<)
+  (set-key-code-name! KeyEvent:VK_LESS '<)
+  (set-key-code-name! KeyEvent:VK_MINUS 'minus)
+  (set-key-code-name! KeyEvent:VK_MINUS #\-)
+  (set-key-code-name! KeyEvent:VK_MINUS '-)
+  (set-key-code-name! KeyEvent:VK_NUMBER_SIGN 'hash)
+  (set-key-code-name! KeyEvent:VK_NUMBER_SIGN #\#)
+
+  (set-key-code-name! KeyEvent:VK_PERIOD 'period)
+  (set-key-code-name! KeyEvent:VK_PERIOD 'dot)
+  (set-key-code-name! KeyEvent:VK_PERIOD #\.)
+  (set-key-code-name! KeyEvent:VK_PLUS 'plus)
+  (set-key-code-name! KeyEvent:VK_PLUS #\+)
+  (set-key-code-name! KeyEvent:VK_PLUS '+)
+  (set-key-code-name! KeyEvent:VK_QUOTE 'quote)
+  (set-key-code-name! KeyEvent:VK_QUOTE #\')
+  (set-key-code-name! KeyEvent:VK_QUOTEDBL 'double-quote)
+  (set-key-code-name! KeyEvent:VK_QUOTEDBL #\")
+  (set-key-code-name! KeyEvent:VK_SEMICOLON 'semicolon)
+  (set-key-code-name! KeyEvent:VK_SEMICOLON #\;)
+  (set-key-code-name! KeyEvent:VK_SLASH 'slash)
+  (set-key-code-name! KeyEvent:VK_SLASH #\/)
+  (set-key-code-name! KeyEvent:VK_SLASH '/)
+  (set-key-code-name! KeyEvent:VK_UNDERSCORE 'underscore)
+  (set-key-code-name! KeyEvent:VK_UNDERSCORE #\_)
+  (set-key-code-name! KeyEvent:VK_UNDERSCORE '_)
+  
+  (set-key-code-name! KeyEvent:VK_NUMPAD0 'num0)
+  (set-key-code-name! KeyEvent:VK_NUMPAD1 'num1)
+  (set-key-code-name! KeyEvent:VK_NUMPAD2 'num2)
+  (set-key-code-name! KeyEvent:VK_NUMPAD3 'num3)
+  (set-key-code-name! KeyEvent:VK_NUMPAD4 'num4)
+  (set-key-code-name! KeyEvent:VK_NUMPAD5 'num5)
+  (set-key-code-name! KeyEvent:VK_NUMPAD6 'num6)
+  (set-key-code-name! KeyEvent:VK_NUMPAD7 'num7)
+  (set-key-code-name! KeyEvent:VK_NUMPAD8 'num8)
+  (set-key-code-name! KeyEvent:VK_NUMPAD9 'num9)
+  (set-key-code-name! KeyEvent:VK_SEPARATOR 'numpad-separator)
+
+  (set-key-code-name! KeyEvent:VK_F1 'f1)
+  (set-key-code-name! KeyEvent:VK_F2 'f2)
+  (set-key-code-name! KeyEvent:VK_F3 'f3)
+  (set-key-code-name! KeyEvent:VK_F4 'f4)
+  (set-key-code-name! KeyEvent:VK_F5 'f5)
+  (set-key-code-name! KeyEvent:VK_F6 'f6)
+  (set-key-code-name! KeyEvent:VK_F7 'f7)
+  (set-key-code-name! KeyEvent:VK_F8 'f8)
+  (set-key-code-name! KeyEvent:VK_F9 'f9)
+  (set-key-code-name! KeyEvent:VK_F10 'f10)
+  (set-key-code-name! KeyEvent:VK_F11 'f11)
+  (set-key-code-name! KeyEvent:VK_F12 'f12)
+  (set-key-code-name! KeyEvent:VK_F13 'f13)
+  (set-key-code-name! KeyEvent:VK_F14 'f14)
+  (set-key-code-name! KeyEvent:VK_F15 'f15)
+  (set-key-code-name! KeyEvent:VK_F16 'f16)
+  (set-key-code-name! KeyEvent:VK_F17 'f17)
+  (set-key-code-name! KeyEvent:VK_F18 'f18)
+  (set-key-code-name! KeyEvent:VK_F19 'f19)
+  (set-key-code-name! KeyEvent:VK_F20 'f20)
+  (set-key-code-name! KeyEvent:VK_F21 'f21)
+  (set-key-code-name! KeyEvent:VK_F22 'f22)
+  (set-key-code-name! KeyEvent:VK_F23 'f23)
+  (set-key-code-name! KeyEvent:VK_F24 'f24)
+  
+  (set-key-code-name! KeyEvent:VK_F1 'F1)
+  (set-key-code-name! KeyEvent:VK_F2 'F2)
+  (set-key-code-name! KeyEvent:VK_F3 'F3)
+  (set-key-code-name! KeyEvent:VK_F4 'F4)
+  (set-key-code-name! KeyEvent:VK_F5 'F5)
+  (set-key-code-name! KeyEvent:VK_F6 'F6)
+  (set-key-code-name! KeyEvent:VK_F7 'F7)
+  (set-key-code-name! KeyEvent:VK_F8 'F8)
+  (set-key-code-name! KeyEvent:VK_F9 'F9)
+  (set-key-code-name! KeyEvent:VK_F10 'F10)
+  (set-key-code-name! KeyEvent:VK_F11 'F11)
+  (set-key-code-name! KeyEvent:VK_F12 'F12)
+  (set-key-code-name! KeyEvent:VK_F13 'F13)
+  (set-key-code-name! KeyEvent:VK_F14 'F14)
+  (set-key-code-name! KeyEvent:VK_F15 'F15)
+  (set-key-code-name! KeyEvent:VK_F16 'F16)
+  (set-key-code-name! KeyEvent:VK_F17 'F17)
+  (set-key-code-name! KeyEvent:VK_F18 'F18)
+  (set-key-code-name! KeyEvent:VK_F19 'F19)
+  (set-key-code-name! KeyEvent:VK_F20 'F20)
+  (set-key-code-name! KeyEvent:VK_F21 'F21)
+  (set-key-code-name! KeyEvent:VK_F22 'F22)
+  (set-key-code-name! KeyEvent:VK_F23 'F23)
+  (set-key-code-name! KeyEvent:VK_F24 'F24)
+
+  (set-key-code-name! KeyEvent:VK_0 #\0)
+  (set-key-code-name! KeyEvent:VK_1 #\1)
+  (set-key-code-name! KeyEvent:VK_2 #\2)
+  (set-key-code-name! KeyEvent:VK_3 #\3)
+  (set-key-code-name! KeyEvent:VK_4 #\4)
+  (set-key-code-name! KeyEvent:VK_5 #\5)
+  (set-key-code-name! KeyEvent:VK_6 #\6)
+  (set-key-code-name! KeyEvent:VK_7 #\7)
+  (set-key-code-name! KeyEvent:VK_8 #\8)
+  (set-key-code-name! KeyEvent:VK_9 #\9)
+  
+  (set-key-code-name! KeyEvent:VK_0 0)
+  (set-key-code-name! KeyEvent:VK_1 1)
+  (set-key-code-name! KeyEvent:VK_2 2)
+  (set-key-code-name! KeyEvent:VK_3 3)
+  (set-key-code-name! KeyEvent:VK_4 4)
+  (set-key-code-name! KeyEvent:VK_5 5)
+  (set-key-code-name! KeyEvent:VK_6 6)
+  (set-key-code-name! KeyEvent:VK_7 7)
+  (set-key-code-name! KeyEvent:VK_8 8)
+  (set-key-code-name! KeyEvent:VK_9 9)
+
+  (set-key-code-name! KeyEvent:VK_A #\a)
+  (set-key-code-name! KeyEvent:VK_B #\b)
+  (set-key-code-name! KeyEvent:VK_C #\c)
+  (set-key-code-name! KeyEvent:VK_D #\d)
+  (set-key-code-name! KeyEvent:VK_E #\e)
+  (set-key-code-name! KeyEvent:VK_F #\f)
+  (set-key-code-name! KeyEvent:VK_G #\g)
+  (set-key-code-name! KeyEvent:VK_H #\h)
+  (set-key-code-name! KeyEvent:VK_I #\i)
+  (set-key-code-name! KeyEvent:VK_J #\j)
+  (set-key-code-name! KeyEvent:VK_K #\k)
+  (set-key-code-name! KeyEvent:VK_L #\l)
+  (set-key-code-name! KeyEvent:VK_M #\m)
+  (set-key-code-name! KeyEvent:VK_N #\n)
+  (set-key-code-name! KeyEvent:VK_O #\o)
+  (set-key-code-name! KeyEvent:VK_P #\p)
+  (set-key-code-name! KeyEvent:VK_Q #\q)
+  (set-key-code-name! KeyEvent:VK_R #\r)
+  (set-key-code-name! KeyEvent:VK_S #\s)
+  (set-key-code-name! KeyEvent:VK_T #\t)
+  (set-key-code-name! KeyEvent:VK_U #\u)
+  (set-key-code-name! KeyEvent:VK_V #\v)
+  (set-key-code-name! KeyEvent:VK_W #\w)
+  (set-key-code-name! KeyEvent:VK_X #\x)
+  (set-key-code-name! KeyEvent:VK_Y #\y)
+  (set-key-code-name! KeyEvent:VK_Z #\z)
+  
+  (set-key-code-name! KeyEvent:VK_A 'a)
+  (set-key-code-name! KeyEvent:VK_B 'b)
+  (set-key-code-name! KeyEvent:VK_C 'c)
+  (set-key-code-name! KeyEvent:VK_D 'd)
+  (set-key-code-name! KeyEvent:VK_E 'e)
+  (set-key-code-name! KeyEvent:VK_F 'f)
+  (set-key-code-name! KeyEvent:VK_G 'g)
+  (set-key-code-name! KeyEvent:VK_H 'h)
+  (set-key-code-name! KeyEvent:VK_I 'i)
+  (set-key-code-name! KeyEvent:VK_J 'j)
+  (set-key-code-name! KeyEvent:VK_K 'k)
+  (set-key-code-name! KeyEvent:VK_L 'l)
+  (set-key-code-name! KeyEvent:VK_M 'm)
+  (set-key-code-name! KeyEvent:VK_N 'n)
+  (set-key-code-name! KeyEvent:VK_O 'o)
+  (set-key-code-name! KeyEvent:VK_P 'p)
+  (set-key-code-name! KeyEvent:VK_Q 'q)
+  (set-key-code-name! KeyEvent:VK_R 'r)
+  (set-key-code-name! KeyEvent:VK_S 's)
+  (set-key-code-name! KeyEvent:VK_T 't)
+  (set-key-code-name! KeyEvent:VK_U 'u)
+  (set-key-code-name! KeyEvent:VK_V 'v)
+  (set-key-code-name! KeyEvent:VK_W 'w)
+  (set-key-code-name! KeyEvent:VK_X 'x)
+  (set-key-code-name! KeyEvent:VK_Y 'y)
+  (set-key-code-name! KeyEvent:VK_Z 'z)
+
+  (set-key-code-name! KeyEvent:VK_LEFT 'left)
+  (set-key-code-name! KeyEvent:VK_RIGHT 'right)
+  (set-key-code-name! KeyEvent:VK_UP 'up)
+  (set-key-code-name! KeyEvent:VK_DOWN 'down)
+
+  (set-key-code-name! KeyEvent:VK_KP_LEFT 'numpad-left)
+  (set-key-code-name! KeyEvent:VK_KP_RIGHT 'numpad-right)
+  (set-key-code-name! KeyEvent:VK_KP_UP 'numpad-up)
+  (set-key-code-name! KeyEvent:VK_KP_DOWN 'numpad-down)
+
+  (set-key-code-name! KeyEvent:VK_SPACE #\space)
+  (set-key-code-name! KeyEvent:VK_SPACE 'space)
+  
+  (set-key-code-name! KeyEvent:VK_BACK_SPACE #\backspace)
+  (set-key-code-name! KeyEvent:VK_BACK_SPACE 'backspace)
+  (set-key-code-name! KeyEvent:VK_DELETE 'del)
+  (set-key-code-name! KeyEvent:VK_DELETE 'delete)
+
+  (set-key-code-name! KeyEvent:VK_ENTER #\return)
+  (set-key-code-name! KeyEvent:VK_ENTER 'enter)
+  (set-key-code-name! KeyEvent:VK_ESCAPE 'esc)
+  (set-key-code-name! KeyEvent:VK_ESCAPE 'escape)
+
+  (set-key-code-name! KeyEvent:VK_HOME 'home)
+  (set-key-code-name! KeyEvent:VK_INSERT 'ins)
+  (set-key-code-name! KeyEvent:VK_INSERT 'insert)
+  
+  (set-key-code-name! KeyEvent:VK_PAGE_UP 'pgup)
+  (set-key-code-name! KeyEvent:VK_PAGE_UP 'page-up)
+  (set-key-code-name! KeyEvent:VK_PAGE_DOWN 'pgdn)
+  (set-key-code-name! KeyEvent:VK_PAGE_DOWN 'page-down)
+    
+  (set-key-code-name! KeyEvent:VK_PAUSE 'pause)
+
+  (set-key-code-name! KeyEvent:VK_PRINTSCREEN 'print-screen)
+  (set-key-code-name! KeyEvent:VK_SCROLL_LOCK 'scroll-lock)
+  (set-key-code-name! KeyEvent:VK_NUM_LOCK 'num-lock)
+  
+  (set-key-code-name! KeyEvent:VK_TAB #\t)
+  (set-key-code-name! KeyEvent:VK_TAB 'tab)
+  
+  (set-key-code-name! KeyEvent:VK_LEFT_PARENTHESIS
+	'opening-parenthesis)
+  (set-key-code-name! KeyEvent:VK_LEFT_PARENTHESIS 'opening-paren)
+  (set-key-code-name! KeyEvent:VK_LEFT_PARENTHESIS 'open-parenthesis)
+  (set-key-code-name! KeyEvent:VK_LEFT_PARENTHESIS 'open-paren)
+  (set-key-code-name! KeyEvent:VK_LEFT_PARENTHESIS 'left-parenthesis)
+  (set-key-code-name! KeyEvent:VK_LEFT_PARENTHESIS 'left-paren)
+  (set-key-code-name! KeyEvent:VK_LEFT_PARENTHESIS #\()
+  
+  (set-key-code-name! KeyEvent:VK_RIGHT_PARENTHESIS
+	'closing-parenthesis)
+  (set-key-code-name! KeyEvent:VK_RIGHT_PARENTHESIS
+	'closing-paren)
+  (set-key-code-name! KeyEvent:VK_RIGHT_PARENTHESIS
+	'close-parenthesis)
+  (set-key-code-name! KeyEvent:VK_RIGHT_PARENTHESIS 'close-paren)
+  (set-key-code-name! KeyEvent:VK_RIGHT_PARENTHESIS
+	'right-parenthesis)
+  (set-key-code-name! KeyEvent:VK_RIGHT_PARENTHESIS 'right-paren)
+  (set-key-code-name! KeyEvent:VK_RIGHT_PARENTHESIS #\))
+  
+  (set-key-code-name! KeyEvent:VK_OPEN_BRACKET 'opening-bracket)
+  (set-key-code-name! KeyEvent:VK_OPEN_BRACKET 'open-bracket)
+  (set-key-code-name! KeyEvent:VK_OPEN_BRACKET 'left-bracket)
+  (set-key-code-name! KeyEvent:VK_OPEN_BRACKET #\[)
+  
+  (set-key-code-name! KeyEvent:VK_CLOSE_BRACKET 'closing-bracket)
+  (set-key-code-name! KeyEvent:VK_CLOSE_BRACKET 'close-bracket)
+  (set-key-code-name! KeyEvent:VK_CLOSE_BRACKET 'right-bracket)
+  (set-key-code-name! KeyEvent:VK_CLOSE_BRACKET #\])
+  
+  (set-key-code-name! KeyEvent:VK_BRACELEFT 'opening-brace)
+  (set-key-code-name! KeyEvent:VK_BRACELEFT 'open-brace)
+  (set-key-code-name! KeyEvent:VK_BRACELEFT 'left-brace)
+  (set-key-code-name! KeyEvent:VK_BRACELEFT #\{)
+  
+  (set-key-code-name! KeyEvent:VK_BRACERIGHT 'closing-brace)
+  (set-key-code-name! KeyEvent:VK_BRACERIGHT 'close-brace)
+  (set-key-code-name! KeyEvent:VK_BRACERIGHT 'right-brace)
+  (set-key-code-name! KeyEvent:VK_BRACERIGHT #\})
+  
+  )
+#+END_SRC
 
 * Emacs file-local variables
 
