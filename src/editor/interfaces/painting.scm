@@ -142,80 +142,38 @@ def") ===> [Extent width: 3 height: 2])
    (begin . actions)
    (painter:end-highlight! highlight-type)))
 
-(define-interface Painter ()
-
-  (styled-text-width text::CharSequence style::TextDecoration)::real
-  (styled-text-height style::TextDecoration)::real
-
-  (draw-styled-text! left::real top::real
-		     text::CharSequence style::TextDecoration)
-  ::void
-    
+(define-interface CoordinateSystemTransformer ()
   (translate! x::real y::real)::void
   (rotate! angle::real)::void
   (with-clip w::real h::real action::(maps () to: void))::void
   (scale! factor::real)::void
 
-  (draw-horizontal-split! top::real)::void
-  (draw-vertical-split! left::real)::void
-  (horizontal-split-height)::real
-  (vertical-split-width)::real
-  
-  (play! animation::Animation)::void
-  (playing? animation::Animation)::boolean
-  (stop-playing! animation::Animation)::void
-  
   (with-intensity i::float action::(maps () to: void))::void
   (with-stretch horizontal::float vertical::float
 		action::(maps () to: void))
   ::void
+
+  )
   
-  (mark-editor-cursor! +left::real +top::real editor::WithCursor)::void
-  (editor-cursor-position editor::WithCursor)::Position
+(define-interface Animator ()
+  (play! animation::Animation)::void
+  (playing? animation::Animation)::boolean
+  (stop-playing! animation::Animation)::void
+  )
 
-  ;; the functions should only pass (the-editor) as the
-  ;; last arguments of the functions above
-  (mark-cursor! +left::real +top::real)::void
-  (marked-cursor-position)::Position
 
-  (cursor-height)::real
-
-  (line-simplification-resolution)::real
-  (space-width)::real
-
-  (module-view-interline)::real
-  (module-view-interspace)::real
-
-  (paren-width)::real
-  (min-box-height)::real
-  (min-line-height)::real
-
-  (icon-extent)::Extent
-  (draw-directory-icon!)::void
-  (draw-file-icon!)::void
-
-  (press/release-mark-extent)::Extent
-  (draw-press-mark! left::real top::real)::void
-  (draw-release-mark! left::real top::real)::void
-  
-  (clear!)::void
-
-  (request-redraw!)::void
-  
-  (draw-quoted-text! s::CharSequence context::Cursor)
-  ::void
-
-  (measure-quoted-text-index-position-into!
-   target::Position text::CharSequence index::int)
-  ::Position
-
-  (draw-caption! caption::CharSequence)::void
+(define-interface TextRenderer ()
   (caption-extent caption::CharSequence)::Extent
   (caption-margin-top)::real
   (caption-margin-bottom)::real
   (caption-horizontal-margin)::real
 
   (quoted-text-extent text::CharSequence)::Extent
+  (measure-quoted-text-index-position-into!
+   target::Position text::CharSequence index::int)
+  ::Position
+
+  (draw-caption! caption::CharSequence)::void
 
   (draw-atom! text::CharSequence context::Cursor)::void
 
@@ -235,49 +193,23 @@ def") ===> [Extent width: 3 height: 2])
 
   (atom-extent text::CharSequence)::Extent
 
-  (draw-horizontal-bar!
-   width::real highlighted?::boolean)
-  ::void
-   
-  (draw-vertical-bar!
-   height::real highlighted?::boolean)
-  ::void
-
-  ;; these are used for "dotted tails"
-  ;; rendered as "bars"
-  (vertical-bar-width)::real
-  (horizontal-bar-height)::real
-
-  (draw-box! width::real height::real
-	     context::Cursor)
-  ::void
-
-  (vertical-scrollbar-width)::real
-  (horizontal-scrollbar-height)::real
-  (draw-horizontal-scrollbar!
-   total-width ::real
-   bar-width ::real
-   relative-bar-position ::real)
+  (draw-quoted-text! s::CharSequence context::Cursor)
   ::void
   
-  (draw-vertical-scrollbar!
-   total-height ::real
-   bar-height ::real
-   relative-bar-position ::real)::void
-    
-  (draw-border! width::real height::real
-		highlight::(subtype-of
-			    gnu.text.Char
-			    (either
-			     #\[
-			     #\]
-			     #\t
-			     #\null)))
-  ::void
+  (space-width)::real
 
-  (border-size)::real
-  (height/width-ratio)::real
-  
+  )
+
+(define-interface StyledTextRenderer ()
+  (styled-text-width text::CharSequence style::TextDecoration)::real
+  (styled-text-height style::TextDecoration)::real
+
+  (draw-styled-text! left::real top::real
+		     text::CharSequence style::TextDecoration)
+  ::void
+  )  
+
+(define-interface ShapeRenderer ()
   (draw-rounded-rectangle! width::real
 			   height::real)
   ::void
@@ -294,7 +226,24 @@ def") ===> [Extent width: 3 height: 2])
   (draw-thin-line! x0::real y0::real x1::real y1::real)
   ::void
 
-  #|
+  (min-line-height)::real
+  
+  (draw-border! width::real height::real
+		highlight::(subtype-of
+			    gnu.text.Char
+			    (either
+			     #\[
+			     #\]
+			     #\t
+			     #\null)))
+  ::void
+
+  (border-size)::real
+
+  )
+
+(define-interface PreciseRenderer ()
+    #|
   The `precise` family of methods is intended
   mainly to overcome the limitations for the
   textual client, making use of its capability
@@ -302,15 +251,6 @@ def") ===> [Extent width: 3 height: 2])
   2 points wide and 4 points tall with respect
   to a single character
   |#
-  
-  (precise-resolution-right)::ubyte
-  (precise-resolution-down)::ubyte
-  
-  (precise-inside-out px::real py::real)
-  ::(Values real real)
-
-  (precise-outside-in px::real py::real)
-  ::(Values real real)
 
   (precise-draw-circle! px0::real py0::real r::real
 			color::uint)
@@ -331,15 +271,23 @@ def") ===> [Extent width: 3 height: 2])
 			   right::real bottom::real
 			   color::uint)
   ::void
-  
-  (begin-highlight! type::HighlightType)::void
-  (end-highlight! type::HighlightType)::void
-  
-  (enter-comment-drawing-mode!)::void
-  (exit-comment-drawing-mode!)::void
-  (in-comment-drawing-mode?)::boolean
 
-  #||#
+    (height/width-ratio)::real
+    
+  (precise-resolution-right)::ubyte
+  (precise-resolution-down)::ubyte
+  
+  (precise-inside-out px::real py::real)
+  ::(Values real real)
+
+  (precise-outside-in px::real py::real)
+  ::(Values real real)
+
+  
+  )
+
+
+(define-interface BoxRenderer ()
   (draw-quote-box! width::real
 		   height::real
 		   context::Cursor)
@@ -393,9 +341,25 @@ def") ===> [Extent width: 3 height: 2])
 
   (unquote-splicing-marker-width)::real
 
-  (draw-popup! width::real height::real)::void
-  (horizontal-popup-margin)::real
-  (vertical-popup-margin)::real
+  (draw-horizontal-bar!
+   width::real highlighted?::boolean)
+  ::void
+   
+  (draw-vertical-bar!
+   height::real highlighted?::boolean)
+  ::void
+
+  ;; these are used for "dotted tails"
+  ;; rendered as "bars"
+  (vertical-bar-width)::real
+  (horizontal-bar-height)::real
+
+  (draw-box! width::real height::real
+	     context::Cursor)
+  ::void
+
+  (paren-width)::real
+  (min-box-height)::real
 
   (draw-line-comment! text::CharSequence
 		      context::Cursor)
@@ -411,19 +375,6 @@ def") ===> [Extent width: 3 height: 2])
    x::real y::real text::CharSequence)
   ::int
 
-  (draw-text-input!
-   text::CharSequence context::Cursor)
-  ::void
-
-  (measure-text-input-index-position-into!
-   target::Position text::CharSequence index::int)
-  ::Position
-
-  (text-input-extent text::CharSequence)::Extent
-
-  (text-input-character-index-under
-   x::real y::real text::CharSequence)
-  ::int
   
   (draw-block-comment!
    text::CharSequence context::Cursor)
@@ -438,14 +389,101 @@ def") ===> [Extent width: 3 height: 2])
   (block-comment-character-index-under
    x::real y::real text::CharSequence)
   ::int
+  
+  )
+
+(define-interface IconRenderer ()
+  (icon-extent)::Extent
+  (draw-directory-icon!)::void
+  (draw-file-icon!)::void
+
+  (press/release-mark-extent)::Extent
+  (draw-press-mark! left::real top::real)::void
+  (draw-release-mark! left::real top::real)::void
+  )
+
+
+(define-interface EditorComponentRenderer ()
+  (draw-horizontal-split! top::real)::void
+  (draw-vertical-split! left::real)::void
+  (horizontal-split-height)::real
+  (vertical-split-width)::real
+  (vertical-scrollbar-width)::real
+  (horizontal-scrollbar-height)::real
+  (draw-horizontal-scrollbar!
+   total-width ::real
+   bar-width ::real
+   relative-bar-position ::real)
+  ::void
+  (draw-vertical-scrollbar!
+   total-height ::real
+   bar-height ::real
+   relative-bar-position ::real)::void
+
+  (draw-popup! width::real height::real)::void
+  (horizontal-popup-margin)::real
+  (vertical-popup-margin)::real
 
   (draw-horizontal-grid! width::real)::void
   (draw-vertical-grid! height::real)::void
   (grid-border)::real
   (fill-grid-cell! width::real height::real)::void
 
-  (draw-point! left::real top::real
-	       color-rgba::int)::void
+  (draw-text-input!
+   text::CharSequence context::Cursor)
+  ::void
+
+  (measure-text-input-index-position-into!
+   target::Position text::CharSequence index::int)
+  ::Position
+
+  (text-input-extent text::CharSequence)::Extent
+
+  (text-input-character-index-under
+   x::real y::real text::CharSequence)
+  ::int
+  
+  )
+
+(define-interface CursorRenderer ()
+  (mark-editor-cursor! +left::real +top::real editor::WithCursor)::void
+  (editor-cursor-position editor::WithCursor)::Position
+
+  ;; the functions should only pass (the-editor) as the
+  ;; last arguments of the functions above
+  (mark-cursor! +left::real +top::real)::void
+  (marked-cursor-position)::Position
+
+  (cursor-height)::real  
+  )
+
+(define-interface Painter
+  (Animator
+   CoordinateSystemTransformer
+   TextRenderer
+   StyledTextRenderer
+   ShapeRenderer
+   PreciseRenderer
+   BoxRenderer
+   IconRenderer
+   EditorComponentRenderer
+   CursorRenderer)
+
+  (line-simplification-resolution)::real
+
+  (module-view-interline)::real
+  (module-view-interspace)::real
+  
+  (clear!)::void
+
+  (request-redraw!)::void
+      
+  (begin-highlight! type::HighlightType)::void
+  (end-highlight! type::HighlightType)::void
+  
+  (enter-comment-drawing-mode!)::void
+  (exit-comment-drawing-mode!)::void
+  (in-comment-drawing-mode?)::boolean
 
   )
 
