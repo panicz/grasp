@@ -6,3 +6,5 @@
 ;; the ~grasp.org~ file instead.
 
 (module-name (editor text-painter))
+(import (language extensions))
+(import (editor architecture))

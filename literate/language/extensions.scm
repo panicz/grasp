@@ -391,6 +391,8 @@
 
 (define-alias OutputPort gnu.kawa.io.OutPort)
 
+(define-alias EndOfFile gnu.lists.EofClass)
+
 (define (with-output-to-string proc::(maps () to: ,a))::string
   (call-with-output-string
     (lambda (port::OutputPort)
@@ -416,8 +418,14 @@
     (display message))
   (newline))
 
-(define-syntax-rule (define-interface name (supers ...) prototypes ...)
-  (interface-definition name (supers ...) (prototypes ...) ()))
+(define-syntax define-interface
+  (syntax-rules ()
+    ((define-interface (name type-args ...) (supers ...) prototypes ...)
+     ;; for the time being, we ignore type arguments in interfaces
+     (define-interface name (supers ...) prototypes ...))
+
+    ((define-interface name (supers ...) prototypes ...)
+     (interface-definition name (supers ...) (prototypes ...) ()))))
 
 (define-syntax interface-definition
   (syntax-rules (::)
@@ -450,7 +458,8 @@
                       define
                       define-private
                       define-static
-                      delegate)
+                      delegate
+                      specialize)
       
       ((object-definition (object-name . args)
                           (arg :: type . rest)
@@ -503,6 +512,36 @@
                              ...
                              (slot-set! (this) 'rest rest))
                             spec))
+
+      ((object-definition (object-name . args)
+                          ()
+                          (supers ...)
+                          slots
+                          methods
+                          initializers
+                          (:: (specialize . type-args) . spec))
+       #'(object-definition (object-name . args)
+                            ()
+                            (supers ... (specialize . type-args))
+                            slots
+                            methods
+                            initializers
+                            spec))
+
+      ((object-definition (object-name . args)
+                          ()
+                          (supers ...)
+                          slots
+                          methods
+                          initializers
+                          (:: (type . type-args) . spec))
+       #'(object-definition (object-name . args)
+                            ()
+                            (supers ... type)
+                            slots
+                            methods
+                            initializers
+                            (:: type . spec)))
       
       ((object-definition (object-name . args)
                           ()
@@ -1204,7 +1243,8 @@
 
 (define-syntax check/unique
   (lambda (stx)
-    "add equality checks for repeated identifiers in patterns and remove them from bindings"
+    "add equality checks for repeated identifiers \
+in patterns and remove them from bindings"
     (syntax-case stx (and)
       ((check/unique condition #;unchecked ()
                      #;currently-checked #f
@@ -1562,61 +1602,85 @@
 
 (define-syntax bimapping
   (syntax-rules (::)
-    ((bimapping (object::key-type)::value-type default)
-     (let* ((entries (make-hash-table[key-type value-type]))
-            (inverse-entries (make-hash-table[value-type key-type]))
+    ((bimapping (object::key-type default-inverse)::value-type
+                default)
+     (let* ((entries ::java.util.Map ((specialize java.util.HashMap 
+                                                  key-type value-type)))
+            (inverse-entries ::java.util.Map ((specialize 
+                                               java.util.HashMap 
+                                               value-type key-type)))
             (getter (lambda (object)
-                      (hash-ref entries object
-                                (lambda () default))))
+                      (if (entries:contains-key object)
+                          (entries:get object)
+                          default)))
             (inverse-getter (lambda (object)
-                              (hash-ref inverse-entries object
-                                        (lambda ()
-                                          (hash-ref entries object
-                                                    (lambda () default)))))))
+                              (if (inverse-entries:contains-key object)
+                                  (inverse-entries:get object)
+                                  default-inverse))))
        (set! (setter getter) (lambda (arg value)
                                (entries:put arg value)
                                (inverse-entries:put value arg)))
        (set! (setter inverse-getter) (lambda (arg value)
                                        (entries:put arg value)
-                                       (inverse-entries:put value arg)))
-       (set-procedure-property! inverse-getter 'table inverse-entries)
+                                       (inverse-entries:put
+                                        value arg)))
+       (set-procedure-property! getter 'table entries)
+       (set-procedure-property! inverse-getter
+                                'table inverse-entries)
+       (set-procedure-property! getter 'inverse inverse-getter)
        (set-procedure-property! inverse-getter 'inverse getter)
-       (with-procedure-properties ((table entries)
-                                   (inverse inverse-getter))
-          getter)))
-    ((bimapping (object::key-type) default)
-     (bimapping (object::key-type)::java.lang.Object
+       getter))
+    ((bimapping (object::key-type default-inverse) default)
+     (bimapping (object::key-type default-inverse)
+                ::java.lang.Object
                default))
 
-    ((bimapping (object)::value-type default)
-     (bimapping (object::java.lang.Object)::value-type
+    ((bimapping (object default-inverse)::value-type default)
+     (bimapping (object::java.lang.Object
+                 default-inverse)::value-type
                default))
 
-    ((bimapping (object) default)
-     (bimapping (object::java.lang.Object)::java.lang.Object
+    ((bimapping (object default-inverse) default)
+     (bimapping (object::java.lang.Object
+                 default-inverse)::java.lang.Object
               default))
     ))
 
 (define-syntax define-bimapping
   (syntax-rules (::)
-    ((define-bimapping (bimapping-name object::key-type)::value-type
+    ((define-bimapping (bimapping-name object::key-type
+                                       default-inverse)
+       ::value-type
        default)
      (define-early-constant bimapping-name
-       (with-procedure-properties ((name 'bimapping-name))
-         (bimapping (object::key-type)::value-type default))))
+       (with-procedure-properties
+        ((name 'bimapping-name))
+        (bimapping (object::key-type default-inverse)
+                   ::value-type default))))
 
-    ((define-bimapping (bimapping-name object::key-type) default)
-     (define-bimapping (bimapping-name object::key-type)
+    ((define-bimapping (bimapping-name object::key-type
+                                       default-inverse)
+       default)
+     (define-bimapping (bimapping-name object::key-type
+                                       default-inverse)
        ::java.lang.Object
        default))
 
-    ((define-bimapping (bimapping-name object)::value-type default)
-     (define-bimapping (bimapping-name object::java.lang.Object)
+    ((define-bimapping (bimapping-name object
+                                       default-inverse)
+       ::value-type
+       default)
+     (define-bimapping (bimapping-name
+                        object::java.lang.Object
+                        default-inverse)
        ::value-type
        default))
 
-    ((define-bimapping (bimapping-name object) default)
-     (define-bimapping (bimapping-name object::java.lang.Object)
+    ((define-bimapping (bimapping-name object default-inverse)
+       default)
+     (define-bimapping (bimapping-name
+                        object::java.lang.Object
+                        default-inverse)
        ::java.lang.Object
        default))
     ))
@@ -1935,6 +1999,8 @@
 (define-syntax-rule (unquote x)
   java.lang.Object)
 
+(define-alias Any java.lang.Object)
+
 (define (any satisfying? elements)
   (escape-with return
     (for x in elements
@@ -2095,16 +2161,27 @@
   (lambda args
     (not (apply proc args))))
 
-(define (find satisfying-element?::(maps (,a) to: boolean) in::sequence)
+(define (find satisfying-element?::(maps (,a) to: boolean) collection)
   (escape-with return
     (for-each (lambda (x)
 		(when (satisfying-element? x)
 		  (return x)))
-	      in)
+	      collection)
     #!null))
 
 (e.g.
  (find even? '(1 2 3)) ===> 2)
+
+(define (listify item)
+  (if (list? item)
+      item
+      (list item)))
+
+(e.g.
+  (listify 1) ===> (1))
+
+(e.g.
+  (listify '(1)) ===> (1))
 
 (define (map! f inout . in*)
   (cond
@@ -2422,11 +2499,11 @@
   (syntax-rules (::)
     
     ((_ (parameter-name) :: type initial-value)
-     (define-early-constant parameter-name :: parameter[type]
+     (define-early-constant parameter-name :: (specialize parameter type)
        (make-shared-parameter 'parameter-name initial-value)))
 
     ((_ (parameter-name) :: type)
-     (define-early-constant parameter-name :: parameter[type]
+     (define-early-constant parameter-name :: (specialize parameter type)
        (make-shared-parameter 'parameter-name #!null)))
     
     ((_ (parameter-name) initial-value)
@@ -2458,7 +2535,7 @@
        (make-shared-parameter 'parameter-name #!null)))
     ))
 
-(define-syntax parameterize/update-sources
+(define-syntax parameterize!
   (lambda (stx)
     (syntax-case stx ()
       ((_ ((param source) ...) body + ...)
@@ -2473,6 +2550,14 @@
 		  (when (eqv? previous-value source)
 		    (set! source (param)))
 		  ...)))))))))
+
+(define-alias 0-1 real)
+
+(define-alias percent real)
+
+(define-alias degrees real)
+
+(define-alias radian real)
 
 (define-syntax otherwise
   (syntax-rules ()
@@ -2509,10 +2594,9 @@
 (define-syntax-rule (define/memoized (name . args) . body)
   (define name (memoize (lambda args . body))))
 
-
 (define-object (InputPortLineIterator port::InputPort)
   ::(specialize java.util.Iterator string)
-  (define next-line ::(maybe (either string gnu.lists.EofClass)) #!null)
+  (define next-line ::(maybe (either string EndOfFile)) #!null)
 
   (define (hasNext) ::boolean
     (unless next-line

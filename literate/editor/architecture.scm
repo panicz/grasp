@@ -32,16 +32,18 @@
 (define-interface Visual ()
   (render! active? ::boolean)::void)
 
-(define-interface Tile ()
+(define-interface Tile (Visual)
   (width)::real
   (height)::real)
 
 (define-interface ResizableTile (Tile)
   (min-width)::real
   (min-height)::real
-  (set-size! new-width::real new-height::real anchor::(maybe Object))::void)
+  (set-size! new-width::real
+  	   new-height::real
+  	   anchor::(maybe Object))::void)
 
-(define-interface Application (Interactive Visual ResizableTile))
+(define-interface Application (Interactive ResizableTile))
 
 (define-object (Passive)::Interactive
   (define (tap! finger::byte #;at x::real y::real)::boolean #false)
@@ -97,12 +99,14 @@
   (define (undrag! finger::byte)::void
     (unset! (dragging finger)))
 
-  (delegate (tap! finger::byte #;at x::real y::real)::boolean application)
+  (delegate (tap! finger::byte #;at x::real y::real)::boolean
+  	  application)
 
-  (delegate (press! finger::byte #;at x::real y::real)::boolean application)
+  (delegate (press! finger::byte #;at x::real y::real)::boolean
+  	  application)
 
   (define (release! finger::byte x::real y::real
-		    vx::real vy::real)
+  		  vx::real vy::real)
     ::boolean
     (and-let* ((drag ::Drag (dragging finger)))
       (drag:drop! x y vx vy)
@@ -147,9 +151,9 @@
 (define-type (Position left: real top: real))
 
 (define-early-constant last-known-pointer-position
-  ;; here we initialize 10 values, because Android can support
-  ;; up to 10 pointers. That they'll be unused with other clients?
-  ;; We don't care! 
+  ;; here we initialize 10 values, because Android can support up to
+  ;; 10 pointers. That they'll be unused with other clients?  We don't
+  ;; care!
   ((array-of Position)
    (Position left: 0 top: 0)
    (Position left: 0 top: 0)
@@ -163,15 +167,15 @@
    (Position left: 0 top: 0)))
 
 (define-object (TouchEventProcessor finger::byte
-				    target::Main
-				    run::Postponed)
-  
+                                    target::Main
+                                    run::Postponed)
+
   (define (distance x1::real y1::real x2::real y2::real)::real
     (hypotenuse (- x2 x1) (- y2 y1)))
 
   (define last-known-position ::Position
     (last-known-pointer-position finger))
-  
+
   (define x0 ::real +nan.0)
   (define y0 ::real +nan.0)
 
@@ -180,13 +184,13 @@
 
   (define dx ::real +nan.0)
   (define dy ::real +nan.0)
-  
+
   (define vicinity ::real 1.0)
-  
+
   (define suppressed-presses ::byte 0)
-  
+
   (define press-time-ms ::real -inf.0)
-  
+
   (define release-time-ms ::real -inf.0)
 
   (define move-time-ms ::real -inf.0)
@@ -194,7 +198,7 @@
   (define long-press-time-ms ::real 700)
 
   (define double-tap-timeout-ms ::real 350)
-  
+
   (define timeout ::Cancellable cancellable-nothing)
 
   (define (move! x::real y::real time-ms::real)::boolean
@@ -202,26 +206,26 @@
      ((zero? suppressed-presses)
       (set! timeout (timeout:cancel))
       (let ((delta-ms ::real (- time-ms move-time-ms)))
-	(set! dx (- x last-known-position:left))
-	(set! dy (- y last-known-position:top))
-	(set! vx (/ dx delta-ms))
-	(set! vy (/ dy delta-ms))
-	(set! last-known-position:left x)
-	(set! last-known-position:top y)
-	(set! move-time-ms time-ms)
-	(target:move! finger x y dx dy)))
-     
+        (set! dx (- x last-known-position:left))
+        (set! dy (- y last-known-position:top))
+        (set! vx (/ dx delta-ms))
+        (set! vy (/ dy delta-ms))
+        (set! last-known-position:left x)
+        (set! last-known-position:top y)
+        (set! move-time-ms time-ms)
+        (target:move! finger x y dx dy)))
+
      ((is (distance x0 y0 x y) > vicinity)
       (set! timeout (timeout:cancel))
       (let ((suppressed ::int suppressed-presses))
-	(set! suppressed-presses 0)
-	(begin/or
-	 (if (is suppressed >= 2)
-	     (target:second-press! finger x0 y0)
-	     (target:press! finger x0 y0))
-	 (target:move! finger x0 y0 0 0)
-	 (target:move! finger x y (- x x0) (- y y0)))))
-     
+        (set! suppressed-presses 0)
+        (begin/or
+         (if (is suppressed >= 2)
+             (target:second-press! finger x0 y0)
+             (target:press! finger x0 y0))
+         (target:move! finger x0 y0 0 0)
+         (target:move! finger x y (- x x0) (- y y0)))))
+
      (else
       #f)))
 
@@ -236,42 +240,104 @@
 
     (match suppressed-presses
       (0 (set! suppressed-presses 1)
-	 (set! x0 x)
-	 (set! y0 y)
-	 (set! timeout
-	       (run:after
-		long-press-time-ms
-		(lambda ()
-		  (set! suppressed-presses 0)
-		  (target:long-press! finger x0 y0))))
-	 #f)
+         (set! x0 x)
+         (set! y0 y)
+         (set! timeout
+               (run:after
+                long-press-time-ms
+                (lambda ()
+                  (set! suppressed-presses 0)
+                  (target:long-press! finger x0 y0))))
+         #f)
       (1 (cond
-	  ((is (distance x0 y0 x y) <= vicinity)
-	   (set! suppressed-presses 2)
-	   #f)
-	  (else
-	   (let ((x0- x0)
-		 (y0- y0))
-	     (set! x0 x)
-	     (set! y0 y)
-	     (target:tap! finger x0- y0-)))))))
+          ((is (distance x0 y0 x y) <= vicinity)
+           (set! suppressed-presses 2)
+           #f)
+          (else
+           (let ((x0- x0)
+                 (y0- y0))
+             (set! x0 x)
+             (set! y0 y)
+             (target:tap! finger x0- y0-)))))))
 
   (define (release! x::real y::real time-ms::real)::boolean
     (set! timeout (timeout:cancel))
     (match suppressed-presses
       (0 (target:release! finger x y vx vy))
       (1 (set! timeout
-	       (run:after
-		double-tap-timeout-ms
-		(lambda ()
-		  (set! suppressed-presses 0)
-		  (target:tap! finger x0 y0))))
-	 #f)
+               (run:after
+                double-tap-timeout-ms
+                (lambda ()
+                  (set! suppressed-presses 0)
+                  (target:tap! finger x0 y0))))
+         #f)
       (2 (set! suppressed-presses 0)
-	 (target:double-tap! finger x y))))
+         (target:double-tap! finger x y))))
 
   #;(assert (is finger < (length last-known-pointer-position)))
   )
+
+;;(define-early-constant META_MASK ::long #x8000000000000000)
+(define-early-constant CTRL_MASK  ::long #x4000000000000000)
+(define-early-constant ALT_MASK   ::long #x2000000000000000)
+(define-early-constant SHIFT_MASK ::long #x1000000000000000)
+(define-early-constant MODIFIERS_MASK ::long #x7000000000000000)
+
+(define-parameter (unicode-input)::gnu.text.Char #\null)
+
+(define (char-code c::char)::long
+  (as long (char->integer c)))
+
+(define-early-constant keymap ::java.util.HashMap
+  (java.util.HashMap))
+
+(define-early-constant key-code-name
+  (bimapping (key-code::long 0)
+  	   ;; this table should be populated by particular clients
+  	   'unknown-key))
+
+(define (keychord-code combination)::long
+  (match combination
+    (`(shift . ,rest)
+     (bitwise-ior SHIFT_MASK (keychord-code rest)))
+    (`(ctrl . ,rest)
+     (bitwise-ior CTRL_MASK (keychord-code rest)))
+    (`(alt . ,rest)
+     (bitwise-ior ALT_MASK (keychord-code rest)))
+    (`(,key)
+     ((inverse key-code-name) key))
+    (,@(isnt _ pair?)
+     ((inverse key-code-name) combination))))
+
+(define (key-chord key-code ::long)
+  ::(either symbol (list-of symbol))
+  (cond
+   ((isnt (bitwise-and key-code CTRL_MASK) zero?)
+    (let ((unmasked (bitwise-and (bitwise-not CTRL_MASK)
+  			       key-code)))
+      (if (eqv? unmasked ((inverse key-code-name) 'ctrl))
+  	'ctrl
+  	`(ctrl . ,(listify (key-chord unmasked))))))
+
+   ((isnt (bitwise-and key-code ALT_MASK) zero?)
+    (let ((unmasked (bitwise-and (bitwise-not ALT_MASK)
+  			       key-code)))
+      (if (eqv? unmasked ((inverse key-code-name) 'alt))
+  	'alt
+  	`(alt . ,(listify (key-chord unmasked))))))
+
+   ((isnt (bitwise-and key-code SHIFT_MASK) zero?)
+    (let ((unmasked (bitwise-and (bitwise-not SHIFT_MASK)
+  			       key-code)))
+      (if (eqv? unmasked ((inverse key-code-name) 'shift))
+  	'shift
+  	`(shift . ,(listify (key-chord unmasked))))))
+
+   (else
+    (key-code-name key-code))))
+
+(define (set-key! combination action::(maps () to: boolean))
+  (keymap:put (keychord-code combination) action))
 
 ;; Android, Desktop and Terminal/Text use different
 ;; representations of font. For this reason, we need
@@ -282,13 +348,14 @@
 (define-alias FontProxy java.lang.Object)
 
 ;; we are going to represent colors as 32-bit numbers
-;; using the #xRRGGBBAA format, meaning that the most
-;; significant byte is Red, and the least byte significant
-;; - Alpha (transparency). So for example 0 is completely
-;; trasparent "black", #x000000FF is opaque black,
-;; and #xFFFFFFFF is opaque white.
+;; using the #xAARRGGBB format, meaning that the most
+;; significant byte is Alpha (transparency), and the 
+;; least byte significant - Blue. So for example 0 is 
+;; completely trasparent "black", #xFF000000 is opaque 
+;; black, and #xFFFFFFFF is opaque white.
 ;; 
-(define-alias RGBA uint)
+
+(define-alias ARGB uint)
 
 (define-type (Extent width: real height: real))
 
@@ -296,24 +363,31 @@
 
 (define-alias LineStyle (EnumSetOf LineDecoration))
 
-(define-interface Painter ()
-
+(define-interface RenderingTransforms ()
   (with-translation left ::real top ::real action ::(maps () to: ,a))::,a
   (with-rotation angle/radians ::real action ::(maps () to: ,a))::,a
   (with-clip width ::real height ::real action ::(maps () to: ,a))::,a
   (with-scale scale ::real action ::(maps () to: ,a))::,a
   (with-stretch rightward ::real downward ::real action ::(maps () to: ,a))::,a
   (with-intensity fraction ::real action ::(maps () to: ,a))::,a
+  )
 
+(define-interface Animator ()
   (play! animation::Animation)::void
   (playing? animation::Animation)::boolean
   (stop-playing! animation::Animation)::void
+  )
 
-  (set-lead-color! color ::RGBA)::RGBA
-  (current-lead-color)::RGBA
+(define-interface Painter ()
 
-  (set-fill-color! color ::RGBA)::RGBA
-  (current-fill-color)::RGBA
+  ;; the main color is the one that is used for text, lines etc.
+  (set-main-color! color ::ARGB)::ARGB
+  (current-main-color)::ARGB
+
+  ;; the fill color is used as a background for text, but also
+  ;; as a fill color for paths
+  (set-fill-color! color ::ARGB)::ARGB
+  (current-fill-color)::ARGB
 
   (set-font! font ::FontProxy)::FontProxy
   (current-font)::FontProxy
