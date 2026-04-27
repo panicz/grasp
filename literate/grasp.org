@@ -752,109 +752,84 @@ of numbers or creating coroutines):
 
 #+BEGIN_SRC scheme :tangle language/extensions.scm
 
-(define (par-for-each function collection)
-  (let ((futures ::java.util.List
-                 (java.util.ArrayList)))
-    (for-each (lambda (x)
-                (futures:add (future (function x))))
-              collection)
-    (for-each (lambda (f)
-                (force f))
-              futures)
-    (futures:clear)))
+  (define (par-for-each function collection)
+    (let ((futures ::java.util.List
+                   (java.util.ArrayList)))
+      (for-each (lambda (x)
+                  (futures:add (future (function x))))
+                collection)
+      (for-each (lambda (f)
+                  (force f))
+                futures)
+      (futures:clear)))
 
-(define-syntax for
-  (syntax-rules (in from to below by
-                    in-reverse
-                    in-parallel ::)
+  (define-syntax for
+    (syntax-rules (in from to down-to below by
+                      in-reverse
+                      in-parallel ::)
 
-    ((_ var :: type in-reverse collection . actions)
-     (let ((it ::java.util.ListIterator (collection:listIterator
-                                         (length collection))))
-       (while (it:hasPrevious)
-         (let ((var ::type (it:previous)))
-           . actions))))
+      ((for var from . rest)
+       (for var :: java.lang.Object from . rest))
 
-    ((_ var in-reverse collection . actions)
-     (let ((it ::java.util.ListIterator (collection:listIterator
-                                         (length collection))))
-       (while (it:hasPrevious)
-         (let ((var (it:previous)))
-           . actions))))
+      ((for var in . rest)
+       (for var :: java.lang.Object in . rest))
 
-    ((_ var :: type in-parallel collection . actions)
-     (par-for-each (lambda (var :: type) . actions) collection))
+      ((for var in-reverse . rest)
+       (for var :: java.lang.Object in-reverse . rest))
 
-    ((_ var in-parallel collection . actions)
-     (par-for-each (lambda (var) . actions) collection))
-    
-    ((_ var :: type in collection . actions)
-     (for-each (lambda (var :: type) . actions) collection))
+      ((for var in-parallel . rest)
+       (for var :: java.lang.Object in-parallel . rest))
 
-    ((_ (vars ...) in collection . actions)
-     (for-each (lambda (var)
-                 (apply (lambda (vars ...) . actions) var))
-               collection))
-    
-    ((_ var in collection . actions)
-     (for-each (lambda (var) . actions) collection))
+      ((for var :: type in-reverse collection . actions)
+       (let ((it ::java.util.ListIterator (collection:listIterator
+                                           (length collection))))
+         (while (it:hasPrevious)
+                (let ((var ::type (it:previous)))
+                  . actions))))
 
-    ((_ var::type from start to end by increment actions ...)
-     (let loop ((var::type start))
-       (if (is var <= end)
-           (begin
-             actions ...
-             (loop (+ var increment))))))
-    
-    ((_ var from start to end by increment actions ...)
-     (let loop ((var start))
-       (if (is var <= end)
-           (begin
-             actions ...
-             (loop (+ var increment))))))
+      ((for var :: type in-parallel collection . actions)
+       (par-for-each (lambda (var :: type) . actions) collection))
 
-    ((_ var::type from start below end by increment actions ...)
-     (let loop ((var start))
-       (if (is var < end)
-           (begin
-             actions ...
-             (loop (+ var increment))))))
-    
-    ((_ var from start below end by increment actions ...)
-     (let loop ((var start))
-       (if (is var < end)
-           (begin
-             actions ...
-             (loop (+ var increment))))))
+      ((for var :: type in collection . actions)
+       (for-each (lambda (var :: type) . actions) collection))
 
-    ((_ var::type from start to end actions ...)
-     (let loop ((var start))
-       (if (is var <= end)
-           (begin
-             actions ...
-             (loop (+ var 1))))))
-    
-    ((_ var from start to end actions ...)
-     (let loop ((var start))
-       (if (is var <= end)
-           (begin
-             actions ...
-             (loop (+ var 1))))))
+      ((for (vars ...) in collection . actions)
+       (for-each (lambda (var)
+                   (apply (lambda (vars ...) . actions) var))
+                 collection))
 
-    ((_ var::type from start below end actions ...)
-     (let loop ((var start))
-       (if (is var < end)
-           (begin
-             actions ...
-             (loop (+ var 1))))))
-    
-    ((_ var from start below end actions ...)
-     (let loop ((var start))
-       (if (is var < end)
-           (begin
-             actions ...
-             (loop (+ var 1))))))
-    ))
+      ((for var::type from start to end by increment actions ...)
+       (let loop ((var::type start))
+         (if (is var <= end) ;>
+             (begin
+               actions ...
+               (loop (+ var increment))))))
+
+      ((for var::type from start down-to end by increment actions ...)
+       (let ((inc (abs increment)))
+         (let loop ((var::type start))
+           (if #;< (is var >= end)
+                   (begin
+                     actions ...
+                     (loop (- var inc)))))))
+
+      ((for var::type from start below end by increment actions ...)
+       (let loop ((var start))
+         (if (is var < end) ;>
+             (begin
+               actions ...
+               (loop (+ var increment))))))
+
+      ((for var::type from start to end actions ...)
+       (for var::type from start to end by 1 actions ...))
+
+      ((for var::type from start down-to end actions ...)
+       (for var::type from start down-to end by 1 actions ...))
+
+      ((for var::type from start below end actions ...)
+       (for var::type from start below end by 1 actions ...))
+
+      ))
 #+END_SRC
 
 Note that in the above snippet, the ~::~ symbol appeared.

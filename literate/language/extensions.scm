@@ -287,96 +287,71 @@
     (futures:clear)))
 
 (define-syntax for
-  (syntax-rules (in from to below by
+  (syntax-rules (in from to down-to below by
                     in-reverse
                     in-parallel ::)
 
-    ((_ var :: type in-reverse collection . actions)
+    ((for var from . rest)
+     (for var :: java.lang.Object from . rest))
+
+    ((for var in . rest)
+     (for var :: java.lang.Object in . rest))
+
+    ((for var in-reverse . rest)
+     (for var :: java.lang.Object in-reverse . rest))
+
+    ((for var in-parallel . rest)
+     (for var :: java.lang.Object in-parallel . rest))
+
+    ((for var :: type in-reverse collection . actions)
      (let ((it ::java.util.ListIterator (collection:listIterator
                                          (length collection))))
        (while (it:hasPrevious)
-         (let ((var ::type (it:previous)))
-           . actions))))
+              (let ((var ::type (it:previous)))
+                . actions))))
 
-    ((_ var in-reverse collection . actions)
-     (let ((it ::java.util.ListIterator (collection:listIterator
-                                         (length collection))))
-       (while (it:hasPrevious)
-         (let ((var (it:previous)))
-           . actions))))
-
-    ((_ var :: type in-parallel collection . actions)
+    ((for var :: type in-parallel collection . actions)
      (par-for-each (lambda (var :: type) . actions) collection))
 
-    ((_ var in-parallel collection . actions)
-     (par-for-each (lambda (var) . actions) collection))
-    
-    ((_ var :: type in collection . actions)
+    ((for var :: type in collection . actions)
      (for-each (lambda (var :: type) . actions) collection))
 
-    ((_ (vars ...) in collection . actions)
+    ((for (vars ...) in collection . actions)
      (for-each (lambda (var)
                  (apply (lambda (vars ...) . actions) var))
                collection))
-    
-    ((_ var in collection . actions)
-     (for-each (lambda (var) . actions) collection))
 
-    ((_ var::type from start to end by increment actions ...)
+    ((for var::type from start to end by increment actions ...)
      (let loop ((var::type start))
-       (if (is var <= end)
-           (begin
-             actions ...
-             (loop (+ var increment))))))
-    
-    ((_ var from start to end by increment actions ...)
-     (let loop ((var start))
-       (if (is var <= end)
+       (if (is var <= end) ;>
            (begin
              actions ...
              (loop (+ var increment))))))
 
-    ((_ var::type from start below end by increment actions ...)
+    ((for var::type from start down-to end by increment actions ...)
+     (let ((inc (abs increment)))
+       (let loop ((var::type start))
+         (if #;< (is var >= end)
+                 (begin
+                   actions ...
+                   (loop (- var inc)))))))
+
+    ((for var::type from start below end by increment actions ...)
      (let loop ((var start))
-       (if (is var < end)
-           (begin
-             actions ...
-             (loop (+ var increment))))))
-    
-    ((_ var from start below end by increment actions ...)
-     (let loop ((var start))
-       (if (is var < end)
+       (if (is var < end) ;>
            (begin
              actions ...
              (loop (+ var increment))))))
 
-    ((_ var::type from start to end actions ...)
-     (let loop ((var start))
-       (if (is var <= end)
-           (begin
-             actions ...
-             (loop (+ var 1))))))
-    
-    ((_ var from start to end actions ...)
-     (let loop ((var start))
-       (if (is var <= end)
-           (begin
-             actions ...
-             (loop (+ var 1))))))
+    ((for var::type from start to end actions ...)
+     (for var::type from start to end by 1 actions ...))
 
-    ((_ var::type from start below end actions ...)
-     (let loop ((var start))
-       (if (is var < end)
-           (begin
-             actions ...
-             (loop (+ var 1))))))
-    
-    ((_ var from start below end actions ...)
-     (let loop ((var start))
-       (if (is var < end)
-           (begin
-             actions ...
-             (loop (+ var 1))))))
+    ((for var::type from start down-to end actions ...)
+     (for var::type from start down-to end by 1 actions ...))
+
+    ((for var::type from start below end actions ...)
+     (for var::type from start below end by 1 actions ...))
+
     ))
 
 (e.g.
