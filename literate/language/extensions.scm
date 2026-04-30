@@ -2526,7 +2526,7 @@ in patterns and remove them from bindings"
 		    (set! source (param)))
 		  ...)))))))))
 
-(define-alias 0-1 real)
+(define-alias <0.0-1.0> real)
 
 (define-alias percent real)
 
