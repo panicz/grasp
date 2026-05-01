@@ -3919,6 +3919,8 @@ defined by users, and the rendering must work in environments
 whose graphics capabilities range from fully scallable vector
 graphics to fairly limited character terminals.
 
+**** Rendering
+
 This last feature has a particular impact on the development
 of GRASP. On one hand, it also allows us to render graphics
 to character strings - which is convenient for testing and
@@ -3929,33 +3931,76 @@ on the high resolution of vector graphics to render anything
 we like, and we need to provide many functions for very
 specific things that we may want to render in a character
 terminal (for example, vector graphics libraries allow us to
-render straight lines at any angles, whereas character
-terminals only offer rendering horizontal and vertical
-lines).
+render straight lines at any angles and with arbitrary
+thickness, whereas character terminals only offer rendering
+horizontal and vertical lines of a few varieties).
 
 For this reason, the rendering API needs to contain a lot of
 specific methods corresponding to some particular rendering
 capabilities of GRASP (like drawing horizontal and vertical
 arrows etc.). 
 
+Therefore are going to split our description into subsections
+describing particular capabilities. Each section will define
+a name of a capaility, an interface that needs to be
+implemented for the capability to be effective, and a set
+of definitions that will be used to construct a /null object/
+with trivial (ineffective) implementations of the interface
+methods.
+
+At the end of this section there will be a definition that
+builds an interface called ~Painter~ which aggregates all
+the capabilities defined in the subsections, followed by a
+definition of ~NullPainter~ that will be used to initialize
+the ~painter~ variable that will be used by the actual
+implementations of GRASP to pefrorm all rendering.
+
+***** Managing rendering context
+
+#+BEGIN_SRC scheme :noweb-ref painter-capabilities
+CanManageRenderingContext
+#+END_SRC
+
+There are two fundamental ways of designing graphics API.
+The first one requires passing screen positions of rendered
+components, while the performs all rendering relative to
+the current origin, which can be shifted.
+
+The second approach turned out to be more composable, and it
+is employed by a wide range of graphics APIs, such as OpenGL
+or PostScript. The added benefit is that we can not only
+translate the coordinate system, but we can also apply rotation,
+scaling or a transformation of the color space.
+
+Of course, not everything is going to work everywhere. For
+example, there is no reasonable way to rotate the coordinate
+system in the terminal client, so in that case such instructions
+are simply going to be ignored.
+
+All rendering context management methods in our API are going
+to take some number of parameters followed by a /thunk/ that
+is supposed to be executed in the modified context. This way
+we won't need to worry about restoring the context.
+
 #+BEGIN_SRC scheme scheme :tangle editor/architecture.scm
 
-(define-interface CanManageCoordinateSystem ()
-  (with-translation x::real y::real acion::(maps () to: ,A))::,A
+(define-interface CanManageRenderingContext ()
+  (with-translation x::real y::real action::(maps () to: ,A))::,A
   (with-rotation angle::real action::(maps () to: ,A))::,A
   (with-clip w::real h::real action::(maps () to: ,A))::,A
+  (with-scale scale::real action::(maps () to: ,A))::,A
   (with-intensity intensity::<0.0-1.0> action::(maps () to: ,A)::,A
   (with-stretch horizontal::real vertical::real action::(maps () to: ,A))::,A
   )
 
 #+END_SRC
 
-#+BEGIN_SRC scheme :noweb-ref painter-capabilities
-CanManageCoordinateSystem
-#+END_SRC
+The null-object implementations are simply going to call the
+received thunks (although this isn't relevant in practice,
+because the null-object is only needed for initialization).
 
 #+BEGIN_SRC scheme :noweb-ref null-painter-implementation
-  ;; CanManageCoordinateSystem
+  ;; CanManageRenderingContext
   (define (with-translation x::real y::real acion::(maps () to: ,A))::,A
     (action))
 
@@ -3973,11 +4018,28 @@ CanManageCoordinateSystem
 
 #+END_SRC
 
+A few words need to be said about the coordinate system
+itself, as there are many conventions to be found in
+computer graphics. In the case of GRASP, the origin is
+located on the top left corner, with the x axis (horizontal)
+pointing right and the y axis (vertical) pointing down.
 
+***** Rendering tall parentheses
+
+One of the defining features of GRASP is the /nested box/
+representation. The boxes actually are parenthesized
+expressions, but the opening and closing parentheses are
+equally tall.
+
+
+
+#+BEGIN_SRC scheme :noweb-ref painter-capabilities
+CanRenderBoxes
+#+END_SRC
 
 #+BEGIN_SRC scheme scheme :tangle editor/architecture.scm
 
-(define-enum ParenStyle (Normal Quote Quasiquote Unquote UnquoteSplicing))
+(define-enum ParenStyle (Normal Quote Quasiquote Unquote UnquoteSplicing List))
 
 (define-interface CanRenderBoxes ()
   (draw-left-paren! height::real style::ParenStyle)::real
@@ -3988,10 +4050,6 @@ CanManageCoordinateSystem
 
 #+END_SRC
 
-#+BEGIN_SRC scheme :noweb-ref painter-capabilities
-CanRenderBoxes
-#+END_SRC
-
 #+BEGIN_SRC scheme :noweb-ref null-painter-implementation
   ;; CanRenderBoxes
   (define (draw-left-paren! height::real style::ParenStyle)::real 0)
@@ -4000,7 +4058,7 @@ CanRenderBoxes
   (define (right-paren-width stype::ParenStyle)::real 0)
 #+END_SRC
 
-
+***** Rendering text
 
 
 
