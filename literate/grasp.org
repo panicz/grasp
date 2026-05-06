@@ -727,6 +727,46 @@ macro system rather than ~syntax-rules~, because it is
 required to generate temporary identifiers using the
 ~generate-temporaries~ funcion.
 
+**** Some built-in Java types
+
+GRASP is based on Kawa, which in turn runs on the Java
+Virtual Machine. Kawa provides great interoperability with
+the Java ecosystem, allowing to use basic collections,
+such as ~ArrayList~ and such.
+
+However, most things are normally accessed through their
+full name including package prefix, with some exceptions:
+for example, ~java.lang.Object~ is accessible through
+~Object~ alias, and ~java.lang.String~ -- through ~String~.
+
+In this section, we are going to provide aliases for other
+classes and interfaces from the Java world that are used in
+our code:
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm
+
+  (define-alias Collection java.util.Collection)
+  (define-alias List java.util.List)
+  (define-alias ArrayList java.util.ArrayList)
+  (define-alias ListIterator java.util.ListIterator)
+  (define-alias Iterator java.util.Iterator)
+
+  (define-alias Map java.util.Map)
+  (define-alias HashMap java.util.HashMap)
+  (define-alias WeakHashMap java.util.WeakHashMap)
+  (define-alias EnumSet java.util.EnumSet)
+  (define-alias Set java.util.Set)
+  (define-alias HashSet java.util.HashSet)
+  (define-alias NoSuchElementException java.util.NoSuchElementException)
+
+  (define-alias Cloneable java.lang.Cloneable)
+  (define-alias CharSequence java.lang.CharSequence)
+  (define-alias Iterable java.lang.Iterable)
+  (define-alias Integer java.lang.Integer)
+
+#+END_SRC
+
+
 **** The ~for~ loop
 
 The advantage of Kawa over most other Scheme implementations
@@ -753,8 +793,7 @@ of numbers or creating coroutines):
 #+BEGIN_SRC scheme :tangle language/extensions.scm
 
   (define (par-for-each function collection)
-    (let ((futures ::java.util.List
-                   (java.util.ArrayList)))
+    (let ((futures ::List (ArrayList)))
       (for-each (lambda (x)
                   (futures:add (future (function x))))
                 collection)
@@ -769,19 +808,19 @@ of numbers or creating coroutines):
                       in-parallel ::)
 
       ((for var from . rest)
-       (for var :: java.lang.Object from . rest))
+       (for var :: Object from . rest))
 
       ((for var in . rest)
-       (for var :: java.lang.Object in . rest))
+       (for var :: Object in . rest))
 
       ((for var in-reverse . rest)
-       (for var :: java.lang.Object in-reverse . rest))
+       (for var :: Object in-reverse . rest))
 
       ((for var in-parallel . rest)
-       (for var :: java.lang.Object in-parallel . rest))
+       (for var :: Object in-parallel . rest))
 
       ((for var :: type in-reverse collection . actions)
-       (let ((it ::java.util.ListIterator (collection:listIterator
+       (let ((it ::ListIterator (collection:listIterator
                                            (length collection))))
          (while (it:hasPrevious)
                 (let ((var ::type (it:previous)))
@@ -1012,395 +1051,451 @@ the ~object-definition~ helper macro:
 
 #+BEGIN_SRC  scheme :tangle language/extensions.scm
 
-(define-syntax delegate
-  (syntax-rules (::)
-    ((delegate (method . params) :: type object)
-     (delegate (method . params) object))
+  (define-syntax delegate
+    (syntax-rules (::)
+      ((delegate (method . params) :: type object)
+       (delegate (method . params) object))
 
-    ((delegate (method) object args ...)
-     (invoke object 'method args ...))
+      ((delegate (method) object args ...)
+       (invoke object 'method args ...))
 
-    ((delegate (method param :: type . params) object args ...)
-     (delegate (method . params) object args ... param))
+      ((delegate (method param :: type . params) object args ...)
+       (delegate (method . params) object args ... param))
 
-    ((delegate (method param . params) object args ...)
-     (delegate (method . params) object args ... param))))
+      ((delegate (method param . params) object args ...)
+       (delegate (method . params) object args ... param))))
 
-(define-syntax object-definition
-  (lambda (stx)
-    (syntax-case stx (::
-                      define
-                      define-private
-                      define-static
-                      delegate
-                      specialize)
-      
-      ((object-definition (object-name . args)
-                          (arg :: type . rest)
-                          supers
-                          (slots ...)
-                          methods
-                          (initializers ...)
-                          spec)
-       #'(object-definition (object-name . args)
+  (define-syntax object-definition
+    (lambda (stx)
+      (syntax-case stx (::
+                        define
+                        define-private
+                        define-protected                      
+                        define-static
+                        delegate
+                        specialize)
+
+        ((object-definition (object-name . args)
+                            (arg :: type . rest)
+                            supers
+                            (slots ...)
+                            methods
+                            (initializers ...)
+                            spec)
+         #'(object-definition (object-name . args)
+                              rest
+                              supers
+                              (slots ... (arg :: type))
+                              methods
+                              (initializers
+                               ...
+                               (slot-set! (this) 'arg arg))
+                              spec))
+
+        ((object-definition (object-name . args)
+                            (arg . rest)
+                            supers
+                            (slots ...)
+                            methods
+                            (initializers ...)
+                            spec)
+         #'(object-definition (object-name . args)
+                              rest
+                              supers
+                              (slots ... (arg))
+                              methods
+                              (initializers
+                               ...
+                               (slot-set! (this) 'arg arg))
+                              spec))
+
+        ((object-definition (object-name . args)
                             rest
                             supers
-                            (slots ... (arg :: type))
+                            (slots ...)
                             methods
-                            (initializers
-                             ...
-                             (slot-set! (this) 'arg arg))
-                            spec))
+                            (initializers ...)
+                            spec)
+         (identifier? #'rest)
+         #'(object-definition (object-name . args)
+                              ()
+                              supers
+                              (slots ... (rest::list))
+                              methods
+                              (initializers
+                               ...
+                               (slot-set! (this) 'rest rest))
+                              spec))
 
-      ((object-definition (object-name . args)
-                          (arg . rest)
-                          supers
-                          (slots ...)
-                          methods
-                          (initializers ...)
-                          spec)
-       #'(object-definition (object-name . args)
-                            rest
-                            supers
-                            (slots ... (arg))
-                            methods
-                            (initializers
-                             ...
-                             (slot-set! (this) 'arg arg))
-                            spec))
-
-      ((object-definition (object-name . args)
-                          rest
-                          supers
-                          (slots ...)
-                          methods
-                          (initializers ...)
-                          spec)
-       (identifier? #'rest)
-       #'(object-definition (object-name . args)
-                            ()
-                            supers
-                            (slots ... (rest::list))
-                            methods
-                            (initializers
-                             ...
-                             (slot-set! (this) 'rest rest))
-                            spec))
-
-      ((object-definition (object-name . args)
-                          ()
-                          (supers ...)
-                          slots
-                          methods
-                          initializers
-                          (:: (specialize . type-args) . spec))
-       #'(object-definition (object-name . args)
-                            ()
-                            (supers ... (specialize . type-args))
-                            slots
-                            methods
-                            initializers
-                            spec))
-
-      ((object-definition (object-name . args)
-                          ()
-                          (supers ...)
-                          slots
-                          methods
-                          initializers
-                          (:: (type . type-args) . spec))
-       #'(object-definition (object-name . args)
-                            ()
-                            (supers ... type)
-                            slots
-                            methods
-                            initializers
-                            (:: type . spec)))
-      
-      ((object-definition (object-name . args)
-                          ()
-                          (supers ...)
-                          slots
-                          methods
-                          initializers
-                          (:: type . spec))
-       #'(object-definition (object-name . args)
-                            ()
-                            (supers ... type)
-                            slots
-                            methods
-                            initializers
-                            spec))
-
-      ((object-definition (object-name . args)
-                          ()
-                          supers
-                          slots
-                          (methods ...)
-                          initializers
-                          ((define-private (method . params)
-                             . body)
-                           . spec))
-       #'(object-definition (object-name . args)
-                            ()
-                            supers
-                            slots
-                            (methods
-                             ...
-                             ((method . params)
-                              access: 'private . body))
-                            initializers
-                            spec))
-
-      ((object-definition (object-name . args)
-                          ()
-                          supers
-                          (slots ...)
-                          methods
-                          (initializers ...)
-                          ((define-private slot :: type value) . spec))
-       #'(object-definition (object-name . args)
-                            ()
-                            supers
-                            (slots ... (slot :: type access: 'private))
-                            methods
-                            (initializers 
-                             ... 
-                             (set! slot value))
-                            spec))
-
-      ((object-definition (object-name . args)
-                          ()
-                          supers
-                          (slots ...)
-                          methods
-                          (initializers ...)
-                          ((define-private slot value)
-                          . spec))
-       #'(object-definition (object-name . args)
-                            ()
-                            supers
-                            (slots ... (slot access: 'private))
-                            methods
-                            (initializers 
-                             ... 
-                             (set! slot value))
-                            spec))
-
-      ((object-definition (object-name . args)
-                          ()
-                          supers
-                          slots
-                          (methods ...)
-                          initializers
-                          ((define-static (method . params)
-                             . body)
-                           . spec))
-       #'(object-definition (object-name . args)
-                            ()
-                            supers
-                            slots
-                            (methods
-                             ...
-                             ((method . params)
-                              allocation: 'static . body))
-                            initializers
-                            spec))
-
-      ((object-definition (object-name . args)
-                          ()
-                          supers
-                          (slots ...)
-                          methods
-                          initializers
-                          ((define-static slot :: type value)
-                          . spec))
-       #'(object-definition (object-name . args)
-                            ()
-                            supers
-                            (slots ... (slot :: type allocation: 'static init: value))
-                            methods
-                            initializers
-                            spec))
-
-      ((object-definition (object-name . args)
-                          ()
-                          supers
-                          (slots ...)
-                          methods
-                          initializers
-                          ((define-static slot value) . spec))
-       #'(object-definition (object-name . args)
-                            ()
-                            supers
-                            (slots ... (slot allocation: 'static init: value))
-                            methods
-                            initializers
-                            spec))
-
-      ((object-definition (object-name . args)
-                          ()
-                          supers
-                          slots
-                          (methods ...)
-                          initializers
-                          ((define (method . params) . body) . spec))
-       #'(object-definition (object-name . args)
-                            ()
-                            supers
-                            slots
-                            (methods ... ((method . params) . body))
-                            initializers
-                            spec))
-
-      ((object-definition (object-name . args)
-                          ()
-                          supers
-                          slots
-                          (methods ...)
-                          initializers
-                          ((delegate (method . params)::type object) . spec))
-       #'(object-definition (object-name . args)
-                            ()
-                            supers
-                            slots
-                            (methods ... ((method . params)::type 
-                                          (delegate (method . params) object)))
-                            initializers
-                            spec))
-
-      ((object-definition (object-name . args)
-                          ()
-                          supers
-                          slots
-                          (methods ...)
-                          initializers
-                          ((delegate (method . params) object) . spec))
-       #'(object-definition (object-name . args)
-                            ()
-                            supers
-                            slots
-                            (methods ... ((method . params) 
-                                          (delegate (method . params) object)))
-                            initializers
-                            spec))
-
-      ((object-definition (object-name . args)
-                          ()
-                          supers
-                          (slots ...)
-                          methods
-                          (initializers ...)
-                          ((define slot :: type value) . spec))
-       #'(object-definition (object-name . args)
-                            ()
-                            supers
-                            (slots
-                             ...
-                             (slot :: type))
-                            methods
-                            (initializers
-                             ...
-                             (set! slot value))
-                            spec))
-
-      ((object-definition (object-name . args)
-                          ()
-                          supers
-                          (slots ...)
-                          methods
-                          initializers
-                          ((define slot :: type) . spec))
-       #'(object-definition (object-name . args)
-                            ()
-                            supers
-                            (slots ... (slot :: type))
-                            methods
-                            initializers
-                            spec))
-      
-      ((object-definition (object-name . args)
-                          ()
-                          supers
-                          (slots ...)
-                          methods
-                          (initializers ...)
-                          ((define slot value) . spec))
-       #'(object-definition (object-name . args)
-                            ()
-                            supers
-                            (slots ... (slot))
-                            methods
-                            (initializers
-                             ...
-                             (set! slot value))
-                            spec))
-
-      ((object-definition (object-name)
-                          ()
-                          (supers ...)
-                          (slots ...)
-                          (methods ...)
-                          ()
-                          ())
-       #'(define-simple-class object-name (supers ...)
-           slots ... methods ...))
-
-      ((object-definition (object-name . args)
-                          ()
-                          (supers ...)
-                          slots
-                          (methods ...)
-                          (initializers ...)
-                          ())
-       #'(object-definition (object-name)
+        ((object-definition (object-name . args)
                             ()
                             (supers ...)
                             slots
-                            (methods
-                             ...
-                             ((*init* . args)
-                              initializers ...))
-                            ()
-                            ()))
+                            methods
+                            initializers
+                            (:: (specialize . type-args) . spec))
+         #'(object-definition (object-name . args)
+                              ()
+                              (supers ... (specialize . type-args))
+                              slots
+                              methods
+                              initializers
+                              spec))
 
-      ((object-definition (object-name . args)
-                          ()
-                          (supers ...)
-                          slots
-                          (methods ...)
-                          (initializers ...)
-                          ((super . args*) . init))
-       #'(object-definition (object-name)
+        ((object-definition (object-name . args)
                             ()
-                            (supers ... super)
+                            (supers ...)
                             slots
-                            (methods
-                             ...
-                             ((*init* . args)
-                              (invoke-special super (this)
-                                              '*init*
-                                              . args*)
-                              initializers ...
-                              . init))
-                            ()
-                            ()))
-      )))
+                            methods
+                            initializers
+                            (:: (type . type-args) . spec))
+         #'(object-definition (object-name . args)
+                              ()
+                              (supers ... type)
+                              slots
+                              methods
+                              initializers
+                              (:: type . spec)))
 
-(define-syntax-rule (define-object (object-name . args) . spec)
-  (object-definition (object-name . args)
-                     #;args
-                     args
-                     #;supers
-                     ()
-                     #;slots
-                     ()
-                     #;methods
-                     ()
-                     #;initializers
-                     ()
-                     #;spec
-                     spec))
+        ((object-definition (object-name . args)
+                            ()
+                            (supers ...)
+                            slots
+                            methods
+                            initializers
+                            (:: type . spec))
+         #'(object-definition (object-name . args)
+                              ()
+                              (supers ... type)
+                              slots
+                              methods
+                              initializers
+                              spec))
+
+        ((object-definition (object-name . args)
+                            ()
+                            supers
+                            slots
+                            (methods ...)
+                            initializers
+                            ((define-private (method . params)
+                               . body)
+                             . spec))
+         #'(object-definition (object-name . args)
+                              ()
+                              supers
+                              slots
+                              (methods
+                               ...
+                               ((method . params)
+                                access: 'private . body))
+                              initializers
+                              spec))
+
+        ((object-definition (object-name . args)
+                            ()
+                            supers
+                            slots
+                            (methods ...)
+                            initializers
+                            ((define-protected (method . params)
+                               . body)
+                             . spec))
+         #'(object-definition (object-name . args)
+                              ()
+                              supers
+                              slots
+                              (methods
+                               ...
+                               ((method . params)
+                                access: 'protected . body))
+                              initializers
+                              spec))
+
+        ((object-definition (object-name . args)
+                            ()
+                            supers
+                            (slots ...)
+                            methods
+                            (initializers ...)
+                            ((define-private slot :: type value) . spec))
+         #'(object-definition (object-name . args)
+                              ()
+                              supers
+                              (slots ... (slot :: type access: 'private))
+                              methods
+                              (initializers 
+                               ... 
+                               (set! slot value))
+                              spec))
+
+        ((object-definition (object-name . args)
+                            ()
+                            supers
+                            (slots ...)
+                            methods
+                            (initializers ...)
+                            ((define-protected slot :: type value) . spec))
+         #'(object-definition (object-name . args)
+                              ()
+                              supers
+                              (slots ... (slot :: type access: 'protected))
+                              methods
+                              (initializers 
+                               ... 
+                               (set! slot value))
+                              spec))
+
+        ((object-definition (object-name . args)
+                            ()
+                            supers
+                            (slots ...)
+                            methods
+                            (initializers ...)
+                            ((define-private slot value)
+                            . spec))
+         #'(object-definition (object-name . args)
+                              ()
+                              supers
+                              (slots ... (slot access: 'private))
+                              methods
+                              (initializers 
+                               ... 
+                               (set! slot value))
+                              spec))
+
+        ((object-definition (object-name . args)
+                            ()
+                            supers
+                            (slots ...)
+                            methods
+                            (initializers ...)
+                            ((define-protected slot value)
+                            . spec))
+         #'(object-definition (object-name . args)
+                              ()
+                              supers
+                              (slots ... (slot access: 'protected))
+                              methods
+                              (initializers 
+                               ... 
+                               (set! slot value))
+                              spec))
+        
+        ((object-definition (object-name . args)
+                            ()
+                            supers
+                            slots
+                            (methods ...)
+                            initializers
+                            ((define-static (method . params)
+                               . body)
+                             . spec))
+         #'(object-definition (object-name . args)
+                              ()
+                              supers
+                              slots
+                              (methods
+                               ...
+                               ((method . params)
+                                allocation: 'static . body))
+                              initializers
+                              spec))
+
+        ((object-definition (object-name . args)
+                            ()
+                            supers
+                            (slots ...)
+                            methods
+                            initializers
+                            ((define-static slot :: type value)
+                            . spec))
+         #'(object-definition (object-name . args)
+                              ()
+                              supers
+                              (slots ... (slot :: type allocation: 'static init: value))
+                              methods
+                              initializers
+                              spec))
+
+        ((object-definition (object-name . args)
+                            ()
+                            supers
+                            (slots ...)
+                            methods
+                            initializers
+                            ((define-static slot value) . spec))
+         #'(object-definition (object-name . args)
+                              ()
+                              supers
+                              (slots ... (slot allocation: 'static init: value))
+                              methods
+                              initializers
+                              spec))
+
+        ((object-definition (object-name . args)
+                            ()
+                            supers
+                            slots
+                            (methods ...)
+                            initializers
+                            ((define (method . params) . body) . spec))
+         #'(object-definition (object-name . args)
+                              ()
+                              supers
+                              slots
+                              (methods ... ((method . params) . body))
+                              initializers
+                              spec))
+
+        ((object-definition (object-name . args)
+                            ()
+                            supers
+                            slots
+                            (methods ...)
+                            initializers
+                            ((delegate (method . params)::type object) . spec))
+         #'(object-definition (object-name . args)
+                              ()
+                              supers
+                              slots
+                              (methods ... ((method . params)::type 
+                                            (delegate (method . params) object)))
+                              initializers
+                              spec))
+
+        ((object-definition (object-name . args)
+                            ()
+                            supers
+                            slots
+                            (methods ...)
+                            initializers
+                            ((delegate (method . params) object) . spec))
+         #'(object-definition (object-name . args)
+                              ()
+                              supers
+                              slots
+                              (methods ... ((method . params) 
+                                            (delegate (method . params) object)))
+                              initializers
+                              spec))
+
+        ((object-definition (object-name . args)
+                            ()
+                            supers
+                            (slots ...)
+                            methods
+                            (initializers ...)
+                            ((define slot :: type value) . spec))
+         #'(object-definition (object-name . args)
+                              ()
+                              supers
+                              (slots
+                               ...
+                               (slot :: type))
+                              methods
+                              (initializers
+                               ...
+                               (set! slot value))
+                              spec))
+
+        ((object-definition (object-name . args)
+                            ()
+                            supers
+                            (slots ...)
+                            methods
+                            initializers
+                            ((define slot :: type) . spec))
+         #'(object-definition (object-name . args)
+                              ()
+                              supers
+                              (slots ... (slot :: type))
+                              methods
+                              initializers
+                              spec))
+
+        ((object-definition (object-name . args)
+                            ()
+                            supers
+                            (slots ...)
+                            methods
+                            (initializers ...)
+                            ((define slot value) . spec))
+         #'(object-definition (object-name . args)
+                              ()
+                              supers
+                              (slots ... (slot))
+                              methods
+                              (initializers
+                               ...
+                               (set! slot value))
+                              spec))
+
+        ((object-definition (object-name)
+                            ()
+                            (supers ...)
+                            (slots ...)
+                            (methods ...)
+                            ()
+                            ())
+         #'(define-simple-class object-name (supers ...)
+             slots ... methods ...))
+
+        ((object-definition (object-name . args)
+                            ()
+                            (supers ...)
+                            slots
+                            (methods ...)
+                            (initializers ...)
+                            ())
+         #'(object-definition (object-name)
+                              ()
+                              (supers ...)
+                              slots
+                              (methods
+                               ...
+                               ((*init* . args)
+                                initializers ...))
+                              ()
+                              ()))
+
+        ((object-definition (object-name . args)
+                            ()
+                            (supers ...)
+                            slots
+                            (methods ...)
+                            (initializers ...)
+                            ((super . args*) . init))
+         #'(object-definition (object-name)
+                              ()
+                              (supers ... super)
+                              slots
+                              (methods
+                               ...
+                               ((*init* . args)
+                                (invoke-special super (this)
+                                                '*init*
+                                                . args*)
+                                initializers ...
+                                . init))
+                              ()
+                              ()))
+        )))
+
+  (define-syntax-rule (define-object (object-name . args) . spec)
+    (object-definition (object-name . args)
+                       #;args
+                       args
+                       #;supers
+                       ()
+                       #;slots
+                       ()
+                       #;methods
+                       ()
+                       #;initializers
+                       ()
+                       #;spec
+                       spec))
 
 #+END_SRC
 
@@ -1510,14 +1605,14 @@ functions during macro expansion, we need to resort to the
   (lambda (stx)
     (syntax-case stx (:=)
       ((_ type-name () ((slot-symbol . slot-spec) ...) (initializers ...))
-       #'(define-simple-class type-name (java.lang.Cloneable)
+       #'(define-simple-class type-name (Cloneable)
            (slot-symbol . slot-spec)
            ...
            ((assign source ::type-name)::void
             (set! slot-symbol (slot-ref source 'slot-symbol))
             ...)
 
-           ((clone)::java.lang.Object
+           ((clone)::Object
             (let ((copy (type-name)))
               (invoke copy 'assign (this))
               copy))
@@ -1537,7 +1632,7 @@ functions during macro expansion, we need to resort to the
                 (kawa.lib.kawa.pprint:pprintNewline 'linear port)
                 (cond ((string? slot-symbol)
                        (write slot-symbol port))
-                      ((java.util.Collection? slot-symbol)
+                      ((Collection? slot-symbol)
                        (kawa.lib.kawa.pprint:pprintStartLogicalBlock "[" #f "]" port)
                        (try-finally
                         (for item in slot-symbol
@@ -1548,12 +1643,12 @@ functions during macro expansion, we need to resort to the
                ...)
              (kawa.lib.kawa.pprint:pprintEndLogicalBlock "]" port)))
 
-           ((toString)::java.lang.String
+           ((toString)::String
             (call-with-output-string 
               (lambda (port ::OutputPort) 
                 (invoke (this) 'prettyPrint port))))
 
-           ((equals another ::java.lang.Object)::boolean
+           ((equals another ::Object)::boolean
             (and (instance? another type-name)
                  (let ((another ::type-name (as type-name another)))
                     (and (equal? slot-symbol (slot-ref another 
@@ -1604,25 +1699,24 @@ defined in the following way:
 #+BEGIN_SRC scheme :tangle language/extensions.scm
 
 (define (clonable? object)::boolean
-  (or (instance? object java.lang.Cloneable)
+  (or (instance? object Cloneable)
       (and (procedure? object)
 	   (procedure? (procedure-property object 'clone)))))
 
 (define (copy object)
   (cond
-   ((instance? object java.util.WeakHashMap)
-    (let* ((hash-map ::java.util.WeakHashMap object)
-	   (cloned ::java.util.WeakHashMap
-		   (java.util.WeakHashMap)))
+   ((instance? object WeakHashMap)
+    (let* ((hash-map ::WeakHashMap object)
+	   (cloned ::WeakHashMap (WeakHashMap)))
       (for key in (hash-map:keySet)
 	(let ((value (hash-map:get key)))
 	  (cloned:put key value)))
       cloned))
    
-   ((instance? object java.lang.Cloneable)
+   ((instance? object Cloneable)
     (with-compile-options
      warn-unknown-member: #f
-     (let ((clonable ::java.lang.Cloneable object))
+     (let ((clonable ::Cloneable object))
        (clonable:clone))))
    
    ((procedure? object)
@@ -2473,16 +2567,16 @@ with properties:
 
 Kawa has a limited support for Java's generic types (see the
 section [[https://www.gnu.org/software/kawa/Parameterized-Types.html][Parameterized Types]] in Kawa manual), and the
-counterpart of Java's ~java.util.Map<KeyType, ValueType>~ in
-Kawa is ~java.util.Map[KeyType ValueType]~, which Kawa's
-reader reads as ~($bracket-apply$ java.util.map KeyType
+counterpart of Java's ~Map<KeyType, ValueType>~ in
+Kawa is ~Map[KeyType ValueType]~, which Kawa's
+reader reads as ~($bracket-apply$ Map KeyType
 ValueType)~:
 
 #+BEGIN_SRC scheme :tangle language/extensions.scm
 
   (e.g.
-    (call-with-input-string "java.util.Map[KeyType ValueType]" read)
-  ===> ($bracket-apply$ java.util.Map KeyType ValueType))
+    (call-with-input-string "Map[KeyType ValueType]" read)
+  ===> ($bracket-apply$ Map KeyType ValueType))
 
 #+END_SRC
 
@@ -2504,8 +2598,7 @@ Here are the definitions of the ~mapping~ and ~define-mapping~ macros:
 (define-syntax mapping
   (syntax-rules (::)
     ((mapping (object::key-type)::value-type default)
-     (let* ((entries ::java.util.Map ((specialize java.util.HashMap 
-                                                  key-type value-type)))
+     (let* ((entries ::Map ((specialize HashMap key-type value-type)))
             (getter (lambda (object::key-type)::value-type
                       (if (entries:containsKey object)
                           (entries:get object)
@@ -2516,15 +2609,15 @@ Here are the definitions of the ~mapping~ and ~define-mapping~ macros:
           getter)))
 
     ((mapping (object::key-type) default)
-     (mapping (object::key-type)::java.lang.Object
+     (mapping (object::key-type)::Object
                default))
 
     ((mapping (object)::value-type default)
-     (mapping (object::java.lang.Object)::value-type
+     (mapping (object::Object)::value-type
                default))
 
     ((mapping (object) default)
-     (mapping (object::java.lang.Object)::java.lang.Object
+     (mapping (object::Object)::Object
               default))
     ))
 
@@ -2538,25 +2631,25 @@ to account for users omitting key and value type specifier:
 
 (define-syntax define-mapping
   (syntax-rules (::)
-    ((define-mapping (mapping-name object::key-type)::value-type
+    ((define-mapping (mapping-name object ::key-type)::value-type
        default)
      (define-early-constant mapping-name
        (with-procedure-properties ((name 'mapping-name))
-         (mapping (object::key-type)::value-type default))))
+         (mapping (object ::key-type)::value-type default))))
 
-    ((define-mapping (mapping-name object::key-type) default)
-     (define-mapping (mapping-name object::key-type)
-       ::java.lang.Object
+    ((define-mapping (mapping-name object ::key-type) default)
+     (define-mapping (mapping-name object ::key-type)
+       ::Object
        default))
 
     ((define-mapping (mapping-name object)::value-type default)
-     (define-mapping (mapping-name object::java.lang.Object)
+     (define-mapping (mapping-name object ::Object)
        ::value-type
        default))
 
     ((define-mapping (mapping-name object) default)
-     (define-mapping (mapping-name object::java.lang.Object)
-       ::java.lang.Object
+     (define-mapping (mapping-name object ::Object)
+       ::Object
        default))
     ))
 
@@ -2571,7 +2664,7 @@ the ~keys~ function:
 #+BEGIN_SRC scheme :tangle language/extensions.scm
 
 (define (keys dict)
-  (let ((table ::java.util.Map (procedure-property dict 'table)))
+  (let ((table ::Map (procedure-property dict 'table)))
     (table:keySet)))
 
 #+END_SRC
@@ -2623,11 +2716,9 @@ This interface might change in the future.
     (syntax-rules (::)
       ((bimapping (object::key-type default-inverse)::value-type
                   default)
-       (let* ((entries ::java.util.Map ((specialize java.util.HashMap 
-                                                    key-type value-type)))
-              (inverse-entries ::java.util.Map ((specialize 
-                                                 java.util.HashMap 
-                                                 value-type key-type)))
+       (let* ((entries ::Map ((specialize HashMap key-type value-type)))
+              (inverse-entries ::Map ((specialize HashMap
+                                                  value-type key-type)))
               (getter (lambda (object)
                         (if (entries:contains-key object)
                             (entries:get object)
@@ -2651,17 +2742,17 @@ This interface might change in the future.
          getter))
       ((bimapping (object::key-type default-inverse) default)
        (bimapping (object::key-type default-inverse)
-                  ::java.lang.Object
+                  ::Object
                  default))
 
       ((bimapping (object default-inverse)::value-type default)
-       (bimapping (object::java.lang.Object
+       (bimapping (object ::Object
                    default-inverse)::value-type
                  default))
 
       ((bimapping (object default-inverse) default)
-       (bimapping (object::java.lang.Object
-                   default-inverse)::java.lang.Object
+       (bimapping (object ::Object
+                   default-inverse)::Object
                 default))
       ))
 
@@ -2682,7 +2773,7 @@ This interface might change in the future.
          default)
        (define-bimapping (bimapping-name object::key-type
                                          default-inverse)
-         ::java.lang.Object
+         ::Object
          default))
 
       ((define-bimapping (bimapping-name object
@@ -2690,7 +2781,7 @@ This interface might change in the future.
          ::value-type
          default)
        (define-bimapping (bimapping-name
-                          object::java.lang.Object
+                          object::Object
                           default-inverse)
          ::value-type
          default))
@@ -2698,9 +2789,9 @@ This interface might change in the future.
       ((define-bimapping (bimapping-name object default-inverse)
          default)
        (define-bimapping (bimapping-name
-                          object::java.lang.Object
+                          object::Object
                           default-inverse)
-         ::java.lang.Object
+         ::Object
          default))
       ))
 
@@ -2731,132 +2822,131 @@ did in case of ~mapping~.
 
 #+BEGIN_SRC scheme :tangle language/extensions.scm
 
-(define-syntax attribute
-  (syntax-rules (::)
-    ((attribute (object::key-type)::value-type default)
-     (let ((table ::java.util.Map
-                  ((specialize java.util.WeakHashMap
-                               key-type value-type))))
-       (define (create table::java.util.WeakHashMap)
-         (let ((getter ::procedure
-                       (lambda (object::key-type)::value-type
-                         (if (table:contains-key object)
-                             (table:get key)
-                             default))))
-           (set! (setter getter)
-                 (lambda (arg::key-type value::value-type)
-                   (table:put arg value)))
-           (with-procedure-properties ((table table)
-                                       (clone (lambda ()
-                                                (create (copy table)))))
-            getter)))
-
-       (create table)))
-
-    ((attribute (object::key-type) default)
-     (attribute (object::key-type)::java.lang.Object
-               default))
-
-    ((attribute (object)::value-type default)
-     (attribute (object::java.lang.Object)::value-type
-               default))
-
-    ((attribute (object) default)
-     (attribute (object::java.lang.Object)::java.lang.Object
-               default))
-    ))
-
-;; attribute+ is like attribute but it stores the default
-;; value for every enquired object
-(define-syntax attribute+
-  (syntax-rules (::)
-    ((attribute+ (object::key-type)::value-type default)
-     (let ((table ::java.util.Map
-                  ((specialize java.util.WeakHashMap
-                                    key-type value-type))))
-       (define (create table::java.util.WeakHashMap)
-         (let ((getter ::procedure
-                       (lambda (object::key-type)::value-type
-                         (if (table:contains-key object)
-                             (table:get object)
-                             (let ((value default))
-                                (table:put object value)
-                                value)))))
-           (set! (setter getter)
-                 (lambda (arg::key-type value::value-type)
-                   (table:put arg value)))
-           (with-procedure-properties ((table table)
-                                       (clone (lambda ()
-                                                (create (copy table)))))
+  (define-syntax attribute
+    (syntax-rules (::)
+      ((attribute (object::key-type)::value-type default)
+       (let ((table ::Map ((specialize WeakHashMap
+                                       key-type value-type))))
+         (define (create table::WeakHashMap)
+           (let ((getter ::procedure
+                         (lambda (object::key-type)::value-type
+                           (if (table:contains-key object)
+                               (table:get key)
+                               default))))
+             (set! (setter getter)
+                   (lambda (arg::key-type value::value-type)
+                     (table:put arg value)))
+             (with-procedure-properties ((table table)
+                                         (clone (lambda ()
+                                                  (create (copy table)))))
               getter)))
 
-       (create table)))
+         (create table)))
 
-    ((attribute+ (object::key-type) default)
-     (attribute+ (object::key-type)::java.lang.Object
-                default))
+      ((attribute (object::key-type) default)
+       (attribute (object::key-type)::Object
+                 default))
 
-    ((attribute+ (object)::value-type default)
-     (attribute+ (object::java.lang.Object)::value-type
-                default))
+      ((attribute (object)::value-type default)
+       (attribute (object::Object)::value-type
+                 default))
 
-    ((attribute+ (object) default)
-     (attribute+ (object::java.lang.Object)::java.lang.Object
-                default))
-    ))
+      ((attribute (object) default)
+       (attribute (object::Object)::Object
+                 default))
+      ))
 
-(define-syntax define-attribute
-  (syntax-rules (::)
-    ((define-attribute (attribute-name object::key-type)
-       ::value-type
-       default)
-     (define-early-constant attribute-name
-       (with-procedure-properties
-        ((name 'attribute-name))
-        (attribute (object::key-type)::value-type default))))
+  ;; attribute+ is like attribute but it stores the default
+  ;; value for every enquired object
+  (define-syntax attribute+
+    (syntax-rules (::)
+      ((attribute+ (object::key-type)::value-type default)
+       (let ((table ::Map
+                    ((specialize WeakHashMap
+                                 key-type value-type))))
+         (define (create table::WeakHashMap)
+           (let ((getter ::procedure
+                         (lambda (object::key-type)::value-type
+                           (if (table:contains-key object)
+                               (table:get object)
+                               (let ((value default))
+                                  (table:put object value)
+                                  value)))))
+             (set! (setter getter)
+                   (lambda (arg::key-type value::value-type)
+                     (table:put arg value)))
+             (with-procedure-properties ((table table)
+                                         (clone (lambda ()
+                                                  (create (copy table)))))
+                getter)))
 
-    ((define-attribute (attribute-name object::key-type) default)
-     (define-attribute (attribute-name object::key-type)
-       ::java.lang.Object
-       default))
+         (create table)))
 
-    ((define-attribute (attribute-name object)::value-type default)
-     (define-attribute (attribute-name object::java.lang.Object)
-       ::value-type
-       default))
+      ((attribute+ (object::key-type) default)
+       (attribute+ (object::key-type)::Object
+                  default))
 
-    ((define-attribute (attribute-name object) default)
-     (define-attribute (attribute-name object::java.lang.Object)
-       ::java.lang.Object
-       default))
-    ))
+      ((attribute+ (object)::value-type default)
+       (attribute+ (object::Object)::value-type
+                  default))
 
-(define-syntax define-attribute+
-  (syntax-rules (::)
-    ((define-attribute+ (attribute-name object::key-type)
-       ::value-type
-       default)
-     (define-early-constant attribute-name
-       (with-procedure-properties
-        ((name 'attribute-name))
-        (attribute+ (object::key-type)::value-type default))))
+      ((attribute+ (object) default)
+       (attribute+ (object::Object)::Object
+                  default))
+      ))
 
-    ((define-attribute+ (attribute-name object::key-type) default)
-     (define-attribute+ (attribute-name object::key-type)
-       ::java.lang.Object
-       default))
+  (define-syntax define-attribute
+    (syntax-rules (::)
+      ((define-attribute (attribute-name object::key-type)
+         ::value-type
+         default)
+       (define-early-constant attribute-name
+         (with-procedure-properties
+          ((name 'attribute-name))
+          (attribute (object::key-type)::value-type default))))
 
-    ((define-attribute+ (attribute-name object)::value-type
-       default)
-     (define-attribute+ (attribute-name object::java.lang.Object)
-       ::value-type
-       default))
+      ((define-attribute (attribute-name object::key-type) default)
+       (define-attribute (attribute-name object::key-type)
+         ::Object
+         default))
 
-    ((define-attribute+ (attribute-name object) default)
-     (define-attribute+ (attribute-name object::java.lang.Object)
-       ::java.lang.Object
-       default))
-    ))
+      ((define-attribute (attribute-name object)::value-type default)
+       (define-attribute (attribute-name object::Object)
+         ::value-type
+         default))
+
+      ((define-attribute (attribute-name object) default)
+       (define-attribute (attribute-name object::Object)
+         ::Object
+         default))
+      ))
+
+  (define-syntax define-attribute+
+    (syntax-rules (::)
+      ((define-attribute+ (attribute-name object::key-type)
+         ::value-type
+         default)
+       (define-early-constant attribute-name
+         (with-procedure-properties
+          ((name 'attribute-name))
+          (attribute+ (object::key-type)::value-type default))))
+
+      ((define-attribute+ (attribute-name object::key-type) default)
+       (define-attribute+ (attribute-name object::key-type)
+         ::Object
+         default))
+
+      ((define-attribute+ (attribute-name object)::value-type
+         default)
+       (define-attribute+ (attribute-name object::Object)
+         ::value-type
+         default))
+
+      ((define-attribute+ (attribute-name object) default)
+       (define-attribute+ (attribute-name object::Object)
+         ::Object
+         default))
+      ))
 
 #+END_SRC
 
@@ -2874,15 +2964,15 @@ removing all or some elements of a mapping:
 #+BEGIN_SRC scheme :tangle language/extensions.scm
 
 (define-syntax-rule (unset! (mapping object))
-  (let ((table ::java.util.Map (procedure-property mapping 'table)))
+  (let ((table ::Map (procedure-property mapping 'table)))
     (table:remove object)))
 
 (define (reset! mapping)::void
-  (let ((table ::java.util.Map (procedure-property mapping 'table)))
+  (let ((table ::Map (procedure-property mapping 'table)))
     (table:clear)))
 
 (define-syntax-rule (assigned? (mapping key))
-  (let ((table ::java.util.Map (procedure-property mapping 'table)))
+  (let ((table ::Map (procedure-property mapping 'table)))
     (table:contains-key key)))
 
 #+END_SRC
@@ -3021,7 +3111,7 @@ Having currying in place, we can use it for defining cache:
     ))
 
 (define (invalidate! cache . point)
-  (let ((table ::java.util.Map (procedure-property cache 'table)))
+  (let ((table ::Map (procedure-property cache 'table)))
     (match point
       ('() (table:clear))
       (`(,point) (table:remove point))
@@ -3101,16 +3191,15 @@ a type variable (rather than syntax error):
 
 #+BEGIN_SRC scheme :tangle language/extensions.scm
 
-(define-alias EnumSet java.util.EnumSet)
 
 (define-syntax-rule (list-of type)
   list)
 
 (define-syntax-rule (set-of type)
-  (specialize java.util.Set type))
+  (specialize Set type))
 
 (define-syntax-rule (EnumSetOf type)
-  (specialize java.util.EnumSet type))
+  (specialize EnumSet type))
 
 (define-syntax-rule (vector-of type)
   vector)
@@ -3130,18 +3219,18 @@ a type variable (rather than syntax error):
      supertype)))
 
 (define-syntax-rule (either type ...)
-  java.lang.Object)
+  Object)
 
 (define-syntax-rule (maybe type)
   (either type #!null))
 
 (define-syntax-rule (Values type ...)
-  java.lang.Object)
+  Object)
 
 (define-syntax-rule (unquote x)
-  java.lang.Object)
+  Object)
 
-(define-alias Any java.lang.Object)
+(define-alias Any Object)
 
 #+END_SRC
 
@@ -3162,325 +3251,328 @@ is ambiguous.
 
 #+BEGIN_SRC scheme :tangle language/extensions.scm
 
-(define (any satisfying? elements)
-  (escape-with return
-    (for x in elements
-      (let ((result (satisfying? x)))
-	(when result
-	  (return result))))
-    #f))
+  (define (any satisfying? elements)
+    (escape-with return
+      (for x in elements
+        (let ((result (satisfying? x)))
+          (when result
+            (return result))))
+      #f))
 
-(e.g.
- (any even? '(1 2 3)))
+  (e.g.
+   (any even? '(1 2 3)))
 
-(define (none satisfying? elements)
-  (not (any satisfying? elements)))
+  (define (none satisfying? elements)
+    (not (any satisfying? elements)))
 
-(e.g.
- (none odd? '(2 4 6)))
+  (e.g.
+   (none odd? '(2 4 6)))
 
-(define (any. satisfying? elements)
-  (match elements
-    (`(,h . ,t)
-     (or (satisfying? h)
-	 (any. satisfying? t)))
-    ('()
-     #f)
-    (x
-     (satisfying? x))))
-(e.g.
- (any. zero? '(3 2 1 . 0)))
+  (define (any. satisfying? elements)
+    (match elements
+      (`(,h . ,t)
+       (or (satisfying? h)
+           (any. satisfying? t)))
+      ('()
+       #f)
+      (x
+       (satisfying? x))))
+  (e.g.
+   (any. zero? '(3 2 1 . 0)))
 
-(define (every satisfying? elements)::boolean
-  (escape-with return
-    (for x in elements
-      (unless (satisfying? x)
-	(return #f)))
-    #t))
+  (define (every satisfying? elements)::boolean
+    (escape-with return
+      (for x in elements
+        (unless (satisfying? x)
+          (return #f)))
+      #t))
 
-(e.g.
- (every even? '(2 4 6)))
+  (e.g.
+   (every even? '(2 4 6)))
 
-(define (every. satisfying? elements)
-  (match elements
-    (`(,h . ,t)
-     (and (satisfying? h)
-	  (every. satisfying? t)))
-    ('()
-     #t)
-    (x
-     (satisfying? x))))
+  (define (every. satisfying? elements)
+    (match elements
+      (`(,h . ,t)
+       (and (satisfying? h)
+            (every. satisfying? t)))
+      ('()
+       #t)
+      (x
+       (satisfying? x))))
 
-(e.g.
- (every. even? '(2 4 6 . 8)))
+  (e.g.
+   (every. even? '(2 4 6 . 8)))
 
-(define (only cool? stuff)
-  (let* ((result (cons #f '()))
-	 (cone result))
-    (for x in stuff
-      (when (cool? x)
-	(set-cdr! cone (cons x '()))
-	(set! cone (cdr cone))))
-    (cdr result)))
+  (define (only cool? stuff)
+    (let* ((result (cons #f '()))
+           (cone result))
+      (for x in stuff
+        (when (cool? x)
+          (set-cdr! cone (cons x '()))
+          (set! cone (cdr cone))))
+      (cdr result)))
 
-(e.g.
- (only even? '(1 2 3 4 5 6))
- ===> (2 4 6))
+  (e.g.
+   (only even? '(1 2 3 4 5 6))
+   ===> (2 4 6))
 
-(define (fold-left f x0 . xs*)
-  
-  (define (fold-left1 xs::java.util.List)
-    (for x in xs
-      (set! x0 (f x0 x)))
-    x0)
+  (define (fold-left f x0 . xs*)
 
-  (define (fold-left2 xs1::java.util.List xs2::java.util.List)
-    (let ((xi1 ::java.util.Iterator (xs1:listIterator))
-	  (xi2 ::java.util.Iterator (xs2:listIterator)))
-      (let loop ((xo x0))
-	(if (and (xi1:hasNext) (xi2:hasNext))
-	    (loop (f xo (xi1:next) (xi2:next)))
-	    xo))))
+    (define (fold-left1 xs ::List)
+      (for x in xs
+        (set! x0 (f x0 x)))
+      x0)
 
-  (define (fold-left3 xs1::java.util.List
-		      xs2::java.util.List
-		      xs3::java.util.List)
-    (let ((xi1 ::java.util.Iterator (xs1:listIterator))
-	  (xi2 ::java.util.Iterator (xs2:listIterator))
-	  (xi3 ::java.util.Iterator (xs3:listIterator)))
-      (let loop ((xo x0))
-	(if (and (xi1:hasNext) (xi2:hasNext) (xi3:hasNext))
-	    (loop (f xo (xi1:next) (xi2:next) (xi3:next)))
-	    xo))))
+    (define (fold-left2 xs1 ::List xs2 ::List)
+      (let ((xi1 ::Iterator (xs1:listIterator))
+            (xi2 ::Iterator (xs2:listIterator)))
+        (let loop ((xo x0))
+          (if (and (xi1:hasNext) (xi2:hasNext))
+              (loop (f xo (xi1:next) (xi2:next)))
+              xo))))
 
-  (define (fold-left* . xs*)
-    (let ((iterators (map (lambda (x::java.util.List)
-			    (x:listIterator))
-			  xs*)))
-      (let loop ((xo x0))
-	(if (every (lambda (it::java.util.Iterator)
-		     (it:hasNext))
-		   iterators)
-	    (loop
-	     (apply
-	      f xo
-	      (map (lambda (it::java.util.Iterator)
-		     (it:next))
-		   iterators)))
-	    xo))))
-  (cond
-   ((null? xs*) x0)
-   ((null? (cdr xs*)) (fold-left1 (car xs*)))
-   ((null? (cddr xs*)) (fold-left2 (car xs*)
-				   (cadr xs*)))
-   ((null? (cdddr xs*)) (fold-left3 (car xs*)
-				    (cadr xs*)
-				    (caddr xs*)))
-   (else (apply fold-left* xs*))))
+    (define (fold-left3 xs1 ::List
+                        xs2 ::List
+                        xs3 ::List)
+      (let ((xi1 ::Iterator (xs1:listIterator))
+            (xi2 ::Iterator (xs2:listIterator))
+            (xi3 ::Iterator (xs3:listIterator)))
+        (let loop ((xo x0))
+          (if (and (xi1:hasNext) (xi2:hasNext) (xi3:hasNext))
+              (loop (f xo (xi1:next) (xi2:next) (xi3:next)))
+              xo))))
 
-(e.g.
- (fold-left (lambda (a b) `(,a + ,b)) 'e '(a b c d))
- ===> ((((e + a) + b) + c) + d))
+    (define (fold-left* . xs*)
+      (let ((iterators (map (lambda (x ::List)
+                              (x:listIterator))
+                            xs*)))
+        (let loop ((xo x0))
+          (if (every (lambda (it ::Iterator)
+                       (it:hasNext))
+                     iterators)
+              (loop
+               (apply
+                f xo
+                (map (lambda (it ::Iterator)
+                       (it:next))
+                     iterators)))
+              xo))))
+    (cond
+     ((null? xs*) x0)
+     ((null? (cdr xs*)) (fold-left1 (car xs*)))
+     ((null? (cddr xs*)) (fold-left2 (car xs*)
+                                     (cadr xs*)))
+     ((null? (cdddr xs*)) (fold-left3 (car xs*)
+                                      (cadr xs*)
+                                      (caddr xs*)))
+     (else (apply fold-left* xs*))))
 
-(define (fold-right f x0 . xs*)
-  (define (fold-right1 f x0 xs)
-    (if (null? xs)
-	x0
-	(f (car xs) (fold-right1 f x0 (cdr xs)))))
+  (e.g.
+   (fold-left (lambda (a b) `(,a + ,b)) 'e '(a b c d))
+   ===> ((((e + a) + b) + c) + d))
 
-  (define (fold-right2 f x0 xs xs2)
-    (if (or (null? xs) (null? xs2))
-	x0
-	(f (car xs) (car xs2)
-	   (fold-right2 f x0 (cdr xs) (cdr xs2)))))
+  (define (fold-right f x0 . xs*)
+    (define (fold-right1 f x0 xs)
+      (if (null? xs)
+          x0
+          (f (car xs) (fold-right1 f x0 (cdr xs)))))
 
-  (define (fold-right* f x0 . xs*)
-    (if (any null? xs*)
-	x0
-	(apply f (fold-right1
-		  (lambda (x y)
-		    (cons (car x) y))
-		  (list (apply fold-right* f x0 (map cdr xs*)))
-		  xs*))))
-  (cond
-   ((null? xs*) x0)
-   ((null? (cdr xs*)) (fold-right1 f x0 (car xs*)))
-   ((null? (cddr xs*)) (fold-right2 f x0 (car xs*) (cadr xs*)))
-   (else (apply fold-right* f x0 xs*))))
+    (define (fold-right2 f x0 xs xs2)
+      (if (or (null? xs) (null? xs2))
+          x0
+          (f (car xs) (car xs2)
+             (fold-right2 f x0 (cdr xs) (cdr xs2)))))
 
-(e.g.
- (fold-right (lambda (a b) `(,a + ,b)) 'e '(a b c d))
- ===> (a + (b + (c + (d + e)))))
+    (define (fold-right* f x0 . xs*)
+      (if (any null? xs*)
+          x0
+          (apply f (fold-right1
+                    (lambda (x y)
+                      (cons (car x) y))
+                    (list (apply fold-right* f x0 (map cdr xs*)))
+                    xs*))))
+    (cond
+     ((null? xs*) x0)
+     ((null? (cdr xs*)) (fold-right1 f x0 (car xs*)))
+     ((null? (cddr xs*)) (fold-right2 f x0 (car xs*) (cadr xs*)))
+     (else (apply fold-right* f x0 xs*))))
 
-(define (nothing . _)::void (values))
+  (e.g.
+   (fold-right (lambda (a b) `(,a + ,b)) 'e '(a b c d))
+   ===> (a + (b + (c + (d + e)))))
 
-(define (never . _)::boolean #f)
+  (define (nothing . _)::void (values))
 
-(define (always . _) ::boolean #t)
+  (define (never . _)::boolean #f)
 
-(define (negation proc)
-  (lambda args
-    (not (apply proc args))))
+  (define (always . _) ::boolean #t)
 
-(define (find satisfying-element?::(maps (,a) to: boolean) collection)
-  (escape-with return
-    (for-each (lambda (x)
-		(when (satisfying-element? x)
-		  (return x)))
-	      collection)
-    #!null))
+  (define (negation proc)
+    (lambda args
+      (not (apply proc args))))
 
-(e.g.
- (find even? '(1 2 3)) ===> 2)
+  (define (find satisfying-element?::(maps (,a) to: boolean) collection)
+    (escape-with return
+      (for-each (lambda (x)
+                  (when (satisfying-element? x)
+                    (return x)))
+                collection)
+      #!null))
 
-(define (listify item)
-  (if (list? item)
-      item
-      (list item)))
+  (e.g.
+   (find even? '(1 2 3)) ===> 2)
 
-(e.g.
-  (listify 1) ===> (1))
+  (define (listify item)
+    (if (list? item)
+        item
+        (list item)))
 
-(e.g.
-  (listify '(1)) ===> (1))
+  (e.g.
+    (listify 1) ===> (1))
 
-(define (map! f inout . in*)
-  (cond
-   ((isnt inout list?)
-    (cond 
+  (e.g.
+    (listify '(1)) ===> (1))
+
+  (define (map! f inout . in*)
+    (cond
+     ((isnt inout list?)
+      (cond 
+       ((null? in*)
+        (for i from 0 below (length inout)
+             (set! (inout i) (f (inout i))))
+        inout)
+       ((null? (cdr in*))
+        (escape-with return
+          (let ((i 0)
+                (n (length inout)))
+            (for x in (cdr in*)
+              (set! (inout i) (f (inout i) x))
+              (set! i (+ i 1))
+              (when (is i >= n)
+                (return inout)))
+            (return inout))))
+       (else
+        (let ((n (length inout))
+              (its (map (lambda (l ::List)
+                          (l:listIterator))
+                        in*)))
+          (escape-with return
+            (for i from 0 below n
+                 (if (every (lambda (it ::Iterator)
+                              (it:hasNext)) its)
+                     (set! (inout i)
+                       (apply f (inout i)
+                              (map (lambda (it ::Iterator)
+                                     (it:next)) its)))
+                     (return inout)))
+            (return inout))))))
      ((null? in*)
-      (for i from 0 below (length inout)
-	   (set! (inout i) (f (inout i))))
-      inout)
+      (let loop ((tip inout))
+        (if (pair? tip)
+            (begin
+              (set! (car tip) (f (car tip)))
+              (loop (cdr tip)))
+            inout)))
      ((null? (cdr in*))
-      (escape-with return
-	(let ((i 0)
-	      (n (length inout)))
-	  (for x in (cdr in*)
-	    (set! (inout i) (f (inout i) x))
-	    (set! i (+ i 1))
-	    (when (is i >= n)
-	      (return inout)))
-	  (return inout))))
+      (let loop ((tip1 inout)
+                 (tip2 (car in*)))
+        (if (and (pair? tip1) (pair? tip2))
+            (begin
+              (set! (car tip1) (f (car tip1) (car tip2)))
+              (loop (cdr tip1) (cdr tip2)))
+            inout)))
+     ((null? (cddr in*))
+      (let loop ((tip1 inout)
+                    (tip2 (car in*))
+                    (tip3 (cadr in*)))
+           (if (and (pair? tip1) (pair? tip2) (pair? tip3))
+               (begin
+                 (set! (car tip1) (f (car tip1) (car tip2) (car tip3)))
+                 (loop (cdr tip1) (cdr tip2) (cdr tip3))
+                 inout))))
      (else
-      (let ((n (length inout))
-	    (its (map (lambda (l::java.util.List)
-			(l:listIterator))
-		      in*)))
-	(escape-with return
-	  (for i from 0 below n
-	       (if (every (lambda (it::java.util.Iterator)
-			    (it:hasNext)) its)
-		   (set! (inout i)
-		     (apply f (inout i)
-			    (map (lambda (it::java.util.Iterator)
-				   (it:next)) its)))
-		   (return inout)))
-	  (return inout))))))
-   ((null? in*)
-    (let loop ((tip inout))
-      (if (pair? tip)
-	  (begin
-	    (set! (car tip) (f (car tip)))
-	    (loop (cdr tip)))
-	  inout)))
-   ((null? (cdr in*))
-    (let loop ((tip1 inout)
-	       (tip2 (car in*)))
-      (if (and (pair? tip1) (pair? tip2))
-	  (begin
-	    (set! (car tip1) (f (car tip1) (car tip2)))
-	    (loop (cdr tip1) (cdr tip2)))
-	  inout)))
-   ((null? (cddr in*))
-    (let loop ((tip1 inout)
-		  (tip2 (car in*))
-		  (tip3 (cadr in*)))
-	 (if (and (pair? tip1) (pair? tip2) (pair? tip3))
-	     (begin
-	       (set! (car tip1) (f (car tip1) (car tip2) (car tip3)))
-	       (loop (cdr tip1) (cdr tip2) (cdr tip3))
-	       inout))))
-   (else
-    (let loop ((tip inout)
-	       (tips in*))
-	 (if (and (pair? tip) (every pair? tips))
-	     (begin
-	       (set! (car tip) (apply f (car tip) (map car tips)))
-	       (loop (cdr tip) (map! cdr tips)))
-	     inout)))))
+      (let loop ((tip inout)
+                 (tips in*))
+           (if (and (pair? tip) (every pair? tips))
+               (begin
+                 (set! (car tip) (apply f (car tip) (map car tips)))
+                 (loop (cdr tip) (map! cdr tips)))
+               inout)))))
 
-(define (only. satisfying? elements . moreso)
-  (cond ((null? elements)
-	 (apply values '() moreso))
-	((pair? elements)
-	 (let ((result (cons (car elements) (map car moreso))))
-	   (cond
-	    ((apply satisfying? result)
-	     (map! list result)
-	     (let ((tips (map values result)))
-	       (let loop ((elements (cdr elements))
-			  (moreso (map cdr moreso)))
-		 (cond
-		  ((null? elements)
-		   (apply values result))
-		  ((pair? elements)
-		   (when (apply satisfying? (car elements)
-				(map car moreso))
-		     (map! (lambda (tip elem)
-			     (set-cdr! tip (cons (car elem) '()))
-			     (cdr tip))
-			   tips (cons elements moreso)))
-		   (loop (cdr elements)
-			 (map cdr moreso)))
-		  ((apply satisfying? elements moreso)
-		   (map! (lambda (tip item)
-			   (set-cdr! tip item)
-			   tip)
-			 tips (cons elements moreso))
-		   (apply values result))
-		  (else
-		   (apply values result))))))
-	    (else
-	     (apply only. satisfying? (cdr elements)
-		    (map cdr moreso))))))
-	((apply satisfying? elements moreso)
-	 (apply values elements moreso))
-	(else
-	 (apply values '() (map (lambda _ '()) moreso)))))
+  (define (only. satisfying? elements . moreso)
+    (cond ((null? elements)
+           (apply values '() moreso))
+          ((pair? elements)
+           (let ((result (cons (car elements) (map car moreso))))
+             (cond
+              ((apply satisfying? result)
+               (map! list result)
+               (let ((tips (map values result)))
+                 (let loop ((elements (cdr elements))
+                            (moreso (map cdr moreso)))
+                   (cond
+                    ((null? elements)
+                     (apply values result))
+                    ((pair? elements)
+                     (when (apply satisfying? (car elements)
+                                  (map car moreso))
+                       (map! (lambda (tip elem)
+                               (set-cdr! tip (cons (car elem) '()))
+                               (cdr tip))
+                             tips (cons elements moreso)))
+                     (loop (cdr elements)
+                           (map cdr moreso)))
+                    ((apply satisfying? elements moreso)
+                     (map! (lambda (tip item)
+                             (set-cdr! tip item)
+                             tip)
+                           tips (cons elements moreso))
+                     (apply values result))
+                    (else
+                     (apply values result))))))
+              (else
+               (apply only. satisfying? (cdr elements)
+                      (map cdr moreso))))))
+          ((apply satisfying? elements moreso)
+           (apply values elements moreso))
+          (else
+           (apply values '() (map (lambda _ '()) moreso)))))
 
-(e.g. (only. even? '(2 . 3)) ===> (2))
+  (e.g. (only. even? '(2 . 3)) ===> (2))
 
-(e.g. (only. even? '(3 . 2)) ===> 2)
+  (e.g. (only. even? '(3 . 2)) ===> 2)
 
-(e.g. (only. even? 2) ===> 2)
+  (e.g. (only. even? 2) ===> 2)
 
-(e.g. (only. even? 3) ===> ())
+  (e.g. (only. even? 3) ===> ())
 
-(e.g. (only. (is (+ _ _) even?)
-	     '(1 2 3 4 . 5) '(2 4 6 8 . 9))
-      ===>    (  2   4 . 5)  (  4   8 . 9))
+  (e.g. (only. (is (+ _ _) even?)
+               '(1 2 3 4 . 5) '(2 4 6 8 . 9))
+        ===>    (  2   4 . 5)  (  4   8 . 9))
 
-(define (concatenate list-of-lists)
-  (apply append list-of-lists))
+  (define (concatenate list-of-lists)
+    (apply append list-of-lists))
 
-(e.g.
- (concatenate '((a b) (c) (d e f)))
- ===> (a b c d e f))
+  (e.g.
+   (concatenate '((a b) (c) (d e f)))
+   ===> (a b c d e f))
 
-(define (append-map f l . ls)
-  (if (null? ls)
-    (concatenate (map f l))
-   (concatenate (apply map f ls))))
+  (define (append-map f l . ls)
+    (if (null? ls)
+      (concatenate (map f l))
+     (concatenate (apply map f ls))))
 
-(define (current-working-directory)::string
-  (let ((working-directory ::java.io.File (java.io.File ".")))
-    (working-directory:getAbsolutePath)))
+  (define (current-working-directory)::string
+    (let ((working-directory ::java.io.File (java.io.File ".")))
+      (working-directory:getAbsolutePath)))
 
-(define (current-time-ms)::long
-  (java.lang.System:currentTimeMillis))
+  (define (current-time-ms)::long
+    (java.lang.System:currentTimeMillis))
 
-(define-alias hypotenuse java.lang.Math:hypot)
+  (define-alias hypotenuse java.lang.Math:hypot)
+
+  (define (nearby-int x ::real)::int
+    (as int (round x)))
 
 #+END_SRC
 
@@ -3501,119 +3593,119 @@ lists as sets.
 
 #+BEGIN_SRC scheme :tangle language/extensions.scm
 
-(define-simple-class set (java.util.HashSet)
-  ((toString)::String
-   (let ((builder ::java.lang.StringBuilder (java.lang.StringBuilder)))
-     (builder:append "[set")
-     (for item in (this)
-       (builder:append " ")
-       (cond
-	((or (string? item) (String? item))
-	 (builder:append "\"")
-	 (builder:append (item:toString))
-	 (builder:append "\""))
-	((char? item)
-	 (builder:append "#\\")
-	 (builder:append (as char item)))
-	(else
-	 (builder:append (item:toString)))))
-     (builder:append "]")
-     (builder:toString))))
+  (define-simple-class set (HashSet)
+    ((toString)::String
+     (with-output-to-string
+       (lambda ()
+         (display "[set")
+         (for item in (this)
+           (display " ")
+           (cond
+            ((or (string? item) (String? item))
+             (display "\"")
+             (display (item:toString))
+             (display "\""))
+            ((char? item)
+             (display "#\\")
+             (display (as char item)))
+          (else
+           (display (item:toString)))))
+         (display "]")))))
 
-(define* (is element in collection)
-  (if (instance? collection java.util.Set)
-      (let ((set ::java.util.Set (as java.util.Set collection)))
-	(set:contains element))
-      (any (is _ equal? element) collection)))
+  (define* (is element in collection)
+    (if (instance? collection Set)
+        (let ((set ::Set (as Set collection)))
+          (set:contains element))
+        (any (is _ equal? element) collection)))
 
-(define (empty? x)::boolean
-  (or (and (is x gnu.lists.LList?)
-	   (isnt x gnu.lists.Pair?))
-      (and-let* ((x ::java.util.Collection))
-	(x:isEmpty))
-      (and-let* (((procedure? x))
-		 (table ::java.util.Collection (procedure-property x 'table)))
-	(empty? table))))
+  (define (empty? x)::boolean
+    (or (and (is x gnu.lists.LList?)
+             (isnt x gnu.lists.Pair?))
+        (and-let* ((x ::Collection))
+          (x:isEmpty))
+        (and-let* (((procedure? x))
+                   (table ::Collection (procedure-property x 'table)))
+          (empty? table))))
 
-(define (union set . sets)
-  (define (list-union a b)
-    (fold-left (lambda (set element)
-		 (if (is element in set)
-		     set
-		     `(,element . ,set)))
-	       a b))
-  (if (and (instance? set java.util.Set)
-	   (instance? set java.lang.Cloneable))
-      (with-compile-options
-       warn-unknown-member: #f
-       (let ((clone ::java.util.Set (set:clone)))
-	 (for collection ::java.util.Collection in sets
-	      (clone:addAll collection))
-	 clone))
-      (fold-left list-union set sets)))
+  (define (union set . sets)
+    (define (list-union a b)
+      (fold-left (lambda (set element)
+                   (if (is element in set)
+                       set
+                       `(,element . ,set)))
+                 a b))
+    (if (and (instance? set Set)
+             (instance? set Cloneable))
+        (with-compile-options
+         warn-unknown-member: #f
+         (let ((clone ::Set (set:clone)))
+           (for collection ::Collection in sets
+                (clone:addAll collection))
+           clone))
+        (fold-left list-union set sets)))
 
-(define (union! set::java.util.Set . sets)
-  (for collection ::java.util.Collection in sets
-       (set:addAll collection))
-  set)
+  (define (union! set::Set . sets)
+    (for collection ::Collection in sets
+         (set:addAll collection))
+    set)
 
-(e.g.
- (union '(a b c) '(b c d e))
- ===> (e d a b c))
+  (e.g.
+   (union '(a b c) '(b c d e))
+   ===> (e d a b c))
 
-(define (intersection set . sets)
-  (define (list-intersection a b)
-    (only (is _ in b) a))
-  (if (and (instance? set java.util.Set)
-	   (instance? set java.lang.Cloneable))
-      (with-compile-options
-       warn-unknown-member: #f
-       (let ((clone ::java.util.Set (set:clone)))
-	 (for collection ::java.util.Collection in sets
-	      (clone:retainAll collection))
-	 clone))
-      (fold-left list-intersection set sets)))
+  (define (intersection set . sets)
+    (define (list-intersection a b)
+      (only (is _ in b) a))
+    (if (and (instance? set Set)
+             (instance? set Cloneable))
+        (with-compile-options
+         warn-unknown-member: #f
+         (let ((clone ::Set (set:clone)))
+           (for collection ::Collection in sets
+                (clone:retainAll collection))
+           clone))
+        (fold-left list-intersection set sets)))
 
-(e.g.
- (intersection '(a b c) '(b c d) '(c d e))
- ===> (c))
+  (e.g.
+   (intersection '(a b c) '(b c d) '(c d e))
+   ===> (c))
 
-(define (difference set . sets)
-  (define (list-difference a b)
-    (fold-left (lambda (set element)
-		 (if (is element in set)
-		     (only (isnt _ equal? element) set)
-		     set))
-	       a b))
-  (if (and (instance? set java.util.Set)
-	   (instance? set java.lang.Cloneable))
-      (with-compile-options
-       warn-unknown-member: #f
-       (let ((clone ::java.util.Set (set:clone)))
-	 (for collection ::java.util.Collection in sets
-	      (clone:removeAll collection))
-	 clone))
-      (fold-left list-difference set sets)))
+  (define (difference set . sets)
+    (define (list-difference a b)
+      (fold-left (lambda (set element)
+                   (if (is element in set)
+                       (only (isnt _ equal? element) set)
+                       set))
+                 a b))
+    (if (and (instance? set Set)
+             (instance? set Cloneable))
+        (with-compile-options
+         warn-unknown-member: #f
+         (let ((clone ::Set (set:clone)))
+           (for collection ::Collection in sets
+                (clone:removeAll collection))
+           clone))
+        (fold-left list-difference set sets)))
 
-(e.g.
- (difference '(a b c) '(b c d))
- ===> (a))
+  (e.g.
+   (difference '(a b c) '(b c d))
+   ===> (a))
 
-(define (subset? a b)
-  (if (instance? b java.util.Set)
-      (let ((set ::java.util.Set (as java.util.Set b)))
-	(set:containsAll a))
-      (every (is _ in b) a)))
+  (define (subset? a b)
+    (if (instance? b Set)
+        (let ((set ::Set (as Set b)))
+          (set:containsAll a))
+        (every (is _ in b) a)))
 
-(e.g.
- (is '(a b) subset? '(b a c)))
+  (e.g.
+   (is '(a b) subset? '(b a c)))
 
-(define (same-sets? a b)
-  (and (is a subset? b)
-       (is b subset? a)))
+  (define (same-sets? a b)
+    (and (is a subset? b)
+         (is b subset? a)))
 
-(e.g.
- (same-sets? '(a b c) '(b a c)))
+  (e.g.
+   (same-sets? '(a b c) '(b a c)))
 
 #+END_SRC
 
@@ -3796,67 +3888,85 @@ reader.
 
 #+BEGIN_SRC scheme :tangle language/extensions.scm
 
-(define-syntax otherwise
-  (syntax-rules ()
-    ((_)
-     #f)
-    ((_ value)
-     value)
-    ((_ default . precedents)
-     (or (otherwise . precedents) default))))
+  (define-syntax otherwise
+    (syntax-rules ()
+      ((_)
+       #f)
+      ((_ value)
+       value)
+      ((_ default . precedents)
+       (or (otherwise . precedents) default))))
 
-(define-syntax-rule (begin/or clause ...)
-  (let ((result #f))
-    (set! result (or clause result))
-    ...
-    result))
+  (define-syntax-rule (begin/or clause ...)
+    (let ((result #f))
+      (set! result (or clause result))
+      ...
+      result))
 
-(define-syntax-rule (begin/and clause ...)
-  (let ((result #t))
-    (set! result (and clause result))
-    ...
-    result))
+  (define-syntax-rule (begin/and clause ...)
+    (let ((result #t))
+      (set! result (and clause result))
+      ...
+      result))
 
-(define (memoize proc)
-  (let ((table ::java.util.Map (java.util.HashMap)))
-    (with-procedure-properties ((table table))
-      (lambda args
-        (if (table:contains-key args)
-            (apply values (table:get args))
-            (call-with-values (lambda () (apply proc args))
-              (lambda result
-                (table:put args result)
-                (apply values result))))))))
+  (define (memoize proc)
+    (let ((table ::Map (HashMap)))
+      (with-procedure-properties ((table table))
+        (lambda args
+          (if (table:contains-key args)
+              (apply values (table:get args))
+              (call-with-values (lambda () (apply proc args))
+                (lambda result
+                  (table:put args result)
+                  (apply values result))))))))
 
-(define-syntax-rule (define/memoized (name . args) . body)
-  (define name (memoize (lambda args . body))))
+  (define-syntax-rule (define/memoized (name . args) . body)
+    (define name (memoize (lambda args . body))))
 
-(define-object (InputPortLineIterator port::InputPort)
-  ::(specialize java.util.Iterator string)
-  (define next-line ::(maybe (either string EndOfFile)) #!null)
+  (define-object (InputPortLineIterator port::InputPort)
+    ::(specialize Iterator string)
+    (define next-line ::(maybe (either string EndOfFile)) #!null)
 
-  (define (hasNext) ::boolean
-    (unless next-line
-      (set! next-line (read-line port)))
-    (isnt next-line eof-object?))
+    (define (hasNext) ::boolean
+      (unless next-line
+        (set! next-line (read-line port)))
+      (isnt next-line eof-object?))
 
-  (define (next)
-    (unless next-line
-      (set! next-line (read-line port)))
-    (unless (string? next-line)
-      (throw (java.util.NoSuchElementException)))
-    (let ((result next-line))
-      (set! next-line #!null)
-      result)))
+    (define (next)
+      (unless next-line
+        (set! next-line (read-line port)))
+      (unless (string? next-line)
+        (throw (NoSuchElementException)))
+      (let ((result next-line))
+        (set! next-line #!null)
+        result)))
 
-(define-object (InputPortLines port::InputPort)
-  ::(specialize java.lang.Iterable string)
-  (define (iterator)::(specialize java.util.Iterator string)
-    (InputPortLineIterator port)))
+  (define-object (InputPortLines port::InputPort)
+    ::(specialize Iterable string)
+    (define (iterator)::(specialize Iterator string)
+      (InputPortLineIterator port)))
 
-(define* (lines port ::InputPort := (current-input-port))
-  ::(specialize java.lang.Iterable string)
-  (InputPortLines port))
+  (define* (lines port ::InputPort := (current-input-port))
+    ::(specialize Iterable string)
+    (InputPortLines port))
+
+  (define-syntax with
+    (lambda (stx)
+      (syntax-case stx ()
+        ((with ((variable type* ... value) ...) . actions)
+         (with-syntax (((previous-value ...)
+                        (generate-temporaries #'(variable ...))))
+                      #'(let ((previous-value variable) ...)
+                          (set! variable value)
+                          ...
+                          (try-finally
+                           (begin . actions)
+                           (begin
+                             (set! variable previous-value)
+                             ...))))))))
+
+  (define-syntax-rule (the slot-name)
+    (slot-ref (this) 'slot-name))
 
 #+END_SRC
 
@@ -3942,16 +4052,12 @@ arrows etc.).
 
 Therefore are going to split our description into subsections
 describing particular capabilities. Each section will define
-a name of a capaility, an interface that needs to be
-implemented for the capability to be effective, and a set
-of definitions that will be used to construct a /null object/
-with trivial (ineffective) implementations of the interface
-methods.
+a name of a capaility and an interface that needs to be
+implemented for the capability to be effective.
 
 At the end of this section there will be a definition that
 builds an interface called ~Painter~ which aggregates all
-the capabilities defined in the subsections, followed by a
-definition of ~NullPainter~ that will be used to initialize
+the capabilities defined in the subsections, followed by
 the ~painter~ variable that will be used by the actual
 implementations of GRASP to pefrorm all rendering.
 
@@ -3989,7 +4095,7 @@ we won't need to worry about restoring the context.
   (with-rotation angle::real action::(maps () to: ,A))::,A
   (with-clip w::real h::real action::(maps () to: ,A))::,A
   (with-scale scale::real action::(maps () to: ,A))::,A
-  (with-intensity intensity::<0.0-1.0> action::(maps () to: ,A)::,A
+  (with-intensity intensity::<0.0-1.0> action::(maps () to: ,A))::,A
   (with-stretch horizontal::real vertical::real action::(maps () to: ,A))::,A
   )
 
@@ -3998,25 +4104,6 @@ we won't need to worry about restoring the context.
 The null-object implementations are simply going to call the
 received thunks (although this isn't relevant in practice,
 because the null-object is only needed for initialization).
-
-#+BEGIN_SRC scheme :noweb-ref null-painter-implementation
-  ;; CanManageRenderingContext
-  (define (with-translation x::real y::real acion::(maps () to: ,A))::,A
-    (action))
-
-  (define (with-rotation angle::real action::(maps () to: ,A))::,A
-    (action))
-
-  (define (with-clip w::real h::real action::(maps () to: ,A))::,A
-    (action))
-
-  (define (with-intensity intensity::<0.0-1.0> action::(maps () to: ,A))::,A
-    (action))
-
-  (define (with-stretch horizontal::real vertical::real action::(maps () to: ,A))::,A
-    (action))
-
-#+END_SRC
 
 A few words need to be said about the coordinate system
 itself, as there are many conventions to be found in
@@ -4031,36 +4118,106 @@ representation. The boxes actually are parenthesized
 expressions, but the opening and closing parentheses are
 equally tall.
 
-
-
 #+BEGIN_SRC scheme :noweb-ref painter-capabilities
 CanRenderBoxes
 #+END_SRC
 
+We are going to support a number of styles for a few
+different types of parentheses. Each rendering method is
+going to return the width of the parenthesis that it
+renders. In addition, we're going to have two methods
+that are going to be used simply for measuring the width
+of parentheses without any rendering. They could be
+considered redundant, but they make the intent clearer.
+
 #+BEGIN_SRC scheme scheme :tangle editor/architecture.scm
 
-(define-enum ParenStyle (Normal Quote Quasiquote Unquote UnquoteSplicing List))
+  (define-enum ParenStyle
+    (Normal Quote Quasiquote Unquote UnquoteSplicing List))
 
-(define-interface CanRenderBoxes ()
-  (draw-left-paren! height::real style::ParenStyle)::real
-  (left-paren-width stype::ParenStyle)::real
-  (draw-right-paren! height::real style::ParenStyle)::real
-  (right-paren-width stype::ParenStyle)::real
-  )
+  (define-interface CanRenderBoxes ()
+    (draw-left-paren! height::real style::ParenStyle)::real
+    (left-paren-width style::ParenStyle)::real
+    (draw-right-paren! height::real style::ParenStyle)::real
+    (right-paren-width style::ParenStyle)::real
+    )
 
-#+END_SRC
-
-#+BEGIN_SRC scheme :noweb-ref null-painter-implementation
-  ;; CanRenderBoxes
-  (define (draw-left-paren! height::real style::ParenStyle)::real 0)
-  (define (left-paren-width stype::ParenStyle)::real 0)
-  (define (draw-right-paren! height::real style::ParenStyle)::real 0)
-  (define (right-paren-width stype::ParenStyle)::real 0)
 #+END_SRC
 
 ***** Rendering text
 
+One of the basic capabilities of most code editors is
+that of rendering text.
 
+#+BEGIN_SRC scheme :noweb-ref painter-capabilities
+CanRenderText
+#+END_SRC
+
+Ususally, text rendering is associated with the use of fonts.
+
+In the case of GRASP, the situation is a bit complicated,
+because every client represents fonts in a different way.
+
+For this reason, we are going to define a ~FontProxy~ type
+that will stand for particular font representations. 
+
+#+BEGIN_SRC scheme :tangle editor/architecture.scm
+
+  (define-interface FontProxy ()
+    (height)::real)
+
+#+END_SRC
+
+GRASP is expected to provide a number of built-in fonts: one
+that is going to be used for rendering atoms, another
+(monospaced) for rendering strings, yet another - for
+rendering comments, and one that is used for rendering text
+in the UI elements ("captions").
+
+These fonts can be accessed through variables which are
+visible globally but can only be initialized using the
+~initialize-fonts~ procedure.
+
+#+BEGIN_SRC scheme :tangle editor/architecture.scm
+
+  (define the-atom-font ::FontProxy #!null)
+  (define the-string-font ::FontProxy #!null)
+  (define the-comment-font ::FontProxy #!null)
+  (define the-caption-font ::FontProxy #!null)
+
+  (define* (initialize-fonts
+            atom-font: an-atom-font ::FontProxy
+            string-font: a-string-font ::FontProxy
+            comment-font: a-comment-font ::FontProxy)
+    (set! the-atom-font an-atom-font)
+    (set! the-string-font a-string-font)
+    (set! the-comment-font a-comment-font))
+
+#+END_SRC
+
+The rendering interface needs to contain four methods:
+one that actually renders the text, and returns its width.
+Another, which returns the width without rendering.
+One function needs to be designated to marking the cursor,
+and one for scanning the position of a point in the visual
+space into character index.
+
+The functions assume that ~text~ contains no newline
+characters.
+
+#+BEGIN_SRC scheme :tangle editor/architecture.scm
+
+  (define-interface CanRenderText ()
+    (draw-text! text::CharSequence font::FontProxy)::real
+    (text-width text::CharSequence font::FontProxy)::real
+    (mark-cursor! position::int font::FontProxy)::void
+    (character-index position::real text::CharSequence font::FontProxy)::int
+    )
+
+#+END_SRC
+
+
+***** Putting it all together
 
 #+BEGIN_SRC scheme :tangle editor/architecture.scm :noweb yes
 
@@ -4068,12 +4225,283 @@ CanRenderBoxes
 <<painter-capabilities>>
 ))
 
-(define-object (NullPainter)::Painter
-  <<null-painter-implementation>>
-)
 #+END_SRC
 
+**** The ~TextPainter~
 
+One implementation of the ~Painter~ interface can be used by
+all front-ends, and is particularly convenient for testing.
+It's called ~TextPainter~, and it is capable of rendering
+things to a string.
+
+However, because the ~TextPainter~ is going to share a lot
+of its implementation with the painter from the Terminal
+front-end, the similarities will be abstracted to the
+~CharPainter~ abstract class.
+
+#+BEGIN_SRC scheme :tangle editor/architecture.scm
+
+  (define-object (ParenthesesCharacters
+                  leftTop ::String         rightTop ::String
+                  leftLine ::String        rightLine ::String
+                  leftMiddle ::String      rightMiddle ::String
+                  leftEvenComment ::String rightEvenComment ::String
+                  leftOddComment ::String  rightOddComment ::String
+                  leftBottom ::String      rightBottom ::String)
+    (define leftWidth ::int (string-length leftMiddle))
+    (define rightWidth ::int (string-length rightMiddle))
+    (Object)
+    (assert
+     (= (string-length leftTop)
+        (string-length leftLine)
+        (string-length leftMiddle)
+        (string-length leftEvenComment)
+        (string-length leftOddComment)
+        (string-length leftBottom)))
+    (assert
+     (= (string-length rightTop)
+        (string-length rightLine)
+        (string-length rightMiddle)
+        (string-length rightEvenComment)
+        (string-length rightOddComment)
+        (string-length rightBottom))))
+
+  (define-object (CharPainter)::Painter
+
+    (define-static Parentheses
+      #((ParenthesesCharacters
+         "╭ "            " ╮"
+         "│ "            " │"
+         "│ " #|Normal|# " │"
+         "┆ "            " ┆"
+         "┊ "            " ┊"
+         "╰ "            " ╯")
+        (ParenthesesCharacters
+         "┎ "           " ┒"
+         "┃ "           " ┃"
+         "┃ " #|Quote|# " ┃"
+         "┇ "           " ┇"
+         "┋ "           " ┋"
+         "┖ "           " ┚")
+        (ParenthesesCharacters
+         "╓ "                " ╖"
+         "║ "                " ║"
+         "║ " #|Quasiquote|# " ║"
+         "║ "                " ║"
+         "║ "                " ║"
+         "╙ "                " ╜")
+        (ParenthesesCharacters
+         "╷ "             " ╷"
+         "│ "             " │"
+         "│ " #|Unquote|# " │"
+         "┆ "             " ┆"
+         "┊ "             " ┊"
+         "└ "             " ┘")
+        (ParenthesesCharacters
+         " ╷ "                     " ╷ "
+         " │ "                     " │ "
+         "┈┤ " #|UnquoteSplicing|# " ├┈"
+         " ┆ "                     " ┆ "
+         " ┊ "                     " ┊ "
+         " └ "                     " ┘ ")
+        (ParenthesesCharacters
+         "┏ "          " ┓"
+         "┃ "          " ┃"
+         "┃ " #|List|# " ┃"
+         "┇ "          " ┇"
+         "┋ "          " ┋"
+         "┗ "          " ┛")
+        ))
+
+    (define-protected (put! c ::char left ::int top ::int)::void
+      #!abstract)
+
+    (define-protected shift-left ::int 0)
+    (define-protected shift-top ::int 0)
+
+    (define-protected clip-width ::int Integer:MAX_VALUE)
+    (define-protected clip-height ::int Integer:MAX_VALUE)
+
+    (define (with-translation x::real y::real action::(maps () to: ,A))::,A
+      (assert (and (is 0 <= x) (is y >= 0)))
+      (with ((shift-left (as int (+ shift-left x)))
+             (shift-top (as int (+ shift-top y)))
+             (clip-width (- clip-width x))
+             (clip-height (- clip-height y)))
+            (action)))
+
+    (define (with-rotation angle::real action::(maps () to: ,A))::,A
+      (action))
+
+    (define-protected stretch-horizontal ::float 1.0)
+    (define-protected stretch-vertical ::float 1.0)
+
+    (define (with-stretch horizontal::real vertical::real
+                          action::(maps () to: ,A))
+      ::,A
+      (assert (and (is 0 < horizontal) (is vertical > 0)))
+      (with ((stretch-horizontal (* stretch-horizontal horizontal))
+             (stretch-vertical (* stretch-vertical vertical)))
+            (action)))
+
+    (define (with-clip width::real height::real
+                       action::(maps () to: ,A))
+      ::,A
+      (assert (and (is 0 <= width) (is height >= 0)))
+      (with ((clip-width (min clip-width
+                              (nearby-int (* width stretch-horizontal))))
+             (clip-height (min clip-height
+                               (nearby-int (* height stretch-vertical)))))
+            (action)))
+
+    (define (with-scale scale::real action::(maps () to: ,A))::,A
+      (action))
+
+    (define (with-intensity intensity::<0.0-1.0>
+                            action::(maps () to: ,A))
+      ::,A
+      #!abstract)
+
+    (define (draw-left-paren! height::real style::ParenStyle)::real
+      (let* ((parenthesis ::ParenthesesCharacters
+                          (Parentheses (style:ordinal)))
+             (width ::int parenthesis:leftWidth))
+        (for i ::int from 0 below width
+             (put! (parenthesis:leftTop i) i 0))
+        (for line ::int from 1 below (- height 3)
+             (for i ::int from 0 below width
+                  (put! (parenthesis:leftLine i) i line)))
+        (for i ::int from 0 below width
+             (put! (parenthesis:leftMiddle i) i (- height 2)))
+        (for i ::int from 0 below width
+             (put! (parenthesis:leftBottom i) i (- height 1)))
+        width))
+
+    (define (left-paren-width style::ParenStyle)::real
+      (let ((parenthesis ::ParenthesesCharacters
+                         (Parentheses (style:ordinal))))
+        parenthesis:leftWidth))
+
+    (define (draw-right-paren! height::real style::ParenStyle)::real
+      (let* ((parenthesis ::ParenthesesCharacters
+                          (Parentheses (style:ordinal)))
+             (width ::int parenthesis:rightWidth))
+        (for i ::int from 0 below width
+             (put! (parenthesis:rightTop i) i 0))
+        (for line ::int from 1 below (- height 3)
+             (for i ::int from 0 below width
+                  (put! (parenthesis:rightLine i) i line)))
+        (for i ::int from 0 below width
+             (put! (parenthesis:rightMiddle i) i (- height 2)))
+        (for i ::int from 0 below width
+             (put! (parenthesis:rightBottom i) i (- height 1)))
+        width))
+
+    (define (right-paren-width style::ParenStyle)::real
+      (let ((parenthesis ::ParenthesesCharacters
+                         (Parentheses (style:ordinal))))
+        parenthesis:rightWidth))
+
+    (define (draw-text! text::CharSequence font::FontProxy)::real
+      #!abstract)
+
+    (define (text-width text::CharSequence font::FontProxy)::real
+      (string-length text))
+
+    (define (mark-cursor! index::int font::FontProxy)::void
+      #!abstract)
+
+    (define (character-index horizontal-position::real text::CharSequence
+                             font::FontProxy)
+      ::int
+      (let ((n ::int (string-length text)))
+        (cond
+         ((is horizontal-position <= 0) 0)
+         ((is horizontal-position >= n) n)
+         (else (nearby-int horizontal-position)))))
+    )
+
+  (define-object (TextPainterFont vertical-offset::int)::FontProxy
+    (define (height)
+      (+ vertical-offset 1)))
+
+  (define-object (TextPainter)::Painter
+
+    (define (draw-text! text ::CharSequence font ::FontProxy)::real
+      (let ((vertical-offset ::int (or (and-let* ((font ::TextPainterFont))
+                                         font:vertical-offset)
+                                       0))
+            (text-length ::int (string-length text)))
+        (for i ::int from 0 below text-length
+             (put! (text i) i vertical-offset))))
+
+    (define (mark-cursor! position ::int font ::FontProxy)::void
+      (let ((vertical-offset (or (and-let* ((font ::TextPainterFont))
+                                   font:vertical-offset)
+                                 0)))
+        (put! #\^ position (+ vertical-offset 1))))
+
+    (define-private width ::int 0)
+    (define-private height ::int 0)
+    (define-private data ::(array-of char) #!null)
+
+    (define-private (expand-data! new-width ::int new-height ::int)::void
+      (assert (and (is width <= new-width) (is new-height >= height)))
+      (let ((new-data ((array-of char) length: (* new-width new-height))))
+        (for line ::int from 0 below new-height
+             (for column ::int from 0 below new-width
+                  (set! (new-data (+ (* new-width line) column))
+                        (if (and (is column < width)
+                                 (is height > line))
+                            (data (+ (* width line) column))
+                            #\space))))
+        (set! width new-width)
+        (set! height new-height)
+        (set! data new-data)))
+
+    (define (put! c ::char left ::int top ::int)::void
+      (assert (and (is 0 <= left) (is top >= 0)))
+      (let ((x ::int (+ (the shift-left)
+                        (nearby-int (* (the stretch-horizontal) left))))
+            (y ::int (+ (the shift-top)
+                        (nearby-int (* (the stretch-vertical) top)))))
+        (when (and (is x < (+ (the shift-left) (the clip-width)))
+                   (is (+ (the shift-top) (the clip-height)) > y))
+          (when (or (is width <= x)
+                    (is y >= height))
+            (let ((new-width (if (is width <= x)
+                                 (+ x 1)
+                                 width))
+                  (new-height (if (is y >= height)
+                                  (+ y 1)
+                                  height)))
+              (expand-data! new-width new-height)))
+          (let ((n (+ (* width y) x)))
+            (set! (data n) c))
+          )))
+
+    (define (with-intensity intensity::<0.0-1.0>
+                            action::(maps () to: ,A))
+      ::,A
+      (action))
+
+    (define (toString)::String
+      (with-output-to-string
+        (lambda ()
+          (write-char #\newline)
+          (for line from 0 below height
+               (for column from 0 below width
+                    (let* ((n (+ (* line width)
+                                 column))
+                           (c (data n)))
+                      (write-char c)))
+               (write-char #\newline)))))
+
+    (CharPainter))
+
+  (define painter ::Painter (TextPainter))
+
+#+END_SRC
 
 *** Handling input
 

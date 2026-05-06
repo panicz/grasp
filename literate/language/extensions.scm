@@ -275,9 +275,27 @@
              (force futures)
              ...))))))
 
+(define-alias Collection java.util.Collection)
+(define-alias List java.util.List)
+(define-alias ArrayList java.util.ArrayList)
+(define-alias ListIterator java.util.ListIterator)
+(define-alias Iterator java.util.Iterator)
+
+(define-alias Map java.util.Map)
+(define-alias HashMap java.util.HashMap)
+(define-alias WeakHashMap java.util.WeakHashMap)
+(define-alias EnumSet java.util.EnumSet)
+(define-alias Set java.util.Set)
+(define-alias HashSet java.util.HashSet)
+(define-alias NoSuchElementException java.util.NoSuchElementException)
+
+(define-alias Cloneable java.lang.Cloneable)
+(define-alias CharSequence java.lang.CharSequence)
+(define-alias Iterable java.lang.Iterable)
+(define-alias Integer java.lang.Integer)
+
 (define (par-for-each function collection)
-  (let ((futures ::java.util.List
-                 (java.util.ArrayList)))
+  (let ((futures ::List (ArrayList)))
     (for-each (lambda (x)
                 (futures:add (future (function x))))
               collection)
@@ -292,19 +310,19 @@
                     in-parallel ::)
 
     ((for var from . rest)
-     (for var :: java.lang.Object from . rest))
+     (for var :: Object from . rest))
 
     ((for var in . rest)
-     (for var :: java.lang.Object in . rest))
+     (for var :: Object in . rest))
 
     ((for var in-reverse . rest)
-     (for var :: java.lang.Object in-reverse . rest))
+     (for var :: Object in-reverse . rest))
 
     ((for var in-parallel . rest)
-     (for var :: java.lang.Object in-parallel . rest))
+     (for var :: Object in-parallel . rest))
 
     ((for var :: type in-reverse collection . actions)
-     (let ((it ::java.util.ListIterator (collection:listIterator
+     (let ((it ::ListIterator (collection:listIterator
                                          (length collection))))
        (while (it:hasPrevious)
               (let ((var ::type (it:previous)))
@@ -432,10 +450,11 @@
     (syntax-case stx (::
                       define
                       define-private
+                      define-protected                      
                       define-static
                       delegate
                       specialize)
-      
+
       ((object-definition (object-name . args)
                           (arg :: type . rest)
                           supers
@@ -517,7 +536,7 @@
                             methods
                             initializers
                             (:: type . spec)))
-      
+
       ((object-definition (object-name . args)
                           ()
                           (supers ...)
@@ -556,6 +575,26 @@
       ((object-definition (object-name . args)
                           ()
                           supers
+                          slots
+                          (methods ...)
+                          initializers
+                          ((define-protected (method . params)
+                             . body)
+                           . spec))
+       #'(object-definition (object-name . args)
+                            ()
+                            supers
+                            slots
+                            (methods
+                             ...
+                             ((method . params)
+                              access: 'protected . body))
+                            initializers
+                            spec))
+
+      ((object-definition (object-name . args)
+                          ()
+                          supers
                           (slots ...)
                           methods
                           (initializers ...)
@@ -576,12 +615,47 @@
                           (slots ...)
                           methods
                           (initializers ...)
+                          ((define-protected slot :: type value) . spec))
+       #'(object-definition (object-name . args)
+                            ()
+                            supers
+                            (slots ... (slot :: type access: 'protected))
+                            methods
+                            (initializers 
+                             ... 
+                             (set! slot value))
+                            spec))
+
+      ((object-definition (object-name . args)
+                          ()
+                          supers
+                          (slots ...)
+                          methods
+                          (initializers ...)
                           ((define-private slot value)
                           . spec))
        #'(object-definition (object-name . args)
                             ()
                             supers
                             (slots ... (slot access: 'private))
+                            methods
+                            (initializers 
+                             ... 
+                             (set! slot value))
+                            spec))
+
+      ((object-definition (object-name . args)
+                          ()
+                          supers
+                          (slots ...)
+                          methods
+                          (initializers ...)
+                          ((define-protected slot value)
+                          . spec))
+       #'(object-definition (object-name . args)
+                            ()
+                            supers
+                            (slots ... (slot access: 'protected))
                             methods
                             (initializers 
                              ... 
@@ -719,7 +793,7 @@
                             methods
                             initializers
                             spec))
-      
+
       ((object-definition (object-name . args)
                           ()
                           supers
@@ -816,14 +890,14 @@
   (lambda (stx)
     (syntax-case stx (:=)
       ((_ type-name () ((slot-symbol . slot-spec) ...) (initializers ...))
-       #'(define-simple-class type-name (java.lang.Cloneable)
+       #'(define-simple-class type-name (Cloneable)
            (slot-symbol . slot-spec)
            ...
            ((assign source ::type-name)::void
             (set! slot-symbol (slot-ref source 'slot-symbol))
             ...)
 
-           ((clone)::java.lang.Object
+           ((clone)::Object
             (let ((copy (type-name)))
               (invoke copy 'assign (this))
               copy))
@@ -843,7 +917,7 @@
                 (kawa.lib.kawa.pprint:pprintNewline 'linear port)
                 (cond ((string? slot-symbol)
                        (write slot-symbol port))
-                      ((java.util.Collection? slot-symbol)
+                      ((Collection? slot-symbol)
                        (kawa.lib.kawa.pprint:pprintStartLogicalBlock "[" #f "]" port)
                        (try-finally
                         (for item in slot-symbol
@@ -854,12 +928,12 @@
                ...)
              (kawa.lib.kawa.pprint:pprintEndLogicalBlock "]" port)))
 
-           ((toString)::java.lang.String
+           ((toString)::String
             (call-with-output-string 
               (lambda (port ::OutputPort) 
                 (invoke (this) 'prettyPrint port))))
 
-           ((equals another ::java.lang.Object)::boolean
+           ((equals another ::Object)::boolean
             (and (instance? another type-name)
                  (let ((another ::type-name (as type-name another)))
                     (and (equal? slot-symbol (slot-ref another 
@@ -901,25 +975,24 @@
       )))
 
 (define (clonable? object)::boolean
-  (or (instance? object java.lang.Cloneable)
+  (or (instance? object Cloneable)
       (and (procedure? object)
 	   (procedure? (procedure-property object 'clone)))))
 
 (define (copy object)
   (cond
-   ((instance? object java.util.WeakHashMap)
-    (let* ((hash-map ::java.util.WeakHashMap object)
-	   (cloned ::java.util.WeakHashMap
-		   (java.util.WeakHashMap)))
+   ((instance? object WeakHashMap)
+    (let* ((hash-map ::WeakHashMap object)
+	   (cloned ::WeakHashMap (WeakHashMap)))
       (for key in (hash-map:keySet)
 	(let ((value (hash-map:get key)))
 	  (cloned:put key value)))
       cloned))
    
-   ((instance? object java.lang.Cloneable)
+   ((instance? object Cloneable)
     (with-compile-options
      warn-unknown-member: #f
-     (let ((clonable ::java.lang.Cloneable object))
+     (let ((clonable ::Cloneable object))
        (clonable:clone))))
    
    ((procedure? object)
@@ -1507,8 +1580,8 @@ in patterns and remove them from bindings"
     proc))
 
 (e.g.
-  (call-with-input-string "java.util.Map[KeyType ValueType]" read)
-===> ($bracket-apply$ java.util.Map KeyType ValueType))
+  (call-with-input-string "Map[KeyType ValueType]" read)
+===> ($bracket-apply$ Map KeyType ValueType))
 
 (define-syntax-rule (specialize generic-type concrete-types ...)
   ($bracket-apply$ generic-type concrete-types ...))
@@ -1516,8 +1589,7 @@ in patterns and remove them from bindings"
 (define-syntax mapping
   (syntax-rules (::)
     ((mapping (object::key-type)::value-type default)
-     (let* ((entries ::java.util.Map ((specialize java.util.HashMap 
-                                                  key-type value-type)))
+     (let* ((entries ::Map ((specialize HashMap key-type value-type)))
             (getter (lambda (object::key-type)::value-type
                       (if (entries:containsKey object)
                           (entries:get object)
@@ -1528,44 +1600,44 @@ in patterns and remove them from bindings"
           getter)))
 
     ((mapping (object::key-type) default)
-     (mapping (object::key-type)::java.lang.Object
+     (mapping (object::key-type)::Object
                default))
 
     ((mapping (object)::value-type default)
-     (mapping (object::java.lang.Object)::value-type
+     (mapping (object::Object)::value-type
                default))
 
     ((mapping (object) default)
-     (mapping (object::java.lang.Object)::java.lang.Object
+     (mapping (object::Object)::Object
               default))
     ))
 
 (define-syntax define-mapping
   (syntax-rules (::)
-    ((define-mapping (mapping-name object::key-type)::value-type
+    ((define-mapping (mapping-name object ::key-type)::value-type
        default)
      (define-early-constant mapping-name
        (with-procedure-properties ((name 'mapping-name))
-         (mapping (object::key-type)::value-type default))))
+         (mapping (object ::key-type)::value-type default))))
 
-    ((define-mapping (mapping-name object::key-type) default)
-     (define-mapping (mapping-name object::key-type)
-       ::java.lang.Object
+    ((define-mapping (mapping-name object ::key-type) default)
+     (define-mapping (mapping-name object ::key-type)
+       ::Object
        default))
 
     ((define-mapping (mapping-name object)::value-type default)
-     (define-mapping (mapping-name object::java.lang.Object)
+     (define-mapping (mapping-name object ::Object)
        ::value-type
        default))
 
     ((define-mapping (mapping-name object) default)
-     (define-mapping (mapping-name object::java.lang.Object)
-       ::java.lang.Object
+     (define-mapping (mapping-name object ::Object)
+       ::Object
        default))
     ))
 
 (define (keys dict)
-  (let ((table ::java.util.Map (procedure-property dict 'table)))
+  (let ((table ::Map (procedure-property dict 'table)))
     (table:keySet)))
 
 (define (inverse function)
@@ -1579,11 +1651,9 @@ in patterns and remove them from bindings"
   (syntax-rules (::)
     ((bimapping (object::key-type default-inverse)::value-type
                 default)
-     (let* ((entries ::java.util.Map ((specialize java.util.HashMap 
-                                                  key-type value-type)))
-            (inverse-entries ::java.util.Map ((specialize 
-                                               java.util.HashMap 
-                                               value-type key-type)))
+     (let* ((entries ::Map ((specialize HashMap key-type value-type)))
+            (inverse-entries ::Map ((specialize HashMap
+                                                value-type key-type)))
             (getter (lambda (object)
                       (if (entries:contains-key object)
                           (entries:get object)
@@ -1607,17 +1677,17 @@ in patterns and remove them from bindings"
        getter))
     ((bimapping (object::key-type default-inverse) default)
      (bimapping (object::key-type default-inverse)
-                ::java.lang.Object
+                ::Object
                default))
 
     ((bimapping (object default-inverse)::value-type default)
-     (bimapping (object::java.lang.Object
+     (bimapping (object ::Object
                  default-inverse)::value-type
                default))
 
     ((bimapping (object default-inverse) default)
-     (bimapping (object::java.lang.Object
-                 default-inverse)::java.lang.Object
+     (bimapping (object ::Object
+                 default-inverse)::Object
               default))
     ))
 
@@ -1638,7 +1708,7 @@ in patterns and remove them from bindings"
        default)
      (define-bimapping (bimapping-name object::key-type
                                        default-inverse)
-       ::java.lang.Object
+       ::Object
        default))
 
     ((define-bimapping (bimapping-name object
@@ -1646,7 +1716,7 @@ in patterns and remove them from bindings"
        ::value-type
        default)
      (define-bimapping (bimapping-name
-                        object::java.lang.Object
+                        object::Object
                         default-inverse)
        ::value-type
        default))
@@ -1654,19 +1724,18 @@ in patterns and remove them from bindings"
     ((define-bimapping (bimapping-name object default-inverse)
        default)
      (define-bimapping (bimapping-name
-                        object::java.lang.Object
+                        object::Object
                         default-inverse)
-       ::java.lang.Object
+       ::Object
        default))
     ))
 
 (define-syntax attribute
   (syntax-rules (::)
     ((attribute (object::key-type)::value-type default)
-     (let ((table ::java.util.Map
-                  ((specialize java.util.WeakHashMap
-                               key-type value-type))))
-       (define (create table::java.util.WeakHashMap)
+     (let ((table ::Map ((specialize WeakHashMap
+                                     key-type value-type))))
+       (define (create table::WeakHashMap)
          (let ((getter ::procedure
                        (lambda (object::key-type)::value-type
                          (if (table:contains-key object)
@@ -1683,15 +1752,15 @@ in patterns and remove them from bindings"
        (create table)))
 
     ((attribute (object::key-type) default)
-     (attribute (object::key-type)::java.lang.Object
+     (attribute (object::key-type)::Object
                default))
 
     ((attribute (object)::value-type default)
-     (attribute (object::java.lang.Object)::value-type
+     (attribute (object::Object)::value-type
                default))
 
     ((attribute (object) default)
-     (attribute (object::java.lang.Object)::java.lang.Object
+     (attribute (object::Object)::Object
                default))
     ))
 
@@ -1700,10 +1769,10 @@ in patterns and remove them from bindings"
 (define-syntax attribute+
   (syntax-rules (::)
     ((attribute+ (object::key-type)::value-type default)
-     (let ((table ::java.util.Map
-                  ((specialize java.util.WeakHashMap
-                                    key-type value-type))))
-       (define (create table::java.util.WeakHashMap)
+     (let ((table ::Map
+                  ((specialize WeakHashMap
+                               key-type value-type))))
+       (define (create table::WeakHashMap)
          (let ((getter ::procedure
                        (lambda (object::key-type)::value-type
                          (if (table:contains-key object)
@@ -1722,15 +1791,15 @@ in patterns and remove them from bindings"
        (create table)))
 
     ((attribute+ (object::key-type) default)
-     (attribute+ (object::key-type)::java.lang.Object
+     (attribute+ (object::key-type)::Object
                 default))
 
     ((attribute+ (object)::value-type default)
-     (attribute+ (object::java.lang.Object)::value-type
+     (attribute+ (object::Object)::value-type
                 default))
 
     ((attribute+ (object) default)
-     (attribute+ (object::java.lang.Object)::java.lang.Object
+     (attribute+ (object::Object)::Object
                 default))
     ))
 
@@ -1746,17 +1815,17 @@ in patterns and remove them from bindings"
 
     ((define-attribute (attribute-name object::key-type) default)
      (define-attribute (attribute-name object::key-type)
-       ::java.lang.Object
+       ::Object
        default))
 
     ((define-attribute (attribute-name object)::value-type default)
-     (define-attribute (attribute-name object::java.lang.Object)
+     (define-attribute (attribute-name object::Object)
        ::value-type
        default))
 
     ((define-attribute (attribute-name object) default)
-     (define-attribute (attribute-name object::java.lang.Object)
-       ::java.lang.Object
+     (define-attribute (attribute-name object::Object)
+       ::Object
        default))
     ))
 
@@ -1772,31 +1841,31 @@ in patterns and remove them from bindings"
 
     ((define-attribute+ (attribute-name object::key-type) default)
      (define-attribute+ (attribute-name object::key-type)
-       ::java.lang.Object
+       ::Object
        default))
 
     ((define-attribute+ (attribute-name object)::value-type
        default)
-     (define-attribute+ (attribute-name object::java.lang.Object)
+     (define-attribute+ (attribute-name object::Object)
        ::value-type
        default))
 
     ((define-attribute+ (attribute-name object) default)
-     (define-attribute+ (attribute-name object::java.lang.Object)
-       ::java.lang.Object
+     (define-attribute+ (attribute-name object::Object)
+       ::Object
        default))
     ))
 
 (define-syntax-rule (unset! (mapping object))
-  (let ((table ::java.util.Map (procedure-property mapping 'table)))
+  (let ((table ::Map (procedure-property mapping 'table)))
     (table:remove object)))
 
 (define (reset! mapping)::void
-  (let ((table ::java.util.Map (procedure-property mapping 'table)))
+  (let ((table ::Map (procedure-property mapping 'table)))
     (table:clear)))
 
 (define-syntax-rule (assigned? (mapping key))
-  (let ((table ::java.util.Map (procedure-property mapping 'table)))
+  (let ((table ::Map (procedure-property mapping 'table)))
     (table:contains-key key)))
 
 (define-syntax-rule (update! (mapping object) expression)
@@ -1902,7 +1971,7 @@ in patterns and remove them from bindings"
     ))
 
 (define (invalidate! cache . point)
-  (let ((table ::java.util.Map (procedure-property cache 'table)))
+  (let ((table ::Map (procedure-property cache 'table)))
     (match point
       ('() (table:clear))
       (`(,point) (table:remove point))
@@ -1934,16 +2003,14 @@ in patterns and remove them from bindings"
     ((_ input-types to: output-type + ...)
      procedure)))
 
-(define-alias EnumSet java.util.EnumSet)
-
 (define-syntax-rule (list-of type)
   list)
 
 (define-syntax-rule (set-of type)
-  (specialize java.util.Set type))
+  (specialize Set type))
 
 (define-syntax-rule (EnumSetOf type)
-  (specialize java.util.EnumSet type))
+  (specialize EnumSet type))
 
 (define-syntax-rule (vector-of type)
   vector)
@@ -1963,25 +2030,25 @@ in patterns and remove them from bindings"
      supertype)))
 
 (define-syntax-rule (either type ...)
-  java.lang.Object)
+  Object)
 
 (define-syntax-rule (maybe type)
   (either type #!null))
 
 (define-syntax-rule (Values type ...)
-  java.lang.Object)
+  Object)
 
 (define-syntax-rule (unquote x)
-  java.lang.Object)
+  Object)
 
-(define-alias Any java.lang.Object)
+(define-alias Any Object)
 
 (define (any satisfying? elements)
   (escape-with return
     (for x in elements
       (let ((result (satisfying? x)))
-	(when result
-	  (return result))))
+        (when result
+          (return result))))
     #f))
 
 (e.g.
@@ -1997,7 +2064,7 @@ in patterns and remove them from bindings"
   (match elements
     (`(,h . ,t)
      (or (satisfying? h)
-	 (any. satisfying? t)))
+         (any. satisfying? t)))
     ('()
      #f)
     (x
@@ -2009,7 +2076,7 @@ in patterns and remove them from bindings"
   (escape-with return
     (for x in elements
       (unless (satisfying? x)
-	(return #f)))
+        (return #f)))
     #t))
 
 (e.g.
@@ -2019,7 +2086,7 @@ in patterns and remove them from bindings"
   (match elements
     (`(,h . ,t)
      (and (satisfying? h)
-	  (every. satisfying? t)))
+          (every. satisfying? t)))
     ('()
      #t)
     (x
@@ -2030,11 +2097,11 @@ in patterns and remove them from bindings"
 
 (define (only cool? stuff)
   (let* ((result (cons #f '()))
-	 (cone result))
+         (cone result))
     (for x in stuff
       (when (cool? x)
-	(set-cdr! cone (cons x '()))
-	(set! cone (cdr cone))))
+        (set-cdr! cone (cons x '()))
+        (set! cone (cdr cone))))
     (cdr result)))
 
 (e.g.
@@ -2042,54 +2109,54 @@ in patterns and remove them from bindings"
  ===> (2 4 6))
 
 (define (fold-left f x0 . xs*)
-  
-  (define (fold-left1 xs::java.util.List)
+
+  (define (fold-left1 xs ::List)
     (for x in xs
       (set! x0 (f x0 x)))
     x0)
 
-  (define (fold-left2 xs1::java.util.List xs2::java.util.List)
-    (let ((xi1 ::java.util.Iterator (xs1:listIterator))
-	  (xi2 ::java.util.Iterator (xs2:listIterator)))
+  (define (fold-left2 xs1 ::List xs2 ::List)
+    (let ((xi1 ::Iterator (xs1:listIterator))
+          (xi2 ::Iterator (xs2:listIterator)))
       (let loop ((xo x0))
-	(if (and (xi1:hasNext) (xi2:hasNext))
-	    (loop (f xo (xi1:next) (xi2:next)))
-	    xo))))
+        (if (and (xi1:hasNext) (xi2:hasNext))
+            (loop (f xo (xi1:next) (xi2:next)))
+            xo))))
 
-  (define (fold-left3 xs1::java.util.List
-		      xs2::java.util.List
-		      xs3::java.util.List)
-    (let ((xi1 ::java.util.Iterator (xs1:listIterator))
-	  (xi2 ::java.util.Iterator (xs2:listIterator))
-	  (xi3 ::java.util.Iterator (xs3:listIterator)))
+  (define (fold-left3 xs1 ::List
+                      xs2 ::List
+                      xs3 ::List)
+    (let ((xi1 ::Iterator (xs1:listIterator))
+          (xi2 ::Iterator (xs2:listIterator))
+          (xi3 ::Iterator (xs3:listIterator)))
       (let loop ((xo x0))
-	(if (and (xi1:hasNext) (xi2:hasNext) (xi3:hasNext))
-	    (loop (f xo (xi1:next) (xi2:next) (xi3:next)))
-	    xo))))
+        (if (and (xi1:hasNext) (xi2:hasNext) (xi3:hasNext))
+            (loop (f xo (xi1:next) (xi2:next) (xi3:next)))
+            xo))))
 
   (define (fold-left* . xs*)
-    (let ((iterators (map (lambda (x::java.util.List)
-			    (x:listIterator))
-			  xs*)))
+    (let ((iterators (map (lambda (x ::List)
+                            (x:listIterator))
+                          xs*)))
       (let loop ((xo x0))
-	(if (every (lambda (it::java.util.Iterator)
-		     (it:hasNext))
-		   iterators)
-	    (loop
-	     (apply
-	      f xo
-	      (map (lambda (it::java.util.Iterator)
-		     (it:next))
-		   iterators)))
-	    xo))))
+        (if (every (lambda (it ::Iterator)
+                     (it:hasNext))
+                   iterators)
+            (loop
+             (apply
+              f xo
+              (map (lambda (it ::Iterator)
+                     (it:next))
+                   iterators)))
+            xo))))
   (cond
    ((null? xs*) x0)
    ((null? (cdr xs*)) (fold-left1 (car xs*)))
    ((null? (cddr xs*)) (fold-left2 (car xs*)
-				   (cadr xs*)))
+                                   (cadr xs*)))
    ((null? (cdddr xs*)) (fold-left3 (car xs*)
-				    (cadr xs*)
-				    (caddr xs*)))
+                                    (cadr xs*)
+                                    (caddr xs*)))
    (else (apply fold-left* xs*))))
 
 (e.g.
@@ -2099,23 +2166,23 @@ in patterns and remove them from bindings"
 (define (fold-right f x0 . xs*)
   (define (fold-right1 f x0 xs)
     (if (null? xs)
-	x0
-	(f (car xs) (fold-right1 f x0 (cdr xs)))))
+        x0
+        (f (car xs) (fold-right1 f x0 (cdr xs)))))
 
   (define (fold-right2 f x0 xs xs2)
     (if (or (null? xs) (null? xs2))
-	x0
-	(f (car xs) (car xs2)
-	   (fold-right2 f x0 (cdr xs) (cdr xs2)))))
+        x0
+        (f (car xs) (car xs2)
+           (fold-right2 f x0 (cdr xs) (cdr xs2)))))
 
   (define (fold-right* f x0 . xs*)
     (if (any null? xs*)
-	x0
-	(apply f (fold-right1
-		  (lambda (x y)
-		    (cons (car x) y))
-		  (list (apply fold-right* f x0 (map cdr xs*)))
-		  xs*))))
+        x0
+        (apply f (fold-right1
+                  (lambda (x y)
+                    (cons (car x) y))
+                  (list (apply fold-right* f x0 (map cdr xs*)))
+                  xs*))))
   (cond
    ((null? xs*) x0)
    ((null? (cdr xs*)) (fold-right1 f x0 (car xs*)))
@@ -2139,9 +2206,9 @@ in patterns and remove them from bindings"
 (define (find satisfying-element?::(maps (,a) to: boolean) collection)
   (escape-with return
     (for-each (lambda (x)
-		(when (satisfying-element? x)
-		  (return x)))
-	      collection)
+                (when (satisfying-element? x)
+                  (return x)))
+              collection)
     #!null))
 
 (e.g.
@@ -2164,104 +2231,104 @@ in patterns and remove them from bindings"
     (cond 
      ((null? in*)
       (for i from 0 below (length inout)
-	   (set! (inout i) (f (inout i))))
+           (set! (inout i) (f (inout i))))
       inout)
      ((null? (cdr in*))
       (escape-with return
-	(let ((i 0)
-	      (n (length inout)))
-	  (for x in (cdr in*)
-	    (set! (inout i) (f (inout i) x))
-	    (set! i (+ i 1))
-	    (when (is i >= n)
-	      (return inout)))
-	  (return inout))))
+        (let ((i 0)
+              (n (length inout)))
+          (for x in (cdr in*)
+            (set! (inout i) (f (inout i) x))
+            (set! i (+ i 1))
+            (when (is i >= n)
+              (return inout)))
+          (return inout))))
      (else
       (let ((n (length inout))
-	    (its (map (lambda (l::java.util.List)
-			(l:listIterator))
-		      in*)))
-	(escape-with return
-	  (for i from 0 below n
-	       (if (every (lambda (it::java.util.Iterator)
-			    (it:hasNext)) its)
-		   (set! (inout i)
-		     (apply f (inout i)
-			    (map (lambda (it::java.util.Iterator)
-				   (it:next)) its)))
-		   (return inout)))
-	  (return inout))))))
+            (its (map (lambda (l ::List)
+                        (l:listIterator))
+                      in*)))
+        (escape-with return
+          (for i from 0 below n
+               (if (every (lambda (it ::Iterator)
+                            (it:hasNext)) its)
+                   (set! (inout i)
+                     (apply f (inout i)
+                            (map (lambda (it ::Iterator)
+                                   (it:next)) its)))
+                   (return inout)))
+          (return inout))))))
    ((null? in*)
     (let loop ((tip inout))
       (if (pair? tip)
-	  (begin
-	    (set! (car tip) (f (car tip)))
-	    (loop (cdr tip)))
-	  inout)))
+          (begin
+            (set! (car tip) (f (car tip)))
+            (loop (cdr tip)))
+          inout)))
    ((null? (cdr in*))
     (let loop ((tip1 inout)
-	       (tip2 (car in*)))
+               (tip2 (car in*)))
       (if (and (pair? tip1) (pair? tip2))
-	  (begin
-	    (set! (car tip1) (f (car tip1) (car tip2)))
-	    (loop (cdr tip1) (cdr tip2)))
-	  inout)))
+          (begin
+            (set! (car tip1) (f (car tip1) (car tip2)))
+            (loop (cdr tip1) (cdr tip2)))
+          inout)))
    ((null? (cddr in*))
     (let loop ((tip1 inout)
-		  (tip2 (car in*))
-		  (tip3 (cadr in*)))
-	 (if (and (pair? tip1) (pair? tip2) (pair? tip3))
-	     (begin
-	       (set! (car tip1) (f (car tip1) (car tip2) (car tip3)))
-	       (loop (cdr tip1) (cdr tip2) (cdr tip3))
-	       inout))))
+                  (tip2 (car in*))
+                  (tip3 (cadr in*)))
+         (if (and (pair? tip1) (pair? tip2) (pair? tip3))
+             (begin
+               (set! (car tip1) (f (car tip1) (car tip2) (car tip3)))
+               (loop (cdr tip1) (cdr tip2) (cdr tip3))
+               inout))))
    (else
     (let loop ((tip inout)
-	       (tips in*))
-	 (if (and (pair? tip) (every pair? tips))
-	     (begin
-	       (set! (car tip) (apply f (car tip) (map car tips)))
-	       (loop (cdr tip) (map! cdr tips)))
-	     inout)))))
+               (tips in*))
+         (if (and (pair? tip) (every pair? tips))
+             (begin
+               (set! (car tip) (apply f (car tip) (map car tips)))
+               (loop (cdr tip) (map! cdr tips)))
+             inout)))))
 
 (define (only. satisfying? elements . moreso)
   (cond ((null? elements)
-	 (apply values '() moreso))
-	((pair? elements)
-	 (let ((result (cons (car elements) (map car moreso))))
-	   (cond
-	    ((apply satisfying? result)
-	     (map! list result)
-	     (let ((tips (map values result)))
-	       (let loop ((elements (cdr elements))
-			  (moreso (map cdr moreso)))
-		 (cond
-		  ((null? elements)
-		   (apply values result))
-		  ((pair? elements)
-		   (when (apply satisfying? (car elements)
-				(map car moreso))
-		     (map! (lambda (tip elem)
-			     (set-cdr! tip (cons (car elem) '()))
-			     (cdr tip))
-			   tips (cons elements moreso)))
-		   (loop (cdr elements)
-			 (map cdr moreso)))
-		  ((apply satisfying? elements moreso)
-		   (map! (lambda (tip item)
-			   (set-cdr! tip item)
-			   tip)
-			 tips (cons elements moreso))
-		   (apply values result))
-		  (else
-		   (apply values result))))))
-	    (else
-	     (apply only. satisfying? (cdr elements)
-		    (map cdr moreso))))))
-	((apply satisfying? elements moreso)
-	 (apply values elements moreso))
-	(else
-	 (apply values '() (map (lambda _ '()) moreso)))))
+         (apply values '() moreso))
+        ((pair? elements)
+         (let ((result (cons (car elements) (map car moreso))))
+           (cond
+            ((apply satisfying? result)
+             (map! list result)
+             (let ((tips (map values result)))
+               (let loop ((elements (cdr elements))
+                          (moreso (map cdr moreso)))
+                 (cond
+                  ((null? elements)
+                   (apply values result))
+                  ((pair? elements)
+                   (when (apply satisfying? (car elements)
+                                (map car moreso))
+                     (map! (lambda (tip elem)
+                             (set-cdr! tip (cons (car elem) '()))
+                             (cdr tip))
+                           tips (cons elements moreso)))
+                   (loop (cdr elements)
+                         (map cdr moreso)))
+                  ((apply satisfying? elements moreso)
+                   (map! (lambda (tip item)
+                           (set-cdr! tip item)
+                           tip)
+                         tips (cons elements moreso))
+                   (apply values result))
+                  (else
+                   (apply values result))))))
+            (else
+             (apply only. satisfying? (cdr elements)
+                    (map cdr moreso))))))
+        ((apply satisfying? elements moreso)
+         (apply values elements moreso))
+        (else
+         (apply values '() (map (lambda _ '()) moreso)))))
 
 (e.g. (only. even? '(2 . 3)) ===> (2))
 
@@ -2272,7 +2339,7 @@ in patterns and remove them from bindings"
 (e.g. (only. even? 3) ===> ())
 
 (e.g. (only. (is (+ _ _) even?)
-	     '(1 2 3 4 . 5) '(2 4 6 8 . 9))
+             '(1 2 3 4 . 5) '(2 4 6 8 . 9))
       ===>    (  2   4 . 5)  (  4   8 . 9))
 
 (define (concatenate list-of-lists)
@@ -2296,59 +2363,62 @@ in patterns and remove them from bindings"
 
 (define-alias hypotenuse java.lang.Math:hypot)
 
-(define-simple-class set (java.util.HashSet)
+(define (nearby-int x ::real)::int
+  (as int (round x)))
+
+(define-simple-class set (HashSet)
   ((toString)::String
-   (let ((builder ::java.lang.StringBuilder (java.lang.StringBuilder)))
-     (builder:append "[set")
-     (for item in (this)
-       (builder:append " ")
-       (cond
-	((or (string? item) (String? item))
-	 (builder:append "\"")
-	 (builder:append (item:toString))
-	 (builder:append "\""))
-	((char? item)
-	 (builder:append "#\\")
-	 (builder:append (as char item)))
-	(else
-	 (builder:append (item:toString)))))
-     (builder:append "]")
-     (builder:toString))))
+   (with-output-to-string
+     (lambda ()
+       (display "[set")
+       (for item in (this)
+         (display " ")
+         (cond
+          ((or (string? item) (String? item))
+           (display "\"")
+           (display (item:toString))
+           (display "\""))
+          ((char? item)
+           (display "#\\")
+           (display (as char item)))
+        (else
+         (display (item:toString)))))
+       (display "]")))))
 
 (define* (is element in collection)
-  (if (instance? collection java.util.Set)
-      (let ((set ::java.util.Set (as java.util.Set collection)))
-	(set:contains element))
+  (if (instance? collection Set)
+      (let ((set ::Set (as Set collection)))
+        (set:contains element))
       (any (is _ equal? element) collection)))
 
 (define (empty? x)::boolean
   (or (and (is x gnu.lists.LList?)
-	   (isnt x gnu.lists.Pair?))
-      (and-let* ((x ::java.util.Collection))
-	(x:isEmpty))
+           (isnt x gnu.lists.Pair?))
+      (and-let* ((x ::Collection))
+        (x:isEmpty))
       (and-let* (((procedure? x))
-		 (table ::java.util.Collection (procedure-property x 'table)))
-	(empty? table))))
+                 (table ::Collection (procedure-property x 'table)))
+        (empty? table))))
 
 (define (union set . sets)
   (define (list-union a b)
     (fold-left (lambda (set element)
-		 (if (is element in set)
-		     set
-		     `(,element . ,set)))
-	       a b))
-  (if (and (instance? set java.util.Set)
-	   (instance? set java.lang.Cloneable))
+                 (if (is element in set)
+                     set
+                     `(,element . ,set)))
+               a b))
+  (if (and (instance? set Set)
+           (instance? set Cloneable))
       (with-compile-options
        warn-unknown-member: #f
-       (let ((clone ::java.util.Set (set:clone)))
-	 (for collection ::java.util.Collection in sets
-	      (clone:addAll collection))
-	 clone))
+       (let ((clone ::Set (set:clone)))
+         (for collection ::Collection in sets
+              (clone:addAll collection))
+         clone))
       (fold-left list-union set sets)))
 
-(define (union! set::java.util.Set . sets)
-  (for collection ::java.util.Collection in sets
+(define (union! set::Set . sets)
+  (for collection ::Collection in sets
        (set:addAll collection))
   set)
 
@@ -2359,14 +2429,14 @@ in patterns and remove them from bindings"
 (define (intersection set . sets)
   (define (list-intersection a b)
     (only (is _ in b) a))
-  (if (and (instance? set java.util.Set)
-	   (instance? set java.lang.Cloneable))
+  (if (and (instance? set Set)
+           (instance? set Cloneable))
       (with-compile-options
        warn-unknown-member: #f
-       (let ((clone ::java.util.Set (set:clone)))
-	 (for collection ::java.util.Collection in sets
-	      (clone:retainAll collection))
-	 clone))
+       (let ((clone ::Set (set:clone)))
+         (for collection ::Collection in sets
+              (clone:retainAll collection))
+         clone))
       (fold-left list-intersection set sets)))
 
 (e.g.
@@ -2376,18 +2446,18 @@ in patterns and remove them from bindings"
 (define (difference set . sets)
   (define (list-difference a b)
     (fold-left (lambda (set element)
-		 (if (is element in set)
-		     (only (isnt _ equal? element) set)
-		     set))
-	       a b))
-  (if (and (instance? set java.util.Set)
-	   (instance? set java.lang.Cloneable))
+                 (if (is element in set)
+                     (only (isnt _ equal? element) set)
+                     set))
+               a b))
+  (if (and (instance? set Set)
+           (instance? set Cloneable))
       (with-compile-options
        warn-unknown-member: #f
-       (let ((clone ::java.util.Set (set:clone)))
-	 (for collection ::java.util.Collection in sets
-	      (clone:removeAll collection))
-	 clone))
+       (let ((clone ::Set (set:clone)))
+         (for collection ::Collection in sets
+              (clone:removeAll collection))
+         clone))
       (fold-left list-difference set sets)))
 
 (e.g.
@@ -2395,9 +2465,9 @@ in patterns and remove them from bindings"
  ===> (a))
 
 (define (subset? a b)
-  (if (instance? b java.util.Set)
-      (let ((set ::java.util.Set (as java.util.Set b)))
-	(set:containsAll a))
+  (if (instance? b Set)
+      (let ((set ::Set (as Set b)))
+        (set:containsAll a))
       (every (is _ in b) a)))
 
 (e.g.
@@ -2556,7 +2626,7 @@ in patterns and remove them from bindings"
     result))
 
 (define (memoize proc)
-  (let ((table ::java.util.Map (java.util.HashMap)))
+  (let ((table ::Map (HashMap)))
     (with-procedure-properties ((table table))
       (lambda args
         (if (table:contains-key args)
@@ -2570,7 +2640,7 @@ in patterns and remove them from bindings"
   (define name (memoize (lambda args . body))))
 
 (define-object (InputPortLineIterator port::InputPort)
-  ::(specialize java.util.Iterator string)
+  ::(specialize Iterator string)
   (define next-line ::(maybe (either string EndOfFile)) #!null)
 
   (define (hasNext) ::boolean
@@ -2582,16 +2652,34 @@ in patterns and remove them from bindings"
     (unless next-line
       (set! next-line (read-line port)))
     (unless (string? next-line)
-      (throw (java.util.NoSuchElementException)))
+      (throw (NoSuchElementException)))
     (let ((result next-line))
       (set! next-line #!null)
       result)))
 
 (define-object (InputPortLines port::InputPort)
-  ::(specialize java.lang.Iterable string)
-  (define (iterator)::(specialize java.util.Iterator string)
+  ::(specialize Iterable string)
+  (define (iterator)::(specialize Iterator string)
     (InputPortLineIterator port)))
 
 (define* (lines port ::InputPort := (current-input-port))
-  ::(specialize java.lang.Iterable string)
+  ::(specialize Iterable string)
   (InputPortLines port))
+
+(define-syntax with
+  (lambda (stx)
+    (syntax-case stx ()
+      ((with ((variable type* ... value) ...) . actions)
+       (with-syntax (((previous-value ...)
+                      (generate-temporaries #'(variable ...))))
+                    #'(let ((previous-value variable) ...)
+                        (set! variable value)
+                        ...
+                        (try-finally
+                         (begin . actions)
+                         (begin
+                           (set! variable previous-value)
+                           ...))))))))
+
+(define-syntax-rule (the slot-name)
+  (slot-ref (this) 'slot-name))

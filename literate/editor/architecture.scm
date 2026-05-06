@@ -8,39 +8,310 @@
 (module-name (editor architecture))
 (import (language extensions))
 
-(define-interface CanManageCoordinateSystem ()
-  (with-translation x::real y::real acion::(maps () to: ,A))::,A
+(define-interface CanManageRenderingContext ()
+  (with-translation x::real y::real action::(maps () to: ,A))::,A
   (with-rotation angle::real action::(maps () to: ,A))::,A
   (with-clip w::real h::real action::(maps () to: ,A))::,A
-  (with-intensity intensity::<0.0-1.0> action::(maps () to: ,A)::,A
+  (with-scale scale::real action::(maps () to: ,A))::,A
+  (with-intensity intensity::<0.0-1.0> action::(maps () to: ,A))::,A
   (with-stretch horizontal::real vertical::real action::(maps () to: ,A))::,A
   )
 
+(define-enum ParenStyle
+  (Normal Quote Quasiquote Unquote UnquoteSplicing List))
+
 (define-interface CanRenderBoxes ()
+  (draw-left-paren! height::real style::ParenStyle)::real
+  (left-paren-width style::ParenStyle)::real
+  (draw-right-paren! height::real style::ParenStyle)::real
+  (right-paren-width style::ParenStyle)::real
+  )
+
+(define-interface FontProxy ()
+  (height)::real)
+
+(define the-atom-font ::FontProxy #!null)
+(define the-string-font ::FontProxy #!null)
+(define the-comment-font ::FontProxy #!null)
+(define the-caption-font ::FontProxy #!null)
+
+(define* (initialize-fonts
+          atom-font: an-atom-font ::FontProxy
+          string-font: a-string-font ::FontProxy
+          comment-font: a-comment-font ::FontProxy)
+  (set! the-atom-font an-atom-font)
+  (set! the-string-font a-string-font)
+  (set! the-comment-font a-comment-font))
+
+(define-interface CanRenderText ()
+  (draw-text! text::CharSequence font::FontProxy)::real
+  (text-width text::CharSequence font::FontProxy)::real
+  (mark-cursor! position::int font::FontProxy)::void
+  (character-index position::real text::CharSequence font::FontProxy)::int
   )
 
 (define-interface Painter (
-CanManageCoordinateSystem
+CanManageRenderingContext
 CanRenderBoxes
+CanRenderText
 ))
 
-(define-object (NullPainter)::Painter
-  ;; CanManageCoordinateSystem
-  (define (with-translation x::real y::real acion::(maps () to: ,A))::,A
-    (action))
-  
+(define-object (ParenthesesCharacters
+                leftTop ::String         rightTop ::String
+                leftLine ::String        rightLine ::String
+                leftMiddle ::String      rightMiddle ::String
+                leftEvenComment ::String rightEvenComment ::String
+                leftOddComment ::String  rightOddComment ::String
+                leftBottom ::String      rightBottom ::String)
+  (define leftWidth ::int (string-length leftMiddle))
+  (define rightWidth ::int (string-length rightMiddle))
+  (Object)
+  (assert
+   (= (string-length leftTop)
+      (string-length leftLine)
+      (string-length leftMiddle)
+      (string-length leftEvenComment)
+      (string-length leftOddComment)
+      (string-length leftBottom)))
+  (assert
+   (= (string-length rightTop)
+      (string-length rightLine)
+      (string-length rightMiddle)
+      (string-length rightEvenComment)
+      (string-length rightOddComment)
+      (string-length rightBottom))))
+
+(define-object (CharPainter)::Painter
+
+  (define-static Parentheses
+    #((ParenthesesCharacters
+       "╭ "            " ╮"
+       "│ "            " │"
+       "│ " #|Normal|# " │"
+       "┆ "            " ┆"
+       "┊ "            " ┊"
+       "╰ "            " ╯")
+      (ParenthesesCharacters
+       "┎ "           " ┒"
+       "┃ "           " ┃"
+       "┃ " #|Quote|# " ┃"
+       "┇ "           " ┇"
+       "┋ "           " ┋"
+       "┖ "           " ┚")
+      (ParenthesesCharacters
+       "╓ "                " ╖"
+       "║ "                " ║"
+       "║ " #|Quasiquote|# " ║"
+       "║ "                " ║"
+       "║ "                " ║"
+       "╙ "                " ╜")
+      (ParenthesesCharacters
+       "╷ "             " ╷"
+       "│ "             " │"
+       "│ " #|Unquote|# " │"
+       "┆ "             " ┆"
+       "┊ "             " ┊"
+       "└ "             " ┘")
+      (ParenthesesCharacters
+       " ╷ "                     " ╷ "
+       " │ "                     " │ "
+       "┈┤ " #|UnquoteSplicing|# " ├┈"
+       " ┆ "                     " ┆ "
+       " ┊ "                     " ┊ "
+       " └ "                     " ┘ ")
+      (ParenthesesCharacters
+       "┏ "          " ┓"
+       "┃ "          " ┃"
+       "┃ " #|List|# " ┃"
+       "┇ "          " ┇"
+       "┋ "          " ┋"
+       "┗ "          " ┛")
+      ))
+
+  (define-protected (put! c ::char left ::int top ::int)::void
+    #!abstract)
+
+  (define-protected shift-left ::int 0)
+  (define-protected shift-top ::int 0)
+
+  (define-protected clip-width ::int Integer:MAX_VALUE)
+  (define-protected clip-height ::int Integer:MAX_VALUE)
+
+  (define (with-translation x::real y::real action::(maps () to: ,A))::,A
+    (assert (and (is 0 <= x) (is y >= 0)))
+    (with ((shift-left (as int (+ shift-left x)))
+           (shift-top (as int (+ shift-top y)))
+           (clip-width (- clip-width x))
+           (clip-height (- clip-height y)))
+          (action)))
+
   (define (with-rotation angle::real action::(maps () to: ,A))::,A
     (action))
-  
-  (define (with-clip w::real h::real action::(maps () to: ,A))::,A
+
+  (define-protected stretch-horizontal ::float 1.0)
+  (define-protected stretch-vertical ::float 1.0)
+
+  (define (with-stretch horizontal::real vertical::real
+                        action::(maps () to: ,A))
+    ::,A
+    (assert (and (is 0 < horizontal) (is vertical > 0)))
+    (with ((stretch-horizontal (* stretch-horizontal horizontal))
+           (stretch-vertical (* stretch-vertical vertical)))
+          (action)))
+
+  (define (with-clip width::real height::real
+                     action::(maps () to: ,A))
+    ::,A
+    (assert (and (is 0 <= width) (is height >= 0)))
+    (with ((clip-width (min clip-width
+                            (nearby-int (* width stretch-horizontal))))
+           (clip-height (min clip-height
+                             (nearby-int (* height stretch-vertical)))))
+          (action)))
+
+  (define (with-scale scale::real action::(maps () to: ,A))::,A
     (action))
-  
-  (define (with-intensity intensity::<0.0-1.0> action::(maps () to: ,A))::,A
+
+  (define (with-intensity intensity::<0.0-1.0>
+                          action::(maps () to: ,A))
+    ::,A
+    #!abstract)
+
+  (define (draw-left-paren! height::real style::ParenStyle)::real
+    (let* ((parenthesis ::ParenthesesCharacters
+                        (Parentheses (style:ordinal)))
+           (width ::int parenthesis:leftWidth))
+      (for i ::int from 0 below width
+           (put! (parenthesis:leftTop i) i 0))
+      (for line ::int from 1 below (- height 3)
+           (for i ::int from 0 below width
+                (put! (parenthesis:leftLine i) i line)))
+      (for i ::int from 0 below width
+           (put! (parenthesis:leftMiddle i) i (- height 2)))
+      (for i ::int from 0 below width
+           (put! (parenthesis:leftBottom i) i (- height 1)))
+      width))
+
+  (define (left-paren-width style::ParenStyle)::real
+    (let ((parenthesis ::ParenthesesCharacters
+                       (Parentheses (style:ordinal))))
+      parenthesis:leftWidth))
+
+  (define (draw-right-paren! height::real style::ParenStyle)::real
+    (let* ((parenthesis ::ParenthesesCharacters
+                        (Parentheses (style:ordinal)))
+           (width ::int parenthesis:rightWidth))
+      (for i ::int from 0 below width
+           (put! (parenthesis:rightTop i) i 0))
+      (for line ::int from 1 below (- height 3)
+           (for i ::int from 0 below width
+                (put! (parenthesis:rightLine i) i line)))
+      (for i ::int from 0 below width
+           (put! (parenthesis:rightMiddle i) i (- height 2)))
+      (for i ::int from 0 below width
+           (put! (parenthesis:rightBottom i) i (- height 1)))
+      width))
+
+  (define (right-paren-width style::ParenStyle)::real
+    (let ((parenthesis ::ParenthesesCharacters
+                       (Parentheses (style:ordinal))))
+      parenthesis:rightWidth))
+
+  (define (draw-text! text::CharSequence font::FontProxy)::real
+    #!abstract)
+
+  (define (text-width text::CharSequence font::FontProxy)::real
+    (string-length text))
+
+  (define (mark-cursor! index::int font::FontProxy)::void
+    #!abstract)
+
+  (define (character-index horizontal-position::real text::CharSequence
+                           font::FontProxy)
+    ::int
+    (let ((n ::int (string-length text)))
+      (cond
+       ((is horizontal-position <= 0) 0)
+       ((is horizontal-position >= n) n)
+       (else (nearby-int horizontal-position)))))
+  )
+
+(define-object (TextPainterFont vertical-offset::int)::FontProxy
+  (define (height)
+    (+ vertical-offset 1)))
+
+(define-object (TextPainter)::Painter
+
+  (define (draw-text! text ::CharSequence font ::FontProxy)::real
+    (let ((vertical-offset ::int (or (and-let* ((font ::TextPainterFont))
+                                       font:vertical-offset)
+                                     0))
+          (text-length ::int (string-length text)))
+      (for i ::int from 0 below text-length
+           (put! (text i) i vertical-offset))))
+
+  (define (mark-cursor! position ::int font ::FontProxy)::void
+    (let ((vertical-offset (or (and-let* ((font ::TextPainterFont))
+                                 font:vertical-offset)
+                               0)))
+      (put! #\^ position (+ vertical-offset 1))))
+
+  (define-private width ::int 0)
+  (define-private height ::int 0)
+  (define-private data ::(array-of char) #!null)
+
+  (define-private (expand-data! new-width ::int new-height ::int)::void
+    (assert (and (is width <= new-width) (is new-height >= height)))
+    (let ((new-data ((array-of char) length: (* new-width new-height))))
+      (for line ::int from 0 below new-height
+           (for column ::int from 0 below new-width
+                (set! (new-data (+ (* new-width line) column))
+                      (if (and (is column < width)
+                               (is height > line))
+                          (data (+ (* width line) column))
+                          #\space))))
+      (set! width new-width)
+      (set! height new-height)
+      (set! data new-data)))
+
+  (define (put! c ::char left ::int top ::int)::void
+    (assert (and (is 0 <= left) (is top >= 0)))
+    (let ((x ::int (+ (the shift-left)
+                      (nearby-int (* (the stretch-horizontal) left))))
+          (y ::int (+ (the shift-top)
+                      (nearby-int (* (the stretch-vertical) top)))))
+      (when (and (is x < (+ (the shift-left) (the clip-width)))
+                 (is (+ (the shift-top) (the clip-height)) > y))
+        (when (or (is width <= x)
+                  (is y >= height))
+          (let ((new-width (if (is width <= x)
+                               (+ x 1)
+                               width))
+                (new-height (if (is y >= height)
+                                (+ y 1)
+                                height)))
+            (expand-data! new-width new-height)))
+        (let ((n (+ (* width y) x)))
+          (set! (data n) c))
+        )))
+
+  (define (with-intensity intensity::<0.0-1.0>
+                          action::(maps () to: ,A))
+    ::,A
     (action))
-  
-  (define (with-stretch horizontal::real vertical::real action::(maps () to: ,A))::,A
-    (action))
-  
-  ;; CanRenderBoxes
-  
-)
+
+  (define (toString)::String
+    (with-output-to-string
+      (lambda ()
+        (write-char #\newline)
+        (for line from 0 below height
+             (for column from 0 below width
+                  (let* ((n (+ (* line width)
+                               column))
+                         (c (data n)))
+                    (write-char c)))
+             (write-char #\newline)))))
+
+  (CharPainter))
+
+(define painter ::Painter (TextPainter))
