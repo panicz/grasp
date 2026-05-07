@@ -1,5 +1,22 @@
 * The GRASP editor
 
+#+LATEX_HEADER: \usepackage{fvextra}
+#+LATEX_HEADER: \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere=false}
+#+LATEX_HEADER: \usepackage{pmboxdraw}
+#+LATEX_HEADER: \usepackage{newunicodechar}
+#+LATEX_HEADER: \newunicodechar{─}{\textSFx}
+#+LATEX_HEADER: \newunicodechar{│}{\textSFxi}
+#+LATEX_HEADER: \newunicodechar{╭}{\textSFi}
+#+LATEX_HEADER: \newunicodechar{╰}{\textSFii}
+#+LATEX_HEADER: \newunicodechar{╮}{\textSFiii}
+#+LATEX_HEADER: \newunicodechar{╯}{\textSFiv}
+#+LATEX_HEADER: \newunicodechar{═}{\textSFxliii}
+#+LATEX_HEADER: \newunicodechar{║}{\textSFxxiv}
+#+LATEX_HEADER: \newunicodechar{╔}{\textSFxxxix}
+#+LATEX_HEADER: \newunicodechar{╚}{\textSFxxxviii}
+#+LATEX_HEADER: \newunicodechar{╗}{\textSFxxv}
+#+LATEX_HEADER: \newunicodechar{╝}{\textSFxxvi}
+
 GRASP is an extensible structural code editor for languages
 that are based on s-expressions.
 
@@ -3992,7 +4009,7 @@ Or maybe - if you enjoy the aesthetics of this language -
 you'll be willing to contribute and, for example, implement
 more decent type checking for the language.
 
-** The architecture of GRASP
+** The implementations of GRASP
 
 So far, reading this text may have seen a bit like reading a
 grammar book or a dictionary: it didn't seem to have any
@@ -4007,29 +4024,19 @@ rendering graphics is going to be different in all of its
 environments, the core architecture will be shared among
 them.
 
-The code snippets from this chapter will be placed in the
-~editor/architecture.scm~ file.
-
-#+BEGIN_SRC scheme :tangle editor/architecture.scm :mkdirp yes :noweb yes
-<<header>>
-(module-name (editor architecture))
-(import (language extensions))
-#+END_SRC
-
-*** The development arc
-
-GRASP is a fairly complex piece of software. It needs to be
-able to load documents, represent them conveniently in
+Mind GRASP is a fairly complex piece of software. It needs
+to be able to load documents, represent them conveniently in
 memory, allow users to edit those documents using input
 devices such as a keyboard, mouse or touch screen (providing
 them with expected operations such as /undo/) and then store
-the documents back to the disk. It needs to be able to render
-documents not only in a generic way, but in a way that is
-defined by users, and the rendering must work in environments
-whose graphics capabilities range from fully scallable vector
-graphics to fairly limited character terminals.
+the documents back to the disk. It needs to be able to
+render documents not only in a generic way, but in a way
+that is defined by users, and the rendering must work in
+environments whose graphics capabilities range from fully
+scallable vector graphics to fairly limited character
+terminals.
 
-**** Rendering
+*** The basic ~Painter~ interface
 
 This last feature has a particular impact on the development
 of GRASP. On one hand, it also allows us to render graphics
@@ -4048,20 +4055,29 @@ horizontal and vertical lines of a few varieties).
 For this reason, the rendering API needs to contain a lot of
 specific methods corresponding to some particular rendering
 capabilities of GRASP (like drawing horizontal and vertical
-arrows etc.). 
+lines etc.). 
 
 Therefore are going to split our description into subsections
 describing particular capabilities. Each section will define
 a name of a capaility and an interface that needs to be
 implemented for the capability to be effective.
 
-At the end of this section there will be a definition that
-builds an interface called ~Painter~ which aggregates all
-the capabilities defined in the subsections, followed by
-the ~painter~ variable that will be used by the actual
+The resulting interface and its implementations are going
+to be rather complex, so it is important to be able to develop
+and test them gradually and incrementally.
+
+Eventually there will be a definition that builds an
+interface called ~Painter~ which aggregates all the
+capabilities defined in the subsections, followed by the
+~painter~ variable that will be used by the actual
 implementations of GRASP to pefrorm all rendering.
 
-***** Managing rendering context
+But before that happens, we will develop and test
+some simplified versions of the ~Painter~ interface
+with an implementation that is capable of rendering
+things to a character string.
+
+**** Managing rendering context
 
 #+BEGIN_SRC scheme :noweb-ref painter-capabilities
 CanManageRenderingContext
@@ -4088,7 +4104,8 @@ to take some number of parameters followed by a /thunk/ that
 is supposed to be executed in the modified context. This way
 we won't need to worry about restoring the context.
 
-#+BEGIN_SRC scheme scheme :tangle editor/architecture.scm
+#+NAME: CanManageRenderingContext-interface-definition
+#+BEGIN_SRC scheme :tangle no
 
 (define-interface CanManageRenderingContext ()
   (with-translation x::real y::real action::(maps () to: ,A))::,A
@@ -4111,7 +4128,7 @@ computer graphics. In the case of GRASP, the origin is
 located on the top left corner, with the x axis (horizontal)
 pointing right and the y axis (vertical) pointing down.
 
-***** Rendering tall parentheses
+**** Rendering tall parentheses
 
 One of the defining features of GRASP is the /nested box/
 representation. The boxes actually are parenthesized
@@ -4123,28 +4140,22 @@ CanRenderBoxes
 #+END_SRC
 
 We are going to support a number of styles for a few
-different types of parentheses. Each rendering method is
-going to return the width of the parenthesis that it
-renders. In addition, we're going to have two methods
-that are going to be used simply for measuring the width
-of parentheses without any rendering. They could be
-considered redundant, but they make the intent clearer.
+different types of parentheses. 
 
-#+BEGIN_SRC scheme scheme :tangle editor/architecture.scm
+#+NAME: CanRenderBoxes-interface-definition
+#+BEGIN_SRC scheme :tangle no
 
   (define-enum ParenStyle
     (Normal Quote Quasiquote Unquote UnquoteSplicing List))
 
   (define-interface CanRenderBoxes ()
-    (draw-left-paren! height::real style::ParenStyle)::real
-    (left-paren-width style::ParenStyle)::real
-    (draw-right-paren! height::real style::ParenStyle)::real
-    (right-paren-width style::ParenStyle)::real
+    (draw-box! inner-width::real height::real style::ParenStyle)::void
+    (paren-width style::ParenStyle)::real
     )
 
 #+END_SRC
 
-***** Rendering text
+**** Rendering text
 
 One of the basic capabilities of most code editors is
 that of rendering text.
@@ -4161,24 +4172,26 @@ because every client represents fonts in a different way.
 For this reason, we are going to define a ~FontProxy~ type
 that will stand for particular font representations. 
 
-#+BEGIN_SRC scheme :tangle editor/architecture.scm
+#+NAME: FontProxy-interface-definition
+#+BEGIN_SRC scheme :tangle no
 
   (define-interface FontProxy ()
     (height)::real)
 
 #+END_SRC
 
-GRASP is expected to provide a number of built-in fonts: one
-that is going to be used for rendering atoms, another
-(monospaced) for rendering strings, yet another - for
-rendering comments, and one that is used for rendering text
-in the UI elements ("captions").
+The GRASP frontend is expected to provide a number of
+built-in fonts: one that is going to be used for rendering
+atoms, another (monospaced) for rendering strings, yet
+another - for rendering comments, and one that is used for
+rendering text in the UI elements ("captions").
 
 These fonts can be accessed through variables which are
 visible globally but can only be initialized using the
 ~initialize-fonts~ procedure.
 
-#+BEGIN_SRC scheme :tangle editor/architecture.scm
+#+NAME: BasicFonts-definitions+initializer
+#+BEGIN_SRC scheme :tangle no
 
   (define the-atom-font ::FontProxy #!null)
   (define the-string-font ::FontProxy #!null)
@@ -4205,7 +4218,8 @@ space into character index.
 The functions assume that ~text~ contains no newline
 characters.
 
-#+BEGIN_SRC scheme :tangle editor/architecture.scm
+#+NAME: CanRenderText-interface-definition
+#+BEGIN_SRC scheme :tangle no
 
   (define-interface CanRenderText ()
     (draw-text! text::CharSequence font::FontProxy)::real
@@ -4217,17 +4231,7 @@ characters.
 #+END_SRC
 
 
-***** Putting it all together
-
-#+BEGIN_SRC scheme :tangle editor/architecture.scm :noweb yes
-
-(define-interface Painter (
-<<painter-capabilities>>
-))
-
-#+END_SRC
-
-**** The ~TextPainter~
+*** The textual implementation of the ~Painter~ interface
 
 One implementation of the ~Painter~ interface can be used by
 all front-ends, and is particularly convenient for testing.
@@ -4239,7 +4243,12 @@ of its implementation with the painter from the Terminal
 front-end, the similarities will be abstracted to the
 ~CharPainter~ abstract class.
 
-#+BEGIN_SRC scheme :tangle editor/architecture.scm
+It is going to use a helper object called
+~ParenthesesCharacters~, whose purpose is to define how the
+specific types of boxes are going to look.
+
+#+NAME: ParenthesesCharacters-object-definition
+#+BEGIN_SRC scheme :tangle no
 
   (define-object (ParenthesesCharacters
                   leftTop ::String         rightTop ::String
@@ -4248,8 +4257,7 @@ front-end, the similarities will be abstracted to the
                   leftEvenComment ::String rightEvenComment ::String
                   leftOddComment ::String  rightOddComment ::String
                   leftBottom ::String      rightBottom ::String)
-    (define leftWidth ::int (string-length leftMiddle))
-    (define rightWidth ::int (string-length rightMiddle))
+    (define width ::int (string-length leftMiddle))
     (Object)
     (assert
      (= (string-length leftTop)
@@ -4257,251 +4265,366 @@ front-end, the similarities will be abstracted to the
         (string-length leftMiddle)
         (string-length leftEvenComment)
         (string-length leftOddComment)
-        (string-length leftBottom)))
-    (assert
-     (= (string-length rightTop)
+        (string-length leftBottom)
+        (string-length rightTop)
         (string-length rightLine)
         (string-length rightMiddle)
         (string-length rightEvenComment)
         (string-length rightOddComment)
         (string-length rightBottom))))
 
-  (define-object (CharPainter)::Painter
+#+END_SRC
 
-    (define-static Parentheses
-      #((ParenthesesCharacters
-         "╭ "            " ╮"
-         "│ "            " │"
-         "│ " #|Normal|# " │"
-         "┆ "            " ┆"
-         "┊ "            " ┊"
-         "╰ "            " ╯")
-        (ParenthesesCharacters
-         "┎ "           " ┒"
-         "┃ "           " ┃"
-         "┃ " #|Quote|# " ┃"
-         "┇ "           " ┇"
-         "┋ "           " ┋"
-         "┖ "           " ┚")
-        (ParenthesesCharacters
-         "╓ "                " ╖"
-         "║ "                " ║"
-         "║ " #|Quasiquote|# " ║"
-         "║ "                " ║"
-         "║ "                " ║"
-         "╙ "                " ╜")
-        (ParenthesesCharacters
-         "╷ "             " ╷"
-         "│ "             " │"
-         "│ " #|Unquote|# " │"
-         "┆ "             " ┆"
-         "┊ "             " ┊"
-         "└ "             " ┘")
-        (ParenthesesCharacters
-         " ╷ "                     " ╷ "
-         " │ "                     " │ "
-         "┈┤ " #|UnquoteSplicing|# " ├┈"
-         " ┆ "                     " ┆ "
-         " ┊ "                     " ┊ "
-         " └ "                     " ┘ ")
-        (ParenthesesCharacters
-         "┏ "          " ┓"
-         "┃ "          " ┃"
-         "┃ " #|List|# " ┃"
-         "┇ "          " ┇"
-         "┋ "          " ┋"
-         "┗ "          " ┛")
-        ))
+**** The ~CharPainter~ abstract class
 
-    (define-protected (put! c ::char left ::int top ::int)::void
-      #!abstract)
+The implementation of the ~CharPainter~ class is going to
+define an array of those objects, and the array will be
+indexed with the ordinals of the ~ParenStyle~ enum.
 
-    (define-protected shift-left ::int 0)
-    (define-protected shift-top ::int 0)
+We are only showing the body of the class definition,
+because we will use this code multiple times to assemble
+progressively more complex implementations of ~TextPainter~,
+but if you want to see how the code is actually used, see
+the ~test/simple-text-painter.scm~ file.
 
-    (define-protected clip-width ::int Integer:MAX_VALUE)
-    (define-protected clip-height ::int Integer:MAX_VALUE)
+Note that the definition of ~CharPainter~ refers to the
+~put!~ abstract method, which is supposed to be overridden
+by its descendant classes.
 
-    (define (with-translation x::real y::real action::(maps () to: ,A))::,A
-      (assert (and (is 0 <= x) (is y >= 0)))
-      (with ((shift-left (as int (+ shift-left x)))
-             (shift-top (as int (+ shift-top y)))
-             (clip-width (- clip-width x))
-             (clip-height (- clip-height y)))
-            (action)))
+#+NAME: CharPainter-body
+#+BEGIN_SRC scheme :tangle no
+  (define-static Parentheses
+    (vector
+     (ParenthesesCharacters
+       "╭ "            " ╮"
+       "│ "            " │"
+       "│ " #|Normal|# " │"
+       "┆ "            " ┆"
+       "┊ "            " ┊"
+       "╰ "            " ╯")
+      (ParenthesesCharacters
+       "┎ "           " ┒"
+       "┃ "           " ┃"
+       "┃ " #|Quote|# " ┃"
+       "┇ "           " ┇"
+       "┋ "           " ┋"
+       "┖ "           " ┚")
+      (ParenthesesCharacters
+       "╓ "                " ╖"
+       "║ "                " ║"
+       "║ " #|Quasiquote|# " ║"
+       "║ "                " ║"
+       "║ "                " ║"
+       "╙ "                " ╜")
+      (ParenthesesCharacters
+       "╷ "             " ╷"
+       "│ "             " │"
+       "│ " #|Unquote|# " │"
+       "┆ "             " ┆"
+       "┊ "             " ┊"
+       "└ "             " ┘")
+      (ParenthesesCharacters
+       " ╷ "                     " ╷ "
+       " │ "                     " │ "
+       "┈┤ " #|UnquoteSplicing|# " ├┈"
+       " ┆ "                     " ┆ "
+       " ┊ "                     " ┊ "
+       " └ "                     " ┘ ")
+      (ParenthesesCharacters
+       "┏ "          " ┓"
+       "┃ "          " ┃"
+       "┃ " #|List|# " ┃"
+       "┇ "          " ┇"
+       "┋ "          " ┋"
+       "┗ "          " ┛")
+      ))
 
-    (define (with-rotation angle::real action::(maps () to: ,A))::,A
-      (action))
+  (define-protected (put! c ::char left ::int top ::int)::void
+    #!abstract)
 
-    (define-protected stretch-horizontal ::float 1.0)
-    (define-protected stretch-vertical ::float 1.0)
+  (define-protected shift-left ::int 0)
+  (define-protected shift-top ::int 0)
 
-    (define (with-stretch horizontal::real vertical::real
+  (define-protected clip-width ::int Integer:MAX_VALUE)
+  (define-protected clip-height ::int Integer:MAX_VALUE)
+
+  (define (with-translation x::real y::real action::(maps () to: ,A))::,A
+    (assert (and (is 0 <= x) (is y >= 0)))
+    (with ((shift-left (as int (+ shift-left x)))
+           (shift-top (as int (+ shift-top y)))
+           (clip-width (- clip-width x))
+           (clip-height (- clip-height y)))
+          (action)))
+
+  (define (with-rotation angle::real action::(maps () to: ,A))::,A
+    (action))
+
+  (define-protected stretch-horizontal ::float 1.0)
+  (define-protected stretch-vertical ::float 1.0)
+
+  (define (with-stretch horizontal::real vertical::real
+                        action::(maps () to: ,A))
+    ::,A
+    (assert (and (is 0 < horizontal) (is vertical > 0)))
+    (with ((stretch-horizontal (* stretch-horizontal horizontal))
+           (stretch-vertical (* stretch-vertical vertical)))
+          (action)))
+
+  (define (with-clip width::real height::real
+                     action::(maps () to: ,A))
+    ::,A
+    (assert (and (is 0 <= width) (is height >= 0)))
+    (with ((clip-width (min clip-width
+                            (nearby-int (* width stretch-horizontal))))
+           (clip-height (min clip-height
+                             (nearby-int (* height stretch-vertical)))))
+          (action)))
+
+  (define (with-scale scale::real action::(maps () to: ,A))::,A
+    (action))
+
+  (define (with-intensity intensity::<0.0-1.0>
                           action::(maps () to: ,A))
-      ::,A
-      (assert (and (is 0 < horizontal) (is vertical > 0)))
-      (with ((stretch-horizontal (* stretch-horizontal horizontal))
-             (stretch-vertical (* stretch-vertical vertical)))
-            (action)))
+    ::,A
+    #!abstract)
 
-    (define (with-clip width::real height::real
-                       action::(maps () to: ,A))
-      ::,A
-      (assert (and (is 0 <= width) (is height >= 0)))
-      (with ((clip-width (min clip-width
-                              (nearby-int (* width stretch-horizontal))))
-             (clip-height (min clip-height
-                               (nearby-int (* height stretch-vertical)))))
-            (action)))
+  (define (draw-box! inner-width::real height::real style::ParenStyle)::void
+    (let* ((parenthesis ::ParenthesesCharacters
+                        (Parentheses (style:ordinal)))
+           (width ::int parenthesis:width))
+      (for i ::int from 0 below width
+           (put! (parenthesis:leftTop i) i 0))
+      (for line ::int from 1 below (- height 2)
+           (for i ::int from 0 below width
+                (put! (parenthesis:leftLine i) i line)))
+      (for i ::int from 0 below width
+           (put! (parenthesis:leftMiddle i) i (- height 2)))
+      (for i ::int from 0 below width
+           (put! (parenthesis:leftBottom i) i (- height 1)))
+      (with-translation
+       (+ inner-width width) 0
+       (lambda ()
+         (for i ::int from 0 below width
+              (put! (parenthesis:rightTop i) i 0))
+         (for line ::int from 1 below (- height 2)
+              (for i ::int from 0 below width
+                   (put! (parenthesis:rightLine i) i line)))
+         (for i ::int from 0 below width
+              (put! (parenthesis:rightMiddle i) i (- height 2)))
+         (for i ::int from 0 below width
+              (put! (parenthesis:rightBottom i) i (- height 1)))))))
 
-    (define (with-scale scale::real action::(maps () to: ,A))::,A
-      (action))
+  (define (paren-width style::ParenStyle)::real
+    (let ((parenthesis ::ParenthesesCharacters
+                       (Parentheses (style:ordinal))))
+      parenthesis:width))
 
-    (define (with-intensity intensity::<0.0-1.0>
-                            action::(maps () to: ,A))
-      ::,A
-      #!abstract)
+  (define (draw-text! text::CharSequence font::FontProxy)::real
+    #!abstract)
 
-    (define (draw-left-paren! height::real style::ParenStyle)::real
-      (let* ((parenthesis ::ParenthesesCharacters
-                          (Parentheses (style:ordinal)))
-             (width ::int parenthesis:leftWidth))
-        (for i ::int from 0 below width
-             (put! (parenthesis:leftTop i) i 0))
-        (for line ::int from 1 below (- height 3)
-             (for i ::int from 0 below width
-                  (put! (parenthesis:leftLine i) i line)))
-        (for i ::int from 0 below width
-             (put! (parenthesis:leftMiddle i) i (- height 2)))
-        (for i ::int from 0 below width
-             (put! (parenthesis:leftBottom i) i (- height 1)))
-        width))
+  (define (text-width text::CharSequence font::FontProxy)::real
+    (string-length text))
 
-    (define (left-paren-width style::ParenStyle)::real
-      (let ((parenthesis ::ParenthesesCharacters
-                         (Parentheses (style:ordinal))))
-        parenthesis:leftWidth))
+  (define (mark-cursor! index::int font::FontProxy)::void
+    #!abstract)
 
-    (define (draw-right-paren! height::real style::ParenStyle)::real
-      (let* ((parenthesis ::ParenthesesCharacters
-                          (Parentheses (style:ordinal)))
-             (width ::int parenthesis:rightWidth))
-        (for i ::int from 0 below width
-             (put! (parenthesis:rightTop i) i 0))
-        (for line ::int from 1 below (- height 3)
-             (for i ::int from 0 below width
-                  (put! (parenthesis:rightLine i) i line)))
-        (for i ::int from 0 below width
-             (put! (parenthesis:rightMiddle i) i (- height 2)))
-        (for i ::int from 0 below width
-             (put! (parenthesis:rightBottom i) i (- height 1)))
-        width))
+  (define (character-index horizontal-position::real text::CharSequence
+                           font::FontProxy)
+    ::int
+    (let ((n ::int (string-length text)))
+      (cond
+       ((is horizontal-position <= 0) 0)
+       ((is horizontal-position >= n) n)
+       (else (nearby-int horizontal-position)))))
 
-    (define (right-paren-width style::ParenStyle)::real
-      (let ((parenthesis ::ParenthesesCharacters
-                         (Parentheses (style:ordinal))))
-        parenthesis:rightWidth))
+#+END_SRC
 
-    (define (draw-text! text::CharSequence font::FontProxy)::real
-      #!abstract)
+**** The ~FontProxy~ for ~TextPainter~
 
-    (define (text-width text::CharSequence font::FontProxy)::real
-      (string-length text))
+The implementation of the ~FontProxy~ class that is supposed
+to be used with the ~TextPainter~ is rather
+unremarkable. The only thing worth mentioning is that it's
+going to provide ~vertical-offset~ that can be used for
+rendering -- because atoms are rendered slightly differently
+from other objects. (In the future, we might extend the font
+rendering capabilities to Figlet fonts, but if it happens,
+this section will most certainly be updated).
 
-    (define (mark-cursor! index::int font::FontProxy)::void
-      #!abstract)
-
-    (define (character-index horizontal-position::real text::CharSequence
-                             font::FontProxy)
-      ::int
-      (let ((n ::int (string-length text)))
-        (cond
-         ((is horizontal-position <= 0) 0)
-         ((is horizontal-position >= n) n)
-         (else (nearby-int horizontal-position)))))
-    )
-
+#+NAME: TextPainterFont-object-definition
+#+BEGIN_SRC scheme :tangle no
   (define-object (TextPainterFont vertical-offset::int)::FontProxy
     (define (height)
       (+ vertical-offset 1)))
+#+END_SRC
 
-  (define-object (TextPainter)::Painter
+As to the definition of the ~TextPainter~, it's going to
+consist mainly of the implementation of the ~put!~ function
+(which has to maintain an internal character buffer).
 
-    (define (draw-text! text ::CharSequence font ::FontProxy)::real
-      (let ((vertical-offset ::int (or (and-let* ((font ::TextPainterFont))
-                                         font:vertical-offset)
-                                       0))
-            (text-length ::int (string-length text)))
-        (for i ::int from 0 below text-length
-             (put! (text i) i vertical-offset))))
+It also provides a meaningful implementation of the
+~toString~ method, which simply dumps the content of the
+buffer to a string.
 
-    (define (mark-cursor! position ::int font ::FontProxy)::void
-      (let ((vertical-offset (or (and-let* ((font ::TextPainterFont))
-                                   font:vertical-offset)
-                                 0)))
-        (put! #\^ position (+ vertical-offset 1))))
+#+NAME: BasicTextPainter-body
+#+BEGIN_SRC scheme :tangle no
+  (define (draw-text! text ::CharSequence font ::FontProxy)::real
+    (let ((vertical-offset ::int (or (and-let* ((font ::TextPainterFont))
+                                       font:vertical-offset)
+                                     0))
+          (text-length ::int (string-length text)))
+      (for i ::int from 0 below text-length
+           (put! (text i) i vertical-offset))
+      text-length))
 
-    (define-private width ::int 0)
-    (define-private height ::int 0)
-    (define-private data ::(array-of char) #!null)
+  (define (mark-cursor! position ::int font ::FontProxy)::void
+    (let ((vertical-offset (or (and-let* ((font ::TextPainterFont))
+                                 font:vertical-offset)
+                               0)))
+      (put! #\^ position (+ vertical-offset 1))))
 
-    (define-private (expand-data! new-width ::int new-height ::int)::void
-      (assert (and (is width <= new-width) (is new-height >= height)))
-      (let ((new-data ((array-of char) length: (* new-width new-height))))
-        (for line ::int from 0 below new-height
-             (for column ::int from 0 below new-width
-                  (set! (new-data (+ (* new-width line) column))
-                        (if (and (is column < width)
-                                 (is height > line))
-                            (data (+ (* width line) column))
-                            #\space))))
-        (set! width new-width)
-        (set! height new-height)
-        (set! data new-data)))
+  (define-private width ::int 0)
+  (define-private height ::int 0)
+  (define-private buffer ::(array-of char) #!null)
 
-    (define (put! c ::char left ::int top ::int)::void
-      (assert (and (is 0 <= left) (is top >= 0)))
-      (let ((x ::int (+ (the shift-left)
-                        (nearby-int (* (the stretch-horizontal) left))))
-            (y ::int (+ (the shift-top)
-                        (nearby-int (* (the stretch-vertical) top)))))
-        (when (and (is x < (+ (the shift-left) (the clip-width)))
-                   (is (+ (the shift-top) (the clip-height)) > y))
-          (when (or (is width <= x)
-                    (is y >= height))
-            (let ((new-width (if (is width <= x)
-                                 (+ x 1)
-                                 width))
-                  (new-height (if (is y >= height)
-                                  (+ y 1)
-                                  height)))
-              (expand-data! new-width new-height)))
-          (let ((n (+ (* width y) x)))
-            (set! (data n) c))
-          )))
+  (define-private (expand-buffer! new-width ::int new-height ::int)::void
+    (assert (and (is width <= new-width) (is new-height >= height)))
+    (let ((new-buffer ((array-of char) length: (* new-width new-height))))
+      (for line ::int from 0 below new-height
+           (for column ::int from 0 below new-width
+                (set! (new-buffer (+ (* new-width line) column))
+                      (if (and (is column < width)
+                               (is height > line))
+                          (buffer (+ (* width line) column))
+                          #\space))))
+      (set! width new-width)
+      (set! height new-height)
+      (set! buffer new-buffer)))
 
-    (define (with-intensity intensity::<0.0-1.0>
-                            action::(maps () to: ,A))
-      ::,A
-      (action))
+  (define (put! c ::char left ::int top ::int)::void
+    (assert (and (is 0 <= left) (is top >= 0)))
+    (let ((x ::int (+ (the shift-left)
+                      (nearby-int (* (the stretch-horizontal) left))))
+          (y ::int (+ (the shift-top)
+                      (nearby-int (* (the stretch-vertical) top)))))
+      (when (and (is x < (+ (the shift-left) (the clip-width)))
+                 (is (+ (the shift-top) (the clip-height)) > y))
+        (when (or (is width <= x)
+                  (is y >= height))
+          (let ((new-width (if (is width <= x)
+                               (+ x 1)
+                               width))
+                (new-height (if (is y >= height)
+                                (+ y 1)
+                                height)))
+            (expand-buffer! new-width new-height)))
+        (let ((n (+ (* width y) x)))
+          (set! (buffer n) c))
+        )))
 
-    (define (toString)::String
-      (with-output-to-string
-        (lambda ()
-          (write-char #\newline)
-          (for line from 0 below height
-               (for column from 0 below width
-                    (let* ((n (+ (* line width)
-                                 column))
-                           (c (data n)))
-                      (write-char c)))
-               (write-char #\newline)))))
+  (define (with-intensity intensity::<0.0-1.0>
+                          action::(maps () to: ,A))
+    ::,A
+    (action))
 
-    (CharPainter))
-
-  (define painter ::Painter (TextPainter))
+  (define (toString)::String
+    (with-output-to-string
+      (lambda ()
+        (write-char #\newline)
+        (for line from 0 below height
+             (for column from 0 below width
+                  (let* ((n (+ (* line width)
+                               column))
+                         (c (buffer n)))
+                    (write-char c)))
+             (write-char #\newline)))))
 
 #+END_SRC
+
+**** Testing the basic ~TextPainter~
+
+#+BEGIN_SRC scheme :tangle test/basic-text-painter.scm :mkdirp yes :noweb yes
+  <<header>>
+  (module-name (test basic-text-painter))
+  (import (language extensions))
+
+  <<CanManageRenderingContext-interface-definition>>
+  <<CanRenderBoxes-interface-definition>>
+  <<FontProxy-interface-definition>>
+
+  <<BasicFonts-definitions+initializer>>
+  <<CanRenderText-interface-definition>>
+
+  (define-interface Painter
+    (CanManageRenderingContext
+     CanRenderBoxes
+     CanRenderText))
+
+  <<ParenthesesCharacters-object-definition>>
+
+  (define-object (CharPainter)::Painter
+    <<CharPainter-body>>)
+
+  <<TextPainterFont-object-definition>>
+
+  (define-object (TextPainter)::Painter
+    <<BasicTextPainter-body>>
+    (CharPainter))
+
+  (e.g.
+   (let ((atom-font ::FontProxy (TextPainterFont 1))
+         (painter ::Painter (TextPainter)))
+     (painter:draw-box! 28 12 ParenStyle:Normal)
+     (painter:with-translation 2 0
+       (lambda () (painter:draw-text! "define" atom-font)))
+     (painter:with-translation 9 0
+       (lambda ()
+         (painter:draw-box! 3 3 ParenStyle:Normal)
+         (painter:with-translation 2 0
+           (lambda () (painter:draw-text! "! n" atom-font)))))
+     (painter:with-translation 2 3
+      (lambda ()
+        (painter:draw-box! 24 9 ParenStyle:Normal)
+        (painter:with-translation 2 0
+          (lambda () (painter:draw-text! "if" atom-font)))
+        (painter:with-translation 5 0
+         (lambda ()
+           (painter:draw-box! 9 3 ParenStyle:Normal)
+           (painter:with-translation 2 0
+            (lambda () (painter:draw-text! "is n <= 1" atom-font)))))
+        (painter:with-translation 4 3
+         (lambda () (painter:draw-text! "1" atom-font)))
+        (painter:with-translation 3 6
+         (lambda ()
+           (painter:draw-box! 19 3 ParenStyle:Normal)
+           (painter:with-translation 2 0
+            (lambda () (painter:draw-text! "* n" atom-font)))
+           (painter:with-translation 6 0
+            (lambda ()
+              (painter:draw-box! 11 3 ParenStyle:Normal)
+              (painter:with-translation 2 0
+               (lambda () (painter:draw-text! "!" atom-font)))
+              (painter:with-translation 4 0
+               (lambda ()
+                 (painter:draw-box! 5 3 ParenStyle:Normal)
+                 (painter:with-translation 2 0
+                  (lambda () (painter:draw-text! "- n 1" atom-font)))))))))))
+     (painter:toString)) #;< ===> "
+  ╭        ╭     ╮               ╮
+  │ define │ ! n │               │
+  │        ╰     ╯               │
+  │ ╭    ╭           ╮         ╮ │
+  │ │ if │ is n <= 1 │         │ │
+  │ │    ╰           ╯         │ │
+  │ │                          │ │
+  │ │   1                      │ │
+  │ │                          │ │
+  │ │  ╭     ╭   ╭       ╮ ╮ ╮ │ │
+  │ │  │ * n │ ! │ - n 1 │ │ │ │ │
+  ╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
+  ")
+
+#+END_SRC
+
 
 *** Handling input
 
