@@ -2386,8 +2386,8 @@ in patterns and remove them from bindings"
        (display "]")))))
 
 (define* (is element in collection)
-  (if (instance? collection Set)
-      (let ((set ::Set (as Set collection)))
+  (if (instance? collection Collection)
+      (let ((set ::Collection (as Collection collection)))
         (set:contains element))
       (any (is _ equal? element) collection)))
 
@@ -2683,3 +2683,44 @@ in patterns and remove them from bindings"
 
 (define-syntax-rule (the slot-name)
   (slot-ref (this) 'slot-name))
+
+(define-object (IndexBasedIterator collection ::List index ::int)
+  ::ListIterator
+
+  (define-private backwards? ::boolean #false)
+
+  (define (add element::Object)::void
+    (collection:add index element))
+
+  (define (hasNext)::boolean
+    (is index < (collection:size))) 
+
+  (define (hasPrevious)::boolean
+    (is index > 0))
+
+  (define (next)::Object
+    (let ((result (collection:get index)))
+      (set! index (+ index 1))
+      (set! backwards? #false)
+      result))
+
+  (define (nextIndex)::int
+    index)
+
+  (define (previous)::Object
+    (set! index (- index 1))
+    (set! backwards? #true)
+    (collection:get index))
+
+  (define (previousIndex)::int
+    (- index 1))
+
+  (define (remove)::void
+    (if backwards?
+        (collection:remove index)
+        (collection:remove (- index 1))))
+
+  (define (set element ::Object)::void
+    (if backwards?
+        (collection:set index element)
+        (collection:set (- index 1) element))))

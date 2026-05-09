@@ -260,6 +260,11 @@ from this section inside our ~comment~ form:
 
 #+END_SRC
 
+(Mind that this macro isn't strictly neccessary in Scheme,
+because it supports expression comment read syntax: it is
+sufficient to write ~#;~ before an expression in order for
+it to be ignored by the Scheme reader.)
+
 **** The ~assert~ macro
 
 An assertion is a belief about a certain state of
@@ -3630,8 +3635,8 @@ lists as sets.
          (display "]")))))
 
   (define* (is element in collection)
-    (if (instance? collection Set)
-        (let ((set ::Set (as Set collection)))
+    (if (instance? collection Collection)
+        (let ((set ::Collection (as Collection collection)))
           (set:contains element))
         (any (is _ equal? element) collection)))
 
@@ -3984,6 +3989,48 @@ reader.
 
   (define-syntax-rule (the slot-name)
     (slot-ref (this) 'slot-name))
+
+  (define-object (IndexBasedIterator collection ::List index ::int)
+    ::ListIterator
+
+    (define-private backwards? ::boolean #false)
+
+    (define (add element::Object)::void
+      (collection:add index element))
+
+    (define (hasNext)::boolean
+      (is index < (collection:size))) 
+
+    (define (hasPrevious)::boolean
+      (is index > 0))
+
+    (define (next)::Object
+      (let ((result (collection:get index)))
+        (set! index (+ index 1))
+        (set! backwards? #false)
+        result))
+
+    (define (nextIndex)::int
+      index)
+
+    (define (previous)::Object
+      (set! index (- index 1))
+      (set! backwards? #true)
+      (collection:get index))
+
+    (define (previousIndex)::int
+      (- index 1))
+
+    (define (remove)::void
+      (if backwards?
+          (collection:remove index)
+          (collection:remove (- index 1))))
+
+    (define (set element ::Object)::void
+      (if backwards?
+          (collection:set index element)
+          (collection:set (- index 1) element))))
+
 
 #+END_SRC
 
@@ -4542,6 +4589,19 @@ buffer to a string.
 
 **** Testing the basic ~TextPainter~
 
+In order to test the painter, we first need to fill in the
+missing parts of the implementation. Then we perform the
+ungrateful task of writing the code that actually invokes
+the rendering primitives to check whether they yield a
+desired image.
+
+Of course, it's much easier to look at the desired image
+than it is to read and analyze the code, so we do not
+recommend reading it.
+
+(The generated code can be found in the
+~text/basic-text-painter.scm~ file.)
+
 #+BEGIN_SRC scheme :tangle test/basic-text-painter.scm :mkdirp yes :noweb yes
   <<header>>
   (module-name (test basic-text-painter))
@@ -4625,14 +4685,589 @@ buffer to a string.
 
 #+END_SRC
 
+In the next section, we are going to create a representation
+of a GRASP document, so that we won't have to write code like
+the above ever again.
 
-*** Handling input
+*** Representing documents
 
-*** GRASP application framework
+All programs are compositions of primitive forms provided by
+some programming language. Such compositions can be -- and
+indeed often are -- represented in the form of data
+structures called /trees/. A tree is a structure that
+consists of a /trunk/ and zero or more /branches/, each of
+which can either be a primitive object (in which case we
+call it a /leaf/) or a (sub)tree.
 
-** The implementations of GRASP
+There is a strong relation between those trees and /syntax
+parse trees/ that are elaborated by linguists as they
+analyze utterances in natural languages -- which is because
+programming languages are also languages.
 
-*** The terminal client
+Therefore one can perceive all programming languages as ways
+of encoding tree structures.
+
+However, most programming languages often intorduce
+components that are mostly ignored by tools that process
+source code. These components are called /comments/ and
+/irrelevant whitespace/.
+
+GRASP can be viewed as an editor that lets its users operate
+directly on the program's tree structure, rather than on its
+textual encoding. But it also needs to be able to represent
+and handle whitespace and comments.
+
+The languages from the LISP family have a tradition of
+representing their source code using ~cons~ cells. But it
+turns out, that this representation is very problematic,
+because it makes handling whitespace and comments a
+challenge.
+
+For this reason, we represent program trees using a pair of
+arrays. The first array, containing $N$ elements, represents
+the sematic content of the tree (i.e. the same things one
+would normally find in Lisp's ~cons~ cells), while the other,
+containing $N+1$ elements, represents whitespace and comments
+between those elements.
+
+We call this representation ~Comb~ -- because parenthesized
+expressions in Lisp often express a /combination/, but also
+because the array containing semantically meaningful
+elements resembles the teeth of a comb, and the other array
+resembles spaces between those teeth.
+
+**** A ~Comb~ implements Java's ~List~ interface
+
+We want ~Comb~ to implement the Java's ~List~ interface,
+so that we should be able to iterate over it using the ~for~
+loop.
+
+The ~List~ interface is somewhat complex and contains a lot of
+so called /optional operations/. We're going to implement the
+interface methods starting with the least controversial ones.
+
+Every component of the document will be called an ~Element~,
+and there are going to be two distinct sub-types of
+~Element~, namely -- a ~Space~ and a ~Tile~, where a ~Space~
+is a concrete type and ~Tile~ is an interface representing
+elements that occupy a rectangular area of the screen.
+
+#+NAME: Comb-collection-operations
+#+BEGIN_SRC scheme :tangle no
+
+  (define elements ::(sequence-of Tile)
+    (ArrayList))
+
+  (define spaces ::(sequence-of Space)
+    (ArrayList ||: (single-space)))
+
+  ;; in order to get the size of the collection, we sum
+  ;; the sizes of both arrays
+  (define (size)::int
+    (+ (length elements) (length spaces)))
+
+  ;; and to check if two Comb objects are equal,
+  ;; we check for equality of their arrays
+  (define (equals object ::Object)::boolean
+    (and-let* ((those ::Comb object)
+               ((elements:equals those:elements))
+               ((spaces:equals those:spaces)))))
+
+  ;; testing for presence of an object depends on
+  ;; the type of that object
+  (define (contains object ::Object)::boolean
+    (or (and (Space? object) (spaces:contains object))
+        (and (Tile? object) (elements:contains object))))
+
+  ;; and the test can be easily generalized to a colleciton
+  (define (containsAll collection ::Collection)
+    (every (is _ in (this)) collection))
+
+  ;; the indexing operator maps all the even indices to
+  ;; spaces, and the odd elements to tiles
+  (define (get index ::int)::Object
+    (cond
+     ((or (is index < 0) (is index >= (size)))
+      (this))
+
+     ((even? index)
+      (spaces (quotient index 2)))
+
+     ((odd? index)
+      (elements (quotient (- index 1) 2)))))
+
+  ;; and the iterators can be implemented using
+  ;; the IndexBasedIterator defined in our (language extensions)
+  (define (iterator)::Iterator
+    (IndexBasedIterator (this) 0))
+
+  (define (listIterator)::ListIterator
+    (IndexBasedIterator (this) 0))
+
+  (define (listIterator index ::int)::ListIterator
+    (IndexBasedIterator (this) index))
+
+  ;; the indexOf and lastIndexOf methods are probably
+  ;; never going to be used by anyone, but we provide them
+  ;; anyway, because they are straightforward to implement
+  (define (indexOf object ::Object)::int
+    (cond
+     ((Space? object)
+      (let ((index ::int (spaces:indexOf object)))
+        (if (is index < 0) ;>
+            index
+            (* 2 index))))
+     ((Tile? object)
+      (let ((index ::int (elements:indexOf object)))
+        (if (is index < 0) ;>
+            index
+            (+ (* 2 index) 1))))
+     (else
+      -1)))
+
+  (define (lastIndexOf object ::Object)::int
+    (cond
+     ((Space? object)
+      (let ((index ::int (spaces:lastIndexOf object)))
+        (if (is index < 0) ;>
+            index
+            (* 2 index))))
+     ((Tile? object)
+      (let ((index ::int (elements:lastIndexOf object)))
+        (if (is index < 0) ;>
+            index
+            (+ (* 2 index) 1))))
+     (else
+      -1)))
+
+  ;; the interpretation of "being empty" may be a little
+  ;; controversial. Our representation doesn't allow the
+  ;; spaces array to be empty, but we can consider the whole
+  ;; thing to be empty if it only contains white space
+  (define (isEmpty)::boolean
+    (and (elements:isEmpty)
+         (= (length spaces) 1)
+         (let ((space ::Space (spaces 0)))
+           (space:white?))))
+
+  ;; as a consequence, we can also define a routine to clear
+  ;; the content of a Comb
+  (define (clear)::void
+    (elements:clear)
+    (spaces:clear)
+    (spaces:add (single-space)))
+
+  ;; adding another Comb at the end of this one is possible,
+  ;; but in order to do this, we need to merge the last space
+  ;; from us with the first space from them
+  (define (addAll collection ::Collection)::boolean
+    (and-let* ((comb ::Comb collection)
+               (last-space ::Space (spaces (- (length spaces) 1)))
+               (next-space ::Space (comb:spaces 0)))
+      (last-space:merge-with! next-space)
+      (elements:addAll comb:elements)    
+      (comb:spaces:remove (as int 0)) ; we remove last-space to addAll
+      (spaces:addAll comb:spaces) ; and then we put it back
+      (comb:spaces:add (as int 0) last-space) ; to leave the argument intact
+      ))
+
+  ;; adding one comb in the middle of another is somewhat
+  ;; controversial. This can only be allowed on even indices
+  ;; (because they indicate to spaces) and it forces us to
+  ;; fix a merging strategy. We chose the following, to stay
+  ;; consistent with the above code
+  ;;
+  ;;  A B   C
+  ;; 01234 678
+  ;;
+  ;;     C A B
+  ;; 0: 0781234
+  ;;    6
+  ;;
+  ;;     A C B
+  ;; 2: 0127834
+  ;;      6
+  ;;
+  ;;     A B C
+  ;; 4: 0123478
+  ;;        6
+  ;;
+  (define (addAll index ::int collection ::Collection)::boolean
+    (and-let* (((even? index))
+               (comb ::Comb collection)
+               ((is 0 <= index))
+               ((is (size) > index))
+               (index* ::int (quotient index 2))
+               (enlarged-space ::Space (spaces index))
+               (extra-space ::Space (comb:spaces 0)))
+      (enlarged-space:merge-with! extra-space)
+      (elements:addAll index* comb:elements)
+      (comb:spaces:remove (as int 0))
+      (spaces:addAll (+ index* 1) comb:spaces)
+      (comb:spaces:add (as int 0) extra-space)))
+
+  ;; adding a single element is also allowed only on
+  ;; even indices, and it has two interpretations
+  (define (add index ::int element ::Element)::void
+    (when (even? index)
+      (let* ((index* ::int (quotient index 2))
+             (affected ::Space (spaces index*)))
+        (match element
+          (space::Space           
+           (affected:merge-with! space))
+          (tile::Tile
+           (elements:add index* tile)
+           (spaces:add (+ index* 1) (single-space)))))))
+
+  ;; adding an element at the back of a comb
+  ;; also has two interpretations
+  (define (add element ::Element)::boolean
+    (match element
+      (space ::Space
+             (let ((last ::Space (spaces (- (length spaces) 1))))
+               (last:merge-with! space)
+               #true))
+      (tile ::Tile
+            (elements:add tile)
+            (spaces:add (single-space))
+            #true)
+      (_
+       #false)))
+
+  (define (remove-at index ::int)::Element
+    (cond
+     ((or (is index < 0) (is index >= (size))
+          (even? index))
+      #!null)
+     ((odd? index)
+      (let* ((index* ::int (quotient (- index 1) 2))
+             (preceding ::Space (spaces index*))
+             (following ::Space (spaces (+ index* 1))))
+        (preceding:merge-with! following)
+        (spaces:remove (+ index* 1))
+        (elements:remove index*)))))
+
+  (define (remove index ::int)::Element
+    (remove-at index))
+
+  (define (remove element ::Element)::boolean
+    (isnt (remove-at (indexOf element)) eq? #!null))
+
+  (define (removeAll collection ::Collection)::boolean
+    (let ((removed? ::boolean #false))
+      (for element in collection
+        (when (remove element)
+          (set! removed? #true)))
+      removed?))
+
+  (define (retainAll collection ::Collection)::boolean
+    (let ((removed? ::boolean #false))
+      (for element in (this)
+        (unless (collection:contains element)
+          (when (remove element)
+            (set! removed? #true))))
+      removed?))
+
+  (define (set index ::int element ::Element)::Element
+    (cond
+     ((or (is index < 0) (is index >= 0))
+      #!null)
+     ((and (Space? element) (even? index))
+      (spaces:set (quotient index 2) element))
+     ((and (Tile? element) (odd? index))
+      (elements:set (quotient (- index 1) 2) element))
+     (else
+      #!null)))
+
+  (define (toArray)::(array-of Object)
+    (let ((result ((array-of Object) length: (size))))
+      (for i from 0 below (size)
+           (set! (result i) (get i)))
+      result))
+
+  (define (toArray possible-output ::(array-of Object))
+    ::(array-of Object)
+    (let ((result (if #;< (is possible-output:length >= (size))
+                          possible-output
+                          ((array-of Object) length: (size)))))
+      (for i from 0 below (size)
+           (set! (result i) (get i)))
+      result))
+
+
+  ;;  0 1 2 3
+  ;; 0 1 2 3 4
+  ;;  A B C D
+  ;; 012345678
+  ;;   \   /
+
+  (define (subList fromIndex ::int toIndex ::int)::List
+    (let* ((fromIndex ::int (max 0 (if (odd? fromIndex)
+                                       (- fromIndex 1)
+                                       fromIndex)))
+           (toIndex ::int (min (- (size) 1)
+                               (if (odd? toIndex)
+                                   (+ toIndex 1)
+                                   toIndex)))
+           (lo ::int (quotient fromIndex 2))
+           (hi ::int (quotient toIndex 2))
+           (view ::Comb (Comb)))
+      (set! view:elements (elements:subList lo hi))
+      (set! view:spaces (spaces:subList lo (+ hi 1)))
+      view))
+
+
+#+END_SRC
+
+***** Testing that ~Comb~ implements Java's ~List~ interface
+
+Having implemented all the operations of the ~List~
+interface, we want to test them without having to implement
+the rest of the capabilities of Comb. For this reason, we're
+going to provide mock definitions of ~Element~, ~Tile~ and
+~Space~.
+
+#+BEGIN_SRC scheme :tangle test/comb-as-collection.scm :mkdirp yes :noweb yes
+  <<header>>
+  (module-name (test comb-as-collection))
+  (import (language extensions))
+
+  (define-interface Element ()
+    #|
+    This is a mock implementation
+    that is only used for testing
+    the implementation of the List
+    interface of the Comb class
+    |#
+    )
+
+  (define-object (Tile name ::String)::Element
+    #|
+    This is a mock implementation
+    that is only used for testing
+    the implementation of the List
+    interface of the Comb class
+    |#
+
+    (define (toString)::String
+      name)
+    )
+
+  (define-object (Space content ::String)::Element
+
+    #|
+    This is a mock implementation
+    that is only used for testing
+    the implementation of the List
+    interface of the Comb class
+    |#
+
+    (define (merge-with! another::Space)::void
+      (set! content (string-append content another:content)))
+
+    (define (white?)::boolean
+      #true)
+
+    (define (toString)::String
+      content))
+
+  (define (single-space)::Space
+    (Space "-"))
+
+  (define-object (Comb)::List
+
+    <<Comb-collection-operations>>
+
+    (define (toString)::String
+      (with-output-to-string
+        (lambda ()
+          (for item::Element in (this)
+            (display (item:toString))))))
+    (Tile "Comb"))
+
+  (let ((c1 ::Comb (Comb (Tile "A") (Tile "B") (Tile "C")))
+        (c2 ::Comb (Comb (Tile "D") (Tile "E") (Tile "F"))))
+    (c1:addAll c2)
+    (let ((v1 ::Comb (c1:subList 3 6)))
+      (e.g.
+       (c1:toString) #;< ===> "-A-B-C--D-E-F-")
+      (e.g.
+       (v1:toString) #;< ===> "-B-C--")))
+
+  (let ((c3 ::Comb (Comb)))
+    (e.g.
+     (and (c3:isEmpty)
+          (is (length c3) = 1))))
+
+#+END_SRC
+
+**** Rendering and navigating over ~Comb~
+
+
+#+BEGIN_SRC scheme :tangle editor/ontology.scm :mkdirp yes :noweb yes
+  <<header>>
+  (import (language extensions))
+
+  (define-interface Visual ()
+    (render! active? ::boolean)::void)
+
+  (define-type (Traversal
+                left: real := 0
+                top: real := 0
+                max-width: real := 0
+                max-line-height: real := (painter:min-line-height)
+                ))
+
+  (define-interface Element (Visual)
+    (advance-traversal! traversal::Traversal)::void
+
+    (advance!)::boolean
+    (retreat!)::boolean
+
+    (current)::Element
+    )
+
+  (define-interface Tile (Element)
+    (width)::real
+    (height)::real
+    )
+
+  (define-object (Space)::Element
+    (define (advance-traversal! traversal::Traversal)::void
+      ...)
+
+    (define (advance!)::boolean
+      ...)
+
+    (define (retreat!)::boolean
+      ...)
+
+    (define (current)::Element
+      ...))
+
+  (define-interface ResizableTile (Tile)
+    (min-width)::real
+    (min-height)::real
+    (set-size! new-width ::real
+               new-height ::real anchor ::(maybe Object))
+    ::void
+    )
+
+  (define-interface Compound
+    (ResizableTile #;(List Element)))
+
+  (define-object (Comb style::ParenStyle)::Compound
+    (define elements ::(sequence-of Tile) (ArrayList))
+    (define spaces ::(sequence-of Space) (ArrayList))
+
+    <<Comb-index-operations>>
+
+    (define (advance-traversal! traversal::Traversal)::void
+      (set! traversal:width (+ traversal:width (width)))
+      (set! traversal:max-height (max traversal:max-height (height))))
+
+    (define-private last-width ::real -1)
+    (define-private last-height ::real -1)
+
+    (define-private (update-size! traversal::Traversal)::void
+      (set! last-width (+ (* 2 (painter:paren-width style))
+                          traversal:max-width))
+      (set! last-height (+ traversal:top traversal:max-line-height)))
+
+    (define-private (recalculate-size)::void
+      (let ((traversal ::Traversal (Traversal)))
+        (for element ::Element in (this)
+             (element:advance-traversal! traversal))
+        (update-size! traversal)))
+
+    (define (width)::real
+      (when (is last-width < 0) ;>
+        (recalculate-size))
+      last-width)
+
+    (define (height)::real
+      (when (is last-height < 0) ;>
+        (recalculate-size))
+      last-height)
+
+    (define (render! active? ::boolean)::void
+      (let ((active ::Element (or (and active? (get current-index))
+                                  #!null))
+            (traversal ::Traversal (Traversal))
+            (paren-width ::real (painter:paren-width)))
+        (painter:with-translation
+         paren-width 0
+         (lambda ()
+           (for element ::Element in (this)
+             (painter:with-translation
+              traversal:left traversal:top
+              (lambda ()
+                (element:render! (and active? (eq? element active)))
+                (element:advance-traversal! traversal))))))
+        (update-size! traversal)
+        (painter:draw-box! traversal:max-width last-height style)))
+
+
+    )
+
+
+
+#+END_SRC
+
+
+
+
+
+#+NAME: Comb-index-operations
+#+BEGIN_SRC scheme :tangle no
+    (define-constant LEFT-PAREN-INDEX -1)
+    (define-constant RIGHT-PAREN-INDEX -2)
+
+    (define current-index ::int LEFT-PAREN-INDEX)
+
+    (define (current)::Element
+      (get current-index))
+
+    (define-static (index-succeeding index::int)::int
+      (match index
+        (,LEFT-PAREN-INDEX  0)
+        (,RIGHT-PAREN-INDEX index)
+        (,(- (size) 1)      RIGHT-PAREN-INDEX)
+        (_                  (+ index 1))))
+
+    (define-static (index-preceding index::int)::int
+      (match index
+        (,RIGHT-PAREN-INDEX (- (size) 1))        
+        (,LEFT-PAREN-INDEX  index)
+        (0                  LEFT-PAREN-INDEX)
+        (_                  (- index 1))))
+
+    (define-static (advance-current-index!)::void
+      (set! current-index (index-succeeding current-index)))
+
+    (define-static (retreat-current-index!)::void
+      (set! current-index (index-preceding current-index)))
+
+    (define (advance!)::boolean
+      (when (= current-index LEFT-PAREN-INDEX)
+        (set! current-index 0))
+      (and (isnt current-index = RIGHT-PAREN-INDEX)
+           (let ((element ::Element (current)))
+             (or (element:advance!)
+                 (begin
+                   (advance-current-index!)
+                   (advance!))))))
+
+    (define (retreat!)::boolean
+      (when (= current-index RIGHT-PAREN-INDEX)
+        (set! current-index (- (size) 1)))
+      (and (isnt current-index = LEFT-PAREN-INDEX)
+           (let ((element ::Element (current)))
+             (or (element:retreat!)
+                 (begin
+                   (retreat-current-index!)
+                   (retreat!))))))
+#+END_SRC
 
 
 
