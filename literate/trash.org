@@ -1,3 +1,68 @@
+The code snippets from this chapter will be placed in the
+~editor/architecture.scm~ file.
+
+#+BEGIN_SRC scheme :tangle editor/architecture.scm :mkdirp yes :noweb yes
+<<header>>
+(module-name (editor architecture))
+(import (language extensions))
+#+END_SRC
+
+
+
+
+#+NAME: Comb--index-operations
+#+BEGIN_SRC scheme :tangle no
+  (define-constant LEFT-PAREN-INDEX -1)
+  (define-constant RIGHT-PAREN-INDEX -2)
+
+  (define current-index ::int LEFT-PAREN-INDEX)
+
+  (define (current)::Element
+    (get current-index))
+
+  (define-static (index-succeeding index::int)::int
+    (match index
+      (,LEFT-PAREN-INDEX  0)
+      (,RIGHT-PAREN-INDEX index)
+      (,(- (size) 1)      RIGHT-PAREN-INDEX)
+      (_                  (+ index 1))))
+
+  (define-static (index-preceding index::int)::int
+    (match index
+      (,RIGHT-PAREN-INDEX (- (size) 1))        
+      (,LEFT-PAREN-INDEX  index)
+      (0                  LEFT-PAREN-INDEX)
+      (_                  (- index 1))))
+
+  (define-static (advance-current-index!)::void
+    (set! current-index (index-succeeding current-index)))
+
+  (define-static (retreat-current-index!)::void
+    (set! current-index (index-preceding current-index)))
+
+  (define (advance!)::boolean
+    (when (= current-index LEFT-PAREN-INDEX)
+      (set! current-index 0))
+    (and (isnt current-index = RIGHT-PAREN-INDEX)
+         (let ((element ::Element (current)))
+           (or (element:advance!)
+               (begin
+                 (advance-current-index!)
+                 (advance!))))))
+
+  (define (retreat!)::boolean
+    (when (= current-index RIGHT-PAREN-INDEX)
+      (set! current-index (- (size) 1)))
+    (and (isnt current-index = LEFT-PAREN-INDEX)
+         (let ((element ::Element (current)))
+           (or (element:retreat!)
+               (begin
+                 (retreat-current-index!)
+                 (retreat!))))))
+#+END_SRC
+
+
+
 *** Input handling
 
 Every interactive program needs to be able to gather user

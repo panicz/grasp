@@ -154,7 +154,7 @@ and local variables.)
 The code snippets from this chapter will be placed in the
 ~language/extensions.scm~ file.
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm :mkdirp yes :noweb yes
+#+BEGIN_SRC scheme :tangle language/extensions.scm :mkdirp yes :noweb tangle
 <<header>>
 (module-name (language extensions))
 ;; mind that, for some reason, importing ANY module from this
@@ -4151,8 +4151,7 @@ to take some number of parameters followed by a /thunk/ that
 is supposed to be executed in the modified context. This way
 we won't need to worry about restoring the context.
 
-#+NAME: CanManageRenderingContext-interface-definition
-#+BEGIN_SRC scheme :tangle no
+#+BEGIN_SRC scheme :tangle no :noweb-ref painter-subinterfaces
 
 (define-interface CanManageRenderingContext ()
   (with-translation x::real y::real action::(maps () to: ,A))::,A
@@ -4175,6 +4174,19 @@ computer graphics. In the case of GRASP, the origin is
 located on the top left corner, with the x axis (horizontal)
 pointing right and the y axis (vertical) pointing down.
 
+**** Providing sizes of various things
+
+#+BEGIN_SRC scheme :noweb-ref painter-capabilities
+CanProvideBasicSizes
+#+END_SRC
+
+#+BEGIN_SRC scheme :noweb-ref painter-subinterfaces
+(define-interface CanProvideBasicSizes ()
+  (space-width)::real
+  (min-line-height)::real
+  )
+#+END_SRC
+
 **** Rendering tall parentheses
 
 One of the defining features of GRASP is the /nested box/
@@ -4189,14 +4201,19 @@ CanRenderBoxes
 We are going to support a number of styles for a few
 different types of parentheses. 
 
-#+NAME: CanRenderBoxes-interface-definition
-#+BEGIN_SRC scheme :tangle no
+#+BEGIN_SRC scheme :tangle no :noweb-ref painter-subinterfaces
 
   (define-enum ParenStyle
     (Normal Quote Quasiquote Unquote UnquoteSplicing List))
 
+  (define-enum ParenSelected
+    (Left Right None))
+
   (define-interface CanRenderBoxes ()
-    (draw-box! inner-width::real height::real style::ParenStyle)::void
+    (draw-box! width ::real height ::real
+               selected ::ParenSelected
+               style ::ParenStyle)
+    ::void
     (paren-width style::ParenStyle)::real
     )
 
@@ -4219,8 +4236,7 @@ because every client represents fonts in a different way.
 For this reason, we are going to define a ~FontProxy~ type
 that will stand for particular font representations. 
 
-#+NAME: FontProxy-interface-definition
-#+BEGIN_SRC scheme :tangle no
+#+BEGIN_SRC scheme :tangle no :noweb-ref painter-subinterfaces
 
   (define-interface FontProxy ()
     (height)::real)
@@ -4237,8 +4253,8 @@ These fonts can be accessed through variables which are
 visible globally but can only be initialized using the
 ~initialize-fonts~ procedure.
 
-#+NAME: BasicFonts-definitions+initializer
-#+BEGIN_SRC scheme :tangle no
+#+NAME: BasicFonts--definitions+initializer
+#+BEGIN_SRC scheme :tangle no :noweb-ref painter-subinterfaces
 
   (define the-atom-font ::FontProxy #!null)
   (define the-string-font ::FontProxy #!null)
@@ -4265,8 +4281,7 @@ space into character index.
 The functions assume that ~text~ contains no newline
 characters.
 
-#+NAME: CanRenderText-interface-definition
-#+BEGIN_SRC scheme :tangle no
+#+BEGIN_SRC scheme :tangle no :noweb-ref painter-subinterfaces
 
   (define-interface CanRenderText ()
     (draw-text! text::CharSequence font::FontProxy)::real
@@ -4294,7 +4309,7 @@ It is going to use a helper object called
 ~ParenthesesCharacters~, whose purpose is to define how the
 specific types of boxes are going to look.
 
-#+NAME: ParenthesesCharacters-object-definition
+#+NAME: ParenthesesCharacters--object-definition
 #+BEGIN_SRC scheme :tangle no
 
   (define-object (ParenthesesCharacters
@@ -4338,7 +4353,7 @@ Note that the definition of ~CharPainter~ refers to the
 ~put!~ abstract method, which is supposed to be overridden
 by its descendant classes.
 
-#+NAME: CharPainter-body
+#+NAME: CharPainter--body
 #+BEGIN_SRC scheme :tangle no
   (define-static Parentheses
     (vector
@@ -4435,30 +4450,38 @@ by its descendant classes.
     ::,A
     #!abstract)
 
-  (define (draw-box! inner-width::real height::real style::ParenStyle)::void
+  (define (space-width)::real
+    1)
+
+  (define (min-line-height)::real
+    3)
+
+  (define (draw-box! width ::real height ::real
+                     selected ::ParenSelected
+                     style ::ParenStyle)
+    ::void
     (let* ((parenthesis ::ParenthesesCharacters
-                        (Parentheses (style:ordinal)))
-           (width ::int parenthesis:width))
-      (for i ::int from 0 below width
+                        (Parentheses (style:ordinal))))
+      (for i ::int from 0 below parenthesis:width
            (put! (parenthesis:leftTop i) i 0))
       (for line ::int from 1 below (- height 2)
-           (for i ::int from 0 below width
+           (for i ::int from 0 below parenthesis:width
                 (put! (parenthesis:leftLine i) i line)))
-      (for i ::int from 0 below width
+      (for i ::int from 0 below parenthesis:width
            (put! (parenthesis:leftMiddle i) i (- height 2)))
-      (for i ::int from 0 below width
+      (for i ::int from 0 below parenthesis:width
            (put! (parenthesis:leftBottom i) i (- height 1)))
       (with-translation
-       (+ inner-width width) 0
+       (- width parenthesis:width) 0
        (lambda ()
-         (for i ::int from 0 below width
+         (for i ::int from 0 below parenthesis:width
               (put! (parenthesis:rightTop i) i 0))
          (for line ::int from 1 below (- height 2)
-              (for i ::int from 0 below width
+              (for i ::int from 0 below parenthesis:width
                    (put! (parenthesis:rightLine i) i line)))
-         (for i ::int from 0 below width
+         (for i ::int from 0 below parenthesis:width
               (put! (parenthesis:rightMiddle i) i (- height 2)))
-         (for i ::int from 0 below width
+         (for i ::int from 0 below parenthesis:width
               (put! (parenthesis:rightBottom i) i (- height 1)))))))
 
   (define (paren-width style::ParenStyle)::real
@@ -4497,7 +4520,7 @@ from other objects. (In the future, we might extend the font
 rendering capabilities to Figlet fonts, but if it happens,
 this section will most certainly be updated).
 
-#+NAME: TextPainterFont-object-definition
+#+NAME: TextPainterFont--object-definition
 #+BEGIN_SRC scheme :tangle no
   (define-object (TextPainterFont vertical-offset::int)::FontProxy
     (define (height)
@@ -4512,7 +4535,7 @@ It also provides a meaningful implementation of the
 ~toString~ method, which simply dumps the content of the
 buffer to a string.
 
-#+NAME: BasicTextPainter-body
+#+NAME: BasicTextPainter--body
 #+BEGIN_SRC scheme :tangle no
   (define (draw-text! text ::CharSequence font ::FontProxy)::real
     (let ((vertical-offset ::int (or (and-let* ((font ::TextPainterFont))
@@ -4602,72 +4625,75 @@ recommend reading it.
 (The generated code can be found in the
 ~text/basic-text-painter.scm~ file.)
 
-#+BEGIN_SRC scheme :tangle test/basic-text-painter.scm :mkdirp yes :noweb yes
+#+NAME: basic-text-painter
+#+BEGIN_SRC scheme :tangle no :noweb yes
+
+  <<painter-subinterfaces>>
+
+  (define-interface Painter
+    (CanManageRenderingContext
+     CanProvideBasicSizes
+     CanRenderBoxes
+     CanRenderText))
+
+  <<ParenthesesCharacters--object-definition>>
+
+  (define-object (CharPainter)::Painter
+    <<CharPainter--body>>)
+
+  <<TextPainterFont--object-definition>>
+
+  (define-object (TextPainter)::Painter
+    <<BasicTextPainter--body>>
+    (CharPainter))
+#+END_SRC
+
+#+BEGIN_SRC scheme :tangle test/basic-text-painter.scm :mkdirp yes :noweb tangle
   <<header>>
   (module-name (test basic-text-painter))
   (import (language extensions))
 
-  <<CanManageRenderingContext-interface-definition>>
-  <<CanRenderBoxes-interface-definition>>
-  <<FontProxy-interface-definition>>
-
-  <<BasicFonts-definitions+initializer>>
-  <<CanRenderText-interface-definition>>
-
-  (define-interface Painter
-    (CanManageRenderingContext
-     CanRenderBoxes
-     CanRenderText))
-
-  <<ParenthesesCharacters-object-definition>>
-
-  (define-object (CharPainter)::Painter
-    <<CharPainter-body>>)
-
-  <<TextPainterFont-object-definition>>
-
-  (define-object (TextPainter)::Painter
-    <<BasicTextPainter-body>>
-    (CharPainter))
+  <<basic-text-painter>>
 
   (e.g.
    (let ((atom-font ::FontProxy (TextPainterFont 1))
          (painter ::Painter (TextPainter)))
-     (painter:draw-box! 28 12 ParenStyle:Normal)
+     (painter:draw-box! 32 12 ParenSelected:None ParenStyle:Normal)
      (painter:with-translation 2 0
        (lambda () (painter:draw-text! "define" atom-font)))
      (painter:with-translation 9 0
        (lambda ()
-         (painter:draw-box! 3 3 ParenStyle:Normal)
+         (painter:draw-box! 7 3 ParenSelected:None ParenStyle:Normal)
          (painter:with-translation 2 0
            (lambda () (painter:draw-text! "! n" atom-font)))))
      (painter:with-translation 2 3
       (lambda ()
-        (painter:draw-box! 24 9 ParenStyle:Normal)
+        (painter:draw-box! 28 9 ParenSelected:None ParenStyle:Normal)
         (painter:with-translation 2 0
           (lambda () (painter:draw-text! "if" atom-font)))
         (painter:with-translation 5 0
          (lambda ()
-           (painter:draw-box! 9 3 ParenStyle:Normal)
+           (painter:draw-box! 13 3 ParenSelected:None ParenStyle:Normal)
            (painter:with-translation 2 0
             (lambda () (painter:draw-text! "is n <= 1" atom-font)))))
         (painter:with-translation 4 3
          (lambda () (painter:draw-text! "1" atom-font)))
         (painter:with-translation 3 6
          (lambda ()
-           (painter:draw-box! 19 3 ParenStyle:Normal)
+           (painter:draw-box! 23 3 ParenSelected:None ParenStyle:Normal)
            (painter:with-translation 2 0
             (lambda () (painter:draw-text! "* n" atom-font)))
            (painter:with-translation 6 0
             (lambda ()
-              (painter:draw-box! 11 3 ParenStyle:Normal)
+              (painter:draw-box! 15 3 ParenSelected:None ParenStyle:Normal)
               (painter:with-translation 2 0
                (lambda () (painter:draw-text! "!" atom-font)))
               (painter:with-translation 4 0
                (lambda ()
-                 (painter:draw-box! 5 3 ParenStyle:Normal)
+                 (painter:draw-box! 9 3 ParenSelected:None ParenStyle:Normal)
                  (painter:with-translation 2 0
                   (lambda () (painter:draw-text! "- n 1" atom-font)))))))))))
+     (display (painter:toString))
      (painter:toString)) #;< ===> "
   ╭        ╭     ╮               ╮
   │ define │ ! n │               │
@@ -4752,7 +4778,7 @@ and there are going to be two distinct sub-types of
 is a concrete type and ~Tile~ is an interface representing
 elements that occupy a rectangular area of the screen.
 
-#+NAME: Comb-collection-operations
+#+NAME: Comb--collection-operations
 #+BEGIN_SRC scheme :tangle no
 
   (define elements ::(sequence-of Tile)
@@ -4994,7 +5020,6 @@ elements that occupy a rectangular area of the screen.
            (set! (result i) (get i)))
       result))
 
-
   ;;  0 1 2 3
   ;; 0 1 2 3 4
   ;;  A B C D
@@ -5016,7 +5041,6 @@ elements that occupy a rectangular area of the screen.
       (set! view:spaces (spaces:subList lo (+ hi 1)))
       view))
 
-
 #+END_SRC
 
 ***** Testing that ~Comb~ implements Java's ~List~ interface
@@ -5027,7 +5051,7 @@ the rest of the capabilities of Comb. For this reason, we're
 going to provide mock definitions of ~Element~, ~Tile~ and
 ~Space~.
 
-#+BEGIN_SRC scheme :tangle test/comb-as-collection.scm :mkdirp yes :noweb yes
+#+BEGIN_SRC scheme :tangle test/comb-as-collection.scm :mkdirp yes :noweb tangle
   <<header>>
   (module-name (test comb-as-collection))
   (import (language extensions))
@@ -5076,7 +5100,7 @@ going to provide mock definitions of ~Element~, ~Tile~ and
 
   (define-object (Comb)::List
 
-    <<Comb-collection-operations>>
+    <<Comb--collection-operations>>
 
     (define (toString)::String
       (with-output-to-string
@@ -5101,175 +5125,269 @@ going to provide mock definitions of ~Element~, ~Tile~ and
 
 #+END_SRC
 
-**** Rendering and navigating over ~Comb~
+**** Rendering GRASP documents
 
+As we mentioned before, every entity in the GRASP document
+is an instance of the ~Element~ interface, and these come in
+two fundamental types: ~Tile~ is something that occupies a
+rectangular area of the screen, and ~Space~ is something
+that is located between ~Tile~ elements. Space isn't
+necessarily blank -- it can also contain comments (which
+themselves can be considered ~Tile~).
 
-#+BEGIN_SRC scheme :tangle editor/ontology.scm :mkdirp yes :noweb yes
-  <<header>>
-  (import (language extensions))
+Because of the irregular shape of ~Space~, we need to be
+able to track during rendering how we're supposed to shift
+our coordinate system. If a ~Space~ contains a ~#\newline~
+or a ~LineComment~, we need to terminate the current line,
+i.e. move the origin down and to the left. Therefore we need
+an object that would represent the current ~LayoutState~:
 
-  (define-interface Visual ()
-    (render! active? ::boolean)::void)
-
-  (define-type (Traversal
+#+BEGIN_SRC scheme :tangle no :noweb-ref GRASP-ontology
+  (define-type (LayoutState
                 left: real := 0
                 top: real := 0
                 max-width: real := 0
-                max-line-height: real := (painter:min-line-height)
-                ))
+                line-height: real := (painter:min-line-height)))
+#+END_SRC
 
-  (define-interface Element (Visual)
-    (advance-traversal! traversal::Traversal)::void
+We can consider an object to be ~Spatial~ if it is capable
+of advancing the layout state:
 
-    (advance!)::boolean
-    (retreat!)::boolean
+#+BEGIN_SRC scheme :tangle no :noweb-ref GRASP-ontology
+  (define-interface Spatial ()
+    (advance-layout! state::LayoutState)::void)
+#+END_SRC
 
-    (current)::Element
+Likewise, an object is ~Visual~ if it can be rendered (we
+assume that it can be rendered as either an active element
+-- if it is pointed to by a cursor -- or non-active
+otherwise):
+
+#+BEGIN_SRC scheme :tangle no :noweb-ref GRASP-ontology
+  (define-interface Visual ()
+    (render! active?::boolean)::void)
+#+END_SRC
+
+We therefore expect an ~Element~ to be both ~Visual~ and
+~Spatial~. But there is more: we just mentioned that an
+element can be active, which means that it's pointed to by a
+cursor.
+
+As far as a ~Comb~ is concerned, we will represent the
+cursor as an integer. Since we also assume that the cursor
+can be placed on a left or a right parenthesis, we can
+represent them as indices -1 and -2, respectively.
+
+#+BEGIN_SRC scheme :tangle no :noweb-ref Comb--rendering
+  (define-static LEFT-PAREN-INDEX -1)
+  (define-static RIGHT-PAREN-INDEX -2)
+
+  (define current-index ::int -3)
+#+END_SRC
+
+Mind also, that a ~Comb~ is supposed to be a ~Tile~, and
+therefore occupy a rectangular area of the screen, so we
+need some way to calculate its ~width~ and ~height~.  They
+will be known after rendering, so we can cache them in
+variables to avoid their recomputation on every access.
+
+#+BEGIN_SRC scheme :tangle no :noweb-ref Comb--rendering
+  (define-private last-width ::real -1)
+  (define-private last-height ::real -1)
+#+END_SRC
+
+We're now equipped with everything needed to define the
+rendering function for ~Comb~ and its thereabouts.
+
+#+BEGIN_SRC scheme :tangle no :noweb-ref Comb--rendering
+  (define style ::ParenStyle ParenStyle:Normal)
+
+  (define (render! active? ::boolean)::void
+    (let ((active ::Element (or (and active? (get current-index))
+                                #!null))
+          (current-layout ::LayoutState (LayoutState))
+          (paren-width ::real (painter:paren-width style)))
+      (painter:with-translation
+       paren-width 0
+       (lambda ()
+         (for element ::Element in (this)
+           (painter:with-translation
+            current-layout:left current-layout:top
+            (lambda ()
+              (element:render! (and active? (eq? element active)))
+              (element:advance-layout! current-layout))))))
+      (update-size-from-layout-state! current-layout)
+      (painter:draw-box! last-width last-height
+                         (match current-index
+                           (,LEFT-PAREN-INDEX  ParenSelected:Left)
+                           (,RIGHT-PAREN-INDEX ParenSelected:Right)
+                           (_                  ParenSelected:None))
+                         style)))
+
+  (define-private (update-size-from-layout-state! state ::LayoutState)::void
+    (set! last-width (+ (* 2 (painter:paren-width style))
+                        state:max-width))
+    (set! last-height (+ state:top state:line-height)))
+
+  (define (width)::real
+    (when (is last-width < 0) ;>
+      (recalculate-size!))
+    last-width)
+
+  (define (height)::real
+    (when (is last-height < 0) ;>
+      (recalculate-size!))
+    last-height)
+
+  (define-private (recalculate-size!)::void
+    (let ((state ::LayoutState (LayoutState)))
+      (for element ::Element in (this)
+           (element:advance-layout! state))
+      (update-size-from-layout-state! state)))
+
+  (define (advance-layout! state ::LayoutState)::void
+    (set! state:left (+ state:left (width)))
+    (set! state:max-width (max state:max-width state:left))
+    (set! state:line-height (max state:line-height (height))))
+
+#+END_SRC
+
+***** Testing ~Comb~ rendering
+
+#+BEGIN_SRC scheme :tangle test/comb-rendering.scm :mkdirp yes :noweb tangle
+  <<header>>
+  (module-name (test comb-rendering))
+  (import (language extensions))
+
+  <<basic-text-painter>>
+
+  (define painter ::Painter (TextPainter))
+
+  <<GRASP-ontology>>
+
+  (define-interface Element (Spatial Visual)
+    #|
+    This is a mock implementation
+    that is only used for testing
+    the implementation of rendering
+    of the Comb class
+    |#
     )
 
   (define-interface Tile (Element)
     (width)::real
-    (height)::real
-    )
+    (height)::real)
 
-  (define-object (Space)::Element
-    (define (advance-traversal! traversal::Traversal)::void
-      ...)
-
-    (define (advance!)::boolean
-      ...)
-
-    (define (retreat!)::boolean
-      ...)
-
-    (define (current)::Element
-      ...))
-
-  (define-interface ResizableTile (Tile)
-    (min-width)::real
-    (min-height)::real
-    (set-size! new-width ::real
-               new-height ::real anchor ::(maybe Object))
-    ::void
-    )
-
-  (define-interface Compound
-    (ResizableTile #;(List Element)))
-
-  (define-object (Comb style::ParenStyle)::Compound
-    (define elements ::(sequence-of Tile) (ArrayList))
-    (define spaces ::(sequence-of Space) (ArrayList))
-
-    <<Comb-index-operations>>
-
-    (define (advance-traversal! traversal::Traversal)::void
-      (set! traversal:width (+ traversal:width (width)))
-      (set! traversal:max-height (max traversal:max-height (height))))
-
-    (define-private last-width ::real -1)
-    (define-private last-height ::real -1)
-
-    (define-private (update-size! traversal::Traversal)::void
-      (set! last-width (+ (* 2 (painter:paren-width style))
-                          traversal:max-width))
-      (set! last-height (+ traversal:top traversal:max-line-height)))
-
-    (define-private (recalculate-size)::void
-      (let ((traversal ::Traversal (Traversal)))
-        (for element ::Element in (this)
-             (element:advance-traversal! traversal))
-        (update-size! traversal)))
-
-    (define (width)::real
-      (when (is last-width < 0) ;>
-        (recalculate-size))
-      last-width)
-
-    (define (height)::real
-      (when (is last-height < 0) ;>
-        (recalculate-size))
-      last-height)
+  (define-object (Space content ::String)::Element
+    #|
+    This is a mock implementation
+    that is only used for testing
+    the implementation of rendering
+    of the Comb class
+    |#
 
     (define (render! active? ::boolean)::void
-      (let ((active ::Element (or (and active? (get current-index))
-                                  #!null))
-            (traversal ::Traversal (Traversal))
-            (paren-width ::real (painter:paren-width)))
-        (painter:with-translation
-         paren-width 0
-         (lambda ()
-           (for element ::Element in (this)
-             (painter:with-translation
-              traversal:left traversal:top
-              (lambda ()
-                (element:render! (and active? (eq? element active)))
-                (element:advance-traversal! traversal))))))
-        (update-size! traversal)
-        (painter:draw-box! traversal:max-width last-height style)))
+      (values))
 
+    (define (advance-layout! state ::LayoutState)::void
+      (for c in content
+        (cond
+         ((eqv? c #\newline)
+          (set! state:max-width
+                (max state:max-width state:left))
+          (set! state:left 0)
+          (set! state:top (+ state:top state:line-height))
+          (set! state:line-height (painter:min-line-height)))
+         (else
+          (set! state:left (+ state:left (painter:space-width)))
+          (set! state:max-width
+                (max state:max-width state:left))))))
 
+    (define (merge-with! another::Space)::void
+      (set! content (string-append content another:content)))
+
+    (define (white?)::boolean
+      #true)
+
+    (define (toString)::String
+      content))
+
+  (define (single-space)::Space
+    (Space ""))
+
+  (define-interface Compound (Tile List)
+    #|
+    This is a mock implementation
+    that is only used for testing
+    the implementation of rendering
+    of the Comb class
+    |#
     )
 
+  (define-object (Comb)::Compound
+    <<Comb--collection-operations>>
+    <<Comb--rendering>>
+    )
 
+  (initialize-fonts atom-font: (TextPainterFont 1)
+                    string-font: (TextPainterFont 0)
+                    comment-font: (TextPainterFont 0))
+
+  (define-object (Atom name ::String)::Tile
+    (define (render! active? ::boolean)::void
+      (painter:draw-text! name the-atom-font))
+
+    (define (width)::real
+      (string-length name))
+
+    (define (height)::real
+      (the-atom-font:height))
+
+    (define (advance-layout! state ::LayoutState)::void
+      (set! state:left (+ state:left (width)))
+      (set! state:max-width (max state:max-width state:left))
+      (set! state:line-height (max state:line-height (height))))
+    )
+
+  (e.g.
+   (let ((document
+          ::Tile
+          (Comb
+           (Atom "define") (Space " ")
+           (Comb (Atom "!") (Space " ") (Atom "n"))
+           (Space "\n")
+           (Comb
+            (Atom "if") (Space " ")
+            (Comb (Atom "is") (Space " ")
+                  (Atom "n") (Space " ")
+                  (Atom "<=") (Space " ")
+                  (Atom "1"))
+            (Space "\n")
+            (Space "   ") (Atom "1") (Space "\n")
+            (Comb
+             (Atom "*") (Space " ") (Atom "n") (Space " ")
+             (Comb (Atom "!") (Space " ")
+                   (Comb (Atom "-") (Space " ")
+                         (Atom "n") (Space " ")
+                         (Atom "1"))))))))
+     (document:render! #f)
+     (display (painter:toString))
+     (painter:toString)) #;< ===> "
+  ╭        ╭     ╮              ╮
+  │ define │ ! n │              │
+  │        ╰     ╯              │
+  │ ╭    ╭           ╮        ╮ │
+  │ │ if │ is n <= 1 │        │ │
+  │ │    ╰           ╯        │ │
+  │ │                         │ │
+  │ │    1                    │ │
+  │ │                         │ │
+  │ │ ╭     ╭   ╭       ╮ ╮ ╮ │ │
+  │ │ │ * n │ ! │ - n 1 │ │ │ │ │
+  ╰ ╰ ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
+  ")
 
 #+END_SRC
-
-
-
-
-
-#+NAME: Comb-index-operations
-#+BEGIN_SRC scheme :tangle no
-    (define-constant LEFT-PAREN-INDEX -1)
-    (define-constant RIGHT-PAREN-INDEX -2)
-
-    (define current-index ::int LEFT-PAREN-INDEX)
-
-    (define (current)::Element
-      (get current-index))
-
-    (define-static (index-succeeding index::int)::int
-      (match index
-        (,LEFT-PAREN-INDEX  0)
-        (,RIGHT-PAREN-INDEX index)
-        (,(- (size) 1)      RIGHT-PAREN-INDEX)
-        (_                  (+ index 1))))
-
-    (define-static (index-preceding index::int)::int
-      (match index
-        (,RIGHT-PAREN-INDEX (- (size) 1))        
-        (,LEFT-PAREN-INDEX  index)
-        (0                  LEFT-PAREN-INDEX)
-        (_                  (- index 1))))
-
-    (define-static (advance-current-index!)::void
-      (set! current-index (index-succeeding current-index)))
-
-    (define-static (retreat-current-index!)::void
-      (set! current-index (index-preceding current-index)))
-
-    (define (advance!)::boolean
-      (when (= current-index LEFT-PAREN-INDEX)
-        (set! current-index 0))
-      (and (isnt current-index = RIGHT-PAREN-INDEX)
-           (let ((element ::Element (current)))
-             (or (element:advance!)
-                 (begin
-                   (advance-current-index!)
-                   (advance!))))))
-
-    (define (retreat!)::boolean
-      (when (= current-index RIGHT-PAREN-INDEX)
-        (set! current-index (- (size) 1)))
-      (and (isnt current-index = LEFT-PAREN-INDEX)
-           (let ((element ::Element (current)))
-             (or (element:retreat!)
-                 (begin
-                   (retreat-current-index!)
-                   (retreat!))))))
-#+END_SRC
-
-
 
 * Emacs file-local variables
 
