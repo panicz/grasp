@@ -1,5 +1,6 @@
 * The GRASP editor
 
+#+LATEX_HEADER: \usepackage[a4paper,hmargin=1.5cm,vmargin=2cm]{geometry}
 #+LATEX_HEADER: \usepackage{fvextra}
 #+LATEX_HEADER: \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere=false}
 #+LATEX_HEADER: \usepackage{pmboxdraw}
@@ -80,8 +81,7 @@ emacs --batch grasp.org -l org --eval "(org-babel-tangle)"
 The files generated from this file will begin with
 the following ~<<header>>~:
 
-#+NAME: header
-#+BEGIN_SRC scheme :tangle no
+#+BEGIN_SRC scheme :tangle no :noweb-ref header
 ;; Note: this file was generated from the ~grasp.org~
 ;; document, which also serves as the project's documentation.
 ;; 
@@ -785,6 +785,8 @@ our code:
   (define-alias CharSequence java.lang.CharSequence)
   (define-alias Iterable java.lang.Iterable)
   (define-alias Integer java.lang.Integer)
+  (define-alias StringBuilder java.lang.StringBuilder)
+  (define-alias Stack java.util.Stack)
 
 #+END_SRC
 
@@ -923,36 +925,38 @@ shoritcoming.
 
 #+BEGIN_SRC scheme :tangle language/extensions.scm
 
-(define-alias InputPort gnu.kawa.io.InPort)
+  (define-alias InputPort gnu.kawa.io.InPort)
 
-(define-alias OutputPort gnu.kawa.io.OutPort)
+  (define-alias OutputPort gnu.kawa.io.OutPort)
 
-(define-alias EndOfFile gnu.lists.EofClass)
+  (define-alias EndOfFile gnu.lists.EofClass)
 
-(define (with-output-to-string proc::(maps () to: ,a))::string
-  (call-with-output-string
-    (lambda (port::OutputPort)
-      (parameterize ((current-output-port port))
-	(proc)))))
+  (define-alias Char gnu.text.Char)
 
-(define (with-output-to-port port::OutputPort proc::(maps () to: ,a))::,a
-  (parameterize ((current-output-port port))
-    (proc)))
+  (define (with-output-to-string proc::(maps () to: ,a))::string
+    (call-with-output-string
+      (lambda (port::OutputPort)
+        (parameterize ((current-output-port port))
+          (proc)))))
 
-(define (with-input-from-string s::string proc::(maps () to: ,a))::,a
-  (call-with-input-string s
-    (lambda (port::InputPort)::,a
-      (parameterize ((current-input-port port))
-	(proc)))))
+  (define (with-output-to-port port::OutputPort proc::(maps () to: ,a))::,a
+    (parameterize ((current-output-port port))
+      (proc)))
 
-(define (with-input-from-port port::InputPort proc::(maps () to: ,a))::,a
-  (parameterize ((current-input-port port))
-    (proc)))
+  (define (with-input-from-string s::string proc::(maps () to: ,a))::,a
+    (call-with-input-string s
+      (lambda (port::InputPort)::,a
+        (parameterize ((current-input-port port))
+          (proc)))))
 
-(define (print . messages)
-  (for message in messages
-    (display message))
-  (newline))
+  (define (with-input-from-port port::InputPort proc::(maps () to: ,a))::,a
+    (parameterize ((current-input-port port))
+      (proc)))
+
+  (define (print . messages)
+    (for message in messages
+      (display message))
+    (newline))
 
 #+END_SRC
 
@@ -3106,42 +3110,42 @@ Having currying in place, we can use it for defining cache:
 
 #+BEGIN_SRC scheme :tangle language/extensions.scm
 
-(define-syntax cache
-  (syntax-rules (::)
-    ((cache args::type body)
-     (let* ((cached (curried attribute+ args body))
-            (invoker (lambda* args::type
-                                (curried-application cached . args))))
-       (with-procedure-properties ((cache cached))
-         invoker)))
-    ((cache args body)
-     (let* ((cached (curried attribute+ args body))
-            (invoker (lambda* args
-                                (curried-application cached . args))))
-       (with-procedure-properties ((cache cached))
-         invoker)))))
-    
-(define-syntax define-cache
-  (syntax-rules (::)
-    ((define-cache (name . args)::type body)
-     (define-early-constant name
-       (cache args::type body)))
+  (define-syntax cache
+    (syntax-rules (::)
+      ((cache args::type body)
+       (let* ((cached (curried attribute+ args body))
+              (invoker (lambda* args::type
+                                  (curried-application cached . args))))
+         (with-procedure-properties ((cache cached))
+           invoker)))
+      ((cache args body)
+       (let* ((cached (curried attribute+ args body))
+              (invoker (lambda* args
+                                  (curried-application cached . args))))
+         (with-procedure-properties ((cache cached))
+           invoker)))))
 
-    ((define-cache (name . args) body)
-     (define-early-constant name
-       (cache args body)))
-    ))
+  (define-syntax define-cache
+    (syntax-rules (::)
+      ((define-cache (name . args)::type body)
+       (define-early-constant name
+         (cache args::type body)))
 
-(define (invalidate! cache . point)
-  (let ((table ::Map (procedure-property cache 'table)))
-    (match point
-      ('() (table:clear))
-      (`(,point) (table:remove point))
-      (`(,head . ,tail)
-       (apply invalidate! (cache head) tail)))))
+      ((define-cache (name . args) body)
+       (define-early-constant name
+         (cache args body)))
+      ))
 
-(define (invalidate-cache! invoker . point)
-  (apply invalidate! (procedure-property invoker 'cache) point))
+  (define (invalidate! cache . point)
+    (let ((table ::Map (procedure-property cache 'table)))
+      (match point
+        ('() (table:clear))
+        (`(,point) (table:remove point))
+        (`(,head . ,tail)
+         (apply invalidate! (cache head) tail)))))
+
+  (define (invalidate-cache! invoker . point)
+    (apply invalidate! (procedure-property invoker 'cache) point))
 
 #+END_SRC
 
@@ -3595,6 +3599,18 @@ is ambiguous.
 
   (define (nearby-int x ::real)::int
     (as int (round x)))
+
+  (define (last collection ::sequence)
+    (collection (- (length collection) 1)))
+
+  (set! (setter last)
+        (lambda (collection ::sequence value)
+          (set! (collection (- (length collection) 1)) value)))
+
+  (e.g.
+   (let ((v (vector 1 2 0)))
+     (set! (last v) 3)
+     v) ===> #(1 2 3))
 
 #+END_SRC
 
@@ -4099,7 +4115,7 @@ render straight lines at any angles and with arbitrary
 thickness, whereas character terminals only offer rendering
 horizontal and vertical lines of a few varieties).
 
-For this reason, the rendering API needs to contain a lot of
+For this reason, the rendering API needs to contain a lost of
 specific methods corresponding to some particular rendering
 capabilities of GRASP (like drawing horizontal and vertical
 lines etc.). 
@@ -4190,31 +4206,46 @@ CanProvideBasicSizes
 **** Rendering tall parentheses
 
 One of the defining features of GRASP is the /nested box/
-representation. The boxes actually are parenthesized
-expressions, but the opening and closing parentheses are
-equally tall.
+representation. Typically by boxes we mean parenthesized
+expressions where the opening and closing parentheses are
+equally tall, but there are also other /balanced things/
+that can be rendered by GRASP, like for example /block
+comments/ that are delimited with ~#|~ and ~|#~, or strings
+that are delimited by a pair of matching double-quotes.
 
 #+BEGIN_SRC scheme :noweb-ref painter-capabilities
 CanRenderBoxes
 #+END_SRC
 
 We are going to support a number of styles for a few
-different types of parentheses. 
+different types of borders.
 
 #+BEGIN_SRC scheme :tangle no :noweb-ref painter-subinterfaces
 
-  (define-enum ParenStyle
-    (Normal Quote Quasiquote Unquote UnquoteSplicing List))
+  (define-enum BorderStyle
+    (None
+     Atom
+     Parentheses
+     Quote
+     Quasiquote
+     Unquote
+     UnquoteSplicing
+     List
+     Text
+     Comment
+     ))
 
-  (define-enum ParenSelected
+  (define-enum SideSelected
     (Left Right None))
 
   (define-interface CanRenderBoxes ()
     (draw-box! width ::real height ::real
-               selected ::ParenSelected
-               style ::ParenStyle)
+               selected ::SideSelected
+               style ::BorderStyle)
     ::void
-    (paren-width style::ParenStyle)::real
+
+    (border-width style ::BorderStyle)::real
+    (border-height style ::BorderStyle)::real
     )
 
 #+END_SRC
@@ -4253,20 +4284,19 @@ These fonts can be accessed through variables which are
 visible globally but can only be initialized using the
 ~initialize-fonts~ procedure.
 
-#+NAME: BasicFonts--definitions+initializer
 #+BEGIN_SRC scheme :tangle no :noweb-ref painter-subinterfaces
 
   (define the-atom-font ::FontProxy #!null)
-  (define the-string-font ::FontProxy #!null)
+  (define the-text-font ::FontProxy #!null)
   (define the-comment-font ::FontProxy #!null)
   (define the-caption-font ::FontProxy #!null)
 
   (define* (initialize-fonts
             atom-font: an-atom-font ::FontProxy
-            string-font: a-string-font ::FontProxy
+            text-font: a-text-font ::FontProxy
             comment-font: a-comment-font ::FontProxy)
     (set! the-atom-font an-atom-font)
-    (set! the-string-font a-string-font)
+    (set! the-text-font a-text-font)
     (set! the-comment-font a-comment-font))
 
 #+END_SRC
@@ -4309,31 +4339,30 @@ It is going to use a helper object called
 ~ParenthesesCharacters~, whose purpose is to define how the
 specific types of boxes are going to look.
 
-#+NAME: ParenthesesCharacters--object-definition
+#+NAME: BorderCharacters--object-definition
 #+BEGIN_SRC scheme :tangle no
 
-  (define-object (ParenthesesCharacters
-                  leftTop ::String         rightTop ::String
-                  leftLine ::String        rightLine ::String
-                  leftMiddle ::String      rightMiddle ::String
-                  leftEvenComment ::String rightEvenComment ::String
-                  leftOddComment ::String  rightOddComment ::String
-                  leftBottom ::String      rightBottom ::String)
-    (define width ::int (string-length leftMiddle))
-    (Object)
+  (define-object
+    (BorderCharacters
+     leftTop ::String     top ::String      rightTop ::String
+     leftLine ::String                     rightLine ::String
+     leftMiddle ::String                 rightMiddle ::String
+     leftEvenComment ::String       rightEvenComment ::String
+     leftOddComment ::String         rightOddComment ::String
+     leftBottom ::String bottom ::String rightBottom ::String)
+    (define width  ::int (string-length leftLine))
+    (define height ::int (if (top:isEmpty) 0 1))
+
+    (Object) ;; initialization
     (assert
-     (= (string-length leftTop)
-        (string-length leftLine)
-        (string-length leftMiddle)
+     (= (string-length leftTop)    (string-length rightTop)
+        (string-length leftLine)   (string-length rightLine)
+        (string-length leftMiddle) (string-length rightMiddle)
         (string-length leftEvenComment)
-        (string-length leftOddComment)
-        (string-length leftBottom)
-        (string-length rightTop)
-        (string-length rightLine)
-        (string-length rightMiddle)
         (string-length rightEvenComment)
+        (string-length leftOddComment)
         (string-length rightOddComment)
-        (string-length rightBottom))))
+        (string-length leftBottom) (string-length rightBottom))))
 
 #+END_SRC
 
@@ -4341,7 +4370,7 @@ specific types of boxes are going to look.
 
 The implementation of the ~CharPainter~ class is going to
 define an array of those objects, and the array will be
-indexed with the ordinals of the ~ParenStyle~ enum.
+indexed with the ordinals of the ~BorderStyle~ enum.
 
 We are only showing the body of the class definition,
 because we will use this code multiple times to assemble
@@ -4353,159 +4382,210 @@ Note that the definition of ~CharPainter~ refers to the
 ~put!~ abstract method, which is supposed to be overridden
 by its descendant classes.
 
+
 #+NAME: CharPainter--body
 #+BEGIN_SRC scheme :tangle no
-  (define-static Parentheses
-    (vector
-     (ParenthesesCharacters
-       "╭ "            " ╮"
-       "│ "            " │"
-       "│ " #|Normal|# " │"
-       "┆ "            " ┆"
-       "┊ "            " ┊"
-       "╰ "            " ╯")
-      (ParenthesesCharacters
-       "┎ "           " ┒"
-       "┃ "           " ┃"
-       "┃ " #|Quote|# " ┃"
-       "┇ "           " ┇"
-       "┋ "           " ┋"
-       "┖ "           " ┚")
-      (ParenthesesCharacters
-       "╓ "                " ╖"
-       "║ "                " ║"
-       "║ " #|Quasiquote|# " ║"
-       "║ "                " ║"
-       "║ "                " ║"
-       "╙ "                " ╜")
-      (ParenthesesCharacters
-       "╷ "             " ╷"
-       "│ "             " │"
-       "│ " #|Unquote|# " │"
-       "┆ "             " ┆"
-       "┊ "             " ┊"
-       "└ "             " ┘")
-      (ParenthesesCharacters
-       " ╷ "                     " ╷ "
-       " │ "                     " │ "
-       "┈┤ " #|UnquoteSplicing|# " ├┈"
-       " ┆ "                     " ┆ "
-       " ┊ "                     " ┊ "
-       " └ "                     " ┘ ")
-      (ParenthesesCharacters
-       "┏ "          " ┓"
-       "┃ "          " ┃"
-       "┃ " #|List|# " ┃"
-       "┇ "          " ┇"
-       "┋ "          " ┋"
-       "┗ "          " ┛")
-      ))
+    (define-static Borders
+      ::(sequence-of BorderCharacters)
+      (vector
+       (BorderCharacters
+        ""    ""    ""
+        ""          ""
+        "" #|None|# ""
+        ""          ""
+        ""          ""
+        ""    ""    "")
+       (BorderCharacters
+        ""   " "    ""
+        ""          ""
+        "" #|Atom|# ""
+        ""          ""
+        ""          ""
+        ""   " "    "")
+       (BorderCharacters
+        "╭ "        ""       " ╮"
+        "│ "                 " │"
+        "│ " #|Parentheses|# " │"
+        "┆ "                 " ┆"
+        "┊ "                 " ┊"
+        "╰ "        ""       " ╯")
+       (BorderCharacters
+        "┎ "    ""     " ┒"
+        "┃ "           " ┃"
+        "┃ " #|Quote|# " ┃"
+        "┇ "           " ┇"
+        "┋ "           " ┋"
+        "┖ "    ""     " ┚")
+       (BorderCharacters
+        "╓ "       ""       " ╖"
+        "║ "                " ║"
+        "║ " #|Quasiquote|# " ║"
+        "║ "                " ║"
+        "║ "                " ║"
+        "╙ "       ""       " ╜")
+       (BorderCharacters
+        "╷ "     ""      " ╷"
+        "│ "             " │"
+        "│ " #|Unquote|# " │"
+        "┆ "             " ┆"
+        "┊ "             " ┊"
+        "└ "     ""      " ┘")
+       (BorderCharacters
+        " ╷ "         ""          " ╷ "
+        " │ "                     " │ "
+        "┈┤ " #|UnquoteSplicing|# " ├┈"
+        " ┆ "                     " ┆ "
+        " ┊ "                     " ┊ "
+        " └ "         ""          " ┘ ")
+       (BorderCharacters
+        "┏ "    ""    " ┓"
+        "┃ "          " ┃"
+        "┃ " #|List|# " ┃"
+        "┇ "          " ┇"
+        "┋ "          " ┋"
+        "┗ "    ""    " ┛")
+       (BorderCharacters
+        "❝"   "┈"    "•"
+        "┊"          "┊"
+        "┊" #|Text|# "┊"
+        "┆"          "┆"
+        "┊"          "┊"
+        "•"   "┈"    "❞")
+       (BorderCharacters
+        "╔"     "═"     "╗"
+        "║"             "║"
+        "║" #|Comment|# "║"
+        "║"             "║"
+        "║"             "║"
+        "╚"     "═"     "╝")
+  ))
 
-  (define-protected (put! c ::char left ::int top ::int)::void
-    #!abstract)
+    (define-protected (put! c ::char left ::int top ::int)::void
+      #!abstract)
 
-  (define-protected shift-left ::int 0)
-  (define-protected shift-top ::int 0)
+    (define-protected shift-left ::int 0)
+    (define-protected shift-top ::int 0)
 
-  (define-protected clip-width ::int Integer:MAX_VALUE)
-  (define-protected clip-height ::int Integer:MAX_VALUE)
+    (define-protected clip-width ::int Integer:MAX_VALUE)
+    (define-protected clip-height ::int Integer:MAX_VALUE)
 
-  (define (with-translation x::real y::real action::(maps () to: ,A))::,A
-    (assert (and (is 0 <= x) (is y >= 0)))
-    (with ((shift-left (as int (+ shift-left x)))
-           (shift-top (as int (+ shift-top y)))
-           (clip-width (- clip-width x))
-           (clip-height (- clip-height y)))
-          (action)))
+    (define (with-translation x::real y::real action::(maps () to: ,A))::,A
+      (assert (and (is 0 <= x) (is y >= 0)))
+      (with ((shift-left (as int (+ shift-left x)))
+             (shift-top (as int (+ shift-top y)))
+             (clip-width (- clip-width x))
+             (clip-height (- clip-height y)))
+            (action)))
 
-  (define (with-rotation angle::real action::(maps () to: ,A))::,A
-    (action))
+    (define (with-rotation angle::real action::(maps () to: ,A))::,A
+      (action))
 
-  (define-protected stretch-horizontal ::float 1.0)
-  (define-protected stretch-vertical ::float 1.0)
+    (define-protected stretch-horizontal ::float 1.0)
+    (define-protected stretch-vertical ::float 1.0)
 
-  (define (with-stretch horizontal::real vertical::real
-                        action::(maps () to: ,A))
-    ::,A
-    (assert (and (is 0 < horizontal) (is vertical > 0)))
-    (with ((stretch-horizontal (* stretch-horizontal horizontal))
-           (stretch-vertical (* stretch-vertical vertical)))
-          (action)))
-
-  (define (with-clip width::real height::real
-                     action::(maps () to: ,A))
-    ::,A
-    (assert (and (is 0 <= width) (is height >= 0)))
-    (with ((clip-width (min clip-width
-                            (nearby-int (* width stretch-horizontal))))
-           (clip-height (min clip-height
-                             (nearby-int (* height stretch-vertical)))))
-          (action)))
-
-  (define (with-scale scale::real action::(maps () to: ,A))::,A
-    (action))
-
-  (define (with-intensity intensity::<0.0-1.0>
+    (define (with-stretch horizontal::real vertical::real
                           action::(maps () to: ,A))
-    ::,A
-    #!abstract)
+      ::,A
+      (assert (and (is 0 < horizontal) (is vertical > 0)))
+      (with ((stretch-horizontal (* stretch-horizontal horizontal))
+             (stretch-vertical (* stretch-vertical vertical)))
+            (action)))
 
-  (define (space-width)::real
-    1)
+    (define (with-clip width::real height::real
+                       action::(maps () to: ,A))
+      ::,A
+      (assert (and (is 0 <= width) (is height >= 0)))
+      (with ((clip-width (min clip-width
+                              (nearby-int (* width stretch-horizontal))))
+             (clip-height (min clip-height
+                               (nearby-int (* height stretch-vertical)))))
+            (action)))
 
-  (define (min-line-height)::real
-    3)
+    (define (with-scale scale::real action::(maps () to: ,A))::,A
+      (action))
 
-  (define (draw-box! width ::real height ::real
-                     selected ::ParenSelected
-                     style ::ParenStyle)
-    ::void
-    (let* ((parenthesis ::ParenthesesCharacters
-                        (Parentheses (style:ordinal))))
-      (for i ::int from 0 below parenthesis:width
-           (put! (parenthesis:leftTop i) i 0))
-      (for line ::int from 1 below (- height 2)
-           (for i ::int from 0 below parenthesis:width
-                (put! (parenthesis:leftLine i) i line)))
-      (for i ::int from 0 below parenthesis:width
-           (put! (parenthesis:leftMiddle i) i (- height 2)))
-      (for i ::int from 0 below parenthesis:width
-           (put! (parenthesis:leftBottom i) i (- height 1)))
-      (with-translation
-       (- width parenthesis:width) 0
-       (lambda ()
-         (for i ::int from 0 below parenthesis:width
-              (put! (parenthesis:rightTop i) i 0))
-         (for line ::int from 1 below (- height 2)
-              (for i ::int from 0 below parenthesis:width
-                   (put! (parenthesis:rightLine i) i line)))
-         (for i ::int from 0 below parenthesis:width
-              (put! (parenthesis:rightMiddle i) i (- height 2)))
-         (for i ::int from 0 below parenthesis:width
-              (put! (parenthesis:rightBottom i) i (- height 1)))))))
+    (define (with-intensity intensity::<0.0-1.0>
+                            action::(maps () to: ,A))
+      ::,A
+      #!abstract)
 
-  (define (paren-width style::ParenStyle)::real
-    (let ((parenthesis ::ParenthesesCharacters
-                       (Parentheses (style:ordinal))))
-      parenthesis:width))
+    (define (space-width)::real
+      1)
 
-  (define (draw-text! text::CharSequence font::FontProxy)::real
-    #!abstract)
+    (define (min-line-height)::real
+      3)
 
-  (define (text-width text::CharSequence font::FontProxy)::real
-    (string-length text))
+    (define (draw-box! width ::real height ::real
+                       selected ::SideSelected
+                       style ::BorderStyle)
+      ::void
+      (let ((border ::BorderCharacters
+                     (Borders (style:ordinal))))
+        (unless (border:top:isEmpty)
+          (let ((top-length ::int (border:top:length)))
+            (for i ::int
+                 from border:width
+                 below (- width border:width)
+                 (put! (border:top (modulo i top-length))
+                       i 0))))
 
-  (define (mark-cursor! index::int font::FontProxy)::void
-    #!abstract)
+        (unless (border:bottom:isEmpty)
+          (let ((bottom-length ::int (border:bottom:length)))
+            (for i ::int
+                 from border:width
+                 below (- width border:width)
+                 (put! (border:bottom (modulo i bottom-length))
+                       i (- height 1)))))
 
-  (define (character-index horizontal-position::real text::CharSequence
-                           font::FontProxy)
-    ::int
-    (let ((n ::int (string-length text)))
-      (cond
-       ((is horizontal-position <= 0) 0)
-       ((is horizontal-position >= n) n)
-       (else (nearby-int horizontal-position)))))
+        (for i ::int from 0 below border:width
+             (put! (border:leftTop i) i 0))
+        (for line ::int from 1 below (- height 2)
+             (for i ::int from 0 below border:width
+                  (put! (border:leftLine i) i line)))
+        (for i ::int from 0 below border:width
+             (put! (border:leftMiddle i) i (- height 2)))
+        (for i ::int from 0 below border:width
+             (put! (border:leftBottom i) i (- height 1)))
+        (with-translation
+         (- width border:width) 0
+         (lambda ()
+           (for i ::int from 0 below border:width
+                (put! (border:rightTop i) i 0))
+           (for line ::int from 1 below (- height 2)
+                (for i ::int from 0 below border:width
+                     (put! (border:rightLine i) i line)))
+           (for i ::int from 0 below border:width
+                (put! (border:rightMiddle i) i (- height 2)))
+           (for i ::int from 0 below border:width
+                (put! (border:rightBottom i) i (- height 1)))))))
+
+    (define (border-width style ::BorderStyle)::real
+      (let ((border ::BorderCharacters
+                    (Borders (style:ordinal))))
+        border:width))
+
+    (define (border-height style ::BorderStyle)::real
+      (let ((border ::BorderCharacters
+                    (Borders (style:ordinal))))
+        border:height))
+
+    (define (draw-text! text::CharSequence font::FontProxy)::real
+      #!abstract)
+
+    (define (text-width text::CharSequence font::FontProxy)::real
+      (string-length text))
+
+    (define (mark-cursor! index::int font::FontProxy)::void
+      #!abstract)
+
+    (define (character-index horizontal-position::real text::CharSequence
+                             font::FontProxy)
+      ::int
+      (let ((n ::int (string-length text)))
+        (cond
+         ((is horizontal-position <= 0) 0)
+         ((is horizontal-position >= n) n)
+         (else (nearby-int horizontal-position)))))
 
 #+END_SRC
 
@@ -4513,18 +4593,14 @@ by its descendant classes.
 
 The implementation of the ~FontProxy~ class that is supposed
 to be used with the ~TextPainter~ is rather
-unremarkable. The only thing worth mentioning is that it's
-going to provide ~vertical-offset~ that can be used for
-rendering -- because atoms are rendered slightly differently
-from other objects. (In the future, we might extend the font
-rendering capabilities to Figlet fonts, but if it happens,
-this section will most certainly be updated).
+unremarkable. However, in the future we might extend the
+font rendering capabilities to Figlet fonts, but if it
+happens, this section will most certainly be updated.
 
-#+NAME: TextPainterFont--object-definition
+#+NAME: BasicTextPainterFont--object-definition
 #+BEGIN_SRC scheme :tangle no
-  (define-object (TextPainterFont vertical-offset::int)::FontProxy
-    (define (height)
-      (+ vertical-offset 1)))
+  (define-object (BasicTextPainterFont)::FontProxy
+    (define (height)::real 1))
 #+END_SRC
 
 As to the definition of the ~TextPainter~, it's going to
@@ -4538,19 +4614,13 @@ buffer to a string.
 #+NAME: BasicTextPainter--body
 #+BEGIN_SRC scheme :tangle no
   (define (draw-text! text ::CharSequence font ::FontProxy)::real
-    (let ((vertical-offset ::int (or (and-let* ((font ::TextPainterFont))
-                                       font:vertical-offset)
-                                     0))
-          (text-length ::int (string-length text)))
+    (let ((text-length ::int (string-length text)))
       (for i ::int from 0 below text-length
-           (put! (text i) i vertical-offset))
+           (put! (text i) i 0))
       text-length))
 
   (define (mark-cursor! position ::int font ::FontProxy)::void
-    (let ((vertical-offset (or (and-let* ((font ::TextPainterFont))
-                                 font:vertical-offset)
-                               0)))
-      (put! #\^ position (+ vertical-offset 1))))
+    (put! #\^ position 1))
 
   (define-private width ::int 0)
   (define-private height ::int 0)
@@ -4636,12 +4706,12 @@ recommend reading it.
      CanRenderBoxes
      CanRenderText))
 
-  <<ParenthesesCharacters--object-definition>>
+  <<BorderCharacters--object-definition>>
 
   (define-object (CharPainter)::Painter
     <<CharPainter--body>>)
 
-  <<TextPainterFont--object-definition>>
+  <<BasicTextPainterFont--object-definition>>
 
   (define-object (TextPainter)::Painter
     <<BasicTextPainter--body>>
@@ -4656,42 +4726,43 @@ recommend reading it.
   <<basic-text-painter>>
 
   (e.g.
-   (let ((atom-font ::FontProxy (TextPainterFont 1))
+   (let ((atom-font ::FontProxy (BasicTextPainterFont))
          (painter ::Painter (TextPainter)))
-     (painter:draw-box! 32 12 ParenSelected:None ParenStyle:Normal)
-     (painter:with-translation 2 0
+     (painter:draw-box! 32 12 SideSelected:None
+                        BorderStyle:Parentheses)
+     (painter:with-translation 2 1
        (lambda () (painter:draw-text! "define" atom-font)))
      (painter:with-translation 9 0
        (lambda ()
-         (painter:draw-box! 7 3 ParenSelected:None ParenStyle:Normal)
-         (painter:with-translation 2 0
+         (painter:draw-box! 7 3 SideSelected:None BorderStyle:Parentheses)
+         (painter:with-translation 2 1
            (lambda () (painter:draw-text! "! n" atom-font)))))
      (painter:with-translation 2 3
       (lambda ()
-        (painter:draw-box! 28 9 ParenSelected:None ParenStyle:Normal)
-        (painter:with-translation 2 0
+        (painter:draw-box! 28 9 SideSelected:None BorderStyle:Parentheses)
+        (painter:with-translation 2 1
           (lambda () (painter:draw-text! "if" atom-font)))
         (painter:with-translation 5 0
          (lambda ()
-           (painter:draw-box! 13 3 ParenSelected:None ParenStyle:Normal)
-           (painter:with-translation 2 0
+           (painter:draw-box! 13 3 SideSelected:None BorderStyle:Parentheses)
+           (painter:with-translation 2 1
             (lambda () (painter:draw-text! "is n <= 1" atom-font)))))
-        (painter:with-translation 4 3
+        (painter:with-translation 4 4
          (lambda () (painter:draw-text! "1" atom-font)))
         (painter:with-translation 3 6
          (lambda ()
-           (painter:draw-box! 23 3 ParenSelected:None ParenStyle:Normal)
-           (painter:with-translation 2 0
+           (painter:draw-box! 23 3 SideSelected:None BorderStyle:Parentheses)
+           (painter:with-translation 2 1
             (lambda () (painter:draw-text! "* n" atom-font)))
            (painter:with-translation 6 0
             (lambda ()
-              (painter:draw-box! 15 3 ParenSelected:None ParenStyle:Normal)
-              (painter:with-translation 2 0
+              (painter:draw-box! 15 3 SideSelected:None BorderStyle:Parentheses)
+              (painter:with-translation 2 1
                (lambda () (painter:draw-text! "!" atom-font)))
               (painter:with-translation 4 0
                (lambda ()
-                 (painter:draw-box! 9 3 ParenSelected:None ParenStyle:Normal)
-                 (painter:with-translation 2 0
+                 (painter:draw-box! 9 3 SideSelected:None BorderStyle:Parentheses)
+                 (painter:with-translation 2 1
                   (lambda () (painter:draw-text! "- n 1" atom-font)))))))))))
      (display (painter:toString))
      (painter:toString)) #;< ===> "
@@ -4785,7 +4856,7 @@ elements that occupy a rectangular area of the screen.
     (ArrayList))
 
   (define spaces ::(sequence-of Space)
-    (ArrayList ||: (single-space)))
+    (ArrayList ||: (Space:empty)))
 
   ;; in order to get the size of the collection, we sum
   ;; the sizes of both arrays
@@ -4881,16 +4952,18 @@ elements that occupy a rectangular area of the screen.
   (define (clear)::void
     (elements:clear)
     (spaces:clear)
-    (spaces:add (single-space)))
+    (spaces:add (Space:empty)))
 
   ;; adding another Comb at the end of this one is possible,
   ;; but in order to do this, we need to merge the last space
   ;; from us with the first space from them
   (define (addAll collection ::Collection)::boolean
     (and-let* ((comb ::Comb collection)
-               (last-space ::Space (spaces (- (length spaces) 1)))
+               (last-space ::Space (last spaces))
                (next-space ::Space (comb:spaces 0)))
-      (last-space:merge-with! next-space)
+      (last-space:add next-space)
+      (unless (elements:isEmpty)
+        (last-space:blow!))
       (elements:addAll comb:elements)    
       (comb:spaces:remove (as int 0)) ; we remove last-space to addAll
       (spaces:addAll comb:spaces) ; and then we put it back
@@ -4926,7 +4999,9 @@ elements that occupy a rectangular area of the screen.
                (index* ::int (quotient index 2))
                (enlarged-space ::Space (spaces index))
                (extra-space ::Space (comb:spaces 0)))
-      (enlarged-space:merge-with! extra-space)
+      (enlarged-space:add extra-space)
+      (unless (is index = 0)
+        (enlarged-space:blow!))
       (elements:addAll index* comb:elements)
       (comb:spaces:remove (as int 0))
       (spaces:addAll (+ index* 1) comb:spaces)
@@ -4940,25 +5015,43 @@ elements that occupy a rectangular area of the screen.
              (affected ::Space (spaces index*)))
         (match element
           (space::Space           
-           (affected:merge-with! space))
+           (affected:add space))
           (tile::Tile
            (elements:add index* tile)
-           (spaces:add (+ index* 1) (single-space)))))))
+           (spaces:add (+ index* 1) (Space:single)))))))
 
-  ;; adding an element at the back of a comb
-  ;; also has two interpretations
-  (define (add element ::Element)::boolean
-    (match element
-      (space ::Space
-             (let ((last ::Space (spaces (- (length spaces) 1))))
-               (last:merge-with! space)
-               #true))
-      (tile ::Tile
-            (elements:add tile)
-            (spaces:add (single-space))
-            #true)
-      (_
-       #false)))
+  (define (add object ::Object)::boolean
+    (let ((last-space ::Space (last spaces)))
+      (match object
+        (char::Char
+         (assert (isnt char in '(#\( #\) #\[ #\] #\;)))
+         (cond
+          ((char-whitespace? char)
+           (last-space:add char)
+           #true)
+          ((and-let* (((last-space:empty?))
+                      ((is (length elements) #;< > 0))
+                      (last-atom ::Atom (last elements)))
+             (last-atom:add char)
+             #true))
+          (else
+           (elements:add (Atom (string char)))
+           (spaces:add (Space:empty))
+           #true)))
+        #;(comment::Comment
+         (last-space:add comment)
+         #true)
+        (space::Space
+         (last-space:add space)
+         #true)
+        (tile::Tile
+         (when (not (elements:isEmpty))
+           (last-space:blow!))
+         (elements:add tile)
+         (spaces:add (Space:empty))
+         #true)
+        (_
+         #false))))
 
   (define (remove-at index ::int)::Element
     (cond
@@ -4969,7 +5062,7 @@ elements that occupy a rectangular area of the screen.
       (let* ((index* ::int (quotient (- index 1) 2))
              (preceding ::Space (spaces index*))
              (following ::Space (spaces (+ index* 1))))
-        (preceding:merge-with! following)
+        (preceding:add following)
         (spaces:remove (+ index* 1))
         (elements:remove index*)))))
 
@@ -5047,7 +5140,7 @@ elements that occupy a rectangular area of the screen.
 
 Having implemented all the operations of the ~List~
 interface, we want to test them without having to implement
-the rest of the capabilities of Comb. For this reason, we're
+the rest of the capabilities of ~Comb~. For this reason, we're
 going to provide mock definitions of ~Element~, ~Tile~ and
 ~Space~.
 
@@ -5065,19 +5158,21 @@ going to provide mock definitions of ~Element~, ~Tile~ and
     |#
     )
 
-  (define-object (Tile name ::String)::Element
-    #|
-    This is a mock implementation
-    that is only used for testing
-    the implementation of the List
-    interface of the Comb class
-    |#
+  (define-interface Tile (Element)
+    )
+
+  (define-object (Atom name::string)::Tile
+
+    (define (add c::char)::void
+      (set! name (string-append name (string c))))
 
     (define (toString)::String
       name)
     )
 
-  (define-object (Space content ::String)::Element
+  (define-interface Compound (Tile List))
+
+  (define-object (Space content::string)::Element
 
     #|
     This is a mock implementation
@@ -5086,19 +5181,29 @@ going to provide mock definitions of ~Element~, ~Tile~ and
     interface of the Comb class
     |#
 
-    (define (merge-with! another::Space)::void
-      (set! content (string-append content another:content)))
+    (define-static (single)::Space
+      (Space "-"))
+
+    (define-static (empty)::Space
+      (Space ""))
+
+    (define (blow!)
+      (when (empty?)
+        (add " ")))
+
+    (define (add element::Object)::boolean
+      (set! content (string-append content (element:toString))))
 
     (define (white?)::boolean
       #true)
 
+    (define (empty?)::boolean
+      (string=? content ""))
+
     (define (toString)::String
       content))
 
-  (define (single-space)::Space
-    (Space "-"))
-
-  (define-object (Comb)::List
+  (define-object (Comb)::Compound
 
     <<Comb--collection-operations>>
 
@@ -5107,16 +5212,16 @@ going to provide mock definitions of ~Element~, ~Tile~ and
         (lambda ()
           (for item::Element in (this)
             (display (item:toString))))))
-    (Tile "Comb"))
+    )
 
-  (let ((c1 ::Comb (Comb (Tile "A") (Tile "B") (Tile "C")))
-        (c2 ::Comb (Comb (Tile "D") (Tile "E") (Tile "F"))))
+  (let ((c1 ::Comb (Comb (Atom "A") (Atom "B") (Atom "C")))
+        (c2 ::Comb (Comb (Atom "D") (Atom "E") (Atom "F"))))
     (c1:addAll c2)
     (let ((v1 ::Comb (c1:subList 3 6)))
       (e.g.
-       (c1:toString) #;< ===> "-A-B-C--D-E-F-")
+       (c1:toString) #;< ===> "A B C D E F")
       (e.g.
-       (v1:toString) #;< ===> "-B-C--")))
+       (v1:toString) #;< ===> " B C ")))
 
   (let ((c3 ::Comb (Comb)))
     (e.g.
@@ -5173,10 +5278,13 @@ We therefore expect an ~Element~ to be both ~Visual~ and
 element can be active, which means that it's pointed to by a
 cursor.
 
-As far as a ~Comb~ is concerned, we will represent the
-cursor as an integer. Since we also assume that the cursor
-can be placed on a left or a right parenthesis, we can
-represent them as indices -1 and -2, respectively.
+We aren't yet ready to define exactly what an ~Element~ is,
+because we haven't considered its interactive and editable
+nature, but as far as a ~Comb~ is concerned, we will
+represent the cursor as an integer. Since we also assume
+that the cursor can be placed on a left or a right
+parenthesis, we can represent them as indices -1 and -2,
+respectively.
 
 #+BEGIN_SRC scheme :tangle no :noweb-ref Comb--rendering
   (define-static LEFT-PAREN-INDEX -1)
@@ -5200,15 +5308,16 @@ We're now equipped with everything needed to define the
 rendering function for ~Comb~ and its thereabouts.
 
 #+BEGIN_SRC scheme :tangle no :noweb-ref Comb--rendering
-  (define style ::ParenStyle ParenStyle:Normal)
+  (define style ::BorderStyle BorderStyle:Parentheses)
 
   (define (render! active? ::boolean)::void
     (let ((active ::Element (or (and active? (get current-index))
                                 #!null))
           (current-layout ::LayoutState (LayoutState))
-          (paren-width ::real (painter:paren-width style)))
+          (border-width ::real (painter:border-width style))
+          (border-height ::real (painter:border-height style)))
       (painter:with-translation
-       paren-width 0
+       border-width border-height
        (lambda ()
          (for element ::Element in (this)
            (painter:with-translation
@@ -5219,15 +5328,18 @@ rendering function for ~Comb~ and its thereabouts.
       (update-size-from-layout-state! current-layout)
       (painter:draw-box! last-width last-height
                          (match current-index
-                           (,LEFT-PAREN-INDEX  ParenSelected:Left)
-                           (,RIGHT-PAREN-INDEX ParenSelected:Right)
-                           (_                  ParenSelected:None))
+                           (,LEFT-PAREN-INDEX  SideSelected:Left)
+                           (,RIGHT-PAREN-INDEX SideSelected:Right)
+                           (_                  SideSelected:None))
                          style)))
 
-  (define-private (update-size-from-layout-state! state ::LayoutState)::void
-    (set! last-width (+ (* 2 (painter:paren-width style))
+  (define-private (update-size-from-layout-state!
+                   state ::LayoutState)
+    ::void
+    (set! last-width (+ (* 2 (painter:border-width style))
                         state:max-width))
-    (set! last-height (+ state:top state:line-height)))
+    (set! last-height (+ state:top state:line-height
+                         (* 2 (painter:border-height style)))))
 
   (define (width)::real
     (when (is last-width < 0) ;>
@@ -5254,6 +5366,9 @@ rendering function for ~Comb~ and its thereabouts.
 
 ***** Testing ~Comb~ rendering
 
+For the purpose of testing ~Comb~ rendering, we provide
+mock definitions of ~Element~ and ~Space~ 
+
 #+BEGIN_SRC scheme :tangle test/comb-rendering.scm :mkdirp yes :noweb tangle
   <<header>>
   (module-name (test comb-rendering))
@@ -5278,7 +5393,7 @@ rendering function for ~Comb~ and its thereabouts.
     (width)::real
     (height)::real)
 
-  (define-object (Space content ::String)::Element
+  (define-object (Space)::Element
     #|
     This is a mock implementation
     that is only used for testing
@@ -5286,34 +5401,65 @@ rendering function for ~Comb~ and its thereabouts.
     of the Comb class
     |#
 
+    (define-private content ::List
+      (ArrayList))
+
+    (define-static (single)::Space
+      (Space " "))
+
+    (define-static (empty)::Space
+      (Space ""))
+
+    (define (empty?)::boolean
+      (content:isEmpty))
+
+    (define (blow!)
+      (when (empty?)
+        (add #\space)))
+
+    (define (add element::Object)::boolean
+      (match element
+        (#\space
+         (content:add #\space))
+        (#\newline
+         (content:add #\newline))
+        (chars::string
+         (for c in chars
+           (add c)))
+        (space::Space
+         (content:addAll space:content))))
+
     (define (render! active? ::boolean)::void
       (values))
 
     (define (advance-layout! state ::LayoutState)::void
       (for c in content
-        (cond
-         ((eqv? c #\newline)
-          (set! state:max-width
-                (max state:max-width state:left))
-          (set! state:left 0)
-          (set! state:top (+ state:top state:line-height))
-          (set! state:line-height (painter:min-line-height)))
-         (else
-          (set! state:left (+ state:left (painter:space-width)))
-          (set! state:max-width
-                (max state:max-width state:left))))))
-
-    (define (merge-with! another::Space)::void
-      (set! content (string-append content another:content)))
+        (match c
+          (#\newline
+           (set! state:max-width
+                 (max state:max-width state:left))
+           (set! state:left 0)
+           (set! state:top (+ state:top state:line-height))
+           (set! state:line-height (painter:min-line-height)))
+          (#\space
+           (set! state:left (+ state:left (painter:space-width)))
+           (set! state:max-width
+                 (max state:max-width state:left))))))
 
     (define (white?)::boolean
       #true)
 
     (define (toString)::String
-      content))
-
-  (define (single-space)::Space
-    (Space ""))
+      (call-with-output-string
+        (lambda (port)
+          (for entry in content
+            (match entry
+              (n::integer
+               (for i from 0 below n
+                    (write-char #\space port)))
+              (#\newline
+               (write-char #\newline port)))))))
+    )
 
   (define-interface Compound (Tile List)
     #|
@@ -5329,24 +5475,48 @@ rendering function for ~Comb~ and its thereabouts.
     <<Comb--rendering>>
     )
 
-  (initialize-fonts atom-font: (TextPainterFont 1)
-                    string-font: (TextPainterFont 0)
-                    comment-font: (TextPainterFont 0))
+  (let ((font ::FontProxy (BasicTextPainterFont)))
+    (initialize-fonts atom-font: font
+                      text-font: font
+                      comment-font: font))
 
-  (define-object (Atom name ::String)::Tile
+  (define-object (Atom)::Tile
+
+    (define-private builder ::StringBuilder
+      (StringBuilder))
+
+    (define (add value::Object)::void
+      (match value
+        (c::Char
+         (builder:append (as char c)))
+        (s::string
+         (builder:append s))))
+
     (define (render! active? ::boolean)::void
-      (painter:draw-text! name the-atom-font))
+      (let ((border-width ::real
+                          (painter:border-width BorderStyle:Atom))
+            (border-height ::real
+                           (painter:border-height BorderStyle:Atom)))
+        (painter:with-translation
+         border-width border-height
+         (lambda ()
+           (painter:draw-text! builder the-atom-font)))))
 
     (define (width)::real
-      (string-length name))
+      (+ (* 2 (painter:border-width BorderStyle:Atom))
+         (string-length builder)))
 
     (define (height)::real
-      (the-atom-font:height))
+      (+ (* 2 (painter:border-height BorderStyle:Atom))
+         (the-atom-font:height)))
 
     (define (advance-layout! state ::LayoutState)::void
       (set! state:left (+ state:left (width)))
       (set! state:max-width (max state:max-width state:left))
       (set! state:line-height (max state:line-height (height))))
+
+    (define (toString)::String
+      (builder:toString))
     )
 
   (e.g.
@@ -5354,7 +5524,7 @@ rendering function for ~Comb~ and its thereabouts.
           ::Tile
           (Comb
            (Atom "define") (Space " ")
-           (Comb (Atom "!") (Space " ") (Atom "n"))
+           (Comb (Atom "!") (Space " ") (Atom "n")) 
            (Space "\n")
            (Comb
             (Atom "if") (Space " ")
@@ -5371,8 +5541,9 @@ rendering function for ~Comb~ and its thereabouts.
                          (Atom "n") (Space " ")
                          (Atom "1"))))))))
      (document:render! #f)
-     (display (painter:toString))
-     (painter:toString)) #;< ===> "
+     (let ((snapshot (painter:toString)))
+       (display snapshot)
+       snapshot)) #;< ===> "
   ╭        ╭     ╮              ╮
   │ define │ ! n │              │
   │        ╰     ╯              │
@@ -5388,6 +5559,383 @@ rendering function for ~Comb~ and its thereabouts.
   ")
 
 #+END_SRC
+
+**** Parsing
+
+Although the test for rendering ~Comb~ elements looked much
+better than the test of the basic ~TextPainter~, it was
+still a bit verbose, because it required us to construct
+the entire document explicitly. But we'd rather represent
+the source expression as the string
+
+#+BEGIN_SRC scheme :tangle no
+  "
+  (define (! n)
+    (if (is n <= 1)
+           1
+        (* n (! (- n 1)))))
+  "
+#+END_SRC
+
+Therefore, we need to be able to /parse/ the above program
+text into the ~Comb~ representation. The ~parse~ procedure
+is analogous to the Scheme's built-in ~read~, but instead of
+a single expression, it returns all expressions available on
+a given port. Of course, it represents compound expressions
+using ~Comb~ rather than ~cons~ cells, and it should also
+be able to preserve whitespace and comment information.
+
+Of course, in order for that to be possible, we need some
+way to represent comments. In Scheme there are three types
+of comments: line comments, block comments and expression
+comments. Block comments are very similar to strings -- the
+main differences are delimiters and escaping
+rules. Therefore we also need to provide some representation
+for strings. Line comments are similar, but they have a
+constant height, and they do not allow for the presence of
+newlines inside themselves.
+
+We're going to call such elements ~Textual~. As in the case
+of ~Comb~, we wish them to implement Java's ~List~
+interface. But we also want them to implement the
+~CharSequence~ interface, so that they could be passed to
+some procedures that accept string-like things.
+
+We are therefore going to define a class called
+~TextualBase~ which wraps a ~StringBuilder~ and additionally
+provides operations from the ~List~ interface, that will
+be used as a base class for our text-like things.
+
+#+BEGIN_SRC scheme :tangle no :noweb-ref TextualBase
+
+  (define-interface Textual (List CharSequence))
+
+  (define-object (TextualBase)::Textual
+    (define-protected builder ::StringBuilder
+      (StringBuilder))
+
+    (delegate (charAt index::int)::char builder)
+    (delegate (chars)::IntStream builder)
+    (delegate (codePoints)::IntStream builder)
+    (delegate (length)::int builder)
+    (delegate (subSequence start::int end::int)::CharSequence
+              builder)
+    (delegate (toString)::String builder)
+
+    (define (add element::Object)::boolean
+      (match element
+        (c::Char
+         (builder:append (as char c)))
+        (s::string
+         (builder:append s))))
+
+    (define (add index ::int element::Object)::void
+      (match element
+        (c::Char
+         (builder:insert index (as char c)))
+
+        (s::string
+         (builder:insert index (as String s)))))
+
+    (define (addAll from::Collection)::boolean
+      (for x in collection
+        (add x)))
+
+    (define (addAll index::int collection::Collection)::boolean
+      (if (or (string? collection)
+              (CharSequence? collection))
+          (builder:insert index string)
+          (for x::char in collection
+            (add index x)
+            (set! index (+ index 1)))))
+
+    (define (clear)::void
+      (builder:delete 0 (builder:length)))
+
+    (define (contains c::Object)::boolean                   
+      (and (Char? c)
+           (escape-with
+            return
+            (for x in builder
+              (when (eq? x c)
+                (return #true)))
+            #false)))
+
+    (define (containsAll from::Collection)::boolean
+      (every (lambda (object)
+               (contains object))
+             from))
+
+    (define (get index::int)::Object
+      (builder:charAt index))
+
+    (define (indexOf c::Object)::int
+      (escape-with
+       return
+       (for i from 0 below (builder:length)
+            (when (eq? c (builder i))
+              (return i)))
+       (return -1)))
+
+    (define (lastIndexOf c::Object)::int
+      (escape-with
+       return
+       (for i from (- (builder:length) 1) downto 0
+            (when (eq? c (builder i))
+              (return i)))
+       (return -1)))
+
+    (define (isEmpty)::boolean
+      (= (builder:length) 0))
+
+    (define (iterator)::Iterator
+      (IndexBasedIterator (this) 0))
+
+    (define (listIterator)::ListIterator
+      (IndexBasedIterator (this) 0))
+
+    (define (listIterator index::int)::ListIterator
+      (IndexBasedIterator (this) index))
+
+    (define (remove index::int)::Object
+      (let ((removed (charAt index)))
+        (builder:deleteCharAt index)
+        removed))
+
+    (define (remove c::Object)::boolean
+      (escape-with
+       return
+       (for i::int from 0 below (builder:length)
+            (when (eq? c (builder i))
+              (builder:deleteCharAt i)
+              (return #true)))
+       (return #false)))
+
+    (define (removeAll from::Collection)::boolean
+      (let ((indices ::Stack (Stack)))
+        (for i::int from 0 below (builder:length)
+             (when (from:contains (builder i))
+               (indices:push i)))
+        (let ((result ::boolean (indices:empty)))
+          (for i in indices
+            (builder:deleteCharAt i))
+          result)))
+
+    (define (retainAll from::Collection)::boolean
+      (let ((indices ::Stack (Stack)))
+        (for i::int from 0 below (builder:length)
+             (unless (from:contains (builder i))
+               (indices:push i)))
+        (let ((result ::boolean (indices:empty)))
+          (for i in indices
+            (builder:deleteCharAt i))
+          result)))
+
+    (define (set index::int c::Object)::Object
+      (builder:setCharAt index (as char c)))
+
+    (define (size)::int
+      (builder:length))
+
+    (define (subList from::int below::int)::List
+      (error "subList not implemented for "(getClass))
+      (this))
+
+    (define (toArray)::(array-of Object)
+      (let ((result ((array-of Object) length: (size))))
+        (for i from 0 below (size)
+             (set! (result i) (get i)))
+        result))
+
+    (define (toArray possible-output ::(array-of Object))
+      ::(array-of Object)
+      (let ((result (if #;< (is possible-output:length >= (size))
+                            possible-output
+                            ((array-of Object) length: (size)))))
+        (for i from 0 below (size)
+             (set! (result i) (get i)))
+        result))
+
+    )
+
+#+END_SRC
+
+
+
+  (define-object (TextualTileBase)::TextualTile
+
+    (define-protected (border-style)::BorderStyle
+      #!abstract)
+
+    (define-protected (font)::FontProxy
+      #!abstract)
+
+    (define-protected last-width ::int -1)
+    (define-protected last-height ::int -1)
+
+    (define (render! active? ::boolean)::void
+      (let* ((font ::FontProxy (font))
+             (style ::BorderStyle (border-style))
+             (inner-width ::real 0)
+             (inner-height ::real 0)
+             (border-width ::real
+                           (painter:border-width style))
+             (border-height ::real
+                            (painter:border-height style)))
+        (painter:with-translation
+         border-width border-height
+         (lambda ()
+           (call-with-input-string builder
+             (lambda (port ::InputPort)
+               (for line in (lines port)
+                   (painter:with-translation
+                    0 inner-height
+                    (let ((line-width (painter:draw-text!
+                                       line font)))
+                      (set! inner-width (max inner-width
+                                             line-width))
+                      (set! inner-height (+ inner-height
+                                            (font:height))))))))))
+        (set! last-width (+ inner-width (* 2 border-width)))
+        (set! last-height (+ inner-height (* 2 border-height)))
+        (painter:draw-border! last-width last-height style)))
+
+    (define-private (recalculate-size!)::void
+      (let* ((font ::FontProxy (font))
+             (style ::BorderStyle (border-style))
+             (inner-width ::real 0)
+             (inner-height ::real 0)
+             (border-width ::real
+                           (painter:border-width style))
+             (border-height ::real
+                            (painter:border-height style)))
+        (call-with-input-string builder
+          (lambda (port ::InputPort)
+            (for line in (lines port)
+              (let ((line-width (painter:text-width line font)))
+                (set! inner-width (max inner-width
+                                       line-width))
+                (set! inner-height (+ inner-height
+                                      (font:height)))))))
+        (set! last-width (+ inner-width (* 2 border-width)))
+        (set! last-height (+ inner-height (* 2 border-height)))))
+
+    (define (advance-layout! state ::LayoutState)::void
+      (set! state:left (+ state:left (width)))
+      (set! state:max-width (max state:max-width state:left))
+      (set! state:line-height (max state:line-height (height))))
+
+    (define (width)::real
+      (when (is last-width < 0) ;>
+        (recalculate-size!))
+      last-width)
+
+    (define (height)::real
+      (when (is last-height < 0) ;>
+        (recalculate-size!))
+      last-height)
+
+    (TextualBase))
+
+  (define-object (Atom)::TextualTile
+    (define-protected (font)::FontProxy
+      the-atom-font)
+
+    (define-protected (border-style)::BorderStyle
+      BorderStyle:Atom)
+
+    (TextualTileBase))
+
+  (define-object (Text)::TextualTile
+    (define-protected (font)::FontProxy
+      the-text-font)
+
+    (define-protected (border-style)::BorderStyle
+      BorderStyle:Text)
+
+    (TextualTileBase))
+
+  (define-object (BlockComment)::TextualTile
+
+    (define-protected (font)::FontProxy
+      the-comment-font)
+
+    (define-protected (border-style)::BorderStyle
+      BorderStyle:Comment)
+
+    (TextualTileBase))
+
+  (define-object (LineComment)::TextualTile
+
+    (define-protected (font)::FontProxy
+      the-comment-font)
+
+    (define-protected (border-style)::BorderStyle
+      BorderStyle:None)
+
+    (TextualTileBase))
+
+#+END_SRC
+
+
+
+
+#+BEGIN_SRC scheme
+
+  (define* (parse port ::InputPort := (current-input-port))
+    ::Comb
+    (let ((result ::Comb (Comb)))
+
+      (let next ()
+        (match (read-char port)
+          (,@eof-object? result)
+          (#\(
+           (result:add (parse port))
+           (next))
+          (#\) result)
+          (#\[ ...)
+          (#\] result)
+          (#\#
+           (match (read-char port)
+             (#\; ...)
+             (#\|
+              (result:add (parse-block-comment port))
+              (next))
+             (#\' ...)
+             (#\` ...)
+             (#\,
+              (match (peek-char port)
+                (#\@
+                 (read-char port)
+                 ...)
+                (_ ...)))
+
+              (_ ...)))
+           (#\' ...)
+           (#\` ...)
+           (#\,
+            (match (peek-char port)
+              (#\@
+               (read-char port)
+               ...)
+              (_
+               ...))
+            )
+           (#\;
+            (result:add (parse-line-comment port))
+            (next))
+
+           (#\"
+            (result:add (parse-string port))
+            (next))
+
+           (c
+            (result:add c)
+            (next))
+
+#+END_SRC
+
+
 
 * Emacs file-local variables
 

@@ -293,6 +293,8 @@
 (define-alias CharSequence java.lang.CharSequence)
 (define-alias Iterable java.lang.Iterable)
 (define-alias Integer java.lang.Integer)
+(define-alias StringBuilder java.lang.StringBuilder)
+(define-alias Stack java.util.Stack)
 
 (define (par-for-each function collection)
   (let ((futures ::List (ArrayList)))
@@ -386,11 +388,13 @@
 
 (define-alias EndOfFile gnu.lists.EofClass)
 
+(define-alias Char gnu.text.Char)
+
 (define (with-output-to-string proc::(maps () to: ,a))::string
   (call-with-output-string
     (lambda (port::OutputPort)
       (parameterize ((current-output-port port))
-	(proc)))))
+        (proc)))))
 
 (define (with-output-to-port port::OutputPort proc::(maps () to: ,a))::,a
   (parameterize ((current-output-port port))
@@ -400,7 +404,7 @@
   (call-with-input-string s
     (lambda (port::InputPort)::,a
       (parameterize ((current-input-port port))
-	(proc)))))
+        (proc)))))
 
 (define (with-input-from-port port::InputPort proc::(maps () to: ,a))::,a
   (parameterize ((current-input-port port))
@@ -1958,7 +1962,7 @@ in patterns and remove them from bindings"
                                 (curried-application cached . args))))
        (with-procedure-properties ((cache cached))
          invoker)))))
-    
+
 (define-syntax define-cache
   (syntax-rules (::)
     ((define-cache (name . args)::type body)
@@ -2365,6 +2369,18 @@ in patterns and remove them from bindings"
 
 (define (nearby-int x ::real)::int
   (as int (round x)))
+
+(define (last collection ::sequence)
+  (collection (- (length collection) 1)))
+
+(set! (setter last)
+      (lambda (collection ::sequence value)
+        (set! (collection (- (length collection) 1)) value)))
+
+(e.g.
+ (let ((v (vector 1 2 0)))
+   (set! (last v) 3)
+   v) ===> #(1 2 3))
 
 (define-simple-class set (HashSet)
   ((toString)::String
