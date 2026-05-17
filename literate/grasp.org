@@ -787,7 +787,7 @@ our code:
   (define-alias Integer java.lang.Integer)
   (define-alias StringBuilder java.lang.StringBuilder)
   (define-alias Stack java.util.Stack)
-
+  (define-alias IntStream java.util.stream.IntStream)
 #+END_SRC
 
 
@@ -877,7 +877,7 @@ of numbers or creating coroutines):
                      (loop (- var inc)))))))
 
       ((for var::type from start below end by increment actions ...)
-       (let loop ((var start))
+       (let loop ((var ::type start))
          (if (is var < end) ;>
              (begin
                actions ...
@@ -4280,33 +4280,14 @@ atoms, another (monospaced) for rendering strings, yet
 another - for rendering comments, and one that is used for
 rendering text in the UI elements ("captions").
 
-These fonts can be accessed through variables which are
-visible globally but can only be initialized using the
-~initialize-fonts~ procedure.
+These should be provided by the ~Painter~. 
 
-#+BEGIN_SRC scheme :tangle no :noweb-ref painter-subinterfaces
-
-  (define the-atom-font ::FontProxy #!null)
-  (define the-text-font ::FontProxy #!null)
-  (define the-comment-font ::FontProxy #!null)
-  (define the-caption-font ::FontProxy #!null)
-
-  (define* (initialize-fonts
-            atom-font: an-atom-font ::FontProxy
-            text-font: a-text-font ::FontProxy
-            comment-font: a-comment-font ::FontProxy)
-    (set! the-atom-font an-atom-font)
-    (set! the-text-font a-text-font)
-    (set! the-comment-font a-comment-font))
-
-#+END_SRC
-
-The rendering interface needs to contain four methods:
-one that actually renders the text, and returns its width.
-Another, which returns the width without rendering.
-One function needs to be designated to marking the cursor,
-and one for scanning the position of a point in the visual
-space into character index.
+Additionally he rendering interface needs to contain four
+more methods: one that actually renders the text, and
+returns its width.  Another, which returns the width without
+rendering.  One function needs to be designated to marking
+the cursor, and one for scanning the position of a point in
+the visual space into character index.
 
 The functions assume that ~text~ contains no newline
 characters.
@@ -4318,6 +4299,11 @@ characters.
     (text-width text::CharSequence font::FontProxy)::real
     (mark-cursor! position::int font::FontProxy)::void
     (character-index position::real text::CharSequence font::FontProxy)::int
+
+    (atom-font)::FontProxy
+    (text-font)::FontProxy
+    (comment-font)::FontProxy
+    (caption-font)::FontProxy
     )
 
 #+END_SRC
@@ -4613,6 +4599,13 @@ buffer to a string.
 
 #+NAME: BasicTextPainter--body
 #+BEGIN_SRC scheme :tangle no
+  (define-private basic-font ::FontProxy (BasicTextPainterFont))
+
+  (define (atom-font)::FontProxy basic-font)
+  (define (text-font)::FontProxy basic-font)
+  (define (comment-font)::FontProxy basic-font)
+  (define (caption-font)::FontProxy basic-font)
+
   (define (draw-text! text ::CharSequence font ::FontProxy)::real
     (let ((text-length ::int (string-length text)))
       (for i ::int from 0 below text-length
@@ -4726,44 +4719,50 @@ recommend reading it.
   <<basic-text-painter>>
 
   (e.g.
-   (let ((atom-font ::FontProxy (BasicTextPainterFont))
-         (painter ::Painter (TextPainter)))
+   (let ((painter ::Painter (TextPainter)))
      (painter:draw-box! 32 12 SideSelected:None
                         BorderStyle:Parentheses)
      (painter:with-translation 2 1
-       (lambda () (painter:draw-text! "define" atom-font)))
+       (lambda () (painter:draw-text! "define" (painter:atom-font))))
      (painter:with-translation 9 0
        (lambda ()
          (painter:draw-box! 7 3 SideSelected:None BorderStyle:Parentheses)
          (painter:with-translation 2 1
-           (lambda () (painter:draw-text! "! n" atom-font)))))
+           (lambda ()
+             (painter:draw-text! "! n" (painter:atom-font))))))
      (painter:with-translation 2 3
       (lambda ()
         (painter:draw-box! 28 9 SideSelected:None BorderStyle:Parentheses)
         (painter:with-translation 2 1
-          (lambda () (painter:draw-text! "if" atom-font)))
+          (lambda ()
+            (painter:draw-text! "if" (painter:atom-font))))
         (painter:with-translation 5 0
          (lambda ()
            (painter:draw-box! 13 3 SideSelected:None BorderStyle:Parentheses)
            (painter:with-translation 2 1
-            (lambda () (painter:draw-text! "is n <= 1" atom-font)))))
+            (lambda ()
+              (painter:draw-text! "is n <= 1" (painter:atom-font))))))
         (painter:with-translation 4 4
-         (lambda () (painter:draw-text! "1" atom-font)))
+         (lambda ()
+           (painter:draw-text! "1" (painter:atom-font))))
         (painter:with-translation 3 6
          (lambda ()
            (painter:draw-box! 23 3 SideSelected:None BorderStyle:Parentheses)
            (painter:with-translation 2 1
-            (lambda () (painter:draw-text! "* n" atom-font)))
+            (lambda () (painter:draw-text! "* n" (painter:atom-font))))
            (painter:with-translation 6 0
             (lambda ()
               (painter:draw-box! 15 3 SideSelected:None BorderStyle:Parentheses)
               (painter:with-translation 2 1
-               (lambda () (painter:draw-text! "!" atom-font)))
+               (lambda ()
+                 (painter:draw-text! "!" (painter:atom-font))))
               (painter:with-translation 4 0
                (lambda ()
                  (painter:draw-box! 9 3 SideSelected:None BorderStyle:Parentheses)
                  (painter:with-translation 2 1
-                  (lambda () (painter:draw-text! "- n 1" atom-font)))))))))))
+                  (lambda ()
+                    (painter:draw-text! "- n 1"
+                                        (painter:atom-font))))))))))))
      (display (painter:toString))
      (painter:toString)) #;< ===> "
   ╭        ╭     ╮               ╮
@@ -4816,7 +4815,7 @@ and handle whitespace and comments.
 
 The languages from the LISP family have a tradition of
 representing their source code using ~cons~ cells. But it
-turns out, that this representation is very problematic,
+turns out that this representation is very problematic,
 because it makes handling whitespace and comments a
 challenge.
 
@@ -5253,6 +5252,18 @@ an object that would represent the current ~LayoutState~:
                 top: real := 0
                 max-width: real := 0
                 line-height: real := (painter:min-line-height)))
+
+  (define (break-layout! state ::LayoutState)::void
+    (set! state:max-width (max state:max-width state:left))
+    (set! state:left 0)
+    (set! state:top (+ state:top state:line-height))
+    (set! state:line-height (painter:min-line-height)))
+
+  (define (expand-layout! state ::LayoutState width ::real height ::real)::void
+    (set! state:left (+ state:left width))
+    (set! state:max-width (max state:max-width state:left))
+    (set! state:line-height (max state:line-height height)))
+
 #+END_SRC
 
 We can consider an object to be ~Spatial~ if it is capable
@@ -5358,9 +5369,7 @@ rendering function for ~Comb~ and its thereabouts.
       (update-size-from-layout-state! state)))
 
   (define (advance-layout! state ::LayoutState)::void
-    (set! state:left (+ state:left (width)))
-    (set! state:max-width (max state:max-width state:left))
-    (set! state:line-height (max state:line-height (height))))
+    (expand-layout! state (width) (height)))
 
 #+END_SRC
 
@@ -5436,15 +5445,10 @@ mock definitions of ~Element~ and ~Space~
       (for c in content
         (match c
           (#\newline
-           (set! state:max-width
-                 (max state:max-width state:left))
-           (set! state:left 0)
-           (set! state:top (+ state:top state:line-height))
-           (set! state:line-height (painter:min-line-height)))
+           (break-layout! state))
           (#\space
-           (set! state:left (+ state:left (painter:space-width)))
-           (set! state:max-width
-                 (max state:max-width state:left))))))
+           (expand-layout! state (painter:space-width)
+                           (painter:min-line-height))))))
 
     (define (white?)::boolean
       #true)
@@ -5475,11 +5479,6 @@ mock definitions of ~Element~ and ~Space~
     <<Comb--rendering>>
     )
 
-  (let ((font ::FontProxy (BasicTextPainterFont)))
-    (initialize-fonts atom-font: font
-                      text-font: font
-                      comment-font: font))
-
   (define-object (Atom)::Tile
 
     (define-private builder ::StringBuilder
@@ -5500,7 +5499,7 @@ mock definitions of ~Element~ and ~Space~
         (painter:with-translation
          border-width border-height
          (lambda ()
-           (painter:draw-text! builder the-atom-font)))))
+           (painter:draw-text! builder (painter:atom-font))))))
 
     (define (width)::real
       (+ (* 2 (painter:border-width BorderStyle:Atom))
@@ -5508,12 +5507,10 @@ mock definitions of ~Element~ and ~Space~
 
     (define (height)::real
       (+ (* 2 (painter:border-height BorderStyle:Atom))
-         (the-atom-font:height)))
+         (invoke (painter:atom-font) 'height)))
 
     (define (advance-layout! state ::LayoutState)::void
-      (set! state:left (+ state:left (width)))
-      (set! state:max-width (max state:max-width state:left))
-      (set! state:line-height (max state:line-height (height))))
+      (expand-layout! state (width) (height)))
 
     (define (toString)::String
       (builder:toString))
@@ -5560,7 +5557,7 @@ mock definitions of ~Element~ and ~Space~
 
 #+END_SRC
 
-**** Parsing
+**** ~Textual~ elements
 
 Although the test for rendering ~Comb~ elements looked much
 better than the test of the basic ~TextPainter~, it was
@@ -5610,6 +5607,8 @@ be used as a base class for our text-like things.
 
   (define-interface Textual (List CharSequence))
 
+  (define-interface TextualTile (Textual Tile))
+
   (define-object (TextualBase)::Textual
     (define-protected builder ::StringBuilder
       (StringBuilder))
@@ -5637,16 +5636,16 @@ be used as a base class for our text-like things.
         (s::string
          (builder:insert index (as String s)))))
 
-    (define (addAll from::Collection)::boolean
+    (define (addAll collection::Collection)::boolean
       (for x in collection
-        (add x)))
+        (invoke (this) 'add x)))
 
     (define (addAll index::int collection::Collection)::boolean
       (if (or (string? collection)
               (CharSequence? collection))
           (builder:insert index string)
           (for x::char in collection
-            (add index x)
+            (invoke (this) 'add index x)
             (set! index (+ index 1)))))
 
     (define (clear)::void
@@ -5661,10 +5660,10 @@ be used as a base class for our text-like things.
                 (return #true)))
             #false)))
 
-    (define (containsAll from::Collection)::boolean
+    (define (containsAll collection::Collection)::boolean
       (every (lambda (object)
                (contains object))
-             from))
+             collection))
 
     (define (get index::int)::Object
       (builder:charAt index))
@@ -5680,7 +5679,7 @@ be used as a base class for our text-like things.
     (define (lastIndexOf c::Object)::int
       (escape-with
        return
-       (for i from (- (builder:length) 1) downto 0
+       (for i from (- (builder:length) 1) down-to 0
             (when (eq? c (builder i))
               (return i)))
        (return -1)))
@@ -5711,23 +5710,23 @@ be used as a base class for our text-like things.
               (return #true)))
        (return #false)))
 
-    (define (removeAll from::Collection)::boolean
+    (define (removeAll c::Collection)::boolean
       (let ((indices ::Stack (Stack)))
         (for i::int from 0 below (builder:length)
-             (when (from:contains (builder i))
+             (when (c:contains (builder i))
                (indices:push i)))
         (let ((result ::boolean (indices:empty)))
-          (for i in indices
+          (for i::int in indices
             (builder:deleteCharAt i))
           result)))
 
-    (define (retainAll from::Collection)::boolean
+    (define (retainAll c::Collection)::boolean
       (let ((indices ::Stack (Stack)))
         (for i::int from 0 below (builder:length)
-             (unless (from:contains (builder i))
+             (unless (c:contains (builder i))
                (indices:push i)))
         (let ((result ::boolean (indices:empty)))
-          (for i in indices
+          (for i::int in indices
             (builder:deleteCharAt i))
           result)))
 
@@ -5737,9 +5736,8 @@ be used as a base class for our text-like things.
     (define (size)::int
       (builder:length))
 
-    (define (subList from::int below::int)::List
-      (error "subList not implemented for "(getClass))
-      (this))
+    (define (subList start::int end::int)::List
+      (error "subList not implemented for "(getClass)))
 
     (define (toArray)::(array-of Object)
       (let ((result ((array-of Object) length: (size))))
@@ -5760,105 +5758,129 @@ be used as a base class for our text-like things.
 
 #+END_SRC
 
+Although we're still not ready to define the ~Element~,
+we have everything that is needed to define the ~Visual~,
+~Spatial~ and ~Tile~ parts of ~Textual~ elements.
 
+#+BEGIN_SRC scheme :noweb-ref TextualTileBase--implementation
+
+  (define-protected (border-style)::BorderStyle
+    #!abstract)
+
+  (define-protected (font)::FontProxy
+    #!abstract)
+
+  (define-protected last-width ::int -1)
+  (define-protected last-height ::int -1)
+
+  (define (render! active? ::boolean)::void
+    (let* ((font ::FontProxy (font))
+           (style ::BorderStyle (border-style))
+           (inner-width ::real 0)
+           (inner-height ::real 0)
+           (border-width ::real
+                         (painter:border-width style))
+           (border-height ::real
+                          (painter:border-height style)))
+      (painter:with-translation
+       border-width border-height
+       (lambda ()
+         (call-with-input-string builder
+           (lambda (port ::InputPort)
+             (for line in (lines port)
+               (painter:with-translation
+                0 inner-height
+                (lambda ()
+                  (let ((line-width (painter:draw-text!
+                                     line font)))
+                    (set! inner-width (max inner-width
+                                           line-width))
+                    (set! inner-height (+ inner-height
+                                          (font:height)))))))))))
+      (set! last-width (+ inner-width (* 2 border-width)))
+      (set! last-height (+ inner-height (* 2 border-height)))
+      (painter:draw-box! last-width last-height SideSelected:None style)))
+
+  (define-private (recalculate-size!)::void
+    (let* ((font ::FontProxy (font))
+           (style ::BorderStyle (border-style))
+           (inner-width ::real 0)
+           (inner-height ::real 0)
+           (border-width ::real
+                         (painter:border-width style))
+           (border-height ::real
+                          (painter:border-height style)))
+      (call-with-input-string builder
+        (lambda (port ::InputPort)
+          (for line in (lines port)
+            (let ((line-width (painter:text-width line font)))
+              (set! inner-width (max inner-width
+                                     line-width))
+              (set! inner-height (+ inner-height
+                                    (font:height)))))))
+      (set! last-width (+ inner-width (* 2 border-width)))
+      (set! last-height (+ inner-height (* 2 border-height)))))
+
+  (define (advance-layout! state ::LayoutState)::void
+    (expand-layout! state (width) (height)))
+
+  (define (width)::real
+    (when (is last-width < 0) ;>
+      (recalculate-size!))
+    last-width)
+
+  (define (height)::real
+    (when (is last-height < 0) ;>
+      (recalculate-size!))
+    last-height)
+
+
+#+END_SRC
+
+We can now use the code to define the built-in ~Textual~
+units in GRASP
+
+#+BEGIN_SRC scheme :noweb yes :noweb-ref GRASP--textual-units
 
   (define-object (TextualTileBase)::TextualTile
-
-    (define-protected (border-style)::BorderStyle
-      #!abstract)
-
-    (define-protected (font)::FontProxy
-      #!abstract)
-
-    (define-protected last-width ::int -1)
-    (define-protected last-height ::int -1)
-
-    (define (render! active? ::boolean)::void
-      (let* ((font ::FontProxy (font))
-             (style ::BorderStyle (border-style))
-             (inner-width ::real 0)
-             (inner-height ::real 0)
-             (border-width ::real
-                           (painter:border-width style))
-             (border-height ::real
-                            (painter:border-height style)))
-        (painter:with-translation
-         border-width border-height
-         (lambda ()
-           (call-with-input-string builder
-             (lambda (port ::InputPort)
-               (for line in (lines port)
-                   (painter:with-translation
-                    0 inner-height
-                    (let ((line-width (painter:draw-text!
-                                       line font)))
-                      (set! inner-width (max inner-width
-                                             line-width))
-                      (set! inner-height (+ inner-height
-                                            (font:height))))))))))
-        (set! last-width (+ inner-width (* 2 border-width)))
-        (set! last-height (+ inner-height (* 2 border-height)))
-        (painter:draw-border! last-width last-height style)))
-
-    (define-private (recalculate-size!)::void
-      (let* ((font ::FontProxy (font))
-             (style ::BorderStyle (border-style))
-             (inner-width ::real 0)
-             (inner-height ::real 0)
-             (border-width ::real
-                           (painter:border-width style))
-             (border-height ::real
-                            (painter:border-height style)))
-        (call-with-input-string builder
-          (lambda (port ::InputPort)
-            (for line in (lines port)
-              (let ((line-width (painter:text-width line font)))
-                (set! inner-width (max inner-width
-                                       line-width))
-                (set! inner-height (+ inner-height
-                                      (font:height)))))))
-        (set! last-width (+ inner-width (* 2 border-width)))
-        (set! last-height (+ inner-height (* 2 border-height)))))
-
-    (define (advance-layout! state ::LayoutState)::void
-      (set! state:left (+ state:left (width)))
-      (set! state:max-width (max state:max-width state:left))
-      (set! state:line-height (max state:line-height (height))))
-
-    (define (width)::real
-      (when (is last-width < 0) ;>
-        (recalculate-size!))
-      last-width)
-
-    (define (height)::real
-      (when (is last-height < 0) ;>
-        (recalculate-size!))
-      last-height)
-
+    <<TextualTileBase--implementation>>
     (TextualBase))
 
   (define-object (Atom)::TextualTile
     (define-protected (font)::FontProxy
-      the-atom-font)
+      (painter:atom-font))
 
     (define-protected (border-style)::BorderStyle
       BorderStyle:Atom)
+
+    (define (toString)::String
+      (invoke (the builder) 'toString))
 
     (TextualTileBase))
 
   (define-object (Text)::TextualTile
     (define-protected (font)::FontProxy
-      the-text-font)
+      (painter:text-font))
 
     (define-protected (border-style)::BorderStyle
       BorderStyle:Text)
+
+    (define (toString)::String
+      (call-with-output-string
+        (lambda (port ::OutputPort)
+          (write-char #\" port)
+          (for c::char in (the builder)
+            (when (eqv? c #\")
+              (write-char #\\ port))
+            (write-char c port))
+          (write-char #\" port))))
 
     (TextualTileBase))
 
   (define-object (BlockComment)::TextualTile
 
     (define-protected (font)::FontProxy
-      the-comment-font)
+      (painter:comment-font))
 
     (define-protected (border-style)::BorderStyle
       BorderStyle:Comment)
@@ -5868,17 +5890,111 @@ be used as a base class for our text-like things.
   (define-object (LineComment)::TextualTile
 
     (define-protected (font)::FontProxy
-      the-comment-font)
+      (painter:comment-font))
 
     (define-protected (border-style)::BorderStyle
       BorderStyle:None)
+
+  (define (advance-layout! state ::LayoutState)::void
+    (expand-layout! state (invoke (this) 'width) (invoke (this) 'height))
+    (break-layout! state))
+
+    (define (toString)::String
+      (call-with-output-string
+        (lambda (port ::OutputPort)
+          (write-char #\; port)
+          (for c::Char in (the builder)
+            (cond
+             ((eq? c #\newline)
+              (write-char #\\ port)
+              (write-char #\n port))
+             (else
+              (write-char c port))))
+          (write-char #\newline port))))
 
     (TextualTileBase))
 
 #+END_SRC
 
+At this point we can only test their construction and
+rendering with our ~TextPainter~. 
 
+#+BEGIN_SRC scheme :tangle test/textual-rendering.scm :mkdirp yes :noweb tangle
+  <<header>>
+  (module-name (test textual-rendering))
+  (import (language extensions))
 
+  <<basic-text-painter>>
+
+  (define painter ::Painter (TextPainter))
+
+  <<GRASP-ontology>>
+
+  (define-interface Element (Spatial Visual)
+    #|
+    This is a mock implementation
+    that is only used for testing
+    the implementation of rendering
+    of textual elements
+    |#
+    )
+
+  (define-interface Tile (Element)
+    (width)::real
+    (height)::real)
+
+  <<TextualBase>>
+
+  <<GRASP--textual-units>>
+
+  (e.g.
+   (let ((atom ::Atom (Atom "this-is-an-atom"))
+         (text ::Text (Text "this
+  is
+  text
+  (and it stands
+  for a string
+  in Scheme)"))
+         (block-comment ::BlockComment (BlockComment
+                                        "while here
+  is a block
+  comment"))
+        (line-comment ::LineComment (LineComment "; here's a line comment"))
+        (state ::LayoutState (LayoutState)))
+     (for item ::Tile in (list atom line-comment text block-comment)
+          (painter:with-translation
+           state:left state:top
+           (lambda ()
+             (item:render! #false)
+            (item:advance-layout! state))))
+     (display (painter:toString))
+     (painter:toString))
+   #;< ===> "
+  <<textual-rendering-result>>
+  ")
+#+END_SRC
+
+We expect to see the following result:
+
+#+NAME: textual-rendering-result
+#+BEGIN_SRC text
+               ; here's a line comment
+this-is-an-atom                       
+                                      
+❝┈┈┈┈┈┈┈┈┈┈┈┈┈┈•╔══════════╗          
+┊this          ┊║while here║          
+┊is            ┊║is a block║          
+┊text          ┊║comment   ║          
+┊(and it stands┊╚══════════╝          
+┊for a string  ┊                      
+┊in Scheme)    ┊                      
+•┈┈┈┈┈┈┈┈┈┈┈┈┈┈❞                      
+#+END_SRC
+
+**** Parsing
+
+Equipped in a set of primitive ~Textual~ elements, we can
+now move on with the development of our parser.
 
 #+BEGIN_SRC scheme
 

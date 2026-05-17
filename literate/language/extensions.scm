@@ -295,6 +295,7 @@
 (define-alias Integer java.lang.Integer)
 (define-alias StringBuilder java.lang.StringBuilder)
 (define-alias Stack java.util.Stack)
+(define-alias IntStream java.util.stream.IntStream)
 
 (define (par-for-each function collection)
   (let ((futures ::List (ArrayList)))
@@ -357,7 +358,7 @@
                    (loop (- var inc)))))))
 
     ((for var::type from start below end by increment actions ...)
-     (let loop ((var start))
+     (let loop ((var ::type start))
        (if (is var < end) ;>
            (begin
              actions ...
