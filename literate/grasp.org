@@ -786,7 +786,6 @@ our code:
   (define-alias Iterable java.lang.Iterable)
   (define-alias Integer java.lang.Integer)
   (define-alias StringBuilder java.lang.StringBuilder)
-  (define-alias Stack java.util.Stack)
   (define-alias IntStream java.util.stream.IntStream)
 #+END_SRC
 
@@ -827,48 +826,48 @@ of numbers or creating coroutines):
       (futures:clear)))
 
   (define-syntax for
-    (syntax-rules (in from to down-to below by
-                      in-reverse
-                      in-parallel ::)
+    (syntax-rules (in: from: to: down-to: below: by:
+                      in/reverse:
+                      in/parallel: ::)
 
-      ((for var from . rest)
-       (for var :: Object from . rest))
+      ((for var from: . rest)
+       (for var :: Object from: . rest))
 
-      ((for var in . rest)
-       (for var :: Object in . rest))
+      ((for var in: . rest)
+       (for var :: Object in: . rest))
 
-      ((for var in-reverse . rest)
-       (for var :: Object in-reverse . rest))
+      ((for var in/reverse: . rest)
+       (for var :: Object in-reverse: . rest))
 
-      ((for var in-parallel . rest)
-       (for var :: Object in-parallel . rest))
+      ((for var in/parallel: . rest)
+       (for var :: Object in/parallel: . rest))
 
-      ((for var :: type in-reverse collection . actions)
+      ((for var :: type in/reverse: collection . actions)
        (let ((it ::ListIterator (collection:listIterator
                                            (length collection))))
          (while (it:hasPrevious)
                 (let ((var ::type (it:previous)))
                   . actions))))
 
-      ((for var :: type in-parallel collection . actions)
+      ((for var :: type in/parallel: collection . actions)
        (par-for-each (lambda (var :: type) . actions) collection))
 
-      ((for var :: type in collection . actions)
+      ((for var :: type in: collection . actions)
        (for-each (lambda (var :: type) . actions) collection))
 
-      ((for (vars ...) in collection . actions)
+      ((for (vars ...) in: collection . actions)
        (for-each (lambda (var)
                    (apply (lambda (vars ...) . actions) var))
                  collection))
 
-      ((for var::type from start to end by increment actions ...)
+      ((for var::type from: start to: end by: increment actions ...)
        (let loop ((var::type start))
          (if (is var <= end) ;>
              (begin
                actions ...
                (loop (+ var increment))))))
 
-      ((for var::type from start down-to end by increment actions ...)
+      ((for var::type from: start down-to: end by: increment actions ...)
        (let ((inc (abs increment)))
          (let loop ((var::type start))
            (if #;< (is var >= end)
@@ -876,21 +875,21 @@ of numbers or creating coroutines):
                      actions ...
                      (loop (- var inc)))))))
 
-      ((for var::type from start below end by increment actions ...)
+      ((for var::type from: start below: end by: increment actions ...)
        (let loop ((var ::type start))
          (if (is var < end) ;>
              (begin
                actions ...
                (loop (+ var increment))))))
 
-      ((for var::type from start to end actions ...)
-       (for var::type from start to end by 1 actions ...))
+      ((for var::type from: start to: end actions ...)
+       (for var::type from: start to: end by: 1 actions ...))
 
-      ((for var::type from start down-to end actions ...)
-       (for var::type from start down-to end by 1 actions ...))
+      ((for var::type from: start down-to: end actions ...)
+       (for var::type from: start down-to: end by: 1 actions ...))
 
-      ((for var::type from start below end actions ...)
-       (for var::type from start below end by 1 actions ...))
+      ((for var::type from: start below: end actions ...)
+       (for var::type from: start below: end by: 1 actions ...))
 
       ))
 #+END_SRC
@@ -931,6 +930,8 @@ shoritcoming.
 
   (define-alias EndOfFile gnu.lists.EofClass)
 
+  (define-alias string-port gnu.kawa.io.CharArrayInPort:make)
+
   (define-alias Char gnu.text.Char)
 
   (define (with-output-to-string proc::(maps () to: ,a))::string
@@ -954,7 +955,7 @@ shoritcoming.
       (proc)))
 
   (define (print . messages)
-    (for message in messages
+    (for message in: messages
       (display message))
     (newline))
 
@@ -1661,7 +1662,7 @@ functions during macro expansion, we need to resort to the
                       ((Collection? slot-symbol)
                        (kawa.lib.kawa.pprint:pprintStartLogicalBlock "[" #f "]" port)
                        (try-finally
-                        (for item in slot-symbol
+                        (for item in: slot-symbol
                          (kawa.lib.kawa.pprint:pprint item port))
                         (kawa.lib.kawa.pprint:pprintEndLogicalBlock "]" port)))
                       (else
@@ -1734,7 +1735,7 @@ defined in the following way:
    ((instance? object WeakHashMap)
     (let* ((hash-map ::WeakHashMap object)
 	   (cloned ::WeakHashMap (WeakHashMap)))
-      (for key in (hash-map:keySet)
+      (for key in: (hash-map:keySet)
 	(let ((value (hash-map:get key)))
 	  (cloned:put key value)))
       cloned))
@@ -3279,7 +3280,7 @@ is ambiguous.
 
   (define (any satisfying? elements)
     (escape-with return
-      (for x in elements
+      (for x in: elements
         (let ((result (satisfying? x)))
           (when result
             (return result))))
@@ -3308,7 +3309,7 @@ is ambiguous.
 
   (define (every satisfying? elements)::boolean
     (escape-with return
-      (for x in elements
+      (for x in: elements
         (unless (satisfying? x)
           (return #f)))
       #t))
@@ -3332,7 +3333,7 @@ is ambiguous.
   (define (only cool? stuff)
     (let* ((result (cons #f '()))
            (cone result))
-      (for x in stuff
+      (for x in: stuff
         (when (cool? x)
           (set-cdr! cone (cons x '()))
           (set! cone (cdr cone))))
@@ -3345,7 +3346,7 @@ is ambiguous.
   (define (fold-left f x0 . xs*)
 
     (define (fold-left1 xs ::List)
-      (for x in xs
+      (for x in: xs
         (set! x0 (f x0 x)))
       x0)
 
@@ -3464,14 +3465,14 @@ is ambiguous.
      ((isnt inout list?)
       (cond 
        ((null? in*)
-        (for i from 0 below (length inout)
+        (for i from: 0 below: (length inout)
              (set! (inout i) (f (inout i))))
         inout)
        ((null? (cdr in*))
         (escape-with return
           (let ((i 0)
                 (n (length inout)))
-            (for x in (cdr in*)
+            (for x in: (cdr in*)
               (set! (inout i) (f (inout i) x))
               (set! i (+ i 1))
               (when (is i >= n)
@@ -3483,7 +3484,7 @@ is ambiguous.
                           (l:listIterator))
                         in*)))
           (escape-with return
-            (for i from 0 below n
+            (for i from: 0 below: n
                  (if (every (lambda (it ::Iterator)
                               (it:hasNext)) its)
                      (set! (inout i)
@@ -3636,7 +3637,7 @@ lists as sets.
      (with-output-to-string
        (lambda ()
          (display "[set")
-         (for item in (this)
+         (for item in: (this)
            (display " ")
            (cond
             ((or (string? item) (String? item))
@@ -3677,13 +3678,13 @@ lists as sets.
         (with-compile-options
          warn-unknown-member: #f
          (let ((clone ::Set (set:clone)))
-           (for collection ::Collection in sets
+           (for collection ::Collection in: sets
                 (clone:addAll collection))
            clone))
         (fold-left list-union set sets)))
 
   (define (union! set::Set . sets)
-    (for collection ::Collection in sets
+    (for collection ::Collection in: sets
          (set:addAll collection))
     set)
 
@@ -3699,7 +3700,7 @@ lists as sets.
         (with-compile-options
          warn-unknown-member: #f
          (let ((clone ::Set (set:clone)))
-           (for collection ::Collection in sets
+           (for collection ::Collection in: sets
                 (clone:retainAll collection))
            clone))
         (fold-left list-intersection set sets)))
@@ -3720,7 +3721,7 @@ lists as sets.
         (with-compile-options
          warn-unknown-member: #f
          (let ((clone ::Set (set:clone)))
-           (for collection ::Collection in sets
+           (for collection ::Collection in: sets
                 (clone:removeAll collection))
            clone))
         (fold-left list-difference set sets)))
@@ -4047,6 +4048,71 @@ reader.
           (collection:set index element)
           (collection:set (- index 1) element))))
 
+  (define-interface Stack (List)
+    (push! element)::void
+    (pop!)::Object
+    (empty?)::boolean
+    (peek)::Object)
+
+  (define-object (ArrayStack)::Stack
+
+    (define (push! element)::void
+      (invoke-special ArrayList (this) 'add element))
+
+    (define (pop!)::Object
+      (remove (- (size) 1)))
+
+    (define (empty?)::boolean
+      (isEmpty))
+
+    (define (peek)::Object
+      (get (- (size) 1)))
+
+    (ArrayList))
+
+  (define-object (CharacterRing n ::int)::CharSequence
+
+    (define-private end ::int 0)
+
+    (define-private buffer ::(array-of Char)
+      ((array-of Char) length: n))
+
+    (define (add c::Char)::void
+      (set! (buffer end) c)
+      (set! end (modulo (+ end 1) n)))
+
+    (define (charAt i::int)::Char
+      (buffer (modulo (+ (- end n) i) n)))
+
+    (define (length)::int
+      n)
+
+    (define (subSequence start ::int end ::int)::CharSequence
+      (assert (is start <= end)) ;>
+      (let ((s ::CharacterRing (CharacterRing (- end start))))
+        (for i ::int from: start below: end
+             (s:add (charAt i)))
+        s))
+
+    (define (matches? s::string)::boolean
+      (and-let* ((m ::int (string-length s))
+                 ((= m n)))
+        (escape-with
+         return
+         (for i::int from: 0 below: m
+              (unless (eqv? (s i) (charAt i))
+                (return #false)))
+         (return #true))))
+
+    (define (toString)::String
+      (call-with-output-string
+        (lambda (port ::OutputPort)
+          (for i ::int from: 0 below: n
+               (write-char (charAt i) port)))))
+
+    (Object)
+    (assert (is n > 0))
+    )
 
 #+END_SRC
 
@@ -4074,7 +4140,7 @@ more decent type checking for the language.
 
 ** The implementations of GRASP
 
-So far, reading this text may have seen a bit like reading a
+So far, reading this text may have seemed a bit like reading a
 grammar book or a dictionary: it didn't seem to have any
 specific topic, or /thing it is about/.
 
@@ -4115,14 +4181,14 @@ render straight lines at any angles and with arbitrary
 thickness, whereas character terminals only offer rendering
 horizontal and vertical lines of a few varieties).
 
-For this reason, the rendering API needs to contain a lost of
+For this reason, the rendering API needs to contain a lot of
 specific methods corresponding to some particular rendering
 capabilities of GRASP (like drawing horizontal and vertical
-lines etc.). 
+lines etc.).
 
-Therefore are going to split our description into subsections
+Therefore we are going to split our description into subsections
 describing particular capabilities. Each section will define
-a name of a capaility and an interface that needs to be
+a name of a capability and an interface that needs to be
 implemented for the capability to be effective.
 
 The resulting interface and its implementations are going
@@ -4133,7 +4199,7 @@ Eventually there will be a definition that builds an
 interface called ~Painter~ which aggregates all the
 capabilities defined in the subsections, followed by the
 ~painter~ variable that will be used by the actual
-implementations of GRASP to pefrorm all rendering.
+implementations of GRASP to perform all rendering.
 
 But before that happens, we will develop and test
 some simplified versions of the ~Painter~ interface
@@ -4259,7 +4325,7 @@ that of rendering text.
 CanRenderText
 #+END_SRC
 
-Ususally, text rendering is associated with the use of fonts.
+Usually, text rendering is associated with the use of fonts.
 
 In the case of GRASP, the situation is a bit complicated,
 because every client represents fonts in a different way.
@@ -4274,20 +4340,26 @@ that will stand for particular font representations.
 
 #+END_SRC
 
+Note that ~FontProxy~ exposes only ~height~. This is because
+the height is a property intrinsic to the font itself, while
+the width of a rendered string depends on the specific
+characters it contains, and so will be obtained from the
+rendering interface defined below.
+
 The GRASP frontend is expected to provide a number of
 built-in fonts: one that is going to be used for rendering
 atoms, another (monospaced) for rendering strings, yet
 another - for rendering comments, and one that is used for
-rendering text in the UI elements ("captions").
+rendering text in the UI elements ("captions"). These four
+fonts will be exposed by the rendering interface as four
+accessor methods.
 
-These should be provided by the ~Painter~. 
-
-Additionally he rendering interface needs to contain four
-more methods: one that actually renders the text, and
-returns its width.  Another, which returns the width without
-rendering.  One function needs to be designated to marking
-the cursor, and one for scanning the position of a point in
-the visual space into character index.
+In addition to those accessors, the rendering interface
+needs to contain four more methods: one that actually
+renders the text and returns its width; another that returns
+the width without rendering; one for marking the cursor; and
+one for scanning the position of a point in the visual space
+into a character index.
 
 The functions assume that ~text~ contains no newline
 characters.
@@ -4510,39 +4582,39 @@ by its descendant classes.
         (unless (border:top:isEmpty)
           (let ((top-length ::int (border:top:length)))
             (for i ::int
-                 from border:width
-                 below (- width border:width)
+                 from: border:width
+                 below: (- width border:width)
                  (put! (border:top (modulo i top-length))
                        i 0))))
 
         (unless (border:bottom:isEmpty)
           (let ((bottom-length ::int (border:bottom:length)))
             (for i ::int
-                 from border:width
-                 below (- width border:width)
+                 from: border:width
+                 below: (- width border:width)
                  (put! (border:bottom (modulo i bottom-length))
                        i (- height 1)))))
 
-        (for i ::int from 0 below border:width
+        (for i ::int from: 0 below: border:width
              (put! (border:leftTop i) i 0))
-        (for line ::int from 1 below (- height 2)
-             (for i ::int from 0 below border:width
+        (for line ::int from: 1 below: (- height 2)
+             (for i ::int from: 0 below: border:width
                   (put! (border:leftLine i) i line)))
-        (for i ::int from 0 below border:width
+        (for i ::int from: 0 below: border:width
              (put! (border:leftMiddle i) i (- height 2)))
-        (for i ::int from 0 below border:width
+        (for i ::int from: 0 below: border:width
              (put! (border:leftBottom i) i (- height 1)))
         (with-translation
          (- width border:width) 0
          (lambda ()
-           (for i ::int from 0 below border:width
+           (for i ::int from: 0 below: border:width
                 (put! (border:rightTop i) i 0))
-           (for line ::int from 1 below (- height 2)
-                (for i ::int from 0 below border:width
+           (for line ::int from: 1 below: (- height 2)
+                (for i ::int from: 0 below: border:width
                      (put! (border:rightLine i) i line)))
-           (for i ::int from 0 below border:width
+           (for i ::int from: 0 below: border:width
                 (put! (border:rightMiddle i) i (- height 2)))
-           (for i ::int from 0 below border:width
+           (for i ::int from: 0 below: border:width
                 (put! (border:rightBottom i) i (- height 1)))))))
 
     (define (border-width style ::BorderStyle)::real
@@ -4554,6 +4626,9 @@ by its descendant classes.
       (let ((border ::BorderCharacters
                     (Borders (style:ordinal))))
         border:height))
+
+    (define (clear!)::void
+      #!abstract)
 
     (define (draw-text! text::CharSequence font::FontProxy)::real
       #!abstract)
@@ -4608,7 +4683,7 @@ buffer to a string.
 
   (define (draw-text! text ::CharSequence font ::FontProxy)::real
     (let ((text-length ::int (string-length text)))
-      (for i ::int from 0 below text-length
+      (for i ::int from: 0 below: text-length
            (put! (text i) i 0))
       text-length))
 
@@ -4619,11 +4694,16 @@ buffer to a string.
   (define-private height ::int 0)
   (define-private buffer ::(array-of char) #!null)
 
+  (define (clear!)::void
+    (set! width 0)
+    (set! height 0)
+    (set! buffer #!null))
+
   (define-private (expand-buffer! new-width ::int new-height ::int)::void
     (assert (and (is width <= new-width) (is new-height >= height)))
     (let ((new-buffer ((array-of char) length: (* new-width new-height))))
-      (for line ::int from 0 below new-height
-           (for column ::int from 0 below new-width
+      (for line ::int from: 0 below: new-height
+           (for column ::int from: 0 below: new-width
                 (set! (new-buffer (+ (* new-width line) column))
                       (if (and (is column < width)
                                (is height > line))
@@ -4663,8 +4743,8 @@ buffer to a string.
     (with-output-to-string
       (lambda ()
         (write-char #\newline)
-        (for line from 0 below height
-             (for column from 0 below width
+        (for line from: 0 below: height
+             (for column from: 0 below: width
                   (let* ((n (+ (* line width)
                                column))
                          (c (buffer n)))
@@ -4697,7 +4777,9 @@ recommend reading it.
     (CanManageRenderingContext
      CanProvideBasicSizes
      CanRenderBoxes
-     CanRenderText))
+     CanRenderText)
+    (clear!)::void
+    )
 
   <<BorderCharacters--object-definition>>
 
@@ -4803,7 +4885,7 @@ programming languages are also languages.
 Therefore one can perceive all programming languages as ways
 of encoding tree structures.
 
-However, most programming languages often intorduce
+However, most programming languages often introduce
 components that are mostly ignored by tools that process
 source code. These components are called /comments/ and
 /irrelevant whitespace/.
@@ -4821,7 +4903,7 @@ challenge.
 
 For this reason, we represent program trees using a pair of
 arrays. The first array, containing $N$ elements, represents
-the sematic content of the tree (i.e. the same things one
+the semantic content of the tree (i.e. the same things one
 would normally find in Lisp's ~cons~ cells), while the other,
 containing $N+1$ elements, represents whitespace and comments
 between those elements.
@@ -5019,38 +5101,34 @@ elements that occupy a rectangular area of the screen.
            (elements:add index* tile)
            (spaces:add (+ index* 1) (Space:single)))))))
 
+  (define-static token-separators ::(set-of Char)
+    (HashSet #\( #\) #\[ #\] #\;))
+
   (define (add object ::Object)::boolean
     (let ((last-space ::Space (last spaces)))
-      (match object
-        (char::Char
-         (assert (isnt char in '(#\( #\) #\[ #\] #\;)))
-         (cond
-          ((char-whitespace? char)
-           (last-space:add char)
-           #true)
-          ((and-let* (((last-space:empty?))
-                      ((is (length elements) #;< > 0))
-                      (last-atom ::Atom (last elements)))
-             (last-atom:add char)
-             #true))
-          (else
-           (elements:add (Atom (string char)))
-           (spaces:add (Space:empty))
-           #true)))
-        #;(comment::Comment
-         (last-space:add comment)
-         #true)
-        (space::Space
-         (last-space:add space)
-         #true)
-        (tile::Tile
-         (when (not (elements:isEmpty))
-           (last-space:blow!))
-         (elements:add tile)
-         (spaces:add (Space:empty))
-         #true)
-        (_
-         #false))))
+      (if (Space:accepts? object)
+          (last-space:add object)
+          (match object
+            (char::Char
+             (assert (isnt char in token-separators))
+             (cond
+              ((and-let* (((last-space:empty?))
+                          ((is (length elements) #;< > 0))
+                          (last-atom ::Atom (last elements)))
+                 (last-atom:add char)
+                 #true))
+              (else
+               (elements:add (Atom (string char)))
+               (spaces:add (Space:empty))
+               #true)))
+            (tile::Tile
+             (unless (elements:isEmpty)
+               (last-space:blow!))
+             (elements:add tile)
+             (spaces:add (Space:empty))
+             #true)
+            (_
+             #false)))))
 
   (define (remove-at index ::int)::Element
     (cond
@@ -5073,14 +5151,14 @@ elements that occupy a rectangular area of the screen.
 
   (define (removeAll collection ::Collection)::boolean
     (let ((removed? ::boolean #false))
-      (for element in collection
+      (for element in: collection
         (when (remove element)
           (set! removed? #true)))
       removed?))
 
   (define (retainAll collection ::Collection)::boolean
     (let ((removed? ::boolean #false))
-      (for element in (this)
+      (for element in: (this)
         (unless (collection:contains element)
           (when (remove element)
             (set! removed? #true))))
@@ -5099,7 +5177,7 @@ elements that occupy a rectangular area of the screen.
 
   (define (toArray)::(array-of Object)
     (let ((result ((array-of Object) length: (size))))
-      (for i from 0 below (size)
+      (for i from: 0 below: (size)
            (set! (result i) (get i)))
       result))
 
@@ -5108,7 +5186,7 @@ elements that occupy a rectangular area of the screen.
     (let ((result (if #;< (is possible-output:length >= (size))
                           possible-output
                           ((array-of Object) length: (size)))))
-      (for i from 0 below (size)
+      (for i from: 0 below: (size)
            (set! (result i) (get i)))
       result))
 
@@ -5190,6 +5268,9 @@ going to provide mock definitions of ~Element~, ~Tile~ and
       (when (empty?)
         (add " ")))
 
+    (define-static (accepts? element::Object)::boolean
+      (and (char? element) (char-whitespace? element)))
+
     (define (add element::Object)::boolean
       (set! content (string-append content (element:toString))))
 
@@ -5209,7 +5290,7 @@ going to provide mock definitions of ~Element~, ~Tile~ and
     (define (toString)::String
       (with-output-to-string
         (lambda ()
-          (for item::Element in (this)
+          (for item::Element in: (this)
             (display (item:toString))))))
     )
 
@@ -5330,7 +5411,7 @@ rendering function for ~Comb~ and its thereabouts.
       (painter:with-translation
        border-width border-height
        (lambda ()
-         (for element ::Element in (this)
+         (for element ::Element in: (this)
            (painter:with-translation
             current-layout:left current-layout:top
             (lambda ()
@@ -5364,7 +5445,7 @@ rendering function for ~Comb~ and its thereabouts.
 
   (define-private (recalculate-size!)::void
     (let ((state ::LayoutState (LayoutState)))
-      (for element ::Element in (this)
+      (for element ::Element in: (this)
            (element:advance-layout! state))
       (update-size-from-layout-state! state)))
 
@@ -5426,6 +5507,12 @@ mock definitions of ~Element~ and ~Space~
       (when (empty?)
         (add #\space)))
 
+    (define-static (accepts? element::Object)::boolean
+      (or (and (char? element) (char-whitespace? element))
+          (and (string? element)
+               (every char-whitespace? element))
+          (Space? element)))
+
     (define (add element::Object)::boolean
       (match element
         (#\space
@@ -5433,7 +5520,7 @@ mock definitions of ~Element~ and ~Space~
         (#\newline
          (content:add #\newline))
         (chars::string
-         (for c in chars
+         (for c in: chars
            (add c)))
         (space::Space
          (content:addAll space:content))))
@@ -5442,7 +5529,7 @@ mock definitions of ~Element~ and ~Space~
       (values))
 
     (define (advance-layout! state ::LayoutState)::void
-      (for c in content
+      (for c in: content
         (match c
           (#\newline
            (break-layout! state))
@@ -5456,10 +5543,10 @@ mock definitions of ~Element~ and ~Space~
     (define (toString)::String
       (call-with-output-string
         (lambda (port)
-          (for entry in content
+          (for entry in: content
             (match entry
               (n::integer
-               (for i from 0 below n
+               (for i from: 0 below: n
                     (write-char #\space port)))
               (#\newline
                (write-char #\newline port)))))))
@@ -5637,14 +5724,14 @@ be used as a base class for our text-like things.
          (builder:insert index (as String s)))))
 
     (define (addAll collection::Collection)::boolean
-      (for x in collection
+      (for x in: collection
         (invoke (this) 'add x)))
 
     (define (addAll index::int collection::Collection)::boolean
       (if (or (string? collection)
               (CharSequence? collection))
           (builder:insert index string)
-          (for x::char in collection
+          (for x::char in: collection
             (invoke (this) 'add index x)
             (set! index (+ index 1)))))
 
@@ -5655,7 +5742,7 @@ be used as a base class for our text-like things.
       (and (Char? c)
            (escape-with
             return
-            (for x in builder
+            (for x in: builder
               (when (eq? x c)
                 (return #true)))
             #false)))
@@ -5671,7 +5758,7 @@ be used as a base class for our text-like things.
     (define (indexOf c::Object)::int
       (escape-with
        return
-       (for i from 0 below (builder:length)
+       (for i from: 0 below: (builder:length)
             (when (eq? c (builder i))
               (return i)))
        (return -1)))
@@ -5679,7 +5766,7 @@ be used as a base class for our text-like things.
     (define (lastIndexOf c::Object)::int
       (escape-with
        return
-       (for i from (- (builder:length) 1) down-to 0
+       (for i from: (- (builder:length) 1) down-to: 0
             (when (eq? c (builder i))
               (return i)))
        (return -1)))
@@ -5704,29 +5791,29 @@ be used as a base class for our text-like things.
     (define (remove c::Object)::boolean
       (escape-with
        return
-       (for i::int from 0 below (builder:length)
+       (for i::int from: 0 below: (builder:length)
             (when (eq? c (builder i))
               (builder:deleteCharAt i)
               (return #true)))
        (return #false)))
 
     (define (removeAll c::Collection)::boolean
-      (let ((indices ::Stack (Stack)))
-        (for i::int from 0 below (builder:length)
+      (let ((indices ::Stack (ArrayStack)))
+        (for i::int from: 0 below: (builder:length)
              (when (c:contains (builder i))
-               (indices:push i)))
-        (let ((result ::boolean (indices:empty)))
-          (for i::int in indices
+               (indices:push! i)))
+        (let ((result ::boolean (indices:empty?)))
+          (for i::int in: indices
             (builder:deleteCharAt i))
           result)))
 
     (define (retainAll c::Collection)::boolean
-      (let ((indices ::Stack (Stack)))
-        (for i::int from 0 below (builder:length)
+      (let ((indices ::Stack (ArrayStack)))
+        (for i::int from: 0 below: (builder:length)
              (unless (c:contains (builder i))
-               (indices:push i)))
-        (let ((result ::boolean (indices:empty)))
-          (for i::int in indices
+               (indices:push! i)))
+        (let ((result ::boolean (indices:empty?)))
+          (for i::int in: indices
             (builder:deleteCharAt i))
           result)))
 
@@ -5741,7 +5828,7 @@ be used as a base class for our text-like things.
 
     (define (toArray)::(array-of Object)
       (let ((result ((array-of Object) length: (size))))
-        (for i from 0 below (size)
+        (for i from: 0 below: (size)
              (set! (result i) (get i)))
         result))
 
@@ -5750,7 +5837,7 @@ be used as a base class for our text-like things.
       (let ((result (if #;< (is possible-output:length >= (size))
                             possible-output
                             ((array-of Object) length: (size)))))
-        (for i from 0 below (size)
+        (for i from: 0 below: (size)
              (set! (result i) (get i)))
         result))
 
@@ -5787,7 +5874,7 @@ we have everything that is needed to define the ~Visual~,
        (lambda ()
          (call-with-input-string builder
            (lambda (port ::InputPort)
-             (for line in (lines port)
+             (for line in: (lines port)
                (painter:with-translation
                 0 inner-height
                 (lambda ()
@@ -5812,7 +5899,7 @@ we have everything that is needed to define the ~Visual~,
                           (painter:border-height style)))
       (call-with-input-string builder
         (lambda (port ::InputPort)
-          (for line in (lines port)
+          (for line in: (lines port)
             (let ((line-width (painter:text-width line font)))
               (set! inner-width (max inner-width
                                      line-width))
@@ -5869,7 +5956,7 @@ units in GRASP
       (call-with-output-string
         (lambda (port ::OutputPort)
           (write-char #\" port)
-          (for c::char in (the builder)
+          (for c::char in: (the builder)
             (when (eqv? c #\")
               (write-char #\\ port))
             (write-char c port))
@@ -5903,7 +5990,7 @@ units in GRASP
       (call-with-output-string
         (lambda (port ::OutputPort)
           (write-char #\; port)
-          (for c::Char in (the builder)
+          (for c::Char in: (the builder)
             (cond
              ((eq? c #\newline)
               (write-char #\\ port)
@@ -5961,7 +6048,7 @@ rendering with our ~TextPainter~.
   comment"))
         (line-comment ::LineComment (LineComment "; here's a line comment"))
         (state ::LayoutState (LayoutState)))
-     (for item ::Tile in (list atom line-comment text block-comment)
+     (for item ::Tile in: (list atom line-comment text block-comment)
           (painter:with-translation
            state:left state:top
            (lambda ()
@@ -5994,19 +6081,388 @@ this-is-an-atom
 **** Parsing
 
 Equipped in a set of primitive ~Textual~ elements, we can
-now move on with the development of our parser.
+now move on with the development of our parser. We're going
+to develop it in two steps:
 
-#+BEGIN_SRC scheme
+- first, we'll develop the simplest imaginable parser for
+  the simplest subset of Scheme syntax, capable of parsing
+  at least two things: lists and atoms, while preserving
+  whitespace information
 
-  (define* (parse port ::InputPort := (current-input-port))
-    ::Comb
+- then we will enhance it to support the rest of the syntax
+  of Scheme, including comments, strings and other
+  extensions. We also need to tackle the question of
+  conventional indentation of Lisp programs, and another
+  question of handling magic boxes
+  
+***** A simple parser
+
+#+BEGIN_SRC scheme :noweb-ref simple-parser
+
+  (define-constant atom-delimiters ::(set-of Char)
+    (set #\space #\newline #\( #\) #\[ #\] #\" #\;))
+
+  (define (read-atom-into result ::Atom port ::InputPort)::Atom
+    (let loop ()
+      (let ((c (peek-char port)))
+        (cond
+         ((or (eof-object? c)
+              (is c in atom-delimiters))
+          result)
+         (else
+          (result:add (read-char port))
+          (loop))))))
+
+  (define* (read-list port ::InputPort := (current-input-port))::Comb
     (let ((result ::Comb (Comb)))
-
       (let next ()
         (match (read-char port)
           (,@eof-object? result)
           (#\(
-           (result:add (parse port))
+           (result:add (read-list port))
+           (next))
+          (#\) result)
+          (#\space
+           (result:add #\space)
+           (next))
+          (#\newline
+           (result:add #\newline)
+           (next))
+          (c
+           (result:add (read-atom-into (Atom c) port))
+           (next))))))
+
+#+END_SRC
+
+We can now test the simplified parser on sample data:
+
+#+BEGIN_SRC scheme :tangle test/simple-parser.scm :mkdirp yes :noweb tangle
+  <<header>>
+  (module-name (test simple-parser))
+  (import (language extensions))
+
+  <<basic-text-painter>>
+
+  (define painter ::Painter (TextPainter))
+
+  <<GRASP-ontology>>
+
+  (define-interface Element (Spatial Visual)
+    #|
+    This is a mock implementation
+    that is only used for testing
+    the implementation of the simplified
+    parser
+    |#
+    )
+
+  (define-interface Tile (Element)
+    (width)::real
+    (height)::real)
+
+  (define-interface Compound (Tile List)
+    #|
+    This is a mock implementation
+    that is only used for testing
+    the implementation of rendering
+    of the Comb class
+    |#
+    )
+
+  (define-object (Space)::Element
+    #|
+    This is a mock implementation
+    that is only used for testing
+    the implementation of rendering
+    of the Comb class
+    |#
+
+    (define-private content ::List
+      (ArrayList))
+
+    (define-static (single)::Space
+      (Space " "))
+
+    (define-static (empty)::Space
+      (Space ""))
+
+    (define (empty?)::boolean
+      (content:isEmpty))
+
+    (define (blow!)
+      (when (empty?)
+        (add #\space)))
+
+    (define-static (accepts? element::Object)::boolean
+      (or (and (char? element) (char-whitespace? element))
+          (and (string? element)
+               (every char-whitespace? element))
+          (Space? element)))
+
+    (define (add element::Object)::boolean
+      (match element
+        (#\space
+         (content:add #\space))
+        (#\newline
+         (content:add #\newline))
+        (chars::string
+         (for c in: chars
+           (add c)))
+        (space::Space
+         (content:addAll space:content))))
+
+    (define (render! active? ::boolean)::void
+      (values))
+
+    (define (advance-layout! state ::LayoutState)::void
+      (for c in: content
+        (match c
+          (#\newline
+           (break-layout! state))
+          (#\space
+           (expand-layout! state (painter:space-width)
+                           (painter:min-line-height))))))
+
+    (define (white?)::boolean
+      #true)
+
+    (define (toString)::String
+      (call-with-output-string
+        (lambda (port)
+          (for entry in: content
+            (match entry
+              (n::integer
+               (for i from: 0 below: n
+                    (write-char #\space port)))
+              (#\newline
+               (write-char #\newline port)))))))
+    )
+
+  (define-object (Comb)::Compound
+    <<Comb--collection-operations>>
+    <<Comb--rendering>>
+    )
+
+  <<TextualBase>>
+
+  <<GRASP--textual-units>>
+
+  <<simple-parser>>
+
+  (e.g.
+   (let ((document ::Comb (call-with-input-string "\
+  (define (! n)
+    (if (is n <= 1)
+      1
+     (* n (! (- n 1)))))
+
+  (e.g.
+    (! 5) ===> 120)
+  " read-list)))
+     (set! document:style BorderStyle:None)
+     (document:render! #true)
+     (display (painter:toString))
+     (painter:toString)) ===> "
+  <<simple-parser-test-result-with-indentation>>
+  ")
+
+  (e.g.
+   (let ((document ::Comb (call-with-input-string "\
+  (define (! n)
+  (if (is n <= 1)
+    1
+  (* n (! (- n 1)))))
+  (e.g.
+  (! 5) ===> 120)
+  " read-list)))
+     (set! document:style BorderStyle:None)
+     (painter:clear!)
+     (document:render! #true)
+     (display (painter:toString))
+     (painter:toString)) ===> "
+  <<simple-parser-text-result-no-indentation>>
+  ")
+
+#+END_SRC  
+
+we expect the first test to yield
+
+#+NAME: simple-parser-test-result-with-indentation
+#+BEGIN_SRC text
+╭        ╭     ╮                   ╮
+│ define │ ! n │                   │
+│        ╰     ╯                   │
+│   ╭    ╭           ╮           ╮ │
+│   │ if │ is n <= 1 │           │ │
+│   │    ╰           ╯           │ │
+│   │                            │ │
+│   │     1                      │ │
+│   │                            │ │
+│   │    ╭     ╭   ╭       ╮ ╮ ╮ │ │
+│   │    │ * n │ ! │ - n 1 │ │ │ │ │
+╰   ╰    ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
+                                    
+                                    
+                                    
+╭                    ╮              
+│ e.g.               │              
+│                    │              
+│   ╭     ╮          │              
+│   │ ! 5 │ ===> 120 │              
+╰   ╰     ╯          ╯              
+#+END_SRC
+
+and the second one -- to produce
+
+#+NAME: simple-parser-test-result-no-indentation
+#+BEGIN_SRC text
+╭        ╭     ╮              ╮
+│ define │ ! n │              │
+│        ╰     ╯              │
+│ ╭    ╭           ╮        ╮ │
+│ │ if │ is n <= 1 │        │ │
+│ │    ╰           ╯        │ │
+│ │                         │ │
+│ │   1                     │ │
+│ │                         │ │
+│ │ ╭     ╭   ╭       ╮ ╮ ╮ │ │
+│ │ │ * n │ ! │ - n 1 │ │ │ │ │
+╰ ╰ ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
+╭                  ╮           
+│ e.g.             │           
+│                  │           
+│ ╭     ╮          │           
+│ │ ! 5 │ ===> 120 │           
+╰ ╰     ╯          ╯           
+#+END_SRC
+
+Note that the first test case uses canonical indentation
+from Lisp, whereas the second uses no indentation, and the
+document still looks good. This is because GRASP's nested
+box representation naturally makes code visually indented.
+
+For this reason we'll need to track the current nesting
+level in the final parser, and also account for it during
+code serialization. (It also means that unindented code
+might introduce negative spaces.)
+
+#+BEGIN_SRC scheme
+
+  (define-constant atom-delimiters ::(set-of Char)
+    (set #\space #\newline #\( #\) #\[ #\] #\" #\;))
+
+  (define (string-received?! s::string)
+    (let ((buffer ::CharacterRing
+                  (CharacterRing (string-length s))))
+      (lambda (c::Char)
+        ::boolean
+        (buffer:add c)
+        (buffer:matches? s))))
+
+  (define (unescaped?! x::Char)
+    (let ((previous ::Char #\null))
+      (lambda (c::Char)
+        ::boolean
+        (cond
+         ((eq? previous #\\)
+          (set! previous #\null)
+          #false)
+         (else
+          (set! previous c)
+          (eq? c x))))))
+
+  (read-textual-into (LineComment c)
+                     from: port
+                     until: (is _ eq? #\newline))
+
+  (read-textual-into (BlockComment c)
+                     from: port
+                     until: (string-received?! "|#"))
+
+  (read-textual-into (Atom c)
+                     from: port
+                     until: (is _ in atom-delimiters))
+
+  (read-textual-into (Text c)
+                     from: port
+                     until: (unescaped?! #\"))
+
+  (define* (read-textual-into
+            result ::Textual
+            from: port ::InputPort := (current-input-port)
+            until: terminating? ::(maps (Char) to: boolean))
+    (let loop ()
+      (let ((c (peek-char port)))
+        (cond
+         ((or (eof-object? c)
+              (terminating? c))
+          result)
+         (else
+          (result:add (read-char port))
+          (loop))))))
+
+  (define (enchanted item ::Tile path ::Stack)::Tile
+    ;; tutaj muszą się dopiero dziać ciekawe rzeczy:
+    ;; - jeżeli rozszerzenie jest zarejestrowane, to
+    ;; chcemy je zastosować (zapamiętując przy tym
+    ;; oryginalne wyrażenie), a jeżeli nie, to musimy
+    ;; zapamiętać lokację i próbować ponownie po każdym
+    ;; załadowaniu modułu, względnie po każdej ewaluacji.
+    ;; Ale dodatkowo podczas edycji dokumentu będziemy
+    ;; musieli aktualizować zapamiętane lokacje!
+    ;; (i to się będzie objawiało w taki sposób, że jeżeli
+    ;; dodajemy jakiś element w jakimś miejscu, to wszystkie
+    ;; indeksy na tym poziomie znajdujące się za tym elementem
+    ;; muszą zostać zwiększone, a jeżeli usuwamy ten element,
+    ;; to musimy odpowiednie indeksy zmniejszyć)
+    item)
+
+  (define (read-list #!optional
+                     (port ::InputPort (current-input-port))
+                     #!key
+                     (path ::Stack (ArrayStack)))::Comb
+    (let ((result ::Comb (Comb)))
+      (let next ()
+        (match (read-char port)
+          (,@eof-object? result)
+          (#\(
+           (path:push! (result:size))
+           (result:add (read-list port path: path))
+           (path:pop!)
+           (next))
+          (#\) result)
+          (#\[
+           (path:push! (result:size))
+           (result:add (enchanted (read-list port path: path) path))
+           (path:pop!)
+           (next))
+          (#\] result)
+          (#\space
+           (result:add #\space)
+           (next))
+          (#\newline
+           (result:add #\newline)
+           (next))
+          (c
+           (result:add (read-atom-into (Atom c) port))
+           (next))))))
+
+
+
+  (define* (read-list from: port ::InputPort := (current-input-port)
+                      at: indentation-level ::int := 0
+                      upto: max-items ::real := +inf.0)
+    ::Comb
+    (let ((result ::Comb (Comb)))
+
+      (let next ((remaining ::real max-items))
+        (if (is remaining <= 0) #;>
+
+        (match (read-char port)
+          (,@eof-object? result)
+          (#\(
+           (result:add (read-list from: port
+                                  at: (+ indentation-level 1)))
            (next))
           (#\) result)
           (#\[ ...)
