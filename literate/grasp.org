@@ -46,7 +46,9 @@ Most importantly, users can define their own extensions,
 which occupy rectangular area, and present themselves and
 behave in a custom (user-defined) way (this feature is
 sometimes called /interactive visual syntax/, and has been
-explained by Leif Andersen in [[https://www.youtube.com/watch?v=8htgAxJuK5c][this video]]).
+explained by Leif Andersen in [[https://www.youtube.com/watch?v=8htgAxJuK5c][this video]], although we prefer
+to call the instances of those user-defined extensions --
+/magic boxes/).
 
 Moreover, some of those extensions can be /maximized/,
 playing the role of an entire application.
@@ -3613,6 +3615,24 @@ is ambiguous.
      (set! (last v) 3)
      v) ===> #(1 2 3))
 
+  (define (char-digit? c::char)::boolean
+    (is (char->integer #\0) <= (char->integer c) <= (char->integer #\9)))
+
+  (define (char-hex-digit? c::char)::boolean
+    (or (char-digit? c)
+        (is (char->integer #\a) <= (char->integer c) <= (char->integer #\f))
+        (is (char->integer #\A) <= (char->integer c) <= (char->integer #\F))))
+
+  (define (char-hex-value c::char)::int
+    (let ((code (char->integer c)))
+      (cond ((char-digit? c)
+	     (- code (char->integer #\0)))
+	    ((is (char->integer #\a) <= code <= (char->integer #\f))
+	     (+ 10 (- code (char->integer #\a))))
+	    (else
+	     (assert (is (char->integer #\A) <= code <= (char->integer #\F)))
+	     (+ 10 (- code (char->integer #\A)))))))
+  
 #+END_SRC
 
 *** Sets
@@ -4051,8 +4071,8 @@ reader.
   (define-interface Stack (List)
     (push! element)::void
     (pop!)::Object
-    (empty?)::boolean
-    (peek)::Object)
+    ;(empty?)::boolean
+    (top)::Object)
 
   (define-object (ArrayStack)::Stack
 
@@ -4062,10 +4082,10 @@ reader.
     (define (pop!)::Object
       (remove (- (size) 1)))
 
-    (define (empty?)::boolean
+    #;(define (empty?)::boolean
       (isEmpty))
 
-    (define (peek)::Object
+    (define (top)::Object
       (get (- (size) 1)))
 
     (ArrayList))
@@ -5038,7 +5058,7 @@ elements that occupy a rectangular area of the screen.
   ;; adding another Comb at the end of this one is possible,
   ;; but in order to do this, we need to merge the last space
   ;; from us with the first space from them
-  (define (addAll collection ::Collection)::boolean
+  (define (addAll! collection ::Collection)::boolean
     (and-let* ((comb ::Comb collection)
                (last-space ::Space (last spaces))
                (next-space ::Space (comb:spaces 0)))
@@ -5050,6 +5070,9 @@ elements that occupy a rectangular area of the screen.
       (spaces:addAll comb:spaces) ; and then we put it back
       (comb:spaces:add (as int 0) last-space) ; to leave the argument intact
       ))
+
+  (define (addAll collection ::Collection)::boolean
+    (addAll! collection))
 
   ;; adding one comb in the middle of another is somewhat
   ;; controversial. This can only be allowed on even indices
@@ -5456,39 +5479,16 @@ rendering function for ~Comb~ and its thereabouts.
 
 ***** Testing ~Comb~ rendering
 
-For the purpose of testing ~Comb~ rendering, we provide
-mock definitions of ~Element~ and ~Space~ 
+For the purpose of testing ~Comb~ rendering, we provide mock
+definitions of ~Element~ and ~Space~ . The ~Space~ in
+particular is quite lengthy and it will be used in vaious
+other tests, so we will define it in a separate snippet:
 
-#+BEGIN_SRC scheme :tangle test/comb-rendering.scm :mkdirp yes :noweb tangle
-  <<header>>
-  (module-name (test comb-rendering))
-  (import (language extensions))
-
-  <<basic-text-painter>>
-
-  (define painter ::Painter (TextPainter))
-
-  <<GRASP-ontology>>
-
-  (define-interface Element (Spatial Visual)
-    #|
-    This is a mock implementation
-    that is only used for testing
-    the implementation of rendering
-    of the Comb class
-    |#
-    )
-
-  (define-interface Tile (Element)
-    (width)::real
-    (height)::real)
-
+#+BEGIN_SRC scheme :noweb-ref mock-Space-definition
   (define-object (Space)::Element
     #|
     This is a mock implementation
     that is only used for testing
-    the implementation of rendering
-    of the Comb class
     |#
 
     (define-private content ::List
@@ -5551,6 +5551,33 @@ mock definitions of ~Element~ and ~Space~
               (#\newline
                (write-char #\newline port)))))))
     )
+#+END_SRC
+
+
+#+BEGIN_SRC scheme :tangle test/comb-rendering.scm :mkdirp yes :noweb tangle
+  <<header>>
+  (module-name (test comb-rendering))
+  (import (language extensions))
+
+  <<basic-text-painter>>
+
+  (define painter ::Painter (TextPainter))
+
+  <<GRASP-ontology>>
+
+  (define-interface Element (Spatial Visual)
+    #|
+    This is a mock implementation
+    that is only used for testing
+    the implementation of rendering
+    of the Comb class
+    |#
+    )
+
+  (define-interface Tile (Element)
+    (width)::real
+    (height)::real)
+
 
   (define-interface Compound (Tile List)
     #|
@@ -5560,6 +5587,8 @@ mock definitions of ~Element~ and ~Space~
     of the Comb class
     |#
     )
+
+  <<mock-Space-definition>>
 
   (define-object (Comb)::Compound
     <<Comb--collection-operations>>
@@ -5802,7 +5831,7 @@ be used as a base class for our text-like things.
         (for i::int from: 0 below: (builder:length)
              (when (c:contains (builder i))
                (indices:push! i)))
-        (let ((result ::boolean (indices:empty?)))
+        (let ((result ::boolean (indices:isEmpty)))
           (for i::int in: indices
             (builder:deleteCharAt i))
           result)))
@@ -5812,7 +5841,7 @@ be used as a base class for our text-like things.
         (for i::int from: 0 below: (builder:length)
              (unless (c:contains (builder i))
                (indices:push! i)))
-        (let ((result ::boolean (indices:empty?)))
+        (let ((result ::boolean (indices:isEmpty)))
           (for i::int in: indices
             (builder:deleteCharAt i))
           result)))
@@ -6164,79 +6193,12 @@ We can now test the simplified parser on sample data:
     #|
     This is a mock implementation
     that is only used for testing
-    the implementation of rendering
-    of the Comb class
+    the implementation of the simplified
+    parser
     |#
     )
 
-  (define-object (Space)::Element
-    #|
-    This is a mock implementation
-    that is only used for testing
-    the implementation of rendering
-    of the Comb class
-    |#
-
-    (define-private content ::List
-      (ArrayList))
-
-    (define-static (single)::Space
-      (Space " "))
-
-    (define-static (empty)::Space
-      (Space ""))
-
-    (define (empty?)::boolean
-      (content:isEmpty))
-
-    (define (blow!)
-      (when (empty?)
-        (add #\space)))
-
-    (define-static (accepts? element::Object)::boolean
-      (or (and (char? element) (char-whitespace? element))
-          (and (string? element)
-               (every char-whitespace? element))
-          (Space? element)))
-
-    (define (add element::Object)::boolean
-      (match element
-        (#\space
-         (content:add #\space))
-        (#\newline
-         (content:add #\newline))
-        (chars::string
-         (for c in: chars
-           (add c)))
-        (space::Space
-         (content:addAll space:content))))
-
-    (define (render! active? ::boolean)::void
-      (values))
-
-    (define (advance-layout! state ::LayoutState)::void
-      (for c in: content
-        (match c
-          (#\newline
-           (break-layout! state))
-          (#\space
-           (expand-layout! state (painter:space-width)
-                           (painter:min-line-height))))))
-
-    (define (white?)::boolean
-      #true)
-
-    (define (toString)::String
-      (call-with-output-string
-        (lambda (port)
-          (for entry in: content
-            (match entry
-              (n::integer
-               (for i from: 0 below: n
-                    (write-char #\space port)))
-              (#\newline
-               (write-char #\newline port)))))))
-    )
+  <<mock-Space-definition>>
 
   (define-object (Comb)::Compound
     <<Comb--collection-operations>>
@@ -6280,7 +6242,7 @@ We can now test the simplified parser on sample data:
      (document:render! #true)
      (display (painter:toString))
      (painter:toString)) ===> "
-  <<simple-parser-text-result-no-indentation>>
+  <<simple-parser-test-result-no-indentation>>
   ")
 
 #+END_SRC  
@@ -6346,164 +6308,370 @@ level in the final parser, and also account for it during
 code serialization. (It also means that unindented code
 might introduce negative spaces.)
 
-#+BEGIN_SRC scheme
+***** The advanced parser
 
-  (define-constant atom-delimiters ::(set-of Char)
-    (set #\space #\newline #\( #\) #\[ #\] #\" #\;))
+The parser that is actually used in GRASP is much bigger and
+slightly more complicated than the one developed in the
+previous section.
 
-  (define (string-received?! s::string)
-    (let ((buffer ::CharacterRing
-                  (CharacterRing (string-length s))))
-      (lambda (c::Char)
-        ::boolean
-        (buffer:add c)
-        (buffer:matches? s))))
+It has more arguments. One of them tells how much elements
+should be read from the port. This is because Scheme allows
+for expression comments (starting with ~#;~) and it provides
+some reader syntax extensions, so we occasionally want to
+read a single element. For this reason we also provide an
+additional "constructor" for ~Comb~, which splices its
+arguments if they are also instances of ~Comb~.
 
-  (define (unescaped?! x::Char)
-    (let ((previous ::Char #\null))
-      (lambda (c::Char)
-        ::boolean
+#+BEGIN_SRC scheme :noweb-ref advanced-parser
+  (define (Comb* . elements)::Comb
+    (let ((result ::Comb (Comb)))
+      (for element in: elements
+        (if (Comb? element)
+            (result:addAll! element)
+            (result:add element)))
+      result))
+#+END_SRC
+
+The other argument contains a path to a given expression.
+It is needed to track the location of /magic boxes/ when the
+extension required to instantiate such a box hasn't yet been
+loaded. Whenever a module defining an extension is loaded,
+she list of such deferred boxes should be scanned to see
+if any of them can be instantiated.
+
+The path is maintained as an array-based stack, where its
+top (i.e. last element) is mutated before adding each new
+element.
+
+The fact that a certain piece code sholud be interpreted as
+a magic box is marked by using square brackets instead of
+the round ones. (According to the specification of Scheme,
+there is no fundamental difference between round parentheses
+and square brackets, and both can be used interchagably, as
+long as they match together. Some Scheme programmers
+conventionally use square brackets in certain contexts, but
+their practice shouldn't be a problem to us, because it is
+very unlikely that their usages will clash with our
+extensions.)
+
+The code itself is rather similar to that of our simple
+parser, although it needs to consider more cases (because
+it supports more objects):
+
+#+BEGIN_SRC scheme :noweb-ref advanced-parser
+  (define* (read-list from: port ::InputPort := (current-input-port)
+                      at: path ::Stack := (ArrayStack)
+                      upto: max-elements ::real := +inf.0
+                      into: result ::Comb := (Comb))
+    ::Comb
+    (let ((indentation ::int (port:getColumnNumber))
+          (running? ::boolean #true))
+      (path:push! 0)
+      (while running?
+        (set! (last path) (result:size))
+        (if (or (is (result:elements:size) #;< >= max-elements)
+                (eof-object? (peek-char port)))
+            (set! running? #false)
+            (match (read-char port)
+              (,@eof-object? (set! running? #false))
+              (#\( (result:add (read-list from: port at: path)))
+              (#\space   (result:add #\space))
+              (#\newline (result:add #\newline))
+              (#\) (set! running? #false))
+              (#\[ (result:add (enchanted (read-list from: port at: path)
+                                          path)))
+              (#\] (set! running? #false))
+              (#\" #|"|# (result:add (read-text from: port)))
+              (#\# (result:add (read-hash port path)))
+              (#\' (result:add (enchanted
+                                (Comb* (Atom "quote")
+                                       (read-list from: port at: path upto: 1))
+                                path)))
+              (#\` (result:add (enchanted
+                                (Comb* (Atom "quasiquote")
+                                       (read-list from: port at: path upto: 1))
+                                path)))
+              (#\,
+               (match (peek-char port)
+                 (#\@
+                  (read-char port)
+                  (result:add (enchanted
+                               (Comb* (Atom "unquote-splicing")
+                                      (read-list from: port at: path upto: 1))
+                               path)))
+                 (_
+                  (result:add (enchanted
+                               (Comb* (Atom "unquote")
+                                      (read-list from: port at: path upto: 1))
+                               path)))))
+              (#\; (result:add (read-line-comment from: port)))
+              (c   (result:add (read-atom into: (Atom c) from: port))))))
+      (path:pop!)
+      result))
+#+END_SRC
+
+You can observe that this definition refers a number of
+procedures that we haven't defined, namely ~read-text~,
+~read-hash~, ~read-line-comment~, ~read-atom~ and
+~enchanted~. The ~read-hash~ procedure has been factored out
+to make the above code shorter, and it looks like this:
+
+#+BEGIN_SRC scheme :noweb-ref advanced-parser
+  (define (read-hash port ::InputPort path ::Stack)
+    ::Tile
+    (match (read-char port)
+      ;;(#\; (ExpressionComment (read-list from: port at: path upto: 1)))
+      (#\| (read-block-comment from: port))
+      (#\' (enchanted
+            (Comb* (Atom "syntax")
+                   (read-list from: port at: path upto: 1))
+            path))
+      (#\` (enchanted
+            (Comb* (Atom "quasisyntax")
+                   (read-list from: port at: path upto: 1))
+            path))
+      (#\,
+       (match (peek-char port)
+         (#\@
+          (read-char port)
+          (enchanted
+           (Comb* (Atom "unsyntax-splicing")
+                  (read-list from: port at: path upto: 1))
+           path))
+         (_
+          (enchanted
+           (Comb* (Atom "unsyntax")
+                  (read-list from: port at: path upto: 1))
+           path))))
+      (c (read-atom into: (Atom #\# c) from: port))))
+#+END_SRC
+
+It also refers to the ~read-atom~ procedure mentioned
+earlier. Moreover, it requires a definition of the
+~read-block-comment~ procedure.
+
+Most of these procedures are similar: they simply
+collect their input to some ~Textual~ object. The
+definition of ~read-line-comment~ is the simplest:
+
+#+BEGIN_SRC scheme :noweb-ref advanced-parser
+  (define* (read-line-comment into: result ::LineComment := (LineComment)
+                              from: port ::InputPort := (current-input-port))
+    ::LineComment
+    (let loop ()
+      (let ((c (read-char port)))
         (cond
-         ((eq? previous #\\)
-          (set! previous #\null)
-          #false)
-         (else
-          (set! previous c)
-          (eq? c x))))))
+         ((or (eof-object? c)
+              (eq? c #\newline))
+          result)
+        (else
+         (result:add c)
+         (loop))))))
+#+END_SRC
 
-  (read-textual-into (LineComment c)
-                     from: port
-                     until: (is _ eq? #\newline))
+and the definiton of ~read-atom~ is almost identical (the
+only difference is its termination condition):
 
-  (read-textual-into (BlockComment c)
-                     from: port
-                     until: (string-received?! "|#"))
+#+BEGIN_SRC scheme :noweb-ref advanced-parser
+  (define-constant atom-delimiters ::(set-of Char)
+    (set #\space #\newline #\( #\) #\[ #\] #\" #|"|# #\;))
 
-  (read-textual-into (Atom c)
-                     from: port
-                     until: (is _ in atom-delimiters))
-
-  (read-textual-into (Text c)
-                     from: port
-                     until: (unescaped?! #\"))
-
-  (define* (read-textual-into
-            result ::Textual
-            from: port ::InputPort := (current-input-port)
-            until: terminating? ::(maps (Char) to: boolean))
+  (define* (read-atom into: result ::Atom := (Atom)
+                      from: port ::InputPort := (current-input-port))
+    ::Atom
     (let loop ()
       (let ((c (peek-char port)))
         (cond
          ((or (eof-object? c)
-              (terminating? c))
+              (is c in atom-delimiters))
           result)
          (else
           (result:add (read-char port))
           (loop))))))
+#+END_SRC
+
+The ~read-block-comment~ procedure is a bit more complex,
+because block comments in Scheme can be nested:
+
+#+BEGIN_SRC scheme :noweb-ref advanced-parser  
+  (define* (read-block-comment into: result ::BlockComment := (BlockComment)
+                               from: port ::InputPort := (current-input-port))
+    ::BlockComment
+    (let ((c (read-char port)))
+      (cond
+       ((eof-object? c) result)
+       ((eq? c #\|)
+        (let ((d (read-char port)))
+          (cond ((or (eof-object? d)
+                     (eq? d #\#))
+                 result)
+                (else
+                 (result:add c)
+                 (result:add d)
+                 (read-block-comment into: result from: port)))))
+       ((eq? c #\#)
+        (let ((d (read-char port))) 
+          (cond ((eof-object? d)
+                 (result:add c)
+                 result)
+                ((eq? d #\|)
+                 (result:add c)
+                 (result:add d)
+                 ;; we make two revursive calls here:
+                 ;; one to read the nested block comment
+                 (read-block-comment into: result from: port)
+                 (result:add #\|)
+                 (result:add #\#)
+                 ;; and another one to read the rest
+                 ;; at the current level of nesting
+                 (read-block-comment into: result from: port))
+                (else
+                 (result:add c)
+                 (result:add d)
+                 (read-block-comment into: result from: port)))))
+       (else
+        (result:add c)
+        (read-block-comment into: result from: port)))))
+#+END_SRC
+
+The ~read-text~ procedure is the most complex of them all,
+because it needs to handle various escape sequences.
+
+#+BEGIN_SRC scheme :noweb-ref advanced-parser  
+  (define* (read-text into: result ::Text := (Text)
+                      from: port ::InputPort := (current-input-port))
+    ::Text
+    (define (read-hex-sequence #!optional (code 0))
+      (let ((d ::char (peek-char port)))
+        (cond ((or (eof-object? d)
+                   (isnt d char-hex-digit?))
+               (result:add code))
+              (else
+               (read-char port)
+               (read-hex-sequence (+ (* code 16)
+                                     (char-hex-value d)))))))
+    (define (read-escaped)
+      (let ((c ::char (read-char port)))
+        (cond
+         ((eof-object? c) result)
+         (else
+          (match c
+            (#\n (result:add #\newline))
+            (#\t (result:add #\tab))
+            (#\\ (result:add #\\))
+            (#\" #|"|# (result:add #\" #|"|#))
+            (#\r (result:add #\return))
+            (#\b (result:add #\backspace))
+            (#\f (result:add #\page))
+            (#\x (read-hex-sequence))
+            (#\newline (values))
+            (_
+             ;;(WARN "Unrecognized escape character: "c)
+             (result:add c)))
+          (read-normal)))))
+
+    (define (read-normal)
+      (let ((c ::char (read-char port)))
+        (cond
+         ((or (eof-object? c)
+              (eq? c #\" #|"|#))
+          result)
+         ((eq? c #\\)
+          (read-escaped))
+         (else
+          (result:add c)
+          (read-normal)))))
+
+    (read-normal))
+#+END_SRC
+
+We can now test our parser. Note that we haven't defined the
+~enchanted~ procedure -- this is because we're not ready for
+it yet. Instead, we will define a mock version of the
+~enchanted~ procedure that simply returns its first
+argument. We'll also define a mock version of the ~Document~
+class that will be elaborated in the future.
+
+#+BEGIN_SRC scheme :tangle test/advanced-parser.scm :mkdirp yes :noweb tangle
+  <<header>>
+  (module-name (test advanced-parser))
+  (import (language extensions))
+
+  <<basic-text-painter>>
+
+  (define painter ::Painter (TextPainter))
+
+  <<GRASP-ontology>>
+
 
   (define (enchanted item ::Tile path ::Stack)::Tile
-    ;; tutaj muszą się dopiero dziać ciekawe rzeczy:
-    ;; - jeżeli rozszerzenie jest zarejestrowane, to
-    ;; chcemy je zastosować (zapamiętując przy tym
-    ;; oryginalne wyrażenie), a jeżeli nie, to musimy
-    ;; zapamiętać lokację i próbować ponownie po każdym
-    ;; załadowaniu modułu, względnie po każdej ewaluacji.
-    ;; Ale dodatkowo podczas edycji dokumentu będziemy
-    ;; musieli aktualizować zapamiętane lokacje!
-    ;; (i to się będzie objawiało w taki sposób, że jeżeli
-    ;; dodajemy jakiś element w jakimś miejscu, to wszystkie
-    ;; indeksy na tym poziomie znajdujące się za tym elementem
-    ;; muszą zostać zwiększone, a jeżeli usuwamy ten element,
-    ;; to musimy odpowiednie indeksy zmniejszyć)
     item)
 
-  (define (read-list #!optional
-                     (port ::InputPort (current-input-port))
-                     #!key
-                     (path ::Stack (ArrayStack)))::Comb
-    (let ((result ::Comb (Comb)))
-      (let next ()
-        (match (read-char port)
-          (,@eof-object? result)
-          (#\(
-           (path:push! (result:size))
-           (result:add (read-list port path: path))
-           (path:pop!)
-           (next))
-          (#\) result)
-          (#\[
-           (path:push! (result:size))
-           (result:add (enchanted (read-list port path: path) path))
-           (path:pop!)
-           (next))
-          (#\] result)
-          (#\space
-           (result:add #\space)
-           (next))
-          (#\newline
-           (result:add #\newline)
-           (next))
-          (c
-           (result:add (read-atom-into (Atom c) port))
-           (next))))))
+  (define-interface Element (Spatial Visual)
+    #|
+    This is a mock implementation
+    that is only used for testing
+    the implementation of the simplified
+    parser
+    |#
+    )
 
+  (define-interface Tile (Element)
+    (width)::real
+    (height)::real)
 
+  (define-interface Compound (Tile List)
+    #|
+    This is a mock implementation
+    that is only used for testing
+    the implementation of the simplified
+    parser
+    |#
+    )
 
-  (define* (read-list from: port ::InputPort := (current-input-port)
-                      at: indentation-level ::int := 0
-                      upto: max-items ::real := +inf.0)
-    ::Comb
-    (let ((result ::Comb (Comb)))
+  <<mock-Space-definition>>
 
-      (let next ((remaining ::real max-items))
-        (if (is remaining <= 0) #;>
+  (define-object (Comb)::Compound
+    <<Comb--collection-operations>>
+    <<Comb--rendering>>
+    )
 
-        (match (read-char port)
-          (,@eof-object? result)
-          (#\(
-           (result:add (read-list from: port
-                                  at: (+ indentation-level 1)))
-           (next))
-          (#\) result)
-          (#\[ ...)
-          (#\] result)
-          (#\#
-           (match (read-char port)
-             (#\; ...)
-             (#\|
-              (result:add (parse-block-comment port))
-              (next))
-             (#\' ...)
-             (#\` ...)
-             (#\,
-              (match (peek-char port)
-                (#\@
-                 (read-char port)
-                 ...)
-                (_ ...)))
+  <<TextualBase>>
 
-              (_ ...)))
-           (#\' ...)
-           (#\` ...)
-           (#\,
-            (match (peek-char port)
-              (#\@
-               (read-char port)
-               ...)
-              (_
-               ...))
-            )
-           (#\;
-            (result:add (parse-line-comment port))
-            (next))
+  <<GRASP--textual-units>>
 
-           (#\"
-            (result:add (parse-string port))
-            (next))
+  <<advanced-parser>>
 
-           (c
-            (result:add c)
-            (next))
+  (define-object (Document)
+    (Comb)
+    (set! style BorderStyle:None))
+
+  (define* (read-document port ::InputPort := (current-input-port))::Document
+    (read-list from: port into: (Document)))
+
+  (e.g.
+   (let ((document ::Comb (call-with-input-string "\
+  (define (! n) ; int -> int
+  (if (is n <= 1)
+    1 #| base case |#
+  (* n (! (- n 1)))))
+  " read-document)))
+     (document:render! #true)
+     (display (painter:toString))
+     (painter:toString)) ===> "
+  ╭        ╭     ╮  int -> int   ╮
+  │ define │ ! n │               │
+  │        ╰     ╯               │
+  │  ╭    ╭           ╮        ╮ │
+  │  │ if │ is n <= 1 │        │ │
+  │  │    ╰           ╯        │ │
+  │  │     ╔═══════════╗       │ │
+  │  │   1 ║ base case ║       │ │
+  │  │     ╚═══════════╝       │ │
+  │  │ ╭     ╭   ╭       ╮ ╮ ╮ │ │
+  │  │ │ * n │ ! │ - n 1 │ │ │ │ │
+  ╰  ╰ ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
+  ")
 
 #+END_SRC
 

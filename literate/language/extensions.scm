@@ -294,7 +294,6 @@
 (define-alias Iterable java.lang.Iterable)
 (define-alias Integer java.lang.Integer)
 (define-alias StringBuilder java.lang.StringBuilder)
-(define-alias Stack java.util.Stack)
 (define-alias IntStream java.util.stream.IntStream)
 
 (define (par-for-each function collection)
@@ -308,48 +307,48 @@
     (futures:clear)))
 
 (define-syntax for
-  (syntax-rules (in from to down-to below by
-                    in-reverse
-                    in-parallel ::)
+  (syntax-rules (in: from: to: down-to: below: by:
+                    in/reverse:
+                    in/parallel: ::)
 
-    ((for var from . rest)
-     (for var :: Object from . rest))
+    ((for var from: . rest)
+     (for var :: Object from: . rest))
 
-    ((for var in . rest)
-     (for var :: Object in . rest))
+    ((for var in: . rest)
+     (for var :: Object in: . rest))
 
-    ((for var in-reverse . rest)
-     (for var :: Object in-reverse . rest))
+    ((for var in/reverse: . rest)
+     (for var :: Object in-reverse: . rest))
 
-    ((for var in-parallel . rest)
-     (for var :: Object in-parallel . rest))
+    ((for var in/parallel: . rest)
+     (for var :: Object in/parallel: . rest))
 
-    ((for var :: type in-reverse collection . actions)
+    ((for var :: type in/reverse: collection . actions)
      (let ((it ::ListIterator (collection:listIterator
                                          (length collection))))
        (while (it:hasPrevious)
               (let ((var ::type (it:previous)))
                 . actions))))
 
-    ((for var :: type in-parallel collection . actions)
+    ((for var :: type in/parallel: collection . actions)
      (par-for-each (lambda (var :: type) . actions) collection))
 
-    ((for var :: type in collection . actions)
+    ((for var :: type in: collection . actions)
      (for-each (lambda (var :: type) . actions) collection))
 
-    ((for (vars ...) in collection . actions)
+    ((for (vars ...) in: collection . actions)
      (for-each (lambda (var)
                  (apply (lambda (vars ...) . actions) var))
                collection))
 
-    ((for var::type from start to end by increment actions ...)
+    ((for var::type from: start to: end by: increment actions ...)
      (let loop ((var::type start))
        (if (is var <= end) ;>
            (begin
              actions ...
              (loop (+ var increment))))))
 
-    ((for var::type from start down-to end by increment actions ...)
+    ((for var::type from: start down-to: end by: increment actions ...)
      (let ((inc (abs increment)))
        (let loop ((var::type start))
          (if #;< (is var >= end)
@@ -357,21 +356,21 @@
                    actions ...
                    (loop (- var inc)))))))
 
-    ((for var::type from start below end by increment actions ...)
+    ((for var::type from: start below: end by: increment actions ...)
      (let loop ((var ::type start))
        (if (is var < end) ;>
            (begin
              actions ...
              (loop (+ var increment))))))
 
-    ((for var::type from start to end actions ...)
-     (for var::type from start to end by 1 actions ...))
+    ((for var::type from: start to: end actions ...)
+     (for var::type from: start to: end by: 1 actions ...))
 
-    ((for var::type from start down-to end actions ...)
-     (for var::type from start down-to end by 1 actions ...))
+    ((for var::type from: start down-to: end actions ...)
+     (for var::type from: start down-to: end by: 1 actions ...))
 
-    ((for var::type from start below end actions ...)
-     (for var::type from start below end by 1 actions ...))
+    ((for var::type from: start below: end actions ...)
+     (for var::type from: start below: end by: 1 actions ...))
 
     ))
 
@@ -388,6 +387,8 @@
 (define-alias OutputPort gnu.kawa.io.OutPort)
 
 (define-alias EndOfFile gnu.lists.EofClass)
+
+(define-alias string-port gnu.kawa.io.CharArrayInPort:make)
 
 (define-alias Char gnu.text.Char)
 
@@ -412,7 +413,7 @@
     (proc)))
 
 (define (print . messages)
-  (for message in messages
+  (for message in: messages
     (display message))
   (newline))
 
@@ -925,7 +926,7 @@
                       ((Collection? slot-symbol)
                        (kawa.lib.kawa.pprint:pprintStartLogicalBlock "[" #f "]" port)
                        (try-finally
-                        (for item in slot-symbol
+                        (for item in: slot-symbol
                          (kawa.lib.kawa.pprint:pprint item port))
                         (kawa.lib.kawa.pprint:pprintEndLogicalBlock "]" port)))
                       (else
@@ -989,7 +990,7 @@
    ((instance? object WeakHashMap)
     (let* ((hash-map ::WeakHashMap object)
 	   (cloned ::WeakHashMap (WeakHashMap)))
-      (for key in (hash-map:keySet)
+      (for key in: (hash-map:keySet)
 	(let ((value (hash-map:get key)))
 	  (cloned:put key value)))
       cloned))
@@ -2050,7 +2051,7 @@ in patterns and remove them from bindings"
 
 (define (any satisfying? elements)
   (escape-with return
-    (for x in elements
+    (for x in: elements
       (let ((result (satisfying? x)))
         (when result
           (return result))))
@@ -2079,7 +2080,7 @@ in patterns and remove them from bindings"
 
 (define (every satisfying? elements)::boolean
   (escape-with return
-    (for x in elements
+    (for x in: elements
       (unless (satisfying? x)
         (return #f)))
     #t))
@@ -2103,7 +2104,7 @@ in patterns and remove them from bindings"
 (define (only cool? stuff)
   (let* ((result (cons #f '()))
          (cone result))
-    (for x in stuff
+    (for x in: stuff
       (when (cool? x)
         (set-cdr! cone (cons x '()))
         (set! cone (cdr cone))))
@@ -2116,7 +2117,7 @@ in patterns and remove them from bindings"
 (define (fold-left f x0 . xs*)
 
   (define (fold-left1 xs ::List)
-    (for x in xs
+    (for x in: xs
       (set! x0 (f x0 x)))
     x0)
 
@@ -2235,14 +2236,14 @@ in patterns and remove them from bindings"
    ((isnt inout list?)
     (cond 
      ((null? in*)
-      (for i from 0 below (length inout)
+      (for i from: 0 below: (length inout)
            (set! (inout i) (f (inout i))))
       inout)
      ((null? (cdr in*))
       (escape-with return
         (let ((i 0)
               (n (length inout)))
-          (for x in (cdr in*)
+          (for x in: (cdr in*)
             (set! (inout i) (f (inout i) x))
             (set! i (+ i 1))
             (when (is i >= n)
@@ -2254,7 +2255,7 @@ in patterns and remove them from bindings"
                         (l:listIterator))
                       in*)))
         (escape-with return
-          (for i from 0 below n
+          (for i from: 0 below: n
                (if (every (lambda (it ::Iterator)
                             (it:hasNext)) its)
                    (set! (inout i)
@@ -2383,12 +2384,30 @@ in patterns and remove them from bindings"
    (set! (last v) 3)
    v) ===> #(1 2 3))
 
+(define (char-digit? c::char)::boolean
+  (is (char->integer #\0) <= (char->integer c) <= (char->integer #\9)))
+
+(define (char-hex-digit? c::char)::boolean
+  (or (char-digit? c)
+      (is (char->integer #\a) <= (char->integer c) <= (char->integer #\f))
+      (is (char->integer #\A) <= (char->integer c) <= (char->integer #\F))))
+
+(define (char-hex-value c::char)::int
+  (let ((code (char->integer c)))
+    (cond ((char-digit? c)
+	   (- code (char->integer #\0)))
+	  ((is (char->integer #\a) <= code <= (char->integer #\f))
+	   (+ 10 (- code (char->integer #\a))))
+	  (else
+	   (assert (is (char->integer #\A) <= code <= (char->integer #\F)))
+	   (+ 10 (- code (char->integer #\A)))))))
+
 (define-simple-class set (HashSet)
   ((toString)::String
    (with-output-to-string
      (lambda ()
        (display "[set")
-       (for item in (this)
+       (for item in: (this)
          (display " ")
          (cond
           ((or (string? item) (String? item))
@@ -2429,13 +2448,13 @@ in patterns and remove them from bindings"
       (with-compile-options
        warn-unknown-member: #f
        (let ((clone ::Set (set:clone)))
-         (for collection ::Collection in sets
+         (for collection ::Collection in: sets
               (clone:addAll collection))
          clone))
       (fold-left list-union set sets)))
 
 (define (union! set::Set . sets)
-  (for collection ::Collection in sets
+  (for collection ::Collection in: sets
        (set:addAll collection))
   set)
 
@@ -2451,7 +2470,7 @@ in patterns and remove them from bindings"
       (with-compile-options
        warn-unknown-member: #f
        (let ((clone ::Set (set:clone)))
-         (for collection ::Collection in sets
+         (for collection ::Collection in: sets
               (clone:retainAll collection))
          clone))
       (fold-left list-intersection set sets)))
@@ -2472,7 +2491,7 @@ in patterns and remove them from bindings"
       (with-compile-options
        warn-unknown-member: #f
        (let ((clone ::Set (set:clone)))
-         (for collection ::Collection in sets
+         (for collection ::Collection in: sets
               (clone:removeAll collection))
          clone))
       (fold-left list-difference set sets)))
@@ -2741,3 +2760,69 @@ in patterns and remove them from bindings"
     (if backwards?
         (collection:set index element)
         (collection:set (- index 1) element))))
+
+(define-interface Stack (List)
+  (push! element)::void
+  (pop!)::Object
+  ;(empty?)::boolean
+  (top)::Object)
+
+(define-object (ArrayStack)::Stack
+
+  (define (push! element)::void
+    (invoke-special ArrayList (this) 'add element))
+
+  (define (pop!)::Object
+    (remove (- (size) 1)))
+
+  #;(define (empty?)::boolean
+    (isEmpty))
+
+  (define (top)::Object
+    (get (- (size) 1)))
+
+  (ArrayList))
+
+(define-object (CharacterRing n ::int)::CharSequence
+
+  (define-private end ::int 0)
+
+  (define-private buffer ::(array-of Char)
+    ((array-of Char) length: n))
+
+  (define (add c::Char)::void
+    (set! (buffer end) c)
+    (set! end (modulo (+ end 1) n)))
+
+  (define (charAt i::int)::Char
+    (buffer (modulo (+ (- end n) i) n)))
+
+  (define (length)::int
+    n)
+
+  (define (subSequence start ::int end ::int)::CharSequence
+    (assert (is start <= end)) ;>
+    (let ((s ::CharacterRing (CharacterRing (- end start))))
+      (for i ::int from: start below: end
+           (s:add (charAt i)))
+      s))
+
+  (define (matches? s::string)::boolean
+    (and-let* ((m ::int (string-length s))
+               ((= m n)))
+      (escape-with
+       return
+       (for i::int from: 0 below: m
+            (unless (eqv? (s i) (charAt i))
+              (return #false)))
+       (return #true))))
+
+  (define (toString)::String
+    (call-with-output-string
+      (lambda (port ::OutputPort)
+        (for i ::int from: 0 below: n
+             (write-char (charAt i) port)))))
+
+  (Object)
+  (assert (is n > 0))
+  )
