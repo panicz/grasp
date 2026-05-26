@@ -267,6 +267,17 @@ because it supports expression comment read syntax: it is
 sufficient to write ~#;~ before an expression in order for
 it to be ignored by the Scheme reader.)
 
+We can define a nearly identical macro called ~TODO~ to
+temporarily mark things in our program that haven't been
+implemented yet:
+
+#+BEGIN_SRC scheme :tangle language/extensions.scm :comment org
+
+(define-syntax-rule (TODO . <anything>)
+  (values))
+
+#+END_SRC
+
 **** The ~assert~ macro
 
 An assertion is a belief about a certain state of
@@ -913,11 +924,6 @@ separate token:
 
 #+END_SRC
 
-If you analyze this macro, you'll notice that there are
-always two variants of each clause -- one that includes
-the ~::type~ and one that omits it.
-
-
 *** Input/output operations
 
 Kawa Scheme lacks certain port operations that are present
@@ -1076,7 +1082,9 @@ that "an object is an environment that implements an
 interface".
 
 The ~define-object~ macro delegates all the actual work to
-the ~object-definition~ helper macro:
+the ~object-definition~ helper macro. It is rather lengthy,
+because it needs to support a lot of different cases, but
+those cases themselves are rather simple.
 
 #+BEGIN_SRC  scheme :tangle language/extensions.scm
 
@@ -1549,7 +1557,8 @@ and
 
 #+END_SRC
 
-
+In both cases, the type arguments are essentially ignored by
+the typechecker.
 
 **** The ~define-type~ macro
 
@@ -3945,6 +3954,9 @@ reader.
 
 *** Miscellaneous macros, classes and functions
 
+The following definitons will hopefully be explained some
+day in the future.
+
 #+BEGIN_SRC scheme :tangle language/extensions.scm
 
   (define-syntax otherwise
@@ -3982,6 +3994,34 @@ reader.
   (define-syntax-rule (define/memoized (name . args) . body)
     (define name (memoize (lambda args . body))))
 
+  (define-syntax increase!
+    (syntax-rules (by:)
+      ((increase! location)
+       (increase! location by: 1))
+      ((increase! location by: value)
+       (set! location (+ location value)))
+      ))
+
+  (define-syntax decrease!
+    (syntax-rules (by:)
+      ((decrease! location)
+       (decrease! location by: 1))
+      ((increase! location by: value)
+       (set! location (- location value)))
+      ))
+
+  (define-syntax-rule (maximize! location values ...)
+    (set! location (max location values ...)))
+
+  (define-syntax-rule (minimize! location values ...)
+    (set! location (min location values ...)))
+
+  (define-syntax multiply!
+    (syntax-rules (by:)
+      ((multiply! location by: value)
+       (set! location (* location value)))
+      ))
+  
   (define-object (InputPortLineIterator port::InputPort)
     ::(specialize Iterator string)
     (define next-line ::(maybe (either string EndOfFile)) #!null)
@@ -4319,6 +4359,7 @@ different types of borders.
      List
      Text
      Comment
+     LineComment
      ))
 
   (define-enum SideSelected
@@ -4463,210 +4504,221 @@ by its descendant classes.
 
 #+NAME: CharPainter--body
 #+BEGIN_SRC scheme :tangle no
-    (define-static Borders
-      ::(sequence-of BorderCharacters)
-      (vector
-       (BorderCharacters
-        ""    ""    ""
-        ""          ""
-        "" #|None|# ""
-        ""          ""
-        ""          ""
-        ""    ""    "")
-       (BorderCharacters
-        ""   " "    ""
-        ""          ""
-        "" #|Atom|# ""
-        ""          ""
-        ""          ""
-        ""   " "    "")
-       (BorderCharacters
-        "╭ "        ""       " ╮"
-        "│ "                 " │"
-        "│ " #|Parentheses|# " │"
-        "┆ "                 " ┆"
-        "┊ "                 " ┊"
-        "╰ "        ""       " ╯")
-       (BorderCharacters
-        "┎ "    ""     " ┒"
-        "┃ "           " ┃"
-        "┃ " #|Quote|# " ┃"
-        "┇ "           " ┇"
-        "┋ "           " ┋"
-        "┖ "    ""     " ┚")
-       (BorderCharacters
-        "╓ "       ""       " ╖"
-        "║ "                " ║"
-        "║ " #|Quasiquote|# " ║"
-        "║ "                " ║"
-        "║ "                " ║"
-        "╙ "       ""       " ╜")
-       (BorderCharacters
-        "╷ "     ""      " ╷"
-        "│ "             " │"
-        "│ " #|Unquote|# " │"
-        "┆ "             " ┆"
-        "┊ "             " ┊"
-        "└ "     ""      " ┘")
-       (BorderCharacters
-        " ╷ "         ""          " ╷ "
-        " │ "                     " │ "
-        "┈┤ " #|UnquoteSplicing|# " ├┈"
-        " ┆ "                     " ┆ "
-        " ┊ "                     " ┊ "
-        " └ "         ""          " ┘ ")
-       (BorderCharacters
-        "┏ "    ""    " ┓"
-        "┃ "          " ┃"
-        "┃ " #|List|# " ┃"
-        "┇ "          " ┇"
-        "┋ "          " ┋"
-        "┗ "    ""    " ┛")
-       (BorderCharacters
-        "❝"   "┈"    "•"
-        "┊"          "┊"
-        "┊" #|Text|# "┊"
-        "┆"          "┆"
-        "┊"          "┊"
-        "•"   "┈"    "❞")
-       (BorderCharacters
-        "╔"     "═"     "╗"
-        "║"             "║"
-        "║" #|Comment|# "║"
-        "║"             "║"
-        "║"             "║"
-        "╚"     "═"     "╝")
-  ))
+  (define-static Borders
+    ::(sequence-of BorderCharacters)
+    (vector
+     (BorderCharacters
+      ""    ""    ""
+      ""          ""
+      "" #|None|# ""
+      ""          ""
+      ""          ""
+      ""    ""    "")
+     (BorderCharacters
+      ""   " "    ""
+      ""          ""
+      "" #|Atom|# ""
+      ""          ""
+      ""          ""
+      ""   " "    "")
+     (BorderCharacters
+      "╭ "        ""       " ╮"
+      "│ "                 " │"
+      "│ " #|Parentheses|# " │"
+      "┆ "                 " ┆"
+      "┊ "                 " ┊"
+      "╰ "        ""       " ╯")
+     (BorderCharacters
+      "┎ "    ""     " ┒"
+      "┃ "           " ┃"
+      "┃ " #|Quote|# " ┃"
+      "┇ "           " ┇"
+      "┋ "           " ┋"
+      "┖ "    ""     " ┚")
+     (BorderCharacters
+      "╓ "       ""       " ╖"
+      "║ "                " ║"
+      "║ " #|Quasiquote|# " ║"
+      "║ "                " ║"
+      "║ "                " ║"
+      "╙ "       ""       " ╜")
+     (BorderCharacters
+      "╷ "     ""      " ╷"
+      "│ "             " │"
+      "│ " #|Unquote|# " │"
+      "┆ "             " ┆"
+      "┊ "             " ┊"
+      "└ "     ""      " ┘")
+     (BorderCharacters
+      " ╷ "         ""          " ╷ "
+      " │ "                     " │ "
+      "┈┤ " #|UnquoteSplicing|# " ├┈"
+      " ┆ "                     " ┆ "
+      " ┊ "                     " ┊ "
+      " └ "         ""          " ┘ ")
+     (BorderCharacters
+      "┏ "    ""    " ┓"
+      "┃ "          " ┃"
+      "┃ " #|List|# " ┃"
+      "┇ "          " ┇"
+      "┋ "          " ┋"
+      "┗ "    ""    " ┛")
+     (BorderCharacters
+      "❝"   "┈"    "•"
+      "┊"          "┊"
+      "┊" #|Text|# "┊"
+      "┆"          "┆"
+      "┊"          "┊"
+      "•"   "┈"    "❞")     
+     (BorderCharacters
+      "╔"     "═"     "╗"
+      "║"             "║"
+      "║" #|Comment|# "║"
+      "║"             "║"
+      "║"             "║"
+      "╚"     "═"     "╝")
+     (BorderCharacters
+      "⸾"       ""        " "
+      "⸾"                 " "
+      "⸾" #|LineComment|# " "
+      "⸾"                 " "
+      "⸾"                 " "
+      "⸾"       ""        " ")
+     ))
 
-    (define-protected (put! c ::char left ::int top ::int)::void
-      #!abstract)
+  (define-protected (put! c ::char left ::int top ::int)::void
+    #!abstract)
 
-    (define-protected shift-left ::int 0)
-    (define-protected shift-top ::int 0)
+  (define-protected shift-left ::int 0)
+  (define-protected shift-top ::int 0)
 
-    (define-protected clip-width ::int Integer:MAX_VALUE)
-    (define-protected clip-height ::int Integer:MAX_VALUE)
+  (define-protected clip-width ::int Integer:MAX_VALUE)
+  (define-protected clip-height ::int Integer:MAX_VALUE)
 
-    (define (with-translation x::real y::real action::(maps () to: ,A))::,A
-      (assert (and (is 0 <= x) (is y >= 0)))
-      (with ((shift-left (as int (+ shift-left x)))
-             (shift-top (as int (+ shift-top y)))
-             (clip-width (- clip-width x))
-             (clip-height (- clip-height y)))
-            (action)))
+  (define (with-translation x::real y::real action::(maps () to: ,A))::,A
+    (assert (and (is 0 <= x) (is y >= 0)))
+    (with ((shift-left (as int (+ shift-left x)))
+           (shift-top (as int (+ shift-top y)))
+           (clip-width (- clip-width x))
+           (clip-height (- clip-height y)))
+          (action)))
 
-    (define (with-rotation angle::real action::(maps () to: ,A))::,A
-      (action))
+  (define (with-rotation angle::real action::(maps () to: ,A))::,A
+    (action))
 
-    (define-protected stretch-horizontal ::float 1.0)
-    (define-protected stretch-vertical ::float 1.0)
+  (define-protected stretch-horizontal ::float 1.0)
+  (define-protected stretch-vertical ::float 1.0)
 
-    (define (with-stretch horizontal::real vertical::real
+  (define (with-stretch horizontal::real vertical::real
+                        action::(maps () to: ,A))
+    ::,A
+    (assert (and (is 0 < horizontal) (is vertical > 0)))
+    (with ((stretch-horizontal (* stretch-horizontal horizontal))
+           (stretch-vertical (* stretch-vertical vertical)))
+          (action)))
+
+  (define (with-clip width::real height::real
+                     action::(maps () to: ,A))
+    ::,A
+    (assert (and (is 0 <= width) (is height >= 0)))
+    (with ((clip-width (min clip-width
+                            (nearby-int (* width stretch-horizontal))))
+           (clip-height (min clip-height
+                             (nearby-int (* height stretch-vertical)))))
+          (action)))
+
+  (define (with-scale scale::real action::(maps () to: ,A))::,A
+    (action))
+
+  (define (with-intensity intensity::<0.0-1.0>
                           action::(maps () to: ,A))
-      ::,A
-      (assert (and (is 0 < horizontal) (is vertical > 0)))
-      (with ((stretch-horizontal (* stretch-horizontal horizontal))
-             (stretch-vertical (* stretch-vertical vertical)))
-            (action)))
+    ::,A
+    #!abstract)
 
-    (define (with-clip width::real height::real
-                       action::(maps () to: ,A))
-      ::,A
-      (assert (and (is 0 <= width) (is height >= 0)))
-      (with ((clip-width (min clip-width
-                              (nearby-int (* width stretch-horizontal))))
-             (clip-height (min clip-height
-                               (nearby-int (* height stretch-vertical)))))
-            (action)))
+  (define (space-width)::real
+    1)
 
-    (define (with-scale scale::real action::(maps () to: ,A))::,A
-      (action))
+  (define (min-line-height)::real
+    3)
 
-    (define (with-intensity intensity::<0.0-1.0>
-                            action::(maps () to: ,A))
-      ::,A
-      #!abstract)
+  (define (draw-box! width ::real height ::real
+                     selected ::SideSelected
+                     style ::BorderStyle)
+    ::void
+    (let ((border ::BorderCharacters
+                   (Borders (style:ordinal))))
+      (unless (border:top:isEmpty)
+        (let ((top-length ::int (border:top:length)))
+          (for i ::int
+               from: border:width
+               below: (- width border:width)
+               (put! (border:top (modulo i top-length))
+                     i 0))))
 
-    (define (space-width)::real
-      1)
+      (unless (border:bottom:isEmpty)
+        (let ((bottom-length ::int (border:bottom:length)))
+          (for i ::int
+               from: border:width
+               below: (- width border:width)
+               (put! (border:bottom (modulo i bottom-length))
+                     i (- height 1)))))
 
-    (define (min-line-height)::real
-      3)
-
-    (define (draw-box! width ::real height ::real
-                       selected ::SideSelected
-                       style ::BorderStyle)
-      ::void
-      (let ((border ::BorderCharacters
-                     (Borders (style:ordinal))))
-        (unless (border:top:isEmpty)
-          (let ((top-length ::int (border:top:length)))
-            (for i ::int
-                 from: border:width
-                 below: (- width border:width)
-                 (put! (border:top (modulo i top-length))
-                       i 0))))
-
-        (unless (border:bottom:isEmpty)
-          (let ((bottom-length ::int (border:bottom:length)))
-            (for i ::int
-                 from: border:width
-                 below: (- width border:width)
-                 (put! (border:bottom (modulo i bottom-length))
-                       i (- height 1)))))
-
-        (for i ::int from: 0 below: border:width
-             (put! (border:leftTop i) i 0))
-        (for line ::int from: 1 below: (- height 2)
-             (for i ::int from: 0 below: border:width
-                  (put! (border:leftLine i) i line)))
-        (for i ::int from: 0 below: border:width
-             (put! (border:leftMiddle i) i (- height 2)))
-        (for i ::int from: 0 below: border:width
-             (put! (border:leftBottom i) i (- height 1)))
-        (with-translation
-         (- width border:width) 0
-         (lambda ()
+      (for i ::int from: 0 below: border:width
+           (put! (border:leftTop i) i 0))
+      (for line ::int from: 1 below: (- height 2)
            (for i ::int from: 0 below: border:width
-                (put! (border:rightTop i) i 0))
-           (for line ::int from: 1 below: (- height 2)
-                (for i ::int from: 0 below: border:width
-                     (put! (border:rightLine i) i line)))
+                (put! (border:leftLine i) i line)))
+      (when (is height #;< > 2)
+        (for i ::int from: 0 below: border:width
+             (put! (border:leftMiddle i) i (- height 2))))
+      (when (is height #;< > 1)
+        (for i ::int from: 0 below: border:width
+             (put! (border:leftBottom i) i (- height 1))))
+      (with-translation
+       (- width border:width) 0
+       (lambda ()
+         (for i ::int from: 0 below: border:width
+              (put! (border:rightTop i) i 0))
+         (for line ::int from: 1 below: (- height 2)
+              (for i ::int from: 0 below: border:width
+                   (put! (border:rightLine i) i line)))
+         (when (is height #;< > 2)
            (for i ::int from: 0 below: border:width
-                (put! (border:rightMiddle i) i (- height 2)))
+                (put! (border:rightMiddle i) i (- height 2))))
+         (when (is height #;< > 1)
            (for i ::int from: 0 below: border:width
-                (put! (border:rightBottom i) i (- height 1)))))))
+                (put! (border:rightBottom i) i (- height 1))))))))
 
-    (define (border-width style ::BorderStyle)::real
-      (let ((border ::BorderCharacters
-                    (Borders (style:ordinal))))
-        border:width))
+  (define (border-width style ::BorderStyle)::real
+    (let ((border ::BorderCharacters
+                  (Borders (style:ordinal))))
+      border:width))
 
-    (define (border-height style ::BorderStyle)::real
-      (let ((border ::BorderCharacters
-                    (Borders (style:ordinal))))
-        border:height))
+  (define (border-height style ::BorderStyle)::real
+    (let ((border ::BorderCharacters
+                  (Borders (style:ordinal))))
+      border:height))
 
-    (define (clear!)::void
-      #!abstract)
+  (define (clear!)::void
+    #!abstract)
 
-    (define (draw-text! text::CharSequence font::FontProxy)::real
-      #!abstract)
+  (define (draw-text! text::CharSequence font::FontProxy)::real
+    #!abstract)
 
-    (define (text-width text::CharSequence font::FontProxy)::real
-      (string-length text))
+  (define (text-width text::CharSequence font::FontProxy)::real
+    (string-length text))
 
-    (define (mark-cursor! index::int font::FontProxy)::void
-      #!abstract)
+  (define (mark-cursor! index::int font::FontProxy)::void
+    #!abstract)
 
-    (define (character-index horizontal-position::real text::CharSequence
-                             font::FontProxy)
-      ::int
-      (let ((n ::int (string-length text)))
-        (cond
-         ((is horizontal-position <= 0) 0)
-         ((is horizontal-position >= n) n)
-         (else (nearby-int horizontal-position)))))
+  (define (character-index horizontal-position::real text::CharSequence
+                           font::FontProxy)
+    ::int
+    (let ((n ::int (string-length text)))
+      (cond
+       ((is horizontal-position <= 0) 0)
+       ((is horizontal-position >= n) n)
+       (else (nearby-int horizontal-position)))))
 
 #+END_SRC
 
@@ -5282,7 +5334,7 @@ going to provide mock definitions of ~Element~, ~Tile~ and
     |#
 
     (define-static (single)::Space
-      (Space "-"))
+      (Space " "))
 
     (define-static (empty)::Space
       (Space ""))
@@ -5358,15 +5410,15 @@ an object that would represent the current ~LayoutState~:
                 line-height: real := (painter:min-line-height)))
 
   (define (break-layout! state ::LayoutState)::void
-    (set! state:max-width (max state:max-width state:left))
+    (maximize! state:max-width state:left)
     (set! state:left 0)
-    (set! state:top (+ state:top state:line-height))
+    (increase! state:top by: state:line-height)
     (set! state:line-height (painter:min-line-height)))
 
   (define (expand-layout! state ::LayoutState width ::real height ::real)::void
-    (set! state:left (+ state:left width))
-    (set! state:max-width (max state:max-width state:left))
-    (set! state:line-height (max state:line-height height)))
+    (increase! state:left by: width)
+    (maximize! state:max-width state:left)
+    (maximize! state:line-height state:line-height height))
 
 #+END_SRC
 
@@ -5384,8 +5436,8 @@ assume that it can be rendered as either an active element
 otherwise):
 
 #+BEGIN_SRC scheme :tangle no :noweb-ref GRASP-ontology
-  (define-interface Visual ()
-    (render! active?::boolean)::void)
+  (define-interface Visual (Spatial)
+    (render! active?::boolean state::LayoutState)::void)
 #+END_SRC
 
 We therefore expect an ~Element~ to be both ~Visual~ and
@@ -5425,7 +5477,7 @@ rendering function for ~Comb~ and its thereabouts.
 #+BEGIN_SRC scheme :tangle no :noweb-ref Comb--rendering
   (define style ::BorderStyle BorderStyle:Parentheses)
 
-  (define (render! active? ::boolean)::void
+  (define (render! active? ::boolean state::LayoutState)::void
     (let ((active ::Element (or (and active? (get current-index))
                                 #!null))
           (current-layout ::LayoutState (LayoutState))
@@ -5438,15 +5490,16 @@ rendering function for ~Comb~ and its thereabouts.
            (painter:with-translation
             current-layout:left current-layout:top
             (lambda ()
-              (element:render! (and active? (eq? element active)))
-              (element:advance-layout! current-layout))))))
+              (element:render! (and active? (eq? element active))
+                               current-layout))))))
       (update-size-from-layout-state! current-layout)
       (painter:draw-box! last-width last-height
                          (match current-index
                            (,LEFT-PAREN-INDEX  SideSelected:Left)
                            (,RIGHT-PAREN-INDEX SideSelected:Right)
                            (_                  SideSelected:None))
-                         style)))
+                         style))
+    (advance-layout! state))
 
   (define-private (update-size-from-layout-state!
                    state ::LayoutState)
@@ -5480,79 +5533,125 @@ rendering function for ~Comb~ and its thereabouts.
 ***** Testing ~Comb~ rendering
 
 For the purpose of testing ~Comb~ rendering, we provide mock
-definitions of ~Element~ and ~Space~ . The ~Space~ in
-particular is quite lengthy and it will be used in vaious
-other tests, so we will define it in a separate snippet:
+definitions of ~Element~. But we also need some definition
+of ~Space~.  Although we're not ready yet to define
+everything, we can provide a /partial implementation/.
 
-#+BEGIN_SRC scheme :noweb-ref mock-Space-definition
-  (define-object (Space)::Element
-    #|
-    This is a mock implementation
-    that is only used for testing
-    |#
-
-    (define-private content ::List
-      (ArrayList))
-
-    (define-static (single)::Space
-      (Space " "))
-
-    (define-static (empty)::Space
-      (Space ""))
-
-    (define (empty?)::boolean
-      (content:isEmpty))
-
-    (define (blow!)
-      (when (empty?)
-        (add #\space)))
-
-    (define-static (accepts? element::Object)::boolean
-      (or (and (char? element) (char-whitespace? element))
-          (and (string? element)
-               (every char-whitespace? element))
-          (Space? element)))
-
-    (define (add element::Object)::boolean
-      (match element
-        (#\space
-         (content:add #\space))
-        (#\newline
-         (content:add #\newline))
-        (chars::string
-         (for c in: chars
-           (add c)))
-        (space::Space
-         (content:addAll space:content))))
-
-    (define (render! active? ::boolean)::void
-      (values))
-
-    (define (advance-layout! state ::LayoutState)::void
-      (for c in: content
-        (match c
-          (#\newline
-           (break-layout! state))
-          (#\space
-           (expand-layout! state (painter:space-width)
-                           (painter:min-line-height))))))
-
-    (define (white?)::boolean
-      #true)
-
-    (define (toString)::String
-      (call-with-output-string
-        (lambda (port)
-          (for entry in: content
-            (match entry
-              (n::integer
-               (for i from: 0 below: n
-                    (write-char #\space port)))
-              (#\newline
-               (write-char #\newline port)))))))
-    )
+#+BEGIN_SRC scheme :tangle no :noweb-ref GRASP-ontology
+  (define-alias SpaceFragment
+    (either int #\newline Comment))
 #+END_SRC
 
+#+BEGIN_SRC scheme :noweb-ref Space-representation
+
+  (define fragments ::List;of SpaceFragment
+    (ArrayList))
+
+  (define-static (single)::Space
+    (Space " "))
+
+  (define-static (empty)::Space
+    (Space ""))
+
+  (define-private current-index ::int 0)
+
+  (define (empty?)::boolean
+    (or (fragments:isEmpty)
+        (and (= (fragments:size) 1)
+                (equal? 0 (fragments 0)))))
+
+  (define (blow!)
+    (when (empty?)
+      (add #\space)))
+
+  (define-static (accepts? element::Object)::boolean
+    (or (and (char? element) (char-whitespace? element))
+        (and (string? element)
+             (every char-whitespace? element))
+        (Space? element)
+        (Comment? element)))
+
+  (define (add item::(either SpaceFragment #\space CharSequence Space))::boolean
+    (match item
+      (#\space
+       (if (or (fragments:isEmpty)
+               (isnt (last fragments) integer?))
+           (fragments:add 1)
+           (increase! (last fragments))))
+      (#\newline
+       (fragments:add #\newline))
+      (comment::Comment
+       (fragments:add comment))
+      (space::Space
+       (for fragment::SpaceFragment in: space:fragments
+         (if (and (integer? fragment)
+                  (not (fragments:isEmpty))
+                  (integer? (last fragments)))
+             (increase! (last fragments) by: fragment)
+             (fragments:add fragment))))
+      (chars::CharSequence
+       (for c in: chars
+         (add c)))
+      ))
+
+  (define (render! active? ::boolean state::LayoutState)::void
+    (let ((index ::int 0)
+          (initial-left ::real state:left)
+          (initial-top ::real state:top))
+      (for fragment::SpaceFragment in: fragments
+        (match fragment
+          (#\newline
+           (break-layout! state)
+           (increase! index))
+          (n::integer
+           (when #;< (is n > 0)
+             (expand-layout! state (* n (painter:space-width))
+                             (painter:min-line-height))
+             (when (and active?
+                        (is index <= current-index <= (+ index n))) ;>>
+               (TODO mark-cursor))
+             (increase! index by: n)))
+          (comment::Comment
+           (painter:with-translation
+            (- state:left initial-left) (- state:top initial-top)
+            (lambda ()
+              (comment:render! (and active? (= index current-index))
+                               state)))
+           (increase! index)))))
+    )
+
+  (define (advance-layout! state ::LayoutState)::void
+    (for fragment::SpaceFragment in: fragments
+      (match fragment
+        (#\newline
+         (break-layout! state))
+        (n::integer
+         (when #;< (is n > 0)
+           (expand-layout! state (* n (painter:space-width))
+                           (painter:min-line-height))))
+        (comment::Comment
+         (comment:advance-layout! state)))))
+
+  (define (white?)::boolean
+    (every (lambda (fragment::SpaceFragment)
+             (or (integer? fragment)
+                 (eq? fragment #\newline)))
+           fragments))
+
+  (define (toString)::String
+    (call-with-output-string
+      (lambda (port)
+        (for fragment::SpaceFragment in: fragments
+          (match fragment
+            (n::integer
+             (for i::int from: 0 below: n
+                  (write-char #\space port)))
+            (#\newline
+             (write-char #\newline port))
+            (comment::Comment
+             (display (comment:toString) port)))))))
+
+#+END_SRC
 
 #+BEGIN_SRC scheme :tangle test/comb-rendering.scm :mkdirp yes :noweb tangle
   <<header>>
@@ -5565,7 +5664,7 @@ other tests, so we will define it in a separate snippet:
 
   <<GRASP-ontology>>
 
-  (define-interface Element (Spatial Visual)
+  (define-interface Element (Visual)
     #|
     This is a mock implementation
     that is only used for testing
@@ -5588,7 +5687,11 @@ other tests, so we will define it in a separate snippet:
     |#
     )
 
-  <<mock-Space-definition>>
+  (define-interface Comment (Tile))
+
+  (define-object (Space)::Element
+    <<Space-representation>>
+    )
 
   (define-object (Comb)::Compound
     <<Comb--collection-operations>>
@@ -5607,7 +5710,7 @@ other tests, so we will define it in a separate snippet:
         (s::string
          (builder:append s))))
 
-    (define (render! active? ::boolean)::void
+    (define (render! active? ::boolean state ::LayoutState)::void
       (let ((border-width ::real
                           (painter:border-width BorderStyle:Atom))
             (border-height ::real
@@ -5615,7 +5718,8 @@ other tests, so we will define it in a separate snippet:
         (painter:with-translation
          border-width border-height
          (lambda ()
-           (painter:draw-text! builder (painter:atom-font))))))
+           (painter:draw-text! builder (painter:atom-font)))))
+      (advance-layout! state))
 
     (define (width)::real
       (+ (* 2 (painter:border-width BorderStyle:Atom))
@@ -5653,7 +5757,7 @@ other tests, so we will define it in a separate snippet:
                    (Comb (Atom "-") (Space " ")
                          (Atom "n") (Space " ")
                          (Atom "1"))))))))
-     (document:render! #f)
+     (document:render! #f (LayoutState))
      (let ((snapshot (painter:toString)))
        (display snapshot)
        snapshot)) #;< ===> "
@@ -5889,7 +5993,7 @@ we have everything that is needed to define the ~Visual~,
   (define-protected last-width ::int -1)
   (define-protected last-height ::int -1)
 
-  (define (render! active? ::boolean)::void
+  (define (render! active? ::boolean state::LayoutState)::void
     (let* ((font ::FontProxy (font))
            (style ::BorderStyle (border-style))
            (inner-width ::real 0)
@@ -5909,13 +6013,12 @@ we have everything that is needed to define the ~Visual~,
                 (lambda ()
                   (let ((line-width (painter:draw-text!
                                      line font)))
-                    (set! inner-width (max inner-width
-                                           line-width))
-                    (set! inner-height (+ inner-height
-                                          (font:height)))))))))))
+                    (maximize! inner-width line-width)
+                    (increase! inner-height by: (font:height))))))))))
       (set! last-width (+ inner-width (* 2 border-width)))
       (set! last-height (+ inner-height (* 2 border-height)))
-      (painter:draw-box! last-width last-height SideSelected:None style)))
+      (painter:draw-box! last-width last-height SideSelected:None style))
+    (advance-layout! state))
 
   (define-private (recalculate-size!)::void
     (let* ((font ::FontProxy (font))
@@ -5930,10 +6033,8 @@ we have everything that is needed to define the ~Visual~,
         (lambda (port ::InputPort)
           (for line in: (lines port)
             (let ((line-width (painter:text-width line font)))
-              (set! inner-width (max inner-width
-                                     line-width))
-              (set! inner-height (+ inner-height
-                                    (font:height)))))))
+              (maximize! inner-width line-width)
+              (increase! inner-height by: (font:height))))))
       (set! last-width (+ inner-width (* 2 border-width)))
       (set! last-height (+ inner-height (* 2 border-height)))))
 
@@ -5957,6 +6058,8 @@ We can now use the code to define the built-in ~Textual~
 units in GRASP
 
 #+BEGIN_SRC scheme :noweb yes :noweb-ref GRASP--textual-units
+
+  (define-interface TextualComment (Comment TextualTile))
 
   (define-object (TextualTileBase)::TextualTile
     <<TextualTileBase--implementation>>
@@ -5993,7 +6096,7 @@ units in GRASP
 
     (TextualTileBase))
 
-  (define-object (BlockComment)::TextualTile
+  (define-object (BlockComment)::TextualComment
 
     (define-protected (font)::FontProxy
       (painter:comment-font))
@@ -6003,17 +6106,17 @@ units in GRASP
 
     (TextualTileBase))
 
-  (define-object (LineComment)::TextualTile
+  (define-object (LineComment)::TextualComment
 
     (define-protected (font)::FontProxy
       (painter:comment-font))
 
     (define-protected (border-style)::BorderStyle
-      BorderStyle:None)
+      BorderStyle:LineComment)
 
-  (define (advance-layout! state ::LayoutState)::void
-    (expand-layout! state (invoke (this) 'width) (invoke (this) 'height))
-    (break-layout! state))
+    (define (advance-layout! state ::LayoutState)::void
+      (expand-layout! state (invoke (this) 'width) (invoke (this) 'height))
+      (break-layout! state))
 
     (define (toString)::String
       (call-with-output-string
@@ -6046,7 +6149,7 @@ rendering with our ~TextPainter~.
 
   <<GRASP-ontology>>
 
-  (define-interface Element (Spatial Visual)
+  (define-interface Element (Visual)
     #|
     This is a mock implementation
     that is only used for testing
@@ -6058,6 +6161,8 @@ rendering with our ~TextPainter~.
   (define-interface Tile (Element)
     (width)::real
     (height)::real)
+
+  (define-interface Comment (Tile))
 
   <<TextualBase>>
 
@@ -6075,14 +6180,13 @@ rendering with our ~TextPainter~.
                                         "while here
   is a block
   comment"))
-        (line-comment ::LineComment (LineComment "; here's a line comment"))
+        (line-comment ::LineComment (LineComment "here's a line comment"))
         (state ::LayoutState (LayoutState)))
      (for item ::Tile in: (list atom line-comment text block-comment)
           (painter:with-translation
            state:left state:top
            (lambda ()
-             (item:render! #false)
-            (item:advance-layout! state))))
+             (item:render! #false state))))
      (display (painter:toString))
      (painter:toString))
    #;< ===> "
@@ -6094,7 +6198,7 @@ We expect to see the following result:
 
 #+NAME: textual-rendering-result
 #+BEGIN_SRC text
-               ; here's a line comment
+               ⸾here's a line comment 
 this-is-an-atom                       
                                       
 ❝┈┈┈┈┈┈┈┈┈┈┈┈┈┈•╔══════════╗          
@@ -6176,7 +6280,7 @@ We can now test the simplified parser on sample data:
 
   <<GRASP-ontology>>
 
-  (define-interface Element (Spatial Visual)
+  (define-interface Element (Visual)
     #|
     This is a mock implementation
     that is only used for testing
@@ -6198,7 +6302,11 @@ We can now test the simplified parser on sample data:
     |#
     )
 
-  <<mock-Space-definition>>
+  (define-interface Comment (Tile))
+
+  (define-object (Space)::Element
+    <<Space-representation>>
+    )
 
   (define-object (Comb)::Compound
     <<Comb--collection-operations>>
@@ -6222,7 +6330,7 @@ We can now test the simplified parser on sample data:
     (! 5) ===> 120)
   " read-list)))
      (set! document:style BorderStyle:None)
-     (document:render! #true)
+     (document:render! #true (LayoutState))
      (display (painter:toString))
      (painter:toString)) ===> "
   <<simple-parser-test-result-with-indentation>>
@@ -6239,7 +6347,7 @@ We can now test the simplified parser on sample data:
   " read-list)))
      (set! document:style BorderStyle:None)
      (painter:clear!)
-     (document:render! #true)
+     (document:render! #true (LayoutState))
      (display (painter:toString))
      (painter:toString)) ===> "
   <<simple-parser-test-result-no-indentation>>
@@ -6364,7 +6472,7 @@ it supports more objects):
                       upto: max-elements ::real := +inf.0
                       into: result ::Comb := (Comb))
     ::Comb
-    (let ((indentation ::int (port:getColumnNumber))
+    (let ((-indentation ::int (- (port:getColumnNumber)))
           (running? ::boolean #true))
       (path:push! 0)
       (while running?
@@ -6376,7 +6484,8 @@ it supports more objects):
               (,@eof-object? (set! running? #false))
               (#\( (result:add (read-list from: port at: path)))
               (#\space   (result:add #\space))
-              (#\newline (result:add #\newline))
+              (#\newline (result:add #\newline)
+                         (result:add -indentation))
               (#\) (set! running? #false))
               (#\[ (result:add (enchanted (read-list from: port at: path)
                                           path)))
@@ -6404,7 +6513,8 @@ it supports more objects):
                                (Comb* (Atom "unquote")
                                       (read-list from: port at: path upto: 1))
                                path)))))
-              (#\; (result:add (read-line-comment from: port)))
+              (#\; (result:add (read-line-comment from: port))
+                   (result:add -indentation))
               (c   (result:add (read-atom into: (Atom c) from: port))))))
       (path:pop!)
       result))
@@ -6603,11 +6713,7 @@ class that will be elaborated in the future.
 
   <<GRASP-ontology>>
 
-
-  (define (enchanted item ::Tile path ::Stack)::Tile
-    item)
-
-  (define-interface Element (Spatial Visual)
+  (define-interface Element (Visual)
     #|
     This is a mock implementation
     that is only used for testing
@@ -6629,7 +6735,11 @@ class that will be elaborated in the future.
     |#
     )
 
-  <<mock-Space-definition>>
+  (define-interface Comment (Tile))
+
+  (define-object (Space)::Element
+    <<Space-representation>>
+    )
 
   (define-object (Comb)::Compound
     <<Comb--collection-operations>>
@@ -6641,6 +6751,9 @@ class that will be elaborated in the future.
   <<GRASP--textual-units>>
 
   <<advanced-parser>>
+
+  (define (enchanted item ::Tile path ::Stack)::Tile
+    item)
 
   (define-object (Document)
     (Comb)
@@ -6655,22 +6768,27 @@ class that will be elaborated in the future.
   (if (is n <= 1)
     1 #| base case |#
   (* n (! (- n 1)))))
+  (e.g. (! 5) ===> 120)
   " read-document)))
-     (document:render! #true)
+     (document:render! #true (LayoutState))
      (display (painter:toString))
+
      (painter:toString)) ===> "
-  ╭        ╭     ╮  int -> int   ╮
+  ╭        ╭     ╮ ⸾ int -> int  ╮
   │ define │ ! n │               │
   │        ╰     ╯               │
-  │  ╭    ╭           ╮        ╮ │
-  │  │ if │ is n <= 1 │        │ │
-  │  │    ╰           ╯        │ │
-  │  │     ╔═══════════╗       │ │
-  │  │   1 ║ base case ║       │ │
-  │  │     ╚═══════════╝       │ │
-  │  │ ╭     ╭   ╭       ╮ ╮ ╮ │ │
-  │  │ │ * n │ ! │ - n 1 │ │ │ │ │
-  ╰  ╰ ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
+  │ ╭    ╭           ╮        ╮  │
+  │ │ if │ is n <= 1 │        │  │
+  │ │    ╰           ╯        │  │
+  │ │     ╔═══════════╗       │  │
+  │ │   1 ║ base case ║       │  │
+  │ │     ╚═══════════╝       │  │
+  │ │ ╭     ╭   ╭       ╮ ╮ ╮ │  │
+  │ │ │ * n │ ! │ - n 1 │ │ │ │  │
+  ╰ ╰ ╰     ╰   ╰       ╯ ╯ ╯ ╯  ╯
+  ╭      ╭     ╮          ╮       
+  │ e.g. │ ! 5 │ ===> 120 │       
+  ╰      ╰     ╯          ╯       
   ")
 
 #+END_SRC

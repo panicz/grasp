@@ -37,6 +37,9 @@
     (<pattern-2> <template-2>)
     ...)))
 
+(define-syntax-rule (TODO . <anything>)
+  (values))
+
 (define-syntax-rule (assert proposition)
   (or proposition
     (error "Assertion failed: "'proposition)))
@@ -2674,6 +2677,34 @@ in patterns and remove them from bindings"
 
 (define-syntax-rule (define/memoized (name . args) . body)
   (define name (memoize (lambda args . body))))
+
+(define-syntax increase!
+  (syntax-rules (by:)
+    ((increase! location)
+     (increase! location by: 1))
+    ((increase! location by: value)
+     (set! location (+ location value)))
+    ))
+
+(define-syntax decrease!
+  (syntax-rules (by:)
+    ((decrease! location)
+     (decrease! location by: 1))
+    ((increase! location by: value)
+     (set! location (- location value)))
+    ))
+
+(define-syntax-rule (maximize! location values ...)
+  (set! location (max location values ...)))
+
+(define-syntax-rule (minimize! location values ...)
+  (set! location (min location values ...)))
+
+(define-syntax multiply!
+  (syntax-rules (by:)
+    ((multiply! location by: value)
+     (set! location (* location value)))
+    ))
 
 (define-object (InputPortLineIterator port::InputPort)
   ::(specialize Iterator string)
