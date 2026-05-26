@@ -4865,6 +4865,15 @@ recommend reading it.
     (CharPainter))
 #+END_SRC
 
+
+#+BEGIN_SRC sh :tangle test/everything.sh :mkdirp yes :tangle-mode (identity #o755)
+  #!/bin/sh
+  # This test runner was generated from grasp.org If you need permanent
+  # changes, modify that file instead.
+  set -x
+  java -jar ../libs/kawa.jar test/basic-text-painter.scm
+#+END_SRC
+
 #+BEGIN_SRC scheme :tangle test/basic-text-painter.scm :mkdirp yes :noweb tangle
   <<header>>
   (module-name (test basic-text-painter))
@@ -5296,6 +5305,10 @@ the rest of the capabilities of ~Comb~. For this reason, we're
 going to provide mock definitions of ~Element~, ~Tile~ and
 ~Space~.
 
+#+BEGIN_SRC scheme :tangle test/everything.sh
+  java -jar ../libs/kawa.jar test/comb-as-collection.scm
+#+END_SRC
+
 #+BEGIN_SRC scheme :tangle test/comb-as-collection.scm :mkdirp yes :noweb tangle
   <<header>>
   (module-name (test comb-as-collection))
@@ -5651,6 +5664,10 @@ everything, we can provide a /partial implementation/.
             (comment::Comment
              (display (comment:toString) port)))))))
 
+#+END_SRC
+
+#+BEGIN_SRC scheme :tangle test/everything.sh
+  java -jar ../libs/kawa.jar test/comb-rendering.scm
 #+END_SRC
 
 #+BEGIN_SRC scheme :tangle test/comb-rendering.scm :mkdirp yes :noweb tangle
@@ -6138,6 +6155,10 @@ units in GRASP
 At this point we can only test their construction and
 rendering with our ~TextPainter~. 
 
+#+BEGIN_SRC scheme :tangle test/everything.sh
+  java -jar ../libs/kawa.jar test/textual-rendering.scm
+#+END_SRC
+
 #+BEGIN_SRC scheme :tangle test/textual-rendering.scm :mkdirp yes :noweb tangle
   <<header>>
   (module-name (test textual-rendering))
@@ -6268,6 +6289,10 @@ to develop it in two steps:
 #+END_SRC
 
 We can now test the simplified parser on sample data:
+
+#+BEGIN_SRC scheme :tangle test/everything.sh
+  java -jar ../libs/kawa.jar test/simple-parser.scm
+#+END_SRC
 
 #+BEGIN_SRC scheme :tangle test/simple-parser.scm :mkdirp yes :noweb tangle
   <<header>>
@@ -6701,6 +6726,10 @@ it yet. Instead, we will define a mock version of the
 ~enchanted~ procedure that simply returns its first
 argument. We'll also define a mock version of the ~Document~
 class that will be elaborated in the future.
+
+#+BEGIN_SRC scheme :tangle test/everything.sh
+  java -jar ../libs/kawa.jar test/advanced-parser.scm
+#+END_SRC
 
 #+BEGIN_SRC scheme :tangle test/advanced-parser.scm :mkdirp yes :noweb tangle
   <<header>>
