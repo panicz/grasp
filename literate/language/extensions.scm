@@ -462,7 +462,8 @@
                       define-protected                      
                       define-static
                       delegate
-                      specialize)
+                      specialize
+                      mix-in)
 
       ((object-definition (object-name . args)
                           (arg :: type . rest)
@@ -560,6 +561,20 @@
                             methods
                             initializers
                             spec))
+
+      ((object-definition (object-name . args)
+                          ()
+                          supers
+                          slots
+                          methods
+                          initializers
+                          ((mix-in mixin-name) . spec))
+       #'(mixin-name (object-name . args)
+                     supers
+                     slots
+                     methods
+                     initializers
+                     spec))
 
       ((object-definition (object-name . args)
                           ()
@@ -870,6 +885,11 @@
                             ()
                             ()))
       )))
+
+(define-syntax-rule (define-mixin mixin-name mixin-definitions ...)
+  (define-macro (mixin-name constructor supers slots methods initializers spec)
+    `(object-definition ,constructor () ,supers ,slots ,methods ,initializers
+                        (mixin-definitions ... ,@spec))))
 
 (define-syntax-rule (define-object (object-name . args) . spec)
   (object-definition (object-name . args)
@@ -1370,7 +1390,7 @@ in patterns and remove them from bindings"
                        actions ... alternative))
       )))
 
-(define-syntax and-let*
+(define-syntax given
   (lambda (stx)
     (syntax-case stx (::)
 
@@ -1387,7 +1407,7 @@ in patterns and remove them from bindings"
        (identifier? #'name)
        #'(let ((name binding))
            (and name
-                (and-let* rest
+                (given rest
                   . body))))
 
       ((_ ((name :: type binding) . rest) . body)
@@ -1396,7 +1416,7 @@ in patterns and remove them from bindings"
            (and (instance? value type)
                 value
                 (let ((name ::type value))
-                  (and-let* rest
+                  (given rest
                     . body)))))
 
       ((_ ((name :: type) . rest) . body)
@@ -1404,19 +1424,19 @@ in patterns and remove them from bindings"
        #'(and (instance? name type)
               name
               (let ((name ::type (as type name)))
-                (and-let* rest
+                (given rest
                   . body))))
 
       ((_ ((value binding) . rest) . body)
        #'(match binding
            (value
-            (and-let* rest
+            (given rest
               . body))
            (_ #f)))
 
       ((_ ((condition) . rest) . body)
        #'(and condition
-              (and-let* rest . body)))
+              (given rest . body)))
 
       ((_ ((value * ... expression) . rest) . body)
        (identifier? #'value)
@@ -1425,7 +1445,7 @@ in patterns and remove them from bindings"
              (match args
                (`(,value ,* ... . ,_)
                 (and value
-                     (and-let* rest . body)))
+                     (given rest . body)))
                (_ #f)))))
 
       ((_ ((value ... expression) . rest) . body)
@@ -1433,7 +1453,7 @@ in patterns and remove them from bindings"
            (lambda args
              (match args
                (`(,value ... . ,_)
-                (and-let* rest . body))
+                (given rest . body))
                (_ #f)))))
 
       )))
@@ -2387,6 +2407,11 @@ in patterns and remove them from bindings"
    (set! (last v) 3)
    v) ===> #(1 2 3))
 
+(define (times n::int action . args)
+  (when (is n > 0)
+    (apply action args)
+    (apply times (- n 1) action args)))
+
 (define (char-digit? c::char)::boolean
   (is (char->integer #\0) <= (char->integer c) <= (char->integer #\9)))
 
@@ -2398,12 +2423,12 @@ in patterns and remove them from bindings"
 (define (char-hex-value c::char)::int
   (let ((code (char->integer c)))
     (cond ((char-digit? c)
-	   (- code (char->integer #\0)))
-	  ((is (char->integer #\a) <= code <= (char->integer #\f))
-	   (+ 10 (- code (char->integer #\a))))
-	  (else
-	   (assert (is (char->integer #\A) <= code <= (char->integer #\F)))
-	   (+ 10 (- code (char->integer #\A)))))))
+           (- code (char->integer #\0)))
+          ((is (char->integer #\a) <= code <= (char->integer #\f))
+           (+ 10 (- code (char->integer #\a))))
+          (else
+           (assert (is (char->integer #\A) <= code <= (char->integer #\F)))
+           (+ 10 (- code (char->integer #\A)))))))
 
 (define-simple-class set (HashSet)
   ((toString)::String
@@ -2433,10 +2458,10 @@ in patterns and remove them from bindings"
 (define (empty? x)::boolean
   (or (and (is x gnu.lists.LList?)
            (isnt x gnu.lists.Pair?))
-      (and-let* ((x ::Collection))
+      (given ((x ::Collection))
         (x:isEmpty))
-      (and-let* (((procedure? x))
-                 (table ::Collection (procedure-property x 'table)))
+      (given (((procedure? x))
+              (table ::Collection (procedure-property x 'table)))
         (empty? table))))
 
 (define (union set . sets)
@@ -2839,8 +2864,8 @@ in patterns and remove them from bindings"
       s))
 
   (define (matches? s::string)::boolean
-    (and-let* ((m ::int (string-length s))
-               ((= m n)))
+    (given ((m ::int (string-length s))
+            ((= m n)))
       (escape-with
        return
        (for i::int from: 0 below: m

@@ -1086,6 +1086,22 @@ the ~object-definition~ helper macro. It is rather lengthy,
 because it needs to support a lot of different cases, but
 those cases themselves are rather simple.
 
+There are two things that deserve a mention though. First,
+the ~define-object~ macro provides a ~delegate~ keyword.
+It is simply a short-hand that defines a method which delegates
+its invocation to some component of that object.
+
+A more interesting feature is the ~mix-in~ keyword, that
+works together with the ~define-mixin~ form. The latter
+allows to define certain components of an object
+(i.e. methods and properties) that can be re-used (or
+/mixed-in/, if you please) in the definitions of various
+different objects. (Note that the ~define-mixin~ form
+resorts to ~define-macro~, because we don't want the
+hygienic macroexpander to mess up with our identifiers, and
+instead we want them pasted verbatim in the final class
+definition.)
+
 #+BEGIN_SRC  scheme :tangle language/extensions.scm
 
   (define-syntax delegate
@@ -1110,7 +1126,8 @@ those cases themselves are rather simple.
                         define-protected                      
                         define-static
                         delegate
-                        specialize)
+                        specialize
+                        mix-in)
 
         ((object-definition (object-name . args)
                             (arg :: type . rest)
@@ -1208,6 +1225,20 @@ those cases themselves are rather simple.
                               methods
                               initializers
                               spec))
+
+        ((object-definition (object-name . args)
+                            ()
+                            supers
+                            slots
+                            methods
+                            initializers
+                            ((mix-in mixin-name) . spec))
+         #'(mixin-name (object-name . args)
+                       supers
+                       slots
+                       methods
+                       initializers
+                       spec))
 
         ((object-definition (object-name . args)
                             ()
@@ -1318,7 +1349,7 @@ those cases themselves are rather simple.
                                ... 
                                (set! slot value))
                               spec))
-        
+
         ((object-definition (object-name . args)
                             ()
                             supers
@@ -1519,6 +1550,11 @@ those cases themselves are rather simple.
                               ()))
         )))
 
+  (define-syntax-rule (define-mixin mixin-name mixin-definitions ...)
+    (define-macro (mixin-name constructor supers slots methods initializers spec)
+      `(object-definition ,constructor () ,supers ,slots ,methods ,initializers
+                          (mixin-definitions ... ,@spec))))
+
   (define-syntax-rule (define-object (object-name . args) . spec)
     (object-definition (object-name . args)
                        #;args
@@ -1536,7 +1572,7 @@ those cases themselves are rather simple.
 
 #+END_SRC
 
-***** A few notes
+***** A few notes regarding generic types
 
 For the time being, the generic interface specification of
 the ~define-object~ clause can have either of the forms:
@@ -2199,7 +2235,7 @@ in patterns and remove them from bindings"
 
 #+END_SRC
 
-**** The ~and-let*~ macro
+**** The ~given~ macro
 
 One of the earliest SRFI documents is [[https://srfi.schemers.org/srfi-2/srfi-2.html][SRFI-2]] by Oleg
 Kiselyov, which introduces the ~and-let*~ macro. While its
@@ -2208,12 +2244,13 @@ practical programming.
 
 That being said, the presence of pattern matching and type
 annotations makes it even more useful. Therefore, we provide
-our own implementaiton of that macro, which provides exactly
-those features (and also supports multiple values):
+our own implementation of that macro, which provides exactly
+those features (and also supports multiple values). We also
+give it a better name: we call it ~given~.
 
 #+BEGIN_SRC scheme :tangle language/extensions.scm
 
-(define-syntax and-let*
+(define-syntax given
   (lambda (stx)
     (syntax-case stx (::)
 
@@ -2230,7 +2267,7 @@ those features (and also supports multiple values):
        (identifier? #'name)
        #'(let ((name binding))
            (and name
-                (and-let* rest
+                (given rest
                   . body))))
 
       ((_ ((name :: type binding) . rest) . body)
@@ -2239,7 +2276,7 @@ those features (and also supports multiple values):
            (and (instance? value type)
                 value
                 (let ((name ::type value))
-                  (and-let* rest
+                  (given rest
                     . body)))))
 
       ((_ ((name :: type) . rest) . body)
@@ -2247,19 +2284,19 @@ those features (and also supports multiple values):
        #'(and (instance? name type)
               name
               (let ((name ::type (as type name)))
-                (and-let* rest
+                (given rest
                   . body))))
 
       ((_ ((value binding) . rest) . body)
        #'(match binding
            (value
-            (and-let* rest
+            (given rest
               . body))
            (_ #f)))
 
       ((_ ((condition) . rest) . body)
        #'(and condition
-              (and-let* rest . body)))
+              (given rest . body)))
 
       ((_ ((value * ... expression) . rest) . body)
        (identifier? #'value)
@@ -2268,7 +2305,7 @@ those features (and also supports multiple values):
              (match args
                (`(,value ,* ... . ,_)
                 (and value
-                     (and-let* rest . body)))
+                     (given rest . body)))
                (_ #f)))))
 
       ((_ ((value ... expression) . rest) . body)
@@ -2276,7 +2313,7 @@ those features (and also supports multiple values):
            (lambda args
              (match args
                (`(,value ... . ,_)
-                (and-let* rest . body))
+                (given rest . body))
                (_ #f)))))
 
       )))
@@ -3444,7 +3481,7 @@ is ambiguous.
   (define (never . _)::boolean #f)
 
   (define (always . _) ::boolean #t)
-
+  
   (define (negation proc)
     (lambda args
       (not (apply proc args))))
@@ -3624,6 +3661,11 @@ is ambiguous.
      (set! (last v) 3)
      v) ===> #(1 2 3))
 
+  (define (times n::int action . args)
+    (when (is n > 0)
+      (apply action args)
+      (apply times (- n 1) action args)))
+  
   (define (char-digit? c::char)::boolean
     (is (char->integer #\0) <= (char->integer c) <= (char->integer #\9)))
 
@@ -3635,13 +3677,13 @@ is ambiguous.
   (define (char-hex-value c::char)::int
     (let ((code (char->integer c)))
       (cond ((char-digit? c)
-	     (- code (char->integer #\0)))
-	    ((is (char->integer #\a) <= code <= (char->integer #\f))
-	     (+ 10 (- code (char->integer #\a))))
-	    (else
-	     (assert (is (char->integer #\A) <= code <= (char->integer #\F)))
-	     (+ 10 (- code (char->integer #\A)))))))
-  
+             (- code (char->integer #\0)))
+            ((is (char->integer #\a) <= code <= (char->integer #\f))
+             (+ 10 (- code (char->integer #\a))))
+            (else
+             (assert (is (char->integer #\A) <= code <= (char->integer #\F)))
+             (+ 10 (- code (char->integer #\A)))))))
+
 #+END_SRC
 
 *** Sets
@@ -3689,10 +3731,10 @@ lists as sets.
   (define (empty? x)::boolean
     (or (and (is x gnu.lists.LList?)
              (isnt x gnu.lists.Pair?))
-        (and-let* ((x ::Collection))
+        (given ((x ::Collection))
           (x:isEmpty))
-        (and-let* (((procedure? x))
-                   (table ::Collection (procedure-property x 'table)))
+        (given (((procedure? x))
+                (table ::Collection (procedure-property x 'table)))
           (empty? table))))
 
   (define (union set . sets)
@@ -4021,7 +4063,7 @@ day in the future.
       ((multiply! location by: value)
        (set! location (* location value)))
       ))
-  
+
   (define-object (InputPortLineIterator port::InputPort)
     ::(specialize Iterator string)
     (define next-line ::(maybe (either string EndOfFile)) #!null)
@@ -4155,8 +4197,8 @@ day in the future.
         s))
 
     (define (matches? s::string)::boolean
-      (and-let* ((m ::int (string-length s))
-                 ((= m n)))
+      (given ((m ::int (string-length s))
+              ((= m n)))
         (escape-with
          return
          (for i::int from: 0 below: m
@@ -5028,9 +5070,9 @@ elements that occupy a rectangular area of the screen.
   ;; and to check if two Comb objects are equal,
   ;; we check for equality of their arrays
   (define (equals object ::Object)::boolean
-    (and-let* ((those ::Comb object)
-               ((elements:equals those:elements))
-               ((spaces:equals those:spaces)))))
+    (given ((those ::Comb object)
+            ((elements:equals those:elements))
+            ((spaces:equals those:spaces)))))
 
   ;; testing for presence of an object depends on
   ;; the type of that object
@@ -5120,9 +5162,9 @@ elements that occupy a rectangular area of the screen.
   ;; but in order to do this, we need to merge the last space
   ;; from us with the first space from them
   (define (addAll! collection ::Collection)::boolean
-    (and-let* ((comb ::Comb collection)
-               (last-space ::Space (last spaces))
-               (next-space ::Space (comb:spaces 0)))
+    (given ((comb ::Comb collection)
+            (last-space ::Space (last spaces))
+            (next-space ::Space (comb:spaces 0)))
       (last-space:add next-space)
       (unless (elements:isEmpty)
         (last-space:blow!))
@@ -5157,13 +5199,13 @@ elements that occupy a rectangular area of the screen.
   ;;        6
   ;;
   (define (addAll index ::int collection ::Collection)::boolean
-    (and-let* (((even? index))
-               (comb ::Comb collection)
-               ((is 0 <= index))
-               ((is (size) > index))
-               (index* ::int (quotient index 2))
-               (enlarged-space ::Space (spaces index))
-               (extra-space ::Space (comb:spaces 0)))
+    (given (((even? index))
+            (comb ::Comb collection)
+            ((is 0 <= index))
+            ((is (size) > index))
+            (index* ::int (quotient index 2))
+            (enlarged-space ::Space (spaces index))
+            (extra-space ::Space (comb:spaces 0)))
       (enlarged-space:add extra-space)
       (unless (is index = 0)
         (enlarged-space:blow!))
@@ -5196,9 +5238,9 @@ elements that occupy a rectangular area of the screen.
             (char::Char
              (assert (isnt char in token-separators))
              (cond
-              ((and-let* (((last-space:empty?))
-                          ((is (length elements) #;< > 0))
-                          (last-atom ::Atom (last elements)))
+              ((given (((last-space:empty?))
+                       ((is (length elements) #;< > 0))
+                       (last-atom ::Atom (last elements)))
                  (last-atom:add char)
                  #true))
               (else
@@ -5578,7 +5620,8 @@ everything, we can provide a /partial implementation/.
       (add #\space)))
 
   (define-static (accepts? element::Object)::boolean
-    (or (and (char? element) (char-whitespace? element))
+    (or (integer? element)
+        (and (char? element) (char-whitespace? element))
         (and (string? element)
              (every char-whitespace? element))
         (Space? element)
@@ -5591,6 +5634,11 @@ everything, we can provide a /partial implementation/.
                (isnt (last fragments) integer?))
            (fragments:add 1)
            (increase! (last fragments))))
+      (n::integer
+       (if (or (fragments:isEmpty)
+               (isnt (last fragments) integer?))
+           (fragments:add n)
+           (increase! (last fragments) by: n)))
       (#\newline
        (fragments:add #\newline))
       (comment::Comment
@@ -5704,7 +5752,8 @@ everything, we can provide a /partial implementation/.
     |#
     )
 
-  (define-interface Comment (Tile))
+  (define-interface Comment (Tile)
+    (breaks-line?)::boolean)
 
   (define-object (Space)::Element
     <<Space-representation>>
@@ -6068,7 +6117,6 @@ we have everything that is needed to define the ~Visual~,
       (recalculate-size!))
     last-height)
 
-
 #+END_SRC
 
 We can now use the code to define the built-in ~Textual~
@@ -6115,6 +6163,8 @@ units in GRASP
 
   (define-object (BlockComment)::TextualComment
 
+    (define (breaks-line?)::boolean #false)
+    
     (define-protected (font)::FontProxy
       (painter:comment-font))
 
@@ -6124,6 +6174,8 @@ units in GRASP
     (TextualTileBase))
 
   (define-object (LineComment)::TextualComment
+
+    (define (breaks-line?)::boolean #true)
 
     (define-protected (font)::FontProxy
       (painter:comment-font))
@@ -6183,7 +6235,8 @@ rendering with our ~TextPainter~.
     (width)::real
     (height)::real)
 
-  (define-interface Comment (Tile))
+  (define-interface Comment (Tile)
+    (breaks-line?)::boolean)
 
   <<TextualBase>>
 
@@ -6327,7 +6380,8 @@ We can now test the simplified parser on sample data:
     |#
     )
 
-  (define-interface Comment (Tile))
+  (define-interface Comment (Tile)
+    (breaks-line?)::boolean)
 
   (define-object (Space)::Element
     <<Space-representation>>
@@ -6469,18 +6523,18 @@ The other argument contains a path to a given expression.
 It is needed to track the location of /magic boxes/ when the
 extension required to instantiate such a box hasn't yet been
 loaded. Whenever a module defining an extension is loaded,
-she list of such deferred boxes should be scanned to see
+the list of such deferred boxes should be scanned to see
 if any of them can be instantiated.
 
 The path is maintained as an array-based stack, where its
 top (i.e. last element) is mutated before adding each new
 element.
 
-The fact that a certain piece code sholud be interpreted as
+The fact that a certain piece of code should be interpreted as
 a magic box is marked by using square brackets instead of
 the round ones. (According to the specification of Scheme,
 there is no fundamental difference between round parentheses
-and square brackets, and both can be used interchagably, as
+and square brackets, and both can be used interchangeably, as
 long as they match together. Some Scheme programmers
 conventionally use square brackets in certain contexts, but
 their practice shouldn't be a problem to us, because it is
@@ -6497,7 +6551,7 @@ it supports more objects):
                       upto: max-elements ::real := +inf.0
                       into: result ::Comb := (Comb))
     ::Comb
-    (let ((-indentation ::int (- (port:getColumnNumber)))
+    (let ((indentation ::int (port:getColumnNumber))
           (running? ::boolean #true))
       (path:push! 0)
       (while running?
@@ -6510,7 +6564,7 @@ it supports more objects):
               (#\( (result:add (read-list from: port at: path)))
               (#\space   (result:add #\space))
               (#\newline (result:add #\newline)
-                         (result:add -indentation))
+                         (result:add (- indentation)))
               (#\) (set! running? #false))
               (#\[ (result:add (enchanted (read-list from: port at: path)
                                           path)))
@@ -6539,7 +6593,7 @@ it supports more objects):
                                       (read-list from: port at: path upto: 1))
                                path)))))
               (#\; (result:add (read-line-comment from: port))
-                   (result:add -indentation))
+                   (result:add (- indentation)))
               (c   (result:add (read-atom into: (Atom c) from: port))))))
       (path:pop!)
       result))
@@ -6604,7 +6658,7 @@ definition of ~read-line-comment~ is the simplest:
          (loop))))))
 #+END_SRC
 
-and the definiton of ~read-atom~ is almost identical (the
+and the definition of ~read-atom~ is almost identical (the
 only difference is its termination condition):
 
 #+BEGIN_SRC scheme :noweb-ref advanced-parser
@@ -6645,14 +6699,14 @@ because block comments in Scheme can be nested:
                  (result:add d)
                  (read-block-comment into: result from: port)))))
        ((eq? c #\#)
-        (let ((d (read-char port))) 
+        (let ((d (read-char port)))
           (cond ((eof-object? d)
                  (result:add c)
                  result)
                 ((eq? d #\|)
                  (result:add c)
                  (result:add d)
-                 ;; we make two revursive calls here:
+                 ;; we make two recursive calls here:
                  ;; one to read the nested block comment
                  (read-block-comment into: result from: port)
                  (result:add #\|)
@@ -6795,7 +6849,7 @@ class that will be elaborated in the future.
    (let ((document ::Comb (call-with-input-string "\
   (define (! n) ; int -> int
   (if (is n <= 1)
-    1 #| base case |#
+     1 #| base case |#
   (* n (! (- n 1)))))
   (e.g. (! 5) ===> 120)
   " read-document)))
@@ -6820,9 +6874,36 @@ class that will be elaborated in the future.
   ╰      ╰     ╯          ╯       
   ")
 
+  (e.g.
+   (let ((document ::Comb (call-with-input-string "\
+  (define (! n)
+    (if (<= n 1) ;>
+        1  #| base case |#
+      (* n (! (- n 1)))))
+  (e.g. (! 5) ===> 120)
+  " read-document)))
+    (painter:clear!)
+    (document:render! #true (LayoutState))
+    (display (painter:toString))
+    (painter:toString)) ===> "
+  ╭        ╭     ╮                ╮
+  │ define │ ! n │                │
+  │        ╰     ╯                │
+  │  ╭    ╭        ╮ ⸾>         ╮ │
+  │  │ if │ <= n 1 │            │ │
+  │  │    ╰        ╯            │ │
+  │  │       ╔═══════════╗      │ │
+  │  │    1  ║ base case ║      │ │
+  │  │       ╚═══════════╝      │ │
+  │  │  ╭     ╭   ╭       ╮ ╮ ╮ │ │
+  │  │  │ * n │ ! │ - n 1 │ │ │ │ │
+  ╰  ╰  ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
+  ╭      ╭     ╮          ╮        
+  │ e.g. │ ! 5 │ ===> 120 │        
+  ╰      ╰     ╯          ╯        
+  ")
+
 #+END_SRC
-
-
 
 * Emacs file-local variables
 
