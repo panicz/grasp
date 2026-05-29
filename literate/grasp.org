@@ -5369,6 +5369,12 @@ going to provide mock definitions of ~Element~, ~Tile~ and
     )
 
   (define-object (Atom name::string)::Tile
+    #|
+    This is a mock implementation
+    that is only used for testing
+    the implementation of the List
+    interface of the Comb class
+    |#
 
     (define (add c::char)::void
       (set! name (string-append name (string c))))
@@ -5512,7 +5518,7 @@ respectively.
   (define-static LEFT-PAREN-INDEX -1)
   (define-static RIGHT-PAREN-INDEX -2)
 
-  (define current-index ::int -3)
+  (define current-index ::int LEFT-PAREN-INDEX)
 #+END_SRC
 
 Mind also, that a ~Comb~ is supposed to be a ~Tile~, and
@@ -5597,7 +5603,7 @@ everything, we can provide a /partial implementation/.
     (either int #\newline Comment))
 #+END_SRC
 
-#+BEGIN_SRC scheme :noweb-ref Space-representation
+#+BEGIN_SRC scheme :noweb-ref Space--representation
 
   (define fragments ::List;of SpaceFragment
     (ArrayList))
@@ -5655,6 +5661,16 @@ everything, we can provide a /partial implementation/.
          (add c)))
       ))
 
+  (define (white?)::boolean
+    (every (lambda (fragment::SpaceFragment)
+             (or (integer? fragment)
+                 (eq? fragment #\newline)))
+           fragments))
+
+#+END_SRC
+
+
+#+BEGIN_SRC scheme :noweb-ref Space--rendering
   (define (render! active? ::boolean state::LayoutState)::void
     (let ((index ::int 0)
           (initial-left ::real state:left)
@@ -5693,29 +5709,10 @@ everything, we can provide a /partial implementation/.
         (comment::Comment
          (comment:advance-layout! state)))))
 
-  (define (white?)::boolean
-    (every (lambda (fragment::SpaceFragment)
-             (or (integer? fragment)
-                 (eq? fragment #\newline)))
-           fragments))
-
-  (define (toString)::String
-    (call-with-output-string
-      (lambda (port)
-        (for fragment::SpaceFragment in: fragments
-          (match fragment
-            (n::integer
-             (for i::int from: 0 below: n
-                  (write-char #\space port)))
-            (#\newline
-             (write-char #\newline port))
-            (comment::Comment
-             (display (comment:toString) port)))))))
-
 #+END_SRC
 
-#+BEGIN_SRC scheme :tangle test/everything.sh
-  java -jar ../libs/kawa.jar test/comb-rendering.scm
+  ,#+BEGIN_SRC scheme :tangle test/everything.sh
+    java -jar ../libs/kawa.jar test/comb-rendering.scm
 #+END_SRC
 
 #+BEGIN_SRC scheme :tangle test/comb-rendering.scm :mkdirp yes :noweb tangle
@@ -5743,20 +5740,14 @@ everything, we can provide a /partial implementation/.
     (height)::real)
 
 
-  (define-interface Compound (Tile List)
-    #|
-    This is a mock implementation
-    that is only used for testing
-    the implementation of rendering
-    of the Comb class
-    |#
-    )
+  (define-interface Compound (Tile List))
 
   (define-interface Comment (Tile)
     (breaks-line?)::boolean)
 
   (define-object (Space)::Element
-    <<Space-representation>>
+    <<Space--representation>>
+    <<Space--rendering>>
     )
 
   (define-object (Comb)::Compound
@@ -5765,6 +5756,12 @@ everything, we can provide a /partial implementation/.
     )
 
   (define-object (Atom)::Tile
+    #|
+    This is a mock implementation
+    that is only used for testing
+    the implementation of rendering
+    of the Comb class
+    |#
 
     (define-private builder ::StringBuilder
       (StringBuilder))
@@ -5798,8 +5795,6 @@ everything, we can provide a /partial implementation/.
     (define (advance-layout! state ::LayoutState)::void
       (expand-layout! state (width) (height)))
 
-    (define (toString)::String
-      (builder:toString))
     )
 
   (e.g.
@@ -5905,7 +5900,6 @@ be used as a base class for our text-like things.
     (delegate (length)::int builder)
     (delegate (subSequence start::int end::int)::CharSequence
               builder)
-    (delegate (toString)::String builder)
 
     (define (add element::Object)::boolean
       (match element
@@ -6048,7 +6042,7 @@ Although we're still not ready to define the ~Element~,
 we have everything that is needed to define the ~Visual~,
 ~Spatial~ and ~Tile~ parts of ~Textual~ elements.
 
-#+BEGIN_SRC scheme :noweb-ref TextualTileBase--implementation
+#+BEGIN_SRC scheme :noweb-ref TextualTileBase--rendering
 
   (define-protected (border-style)::BorderStyle
     #!abstract)
@@ -6069,18 +6063,18 @@ we have everything that is needed to define the ~Visual~,
            (border-height ::real
                           (painter:border-height style)))
       (painter:with-translation
-       border-width border-height
-       (lambda ()
-         (call-with-input-string builder
-           (lambda (port ::InputPort)
-             (for line in: (lines port)
-               (painter:with-translation
-                0 inner-height
-                (lambda ()
-                  (let ((line-width (painter:draw-text!
-                                     line font)))
-                    (maximize! inner-width line-width)
-                    (increase! inner-height by: (font:height))))))))))
+          border-width border-height
+        (lambda ()
+          (call-with-input-string builder
+            (lambda (port ::InputPort)
+              (for line in: (lines port)
+                (painter:with-translation
+                    0 inner-height
+                  (lambda ()
+                    (let ((line-width (painter:draw-text!
+                                       line font)))
+                      (maximize! inner-width line-width)
+                      (increase! inner-height by: (font:height))))))))))
       (set! last-width (+ inner-width (* 2 border-width)))
       (set! last-height (+ inner-height (* 2 border-height)))
       (painter:draw-box! last-width last-height SideSelected:None style))
@@ -6119,15 +6113,16 @@ we have everything that is needed to define the ~Visual~,
 
 #+END_SRC
 
+
 We can now use the code to define the built-in ~Textual~
 units in GRASP
 
-#+BEGIN_SRC scheme :noweb yes :noweb-ref GRASP--textual-units
+#+BEGIN_SRC scheme :noweb yes :noweb-ref TextualTileSubclasses--rendering
 
   (define-interface TextualComment (Comment TextualTile))
 
   (define-object (TextualTileBase)::TextualTile
-    <<TextualTileBase--implementation>>
+    <<TextualTileBase--rendering>>
     (TextualBase))
 
   (define-object (Atom)::TextualTile
@@ -6136,9 +6131,6 @@ units in GRASP
 
     (define-protected (border-style)::BorderStyle
       BorderStyle:Atom)
-
-    (define (toString)::String
-      (invoke (the builder) 'toString))
 
     (TextualTileBase))
 
@@ -6149,22 +6141,12 @@ units in GRASP
     (define-protected (border-style)::BorderStyle
       BorderStyle:Text)
 
-    (define (toString)::String
-      (call-with-output-string
-        (lambda (port ::OutputPort)
-          (write-char #\" port)
-          (for c::char in: (the builder)
-            (when (eqv? c #\")
-              (write-char #\\ port))
-            (write-char c port))
-          (write-char #\" port))))
-
     (TextualTileBase))
 
   (define-object (BlockComment)::TextualComment
 
     (define (breaks-line?)::boolean #false)
-    
+
     (define-protected (font)::FontProxy
       (painter:comment-font))
 
@@ -6186,19 +6168,6 @@ units in GRASP
     (define (advance-layout! state ::LayoutState)::void
       (expand-layout! state (invoke (this) 'width) (invoke (this) 'height))
       (break-layout! state))
-
-    (define (toString)::String
-      (call-with-output-string
-        (lambda (port ::OutputPort)
-          (write-char #\; port)
-          (for c::Char in: (the builder)
-            (cond
-             ((eq? c #\newline)
-              (write-char #\\ port)
-              (write-char #\n port))
-             (else
-              (write-char c port))))
-          (write-char #\newline port))))
 
     (TextualTileBase))
 
@@ -6240,7 +6209,7 @@ rendering with our ~TextPainter~.
 
   <<TextualBase>>
 
-  <<GRASP--textual-units>>
+  <<TextualTileSubclasses--rendering>>
 
   (e.g.
    (let ((atom ::Atom (Atom "this-is-an-atom"))
@@ -6268,7 +6237,7 @@ rendering with our ~TextPainter~.
   ")
 #+END_SRC
 
-We expect to see the following result:
+We expect to get the following result:
 
 #+NAME: textual-rendering-result
 #+BEGIN_SRC text
@@ -6371,20 +6340,14 @@ We can now test the simplified parser on sample data:
     (width)::real
     (height)::real)
 
-  (define-interface Compound (Tile List)
-    #|
-    This is a mock implementation
-    that is only used for testing
-    the implementation of the simplified
-    parser
-    |#
-    )
+  (define-interface Compound (Tile List))
 
   (define-interface Comment (Tile)
     (breaks-line?)::boolean)
 
   (define-object (Space)::Element
-    <<Space-representation>>
+    <<Space--representation>>
+    <<Space--rendering>>
     )
 
   (define-object (Comb)::Compound
@@ -6394,7 +6357,7 @@ We can now test the simplified parser on sample data:
 
   <<TextualBase>>
 
-  <<GRASP--textual-units>>
+  <<TextualTileSubclasses--rendering>>
 
   <<simple-parser>>
 
@@ -6731,7 +6694,7 @@ because it needs to handle various escape sequences.
                       from: port ::InputPort := (current-input-port))
     ::Text
     (define (read-hex-sequence #!optional (code 0))
-      (let ((d ::char (peek-char port)))
+      (let ((d (peek-char port)))
         (cond ((or (eof-object? d)
                    (isnt d char-hex-digit?))
                (result:add code))
@@ -6740,7 +6703,7 @@ because it needs to handle various escape sequences.
                (read-hex-sequence (+ (* code 16)
                                      (char-hex-value d)))))))
     (define (read-escaped)
-      (let ((c ::char (read-char port)))
+      (let ((c (read-char port)))
         (cond
          ((eof-object? c) result)
          (else
@@ -6760,7 +6723,7 @@ because it needs to handle various escape sequences.
           (read-normal)))))
 
     (define (read-normal)
-      (let ((c ::char (read-char port)))
+      (let ((c (read-char port)))
         (cond
          ((or (eof-object? c)
               (eq? c #\" #|"|#))
@@ -6800,7 +6763,7 @@ class that will be elaborated in the future.
     #|
     This is a mock implementation
     that is only used for testing
-    the implementation of the simplified
+    the implementation of the advanced
     parser
     |#
     )
@@ -6809,19 +6772,13 @@ class that will be elaborated in the future.
     (width)::real
     (height)::real)
 
-  (define-interface Compound (Tile List)
-    #|
-    This is a mock implementation
-    that is only used for testing
-    the implementation of the simplified
-    parser
-    |#
-    )
+  (define-interface Compound (Tile List))
 
   (define-interface Comment (Tile))
 
   (define-object (Space)::Element
-    <<Space-representation>>
+    <<Space--representation>>
+    <<Space--rendering>>
     )
 
   (define-object (Comb)::Compound
@@ -6831,7 +6788,7 @@ class that will be elaborated in the future.
 
   <<TextualBase>>
 
-  <<GRASP--textual-units>>
+  <<TextualTileSubclasses--rendering>>
 
   <<advanced-parser>>
 
@@ -6902,6 +6859,280 @@ class that will be elaborated in the future.
   │ e.g. │ ! 5 │ ===> 120 │        
   ╰      ╰     ╯          ╯        
   ")
+
+#+END_SRC
+
+**** Serialization
+
+We do not only want to load documents: we also wish to store
+them. Ideally, we want to be able to support the existing
+code bases of Lisp and Scheme. In particular, we don't want
+GRASP to mess up the indentation conventions that are
+typically applied to s-expressions.
+
+For this reason, when we convert our expressions to strings,
+we need to track their indentation levels.
+
+We now need to implement the ~serialize~ method for ~Comb~,
+~Space~ and ~TextualTileBase~. The case of ~Comb~ is fairly
+straightforward: we simply invoke the ~serialize~ method on its
+children and adjust the column value accordingly.
+
+#+BEGIN_SRC scheme :noweb-ref Comb--serialize
+  (define (serialize port ::OutputPort column ::int indent ::int)::int
+    (write-char #\( port)
+    (increase! column)
+    (set! indent column)
+    (for element::Element in: (this)
+      (set! column (element:serialize port column indent)))
+    (write-char #\) port)
+    (increase! column)
+    column)
+
+  (mix-in WriteToString)
+#+END_SRC
+
+The case of ~Space~ is more complicated, because it's
+responsible for handling new lines. And just like our parser
+subtracted the current indentation level when reaching a new
+line, our serializer needs to generate the right amount of
+spaces after it reaches a new line (where by /the right
+amount/ we mean the number of spaces immediately following
+the new line plus current indentation):
+
+#+BEGIN_SRC scheme :noweb-ref Space--serialize
+  (define (serialize port ::OutputPort column ::int indent ::int)::int
+
+    (define (indent! i ::int)
+      (given (((is i < (fragments:size) #;>))
+              (spaces ::integer (fragments i))
+              (indent (+ indent spaces)))
+        (times indent write-char #\space port)
+        (set! column indent)))
+
+    (for i::int from: 0 below: (fragments:size)
+         (match (fragments i)
+           (#\newline
+            (increase! i)
+            (write-char #\newline port)
+            (indent! i))
+           (n::integer
+            (times n write-char #\space port)
+            (increase! column by: n))
+           (comment::Comment
+            (set! column (comment:serialize port column indent))
+            (when (comment:breaks-line?)
+              (increase! i)
+              (indent! i)))))
+    column)
+
+  (define (toString)::String
+    (call-with-output-string
+      (lambda (port)
+        (cond
+         ((fragments:isEmpty)
+          (values))
+         (else
+          (write-char #\< port)
+          (for f in: fragments
+            (write f port))
+          (write-char #\> port)
+          (when (any (lambda (x)
+                       (or (is x eq? #\newline)
+                           (LineComment? x)))
+                     fragments)
+            (display #\newline port)))))))
+#+END_SRC
+
+Lastly, we need to define serialization for ~TextualTileBase~
+
+#+BEGIN_SRC scheme :noweb-ref TextualTileBase--serialization
+
+  (define-protected (prefix)::string
+    #!abstract)
+
+  (define-protected (suffix)::string
+    #!abstract)
+
+  (define-protected (escape? c)::boolean
+    #false)
+
+  (define-protected (escape-char)::Char
+    #\\)
+
+  (define (serialize port ::OutputPort column ::int indent ::int)::int
+    (for c in: (prefix)
+      (write-char c port)
+      (increase! column))
+    (for c in: builder
+      (when (escape? c)
+        (write-char (escape-char) port)
+        (increase! column))
+      (write-char c port)
+      (if (eqv? c #\newline)
+          (set! column 0)
+          (increase! column)))
+    (for c in: (suffix)
+      (write-char c port)
+      (if (eqv? c #\newline)
+          (set! column 0)
+          (increase! column)))
+    column)
+
+  (mix-in WriteToString)
+#+END_SRC
+
+We also need to implement serialization for our textual elements:
+
+#+BEGIN_SRC scheme :noweb yes :noweb-ref TextualTileSubclasses--serialization
+
+  (define-interface TextualComment (Comment TextualTile))
+
+  (define-object (TextualTileBase)::TextualTile
+    <<TextualTileBase--serialization>>
+    (TextualBase))
+
+  (define-object (Atom)::TextualTile
+    (define-protected (prefix)::string "")
+
+    (define-protected (suffix)::string "")
+
+    (TextualTileBase))
+
+  (define-object (Text)::TextualTile
+    (define-protected (prefix)::string "\"")
+
+    (define-protected (suffix)::string "\"")
+
+    (define-protected (escape? c)::boolean
+      (or (eq? c #\" #|"|#)  (eq? c #\\)))
+
+    (TextualTileBase))
+
+  (define-object (BlockComment)::TextualComment
+
+    (define (breaks-line?)::boolean #false)
+
+    (define-protected (prefix)::string "#|")
+
+    (define-protected (suffix)::string "|#")
+
+    (TextualTileBase))
+
+  (define-object (LineComment)::TextualComment
+
+    (define (breaks-line?)::boolean #true)
+
+    (define-protected (prefix)::string ";")
+
+    (define-protected (suffix)::string "\n")
+
+    (TextualTileBase))
+
+#+END_SRC
+
+
+We can now test whether the algorithm works correctly:
+
+#+BEGIN_SRC scheme :tangle test/everything.sh
+  java -jar ../libs/kawa.jar test/serialization.scm
+#+END_SRC
+
+#+BEGIN_SRC scheme :tangle test/serialization.scm :mkdirp yes :noweb tangle
+  <<header>>
+  (module-name (test serialization))
+  (import (language extensions))
+
+  (define-alias SpaceFragment
+    (either int #\newline Comment))
+
+  (define-interface Element ()
+    (serialize port ::OutputPort column ::int indent ::int)::int
+    #|
+    This is a mock implementation
+    that is only used for testing
+    the implementation of serialization
+    |#
+    )
+
+  (define-interface Tile (Element))
+
+  (define-interface Compound (Tile List))
+
+  (define-interface Comment (Tile)
+    (breaks-line?)::boolean)
+
+  (define-mixin WriteToString
+    (define (toString)::String
+      (call-with-output-string
+        (lambda (port)
+          (serialize port 0 0)))))
+
+  <<TextualBase>>
+
+  (define-object (Space)::Element
+    <<Space--representation>>
+    <<Space--serialize>>
+    )
+
+  (define-object (Comb)::Compound
+    <<Comb--collection-operations>>
+    <<Comb--serialize>>
+    )
+
+  <<TextualTileSubclasses--serialization>>
+
+  <<advanced-parser>>
+
+  (define (enchanted item ::Tile path ::Stack)::Tile
+    item)
+
+  (define-object (Document)
+    (define (serialize port ::OutputPort column ::int indent ::int)::int
+      (for element::Element in: (this)
+        (set! column (element:serialize port column indent)))
+      column)
+
+    (Comb))
+
+  (define* (read-document port ::InputPort := (current-input-port))::Document
+    (read-list from: port into: (Document)))
+
+  (e.g.
+   (let* ((original "\
+  (define (! n) ; int -> int
+  (if (is n <= 1)
+  1 #| base case |#
+  (* n (! (- n 1)))))
+  (e.g. (! 5) ===> 120)
+  ")
+          (document ::Comb (call-with-input-string original
+                             read-document)))
+     (string=? original (document:toString))))
+
+  (e.g.
+   (let* ((original "\
+  (define (! n) ; int -> int
+    (if (is n <= 1)
+         1 #| base case |#
+       (* n (! (- n 1)))))
+  (e.g. (! 5) ===> 120)
+  ")
+         (document ::Comb (call-with-input-string original
+                            read-document)))
+     (string=? original (document:toString))))
+
+  (e.g.
+   (let* ((original "\
+          (define (! n) ; int -> int
+        (if (is n <= 1)
+      1 #| base case |#
+    (* n (! (- n 1)))))
+      (e.g. (! 5) ===> 120)
+  ")
+         (document ::Comb (call-with-input-string original
+                            read-document)))
+     (string=? original (document:toString))))
 
 #+END_SRC
 
