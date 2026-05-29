@@ -6879,15 +6879,12 @@ straightforward: we simply invoke the ~serialize~ method on its
 children and adjust the column value accordingly.
 
 #+BEGIN_SRC scheme :noweb-ref Comb--serialize
-  (define (serialize port ::OutputPort column ::int indent ::int)::int
+  (define (serialize port ::OutputPort indent ::int)::void
     (write-char #\( port)
-    (increase! column)
-    (set! indent column)
+    (set! indent (port:getColumnNumber))
     (for element::Element in: (this)
-      (set! column (element:serialize port column indent)))
-    (write-char #\) port)
-    (increase! column)
-    column)
+      (element:serialize port indent))
+    (write-char #\) port))
 
   (mix-in WriteToString)
 #+END_SRC
@@ -6901,14 +6898,13 @@ amount/ we mean the number of spaces immediately following
 the new line plus current indentation):
 
 #+BEGIN_SRC scheme :noweb-ref Space--serialize
-  (define (serialize port ::OutputPort column ::int indent ::int)::int
+  (define (serialize port ::OutputPort indent ::int)::void
 
     (define (indent! i ::int)
       (given (((is i < (fragments:size) #;>))
               (spaces ::integer (fragments i))
               (indent (+ indent spaces)))
-        (times indent write-char #\space port)
-        (set! column indent)))
+        (times indent write-char #\space port)))
 
     (for i::int from: 0 below: (fragments:size)
          (match (fragments i)
@@ -6917,14 +6913,12 @@ the new line plus current indentation):
             (write-char #\newline port)
             (indent! i))
            (n::integer
-            (times n write-char #\space port)
-            (increase! column by: n))
+            (times n write-char #\space port))
            (comment::Comment
-            (set! column (comment:serialize port column indent))
+            (comment:serialize port indent)
             (when (comment:breaks-line?)
               (increase! i)
-              (indent! i)))))
-    column)
+              (indent! i))))))
 
   (define (toString)::String
     (call-with-output-string
@@ -6960,24 +6954,15 @@ Lastly, we need to define serialization for ~TextualTileBase~
   (define-protected (escape-char)::Char
     #\\)
 
-  (define (serialize port ::OutputPort column ::int indent ::int)::int
+  (define (serialize port ::OutputPort indent ::int)::void
     (for c in: (prefix)
-      (write-char c port)
-      (increase! column))
+      (write-char c port))
     (for c in: builder
       (when (escape? c)
-        (write-char (escape-char) port)
-        (increase! column))
-      (write-char c port)
-      (if (eqv? c #\newline)
-          (set! column 0)
-          (increase! column)))
+        (write-char (escape-char) port))
+      (write-char c port))
     (for c in: (suffix)
-      (write-char c port)
-      (if (eqv? c #\newline)
-          (set! column 0)
-          (increase! column)))
-    column)
+      (write-char c port)))
 
   (mix-in WriteToString)
 #+END_SRC
@@ -7047,7 +7032,7 @@ We can now test whether the algorithm works correctly:
     (either int #\newline Comment))
 
   (define-interface Element ()
-    (serialize port ::OutputPort column ::int indent ::int)::int
+    (serialize port ::OutputPort indent ::int)::void
     #|
     This is a mock implementation
     that is only used for testing
@@ -7066,7 +7051,7 @@ We can now test whether the algorithm works correctly:
     (define (toString)::String
       (call-with-output-string
         (lambda (port)
-          (serialize port 0 0)))))
+          (serialize port 0)))))
 
   <<TextualBase>>
 
@@ -7088,10 +7073,9 @@ We can now test whether the algorithm works correctly:
     item)
 
   (define-object (Document)
-    (define (serialize port ::OutputPort column ::int indent ::int)::int
+    (define (serialize port ::OutputPort indent ::int)::void
       (for element::Element in: (this)
-        (set! column (element:serialize port column indent)))
-      column)
+        (element:serialize port indent)))
 
     (Comb))
 
