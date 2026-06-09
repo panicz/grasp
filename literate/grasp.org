@@ -154,11 +154,11 @@ the ~lambda~ and ~let~ forms, i.e. function parameters
 and local variables.)
 
 The code snippets from this chapter will be placed in the
-~language/extensions.scm~ file.
+~language-extensions.scm~ file.
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm :mkdirp yes :noweb tangle
+#+BEGIN_SRC scheme :tangle language-extensions.scm :mkdirp yes :noweb tangle
 <<header>>
-(module-name (language extensions))
+(module-name (language-extensions))
 ;; mind that, for some reason, importing ANY module from this
 ;; one causes the compiler to break, probably because of the
 ;; way macroexpander is implemented in Kawa. This could likely
@@ -199,7 +199,7 @@ We are going to start by defining a simplified version of
 itself that is only going to be used when we have a simple
 transform consisting of a single rewrite rule:
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm :comment link
+#+BEGIN_SRC scheme :tangle language-extensions.scm :comment link
 
 (define-syntax define-syntax-rule
   (syntax-rules ()
@@ -234,7 +234,7 @@ available, there would be no need for defining it!
 We can now use it for defining our first utility macro,
 namely ~comment~ - which discards all of its arguments.
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm :comment org
+#+BEGIN_SRC scheme :tangle language-extensions.scm :comment org
 
 (define-syntax-rule (comment . <anything>)
   (values))
@@ -246,7 +246,7 @@ program text, without the risk of crashing the program. For
 example, we could include the content of the first snippet
 from this section inside our ~comment~ form:
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 ;; this code is valid, even though the code
 ;; inside the ~comment~ form is not - that's
@@ -271,7 +271,7 @@ We can define a nearly identical macro called ~TODO~ to
 temporarily mark things in our program that haven't been
 implemented yet:
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm :comment org
+#+BEGIN_SRC scheme :tangle language-extensions.scm :comment org
 
 (define-syntax-rule (TODO . <anything>)
   (values))
@@ -288,7 +288,7 @@ Since it is important to us to discover any false beliefs
 that we might have, the typical interpretation of asserting
 a false belief is to raise an error and stop the program:
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define-syntax-rule (assert proposition)
   (or proposition
@@ -320,7 +320,7 @@ parameter objects]], so that the user would be able to tweak
 their behavior (for example, to count the number of evaluated
 examples)
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define invalid-example
   (make-parameter
@@ -344,7 +344,7 @@ examples)
 This time, we're actually going to be using multiple clauses,
 so we'll use ~syntax-rules~ instead of ~define-syntax-rules~?
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 (define-syntax e.g.
   (syntax-rules (===>)
     
@@ -378,7 +378,7 @@ so we'll use ~syntax-rules~ instead of ~define-syntax-rules~?
 As you can see, there are three rules in our ~e.g.~ macro.
 The first one corresponds to the usages such as
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (e.g. (+ 2 2) ===> 4)
 
@@ -391,7 +391,7 @@ where some expected output is provided for some given input.
 The second rule corresponds to the usages of /predicates/, i.e.
 functions whose value is (typically) either true or false, as in
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (e.g. (even? 4))
 
@@ -410,7 +410,7 @@ JVM's concept of ~null~).
 The last rule allows to express examples involving functions
 that are capable of returning multiple values:
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (e.g. (values 1 2 3) ===> 1 2 3)
 
@@ -489,7 +489,7 @@ For this reason - if you're not familiar with advanced macro
 programming in Scheme - it's OK to skip the analysis of the
 ~extract-_~ helper macro. Othewise enjoy.
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define-syntax infix/postfix
   (syntax-rules ()
@@ -665,7 +665,7 @@ consider it to be evil and horrible, and that if you ever
 submit a pull-request containing a use of ~do~, I will most
 certainly reject it).
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define-syntax-rule (while condition actions ...)
   (let ()
@@ -702,7 +702,7 @@ arguably makes the intent slightly clearer (and it doesn't
 use the bad word /continuation/ which means nothing to
 anyone except a bunch of nerds):
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define-syntax-rule (escape-with label . commands)
   (call/cc (lambda (label) . commands)))
@@ -712,7 +712,7 @@ anyone except a bunch of nerds):
 With that macro, we can introduce our own ~break~ statement
 (and name it however we like) and use it like this:
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (e.g.
   (let ((x 0))
@@ -743,7 +743,7 @@ parallel, we could define the following helper macro that
 blocks the current thread until all the sub-programs
 terminate:
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define-syntax concurrently
   (lambda (stx)
@@ -778,7 +778,7 @@ In this section, we are going to provide aliases for other
 classes and interfaces from the Java world that are used in
 our code:
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
   (define-alias Collection java.util.Collection)
   (define-alias List java.util.List)
@@ -800,6 +800,27 @@ our code:
   (define-alias Integer java.lang.Integer)
   (define-alias StringBuilder java.lang.StringBuilder)
   (define-alias IntStream java.util.stream.IntStream)
+
+  (define-alias Thread java.lang.Thread)
+
+  (define-alias Comparable java.lang.Comparable)
+#+END_SRC
+
+Moreover, Java provides the interface ~java.lang.Comparable~,
+whereas Scheme only provides numeric comparison. It is easy to
+define generalized comparison operators:
+
+#+BEGIN_SRC scheme :tangle language-extensions.scm
+
+  (define (preceding? a ::Comparable b ::Comparable)::boolean
+    (is (a:compareTo b) < 0))
+
+  (define (following? a ::Comparable b ::Comparable)::boolean
+    (is (a:compareTo b) > 0))
+
+  (define (coinciding? a ::Comparable b ::Comparable)::boolean
+    (is (a:compareTo b) = 0))
+
 #+END_SRC
 
 
@@ -826,7 +847,7 @@ in parallel, or iterating over a collection in reverse, or
 iterating over a range of numbers (without allocating array
 of numbers or creating coroutines):
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
   (define (par-for-each function collection)
     (let ((futures ::List (ArrayList)))
@@ -912,7 +933,7 @@ It is used in Kawa for specifying types of variables. Kawa's
 reader treats the sequence of two consecutive colons as a
 separate token:
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (e.g.
   (call-with-input-string "(a::b::c)" read)
@@ -930,7 +951,7 @@ Kawa Scheme lacks certain port operations that are present
 in other Scheme implementations, so we make up for this
 shoritcoming.
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
   (define-alias InputPort gnu.kawa.io.InPort)
 
@@ -1019,7 +1040,7 @@ the triples ~prototype :: return-type~ in an additional pair
 of parentheses, as required by the ~define-simple-class~
 form.
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define-syntax define-interface
   (syntax-rules ()
@@ -1102,7 +1123,7 @@ hygienic macroexpander to mess up with our identifiers, and
 instead we want them pasted verbatim in the final class
 definition.)
 
-#+BEGIN_SRC  scheme :tangle language/extensions.scm
+#+BEGIN_SRC  scheme :tangle language-extensions.scm
 
   (define-syntax delegate
     (syntax-rules (::)
@@ -1656,7 +1677,7 @@ requires slots to be named using symbols. Therefore we need
 a way to convert between symbols and keywords:
 
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define (keyword->symbol kw)
   (string->symbol (keyword->string kw)))
@@ -1670,7 +1691,7 @@ Of course, in order to be able to call arbitrary Scheme
 functions during macro expansion, we need to resort to the
 ~syntax-case~ macro system.
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define-syntax-rule (define-type (type-name . fields))
   (type-definition type-name fields #;slots () #;initializers (begin)))
@@ -1770,7 +1791,7 @@ hasn't yet been defined. For certain reasons (that will
 hopefully become clearer later), the ~copy~ procedure is
 defined in the following way:
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define (clonable? object)::boolean
   (or (instance? object Cloneable)
@@ -1860,7 +1881,7 @@ the ~e.g.~ macro). But we will go with another one, namely:
 we'll introduce an interface called ~Matchable~ and a new
 predicate called ~match/equal?~:
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define-interface Matchable ()
   (matches? x)::boolean)
@@ -1880,7 +1901,7 @@ which is going to invoke a helper form, called
 ~match/evaluated~, which in turn calls the ~match-clause~
 (which is the heart of our matcher). 
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define-syntax-rule (match expression (pattern actions* ... value) ...)
   (let ((evaluated expression))
@@ -2159,7 +2180,7 @@ pattern are ~match/equal?~ (the complexity of the test is
 quadratic, but since human-readable patterns are usually
 very small, this isn't a problem in practice):
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define-syntax check/unique
   (lambda (stx)
@@ -2248,7 +2269,7 @@ our own implementation of that macro, which provides exactly
 those features (and also supports multiple values). We also
 give it a better name: we call it ~given~.
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define-syntax given
   (lambda (stx)
@@ -2330,7 +2351,7 @@ and the way it has been described in [[https://srfi.schemers.org/srfi-201/srfi-2
 Unfortunately, this seems impossible without patching Kawa.
 So instead we are just going to provide the ~match-let*~ syntax.
 
-#+BEGIN_SRC  scheme :tangle language/extensions.scm
+#+BEGIN_SRC  scheme :tangle language-extensions.scm
 
 (define-syntax match-let*
   (lambda (stx)
@@ -2412,7 +2433,7 @@ forms, namely ~lambda*~ and ~define*~, that will enable the
 improved syntax. They will also allow to perform
 destructuring of the arguments of the defined functions.
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define-syntax lambda*
   (lambda (stx)
@@ -2627,7 +2648,7 @@ Since this interface is somewhat clumsy, it is convenient
 to define the following macro for augmenting a procedure
 with properties:
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define-syntax-rule (with-procedure-properties ((name value) ...)
                        procedure)
@@ -2647,7 +2668,7 @@ Kawa is ~Map[KeyType ValueType]~, which Kawa's
 reader reads as ~($bracket-apply$ Map KeyType
 ValueType)~:
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
   (e.g.
     (call-with-input-string "Map[KeyType ValueType]" read)
@@ -2659,7 +2680,7 @@ Since GRASP does not support some of Kawa's reader
 extensions, including the one above, we are not using it in
 GRASP's source code in order to make it editable in GRASP.
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define-syntax-rule (specialize generic-type concrete-types ...)
   ($bracket-apply$ generic-type concrete-types ...))
@@ -2668,7 +2689,7 @@ GRASP's source code in order to make it editable in GRASP.
 
 Here are the definitions of the ~mapping~ and ~define-mapping~ macros:
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define-syntax mapping
   (syntax-rules (::)
@@ -2702,7 +2723,7 @@ Once ~mapping~ is defined, defining ~define-mapping~ is
 fairly straightforward. The main difficulty is that we need
 to account for users omitting key and value type specifier:
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define-syntax define-mapping
   (syntax-rules (::)
@@ -2736,7 +2757,7 @@ means that we iterate over its elements. In our case, we can
 obtain an iterable set of (assigned) keys of mapping by using
 the ~keys~ function:
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define (keys dict)
   (let ((table ::Map (procedure-property dict 'table)))
@@ -2760,7 +2781,7 @@ problem.
 What seems to be a much simpler solution is to push the
 burden onto the user:
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define (inverse function)
   (procedure-property function 'inverse))
@@ -2785,7 +2806,7 @@ which can be a bit confusing).
 
 This interface might change in the future.
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
   (define-syntax bimapping
     (syntax-rules (::)
@@ -2895,7 +2916,7 @@ Technically, we are going to represent attributes using
 the same interface (and a very similar implementation) as we
 did in case of ~mapping~.
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
   (define-syntax attribute
     (syntax-rules (::)
@@ -3036,7 +3057,7 @@ will store the resut of evaluating the ~default~ form.
 Here we provide a bunch of functions and macros for
 removing all or some elements of a mapping:
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define-syntax-rule (unset! (mapping object))
   (let ((table ::Map (procedure-property mapping 'table)))
@@ -3057,7 +3078,7 @@ pair to a mapping only when it is different from the current
 value. This allows to save space in case someone tries to
 add a default value to the mapping.
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define-syntax-rule (update! (mapping object) expression)
   (let ((value expression))
@@ -3080,7 +3101,7 @@ In case of caching, this means that we need to create
 multi-level hash tables. This can be achieved by means
 of syntactic currying:
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define-syntax curried
   (lambda (stx)
@@ -3157,7 +3178,7 @@ of syntactic currying:
 
 Having currying in place, we can use it for defining cache:
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
   (define-syntax cache
     (syntax-rules (::)
@@ -3201,7 +3222,7 @@ Having currying in place, we can use it for defining cache:
 We can use the cache defined that way to implement /hash
 consing/:
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define-object (immutable-pair car cdr)
 
@@ -3235,7 +3256,7 @@ that we define.
 For example, we can define the following macro to
 express a type signature of a procedure:
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define-syntax maps
   (syntax-rules (to:)
@@ -3248,7 +3269,7 @@ we can also define an identical macro to designate a
 procedure that is meant to be mutable (like ~attribute~
 or ~mapping~)
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define-syntax !maps
   (syntax-rules (to:)
@@ -3264,48 +3285,50 @@ types and multiple values. We also redefine the ~unquote~
 operator outside of the ~quasiquote~ context to designate
 a type variable (rather than syntax error):
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
+  (define-syntax-rule (list-of type)
+    list)
 
-(define-syntax-rule (list-of type)
-  list)
+  (define-syntax-rule (set-of type)
+    (specialize Set type))
 
-(define-syntax-rule (set-of type)
-  (specialize Set type))
+  (define-syntax-rule (EnumSetOf type)
+    (specialize EnumSet type))
 
-(define-syntax-rule (EnumSetOf type)
-  (specialize EnumSet type))
+  (define-syntax-rule (vector-of type)
+    vector)
 
-(define-syntax-rule (vector-of type)
-  vector)
+  (define-syntax-rule (sequence-of type)
+    sequence)
 
-(define-syntax-rule (sequence-of type)
-  sequence)
+  (define-syntax-rule (array-of type)
+    (specialize type))
 
-(define-syntax-rule (array-of type)
-  (specialize type))
+  (define-syntax-rule (parameter-of type)
+    (specialize parameter type))
 
-(define-syntax-rule (parameter-of type)
-  (specialize parameter type))
+  (define-syntax-rule (interleaved types ...)
+    (array-of Object))
 
-(define-syntax subtype-of
-  (syntax-rules ()
-    ((subtype-of supertype . _)
-     supertype)))
+  (define-syntax subtype-of
+    (syntax-rules ()
+      ((subtype-of supertype . _)
+       supertype)))
 
-(define-syntax-rule (either type ...)
-  Object)
+  (define-syntax-rule (either type ...)
+    Object)
 
-(define-syntax-rule (maybe type)
-  (either type #!null))
+  (define-syntax-rule (maybe type)
+    (either type #!null))
 
-(define-syntax-rule (Values type ...)
-  Object)
+  (define-syntax-rule (Values type ...)
+    Object)
 
-(define-syntax-rule (unquote x)
-  Object)
+  (define-syntax-rule (unquote x)
+    Object)
 
-(define-alias Any Object)
+  (define-alias Any Object)
 
 #+END_SRC
 
@@ -3324,7 +3347,7 @@ The function commonly known as ~filter~ in SRFI-1 and
 Haskell prelude is named ~only~, because the name ~filter~
 is ambiguous.
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
   (define (any satisfying? elements)
     (escape-with return
@@ -3481,10 +3504,6 @@ is ambiguous.
   (define (never . _)::boolean #f)
 
   (define (always . _) ::boolean #t)
-  
-  (define (negation proc)
-    (lambda args
-      (not (apply proc args))))
 
   (define (find satisfying-element?::(maps (,a) to: boolean) collection)
     (escape-with return
@@ -3665,7 +3684,7 @@ is ambiguous.
     (when (is n > 0)
       (apply action args)
       (apply times (- n 1) action args)))
-  
+
   (define (char-digit? c::char)::boolean
     (is (char->integer #\0) <= (char->integer c) <= (char->integer #\9)))
 
@@ -3684,6 +3703,24 @@ is ambiguous.
              (assert (is (char->integer #\A) <= code <= (char->integer #\F)))
              (+ 10 (- code (char->integer #\A)))))))
 
+  (define (take k::integer #;elements-from s::list)::list
+    (if (and (pair? s)
+           (is k > 0))
+      (let ((result (cons (car s) '())))
+        (let loop ((input (cdr s))
+                   (tip result)
+                   (k (- k 1)))
+          (if (or (is k <= 0) (null? input))
+              result
+              (begin
+                (set! (cdr tip) (cons (car input) (cdr tip)))
+                (loop (cdr input) (cdr tip) (- k 1))))))
+      '()))
+
+  (e.g.
+   (take 3 #;elements-from '(1 2 3 4 5))
+   ===> (1 2 3))
+
 #+END_SRC
 
 *** Sets
@@ -3701,26 +3738,27 @@ Our implementation of sets piggybacks on that provided by
 Java. But in the spirit of SRFI-1, we also allow to treat
 lists as sets.
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
-  (define-simple-class set (HashSet)
-    ((toString)::String
-     (with-output-to-string
-       (lambda ()
-         (display "[set")
-         (for item in: (this)
-           (display " ")
-           (cond
-            ((or (string? item) (String? item))
-             (display "\"")
-             (display (item:toString))
-             (display "\""))
-            ((char? item)
-             (display "#\\")
-             (display (as char item)))
-          (else
-           (display (item:toString)))))
-         (display "]")))))
+  (define-object (set)::Set
+    (define (toString)::String
+      (with-output-to-string
+        (lambda ()
+          (display "[set")
+          (for item in: (this)
+            (display " ")
+            (cond
+             ((or (string? item) (String? item))
+              (display "\"")
+              (display (item:toString))
+              (display "\""))
+             ((char? item)
+              (display "#\\")
+              (display (as char item)))
+             (else
+              (display (item:toString)))))
+          (display "]"))))
+    (HashSet))
 
   (define* (is element in collection)
     (if (instance? collection Collection)
@@ -3836,7 +3874,7 @@ Because of that, the developers of GRASP had to implement a
 variant of parameters whose instant value is shared between
 theads.
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define-simple-class SharedThreadLocation (gnu.mapping.ThreadLocation)
 
@@ -3946,29 +3984,63 @@ it may be desirable to propagate the change to the original
 location, which can be achieved with the
 ~parameterize!~ macro:
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
-(define-syntax parameterize!
-  (lambda (stx)
-    (syntax-case stx ()
-      ((_ ((param source) ...) body + ...)
-       (with-syntax (((previous-value ...)
-		      (generate-temporaries
-		       #'(source ...))))
-	 #'(parameterize ((param source) ...)
-	     (let ((previous-value source) ...)
-	       (try-finally
-		(begin body + ...)
-		(begin
-		  (when (eqv? previous-value source)
-		    (set! source (param)))
-		  ...)))))))))
+  (define-syntax parameterize!
+    (lambda (stx)
+      (syntax-case stx ()
+        ((_ ((param source) ...) body + ...)
+         (with-syntax (((previous-value ...)
+                        (generate-temporaries
+                         #'(source ...))))
+           #'(parameterize ((param source) ...)
+               (let ((previous-value source) ...)
+                 (try-finally
+                  (begin body + ...)
+                  (begin
+                    (when (eqv? previous-value source)
+                      (set! source (param)))
+                    ...)))))))))
 
 #+END_SRC
 
 where ~try-finally~ is Kawa's (non-reentrable) counterpart
 of ~dynamic-wind~ that can be found in some Scheme
 implementations.
+
+*** Boxes
+
+The Java Virtual Machine provides a unique mechanism for
+thread synchronization: any ~Object~ can be used for
+~synchronized~ access.
+
+For better or worse, because variables in Kawa are not
+reified, they themselves can't be used for synchronization.
+
+For this reason we provide a single variable wrapped in a
+closure (which is reified) that we call /a box/:
+
+#+BEGIN_SRC scheme :tangle language-extensions.scm
+  (define-syntax define-box
+    (syntax-rules (::)
+      ((_ (name)::type initial-value)
+       (define-early-constant name
+         (let* ((state ::type initial-value)
+                (getter (lambda () state)))
+           (set! (setter getter)
+                 (lambda (value::type) (set! state value)))
+           getter)))
+
+      ((_ (name) initial-value)
+       (define-early-constant name
+         (let* ((state initial-value)
+                (getter (lambda () state)))
+           (set! (setter getter) (lambda (value)
+                                   (set! state value)))
+           getter)))
+      ))
+#+END_SRC
+
 
 *** Numeric type aliases
 
@@ -3982,7 +4054,7 @@ this section, we present type aliases for the ~real~ type in
 Kawa, to make their interpretation more apparent to the
 reader.
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
 (define-alias <0.0-1.0> real)
 
@@ -3999,7 +4071,7 @@ reader.
 The following definitons will hopefully be explained some
 day in the future.
 
-#+BEGIN_SRC scheme :tangle language/extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
 
   (define-syntax otherwise
     (syntax-rules ()
@@ -4011,16 +4083,24 @@ day in the future.
        (or (otherwise . precedents) default))))
 
   (define-syntax-rule (begin/or clause ...)
+    ;; evaluate all given clauses and return a disjuntion
+    ;; of their results
     (let ((result #f))
       (set! result (or clause result))
       ...
       result))
 
   (define-syntax-rule (begin/and clause ...)
+    ;; evaluate all given clauses and return a conjunction
+    ;; of their results
     (let ((result #t))
       (set! result (and clause result))
       ...
       result))
+
+  ;; truly is like begin, but its value is always #true
+  (define-syntax-rule (truly expressions ...)
+    (begin expressions ... #true))
 
   (define (memoize proc)
     (let ((table ::Map (HashMap)))
@@ -4337,14 +4417,14 @@ we won't need to worry about restoring the context.
 
 #+BEGIN_SRC scheme :tangle no :noweb-ref painter-subinterfaces
 
-(define-interface CanManageRenderingContext ()
-  (with-translation x::real y::real action::(maps () to: ,A))::,A
-  (with-rotation angle::real action::(maps () to: ,A))::,A
-  (with-clip w::real h::real action::(maps () to: ,A))::,A
-  (with-scale scale::real action::(maps () to: ,A))::,A
-  (with-intensity intensity::<0.0-1.0> action::(maps () to: ,A))::,A
-  (with-stretch horizontal::real vertical::real action::(maps () to: ,A))::,A
-  )
+  (define-interface CanManageRenderingContext ()
+    (with-translation x::real y::real action::(maps () to: ,A))::,A
+    (with-rotation angle::real action::(maps () to: ,A))::,A
+    (with-clip w::real h::real action::(maps () to: ,A))::,A
+    (with-scale scale::real action::(maps () to: ,A))::,A
+    ;;(with-intensity intensity::<0.0-1.0> action::(maps () to: ,A))::,A
+    (with-stretch horizontal::real vertical::real action::(maps () to: ,A))::,A
+    )
 
 #+END_SRC
 
@@ -4672,7 +4752,7 @@ by its descendant classes.
   (define (with-scale scale::real action::(maps () to: ,A))::,A
     (action))
 
-  (define (with-intensity intensity::<0.0-1.0>
+  #;(define (with-intensity intensity::<0.0-1.0>
                           action::(maps () to: ,A))
     ::,A
     #!abstract)
@@ -4683,53 +4763,81 @@ by its descendant classes.
   (define (min-line-height)::real
     3)
 
+  (define-protected (draw-top! width ::real
+                               border ::BorderCharacters
+                               selected ::SideSelected)
+    ::void
+    (let ((top-length ::int (border:top:length)))
+      (for i ::int
+           from: border:width
+           below: (- width border:width)
+           (put! (border:top (modulo i top-length))
+                 i 0))))
+
+  (define-protected (draw-bottom! width ::real
+                                  border ::BorderCharacters
+                                  selected ::SideSelected)
+    ::void
+    (let ((bottom-length ::int (border:bottom:length)))
+      (for i ::int
+           from: border:width
+           below: (- width border:width)
+           (put! (border:bottom (modulo i bottom-length))
+                 i 0))))
+
+  (define-protected (draw-left! height ::real
+                                border ::BorderCharacters
+                                selected ::SideSelected)
+    ::void
+    (for i ::int from: 0 below: border:width
+         (put! (border:leftTop i) i 0))
+    (for line ::int from: 1 below: (- height 2)
+         (for i ::int from: 0 below: border:width
+              (put! (border:leftLine i) i line)))
+    (when (is height #;< > 2)
+      (for i ::int from: 0 below: border:width
+           (put! (border:leftMiddle i) i (- height 2))))
+    (when (is height #;< > 1)
+      (for i ::int from: 0 below: border:width
+           (put! (border:leftBottom i) i (- height 1)))))
+
+  (define-protected (draw-right! height ::real
+                                 border ::BorderCharacters
+                                 selected ::SideSelected)
+    ::void
+    (for i ::int from: 0 below: border:width
+         (put! (border:rightTop i) i 0))
+    (for line ::int from: 1 below: (- height 2)
+         (for i ::int from: 0 below: border:width
+              (put! (border:rightLine i) i line)))
+    (when (is height #;< > 2)
+      (for i ::int from: 0 below: border:width
+           (put! (border:rightMiddle i) i (- height 2))))
+    (when (is height #;< > 1)
+      (for i ::int from: 0 below: border:width
+           (put! (border:rightBottom i) i (- height 1)))))
+
   (define (draw-box! width ::real height ::real
                      selected ::SideSelected
                      style ::BorderStyle)
     ::void
     (let ((border ::BorderCharacters
-                   (Borders (style:ordinal))))
+                  (Borders (style:ordinal))))
       (unless (border:top:isEmpty)
-        (let ((top-length ::int (border:top:length)))
-          (for i ::int
-               from: border:width
-               below: (- width border:width)
-               (put! (border:top (modulo i top-length))
-                     i 0))))
+        (draw-top! width border selected))
 
       (unless (border:bottom:isEmpty)
-        (let ((bottom-length ::int (border:bottom:length)))
-          (for i ::int
-               from: border:width
-               below: (- width border:width)
-               (put! (border:bottom (modulo i bottom-length))
-                     i (- height 1)))))
+        (with-translation
+         0 (- height 1)
+         (lambda ()
+           (draw-bottom! width border selected))))
 
-      (for i ::int from: 0 below: border:width
-           (put! (border:leftTop i) i 0))
-      (for line ::int from: 1 below: (- height 2)
-           (for i ::int from: 0 below: border:width
-                (put! (border:leftLine i) i line)))
-      (when (is height #;< > 2)
-        (for i ::int from: 0 below: border:width
-             (put! (border:leftMiddle i) i (- height 2))))
-      (when (is height #;< > 1)
-        (for i ::int from: 0 below: border:width
-             (put! (border:leftBottom i) i (- height 1))))
+      (draw-left! height border selected)
+
       (with-translation
        (- width border:width) 0
        (lambda ()
-         (for i ::int from: 0 below: border:width
-              (put! (border:rightTop i) i 0))
-         (for line ::int from: 1 below: (- height 2)
-              (for i ::int from: 0 below: border:width
-                   (put! (border:rightLine i) i line)))
-         (when (is height #;< > 2)
-           (for i ::int from: 0 below: border:width
-                (put! (border:rightMiddle i) i (- height 2))))
-         (when (is height #;< > 1)
-           (for i ::int from: 0 below: border:width
-                (put! (border:rightBottom i) i (- height 1))))))))
+         (draw-right! height border selected)))))
 
   (define (border-width style ::BorderStyle)::real
     (let ((border ::BorderCharacters
@@ -4744,8 +4852,11 @@ by its descendant classes.
   (define (clear!)::void
     #!abstract)
 
-  (define (draw-text! text::CharSequence font::FontProxy)::real
-    #!abstract)
+  (define (draw-text! text ::CharSequence font ::FontProxy)::real
+    (let ((text-length ::int (string-length text)))
+      (for i ::int from: 0 below: text-length
+           (put! (text i) i 0))
+      text-length))
 
   (define (text-width text::CharSequence font::FontProxy)::real
     (string-length text))
@@ -4795,12 +4906,6 @@ buffer to a string.
   (define (comment-font)::FontProxy basic-font)
   (define (caption-font)::FontProxy basic-font)
 
-  (define (draw-text! text ::CharSequence font ::FontProxy)::real
-    (let ((text-length ::int (string-length text)))
-      (for i ::int from: 0 below: text-length
-           (put! (text i) i 0))
-      text-length))
-
   (define (mark-cursor! position ::int font ::FontProxy)::void
     (put! #\^ position 1))
 
@@ -4848,7 +4953,7 @@ buffer to a string.
           (set! (buffer n) c))
         )))
 
-  (define (with-intensity intensity::<0.0-1.0>
+  #;(define (with-intensity intensity::<0.0-1.0>
                           action::(maps () to: ,A))
     ::,A
     (action))
@@ -4919,7 +5024,7 @@ recommend reading it.
 #+BEGIN_SRC scheme :tangle test/basic-text-painter.scm :mkdirp yes :noweb tangle
   <<header>>
   (module-name (test basic-text-painter))
-  (import (language extensions))
+  (import (language-extensions))
 
   <<basic-text-painter>>
 
@@ -5098,7 +5203,7 @@ elements that occupy a rectangular area of the screen.
       (elements (quotient (- index 1) 2)))))
 
   ;; and the iterators can be implemented using
-  ;; the IndexBasedIterator defined in our (language extensions)
+  ;; the IndexBasedIterator defined in our (language-extensions)
   (define (iterator)::Iterator
     (IndexBasedIterator (this) 0))
 
@@ -5292,7 +5397,7 @@ elements that occupy a rectangular area of the screen.
 
   (define (set index ::int element ::Element)::Element
     (cond
-     ((or (is index < 0) (is index >= 0))
+     ((or (is index < 0) (is index >= (size)))
       #!null)
      ((and (Space? element) (even? index))
       (spaces:set (quotient index 2) element))
@@ -5354,7 +5459,7 @@ going to provide mock definitions of ~Element~, ~Tile~ and
 #+BEGIN_SRC scheme :tangle test/comb-as-collection.scm :mkdirp yes :noweb tangle
   <<header>>
   (module-name (test comb-as-collection))
-  (import (language extensions))
+  (import (language-extensions))
 
   (define-interface Element ()
     #|
@@ -5555,10 +5660,12 @@ rendering function for ~Comb~ and its thereabouts.
                                current-layout))))))
       (update-size-from-layout-state! current-layout)
       (painter:draw-box! last-width last-height
-                         (match current-index
-                           (,LEFT-PAREN-INDEX  SideSelected:Left)
-                           (,RIGHT-PAREN-INDEX SideSelected:Right)
-                           (_                  SideSelected:None))
+                         (if active?
+                             (match current-index
+                               (,LEFT-PAREN-INDEX  SideSelected:Left)
+                               (,RIGHT-PAREN-INDEX SideSelected:Right)
+                               (_                  SideSelected:None))
+                             SideSelected:None)
                          style))
     (advance-layout! state))
 
@@ -5718,7 +5825,7 @@ everything, we can provide a /partial implementation/.
 #+BEGIN_SRC scheme :tangle test/comb-rendering.scm :mkdirp yes :noweb tangle
   <<header>>
   (module-name (test comb-rendering))
-  (import (language extensions))
+  (import (language-extensions))
 
   <<basic-text-painter>>
 
@@ -6043,6 +6150,7 @@ we have everything that is needed to define the ~Visual~,
 ~Spatial~ and ~Tile~ parts of ~Textual~ elements.
 
 #+BEGIN_SRC scheme :noweb-ref TextualTileBase--rendering
+  (define-private current-index ::int 0)
 
   (define-protected (border-style)::BorderStyle
     #!abstract)
@@ -6067,14 +6175,21 @@ we have everything that is needed to define the ~Visual~,
         (lambda ()
           (call-with-input-string builder
             (lambda (port ::InputPort)
-              (for line in: (lines port)
-                (painter:with-translation
-                    0 inner-height
-                  (lambda ()
-                    (let ((line-width (painter:draw-text!
-                                       line font)))
-                      (maximize! inner-width line-width)
-                      (increase! inner-height by: (font:height))))))))))
+              (let ((n ::int 0))
+                (for line in: (lines port)
+                  (painter:with-translation
+                      0 inner-height
+                    (lambda ()
+                      (let* ((line-width (painter:draw-text!
+                                          line font))
+                             (l ::int (string-length line)))
+                        (when (and active?
+                                   (is n <= current-index #;>
+                                       <= (+ n l) #;> ))
+                          (painter:mark-cursor! (- current-index n) font))
+                        (increase! n by: l)
+                        (maximize! inner-width line-width)
+                        (increase! inner-height by: (font:height)))))))))))
       (set! last-width (+ inner-width (* 2 border-width)))
       (set! last-height (+ inner-height (* 2 border-height)))
       (painter:draw-box! last-width last-height SideSelected:None style))
@@ -6113,17 +6228,10 @@ we have everything that is needed to define the ~Visual~,
 
 #+END_SRC
 
-
 We can now use the code to define the built-in ~Textual~
 units in GRASP
 
 #+BEGIN_SRC scheme :noweb yes :noweb-ref TextualTileSubclasses--rendering
-
-  (define-interface TextualComment (Comment TextualTile))
-
-  (define-object (TextualTileBase)::TextualTile
-    <<TextualTileBase--rendering>>
-    (TextualBase))
 
   (define-object (Atom)::TextualTile
     (define-protected (font)::FontProxy
@@ -6183,7 +6291,7 @@ rendering with our ~TextPainter~.
 #+BEGIN_SRC scheme :tangle test/textual-rendering.scm :mkdirp yes :noweb tangle
   <<header>>
   (module-name (test textual-rendering))
-  (import (language extensions))
+  (import (language-extensions))
 
   <<basic-text-painter>>
 
@@ -6208,6 +6316,12 @@ rendering with our ~TextPainter~.
     (breaks-line?)::boolean)
 
   <<TextualBase>>
+
+  (define-interface TextualComment (Comment TextualTile))
+
+  (define-object (TextualTileBase)::TextualTile
+    <<TextualTileBase--rendering>>
+    (TextualBase))
 
   <<TextualTileSubclasses--rendering>>
 
@@ -6319,7 +6433,7 @@ We can now test the simplified parser on sample data:
 #+BEGIN_SRC scheme :tangle test/simple-parser.scm :mkdirp yes :noweb tangle
   <<header>>
   (module-name (test simple-parser))
-  (import (language extensions))
+  (import (language-extensions))
 
   <<basic-text-painter>>
 
@@ -6356,6 +6470,12 @@ We can now test the simplified parser on sample data:
     )
 
   <<TextualBase>>
+
+  (define-interface TextualComment (Comment TextualTile))
+
+  (define-object (TextualTileBase)::TextualTile
+    <<TextualTileBase--rendering>>
+    (TextualBase))
 
   <<TextualTileSubclasses--rendering>>
 
@@ -6751,7 +6871,7 @@ class that will be elaborated in the future.
 #+BEGIN_SRC scheme :tangle test/advanced-parser.scm :mkdirp yes :noweb tangle
   <<header>>
   (module-name (test advanced-parser))
-  (import (language extensions))
+  (import (language-extensions))
 
   <<basic-text-painter>>
 
@@ -6788,6 +6908,12 @@ class that will be elaborated in the future.
 
   <<TextualBase>>
 
+  (define-interface TextualComment (Comment TextualTile))
+
+  (define-object (TextualTileBase)::TextualTile
+    <<TextualTileBase--rendering>>
+    (TextualBase))
+  
   <<TextualTileSubclasses--rendering>>
 
   <<advanced-parser>>
@@ -6971,12 +7097,6 @@ We also need to implement serialization for our textual elements:
 
 #+BEGIN_SRC scheme :noweb yes :noweb-ref TextualTileSubclasses--serialization
 
-  (define-interface TextualComment (Comment TextualTile))
-
-  (define-object (TextualTileBase)::TextualTile
-    <<TextualTileBase--serialization>>
-    (TextualBase))
-
   (define-object (Atom)::TextualTile
     (define-protected (prefix)::string "")
 
@@ -7026,7 +7146,7 @@ We can now test whether the algorithm works correctly:
 #+BEGIN_SRC scheme :tangle test/serialization.scm :mkdirp yes :noweb tangle
   <<header>>
   (module-name (test serialization))
-  (import (language extensions))
+  (import (language-extensions))
 
   (define-alias SpaceFragment
     (either int #\newline Comment))
@@ -7065,6 +7185,12 @@ We can now test whether the algorithm works correctly:
     <<Comb--serialize>>
     )
 
+  (define-interface TextualComment (Comment TextualTile))
+
+  (define-object (TextualTileBase)::TextualTile
+    <<TextualTileBase--serialization>>
+    (TextualBase))
+  
   <<TextualTileSubclasses--serialization>>
 
   <<advanced-parser>>
@@ -7119,6 +7245,846 @@ We can now test whether the algorithm works correctly:
      (string=? original (document:toString))))
 
 #+END_SRC
+
+*** Navigation
+
+So far, we managed to build a nice representation for
+documents in GRASP. We are able to read them, render them
+and write them.
+
+But GRASP is supposed to be an editor -- therefore we need
+to be able to move around our representation and modify it.
+
+Editing documents in GRASP using keyboard should resemble
+working with ordinary text editors, to the extent that it is
+ergonomic, but we also want to use the advantages of structure
+editing for touch screen and mouse.
+
+There are several issues that need to be resolved for this
+to be possible. In particular, we need to be able to:
+- move the current cursor back and forth
+- move the current cursor up and down
+- move boxes around the document, and resize them using
+  mouse pointer or fingers
+
+**** Representing the cursor
+
+In a text editor, a cursor can be characterized by a single
+number, namely -- the number of characters from the
+beginning of a file. However, it's more common to think
+of a text file in terms of two numbers, i.e. a line number
+and a column number (so in a sense, most text editors can
+be thought of as structure editors that operate on a fairly
+simple structure of /lines/).
+
+GRASP is a tree editor, and the trees that it edits can be
+nested arbitrarily. On the other hand, the trees are
+projected on a linearly ordered two-dimensional
+surface. Therefore, just like it makes sense to move the
+cursor up and down in a text editor, the same operation
+makes sense for GRASP -- only its interpretation (or
+implementation) isn't as straightforward.
+
+But before we move on to the second dimension, we first need
+to worry how to represent a sequential, linear position in a
+file.
+
+We've already seen our representation as we were
+implementing the ~render!~ method for the ~Comb~ class -- we
+had to introduce the ~current-index~ variable to check
+whether a given rendered element was ~active?~. At that
+point it probably wasn't very useful -- rendering active and
+non-active objects is something that we had to anticipate.
+
+Now we need to actually be able to modify the ~current-index~
+and conceptualize it in the big picture.
+
+As we know, a document in GRASP consists of nested ~Comb~
+elements -- and therefore the active element can be reached
+by providing /a sequence of indices/. The exact lenght of
+that sequence depends on the nesting level of the
+expressions involved. In the contet od GRASP, we will be
+calling this sequence of indices -- /a cursor/.
+
+The two most basic operations that can be performed on
+cursor are /advancing/ and /retreating/. Those operations
+are in turn based on advancing and retreating indices.
+
+**** Cursor-related operations in ~Comb~
+
+An index is simply an integer. Regular indices are
+non-negative, but we've already seen the ~Comb~'s
+parentheses having negative indices. Because of those
+irregularities, we need to model the order of indices using
+method of our ~Comb~ class (and, as it will soon turn out,
+other ~Element~-s as well). More specifically, we wish to
+have two methods, ~index-succeeding~ and ~index-preceding~,
+which -- given a valid index -- return its successor and
+predecessor. For ~Comb~, those methods could be defined as
+
+#+BEGIN_SRC scheme :noweb-ref Comb--navigation
+
+  (define (index-succeeding index::int)::int
+    (match index
+      (,LEFT-PAREN-INDEX  0)
+      (,RIGHT-PAREN-INDEX index)
+      (,(- (size) 1)      RIGHT-PAREN-INDEX)
+      (_                  (+ index 1))))
+
+  (define (index-preceding index::int)::int
+    (match index
+      (,RIGHT-PAREN-INDEX (- (size) 1))        
+      (,LEFT-PAREN-INDEX  index)
+      (0                  LEFT-PAREN-INDEX)
+      (_                  (- index 1))))
+
+#+END_SRC
+
+Having them defined, we can develop two helper methods,
+~advance-current-index!~ and ~retreat-current-index!~, which
+apply them to the ~current-index~.
+
+#+BEGIN_SRC scheme :noweb-ref Comb--navigation
+
+  (define-private (advance-current-index!)::boolean
+    (let ((previous ::int current-index))
+      (set! current-index (index-succeeding current-index))
+      (isnt previous = current-index)))
+
+  (define-private (retreat-current-index!)::boolean
+    (let ((previous ::int current-index))
+      (set! current-index (index-preceding current-index))
+      (isnt previous = current-index)))
+
+#+END_SRC
+
+With these definitions, we can now define what it means to
+~cursor-advance!~ and/or ~cursor-retreat!~. Both these
+methods return a boolean value which is true when the
+cursor has successfully been moved. This is important,
+because they call the corresponding methods on their
+children recursively, so this way the children can inform
+their parents whether the cursor has reached its
+end/beginning at a given level, and the parent index needs
+to be updated:
+
+#+BEGIN_SRC scheme :noweb-ref Comb--navigation
+
+  (define (cursor-advance!)::boolean
+    (when (= current-index LEFT-PAREN-INDEX)
+      (set! current-index 0))
+    (and (isnt current-index = RIGHT-PAREN-INDEX)
+         (let ((element ::Element (element-at current-index)))
+           (or (element:cursor-advance!)
+               (and (advance-current-index!)
+                    (let ((next ::Element
+                                (element-at current-index)))
+                      (and (isnt next eq? element)
+                           (or (eq? next (this))
+                               (truly (next:cursor-to-start!))))))))))
+
+  (define (cursor-retreat!)::boolean
+    (when (= current-index RIGHT-PAREN-INDEX)
+      (set! current-index (- (size) 1)))
+    (and (isnt current-index = LEFT-PAREN-INDEX)
+         (let ((element ::Element (element-at current-index)))
+           (or (element:cursor-retreat!)
+               (and (retreat-current-index!)
+                    (let ((previous ::Element
+                                    (element-at current-index)))
+                      (and (isnt previous eq? element)
+                           (or (eq? previous (this))
+                               (truly (previous:cursor-to-end!))))))))))
+
+#+END_SRC
+
+We can immediately observe that it's not only the ~Comb~
+class that is supposed to possess the ~cursor-retreat!~ and
+~cursor-advance!~ methods, but that we expect every
+~Element~ to have them -- just like a few other operations:
+
+#+BEGIN_SRC scheme :noweb-ref Element--cursor-operations
+  (cursor-advance!)::boolean
+  (cursor-retreat!)::boolean
+  (cursor-to-start!)::boolean
+  (cursor-to-end!)::boolean
+  (cursor-index)::int
+  (element-at index ::int)::Element
+#+END_SRC
+
+Of course, the definition of ~element-at~ for ~Comb~
+is fairly easy (but that's mainly because we alredy
+implemented it under a different name):
+
+#+BEGIN_SRC scheme :noweb-ref Comb--navigation
+  (define (element-at index ::int)::Element
+    (get index))
+#+END_SRC
+
+What may not be immediately visible, is the convention that
+that an element whose index does not refer to any other
+element, should return itself. (For example, it could be
+tempting to implement ~element-at~ for ~Atom~ that would
+return respective characters -- but in our ontology a
+character is not an ~Element~, which means that our atoms
+are actually atomic.)
+
+When it comes to the ~cursor-to-start!~ and ~cursor-to-end!~
+methods, their implementation for ~Comb~ are also rather
+straightforward:
+
+#+BEGIN_SRC scheme :noweb-ref Comb--navigation
+  (define (cursor-to-start!)::boolean
+    (let ((previous-index current-index))
+      (set! current-index LEFT-PAREN-INDEX)
+      (isnt previous-index = current-index)))
+
+  (define (cursor-to-end!)::boolean
+    (let ((previous-index current-index))
+      (set! current-index RIGHT-PAREN-INDEX)
+      (isnt previous-index = current-index)))
+#+END_SRC
+
+Likewise, the ~cursor-index~ method simply returns
+~current-index~:
+
+#+BEGIN_SRC scheme :noweb-ref Comb--navigation
+  (define (cursor-index)::int
+    current-index)
+#+END_SRC
+
+In addition to ~Comb~, we also need to implement cursor
+movement for ~Space~ and for ~TextualTileBase~ (which forms
+the basis of ~Atom~, ~Text~ and a few other classe).
+
+**** Cursor-related operations in ~TextualTileBase~
+
+The case of ~TextualTileBase~ is particularly simple:
+
+#+BEGIN_SRC scheme :noweb-ref TextualTileBase--navigation
+  (define (cursor-advance!)::boolean
+    (and (is current-index < (builder:length)) ;>
+         (truly (increase! current-index))))
+
+  (define (cursor-retreat!)::boolean
+    (and (is current-index #;< > 0)
+         (truly (decrease! current-index))))
+
+  (define (cursor-to-start!)::boolean
+    (let ((previous-index current-index))
+      (set! current-index 0)
+      (isnt previous-index = current-index)))
+
+  (define (cursor-to-end!)::boolean
+    (let ((previous-index current-index))
+      (set! current-index (builder:length))
+      (isnt previous-index = current-index)))
+      
+  (define (cursor-index)::int current-index)
+
+  (define (element-at index ::int)::Element
+    (this))
+#+END_SRC
+
+**** Cursor-related operations in ~Space~
+
+The case of ~Space~ is slightly more complicated, because
+its ~fragments~ consist both of "flat" elements (numbers,
+newlines) and "structured" elements (in particular expression
+comments, but also block comments and line comments).
+
+#+BEGIN_SRC scheme :noweb-ref Space--navigation
+
+  (define (cursor-index)::int
+    current-index)
+
+  (define-private (last-index)::int
+    (let ((total ::int 0))
+      (for fragment::SpaceFragment in: fragments
+        (match fragment
+          (number::integer
+           (increase! total by: number))
+          (else
+           (increase! total))))
+      total))
+
+  (define (fetch-element index::int fragment-index::int)::Element
+    (if (is fragment-index #;< >= (length fragments))
+        (this)
+        (let ((fragment (fragments fragment-index)))
+          (match fragment
+            (number::integer
+             (if (is index <= number) ;>
+                 (this)
+                 (fetch-element (- index number 1) (+ fragment-index 1))))
+            (#\newline
+             (if (is index = 0)
+                 (this)
+                 (fetch-element (- index 1) (+ fragment-index 1))))
+            (element::Element
+             (if (is index = 0)
+                 element
+                 (fetch-element (- index 1) (+ fragment-index 1))))))))
+
+  (define (element-at current-index::int)::Element
+    (fetch-element current-index 0))
+
+  (define (cursor-to-start!)::boolean
+    (let ((previous-index current-index))
+      (set! current-index 0)
+      (isnt previous-index = current-index)))
+
+  (define (cursor-to-end!)::boolean
+    (let ((previous-index current-index))
+      (set! current-index (last-index))
+      (isnt previous-index = current-index)))
+
+  (define (cursor-advance!)::boolean
+    (and (is current-index < (last-index)) ;>
+         (let ((fragment (element-at current-index)))
+           (or (given ((fragment ::Element)
+                       ((isnt fragment eq? (this))))
+                 (fragment:cursor-advance!))
+               (truly
+                (increase! current-index)
+                (let ((next-fragment (element-at current-index)))
+                  (given ((next-fragment ::Element)
+                          ((isnt next-fragment eq? (this))))
+                    (next-fragment:cursor-to-start!))))))))
+
+  (define (cursor-retreat!)::boolean
+    (and (is current-index #;< > 0)
+         (let ((fragment (element-at current-index)))
+           (or (given ((fragment ::Element)
+                       ((isnt fragment eq? (this))))
+                 (fragment:cursor-retreat!))
+               (truly
+                (decrease! current-index)
+                (print "decreased index to "current-index)
+                (let ((previous-fragment (element-at current-index)))
+                  (given ((previous-fragment ::Element)
+                          ((isnt previous-fragment eq? (this))))
+                    (previous-fragment:cursor-to-end!))))))))
+
+#+END_SRC
+
+*** Interactivity (and testing)
+
+Testing this code is unlike testing the code we wrote
+previously.  So far, we could see the correctness of
+rendering with our own eyes.  But now we need to resort to
+our fingers. Writing down all possible cursor positions in a
+document would be both tedious and illegible.  Instead we
+should be able to use keyboard arrows (left and right) to
+move through the document.
+
+Mind however, that keyboard arrows do not fall nicely under
+the ~stdio~ model that modern operating systems inherited
+from the teletype tradition of UNIX, and therefore we need
+to resort to a slightly newer tradition, namely that of
+/character terminals/.
+
+Since GRASP runs on the JVM, we can use some Java library
+that provides character terminal support. And since the only
+such library that I know of is [[https://github.com/mabe02/lanterna.git][Lanterna]], this is going to be
+our choice.
+
+Testing the cursor behavior this way requires substantial
+work: we need to implement a variant of ~Painter~ that would
+work with Lanterna, as well as a way of handling user input.
+
+Fortunately, as we anticipated before, the ~Painter~
+implementation will be based on ~CharPainter~, and will only
+need to provide a small amount of missing methods.
+
+But, because Lanterna has some very lengthy package names,
+we're first going to define a bunch of aliases and helper
+definitions in a ~(terminal definitions)~ module.
+
+#+BEGIN_SRC scheme :tangle terminal-definitions.scm :mkdirp yes :noweb tangle
+  <<header>>
+  (module-name (terminal-definitions))
+  (import (language-extensions))
+
+  (define-alias DefaultTerminalFactory
+    com.googlecode.lanterna.terminal.DefaultTerminalFactory)
+
+  (define-alias TerminalPosition
+    com.googlecode.lanterna.TerminalPosition)
+
+  (define-alias TerminalSize
+    com.googlecode.lanterna.TerminalSize)
+
+  (define-alias MouseCaptureMode
+    com.googlecode.lanterna.terminal.MouseCaptureMode)
+
+  (define-alias ExtendedTerminal
+    com.googlecode.lanterna.terminal.ExtendedTerminal)
+
+  (define-alias TerminalColor
+    com.googlecode.lanterna.TextColor)
+
+  (define-cache (TerminalColorRGB red::ubyte green::ubyte blue::ubyte)
+    ::TerminalColor
+    (TerminalColor:RGB red green blue))
+
+  (define-alias Terminal
+    com.googlecode.lanterna.terminal.Terminal)
+
+  (define-alias LanternaScreen
+    com.googlecode.lanterna.screen.Screen)
+
+  (define-alias TerminalScreen
+    com.googlecode.lanterna.screen.TerminalScreen)
+
+  (define-alias KeyStroke
+    com.googlecode.lanterna.input.KeyStroke)
+
+  (define-alias KeyType
+    com.googlecode.lanterna.input.KeyType)
+
+  (define-alias MouseAction
+    com.googlecode.lanterna.input.MouseAction)
+
+  (define-alias MouseActionType
+    com.googlecode.lanterna.input.MouseActionType)
+
+  (define-alias TerminalCharacter
+    com.googlecode.lanterna.TextCharacter)
+
+  (define-alias TerminalTextDecoration
+    com.googlecode.lanterna.SGR)
+
+  (define-alias TerminalTextStyle
+    (EnumSetOf TerminalTextDecoration))
+
+  (define-alias CTRL+C-behaviour
+    com.googlecode.lanterna.terminal.ansi.UnixLikeTerminal:CtrlCBehaviour)
+
+  (define MouseButton:None ::int 0)
+  (define MouseButton:Left ::int 1)
+  (define MouseButton:Middle ::int 2)
+  (define MouseButton:Right ::int 3)
+  (define MouseButton:WheelUp ::int 4)
+  (define MouseButton:WheelDown ::int 5)
+
+  (define defaultTerminalFactory ::DefaultTerminalFactory
+    (DefaultTerminalFactory))
+
+  (define (make-terminal
+           #!key
+           (mouse-capture-mode::MouseCaptureMode
+            MouseCaptureMode:CLICK_RELEASE_DRAG)
+           (ctrl+c-behaviour::CTRL+C-behaviour
+            CTRL+C-behaviour:TRAP))
+    ::Terminal
+    (defaultTerminalFactory:setMouseCaptureMode mouse-capture-mode)
+    (defaultTerminalFactory:setUnixTerminalCtrlCBehaviour
+      ctrl+c-behaviour)
+    (defaultTerminalFactory:createTerminal))
+
+  (define (make-terminal-screen
+           #!key (background ::TerminalCharacter
+                             (TerminalCharacter
+                              #\space
+                              TerminalColor:ANSI:DEFAULT
+                              TerminalColor:ANSI:DEFAULT)))
+    ::LanternaScreen
+    (TerminalScreen (make-terminal) background))
+
+  (define-cache (decorated-character c color::TerminalColor
+                                     background::TerminalColor
+                                     style::TerminalTextStyle)
+    ::TerminalCharacter
+    (TerminalCharacter c color background style))
+
+  (define-syntax-rule (with-terminal-screen screen . actions)
+    (try-finally
+     (begin
+       (screen:startScreen)
+       . actions)
+     (screen:stopScreen)))
+
+#+END_SRC
+
+Moreover, because Lanterna occupies an entire screen output,
+and it's still convenient to be able to display diagnostic
+messages somewhere, we're going to define a simple socket
+server that's going to send output messages to a TCP port
+so that we can collect it using ~netcat~ or a similar utility:
+
+#+BEGIN_SRC scheme :tangle utils/tcp-output-server.scm :mkdirp yes :noweb tangle
+  <<header>>
+  (module-name (utils tcp-output-server))
+  (import (language-extensions))
+
+  (define (tcp-output-server port::short)::OutputPort
+    (let* ((server ::java.net.ServerSocket
+                   (java.net.ServerSocket port))
+           (connections ::list '())
+           (thread (future
+                    (while #t
+                      (let ((socket ::java.net.Socket (server:accept)))
+                        (set! connections
+                              (cons (socket:getOutputStream)
+                                    connections)))))))
+      (OutputPort
+       (object (java.io.OutputStream)
+         ((write byte::int)::void
+          (for connection::java.io.OutputStream in: connections
+            (connection:write byte)
+            (when (= byte #;< (char->integer #\newline))
+              (connection:flush))))))))
+#+END_SRC
+
+In cases like this, it's also convenient to be able to print stack
+traces:
+
+#+BEGIN_SRC scheme :tangle utils/debug.scm :mkdirp yes :noweb tangle
+  <<header>>
+  (module-name (utils debug))
+  (import (language-extensions))
+  (import (kawa regex))
+
+  (define (stack-trace ex::java.lang.Throwable)
+    (let* ((sw ::java.io.StringWriter (java.io.StringWriter))
+           (pw ::java.io.PrintWriter (java.io.PrintWriter sw)))
+      (ex:printStackTrace pw)
+      (sw:toString)))
+
+  (define-syntax-rule (current-stack-trace)
+    (try-catch
+     (throw (java.lang.Exception))
+     (ex java.lang.Throwable
+         (stack-trace ex))))
+
+  (define (WARN . messages)
+    (parameterize ((current-output-port (current-error-port)))
+      (apply print messages)))
+
+  (define-parameter (stack-dump-length)::integer 32)
+
+  (define-parameter (show-in-stack-dump?)::(maps (string)
+                                                 to: boolean)
+    (lambda (line)
+      (and ;;(isnt ".java:[0-9]+" regex-match line)
+       (isnt "at gnu" regex-match line)
+       (isnt "at android.view.ViewRootImpl" regex-match line)
+       (isnt "Native Method" regex-match line))))
+
+  (define (log-stack-trace trace::string)::void
+    (for line in: (take (stack-dump-length)
+                        (only (show-in-stack-dump?)
+                              (string-split trace
+                                            "\n")))
+      (WARN line)))
+
+  (define-parameter (stack-trace-action)
+    ::(maps (string) to: void)
+    log-stack-trace)
+
+  (define-syntax-rule (safely actions ...)
+    (try-catch
+     (begin actions ...)
+     (ex java.lang.Throwable
+         ((stack-trace-action) (stack-trace ex))
+         #!null)))
+
+#+END_SRC
+
+
+#+BEGIN_SRC scheme :noweb-ref basic-terminal-painter
+  (define-object (TerminalFont fg ::TerminalColor
+                               bg ::TerminalColor
+                               style ::TerminalTextStyle)
+    ::FontProxy
+    (define (height)::real 1))
+
+  (define-object (TerminalPainter terminal ::LanternaScreen)::Painter
+
+    (define-private fgcolor ::TerminalColor
+      TerminalColor:ANSI:WHITE)
+
+    (define-private bgcolor ::TerminalColor
+      TerminalColor:ANSI:BLACK)
+
+    (define-private style ::TerminalTextStyle
+      (TerminalTextStyle:noneOf TerminalTextDecoration:class))
+
+    (define-private -atom-font ::FontProxy
+      (TerminalFont TerminalColor:ANSI:WHITE
+                    TerminalColor:ANSI:BLACK
+                    (EnumSet:of TerminalTextDecoration:BOLD)))
+
+    (define-private -text-font ::FontProxy
+      (TerminalFont TerminalColor:ANSI:WHITE
+                    TerminalColor:ANSI:BLACK
+                    (TerminalTextStyle:noneOf
+                     TerminalTextDecoration:class)))
+
+    (define-private -comment-font ::FontProxy
+      (TerminalFont (TerminalColorRGB 255 255 200)
+                    TerminalColor:ANSI:BLACK
+                    (EnumSet:of TerminalTextDecoration:ITALIC)))
+
+    (define (atom-font)::FontProxy -atom-font)
+    (define (text-font)::FontProxy -text-font)
+    (define (comment-font)::FontProxy -comment-font)
+    (define (caption-font)::FontProxy -atom-font)
+
+    (define (mark-cursor! position ::int font ::FontProxy)::void
+      (let ((x ::int (+ (the shift-left)
+                        (nearby-int (* (the stretch-horizontal) position))))
+            (y ::int (the shift-top)))
+        (terminal:setCursorPosition (TerminalPosition x y))))
+
+    (define (clear!)::void
+      (terminal:clear))
+
+    (define (put! c ::char left ::int top ::int)::void
+      (assert (and (is 0 <= left) (is top >= 0)))
+      (let ((x ::int (+ (the shift-left)
+                        (nearby-int (* (the stretch-horizontal) left))))
+            (y ::int (+ (the shift-top)
+                        (nearby-int (* (the stretch-vertical) top)))))
+        (terminal:setCharacter x y (decorated-character
+                                    c fgcolor bgcolor style))))
+
+    (define-protected (draw-left! height ::real
+                                  border ::BorderCharacters
+                                  selected ::SideSelected)
+      (match selected
+        (,SideSelected:None
+         (invoke-special CharPainter (this)
+                         'draw-left! height border selected))
+        (,SideSelected:Left
+         (with ((fgcolor TerminalColor:ANSI:BLACK)
+                (bgcolor TerminalColor:ANSI:WHITE_BRIGHT))
+           (invoke-special CharPainter (this)
+                           'draw-left! height border selected)
+           (mark-cursor! 0 #!null)))
+        (,SideSelected:Right
+         (with ((fgcolor TerminalColor:ANSI:BLACK_BRIGHT)
+                (bgcolor TerminalColor:ANSI:WHITE))
+           (invoke-special CharPainter (this)
+                           'draw-left! height border selected)))))
+
+    (define-protected (draw-right! height ::real
+                                   border ::BorderCharacters
+                                   selected ::SideSelected)
+      (match selected
+        (,SideSelected:None
+         (invoke-special CharPainter (this)
+                         'draw-right! height border selected))
+        (,SideSelected:Left
+         (with ((fgcolor TerminalColor:ANSI:BLACK_BRIGHT)
+                (bgcolor TerminalColor:ANSI:WHITE))
+           (invoke-special CharPainter (this)
+                           'draw-right! height border selected)))
+        (,SideSelected:Right
+         (with ((fgcolor TerminalColor:ANSI:BLACK)
+                (bgcolor TerminalColor:ANSI:WHITE_BRIGHT))
+           (invoke-special CharPainter (this)
+                           'draw-right! height border selected)
+           (mark-cursor! 0 #!null)))))
+    
+    (CharPainter))
+#+END_SRC
+
+#+BEGIN_SRC scheme :noweb-ref terminal-document-cursor-navigation
+  (define* (store-cursor-of element ::Element
+                            into: cursor ::Stack := (ArrayStack))
+    ::(sequence-of int)
+    (let* ((index ::int (element:cursor-index))
+           (child ::Element (element:element-at index)))
+      (cursor:push! (element:cursor-index))
+      (if (eq? element child)
+          cursor
+          (store-cursor-of child into: cursor))))
+
+  (define (edit terminal ::LanternaScreen)::void
+    (let ((running? ::boolean #true))
+      (while running?
+        (safely
+         (let* ((key ::KeyStroke (terminal:readInput))
+                (type ::KeyType (key:getKeyType)))
+           (print "key: "key", type: "type)
+           (match type
+             (,KeyType:ARROW_LEFT
+              (document:cursor-retreat!)
+              (print "retreat to "(store-cursor-of document)))
+             (,KeyType:ARROW_RIGHT
+              (document:cursor-advance!)
+              (print "advance to "(store-cursor-of document)))
+             (,KeyType:HOME
+              (document:cursor-to-start!))
+             (,KeyType:END
+              (document:cursor-to-end!))
+             (,KeyType:ESCAPE
+              (print "finishing")
+              (set! running? #false))
+             (_
+              (print "Unsupported key type: "type", key "key)))))
+        (synchronized screen-up-to-date?
+          (set! (screen-up-to-date?) #f)
+          (invoke screen-up-to-date? 'notify)))))
+
+#+END_SRC
+
+#+BEGIN_SRC scheme :noweb-ref terminal-document-rendering
+  (define-box (screen-up-to-date?)::boolean #f)
+
+  (define (render terminal ::LanternaScreen)::void
+    (let loop ()
+      (synchronized screen-up-to-date?
+        (while (screen-up-to-date?)
+          (invoke screen-up-to-date? 'wait))
+        ;; if - during rendering - the state of
+        ;; the screen changes (by the editing thread),
+        ;; then this value will be set to #f, and
+        ;; another iteration of the rendering loop
+        ;; will be forced.
+        ;; (This idea was inspired by Richard Stallman's
+        ;; 1981 paper "EMACS: The Extensible,
+        ;; Customizable Display Editor", section 13
+        ;; "The Display Processor")
+        (set! (screen-up-to-date?) #t))
+      (let ((resize ::TerminalSize (terminal:doResizeIfNecessary)))
+        (painter:clear!)
+        (document:render! #true (LayoutState))
+        (if resize
+            (terminal:refresh LanternaScreen:RefreshType:COMPLETE)
+            (terminal:refresh LanternaScreen:RefreshType:DELTA))
+        (loop))))
+#+END_SRC
+
+#+BEGIN_SRC scheme :noweb-ref terminal-runner
+  (define* (run terminal ::LanternaScreen := (make-terminal-screen))
+    (given ((`(,program "-p" ,port) (command-line))
+            ((every char-digit? port)))
+      (let ((tcp-server (tcp-output-server #;< (string->number port))))
+        (set! (current-output-port) tcp-server)
+        (set! (current-error-port) tcp-server)))
+
+    (with ((painter (TerminalPainter terminal)))
+      (with-terminal-screen terminal
+        (terminal:clear)
+        (terminal:refresh)
+        (let* ((editing (future (edit terminal)))
+               (rendering (future (render terminal))))
+          (rendering:setPriority Thread:MIN_PRIORITY)
+          (force editing)))))
+
+  (run)
+  (exit)
+#+END_SRC
+
+
+#+BEGIN_SRC scheme :tangle test/interactive/cursor-navigation.scm :mkdirp yes :noweb tangle
+  #|java -cp ../libs/kawa.jar:../libs/lanterna-3.2.0-SNAPSHOT.jar kawa.repl test/interactive/cursor-navigation.scm|#
+  <<header>>
+  (module-name (test interactive cursor-navigation))
+  (import (language-extensions))
+  (import (terminal-definitions))
+  (import (utils tcp-output-server))
+  (import (utils debug))
+
+  <<basic-text-painter>>
+
+  <<basic-terminal-painter>>
+
+  (define painter ::Painter (TextPainter))
+
+  <<GRASP-ontology>>
+
+  (define-interface Element (Visual)
+    <<Element--cursor-operations>>
+    )
+
+  (define-interface Tile (Element)
+    (width)::real
+    (height)::real)
+
+  (define-interface Compound (Tile List))
+
+  (define-interface Comment (Tile))
+
+  (define-mixin WriteToString
+    (define (toString)::String
+      (call-with-output-string
+        (lambda (port)
+          (serialize port 0)))))
+
+  (define-object (Space)::Element
+    <<Space--representation>>
+    <<Space--rendering>>
+    <<Space--navigation>>
+    )
+
+  (define-object (Comb)::Compound
+    <<Comb--collection-operations>>
+    <<Comb--rendering>>
+    <<Comb--navigation>>
+    )
+
+  <<TextualBase>>
+
+  (define-interface TextualComment (Comment TextualTile))
+
+  (define-object (TextualTileBase)::TextualTile
+    <<TextualTileBase--rendering>>
+    <<TextualTileBase--navigation>>
+    (TextualBase))
+
+  <<TextualTileSubclasses--rendering>>
+
+  <<advanced-parser>>
+
+  (define (enchanted item ::Tile path ::Stack)::Tile
+    item)
+
+  (define-object (Document)
+    (Comb)
+    (set! style BorderStyle:None))
+
+  (define* (read-document port ::InputPort := (current-input-port))::Document
+    (read-list from: port into: (Document)))
+
+  (define document ::Document
+    (call-with-input-string "
+  (define (! n) ; int to int
+  (if (is n <= 1) ;>
+     1
+   (* n (! (- n 1)))))
+  (e.g. (! 5) ===> 120)" read-document))
+
+  <<terminal-document-cursor-navigation>>
+
+  <<terminal-document-rendering>>
+
+  <<terminal-runner>>
+#+END_SRC
+
+
+#+BEGIN_SRC scheme
+    (define* (store-cursor-of element ::Element
+                              into: cursor ::Stack := (ArrayStack))
+      ::(sequence-of int)
+      (let* ((index ::int (element:cursor-index))
+             (child ::Element (element:element-at index)))
+        (cursor:push! (element:cursor-index))
+        (if (eq? element child)
+            cursor
+            (store-cursor-of child into: cursor))))
+
+    (define (cursor-ref base ::Element cursor::(sequence-of int))
+      ::Element
+      (for index::int in: cursor
+        (set! base (base:element-at index)))
+      base)
+#+END_SRC
+
+*** Editing
 
 * Emacs file-local variables
 
