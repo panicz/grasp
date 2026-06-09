@@ -5792,9 +5792,9 @@ everything, we can provide a /partial implementation/.
              (expand-layout! state (* n (painter:space-width))
                              (painter:min-line-height))
              (when (and active?
-                        (is index <= current-index <= (+ index n))) ;>>
-               (TODO mark-cursor))
-             (increase! index by: n)))
+                        (is index <= current-index <= (+ index (max 1 n)))) ;>>
+               (painter:mark-cursor! (- current-index index) #!null))
+             (increase! index by: (+ 1 n))))
           (comment::Comment
            (painter:with-translation
             (- state:left initial-left) (- state:top initial-top)
@@ -6272,6 +6272,9 @@ units in GRASP
 
     (define-protected (border-style)::BorderStyle
       BorderStyle:LineComment)
+
+    (define (render! active? ::boolean state::LayoutState)::void
+      (invoke-special TextualTileBase (this) 'render! active? state))
 
     (define (advance-layout! state ::LayoutState)::void
       (expand-layout! state (invoke (this) 'width) (invoke (this) 'height))
@@ -7503,7 +7506,7 @@ comments, but also block comments and line comments).
       (for fragment::SpaceFragment in: fragments
         (match fragment
           (number::integer
-           (increase! total by: number))
+           (increase! total by: (max 1 (+ 1 number))))
           (else
            (increase! total))))
       total))
@@ -7526,8 +7529,8 @@ comments, but also block comments and line comments).
                  element
                  (fetch-element (- index 1) (+ fragment-index 1))))))))
 
-  (define (element-at current-index::int)::Element
-    (fetch-element current-index 0))
+  (define (element-at index::int)::Element
+    (fetch-element index 0))
 
   (define (cursor-to-start!)::boolean
     (let ((previous-index current-index))
@@ -7560,7 +7563,6 @@ comments, but also block comments and line comments).
                  (fragment:cursor-retreat!))
                (truly
                 (decrease! current-index)
-                (print "decreased index to "current-index)
                 (let ((previous-fragment (element-at current-index)))
                   (given ((previous-fragment ::Element)
                           ((isnt previous-fragment eq? (this))))
@@ -8054,7 +8056,7 @@ traces:
     (call-with-input-string "
   (define (! n) ; int to int
   (if (is n <= 1) ;>
-     1
+     1           
    (* n (! (- n 1)))))
   (e.g. (! 5) ===> 120)" read-document))
 
