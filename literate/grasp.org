@@ -4718,7 +4718,6 @@ by its descendant classes.
   (define-protected clip-height ::int Integer:MAX_VALUE)
 
   (define (with-translation x::real y::real action::(maps () to: ,A))::,A
-    (assert (and (is 0 <= x) (is y >= 0)))
     (with ((shift-left (as int (+ shift-left x)))
            (shift-top (as int (+ shift-top y)))
            (clip-width (- clip-width x))
@@ -5715,6 +5714,13 @@ everything, we can provide a /partial implementation/.
   (define fragments ::List;of SpaceFragment
     (ArrayList))
 
+  (define-static (cursor-positions fragment::SpaceFragment)
+    ::int
+    (match fragment
+      (n::integer
+       (if (is n <= 0) #;> 1 (+ 1 n)))
+      (_ 1)))
+
   (define-static (single)::Space
     (Space " "))
 
@@ -5785,24 +5791,24 @@ everything, we can provide a /partial implementation/.
       (for fragment::SpaceFragment in: fragments
         (match fragment
           (#\newline
-           (break-layout! state)
-           (increase! index))
+           (break-layout! state))
           (n::integer
            (when #;< (is n > 0)
-             (expand-layout! state (* n (painter:space-width))
-                             (painter:min-line-height))
              (when (and active?
-                        (is index <= current-index <= (+ index (max 1 n)))) ;>>
-               (painter:mark-cursor! (- current-index index) #!null))
-             (increase! index by: (+ 1 n))))
+                        (is index <= current-index <= (+ index n))) ;>>
+               (painter:with-translation
+                   (- state:left initial-left) (- state:top initial-top)
+                 (lambda ()
+                   (painter:mark-cursor! (- current-index index) #!null))))
+             (expand-layout! state (* n (painter:space-width))
+                             (painter:min-line-height))))
           (comment::Comment
            (painter:with-translation
             (- state:left initial-left) (- state:top initial-top)
             (lambda ()
               (comment:render! (and active? (= index current-index))
-                               state)))
-           (increase! index)))))
-    )
+                               state)))))
+        (increase! index by: (cursor-positions fragment)))))
 
   (define (advance-layout! state ::LayoutState)::void
     (for fragment::SpaceFragment in: fragments
@@ -7504,30 +7510,19 @@ comments, but also block comments and line comments).
   (define-private (last-index)::int
     (let ((total ::int 0))
       (for fragment::SpaceFragment in: fragments
-        (match fragment
-          (number::integer
-           (increase! total by: (max 1 (+ 1 number))))
-          (else
-           (increase! total))))
+        (increase! total by: (cursor-positions fragment)))
       total))
 
   (define (fetch-element index::int fragment-index::int)::Element
     (if (is fragment-index #;< >= (length fragments))
         (this)
-        (let ((fragment (fragments fragment-index)))
-          (match fragment
-            (number::integer
-             (if (is index <= number) ;>
-                 (this)
-                 (fetch-element (- index number 1) (+ fragment-index 1))))
-            (#\newline
-             (if (is index = 0)
-                 (this)
-                 (fetch-element (- index 1) (+ fragment-index 1))))
-            (element::Element
-             (if (is index = 0)
-                 element
-                 (fetch-element (- index 1) (+ fragment-index 1))))))))
+        (let* ((fragment (fragments fragment-index))
+               (positions (cursor-positions fragment)))
+          (if (is index < positions) ;>
+              (if (Element? fragment)
+                  fragment
+                  (this))
+              (fetch-element (- index positions) (+ fragment-index 1))))))
 
   (define (element-at index::int)::Element
     (fetch-element index 0))
@@ -7794,6 +7789,8 @@ traces:
 
 #+END_SRC
 
+We can now add/override relevant methods to ~CharPainter~
+to obtain the most basic version of ~TerminalPainter~:
 
 #+BEGIN_SRC scheme :noweb-ref basic-terminal-painter
   (define-object (TerminalFont fg ::TerminalColor
@@ -7893,40 +7890,30 @@ traces:
     (CharPainter))
 #+END_SRC
 
-#+BEGIN_SRC scheme :noweb-ref terminal-document-cursor-navigation
-  (define* (store-cursor-of element ::Element
-                            into: cursor ::Stack := (ArrayStack))
-    ::(sequence-of int)
-    (let* ((index ::int (element:cursor-index))
-           (child ::Element (element:element-at index)))
-      (cursor:push! (element:cursor-index))
-      (if (eq? element child)
-          cursor
-          (store-cursor-of child into: cursor))))
+Having defined ~TerminalPainter~, we can define two procedures:
+one for handling input, and another for rendering:
 
+#+BEGIN_SRC scheme :noweb-ref terminal-document-cursor-navigation
   (define (edit terminal ::LanternaScreen)::void
     (let ((running? ::boolean #true))
       (while running?
         (safely
          (let* ((key ::KeyStroke (terminal:readInput))
                 (type ::KeyType (key:getKeyType)))
-           (print "key: "key", type: "type)
            (match type
              (,KeyType:ARROW_LEFT
-              (document:cursor-retreat!)
-              (print "retreat to "(store-cursor-of document)))
+              (document:cursor-retreat!))
              (,KeyType:ARROW_RIGHT
-              (document:cursor-advance!)
-              (print "advance to "(store-cursor-of document)))
+              (document:cursor-advance!))
              (,KeyType:HOME
               (document:cursor-to-start!))
              (,KeyType:END
               (document:cursor-to-end!))
              (,KeyType:ESCAPE
-              (print "finishing")
               (set! running? #false))
              (_
-              (print "Unsupported key type: "type", key "key)))))
+              (values)
+              #;(print "Unsupported key type: "type", key "key)))))
         (synchronized screen-up-to-date?
           (set! (screen-up-to-date?) #f)
           (invoke screen-up-to-date? 'notify)))))
@@ -7960,6 +7947,10 @@ traces:
         (loop))))
 #+END_SRC
 
+The only thing that's left if we want to obtain a running
+program is to initialize threads that would run the ~edit~
+and ~render~ procedures:
+
 #+BEGIN_SRC scheme :noweb-ref terminal-runner
   (define* (run terminal ::LanternaScreen := (make-terminal-screen))
     (given ((`(,program "-p" ,port) (command-line))
@@ -7981,6 +7972,11 @@ traces:
   (exit)
 #+END_SRC
 
+We can now write an interactive test. At this moment
+it can't do much yet: according to the definition of
+the ~edit~ procedure above, it only reacts to the arrow
+keys (for moving the cursor left and right), and to the
+/escape/ key, which terminates the program.
 
 #+BEGIN_SRC scheme :tangle test/interactive/cursor-navigation.scm :mkdirp yes :noweb tangle
   #|java -cp ../libs/kawa.jar:../libs/lanterna-3.2.0-SNAPSHOT.jar kawa.repl test/interactive/cursor-navigation.scm|#
@@ -8067,6 +8063,19 @@ traces:
   <<terminal-runner>>
 #+END_SRC
 
+When tangled, this program has around 1800 lines of code
+(excluding external modules). It may seem like a lot for a
+program that isn't very useful, but it comes with a fairly
+decent document model.
+
+In the next section, we're going to implement some basic
+editing functionality.
+
+*** Editing
+
+
+
+
 
 #+BEGIN_SRC scheme
     (define* (store-cursor-of element ::Element
@@ -8086,7 +8095,6 @@ traces:
       base)
 #+END_SRC
 
-*** Editing
 
 * Emacs file-local variables
 
