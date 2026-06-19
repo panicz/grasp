@@ -5826,14 +5826,35 @@ everything, we can provide a /partial implementation/.
   (define (empty?)::boolean
     (or (fragments:isEmpty)
         (and (= (fragments:size) 1)
-                (equal? 0 (fragments 0)))))
+             (equal? 0 (fragments 0)))))
 
   (define (blow!)
     (when (empty?)
       (add #\space)))
 
-  (define (merge-with! another::Space)::void
-    (fragments:addAll another:fragments))
+  (define (merge-with! space::Space)::void
+    (unless (or (fragments:isEmpty)
+                (space:fragments:isEmpty))
+      (increase! (last fragments) by: (space:fragments 0)))
+    (for i::int from: 1 below: (length space:fragments)
+         (fragments:add (space:fragments i))))
+
+  (define (split-at! index::int)::Space
+    (escape-with return
+      (let ((base ::int 0))
+        (for i::int from: 0 below: (length fragments)
+             (let* ((n ::int (fragments i))
+                    (positions ::int (index-positions n)))
+               (when (is base <= index < (+ base positions)) ;>>
+                 (let ((result ::Space (Space)))
+                   (result:add (- n (- index base)))
+                   (for k::int from: (+ i 1) below: (length fragments)
+                        (result:add (fragments i)))
+                   (remove-range! fragments from: (+ i 1))
+                   (set! (fragments i) (- index base))
+                   (return result)))
+               (increase! base by: positions))))
+      (return (Space))))
 
   (define-static (accepts? element::Object)::boolean
     (or (integer? element)
@@ -5849,19 +5870,13 @@ everything, we can provide a /partial implementation/.
            (fragments:add 1)
            (increase! (last fragments))))
       (n::integer
-       (if (fragments:isEmpty)
-           (fragments:add n)
-           (increase! (last fragments) by: n)))
+       (fragments:add n))
       (#\newline
        (when (fragments:isEmpty)
          (fragments:add 0))
        (fragments:add 0))
       (space::Space
-       (unless (or (fragments:isEmpty)
-                   (space:fragments:isEmpty))
-         (increase! (last fragments) by: (space:fragments 0)))
-       (for i::int from: 1 below: (length space:fragments)
-            (fragments:add (space:fragments i))))
+       (merge-with! space))
       (chars::CharSequence
        (for c in: chars
          (add c)))
@@ -6602,17 +6617,6 @@ We can now test the simplified parser on sample data:
      (painter:toString)) ===> "
   <<simple-parser-test-result-no-indentation>>
   ")
-
-  #;(let ((s0 ::Space (Space)))
-    (set! s0:fragments (ArrayList
-                        -2
-                        #\newline
-                        (BlockComment "komentarz blokowy")
-                        1 (LineComment "komentarz liniowy")))
-    (print "s0: "s0:fragments)
-    (let ((s1 ::Space (s0:split-at! 0)))
-      (print "s0: "s0:fragments)
-      (print "s1: "s1:fragments)))
 
 #+END_SRC  
 
@@ -7586,7 +7590,10 @@ comments, but also block comments and line comments).
     current-index)
 
   (define-private (last-index)::int
-    (+ (fold-left + 0 fragments) (- (length fragments) 1)))
+    (- (fold-left (lambda (sum::int space::int)
+                    (+ sum (index-positions space)))
+                  0 fragments)
+       1))
 
   (define (cursor-to-start!)::boolean
     (let ((previous-index current-index))
