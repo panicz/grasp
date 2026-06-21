@@ -5361,17 +5361,7 @@ elements that occupy a rectangular area of the screen.
   ;; but in order to do this, we need to merge the last space
   ;; from us with the first space from them
   (define (addAll! collection ::Collection)::boolean
-    (given ((comb ::Comb collection)
-            (last-space ::Space (last spaces))
-            (next-space ::Space (comb:spaces 0)))
-      (last-space:add next-space)
-      (unless (elements:isEmpty)
-        (last-space:blow!))
-      (elements:addAll comb:elements)    
-      (comb:spaces:remove (as int 0)) ; we remove last-space to addAll
-      (spaces:addAll comb:spaces) ; and then we put it back
-      (comb:spaces:add (as int 0) last-space) ; to leave the argument intact
-      ))
+    (addAll (as int (- (size) 1)) collection))
 
   (define (addAll collection ::Collection)::boolean
     (addAll! collection))
@@ -5400,18 +5390,15 @@ elements that occupy a rectangular area of the screen.
   (define (addAll index ::int collection ::Collection)::boolean
     (given (((even? index))
             (comb ::Comb collection)
-            ((is 0 <= index))
-            ((is (size) > index))
+            ((is 0 <= index < (size))) ;>>
             (index* ::int (quotient index 2))
-            (enlarged-space ::Space (spaces index))
-            (extra-space ::Space (comb:spaces 0)))
-      (enlarged-space:add extra-space)
-      (unless (is index = 0)
-        (enlarged-space:blow!))
+            (enlarged-space ::Space (spaces index*))
+            (extra-space ::Space (comb:spaces 0))
+            (comb-spaces ::List (comb:spaces:subList
+                                 1 (comb:spaces:size))))
+      (enlarged-space:merge-with! extra-space)
       (elements:addAll index* comb:elements)
-      (comb:spaces:remove (as int 0))
-      (spaces:addAll (+ index* 1) comb:spaces)
-      (comb:spaces:add (as int 0) extra-space)))
+      (spaces:addAll (+ index* 1) comb-spaces)))
 
   (define (add index ::int element ::Element)::void
     (when (even? index)
@@ -5422,7 +5409,7 @@ elements that occupy a rectangular area of the screen.
            (affected:add space))
           (tile::Tile
            (elements:add index/2 tile)
-           (spaces:add (+ index/2 1) (Space:single)))))))
+           (spaces:add (+ index/2 1) (Space:empty)))))))
 
   (define-static token-separators ::(set-of Char)
     (HashSet #\( #\) #\[ #\] #\;))
@@ -5449,8 +5436,6 @@ elements that occupy a rectangular area of the screen.
              (spaces:add (Space:empty))
              #true)))
           (tile::Tile
-           (unless (elements:isEmpty)
-             (last-space:blow!))
            (elements:add tile)
            (spaces:add (Space:empty))
            #true)
@@ -5596,15 +5581,8 @@ going to provide mock definitions of ~Element~, ~Tile~ and
     interface of the Comb class
     |#
 
-    (define-static (single)::Space
-      (Space " "))
-
     (define-static (empty)::Space
       (Space ""))
-
-    (define (blow!)
-      (when (empty?)
-        (add " ")))
 
     (define (merge-with! another::Space)::void
       (set! content (string-append content another:content)))
@@ -5638,8 +5616,14 @@ going to provide mock definitions of ~Element~, ~Tile~ and
             (display (item:toString))))))
     )
 
-  (let ((c1 ::Comb (Comb (Atom "A") (Atom "B") (Atom "C")))
-        (c2 ::Comb (Comb (Atom "D") (Atom "E") (Atom "F"))))
+  (let ((c1 ::Comb (Comb (Atom "A") (Space " ")
+                         (Atom "B") (Space " ")
+                         (Atom "C") (Space " ")))
+        (c2 ::Comb (Comb (Atom "D")
+                         (Space " ")
+                         (Atom "E")
+                         (Space " ")
+                         (Atom "F"))))
     (c1:addAll c2)
     (let ((v1 ::Comb (c1:subList 3 6)))
       (e.g.
@@ -5651,6 +5635,36 @@ going to provide mock definitions of ~Element~, ~Tile~ and
     (e.g.
      (and (c3:isEmpty)
           (is (length c3) = 1))))
+
+  (e.g.
+   (let ((c1 ::Comb (Comb (Space "0")
+                          (Atom "1")
+                          (Space "2")
+                          (Atom "3")
+                          (Space "4")))
+         (c2 ::Comb (Comb (Space "6") (Atom "7") (Space "8"))))
+     (c1:addAll 0 c2)
+     (c1:toString)) #;< ===> "06781234")
+
+  (e.g.
+   (let ((c1 ::Comb (Comb (Space "0")
+                          (Atom "1")
+                          (Space "2")
+                          (Atom "3")
+                          (Space "4")))
+         (c2 ::Comb (Comb (Space "6") (Atom "7") (Space "8"))))
+     (c1:addAll 2 c2)
+     (c1:toString)) #;< ===> "01267834")
+
+  (e.g.
+   (let ((c1 ::Comb (Comb (Space "0")
+                          (Atom "1")
+                          (Space "2")
+                          (Atom "3")
+                          (Space "4")))
+         (c2 ::Comb (Comb (Space "6") (Atom "7") (Space "8"))))
+     (c1:addAll 4 c2)
+     (c1:toString)) #;< ===> "01234678")
 
 #+END_SRC
 
@@ -5810,13 +5824,10 @@ everything, we can provide a /partial implementation/.
 #+BEGIN_SRC scheme :noweb-ref Space--representation
 
   (define fragments ::(sequence-of int)
-    (ArrayList))
-
-  (define-static (single)::Space
-    (Space " "))
+    (ArrayList ||: 0))
 
   (define-static (empty)::Space
-    (Space ""))
+    (Space))
 
   (define-private current-index ::int 0)
 
@@ -5824,18 +5835,11 @@ everything, we can provide a /partial implementation/.
     (max 1 (+ fragment 1)))
 
   (define (empty?)::boolean
-    (or (fragments:isEmpty)
-        (and (= (fragments:size) 1)
-             (equal? 0 (fragments 0)))))
-
-  (define (blow!)
-    (when (empty?)
-      (add #\space)))
+    (and (= (fragments:size) 1)
+         (= 0 (fragments 0))))
 
   (define (merge-with! space::Space)::void
-    (unless (or (fragments:isEmpty)
-                (space:fragments:isEmpty))
-      (increase! (last fragments) by: (space:fragments 0)))
+    (increase! (last fragments) by: (space:fragments 0))
     (for i::int from: 1 below: (length space:fragments)
          (fragments:add (space:fragments i))))
 
@@ -5856,6 +5860,27 @@ everything, we can provide a /partial implementation/.
                (increase! base by: positions))))
       (return (Space))))
 
+  (define (retain-suffix! suffix::Space)::Space
+    ;; strip and return prefix while returning suffix
+    (let ((result ::Space (Space)))
+      (while (is (length fragments) #;< > (length suffix:fragments))
+        (result:fragments:add (fragments:remove 0)))
+      (when (is (fragments 0) #;< > (suffix:fragments 0))
+        (result:fragments:add (- (fragments 0)
+                                 (suffix:fragments 0)))
+        (set! (fragments 0) (suffix:fragments 0)))
+      result))
+
+  (define (retain-prefix! prefix::Space)::Space
+    ;; strip and return suffix while returning prefix
+    (let ((result ::Space (Space)))
+      (while (is (length fragments) #;< > (length prefix:fragments))
+        (result:fragments:add 0 (fragments:remove
+                                 (- (length fragments) 1))))
+      (when (is (last fragments) #;< > (last prefix:fragments))
+        (set! (last fragments) (last prefix:fragments)))
+      result))
+
   (define-static (accepts? element::Object)::boolean
     (or (integer? element)
         (and (char? element) (char-whitespace? element))
@@ -5866,14 +5891,10 @@ everything, we can provide a /partial implementation/.
   (define (add item::(either #\space #\newline CharSequence Space))::boolean
     (match item
       (#\space
-       (if (fragments:isEmpty)
-           (fragments:add 1)
-           (increase! (last fragments))))
+       (increase! (last fragments)))
       (n::integer
        (fragments:add n))
       (#\newline
-       (when (fragments:isEmpty)
-         (fragments:add 0))
        (fragments:add 0))
       (space::Space
        (merge-with! space))
@@ -6749,8 +6770,7 @@ it supports more objects):
               (,@eof-object? (set! running? #false))
               (#\( (result:add (read-list from: port at: path)))
               (#\space   (result:add #\space))
-              (#\newline (result:add #\newline)
-                         (result:add (- indentation)))
+              (#\newline (result:add (- indentation)))
               (#\) (set! running? #false))
               (#\[ (result:add (enchanted (read-list from: port at: path)
                                           path)))
@@ -6778,8 +6798,10 @@ it supports more objects):
                                (Comb* (Atom "unquote")
                                       (read-list from: port at: path upto: 1))
                                path)))))
-              (#\; (result:add (read-line-comment from: port))
-                   (result:add (- indentation)))
+              (#\;
+               (result:add (read-line-comment from: port))
+               (let ((next-space ::Space (last result)))
+                 (set! (last next-space:fragments) (- indentation))))
               (c   (result:add (read-atom into: (Atom c) from: port))))))
       (path:pop!)
       result))
@@ -7128,13 +7150,11 @@ the new line plus current indentation):
 
 #+BEGIN_SRC scheme :noweb-ref Space--serialize
   (define (serialize port ::OutputPort indent ::int)::void
-
-    (unless (fragments:isEmpty)
-      (times (+ (fragments 0)
+    (times (+ (fragments 0)
                 (if (= (port:getColumnNumber) 0)
                     indent
                     0))
-             write-char #\space port))
+             write-char #\space port)
 
     (for i::int from: 1 below: (fragments:size)
          (write-char #\newline port)
@@ -8061,7 +8081,7 @@ keys (for moving the cursor left and right), and to the
   (define-interface Compound (Tile List))
 
   (define-interface Comment (Tile))
-
+  
   (define-mixin WriteToString
     (define (toString)::String
       (call-with-output-string
@@ -8353,7 +8373,7 @@ a slice from a ~Comb~.
 
       (cond
        ((and (even? start) (even? end)) ;; A
-        (spaces*:add (Space:single)))
+        (spaces*:add (Space:empty)))
 
        ((and (odd? start) (even? end)) ;; B
         (result:spaces:add 0 (Space:empty)))
@@ -8415,15 +8435,8 @@ This operation can be tested non-interactively:
     that is only used for testing
     |#
 
-    (define-static (single)::Space
-      (Space " "))
-
     (define-static (empty)::Space
       (Space ""))
-
-    (define (blow!)
-      (when (empty?)
-        (add " ")))
 
     (define (merge-with! another::Space)::void
       (set! content (string-append content another:content)))
@@ -8472,7 +8485,9 @@ This operation can be tested non-interactively:
 
   (the-document:addAll 2 slice-2-6)
 
-  (display (the-document:toString))
+  (print the-document)
+
+  (print (the-document:toString))
 
 #+END_SRC
 
@@ -8482,7 +8497,6 @@ This operation can be tested non-interactively:
   (define-object (SpliceComb comb::Comb
                              #;at cursor::(sequence-of int))
     ::Edit
-
     (define (perform! document::Element)::void
       (let* ((depth ::int (length cursor))
              (depth-2 ::int (- depth 2))
@@ -8502,17 +8516,10 @@ This operation can be tested non-interactively:
       #false)
 
     (define (inverse)::Edit
-
-
-      )
-
-    )
+      (UnspliceComb comb cursor)))
 
   (define-object (UnspliceComb comb::Comb
-                               start::(sequence-of int)
-                               range::int
-
-                               )
+                               cursor::(sequence-of int))
     ::Edit
     (define (perform! document::Element)::void
       (let* ((n ::int (length cursor))
@@ -8521,16 +8528,24 @@ This operation can be tested non-interactively:
                             (cursor:subList 0 n-2))
              (parent ::Comb (cursor-target document
                                            parent-cursor))
-             (index ::int (cursor n-2))
-             (removed ::Element (parent:remove-at index)))
-        (assert (eq? removed tile))))
+             (start ::int (cursor n-2))
+             (end ::int (+ start (length comb)))
+             (removed ::Comb (parent:extract! start end))
+             (joint ::Space (parent:element-at start))
+             (left ::Space (removed 0))
+             (right ::Space (last removed))
+             (left-suffix ::Space (comb 0))
+             (right-prefix ::Space (last comb)))
+        (joint:fragments:clear)
+        (joint:merge-with! (left:retain-suffix! left-suffix))
+        (joint:merge-with! (right:retain-prefix! right-prefix))))
 
     (define (merge-with! next::Edit)::boolean
       #false)
 
     (define (inverse)::Edit
       (InsertTile item #;from cursor)))
-
+#|
   (define-object (AppendCharacters characters::(sequence-of Char)
                                    #;at cursor::(sequence-of int))
     ::Edit
@@ -8540,7 +8555,7 @@ This operation can be tested non-interactively:
                                   #;from cursor)
     ::Edit
     ...)
-
+|#
 #+END_SRC
 
 
