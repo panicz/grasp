@@ -322,22 +322,22 @@ examples)
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
 
-(define invalid-example
-  (make-parameter
-    (lambda (expression result . expectation)
-      (if (pair? expectation)
-        (error "while evaluating\n\n  "
-               expression
-               "\n\nexpected:\n\n  "
-               (car expectation)
-               "\n\ngot:\n\n  "
-               result)
-        (error "expected "expression" to be non-#false")))))
+  (define invalid-example
+    (make-parameter
+      (lambda (expression result . expectation)
+        (if (pair? expectation)
+            (error "while evaluating\n\n  "
+                 expression
+                 "\n\nexpected:\n\n  "
+                 (car expectation)
+                 "\n\ngot:\n\n  "
+                 result)
+          (error "expected "expression" to be non-#false")))))
 
-(define valid-example
-  (make-parameter
-    (lambda (expression result . expectation)
-      result)))
+  (define valid-example
+    (make-parameter
+      (lambda (expression result . expectation)
+        result)))
 
 #+END_SRC
 
@@ -4396,6 +4396,39 @@ day in the future.
 
 #+END_SRC
 
+*** Testing
+
+
+#+BEGIN_SRC scheme :tangle language-extensions.scm
+
+  (define-private successful-tests ::int 0)
+  (define-private failed-tests ::int 0)
+
+  (define (this-is-a-test!)
+    (set! (valid-example)
+          (lambda (expression result . expectation)
+            (increase! successful-tests)
+            result))
+    (set! (invalid-example)
+          (lambda (expression result . expectation)
+            (increase! failed-tests)
+            (if (pair? expectation)
+                (print "while evaluating\n\n  "
+                       expression
+                       "\n\nexpected:\n\n  "
+                       (car expectation)
+                       "\n\ngot:\n\n  "
+                           result)
+                (print "expected "expression" to be non-#false"))
+            result)))
+
+  (define (test-report)
+    (print "tests succeeded: "successful-tests)
+    (print "tests failed: "failed-tests)
+    (print "tests total: "(+ successful-tests
+                             failed-tests)))
+
+#+END_SRC
 
 *** Ending remarks
 
@@ -5122,6 +5155,7 @@ recommend reading it.
   <<header>>
   (module-name (test basic-text-painter))
   (import (language-extensions))
+  (this-is-a-test!)
 
   <<basic-text-painter>>
 
@@ -5186,6 +5220,8 @@ recommend reading it.
   ╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
   ")
 
+
+  (test-report)
 #+END_SRC
 
 In the next section, we are going to create a representation
@@ -5263,6 +5299,14 @@ elements that occupy a rectangular area of the screen.
 
   (define spaces ::(sequence-of Space)
     (ArrayList ||: (Space:empty)))
+
+  (define (break-line! indent::int)::void
+    (let ((last-space ::Space (last spaces)))
+      (last-space:add indent)))
+
+  (define (space-out!)::void
+    (let ((last-space ::Space (last spaces)))
+      (last-space:widen! 1)))
 
   ;; in order to get the size of the collection, we sum
   ;; the sizes of both arrays
@@ -5406,7 +5450,7 @@ elements that occupy a rectangular area of the screen.
              (affected ::Space (spaces index/2)))
         (match element
           (space::Space           
-           (affected:add space))
+           (affected:merge-with! space))
           (tile::Tile
            (elements:add index/2 tile)
            (spaces:add (+ index/2 1) (Space:empty)))))))
@@ -5415,32 +5459,15 @@ elements that occupy a rectangular area of the screen.
     (HashSet #\( #\) #\[ #\] #\;))
 
   (define (add object ::Object)::boolean
-    (let ((last-space ::Space (last spaces)))
-      (cond
-       ((Space? object)
-        (last-space:merge-with! (as Space object)))
-       ((Space:accepts? object)
-        (last-space:add object))
-       (else
-        (match object
-          (char::Char
-           (assert (isnt char in token-separators))
-           (cond
-            ((given (((last-space:empty?))
-                     ((is (length elements) #;< > 0))
-                     (last-atom ::Atom (last elements)))
-               (last-atom:add char)
-               #true))
-            (else
-             (elements:add (Atom (string char)))
-             (spaces:add (Space:empty))
-             #true)))
-          (tile::Tile
-           (elements:add tile)
-           (spaces:add (Space:empty))
-           #true)
-          (_
-           #false))))))
+    (match object
+      (tile::Tile
+       (elements:add tile)
+       (spaces:add (Space:empty)))
+      (space::Space
+       (let ((last-space ::Space (last spaces)))
+         (last-space:merge-with! space)))
+      (_
+       #false)))
 
   (define (remove-at index ::int)::Element
     (cond
@@ -5451,7 +5478,7 @@ elements that occupy a rectangular area of the screen.
       (let* ((index* ::int (quotient (- index 1) 2))
              (preceding ::Space (spaces index*))
              (following ::Space (spaces (+ index* 1))))
-        (preceding:add following)
+        (preceding:merge-with! following)
         (spaces:remove (+ index* 1))
         (elements:remove index*)))))
 
@@ -5542,6 +5569,7 @@ going to provide mock definitions of ~Element~, ~Tile~ and
   <<header>>
   (module-name (test comb-as-collection))
   (import (language-extensions))
+  (this-is-a-test!)
 
   (define-interface Element ()
     #|
@@ -5593,8 +5621,14 @@ going to provide mock definitions of ~Element~, ~Tile~ and
         (set! content prefix)
         (Space suffix)))
 
-    (define-static (accepts? element::Object)::boolean
-      (and (char? element) (char-whitespace? element)))
+    (define (add width ::int)::boolean
+      (set! content (string-append content "\n")))
+
+    (define (widen! increment::int)::void
+      (set! content (string-append content ;<
+                                   (list->string
+                                    (make-list increment
+                                               #\space)))))
 
     (define (add element::Object)::boolean
       (set! content (string-append content (element:toString))))
@@ -5861,7 +5895,7 @@ everything, we can provide a /partial implementation/.
       (return (Space))))
 
   (define (retain-suffix! suffix::Space)::Space
-    ;; strip and return prefix while returning suffix
+    ;; strip and return prefix while retaining suffix
     (let ((result ::Space (Space)))
       (while (is (length fragments) #;< > (length suffix:fragments))
         (result:fragments:add (fragments:remove 0)))
@@ -5872,7 +5906,7 @@ everything, we can provide a /partial implementation/.
       result))
 
   (define (retain-prefix! prefix::Space)::Space
-    ;; strip and return suffix while returning prefix
+    ;; strip and return suffix while retaining prefix
     (let ((result ::Space (Space)))
       (while (is (length fragments) #;< > (length prefix:fragments))
         (result:fragments:add 0 (fragments:remove
@@ -5881,28 +5915,20 @@ everything, we can provide a /partial implementation/.
         (set! (last fragments) (last prefix:fragments)))
       result))
 
-  (define-static (accepts? element::Object)::boolean
-    (or (integer? element)
-        (and (char? element) (char-whitespace? element))
-        (and (string? element)
-             (every char-whitespace? element))
-        (Space? element)))
-
-  (define (add item::(either #\space #\newline CharSequence Space))::boolean
+  (define (add item::(either int #\space #\newline string))::boolean
     (match item
+      (width::int
+       (fragments:add width))
       (#\space
-       (increase! (last fragments)))
-      (n::integer
-       (fragments:add n))
+       (widen! 1))
       (#\newline
        (fragments:add 0))
-      (space::Space
-       (merge-with! space))
-      (chars::CharSequence
-       (for c in: chars
-         (add c)))
-      ))
+      (s::string
+       (for c in: s
+         (add c)))))
 
+  (define (widen! increment::int)::void
+    (increase! (last fragments) by: increment))
 #+END_SRC
 
 
@@ -5939,7 +5965,7 @@ everything, we can provide a /partial implementation/.
 
 #+END_SRC
 
-  ,#+BEGIN_SRC scheme :tangle test/everything.sh
+#+BEGIN_SRC scheme :tangle test/everything.sh
     java -jar ../libs/kawa.jar test/comb-rendering.scm
 #+END_SRC
 
@@ -5947,6 +5973,7 @@ everything, we can provide a /partial implementation/.
   <<header>>
   (module-name (test comb-rendering))
   (import (language-extensions))
+  (this-is-a-test!)
 
   <<basic-text-painter>>
 
@@ -6064,6 +6091,7 @@ everything, we can provide a /partial implementation/.
   ╰ ╰ ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
   ")
 
+  (test-report)
 #+END_SRC
 
 **** ~Textual~ elements
@@ -6416,6 +6444,7 @@ rendering with our ~TextPainter~.
   <<header>>
   (module-name (test textual-rendering))
   (import (language-extensions))
+  (this-is-a-test!)
 
   <<basic-text-painter>>
 
@@ -6473,6 +6502,8 @@ rendering with our ~TextPainter~.
    #;< ===> "
   <<textual-rendering-result>>
   ")
+
+  (test-report)
 #+END_SRC
 
 We expect to get the following result:
@@ -6537,10 +6568,10 @@ to develop it in two steps:
            (next))
           (#\) result)
           (#\space
-           (result:add #\space)
+           (result:space-out!)
            (next))
           (#\newline
-           (result:add #\newline)
+           (result:break-line! 0)
            (next))
           (c
            (result:add (read-atom-into (Atom c) port))
@@ -6558,6 +6589,7 @@ We can now test the simplified parser on sample data:
   <<header>>
   (module-name (test simple-parser))
   (import (language-extensions))
+  (this-is-a-test!)
 
   <<basic-text-painter>>
 
@@ -6639,6 +6671,7 @@ We can now test the simplified parser on sample data:
   <<simple-parser-test-result-no-indentation>>
   ")
 
+  (test-report)
 #+END_SRC  
 
 we expect the first test to yield
@@ -6769,8 +6802,8 @@ it supports more objects):
             (match (read-char port)
               (,@eof-object? (set! running? #false))
               (#\( (result:add (read-list from: port at: path)))
-              (#\space   (result:add #\space))
-              (#\newline (result:add (- indentation)))
+              (#\space   (result:space-out!))
+              (#\newline (result:break-line! (- indentation)))
               (#\) (set! running? #false))
               (#\[ (result:add (enchanted (read-list from: port at: path)
                                           path)))
@@ -6997,6 +7030,7 @@ class that will be elaborated in the future.
   <<header>>
   (module-name (test advanced-parser))
   (import (language-extensions))
+  (this-is-a-test!)
 
   <<basic-text-painter>>
 
@@ -7038,7 +7072,7 @@ class that will be elaborated in the future.
   (define-object (TextualTileBase)::TextualTile
     <<TextualTileBase--rendering>>
     (TextualBase))
-  
+
   <<TextualTileSubclasses--rendering>>
 
   <<advanced-parser>>
@@ -7111,6 +7145,7 @@ class that will be elaborated in the future.
   ╰      ╰     ╯          ╯        
   ")
 
+  (test-report)
 #+END_SRC
 
 **** Serialization
@@ -7245,6 +7280,7 @@ We can now test whether the algorithm works correctly:
   <<header>>
   (module-name (test serialization))
   (import (language-extensions))
+  (this-is-a-test!)
 
   (define-interface Element ()
     (serialize port ::OutputPort indent ::int)::void
@@ -7341,6 +7377,7 @@ We can now test whether the algorithm works correctly:
                             read-document)))
      (string=? original (document:toString))))
 
+  (test-report)
 #+END_SRC
 
 *** Navigation
@@ -7599,10 +7636,11 @@ The case of ~TextualTileBase~ is particularly simple:
 
 **** Cursor-related operations in ~Space~
 
-The case of ~Space~ is slightly more complicated, because
-its ~fragments~ consist both of "flat" elements (numbers,
-newlines) and "structured" elements (in particular expression
-comments, but also block comments and line comments).
+The case of ~Space~ is only slightly more complicated,
+because spaces are represented by sequences of integer
+numbers, where the number represents the number of spaces in
+a row and the appearence of a next number causes a line
+break.
 
 #+BEGIN_SRC scheme :noweb-ref Space--navigation
 
@@ -8081,7 +8119,7 @@ keys (for moving the cursor left and right), and to the
   (define-interface Compound (Tile List))
 
   (define-interface Comment (Tile))
-  
+
   (define-mixin WriteToString
     (define (toString)::String
       (call-with-output-string
@@ -8402,6 +8440,7 @@ This operation can be tested non-interactively:
   <<header>>
   (module-name (test comb-editing))
   (import (language-extensions))
+  (this-is-a-test!)
 
   (define-interface Element ()
     #|
@@ -8438,11 +8477,14 @@ This operation can be tested non-interactively:
     (define-static (empty)::Space
       (Space ""))
 
+    (define (widen! increment::int)::void
+      (set! content (string-append content ;<
+                                   (list->string
+                                    (make-list increment
+                                               #\space)))))
+
     (define (merge-with! another::Space)::void
       (set! content (string-append content another:content)))
-
-    (define-static (accepts? element::Object)::boolean
-      (and (char? element) (char-whitespace? element)))
 
     (define (add element::Object)::boolean
       (set! content (string-append content (element:toString))))
@@ -8451,7 +8493,9 @@ This operation can be tested non-interactively:
       (string=? content ""))
 
     (define (toString)::String
-      content))
+      (if (is (string-length content) = 0)
+          "."
+          content)))
 
   (define-object (Comb)::Compound
 
@@ -8481,7 +8525,7 @@ This operation can be tested non-interactively:
    (slice-2-6:toString) #;< ===> "bBcCd")
 
   (e.g.
-   (the-document:toString) #;< ===> "aA De")
+   (the-document:toString) #;< ===> "aADe")
 
   (the-document:addAll 2 slice-2-6)
 
@@ -8489,6 +8533,7 @@ This operation can be tested non-interactively:
 
   (print (the-document:toString))
 
+  (test-report)
 #+END_SRC
 
 
