@@ -5423,6 +5423,9 @@ elements that occupy a rectangular area of the screen.
   ;; 0: 0781234
   ;;    6
   ;;
+  ;; 1: 016781234
+  ;;      
+  ;;
   ;;     A C B
   ;; 2: 0127834
   ;;      6
@@ -5432,17 +5435,27 @@ elements that occupy a rectangular area of the screen.
   ;;        6
   ;;
   (define (addAll index ::int collection ::Collection)::boolean
-    (given (((even? index))
-            (comb ::Comb collection)
-            ((is 0 <= index < (size))) ;>>
-            (index* ::int (quotient index 2))
-            (enlarged-space ::Space (spaces index*))
-            (extra-space ::Space (comb:spaces 0))
-            (comb-spaces ::List (comb:spaces:subList
-                                 1 (comb:spaces:size))))
-      (enlarged-space:merge-with! extra-space)
-      (elements:addAll index* comb:elements)
-      (spaces:addAll (+ index* 1) comb-spaces)))
+    (given ((comb ::Comb collection))
+      (if (even? index)
+          (let* ((index* ::int (quotient index 2))
+                 (enlarged ::Space (spaces index*))
+                 (extra ::Space (comb:spaces 0))
+                 (comb-spaces ::List (comb:spaces:subList
+                                      1 (comb:spaces:size))))
+            (enlarged:merge-with! extra)
+            (elements:addAll index* comb:elements)
+            (spaces:addAll (+ index* 1) comb-spaces))
+          (let* ((index* ::int (if (is index < 0) ;>
+                                   0
+                                   (+ (quotient index 2) 1)))
+                 (extra ::Space (spaces:remove index*)))
+            (spaces:addAll index* comb:spaces)
+            (let ((last-added ::Space (spaces (+ index*
+                                                 (comb:spaces:size)
+                                                 -1))))
+
+              (last-added:merge-with! extra)
+              (elements:addAll index* comb:elements))))))
 
   (define (add index ::int element ::Element)::void
     (when (even? index)
@@ -5677,8 +5690,28 @@ going to provide mock definitions of ~Element~, ~Tile~ and
                           (Atom "3")
                           (Space "4")))
          (c2 ::Comb (Comb (Space "6") (Atom "7") (Space "8"))))
+     (c1:addAll -1 c2)
+     (c1:toString)) #;< ===> "67801234")
+
+  (e.g.
+   (let ((c1 ::Comb (Comb (Space "0")
+                          (Atom "1")
+                          (Space "2")
+                          (Atom "3")
+                          (Space "4")))
+         (c2 ::Comb (Comb (Space "6") (Atom "7") (Space "8"))))
      (c1:addAll 0 c2)
      (c1:toString)) #;< ===> "06781234")
+
+  (e.g.
+   (let ((c1 ::Comb (Comb (Space "0")
+                          (Atom "1")
+                          (Space "2")
+                          (Atom "3")
+                          (Space "4")))
+         (c2 ::Comb (Comb (Space "6") (Atom "7") (Space "8"))))
+     (c1:addAll 1 c2)
+     (c1:toString)) #;< ===> "01678234")
 
   (e.g.
    (let ((c1 ::Comb (Comb (Space "0")
@@ -5697,9 +5730,20 @@ going to provide mock definitions of ~Element~, ~Tile~ and
                           (Atom "3")
                           (Space "4")))
          (c2 ::Comb (Comb (Space "6") (Atom "7") (Space "8"))))
+     (c1:addAll 3 c2)
+     (c1:toString)) #;< ===> "01236784")
+
+  (e.g.
+   (let ((c1 ::Comb (Comb (Space "0")
+                          (Atom "1")
+                          (Space "2")
+                          (Atom "3")
+                          (Space "4")))
+         (c2 ::Comb (Comb (Space "6") (Atom "7") (Space "8"))))
      (c1:addAll 4 c2)
      (c1:toString)) #;< ===> "01234678")
-
+  
+  (test-report)
 #+END_SRC
 
 **** Rendering GRASP documents
@@ -8396,19 +8440,33 @@ a slice from a ~Comb~.
 
   (define-internal (extract! start ::int end ::int)::Comb
     (assert (is start <= end)) ;>
-    (let* ((start/2 ::int (quotient start 2))
-           (end/2 ::int (quotient end 2))
+    (let* ((first-even-index ::int (if (even? start)
+                                       start
+                                       (+ start 1)))
+           (first-odd-index ::int (if (odd? start)
+                                      start
+                                      (+ start 1)))
+           (last-even-index ::int (if (even? end)
+                                      end
+                                      (- end 1)))
+           (last-odd-index ::int (if (odd? end)
+                                     end
+                                     (- end 1)))
+           (first-space-index ::int (quotient first-even-index 2))
+           (last-space-index ::int (quotient last-even-index 2))
+           (first-element-index ::int (quotient first-odd-index 2))
+           (last-element-index ::int (quotient last-odd-index 2))
            (spaces* ::List (spaces:subList
-                            (+ start/2 (if (odd? start) 1 0))
-                            (+ end/2 (if (even? end) 1 0))))
-           (elements* ::List (elements:subList start/2
-                                               end/2))
+                            first-space-index
+                            (+ last-space-index 1)))
+           (elements* ::List (elements:subList
+                              first-element-index
+                              (+ last-element-index 1)))
            (result ::Comb (Comb)))
       (set! result:elements (ArrayList elements*))
       (set! result:spaces (ArrayList spaces*))
       (elements*:clear)
       (spaces*:clear)
-
       (cond
        ((and (even? start) (even? end)) ;; A
         (spaces*:add (Space:empty)))
@@ -8417,16 +8475,14 @@ a slice from a ~Comb~.
         (result:spaces:add 0 (Space:empty)))
 
        ((and (odd? start) (odd? end)) ;; C
-        (result:spaces:add 0 (Space:empty))
         (result:spaces:add (Space:empty))
-        (let ((left-space ::Space (spaces start/2))
-              (right-space ::Space (spaces (+ start/2 1))))
-          (left-space:merge-with! right-space)
-          (spaces:remove (as int (+ start/2 1)))))
+        (result:spaces:add 0 (Space:empty))
+        (let ((left-space ::Space (spaces (- first-space-index 1))))
+          (left-space:merge-with!
+           (spaces:remove first-space-index))))
 
        ((and (even? start) (odd? end)) ;; D
         (result:spaces:add (Space:empty))))
-
       result))
 
 #+END_SRC
@@ -8517,7 +8573,7 @@ This operation can be tested non-interactively:
           (Space "e")))
 
   (e.g.
-   (the-document:toString) #;< ===>  "aAbBcCdDe")
+   (the-document:toString) #;< ===> "aAbBcCdDe")
 
   (define slice-2-6 ::Comb (the-document:extract! 2 6))
 
@@ -8525,13 +8581,43 @@ This operation can be tested non-interactively:
    (slice-2-6:toString) #;< ===> "bBcCd")
 
   (e.g.
-   (the-document:toString) #;< ===> "aADe")
+   (the-document:toString) #;< ===> "aA.De")
 
   (the-document:addAll 2 slice-2-6)
 
-  (print the-document)
+  (e.g. (the-document:toString) #;< ===> "aAbBcCdDe")
 
-  (print (the-document:toString))
+  (define slice-3-6 ::Comb (the-document:extract! 3 6))
+
+  (e.g.
+   (slice-3-6:toString) #;< ===> ".BcCd")
+
+  (e.g.
+   (the-document:toString) #;< ===> "aAbDe")
+
+  (the-document:addAll 2 slice-3-6)
+
+  (e.g.
+   (the-document:toString) #;< ===> "aAbBcCdDe")
+
+  (define slice-2-5 ::Comb (the-document:extract! 2 5))
+
+  (e.g. (slice-2-5:toString) #;< ===> "bBcC.")
+
+  (e.g. (the-document:toString) #;< ===> "aAdDe")
+
+  (the-document:addAll 1 slice-2-5)
+
+  (e.g.
+   (the-document:toString) #;< ===> "aAbBcCdDe")
+
+  (define slice-3-5 ::Comb (the-document:extract! 3 5))
+
+  (e.g.
+   (slice-3-5:toString) #;< ===> ".BcC.")
+
+  (e.g.
+   (the-document:toString) #;< ===> "aAbdDe")
 
   (test-report)
 #+END_SRC
