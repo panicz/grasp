@@ -156,7 +156,7 @@ and local variables.)
 The code snippets from this chapter will be placed in the
 ~language-extensions.scm~ file.
 
-#+BEGIN_SRC scheme :tangle language-extensions.scm :mkdirp yes :noweb tangle
+#+BEGIN_SRC scheme :tangle language-extensions.scm :mkdirp yes :noweb no-export
 <<header>>
 (module-name (language-extensions))
 ;; mind that, for some reason, importing ANY module from this
@@ -896,7 +896,7 @@ of numbers or creating coroutines):
 
       ((for var::type from: start to: end by: increment actions ...)
        (let loop ((var::type start))
-         (if (is var <= end) ;>
+         (if (is var <= end)
              (begin
                actions ...
                (loop (+ var increment))))))
@@ -904,14 +904,14 @@ of numbers or creating coroutines):
       ((for var::type from: start down-to: end by: increment actions ...)
        (let ((inc (abs increment)))
          (let loop ((var::type start))
-           (if #;< (is var >= end)
+           (if (is var >= end)
                    (begin
                      actions ...
                      (loop (- var inc)))))))
 
       ((for var::type from: start below: end by: increment actions ...)
        (let loop ((var ::type start))
-         (if (is var < end) ;>
+         (if (is var < end)
              (begin
                actions ...
                (loop (+ var increment))))))
@@ -1943,273 +1943,273 @@ which is going to invoke a helper form, called
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
 
-(define-syntax-rule (match expression (pattern actions* ... value) ...)
-  (let ((evaluated expression))
-    (match/evaluated evaluated (pattern actions* ... value) ...)))
+  (define-syntax-rule (match expression (pattern actions* ... value) ...)
+    (let ((evaluated expression))
+      (match/evaluated evaluated (pattern actions* ... value) ...)))
 
-(define-syntax match/evaluated
-  (syntax-rules (::)
-    ((match/evaluated value)
-     ;; This behavior is unspecified, and an "unspecified"
-     ;; value would also be fine here.
-     (error 'no-matching-pattern value))
+  (define-syntax match/evaluated
+    (syntax-rules (::)
+      ((match/evaluated value)
+       ;; This behavior is unspecified, and an "unspecified"
+       ;; value would also be fine here.
+       (error 'no-matching-pattern value))
 
-    ((match/evaluated value (pattern::type actions ...) final-clause)
-     (match-clause ((pattern::type value))
-                   (and)
-                   ()
-                   actions ...
-                   (with-compile-options
-                    warn-unreachable: #f
-                    (match/evaluated value final-clause))))
-    
-    ((match/evaluated value (pattern actions ...) final-clause)
-     (match-clause ((pattern value))
-                   (and)
-                   ()
-                   actions ...
-                   (with-compile-options
-                    warn-unreachable: #f                   
-                    (match/evaluated value final-clause))))
-    
-    ((match/evaluated value (pattern::type actions ...) . clauses)
-     (match-clause ((pattern::type value))
-                   (and)
-                   ()
-                   actions ...
-                   (match/evaluated value . clauses)))
-    
-    ((match/evaluated value (pattern actions ...) . clauses)
-     (match-clause ((pattern value))
-                   (and)
-                   ()
-                   actions ...
-                   (match/evaluated value . clauses)))
-    ))
+      ((match/evaluated value (pattern::type actions ...) final-clause)
+       (match-clause ((pattern::type value))
+                     (and)
+                     ()
+                     actions ...
+                     (with-compile-options
+                      warn-unreachable: #f
+                      (match/evaluated value final-clause))))
 
-(define-syntax match-clause
-  (lambda (stx)
-    (syntax-case stx (quasiquote
-                      unquote quote unquote-splicing
-                      and _ list %typename :: $lookup$)
-      ((match-clause () condition bindings actions ... alternative)
-       #'(check/unique condition bindings #f () ()
-                       actions ... alternative))
+      ((match/evaluated value (pattern actions ...) final-clause)
+       (match-clause ((pattern value))
+                     (and)
+                     ()
+                     actions ...
+                     (with-compile-options
+                      warn-unreachable: #f                   
+                      (match/evaluated value final-clause))))
 
-      ((match-clause (((list items ...) root) . rest)
-                     condition
-                     bindings
-                     actions ... alternative)
-       #'(match-clause ((`(,items ...) root) . rest)
+      ((match/evaluated value (pattern::type actions ...) . clauses)
+       (match-clause ((pattern::type value))
+                     (and)
+                     ()
+                     actions ...
+                     (match/evaluated value . clauses)))
+
+      ((match/evaluated value (pattern actions ...) . clauses)
+       (match-clause ((pattern value))
+                     (and)
+                     ()
+                     actions ...
+                     (match/evaluated value . clauses)))
+      ))
+
+  (define-syntax match-clause
+    (lambda (stx)
+      (syntax-case stx (quasiquote
+                        unquote quote unquote-splicing
+                        and _ list %typename :: $lookup$)
+        ((match-clause () condition bindings actions ... alternative)
+         #'(check/unique condition bindings #f () ()
+                         actions ... alternative))
+
+        ((match-clause (((list items ...) root) . rest)
                        condition
                        bindings
-                       actions ... alternative))
+                       actions ... alternative)
+         #'(match-clause ((`(,items ...) root) . rest)
+                         condition
+                         bindings
+                         actions ... alternative))
 
-      ((match-clause (((list items ... . last) root) . rest)
-                     condition
-                     bindings
-                     actions ... alternative)
-       #'(match-clause ((`(,items ... . ,last) root) . rest)
+        ((match-clause (((list items ... . last) root) . rest)
                        condition
                        bindings
-                       actions ... alternative))
-      
-      ((match-clause ((`,pattern::type root) . rest)
-                     condition
-                     bindings
-                     actions ... alternative)
-       #'(match-clause ((pattern::type root) . rest)
+                       actions ... alternative)
+         #'(match-clause ((`(,items ... . ,last) root) . rest)
+                         condition
+                         bindings
+                         actions ... alternative))
+
+        ((match-clause ((`,pattern::type root) . rest)
                        condition
                        bindings
-                       actions ... alternative))
-      
-      ((match-clause ((`,pattern root) . rest)
-                     condition
-                     bindings
-                     actions ... alternative)
-       #'(match-clause ((pattern root) . rest)
+                       actions ... alternative)
+         #'(match-clause ((pattern::type root) . rest)
+                         condition
+                         bindings
+                         actions ... alternative))
+
+        ((match-clause ((`,pattern root) . rest)
                        condition
                        bindings
-                       actions ... alternative))
+                       actions ... alternative)
+         #'(match-clause ((pattern root) . rest)
+                         condition
+                         bindings
+                         actions ... alternative))
 
-      ((match-clause ((,value::type root) . rest)
-                     (conditions ...)
-                     bindings
-                     actions ... alternative)
-       #'(match-clause rest
-                       (conditions
-                        ...
-                        (instance? root type)
-                        (match/equal? value root))
+        ((match-clause ((,value::type root) . rest)
+                       (conditions ...)
                        bindings
-                       actions ... alternative))
-      
-      ((match-clause ((,value root) . rest)
-                     (conditions ...)
-                     bindings
-                     actions ... alternative)
-       #'(match-clause rest
-                       (conditions ... (match/equal? value root))
-                       bindings
-                       actions ... alternative))
+                       actions ... alternative)
+         #'(match-clause rest
+                         (conditions
+                          ...
+                          (instance? root type)
+                          (match/equal? value root))
+                         bindings
+                         actions ... alternative))
 
-      ((match-clause ((,@predicate root) . rest)
-                     (conditions ...)
-                     bindings
-                     actions ... alternative)
-       #'(match-clause rest
-                       (conditions ... (predicate root))
+        ((match-clause ((,value root) . rest)
+                       (conditions ...)
                        bindings
-                       actions ... alternative))
-      
-      ((match-clause ((_::type root) . rest)
-                     (conditions ...)
-                     bindings
-                     actions ... alternative)
-       #'(match-clause rest
-                       (conditions ... (instance? root type))
-                       bindings
-                       actions ... alternative))
+                       actions ... alternative)
+         #'(match-clause rest
+                         (conditions ... (match/equal? value root))
+                         bindings
+                         actions ... alternative))
 
-      ((match-clause ((_ root) . rest)
-                     condition
-                     bindings
-                     actions ... alternative)
-       #'(match-clause rest
+        ((match-clause ((,@predicate root) . rest)
+                       (conditions ...)
+                       bindings
+                       actions ... alternative)
+         #'(match-clause rest
+                         (conditions ... (predicate root))
+                         bindings
+                         actions ... alternative))
+
+        ((match-clause ((_::type root) . rest)
+                       (conditions ...)
+                       bindings
+                       actions ... alternative)
+         #'(match-clause rest
+                         (conditions ... (instance? root type))
+                         bindings
+                         actions ... alternative))
+
+        ((match-clause ((_ root) . rest)
                        condition
                        bindings
-                       actions ... alternative))
+                       actions ... alternative)
+         #'(match-clause rest
+                         condition
+                         bindings
+                         actions ... alternative))
 
-      ((match-clause ((variable ::type root) . rest)
-                     (conditions ...)
-                     bindings
-                     actions ... alternative)
-       (identifier? #'variable)
-       #'(match-clause rest
-                       (conditions ... (instance? root type))
-                       ((variable ::type root) . bindings)
-                       actions ... alternative))
-      
-      ((match-clause ((variable root) . rest)
-                     condition
-                     bindings
-                     actions ... alternative)
-       (identifier? #'variable)
-       #'(match-clause rest
+        ((match-clause ((variable ::type root) . rest)
+                       (conditions ...)
+                       bindings
+                       actions ... alternative)
+         (identifier? #'variable)
+         #'(match-clause rest
+                         (conditions ... (instance? root type))
+                         ((variable ::type root) . bindings)
+                         actions ... alternative))
+
+        ((match-clause ((variable root) . rest)
                        condition
-                       ((variable root) . bindings)
-                       actions ... alternative))
+                       bindings
+                       actions ... alternative)
+         (identifier? #'variable)
+         #'(match-clause rest
+                         condition
+                         ((variable root) . bindings)
+                         actions ... alternative))
 
-      ((match-clause (('datum root) . rest)
-                     (and conditions ...)
-                     bindings
-                     actions ... alternative)
-       #'(match-clause rest
-                       (and conditions ... (match/equal? root 'datum))
-                       bindings
-                       actions ... alternative))
-
-      ((match-clause ((object:key root) . rest)
-                     (and conditions ...)
-                     bindings
-                     actions ... alternative)
-       #'(match-clause rest
-                       (and conditions ... (match/equal? root
-                                                         object:key))
-                       bindings
-                       actions ... alternative))
-      
-      ((match-clause ((`(left::type . right) root) . rest)
-                     (and conditions ...)
-                     bindings
-                     actions ... alternative)
-       #'(match-clause ((`left::type (car root))
-                        (`right (cdr root)) . rest)
-                       (and conditions ... (pair? root))
-                       bindings
-                       actions ... alternative))
-      
-      ((match-clause ((`(left . right) root) . rest)
-                     (and conditions ...)
-                     bindings
-                     actions ... alternative)
-       #'(match-clause ((`left (car root)) (`right (cdr root)) . rest)
-                       (and conditions ... (pair? root))
-                       bindings
-                       actions ... alternative))
-
-      ((match-clause ((`datum root) . rest)
-                     conditions
-                     bindings
-                     actions ... alternative)
-       #'(match-clause (('datum root) . rest)
-                        conditions
-                       bindings
-                       actions ... alternative))
-      
-      ((match-clause (((_ . fields) root) . rest)
-                     (and conditions ...)
-                     bindings
-                     actions ... alternative)
-       #'(match-clause (((%typename . fields) root) . rest)
+        ((match-clause (('datum root) . rest)
                        (and conditions ...)
                        bindings
-                       actions ... alternative))
-      
-      ((match-clause (((%typename type) root) . rest)
-                     (and conditions ...)
-                     bindings
-                     actions ... alternative)
-       #'(match-clause rest
+                       actions ... alternative)
+         #'(match-clause rest
+                         (and conditions ... (match/equal? root 'datum))
+                         bindings
+                         actions ... alternative))
+
+        ((match-clause ((object:key root) . rest)
                        (and conditions ...)
                        bindings
-                       actions ... alternative))
+                       actions ... alternative)
+         #'(match-clause rest
+                         (and conditions ... (match/equal? root
+                                                           object:key))
+                         bindings
+                         actions ... alternative))
 
-      ((match-clause (((%typename type key pat . etc) root) . rest)
-                     (and conditions ...)
-                     bindings
-                     actions ... alternative)
-       (and (keyword? (syntax->datum #'key))
-            (identifier? #'type))
-       (with-syntax ((name (datum->syntax
-                            stx
-                            (keyword->symbol (syntax->datum #'key)))))
-         #'(match-clause (((%typename type . etc) root)
-                          (pat (field (as type root) 'name)) . rest)
+        ((match-clause ((`(left::type . right) root) . rest)
+                       (and conditions ...)
+                       bindings
+                       actions ... alternative)
+         #'(match-clause ((`left::type (car root))
+                          (`right (cdr root)) . rest)
+                         (and conditions ... (pair? root))
+                         bindings
+                         actions ... alternative))
+
+        ((match-clause ((`(left . right) root) . rest)
+                       (and conditions ...)
+                       bindings
+                       actions ... alternative)
+         #'(match-clause ((`left (car root)) (`right (cdr root)) . rest)
+                         (and conditions ... (pair? root))
+                         bindings
+                         actions ... alternative))
+
+        ((match-clause ((`datum root) . rest)
+                       conditions
+                       bindings
+                       actions ... alternative)
+         #'(match-clause (('datum root) . rest)
+                          conditions
+                         bindings
+                         actions ... alternative))
+
+        ((match-clause (((_ . fields) root) . rest)
+                       (and conditions ...)
+                       bindings
+                       actions ... alternative)
+         #'(match-clause (((%typename . fields) root) . rest)
                          (and conditions ...)
                          bindings
-                         actions ... alternative)))
+                         actions ... alternative))
 
-      ((match-clause (((typename . fields) root) . rest)
-                     (and conditions ...)
-                     (bindings ...)
-                     actions ... alternative)
-       (and (identifier? #'typename) (identifier? #'root))
-       #'(match-clause (((%typename typename . fields) root) . rest)
-                       (and conditions ... (instance? root typename))
-                       (bindings ... (root ::typename root))
-                       actions ... alternative))
-
-      
-      ((match-clause (((typename . fields) root) . rest)
-                     (and conditions ...)
-                     bindings
-                     actions ... alternative)
-       (identifier? #'typename)
-       #'(match-clause (((%typename typename . fields) root) . rest)
-                       (and conditions ... (instance? root typename))
+        ((match-clause (((%typename type) root) . rest)
+                       (and conditions ...)
                        bindings
-                       actions ... alternative))
+                       actions ... alternative)
+         #'(match-clause rest
+                         (and conditions ...)
+                         bindings
+                         actions ... alternative))
 
-      ((match-clause ((literal root) . rest)
-                     (and conditions ...)
-                     bindings
-                     actions ...)
-       #'(match-clause rest
-                       (and conditions ... (match/equal? literal root))
+        ((match-clause (((%typename type key pat . etc) root) . rest)
+                       (and conditions ...)
                        bindings
-                       actions ...))
-      )))
+                       actions ... alternative)
+         (and (keyword? (syntax->datum #'key))
+              (identifier? #'type))
+         (with-syntax ((name (datum->syntax
+                              stx
+                              (keyword->symbol (syntax->datum #'key)))))
+           #'(match-clause (((%typename type . etc) root)
+                            (pat (field (as type root) 'name)) . rest)
+                           (and conditions ...)
+                           bindings
+                           actions ... alternative)))
+
+        ((match-clause (((typename . fields) root) . rest)
+                       (and conditions ...)
+                       (bindings ...)
+                       actions ... alternative)
+         (and (identifier? #'typename) (identifier? #'root))
+         #'(match-clause (((%typename typename . fields) root) . rest)
+                         (and conditions ... (instance? root typename))
+                         (bindings ... (root ::typename root))
+                         actions ... alternative))
+
+
+        ((match-clause (((typename . fields) root) . rest)
+                       (and conditions ...)
+                       bindings
+                       actions ... alternative)
+         (identifier? #'typename)
+         #'(match-clause (((%typename typename . fields) root) . rest)
+                         (and conditions ... (instance? root typename))
+                         bindings
+                         actions ... alternative))
+
+        ((match-clause ((literal root) . rest)
+                       (and conditions ...)
+                       bindings
+                       actions ...)
+         #'(match-clause rest
+                         (and conditions ... (match/equal? literal root))
+                         bindings
+                         actions ...))
+        )))
 
 #+END_SRC
 
@@ -3330,6 +3330,9 @@ a type variable (rather than syntax error):
   (define-syntax-rule (list-of type)
     list)
 
+  (define-syntax-rule (ListOf type)
+    List)
+
   (define-syntax-rule (set-of type)
     (specialize Set type))
 
@@ -3733,6 +3736,15 @@ is ambiguous.
         (is (char->integer #\a) <= (char->integer c) <= (char->integer #\f))
         (is (char->integer #\A) <= (char->integer c) <= (char->integer #\F))))
 
+  (define (char-graphic? c ::character) ::boolean
+    (let ((cp ::int (char->integer c)))
+      (and (not (java.lang.Character:isISOControl cp))
+           (java.lang.Character:isDefined cp))))
+
+  (define (char-standard? c ::character) ::boolean
+    (or (char-graphic? c)
+        (eqv? c #\newline)))
+  
   (define (char-hex-value c::char)::int
     (let ((code (char->integer c)))
       (cond ((char-digit? c)
@@ -4368,7 +4380,7 @@ day in the future.
     (define (length)::int n)
 
     (define (subSequence start ::int end ::int)::CharSequence
-      (assert (is start <= end)) ;>
+      (assert (is start <= end))
       (let ((s ::CharacterRing (CharacterRing (- end start))))
         (for i ::int from: start below: end
              (s:add (charAt i)))
@@ -4924,10 +4936,10 @@ by its descendant classes.
     (for line ::int from: 1 below: (- height 2)
          (for i ::int from: 0 below: border:width
               (put! (border:leftLine i) i line)))
-    (when (is height #;< > 2)
+    (when (is height > 2)
       (for i ::int from: 0 below: border:width
            (put! (border:leftMiddle i) i (- height 2))))
-    (when (is height #;< > 1)
+    (when (is height > 1)
       (for i ::int from: 0 below: border:width
            (put! (border:leftBottom i) i (- height 1)))))
 
@@ -4940,10 +4952,10 @@ by its descendant classes.
     (for line ::int from: 1 below: (- height 2)
          (for i ::int from: 0 below: border:width
               (put! (border:rightLine i) i line)))
-    (when (is height #;< > 2)
+    (when (is height > 2)
       (for i ::int from: 0 below: border:width
            (put! (border:rightMiddle i) i (- height 2))))
-    (when (is height #;< > 1)
+    (when (is height > 1)
       (for i ::int from: 0 below: border:width
            (put! (border:rightBottom i) i (- height 1)))))
 
@@ -5118,7 +5130,7 @@ recommend reading it.
 ~text/basic-text-painter.scm~ file.)
 
 #+NAME: basic-text-painter
-#+BEGIN_SRC scheme :tangle no :noweb yes
+#+BEGIN_SRC scheme :tangle no :noweb no-export
 
   <<painter-subinterfaces>>
 
@@ -5151,7 +5163,7 @@ recommend reading it.
   java -jar ../libs/kawa.jar test/basic-text-painter.scm
 #+END_SRC
 
-#+BEGIN_SRC scheme :tangle test/basic-text-painter.scm :mkdirp yes :noweb tangle
+#+BEGIN_SRC scheme :tangle test/basic-text-painter.scm :mkdirp yes :noweb no-export
   <<header>>
   (module-name (test basic-text-painter))
   (import (language-extensions))
@@ -5205,7 +5217,7 @@ recommend reading it.
                     (painter:draw-text! "- n 1"
                                         (painter:atom-font))))))))))))
      (display (painter:toString))
-     (painter:toString)) #;< ===> "
+     (painter:toString)) ===> "
   ╭        ╭     ╮               ╮
   │ define │ ! n │               │
   │        ╰     ╯               │
@@ -5300,14 +5312,6 @@ elements that occupy a rectangular area of the screen.
   (define spaces ::(sequence-of Space)
     (ArrayList ||: (Space:empty)))
 
-  (define (break-line! indent::int)::void
-    (let ((last-space ::Space (last spaces)))
-      (last-space:add indent)))
-
-  (define (space-out!)::void
-    (let ((last-space ::Space (last spaces)))
-      (last-space:widen! 1)))
-
   ;; in order to get the size of the collection, we sum
   ;; the sizes of both arrays
   (define (size)::int
@@ -5360,12 +5364,12 @@ elements that occupy a rectangular area of the screen.
     (cond
      ((Space? object)
       (let ((index ::int (spaces:indexOf object)))
-        (if (is index < 0) ;>
+        (if (is index < 0)
             index
             (* 2 index))))
      ((Tile? object)
       (let ((index ::int (elements:indexOf object)))
-        (if (is index < 0) ;>
+        (if (is index < 0)
             index
             (+ (* 2 index) 1))))
      (else
@@ -5375,12 +5379,12 @@ elements that occupy a rectangular area of the screen.
     (cond
      ((Space? object)
       (let ((index ::int (spaces:lastIndexOf object)))
-        (if (is index < 0) ;>
+        (if (is index < 0)
             index
             (* 2 index))))
      ((Tile? object)
       (let ((index ::int (elements:lastIndexOf object)))
-        (if (is index < 0) ;>
+        (if (is index < 0)
             index
             (+ (* 2 index) 1))))
      (else
@@ -5405,7 +5409,7 @@ elements that occupy a rectangular area of the screen.
   ;; but in order to do this, we need to merge the last space
   ;; from us with the first space from them
   (define (addAll! collection ::Collection)::boolean
-    (addAll (as int (- (size) 1)) collection))
+    (addAll (size) collection))
 
   (define (addAll collection ::Collection)::boolean
     (addAll! collection))
@@ -5434,7 +5438,7 @@ elements that occupy a rectangular area of the screen.
   ;; 4: 0123478
   ;;        6
   ;;
-  (define (addAll index ::int collection ::Collection)::boolean
+  (define-private (addAll* index ::int collection ::Collection)::boolean
     (given ((comb ::Comb collection))
       (if (even? index)
           (let* ((index* ::int (quotient index 2))
@@ -5445,7 +5449,7 @@ elements that occupy a rectangular area of the screen.
             (enlarged:merge-with! extra)
             (elements:addAll index* comb:elements)
             (spaces:addAll (+ index* 1) comb-spaces))
-          (let* ((index* ::int (if (is index < 0) ;>
+          (let* ((index* ::int (if (is index < 0)
                                    0
                                    (+ (quotient index 2) 1)))
                  (extra ::Space (spaces:remove index*)))
@@ -5456,6 +5460,9 @@ elements that occupy a rectangular area of the screen.
 
               (last-added:merge-with! extra)
               (elements:addAll index* comb:elements))))))
+
+  (define (addAll index ::int collection ::Collection)
+    (addAll* (- index 1) collection))
 
   (define (add index ::int element ::Element)::void
     (when (even? index)
@@ -5535,9 +5542,9 @@ elements that occupy a rectangular area of the screen.
 
   (define (toArray possible-output ::(array-of Object))
     ::(array-of Object)
-    (let ((result (if #;< (is possible-output:length >= (size))
-                          possible-output
-                          ((array-of Object) length: (size)))))
+    (let ((result (if (is possible-output:length >= (size))
+                      possible-output
+                      ((array-of Object) length: (size)))))
       (for i from: 0 below: (size)
            (set! (result i) (get i)))
       result))
@@ -5578,7 +5585,7 @@ going to provide mock definitions of ~Element~, ~Tile~ and
   java -jar ../libs/kawa.jar test/comb-as-collection.scm
 #+END_SRC
 
-#+BEGIN_SRC scheme :tangle test/comb-as-collection.scm :mkdirp yes :noweb tangle
+#+BEGIN_SRC scheme :tangle test/comb-as-collection.scm :mkdirp yes :noweb no-export
   <<header>>
   (module-name (test comb-as-collection))
   (import (language-extensions))
@@ -5674,9 +5681,9 @@ going to provide mock definitions of ~Element~, ~Tile~ and
     (c1:addAll c2)
     (let ((v1 ::Comb (c1:subList 3 6)))
       (e.g.
-       (c1:toString) #;< ===> "A B C D E F")
+       (c1:toString) ===> "A B C D E F")
       (e.g.
-       (v1:toString) #;< ===> " B C ")))
+       (v1:toString) ===> " B C ")))
 
   (let ((c3 ::Comb (Comb)))
     (e.g.
@@ -5690,18 +5697,8 @@ going to provide mock definitions of ~Element~, ~Tile~ and
                           (Atom "3")
                           (Space "4")))
          (c2 ::Comb (Comb (Space "6") (Atom "7") (Space "8"))))
-     (c1:addAll -1 c2)
-     (c1:toString)) #;< ===> "67801234")
-
-  (e.g.
-   (let ((c1 ::Comb (Comb (Space "0")
-                          (Atom "1")
-                          (Space "2")
-                          (Atom "3")
-                          (Space "4")))
-         (c2 ::Comb (Comb (Space "6") (Atom "7") (Space "8"))))
      (c1:addAll 0 c2)
-     (c1:toString)) #;< ===> "06781234")
+     (c1:toString)) ===> "67801234")
 
   (e.g.
    (let ((c1 ::Comb (Comb (Space "0")
@@ -5711,7 +5708,7 @@ going to provide mock definitions of ~Element~, ~Tile~ and
                           (Space "4")))
          (c2 ::Comb (Comb (Space "6") (Atom "7") (Space "8"))))
      (c1:addAll 1 c2)
-     (c1:toString)) #;< ===> "01678234")
+     (c1:toString)) ===> "06781234")
 
   (e.g.
    (let ((c1 ::Comb (Comb (Space "0")
@@ -5721,7 +5718,7 @@ going to provide mock definitions of ~Element~, ~Tile~ and
                           (Space "4")))
          (c2 ::Comb (Comb (Space "6") (Atom "7") (Space "8"))))
      (c1:addAll 2 c2)
-     (c1:toString)) #;< ===> "01267834")
+     (c1:toString)) ===> "01678234")
 
   (e.g.
    (let ((c1 ::Comb (Comb (Space "0")
@@ -5731,7 +5728,7 @@ going to provide mock definitions of ~Element~, ~Tile~ and
                           (Space "4")))
          (c2 ::Comb (Comb (Space "6") (Atom "7") (Space "8"))))
      (c1:addAll 3 c2)
-     (c1:toString)) #;< ===> "01236784")
+     (c1:toString)) ===> "01267834")
 
   (e.g.
    (let ((c1 ::Comb (Comb (Space "0")
@@ -5741,7 +5738,17 @@ going to provide mock definitions of ~Element~, ~Tile~ and
                           (Space "4")))
          (c2 ::Comb (Comb (Space "6") (Atom "7") (Space "8"))))
      (c1:addAll 4 c2)
-     (c1:toString)) #;< ===> "01234678")
+     (c1:toString)) ===> "01236784")
+
+  (e.g.
+   (let ((c1 ::Comb (Comb (Space "0")
+                          (Atom "1")
+                          (Space "2")
+                          (Atom "3")
+                          (Space "4")))
+         (c2 ::Comb (Comb (Space "6") (Atom "7") (Space "8"))))
+     (c1:addAll 5 c2)
+     (c1:toString)) ===> "01234678")
   
   (test-report)
 #+END_SRC
@@ -5872,12 +5879,12 @@ rendering function for ~Comb~ and its thereabouts.
                          (* 2 (painter:border-height style)))))
 
   (define (width)::real
-    (when (is last-width < 0) ;>
+    (when (is last-width < 0)
       (recalculate-size!))
     last-width)
 
   (define (height)::real
-    (when (is last-height < 0) ;>
+    (when (is last-height < 0)
       (recalculate-size!))
     last-height)
 
@@ -5927,7 +5934,7 @@ everything, we can provide a /partial implementation/.
         (for i::int from: 0 below: (length fragments)
              (let* ((n ::int (fragments i))
                     (positions ::int (index-positions n)))
-               (when (is base <= index < (+ base positions)) ;>>
+               (when (is base <= index < (+ base positions))
                  (let ((result ::Space (Space)))
                    (result:add (- n (- index base)))
                    (for k::int from: (+ i 1) below: (length fragments)
@@ -5938,30 +5945,9 @@ everything, we can provide a /partial implementation/.
                (increase! base by: positions))))
       (return (Space))))
 
-  (define (retain-suffix! suffix::Space)::Space
-    ;; strip and return prefix while retaining suffix
-    (let ((result ::Space (Space)))
-      (while (is (length fragments) #;< > (length suffix:fragments))
-        (result:fragments:add (fragments:remove 0)))
-      (when (is (fragments 0) #;< > (suffix:fragments 0))
-        (result:fragments:add (- (fragments 0)
-                                 (suffix:fragments 0)))
-        (set! (fragments 0) (suffix:fragments 0)))
-      result))
-
-  (define (retain-prefix! prefix::Space)::Space
-    ;; strip and return suffix while retaining prefix
-    (let ((result ::Space (Space)))
-      (while (is (length fragments) #;< > (length prefix:fragments))
-        (result:fragments:add 0 (fragments:remove
-                                 (- (length fragments) 1))))
-      (when (is (last fragments) #;< > (last prefix:fragments))
-        (set! (last fragments) (last prefix:fragments)))
-      result))
-
   (define (add item::(either int #\space #\newline string))::boolean
     (match item
-      (width::int
+      (width::integer
        (fragments:add width))
       (#\space
        (widen! 1))
@@ -5984,9 +5970,9 @@ everything, we can provide a /partial implementation/.
           (last-index ::int (- (length fragments) 1)))
       (for i::int from: 0 to: last-index
            (let ((n ::int (fragments i)))
-             (when #;< (is n > 0)
+             (when (is n > 0)
                (when (and active?
-                          (is index <= current-index <= (+ index n))) ;>>
+                          (is index <= current-index <= (+ index n)))
                  (painter:with-translation
                      (- state:left initial-left) (- state:top initial-top)
                    (lambda ()
@@ -6001,7 +5987,7 @@ everything, we can provide a /partial implementation/.
     (let ((last-index ::int (- (length fragments) 1)))
       (for i::int from: 0 to: last-index
            (let ((n ::int (fragments i)))
-             (when #;< (is n > 0)
+             (when (is n > 0)
                (expand-layout! state (* n (painter:space-width))
                                (painter:min-line-height)))
              (unless (= i last-index)
@@ -6013,7 +5999,7 @@ everything, we can provide a /partial implementation/.
     java -jar ../libs/kawa.jar test/comb-rendering.scm
 #+END_SRC
 
-#+BEGIN_SRC scheme :tangle test/comb-rendering.scm :mkdirp yes :noweb tangle
+#+BEGIN_SRC scheme :tangle test/comb-rendering.scm :mkdirp yes :noweb no-export
   <<header>>
   (module-name (test comb-rendering))
   (import (language-extensions))
@@ -6120,7 +6106,7 @@ everything, we can provide a /partial implementation/.
      (document:render! #f (LayoutState))
      (let ((snapshot (painter:toString)))
        (display snapshot)
-       snapshot)) #;< ===> "
+       snapshot)) ===> "
   ╭        ╭     ╮              ╮
   │ define │ ! n │              │
   │        ╰     ╯              │
@@ -6327,7 +6313,7 @@ be used as a base class for our text-like things.
 
     (define (toArray possible-output ::(array-of Object))
       ::(array-of Object)
-      (let ((result (if #;< (is possible-output:length >= (size))
+      (let ((result (if (is possible-output:length >= (size))
                             possible-output
                             ((array-of Object) length: (size)))))
         (for i from: 0 below: (size)
@@ -6377,8 +6363,8 @@ we have everything that is needed to define the ~Visual~,
                                           line font))
                              (l ::int (string-length line)))
                         (when (and active?
-                                   (is n <= current-index #;>
-                                       <= (+ n l) #;> ))
+                                   (is n <= current-index
+                                       <= (+ n l) ))
                           (painter:mark-cursor! (- current-index n) font))
                         (increase! n by: l)
                         (maximize! inner-width line-width)
@@ -6410,12 +6396,12 @@ we have everything that is needed to define the ~Visual~,
     (expand-layout! state (width) (height)))
 
   (define (width)::real
-    (when (is last-width < 0) ;>
+    (when (is last-width < 0)
       (recalculate-size!))
     last-width)
 
   (define (height)::real
-    (when (is last-height < 0) ;>
+    (when (is last-height < 0)
       (recalculate-size!))
     last-height)
 
@@ -6424,7 +6410,7 @@ we have everything that is needed to define the ~Visual~,
 We can now use the code to define the built-in ~Textual~
 units in GRASP
 
-#+BEGIN_SRC scheme :noweb yes :noweb-ref TextualTileSubclasses--rendering
+#+BEGIN_SRC scheme :noweb no-export :noweb-ref TextualTileSubclasses--rendering
 
   (define-object (Atom)::TextualTile
     (define-protected (font)::FontProxy
@@ -6484,7 +6470,7 @@ rendering with our ~TextPainter~.
   java -jar ../libs/kawa.jar test/textual-rendering.scm
 #+END_SRC
 
-#+BEGIN_SRC scheme :tangle test/textual-rendering.scm :mkdirp yes :noweb tangle
+#+BEGIN_SRC scheme :tangle test/textual-rendering.scm :mkdirp yes :noweb no-export
   <<header>>
   (module-name (test textual-rendering))
   (import (language-extensions))
@@ -6543,7 +6529,7 @@ rendering with our ~TextPainter~.
              (item:render! #false state))))
      (display (painter:toString))
      (painter:toString))
-   #;< ===> "
+   ===> "
   <<textual-rendering-result>>
   ")
 
@@ -6583,7 +6569,7 @@ to develop it in two steps:
   extensions. We also need to tackle the question of
   conventional indentation of Lisp programs, and another
   question of handling magic boxes
-  
+
 ***** A simple parser
 
 #+BEGIN_SRC scheme :noweb-ref simple-parser
@@ -6612,10 +6598,12 @@ to develop it in two steps:
            (next))
           (#\) result)
           (#\space
-           (result:space-out!)
+           (let ((last-space ::Space (last result:spaces)))
+             (last-space:widen! 1))
            (next))
           (#\newline
-           (result:break-line! 0)
+           (let ((last-space ::Space (last result:spaces)))
+             (last-space:add 0))
            (next))
           (c
            (result:add (read-atom-into (Atom c) port))
@@ -6629,7 +6617,7 @@ We can now test the simplified parser on sample data:
   java -jar ../libs/kawa.jar test/simple-parser.scm
 #+END_SRC
 
-#+BEGIN_SRC scheme :tangle test/simple-parser.scm :mkdirp yes :noweb tangle
+#+BEGIN_SRC scheme :tangle test/simple-parser.scm :mkdirp yes :noweb no-export
   <<header>>
   (module-name (test simple-parser))
   (import (language-extensions))
@@ -6666,6 +6654,7 @@ We can now test the simplified parser on sample data:
 
   (define-object (Comb)::Compound
     <<Comb--collection-operations>>
+    <<Comb--whitespace-support>>
     <<Comb--rendering>>
     )
 
@@ -6840,14 +6829,16 @@ it supports more objects):
       (path:push! 0)
       (while running?
         (set! (last path) (result:size))
-        (if (or (is (result:elements:size) #;< >= max-elements)
+        (if (or (is (result:elements:size) >= max-elements)
                 (eof-object? (peek-char port)))
             (set! running? #false)
             (match (read-char port)
               (,@eof-object? (set! running? #false))
               (#\( (result:add (read-list from: port at: path)))
-              (#\space   (result:space-out!))
-              (#\newline (result:break-line! (- indentation)))
+              (#\space (let ((last-space ::Space (last result)))
+                         (last-space:widen! 1)))
+              (#\newline (let ((last-space ::Space (last result)))
+                           (last-space:add (- indentation))))
               (#\) (set! running? #false))
               (#\[ (result:add (enchanted (read-list from: port at: path)
                                           path)))
@@ -7070,7 +7061,7 @@ class that will be elaborated in the future.
   java -jar ../libs/kawa.jar test/advanced-parser.scm
 #+END_SRC
 
-#+BEGIN_SRC scheme :tangle test/advanced-parser.scm :mkdirp yes :noweb tangle
+#+BEGIN_SRC scheme :tangle test/advanced-parser.scm :mkdirp yes :noweb no-export
   <<header>>
   (module-name (test advanced-parser))
   (import (language-extensions))
@@ -7106,6 +7097,7 @@ class that will be elaborated in the future.
 
   (define-object (Comb)::Compound
     <<Comb--collection-operations>>
+    <<Comb--whitespace-support>>
     <<Comb--rendering>>
     )
 
@@ -7163,7 +7155,7 @@ class that will be elaborated in the future.
   (e.g.
    (let ((document ::Comb (call-with-input-string "\
   (define (! n)
-    (if (<= n 1) ;>
+    (if (<= n 1)
         1  #| base case |#
       (* n (! (- n 1)))))
   (e.g. (! 5) ===> 120)
@@ -7272,7 +7264,7 @@ Lastly, we need to define serialization for ~TextualTileBase~
 
 We also need to implement serialization for our textual elements:
 
-#+BEGIN_SRC scheme :noweb yes :noweb-ref TextualTileSubclasses--serialization
+#+BEGIN_SRC scheme :noweb no-export :noweb-ref TextualTileSubclasses--serialization
 
   (define-object (Atom)::TextualTile
     (define-protected (prefix)::string "")
@@ -7320,7 +7312,7 @@ We can now test whether the algorithm works correctly:
   java -jar ../libs/kawa.jar test/serialization.scm
 #+END_SRC
 
-#+BEGIN_SRC scheme :tangle test/serialization.scm :mkdirp yes :noweb tangle
+#+BEGIN_SRC scheme :tangle test/serialization.scm :mkdirp yes :noweb no-export
   <<header>>
   (module-name (test serialization))
   (import (language-extensions))
@@ -7357,6 +7349,7 @@ We can now test whether the algorithm works correctly:
 
   (define-object (Comb)::Compound
     <<Comb--collection-operations>>
+    <<Comb--whitespace-support>>    
     <<Comb--serialize>>
     )
 
@@ -7600,6 +7593,7 @@ class that is supposed to possess the ~cursor-retreat!~ and
   (cursor-to-end!)::boolean
   (cursor-index)::int
   (element-at index ::int)::Element
+  (current-target)::Element
 #+END_SRC
 
 Of course, the definition of ~element-at~ for ~Comb~
@@ -7608,7 +7602,7 @@ implemented it under a different name):
 
 #+BEGIN_SRC scheme :noweb-ref Comb--navigation
   (define (element-at index ::int)::Element
-    (if (is 0 <= index < (size)) ;>>
+    (if (is 0 <= index < (size))
         (get index)
         (this)))
 #+END_SRC
@@ -7645,6 +7639,15 @@ Likewise, the ~cursor-index~ method simply returns
     current-index)
 #+END_SRC
 
+#+BEGIN_SRC scheme :noweb-ref Comb--navigation
+  (define (current-target)::Element
+    (let ((target ::Element (element-at current-index)))
+      (if (eq? target (this))
+          target
+          (target:current-target))))
+#+END_SRC
+
+
 In addition to ~Comb~, we also need to implement cursor
 movement for ~Space~ and for ~TextualTileBase~ (which forms
 the basis of ~Atom~, ~Text~ and a few other classe).
@@ -7655,11 +7658,11 @@ The case of ~TextualTileBase~ is particularly simple:
 
 #+BEGIN_SRC scheme :noweb-ref TextualTileBase--navigation
   (define (cursor-advance!)::boolean
-    (and (is current-index < (builder:length)) ;>
+    (and (is current-index < (builder:length))
          (truly (increase! current-index))))
 
   (define (cursor-retreat!)::boolean
-    (and (is current-index #;< > 0)
+    (and (is current-index > 0)
          (truly (decrease! current-index))))
 
   (define (cursor-to-start!)::boolean
@@ -7671,11 +7674,15 @@ The case of ~TextualTileBase~ is particularly simple:
     (let ((previous-index current-index))
       (set! current-index (builder:length))
       (isnt previous-index = current-index)))
-      
+
   (define (cursor-index)::int current-index)
 
   (define (element-at index ::int)::Element
     (this))
+
+  (define (current-target)::Element
+    (this))
+
 #+END_SRC
 
 **** Cursor-related operations in ~Space~
@@ -7691,7 +7698,7 @@ break.
   (define (cursor-index)::int
     current-index)
 
-  (define-private (last-index)::int
+  (define (last-index)::int
     (- (fold-left (lambda (sum::int space::int)
                     (+ sum (index-positions space)))
                   0 fragments)
@@ -7708,18 +7715,21 @@ break.
       (isnt previous-index = current-index)))
 
   (define (cursor-advance!)::boolean
-    (and (is current-index < (last-index)) ;>
+    (and (is current-index < (last-index))
          (truly
           (increase! current-index))))
 
   (define (cursor-retreat!)::boolean
-    (and (is current-index #;< > 0)
+    (and (is current-index > 0)
          (truly
           (decrease! current-index))))
 
   (define (element-at index::int)::Element
     (this))
 
+  (define (current-target)::Element
+    (this))
+  
 #+END_SRC
 
 *** Interactivity (and testing)
@@ -7755,7 +7765,7 @@ But, because Lanterna has some very lengthy package names,
 we're first going to define a bunch of aliases and helper
 definitions in a ~(terminal definitions)~ module.
 
-#+BEGIN_SRC scheme :tangle terminal-definitions.scm :mkdirp yes :noweb tangle
+#+BEGIN_SRC scheme :tangle terminal-definitions.scm :mkdirp yes :noweb no-export
   <<header>>
   (module-name (terminal-definitions))
   (import (language-extensions))
@@ -7867,7 +7877,7 @@ messages somewhere, we're going to define a simple socket
 server that's going to send output messages to a TCP port
 so that we can collect it using ~netcat~ or a similar utility:
 
-#+BEGIN_SRC scheme :tangle utils/tcp-output-server.scm :mkdirp yes :noweb tangle
+#+BEGIN_SRC scheme :tangle utils/tcp-output-server.scm :mkdirp yes :noweb no-export
   <<header>>
   (module-name (utils tcp-output-server))
   (import (language-extensions))
@@ -7887,14 +7897,14 @@ so that we can collect it using ~netcat~ or a similar utility:
          ((write byte::int)::void
           (for connection::java.io.OutputStream in: connections
             (connection:write byte)
-            (when (= byte #;< (char->integer #\newline))
+            (when (= byte (char->integer #\newline))
               (connection:flush))))))))
 #+END_SRC
 
 In cases like this, it's also convenient to be able to print stack
 traces:
 
-#+BEGIN_SRC scheme :tangle utils/debug.scm :mkdirp yes :noweb tangle
+#+BEGIN_SRC scheme :tangle utils/debug.scm :mkdirp yes :noweb no-export
   <<header>>
   (module-name (utils debug))
   (import (language-extensions))
@@ -8112,7 +8122,7 @@ and ~render~ procedures:
   (define* (run terminal ::LanternaScreen := (make-terminal-screen))
     (given ((`(,program "-p" ,port) (command-line))
             ((every char-digit? port)))
-      (let ((tcp-server (tcp-output-server #;< (string->number port))))
+      (let ((tcp-server (tcp-output-server (string->number port))))
         (set! (current-output-port) tcp-server)
         (set! (current-error-port) tcp-server)))
 
@@ -8135,8 +8145,13 @@ the ~edit~ procedure above, it only reacts to the arrow
 keys (for moving the cursor left and right), and to the
 /escape/ key, which terminates the program.
 
-#+BEGIN_SRC scheme :tangle test/interactive/cursor-navigation.scm :mkdirp yes :noweb tangle
-  #|java -cp ../libs/kawa.jar:../libs/lanterna-3.2.0-SNAPSHOT.jar kawa.repl test/interactive/cursor-navigation.scm|#
+#+HEADER: :shebang "#!/bin/sh" :mkdirp yes :noweb no-export
+#+BEGIN_SRC scheme :tangle test/interactive/cursor-navigation.scm
+  #| -*- scheme -*-
+  exec java -cp "$(dirname "$0")/../../../libs/kawa.jar"\
+  :"$(dirname "$0")/../../../libs/lanterna-3.2.0-SNAPSHOT.jar"\
+  :. kawa.repl "$0" "$@"
+  |#
   <<header>>
   (module-name (test interactive cursor-navigation))
   (import (language-extensions))
@@ -8178,6 +8193,7 @@ keys (for moving the cursor left and right), and to the
 
   (define-object (Comb)::Compound
     <<Comb--collection-operations>>
+    <<Comb--whitespace-support>>
     <<Comb--rendering>>
     <<Comb--navigation>>
     )
@@ -8208,7 +8224,7 @@ keys (for moving the cursor left and right), and to the
   (define document ::Document
     (call-with-input-string "
   (define (! n) ; int to int
-  (if (is n <= 1) ;>
+  (if (is n <= 1)
      1           
    (* n (! (- n 1)))))
   (e.g. (! 5) ===> 120)" read-document))
@@ -8228,271 +8244,87 @@ decent document model.
 In the next section, we're going to implement some basic
 editing functionality.
 
-*** Handling keyboard input
+*** Some basic editing functionality
 
-The ~edit~ procedure from the cursor movement test contained
-a (hard-coded) dispatch for a particular set of keys.
+When implementing a text editor, one needs to provide only
+two fundamental operations: adding characters and removing
+characters.
 
-Although this works for small and limited programs, it's not
-a very scalable solutions for large and interactive
-applications. A more desirable approach would be to define a
-mapping from keys and keychords to specific actions that are
-meant to be invoked. The following ~(input keyboard)~ module
-defines a bunch of helper functions and structures,
-including the ~key-code-name~ map that is meant to be
-initialized by different platforms to provide unified names
-for all available keys (because that code isn't very
-interesting, it can be found in the Appendices section at
-the end of this work).
+In the case of a structure editor, the situation is a bit
+more complicated, because the fundamental operations are
+going to depend on two things:
 
-#+BEGIN_SRC scheme :tangle input/keyboard.scm :mkdirp yes :noweb yes
-  <<header>>
-  (module-name (input keyboard))
-  (import (language-extensions))
+1. the representation of documents employed by the editor
+2. the editing capabilities that the editor is supposed to
+   provide
 
-  (define-early-constant META_MASK      ::ulong #x8000000000000000)
-  (define-early-constant CTRL_MASK      ::ulong #x4000000000000000)
-  (define-early-constant ALT_MASK       ::ulong #x2000000000000000)
-  (define-early-constant SHIFT_MASK     ::ulong #x1000000000000000)
-  (define-early-constant MODIFIERS_MASK ::ulong #x7000000000000000)
+One thing that is clear is that the operations should
+come in mutually inverse pairs. One such pair consists
+of the ~extract!~ and ~splice!~ methods. The first one
+takes indices to two spaces inside a ~Comb~, plus two
+sub-indices that should point inside corresponding
+spaces, to indicate the break point inside of them.
 
-  (define-parameter (unicode-input)::gnu.text.Char #\null)
-
-  (define (char-code c::char)::ulong
-    (as long (char->integer c)))
-
-  (define-early-constant key-code-name
-    (bimapping (key-code::long 0)
-      ;; this table should be populated by particular clients
-      'unknown-key))
-
-  (define (keychord-code combination)::ulong
-    (match combination
-      (`(shift . ,rest)
-       (bitwise-ior SHIFT_MASK (keychord-code rest)))
-      (`(ctrl . ,rest)
-       (bitwise-ior CTRL_MASK (keychord-code rest)))
-      (`(alt . ,rest)
-       (bitwise-ior ALT_MASK (keychord-code rest)))
-      (`(,key)
-       ((inverse key-code-name) key))
-      (,@(isnt _ pair?)
-       ((inverse key-code-name) combination))))
-
-  (define (key-chord key-code ::ulong)
-    ::(either symbol (list-of symbol))
-    (cond
-     ((isnt (bitwise-and key-code CTRL_MASK) zero?)
-      (let ((unmasked (bitwise-and (bitwise-not CTRL_MASK)
-                                 key-code)))
-        (if (eqv? unmasked ((inverse key-code-name) 'ctrl))
-          'ctrl
-          `(ctrl . ,(listify (key-chord unmasked))))))
-
-     ((isnt (bitwise-and key-code ALT_MASK) zero?)
-      (let ((unmasked (bitwise-and (bitwise-not ALT_MASK)
-                                 key-code)))
-        (if (eqv? unmasked ((inverse key-code-name) 'alt))
-          'alt
-          `(alt . ,(listify (key-chord unmasked))))))
-
-     ((isnt (bitwise-and key-code SHIFT_MASK) zero?)
-      (let ((unmasked (bitwise-and (bitwise-not SHIFT_MASK)
-                                 key-code)))
-        (if (eqv? unmasked ((inverse key-code-name) 'shift))
-          'shift
-          `(shift . ,(listify (key-chord unmasked))))))
-
-     (else
-      (key-code-name key-code))))
-
-  (define-interface SupportsKeyboard ()
-    (key-typed! code::ulong)::boolean
-    )
-
-  (define-interface SupportsKeyMap (SupportsKeyboard)
-    (set-key! combination action::(maps () to: boolean))::void)
-
-  #;(define (set-key! combination action::(maps () to: boolean))
-    (keymap:put (keychord-code combination) action))
-
-#+END_SRC
-
-The ~SupportsKeyboard~ interface is the barrier between host
-systems and GRASP itself. We will tackle mapping of the host
-systems' input events to invocations of
-~SupportsKeyboard:key-typed!~ later on, but at this point it
-is important to know that there will be an ~Application~
-object called ~main~ that ~SupportsKeyboard~ (among other
-things), and that it will pass keyboard events on to an
-appropriate ~Document~ whenever ~key-typed!~.
-
-When GRASP starts up, it executes an /initialization script/
-(more detail will be given later on). The script is
-responsible for setting the ~app~ object and initializing
-the key map.
-
-For example, an initialization script could look roughtly
-like this:
-
-#+BEGIN_SRC scheme
-  
-  (set! app (GRASP-Editor))
-
-  (main:set-key! 'left
-    (lambda (self::GRASP-Editor)
-      (self:cursor-retreat!)))
-
-  (main:set-key! 'right
-    (lambda (self::GRASP-Editor)
-      (self:cursor-advance!)))
-
-  (main:set-key! 'backspace
-    (lambda (self::GRASP-Editor)
-      (self:delete-backward!)))
-
-  (main:set-key! 'delete
-    (lambda (self::GRASP-Editor)
-      (self:delete-forward!)))
-
-#+END_SRC
-
-So in addition to the cursor movement functions, we'd expect
-the ~GRASP-Editor~ to provide methods such as
-~delete-backward!~ and ~delete-forward!~. Moreover, the
-default value of the key mapping of ~GRASP-Editor~ could be
-an invocation of the ~insert-character!~ method.
-
-We're not going to talk in detail about the ~GRASP-Editor~
-yet. But we can assume that it has a property of type
-~Document~ (whose gist we've already seen, and which we're
-going to further refine) called ~document~, and that
-~document~ in turn has a property called ~history~ that
-stores the operations that were performed on that document.
-
-Now, because we want to track the history of operations, we
-can't modify the document directly. Instead, we need a set
-of invertible ~Edit~ operations that can be applied to a
-document. Occasionally we can also merge a few edits
-together, mainly for improved user ergonomics and memory
-economics (for example, users insert words character by
-character, but they may wish to undo their inserting word by
-word).
-
-#+BEGIN_SRC scheme :noweb-ref Edit--interface-definition
-  (define-interface Edit ()
-    (perform! document::Element)::void
-    (inverse)::Edit
-    (merge-with! next::Edit)::boolean)
-#+END_SRC
-
-Moreover, the nodes in GRASP do not know their
-parents. Therefore all the operations need to keep
-track of the cursors, which need to be passed
-as an extra argument.
-
-#+BEGIN_SRC scheme :noweb tangle :noweb-ref GRASP-Editor--character-insertion-and-deletion
-  (define (insert-character! c)::boolean
-    (given ((operation ::Edit (document:insert-character c (ArrayStack))))
-      (operation:perform! document)
-      (document:history:record! operation)
-      #true))
-
-  (define (delete-forward!)::boolean
-    (given ((operation ::Edit (document:delete-character (ArrayStack))))
-      (operation:perform! document)
-      (document:history:record! operation)
-      #true))
-
-  (define (delete-backward!)::boolean
-    (and (cursor-advance!)
-         (delete-forward!)))
-#+END_SRC
-
-Mind also that because of our indirection, we need two
-families of editing methods: the first one which returns an
-~Edit~ object, which can be thought of as a proxy of a
-formula how the object should be modified, and the second
-one, which should be capable of /executing/ that formula.
-
-The latter is already largely present in our code base (e.g
-because the ~Comb~ class implements Java's ~Collection~
-interface). The only problem is that the interface is
-exposed not just to developers, but also to the users, so at
-this moment there is nothing to prevent them from bypassing
-our reversible historical operations. (Perhaps this issue
-could somehow be solved using JVM's annotations.)
-
-For now we're going to define a method for extracting
-a slice from a ~Comb~.
-
-#+BEGIN_SRC scheme :noweb-ref Comb-extract!
-
-  ;;    (A)         (B)         (C)         (D)
-  ;;  0 1 2 3     0 1 2 3     0 1 2 3     0 1 2 3
-  ;; 0 1 2 3 4   0 1 2 3 4   0 1 2 3 4   0 1 2 3 4
-  ;; aAbBcCdDe   aAbBcCdDe   aAbBcCdDe   aAbBcCdDe
-  ;; 012345678   012345678   012345678   012345678
-  ;;   |   |        |  |        | |        |  |
-  ;;   bBcCd       *BcCd       *BcC*       bBcC*
+#+BEGIN_SRC scheme :noweb-ref Comb--extract!
   ;;
-  ;;   aA*De       aAbDe      aAb+dDe      aAdDe
+  ;; [ _ A _/_ B _ C _\_ D _ ]
+  ;;   0 1  2  3 4 5  6  7 8
+  ;;   0 0  1  1 2 2  3  3 4 
+  (define-internal (extract! start ::int sub-start ::int
+                             end ::int sub-end ::int)
+      ::Comb
+      (assert (and (even? start) (even? end)))
+      (let* ((start/2 ::int (quotient start 2))
+             (end/2 ::int (quotient end 2))
+             (left-space ::Space (spaces start/2))
+             (left-suffix ::Space (left-space:split-at! sub-start))
+             (right-space ::Space (spaces end/2))
+             (right-suffix ::Space (right-space:split-at! sub-end))
+             (elements* ::List (elements:subList start/2 end/2))
+             (spaces* ::List (spaces:subList (+ start/2 1)
+                                             (+ end/2 1)))
+             (result ::Comb (Comb)))
+        (left-space:merge-with! right-suffix)
+        (set! result:elements (ArrayList elements*))
+        (set! result:spaces (ArrayList spaces*))
+        (result:spaces:add 0 left-suffix)
+        (elements*:clear)
+        (spaces*:clear)
+        result))
+#+END_SRC
 
-  (define-internal (extract! start ::int end ::int)::Comb
-    (assert (is start <= end)) ;>
-    (let* ((first-even-index ::int (if (even? start)
-                                       start
-                                       (+ start 1)))
-           (first-odd-index ::int (if (odd? start)
-                                      start
-                                      (+ start 1)))
-           (last-even-index ::int (if (even? end)
-                                      end
-                                      (- end 1)))
-           (last-odd-index ::int (if (odd? end)
-                                     end
-                                     (- end 1)))
-           (first-space-index ::int (quotient first-even-index 2))
-           (last-space-index ::int (quotient last-even-index 2))
-           (first-element-index ::int (quotient first-odd-index 2))
-           (last-element-index ::int (quotient last-odd-index 2))
-           (spaces* ::List (spaces:subList
-                            first-space-index
-                            (+ last-space-index 1)))
-           (elements* ::List (elements:subList
-                              first-element-index
-                              (+ last-element-index 1)))
-           (result ::Comb (Comb)))
-      (set! result:elements (ArrayList elements*))
-      (set! result:spaces (ArrayList spaces*))
-      (elements*:clear)
-      (spaces*:clear)
-      (cond
-       ((and (even? start) (even? end)) ;; A
-        (spaces*:add (Space:empty)))
+The second method takes a ~Comb~, an index and a sub-index,
+and splices that ~Comb~ into the current one.
 
-       ((and (odd? start) (even? end)) ;; B
-        (result:spaces:add 0 (Space:empty)))
+#+BEGIN_SRC scheme :noweb-ref Comb--splice! 
 
-       ((and (odd? start) (odd? end)) ;; C
-        (result:spaces:add (Space:empty))
-        (result:spaces:add 0 (Space:empty))
-        (let ((left-space ::Space (spaces (- first-space-index 1))))
-          (left-space:merge-with!
-           (spaces:remove first-space-index))))
-
-       ((and (even? start) (odd? end)) ;; D
-        (result:spaces:add (Space:empty))))
-      result))
+  (define-internal (splice! comb ::Comb index ::int sub-index ::int)
+    ::void
+    (let* ((index/2 ::int (quotient index 2))
+           (cut-space ::Space (spaces index/2))
+           (remnant ::Space (cut-space:split-at! sub-index))
+           (end-space ::Space (last comb:spaces)))
+      (cut-space:merge-with! (comb 0))
+      (end-space:merge-with! remnant)
+      (elements:addAll index/2 comb:elements)
+      (spaces:addAll (+ index/2 1) (comb:spaces:subList
+                                    1 (comb:spaces:size)))))
 
 #+END_SRC
 
-This operation can be tested non-interactively:
+Note that, because the spliced ~Comb~ can contain any
+elements, this operation allows users to build arbitrary
+structures (so for example it allows to insert atoms or
+other textual elements, if -- for example -- they are the
+only element of the spliced ~Comb~).
+
+These operations can be tested non-interactively:
+
 #+BEGIN_SRC scheme :tangle test/everything.sh
   java -jar ../libs/kawa.jar test/comb-editing.scm
 #+END_SRC
 
-#+BEGIN_SRC scheme :tangle test/comb-editing.scm :mkdirp yes :noweb tangle
+#+BEGIN_SRC scheme :tangle test/comb-editing.scm :mkdirp yes :noweb no-export
   <<header>>
   (module-name (test comb-editing))
   (import (language-extensions))
@@ -8542,6 +8374,11 @@ This operation can be tested non-interactively:
     (define (merge-with! another::Space)::void
       (set! content (string-append content another:content)))
 
+    (define (split-at! index ::int)::Space
+      (let ((result ::Space (Space (string-drop content index))))
+        (set! content (string-take content index))
+        result))
+
     (define (add element::Object)::boolean
       (set! content (string-append content (element:toString))))
 
@@ -8556,7 +8393,9 @@ This operation can be tested non-interactively:
   (define-object (Comb)::Compound
 
     <<Comb--collection-operations>>
-    <<Comb-extract!>>
+    <<Comb--whitespace-support>>
+    <<Comb--extract!>>
+    <<Comb--splice!>>
 
     (define (toString)::String
       (with-output-to-string
@@ -8573,124 +8412,539 @@ This operation can be tested non-interactively:
           (Space "e")))
 
   (e.g.
-   (the-document:toString) #;< ===> "aAbBcCdDe")
+   (the-document:toString) ===> "aAbBcCdDe")
 
-  (define slice-2-6 ::Comb (the-document:extract! 2 6))
-
-  (e.g.
-   (slice-2-6:toString) #;< ===> "bBcCd")
+  (define slice-2-0-6-1 ::Comb (the-document:extract! 2 0 6 1))
 
   (e.g.
-   (the-document:toString) #;< ===> "aA.De")
-
-  (the-document:addAll 2 slice-2-6)
-
-  (e.g. (the-document:toString) #;< ===> "aAbBcCdDe")
-
-  (define slice-3-6 ::Comb (the-document:extract! 3 6))
+   (slice-2-0-6-1:toString) ===> "bBcCd")
 
   (e.g.
-   (slice-3-6:toString) #;< ===> ".BcCd")
+   (the-document:toString) ===> "aA.De")
+
+  (the-document:splice! slice-2-0-6-1 2 0)
+
+  (e.g. (the-document:toString) ===> "aAbBcCdDe")
+
+  (define slice-2-1-6-1 ::Comb (the-document:extract! 2 1 6 1))
 
   (e.g.
-   (the-document:toString) #;< ===> "aAbDe")
-
-  (the-document:addAll 2 slice-3-6)
+   (slice-2-1-6-1:toString) ===> ".BcCd")
 
   (e.g.
-   (the-document:toString) #;< ===> "aAbBcCdDe")
+   (the-document:toString) ===> "aAbDe")
 
-  (define slice-2-5 ::Comb (the-document:extract! 2 5))
+  (the-document:splice! slice-2-1-6-1 2 1)
 
-  (e.g. (slice-2-5:toString) #;< ===> "bBcC.")
+  (e.g. (the-document:toString) ===> "aAbBcCdDe")
 
-  (e.g. (the-document:toString) #;< ===> "aAdDe")
+  (define slice-2-0-6-0 ::Comb (the-document:extract! 2 0 6 0))
 
-  (the-document:addAll 1 slice-2-5)
+  (e.g. (slice-2-0-6-0:toString) ===> "bBcC.")
+
+  (e.g. (the-document:toString) ===> "aAdDe")
+
+  (the-document:splice! slice-2-0-6-0 2 0)
+
+  (e.g. (the-document:toString) ===> "aAbBcCdDe")
+
+  (define slice-2-1-6-0 ::Comb (the-document:extract! 2 1 6 0))
 
   (e.g.
-   (the-document:toString) #;< ===> "aAbBcCdDe")
-
-  (define slice-3-5 ::Comb (the-document:extract! 3 5))
+   (slice-2-1-6-0:toString) ===> ".BcC.")
 
   (e.g.
-   (slice-3-5:toString) #;< ===> ".BcC.")
+   (the-document:toString) ===> "aAbdDe")
 
-  (e.g.
-   (the-document:toString) #;< ===> "aAbdDe")
+  (the-document:splice! slice-2-1-6-0 2 1)
+
+  (e.g. (the-document:toString) ===> "aAbBcCdDe")
 
   (test-report)
 #+END_SRC
 
+*** Representing operations
 
+Being able to modify a document is nice, but in practice we
+want to be able to /undo/ our changes. In order for this to
+be possible, we either need to store snapshots of our
+document, or -- to /reify/ operations performed by users
+in such a way that they are invertible.
 
-#+BEGIN_SRC scheme :noweb-ref Edit-operations
-  (define-object (SpliceComb comb::Comb
-                             #;at cursor::(sequence-of int))
-    ::Edit
-    (define (perform! document::Element)::void
-      (let* ((depth ::int (length cursor))
-             (depth-2 ::int (- depth 2))
-             (parent-cursor ::(sequence-of int)
-                            (cursor:subList 0 depth-2))
-             (parent ::Comb (cursor-target document
-                                           parent-cursor))
-             (index ::int (cursor depth-2))
-             (space ::Space (parent:element-at index))
-             (next-space ::Space (space:split-at! (last cursor))))
-        (parent:addAll index comb)
-        (let ((last-added-space ::Space (parent:element-at
-                                         (+ index (length comb) -1))))
-          (last-added-space:merge-with! next-space))))
+We prefer the latter approach, as it allows to analyze
+user's actions in familiar terms.
 
-    (define (merge-with! next::Edit)::boolean
-      #false)
+We're going to represent these reified operations using
+objects that implement the ~Edit~ interface:
 
-    (define (inverse)::Edit
-      (UnspliceComb comb cursor)))
+#+BEGIN_SRC scheme :noweb-ref Edit-interface
+  (define-interface Edit ()
+    (perform! document::Element)::void
+    (inverse)::Edit)
+#+END_SRC
 
-  (define-object (UnspliceComb comb::Comb
-                               cursor::(sequence-of int))
-    ::Edit
-    (define (perform! document::Element)::void
-      (let* ((n ::int (length cursor))
-             (n-2 ::int (- n 2))
-             (parent-cursor ::(sequence-of int)
-                            (cursor:subList 0 n-2))
-             (parent ::Comb (cursor-target document
-                                           parent-cursor))
-             (start ::int (cursor n-2))
-             (end ::int (+ start (length comb)))
-             (removed ::Comb (parent:extract! start end))
-             (joint ::Space (parent:element-at start))
-             (left ::Space (removed 0))
-             (right ::Space (last removed))
-             (left-suffix ::Space (comb 0))
-             (right-prefix ::Space (last comb)))
-        (joint:fragments:clear)
-        (joint:merge-with! (left:retain-suffix! left-suffix))
-        (joint:merge-with! (right:retain-prefix! right-prefix))))
+The exact operations are going to be defined later, when
+there's sufficient infrastructure to try them out. In order
+to build this infrastructure we need to ask how should those
+operations be managed.
 
-    (define (merge-with! next::Edit)::boolean
-      #false)
+When an event (say, a keyboard event) is issued, it is
+passed on to the active document. The document in turn
+passes it to the active sub-expression, and so on,
+recursively, until the event reaches the level where the
+decision can finally be made. At that level, the ~Edit~
+operation is returned back to the top level. The top level
+is responsible for recording the ~Edit~ to the document's
+history, and performing it.
 
-    (define (inverse)::Edit
-      (InsertTile item #;from cursor)))
-#|
-  (define-object (AppendCharacters characters::(sequence-of Char)
-                                   #;at cursor::(sequence-of int))
-    ::Edit
-    ...)
+Mind however, that elements do not know in principle what
+the cursor that points to them is, and for this reason
+it needs to be built up and passed along with the event.
 
-  (define-object (EraseCharacters characters::(sequence-of Char)
-                                  #;from cursor)
-    ::Edit
-    ...)
-|#
+*** Intermission: Representing keyboard input
+
+But before we move on any further, we need to make some
+decisions regarding the way input is handled in GRASP.
+
+GRASP is designed to run in a number of different
+environments, which represent their key events
+differently. It is therefore important to provide a /unified
+layer/ of keyboard events.
+
+#+BEGIN_SRC scheme :tangle input/keyboard.scm :mkdirp yes :noweb no-export
+  <<header>>
+  (module-name (input keyboard))
+  (import (language-extensions))
+  
+#+END_SRC
+
+We're going to use /unsigned long/ integer numbers to represent
+key codes:
+
+#+BEGIN_SRC scheme :tangle input/keyboard.scm
+  (define-alias KeyCode ulong)
+#+END_SRC
+
+This type is big enough to account for differences in all of the
+APIs. We're going to use the oldest bits to represent modifier keys
+(such as ~ctrl~, ~alt~ or ~shift~):
+
+#+BEGIN_SRC scheme :tangle input/keyboard.scm
+  (define-early-constant META_MASK      ::KeyCode #x8000000000000000)
+  (define-early-constant CTRL_MASK      ::KeyCode #x4000000000000000)
+  (define-early-constant ALT_MASK       ::KeyCode #x2000000000000000)
+  (define-early-constant SHIFT_MASK     ::KeyCode #x1000000000000000)
+  (define-early-constant MODIFIERS_MASK ::KeyCode #x7000000000000000)
+#+END_SRC
+
+When it comes to the actual input that is being typed, we're
+going to pass it through a /parameter/ called
+~unicode-input~:
+
+#+BEGIN_SRC scheme :tangle input/keyboard.scm
+  (define-parameter (unicode-input)::gnu.text.Char #\null)
+#+END_SRC
+
+The most important part of the mapping is the table that
+provides unified names to the event values represented in
+the different APIs. This is achieved through the
+(bidirectional) mapping between GRASP names (which can be
+symbols, strings, characters or numbers) and the codes
+defined by the particular host:
+
+#+BEGIN_SRC scheme :tangle input/keyboard.scm
+  (define-alias KeyName
+    (either
+     symbol
+     string
+     char
+     integer))
+
+  (define-early-constant key-code-name
+    (bimapping (key-code::KeyCode 0)
+      'unknown-key))
+#+END_SRC
+
+The table is populated by particular clients during
+initialization. Because the code for doing this isn't very
+interesting, it can be found in the Appendices section at
+the end of this work.
+
+But in addition to naming particular keys, we want to be
+able to name typical key combinations, such as ~(ctrl c)~
+and so on.
+
+We can obtain a code of a combination by means of the
+~keychord-code~ function:
+
+#+BEGIN_SRC scheme :tangle input/keyboard.scm
+  (define (keychord-code combination)::KeyCode
+    (match combination
+      (`(shift . ,rest)
+       (bitwise-ior SHIFT_MASK (keychord-code rest)))
+      (`(ctrl . ,rest)
+       (bitwise-ior CTRL_MASK (keychord-code rest)))
+      (`(alt . ,rest)
+       (bitwise-ior ALT_MASK (keychord-code rest)))
+      (`(,key)
+       ((inverse key-code-name) key))
+      (,@(isnt _ pair?)
+       ((inverse key-code-name) combination))))
+#+END_SRC
+
+Likewise, we can obtain a combination from code using the
+~key-chord~ function:
+
+#+BEGIN_SRC scheme :tangle input/keyboard.scm
+  (define (key-chord key-code ::KeyCode)
+    ::(either KeyName (list-of KeyName))
+    (cond
+     ((isnt (bitwise-and key-code CTRL_MASK) zero?)
+      (let ((unmasked (bitwise-and (bitwise-not CTRL_MASK)
+				 key-code)))
+	(if (eqv? unmasked ((inverse key-code-name) 'ctrl))
+	  'ctrl
+	  `(ctrl . ,(listify (key-chord unmasked))))))
+
+     ((isnt (bitwise-and key-code ALT_MASK) zero?)
+      (let ((unmasked (bitwise-and (bitwise-not ALT_MASK)
+				 key-code)))
+	(if (eqv? unmasked ((inverse key-code-name) 'alt))
+	  'alt
+	  `(alt . ,(listify (key-chord unmasked))))))
+
+     ((isnt (bitwise-and key-code SHIFT_MASK) zero?)
+      (let ((unmasked (bitwise-and (bitwise-not SHIFT_MASK)
+				 key-code)))
+	(if (eqv? unmasked ((inverse key-code-name) 'shift))
+	  'shift
+	  `(shift . ,(listify (key-chord unmasked))))))
+
+     (else
+      (key-code-name key-code))))
+#+END_SRC
+
+*** Handling the input
+
+When a key is pressed, GRASP invokes the ~key-typed!~ method
+of the ~main~ object. The ~main~ object represents the
+application that runs in the GRASP environment, and it's
+created during intialization. The initialization process
+will be explained in more detail later on -- we currently
+assume that the ~main~ object is going to be the
+~GRASP-Editor~, which contains a ~current-document~ property
+and a ~key-typed!~ method defined in the following way:
+
+#+BEGIN_SRC scheme :noweb-ref Editor--key-typed!
+
+  (define current-document ::Document (Document))
+
+  (define (key-typed! key-code::KeyCode)::boolean
+    (given ((action ::Edit (current-document:key-typed!
+                            key-code)))
+      (truly
+       (action:perform! current-document)
+       (current-document:history:record! action))))
+
+#+END_SRC
+
+We've already seen that a ~Document~ is a specialization of
+the ~Comb~ class. It's going to be elaborated further in the
+course of this work, but one of its distinctive traits is
+the presence of the static ~key-bindings~ table. This solution
+allows users to define new keyboard shortcuts in runtime,
+but it comes with a bunch of them predefined:
+
+#+BEGIN_SRC scheme :noweb-ref Document--keyboard-editing :noweb no-export
+
+  (define-static key-bindings
+    (let* ((bindings (mapping (key-code::KeyCode)
+                      (lambda (self::Comb code::KeyCode)
+                        ::(maybe Edit)
+                        (WARN "code "code", name "
+                              (key-code-name code))
+                        #;(given ((input (unicode-input))
+                                ((char-standard? input)))
+                          (self:insert-character (ArrayStack))))))
+           (set-key! (lambda (name::KeyName
+                              handler::(maps (Comb KeyCode)
+                                             to: (maybe Edit)))
+                       (let ((code ::KeyCode ((inverse key-code-name)
+                                              name)))
+                       (WARN "binding new hander to key "name" (code "
+                             code")")
+                       (set! (bindings code) handler)))))
+      <<Document--default-key-bindings>>
+      bindings))
+
+#+END_SRC
+
+Where ~<<Document--default-key-bindings>>~ are to be defined
+later.
+
+The ~key-bindings~ table is referenced in ~Document~'s
+~key-typed!~ method:
+
+#+BEGIN_SRC scheme :noweb-ref Document--keyboard-editing
+
+  (define (key-typed! key-code::KeyCode)
+    ::(maybe Edit)
+    (let ((target ::Element (invoke-special Comb (this)
+                                            'current-target)))
+      (match target
+        (magic::Enchanted
+         ;; TODO: (current-cursor) nie istnieje!
+         (magic:key-typed! key-code (current-cursor)))
+        (_
+         (WARN (keys key-bindings))
+         (given ((handler ::(maps (Comb KeyCode) to: (maybe Edit))
+                          (key-bindings key-code)))
+           (handler (this) key-code))))))
+
+#+END_SRC
+
+As we can see, there are two distinct paths -- one for
+~Enchanted~ elements (a.k.a. /magic boxes/), and another for
+the remaining ones.
+
+This is because ~Enchanted~ elements have their own input
+handlers that can bypass the default editing logic.
+
+However, we aren't concerned with the exact definition of
+~Enchanted~ yet, so for the time being we're simply going
+to mock it.
+
+*** Input-processing machinery
+
+We now have enough definitions to build a stub of an
+actually working editor. The code layout is very similar to
+that of ~cursor-navigation~ -- the main difference is that
+~<<terminal-document-cursor-navigation>>~ is replaced with
+~<<terminal-document-input-processing>>~, which is defined
+in a very similar, but slightly more abstract way, to
+invoke the ~key-typed!~ method of ~document~.
+
+#+BEGIN_SRC scheme :noweb-ref terminal-document-input-processing
+  (define (edit terminal ::LanternaScreen)::void
+    (while #true
+      (safely
+       (let ((key ::KeyStroke (terminal:readInput)))
+         (parameterize ((unicode-input (input-character key)))
+           (document:key-typed! (scancode key)))))
+      (synchronized screen-up-to-date?
+        (set! (screen-up-to-date?) #f)
+        (invoke screen-up-to-date? 'notify))))
 #+END_SRC
 
 
 
+#+HEADER: :shebang "#!/bin/sh" :mkdirp yes :noweb no-export
+#+BEGIN_SRC scheme :tangle test/interactive/editing.scm 
+  #| -*- scheme -*-
+  exec java -cp "$(dirname "$0")/../../../libs/kawa.jar"\
+  :"$(dirname "$0")/../../../libs/lanterna-3.2.0-SNAPSHOT.jar"\
+  :. kawa.repl "$0" "$@"
+  |#
+  <<header>>
+  (module-name (test interactive editing))
+  (import (language-extensions))
+  (import (terminal-definitions))
+  (import (utils tcp-output-server))
+  (import (utils debug))
+  (import (input keyboard))
+  (import (input terminal-keymap))
+
+  <<basic-text-painter>>
+
+  <<basic-terminal-painter>>
+
+  (define painter ::Painter (TextPainter))
+
+  <<GRASP-ontology>>
+
+  (define-interface Element (Visual)
+    <<Element--cursor-operations>>
+    )
+
+  (define-interface Tile (Element)
+    (width)::real
+    (height)::real)
+
+  (define-interface Compound (Tile List))
+
+  (define-interface Comment (Tile))
+
+  (define-interface Enchanted (Tile))
+
+  (define-mixin WriteToString
+    (define (toString)::String
+      (call-with-output-string
+        (lambda (port)
+          (serialize port 0)))))
+
+  (define-object (Space)::Element
+    <<Space--representation>>
+    <<Space--rendering>>
+    <<Space--navigation>>
+    )
+
+  (define-object (Comb)::Compound
+    <<Comb--collection-operations>>
+    <<Comb--whitespace-support>>
+    <<Comb--rendering>>
+    <<Comb--navigation>>
+    )
+
+  <<TextualBase>>
+
+  (define-interface TextualComment (Comment TextualTile))
+
+  (define-object (TextualTileBase)::TextualTile
+    <<TextualTileBase--rendering>>
+    <<TextualTileBase--navigation>>
+    (TextualBase))
+
+  <<TextualTileSubclasses--rendering>>
+
+  <<advanced-parser>>
+
+  (define (enchanted item ::Tile path ::Stack)::Tile
+    item)
+
+  (define-object (Document)
+    <<Document--keyboard-editing>>
+    (Comb)
+    (set! style BorderStyle:None))
+
+  (define* (read-document port ::InputPort := (current-input-port))::Document
+    (read-list from: port into: (Document)))
+
+  (define document ::Document
+    (call-with-input-string "
+  (define (! n) ; int to int
+  (if (is n <= 1)
+     1           
+   (* n (! (- n 1)))))
+  (e.g. (! 5) ===> 120)" read-document))
+
+  <<terminal-document-input-processing>>
+
+  <<terminal-document-rendering>>
+
+  <<terminal-runner>>
+#+END_SRC
+
+Note that this editor does not allow document scrolling or
+screen splitting, and it doesn't support mouse operations.
+These are going to be added in the subsequent chapters.
+
+#+BEGIN_SRC scheme :noweb-ref Document--default-key-bindings
+  (set-key! 'a
+            (lambda (self::Comb code::KeyCode)
+              (WARN "A button was pressed")))
+
+  (set-key! 'escape
+            (lambda (self::Comb code::KeyCode)
+              (WARN "exitting")
+              (exit)))
+  #|
+  (set-key! 'backspace
+            (lambda (self::Comb code::KeyCode)
+              (self:delete-backward (ArrayStack))))
+
+  (set-key! 'delete
+            (lambda (self::Comb code::KeyCode)
+              (self:delete-forward (ArrayStack))))
+
+  (set-key! 'left
+            (lambda (self::Comb code::KeyCode)
+              (self:cursor-retreat!)))
+
+  (set-key! 'right
+            (lambda (self::Comb code::KeyCode)
+              (self:cursor-advance!)))
+  |#
+#+END_SRC
+
+*** Text editing operations
+
+What's now left to define are the ~insert-character~,
+~delete-backward~ and ~delete-forward~ methods. According
+to our type signatures, they ought to return instances
+of ~Edit~. They should belong to the ~Comb~ class. Its role
+is to actually delegate work to some of its children:
+
+#+BEGIN_SRC scheme :noweb-ref Comb--editing
+  (define (insert-character c path::StackList)::Edit
+    (let* ((index ::int (match current-index
+                          (,LEFT-PAREN-INDEX
+                           (index-succeeding current-index))
+                          (,RIGHT-PAREN-INDEX
+                           (index-preceeding current-index))
+                          (_
+                           current-index)))
+           (child ::Element (element-at index)))
+      (path:push! index)
+      (child:insert-character c path)))
+#+END_SRC
+
+The most complex interpretation of ~insert-character~ is
+within ~Space~ -- we need to decide whether we just add
+more space or create a new type of element:
+
+#+BEGIN_SRC scheme :noweb-ref Space--editing
+  (define (insert-character c path::StackList)::Edit
+    (path:push! current-index)
+    (match c
+      (#\" #|"|#
+       (advance-current-index!)
+       (SpliceComb (Comb (Text)) path))
+      (#\;
+       (advance-current-index!)
+       (SpliceComb (Comb (LineComment)) path))
+      (#\space
+       (space:advance-current-index!)
+       (GrowSpace 1 path))
+      (#\newline
+       (space:advance-current-index!)
+       (BreakSpace path))
+      (,@(is _ in '(#\( \[))
+       (SpliceComb (Comb (Comb)) path))
+
+      (,@(is _ in '(#\] \)))
+       ;; tutaj powinniśmy dodać nawigowanie
+       #!null)
+      (_
+       (advance-current-index!)
+       (SpliceComb (Comb (Atom c)) path)))
+    )
+#+END_SRC
+
+The default case of ~TextualTileBase~ is much simpler
+-- we simply issue the ~AppendCharacters~ operation:
+
+#+BEGIN_SRC scheme :noweb-ref TextualTileBase--editing
+  (define (insert-character c path::StackList)::Edit
+    (advance-current-index!)
+    (AppendCharacters (string c) path))
+#+END_SRC
+
+However, different specializations of ~TextualTileBase~ need
+to provide specific behavior for particular characters --
+for example, pressing a space inside an ~Atom~ should break
+it.
+
+(TODO potrzebujemy jeszcze implementacji ~delete-backward~ oraz
+~delete-forward~ oraz ~insert-character~ dla wszystkich
+istotnych typów ~TextualTileBase~)
+
+
+
+But before
+
+** Splitting up
+
+(podział na moduły)
 
 * Appendices
 
@@ -8698,10 +8952,12 @@ This section contains code that is too lengthy to be
 incorporated into the main body of text, but is still
 required for the project to run.
 
+
 ** Keyboard initialization
+
 *** Keyboard initialization of Android client
 
-#+BEGIN_SRC scheme :tangle input/android-keymap.scm :mkdirp yes :noweb yes
+#+BEGIN_SRC scheme :tangle input/android-keymap.scm :mkdirp yes :noweb no-export
 
 <<header>>
 (module-name (input android-keymap))
@@ -8712,8 +8968,6 @@ required for the project to run.
 
 (define (set-key-code-name! key-code name)
   (set! (key-code-name (as ulong key-code)) name))
-
-(define (initialize-keymap)
 
   (set-key-code-name! KeyEvent:KEYCODE_11 11)
   (set-key-code-name! KeyEvent:KEYCODE_12 12)
@@ -9188,67 +9442,65 @@ required for the project to run.
 	'closing-bracket)
   (set-key-code-name! KeyEvent:KEYCODE_RIGHT_BRACKET #\])
   
-  )
-
 #+END_SRC
 
 *** Keyboard initialization of Terminal client
 
-#+BEGIN_SRC scheme :tangle input/terminal-keymap.scm :mkdirp yes :noweb yes
-<<header>>
-(module-name (input terminal-keymap))
-(import (language-extensions))
-(import (input keyboard))
+#+BEGIN_SRC scheme :tangle input/terminal-keymap.scm :mkdirp yes :noweb no-export
+  <<header>>
+  (module-name (input terminal-keymap))
+  (import (language-extensions))
+  (import (terminal-definitions))
+  (import (input keyboard))
 
-(define (special-key-code key::KeyType)::ulong
-  (bitwise-arithmetic-shift (as ulong (key:ordinal))
-			    java.lang.Integer:SIZE))
+  (define (special-key-code key::KeyType)::ulong
+    (bitwise-arithmetic-shift (as ulong (key:ordinal))
+                              java.lang.Integer:SIZE))
 
-(define (regular-key-code c::char)::ulong
-  (as ulong (char->integer c)))
+  (define (regular-key-code c::char)::ulong
+    (as ulong (char->integer c)))
 
-(define (scancode input::KeyStroke)::ulong
-  (define (with-modifiers code::ulong)::ulong
-    (bitwise-ior
-     (if (input:ctrl-down?) CTRL_MASK 0)
-     (if (input:alt-down?) ALT_MASK 0)
-     (if (or (input:shift-down?)
-	     (and (eq? (input:getKeyType) KeyType:CHARACTER)
-		  (or (input:ctrl-down?)
-		      (input:alt-down?))
-		  (let ((c (input:getCharacter)))
-		    (char-upper-case? (integer->char (c:charValue))))))
-	 SHIFT_MASK 0)
-     code))
-  
-  (match (input:getKeyType)
-    (,KeyType:CHARACTER
-     (let ((c ::java.lang.Character (input:getCharacter)))
-       (with-modifiers
-	(char->integer
-	 (char-downcase
-	  (integer->char (c:charValue)))))))
-    (,KeyType:REVERSE_TAB
-     (bitwise-ior SHIFT_MASK (special-key-code KeyType:TAB)))
+  (define (scancode input::KeyStroke)::ulong
+    (define (with-modifiers code::ulong)::ulong
+      (bitwise-ior
+       (if (input:ctrl-down?) CTRL_MASK 0)
+       (if (input:alt-down?) ALT_MASK 0)
+       (if (or (input:shift-down?)
+               (and (eq? (input:getKeyType) KeyType:CHARACTER)
+                    (or (input:ctrl-down?)
+                        (input:alt-down?))
+                    (let ((c (input:getCharacter)))
+                      (char-upper-case? (integer->char (c:charValue))))))
+           SHIFT_MASK 0)
+       code))
 
-    (type
-     (with-modifiers (special-key-code type)))))
+    (match (input:getKeyType)
+      (,KeyType:CHARACTER
+       (let ((c ::java.lang.Character (input:getCharacter)))
+         (with-modifiers
+          (char->integer
+           (char-downcase
+            (integer->char (c:charValue)))))))
+      (,KeyType:REVERSE_TAB
+       (bitwise-ior SHIFT_MASK (special-key-code KeyType:TAB)))
 
-(define (input-character input::KeyStroke)::char
-  (let* ((c ::java.lang.Character (input:getCharacter)))
-    (or (and c
-	     (not (input:ctrl-down?))
-	     (not (input:alt-down?))
-	     (integer->char (c:charValue)))
-	#\null)))
+      (type
+       (with-modifiers (special-key-code type)))))
 
-(define (initialize-keymap)  
+  (define (input-character input::KeyStroke)::char
+    (let* ((c ::java.lang.Character (input:getCharacter)))
+      (or (and c
+               (not (input:ctrl-down?))
+               (not (input:alt-down?))
+               (integer->char (c:charValue)))
+          #\null)))
+
   (set! (key-code-name (special-key-code KeyType:ESCAPE)) 'esc)
   (set! (key-code-name (special-key-code KeyType:ESCAPE)) 'escape)
   (set! (key-code-name (special-key-code KeyType:BACKSPACE))
-	#\backspace)
+        #\backspace)
   (set! (key-code-name (special-key-code KeyType:BACKSPACE))
-	'backspace)
+        'backspace)
   (set! (key-code-name (special-key-code KeyType:ARROW_LEFT)) 'left)
   (set! (key-code-name (special-key-code KeyType:ARROW_RIGHT)) 'right)
   (set! (key-code-name (special-key-code KeyType:ARROW_UP)) 'up)
@@ -9285,7 +9537,7 @@ required for the project to run.
   (set! (key-code-name (special-key-code KeyType:F17)) 'f17)
   (set! (key-code-name (special-key-code KeyType:F18)) 'f18)
   (set! (key-code-name (special-key-code KeyType:F19)) 'f19)
-  
+
   (set! (key-code-name (special-key-code KeyType:F1)) 'F1)
   (set! (key-code-name (special-key-code KeyType:F2)) 'F2)
   (set! (key-code-name (special-key-code KeyType:F3)) 'F3)
@@ -9308,7 +9560,7 @@ required for the project to run.
 
   (set! (key-code-name (regular-key-code #\space)) #\space)
   (set! (key-code-name (regular-key-code #\space)) 'space)
-#|
+  #|
   (set! (key-code-name (regular-key-code #\newline)) #\newline)
   (set! (key-code-name (regular-key-code #\newline)) 'enter)
   |#
@@ -9322,7 +9574,7 @@ required for the project to run.
   (set! (key-code-name (regular-key-code #\7)) #\7)
   (set! (key-code-name (regular-key-code #\8)) #\8)
   (set! (key-code-name (regular-key-code #\9)) #\9)
-  
+
   (set! (key-code-name (regular-key-code #\0)) 0)
   (set! (key-code-name (regular-key-code #\1)) 1)
   (set! (key-code-name (regular-key-code #\2)) 2)
@@ -9400,7 +9652,7 @@ required for the project to run.
 
   (set! (key-code-name (regular-key-code #\@)) #\`)
   (set! (key-code-name (regular-key-code #\@)) 'backquote)
-  
+
   (set! (key-code-name (regular-key-code #\\)) #\\)
   (set! (key-code-name (regular-key-code #\\)) '\\)
   (set! (key-code-name (regular-key-code #\\)) 'backslash)
@@ -9468,70 +9720,67 @@ required for the project to run.
   (set! (key-code-name (regular-key-code #\_)) '_)
 
   (set! (key-code-name (regular-key-code #\())
-	'opening-parenthesis)
+        'opening-parenthesis)
   (set! (key-code-name (regular-key-code #\()) 'opening-paren)
   (set! (key-code-name (regular-key-code #\()) 'open-parenthesis)
   (set! (key-code-name (regular-key-code #\()) 'open-paren)
   (set! (key-code-name (regular-key-code #\()) 'left-parenthesis)
   (set! (key-code-name (regular-key-code #\()) 'left-paren)
   (set! (key-code-name (regular-key-code #\()) #\()
-  
+
   (set! (key-code-name (regular-key-code #\)))
-	'closing-parenthesis)
+        'closing-parenthesis)
   (set! (key-code-name (regular-key-code #\)))
-	'closing-paren)
+        'closing-paren)
   (set! (key-code-name (regular-key-code #\)))
-	'close-parenthesis)
+        'close-parenthesis)
   (set! (key-code-name (regular-key-code #\))) 'close-paren)
   (set! (key-code-name (regular-key-code #\)))
-	'right-parenthesis)
+        'right-parenthesis)
   (set! (key-code-name (regular-key-code #\))) 'right-paren)
   (set! (key-code-name (regular-key-code #\))) #\))
-  
+
   (set! (key-code-name (regular-key-code #\[)) 'opening-bracket)
   (set! (key-code-name (regular-key-code #\[)) 'open-bracket)
   (set! (key-code-name (regular-key-code #\[)) 'left-bracket)
   (set! (key-code-name (regular-key-code #\[)) #\[)
-  
+
   (set! (key-code-name (regular-key-code #\])) 'closing-bracket)
   (set! (key-code-name (regular-key-code #\])) 'close-bracket)
   (set! (key-code-name (regular-key-code #\])) 'right-bracket)
   (set! (key-code-name (regular-key-code #\])) #\])
-  
+
   (set! (key-code-name (regular-key-code #\{)) 'opening-brace)
   (set! (key-code-name (regular-key-code #\{)) 'open-brace)
   (set! (key-code-name (regular-key-code #\{)) 'left-brace)
   (set! (key-code-name (regular-key-code #\{)) #\{)
-  
+
   (set! (key-code-name (regular-key-code #\})) 'closing-brace)
   (set! (key-code-name (regular-key-code #\})) 'close-brace)
   (set! (key-code-name (regular-key-code #\})) 'right-brace)
   (set! (key-code-name (regular-key-code #\})) #\})
 
-  )
-
-#+END_SRC
+  #+END_SRC
 
 *** Keyboard initialization of Desktop client
 
-#+BEGIN_SRC scheme :tangle input/desktop-keymap.scm :mkdirp yes :noweb yes
-<<header>>
-(module-name (input desktop-keymap)
-(import (language-extensions))
-(import (input keyboard))
+#+BEGIN_SRC scheme :tangle input/desktop-keymap.scm :mkdirp yes :noweb no-export
+  <<header>>
+  (module-name (input desktop-keymap))
+  (import (language-extensions))
+  (import (input keyboard))
 
-(define-alias KeyEvent java.awt.event.KeyEvent)
+  (define-alias KeyEvent java.awt.event.KeyEvent)
 
-(define-early-constant KeyEvent:WHEEL_UP   #x10001)
-(define-early-constant KeyEvent:WHEEL_DOWN #x10002)
+  (define-early-constant KeyEvent:WHEEL_UP   #x10001)
+  (define-early-constant KeyEvent:WHEEL_DOWN #x10002)
 
-(define (set-key-code-name! key-code::ulong name)
-  (set! (key-code-name key-code) name))
-  
-(define (initialize-keymap)
+  (define (set-key-code-name! key-code::ulong name)
+    (set! (key-code-name key-code) name))
+
   (set-key-code-name! KeyEvent:WHEEL_UP 'mouse-wheel-up)  
   (set-key-code-name! KeyEvent:WHEEL_DOWN 'mouse-wheel-down)
-    
+
   (set-key-code-name! KeyEvent:VK_ACCEPT 'accept)
   (set-key-code-name! KeyEvent:VK_ADD 'add)
   (set-key-code-name! KeyEvent:VK_AGAIN 'again)
@@ -9557,16 +9806,16 @@ required for the project to run.
   (set-key-code-name! KeyEvent:VK_DEAD_CIRCUMFLEX 'dead-circumflex)
   (set-key-code-name! KeyEvent:VK_DEAD_DIAERESIS 'dead-diaeresis)
   (set-key-code-name! KeyEvent:VK_DEAD_DOUBLEACUTE
-	'dead-double-acute)
+                      'dead-double-acute)
   (set-key-code-name! KeyEvent:VK_DEAD_GRAVE 'dead-grave)
   (set-key-code-name! KeyEvent:VK_DEAD_IOTA 'dead-iota)
   (set-key-code-name! KeyEvent:VK_DEAD_MACRON 'dead-macron)
   (set-key-code-name! KeyEvent:VK_DEAD_OGONEK 'dead-ogonek)
   (set-key-code-name! KeyEvent:VK_DEAD_SEMIVOICED_SOUND
-	'dead-semivoiced-sound)
+                      'dead-semivoiced-sound)
   (set-key-code-name! KeyEvent:VK_DEAD_TILDE 'dead-tilde)
   (set-key-code-name! KeyEvent:VK_DEAD_VOICED_SOUND
-	'dead-voiced-sound)
+                      'dead-voiced-sound)
   (set-key-code-name! KeyEvent:VK_DECIMAL 'decimal)
   (set-key-code-name! KeyEvent:VK_DIVIDE 'divide)
   (set-key-code-name! KeyEvent:VK_FIND 'find)
@@ -9575,15 +9824,15 @@ required for the project to run.
   (set-key-code-name! KeyEvent:VK_HELP 'help)
   (set-key-code-name! KeyEvent:VK_HIRAGANA 'hiragana)
   (set-key-code-name! KeyEvent:VK_INPUT_METHOD_ON_OFF
-	'input-method-on/off)
+                      'input-method-on/off)
   (set-key-code-name! KeyEvent:VK_INVERTED_EXCLAMATION_MARK
-	'inverted-exclamation-mark)
+                      'inverted-exclamation-mark)
   (set-key-code-name! KeyEvent:VK_JAPANESE_HIRAGANA
-	'japanese-hiragana)
+                      'japanese-hiragana)
   (set-key-code-name! KeyEvent:VK_JAPANESE_KATAKANA
-	'japanese-katakana)
+                      'japanese-katakana)
   (set-key-code-name! KeyEvent:VK_JAPANESE_ROMAN
-	'japanese-roman)
+                      'japanese-roman)
   (set-key-code-name! KeyEvent:VK_KANA 'kana)
   (set-key-code-name! KeyEvent:VK_KANA_LOCK 'kana-lock)
   (set-key-code-name! KeyEvent:VK_KANJI 'kanji)
@@ -9592,11 +9841,11 @@ required for the project to run.
   (set-key-code-name! KeyEvent:VK_MODECHANGE 'mode-change)
   (set-key-code-name! KeyEvent:VK_NONCONVERT 'non-convert)
   (set-key-code-name! KeyEvent:VK_PREVIOUS_CANDIDATE
-	'previous-candidate)
+                      'previous-candidate)
   (set-key-code-name! KeyEvent:VK_PROPS 'props)
   (set-key-code-name! KeyEvent:VK_ROMAN_CHARACTERS
-	'roman-characters)
-  
+                      'roman-characters)
+
   (set-key-code-name! 0 'unknown-key)
   (set-key-code-name! KeyEvent:VK_CONTROL 'control)
   (set-key-code-name! KeyEvent:VK_CONTROL 'ctrl)
@@ -9604,10 +9853,10 @@ required for the project to run.
   (set-key-code-name! KeyEvent:VK_SHIFT 'shift)
   (set-key-code-name! KeyEvent:VK_WINDOWS 'windows)
   (set-key-code-name! KeyEvent:VK_ALT 'alt)
-  
+
   (set-key-code-name! KeyEvent:VK_STOP 'stop)
   (set-key-code-name! KeyEvent:VK_SUBTRACT 'subtract)
-  
+
   (set-key-code-name! KeyEvent:VK_AMPERSAND 'ampersand)
   (set-key-code-name! KeyEvent:VK_AMPERSAND #\&)
   (set-key-code-name! KeyEvent:VK_AMPERSAND '&)
@@ -9615,13 +9864,13 @@ required for the project to run.
   (set-key-code-name! KeyEvent:VK_ASTERISK 'asterisk)
   (set-key-code-name! KeyEvent:VK_ASTERISK #\*)
   (set-key-code-name! KeyEvent:VK_ASTERISK '*)
-  
+
   (set-key-code-name! KeyEvent:VK_AT #\@)
   (set-key-code-name! KeyEvent:VK_AT 'at)
-  
+
   (set-key-code-name! KeyEvent:VK_BACK_QUOTE #\`)
   (set-key-code-name! KeyEvent:VK_BACK_QUOTE 'backquote)
-  
+
   (set-key-code-name! KeyEvent:VK_BACK_SLASH '\\)
   (set-key-code-name! KeyEvent:VK_BACK_SLASH #\\)
   (set-key-code-name! KeyEvent:VK_BACK_SLASH 'backslash)
@@ -9644,7 +9893,7 @@ required for the project to run.
   (set-key-code-name! KeyEvent:VK_EQUALS '=)
   (set-key-code-name! KeyEvent:VK_EURO_SIGN 'euro)
   (set-key-code-name! KeyEvent:VK_EXCLAMATION_MARK
-	'exclamation-mark)
+                      'exclamation-mark)
   (set-key-code-name! KeyEvent:VK_EXCLAMATION_MARK #\!)
   (set-key-code-name! KeyEvent:VK_EXCLAMATION_MARK '!)
   (set-key-code-name! KeyEvent:VK_GREATER 'greater)
@@ -9677,7 +9926,7 @@ required for the project to run.
   (set-key-code-name! KeyEvent:VK_UNDERSCORE 'underscore)
   (set-key-code-name! KeyEvent:VK_UNDERSCORE #\_)
   (set-key-code-name! KeyEvent:VK_UNDERSCORE '_)
-  
+
   (set-key-code-name! KeyEvent:VK_NUMPAD0 'num0)
   (set-key-code-name! KeyEvent:VK_NUMPAD1 'num1)
   (set-key-code-name! KeyEvent:VK_NUMPAD2 'num2)
@@ -9714,7 +9963,7 @@ required for the project to run.
   (set-key-code-name! KeyEvent:VK_F22 'f22)
   (set-key-code-name! KeyEvent:VK_F23 'f23)
   (set-key-code-name! KeyEvent:VK_F24 'f24)
-  
+
   (set-key-code-name! KeyEvent:VK_F1 'F1)
   (set-key-code-name! KeyEvent:VK_F2 'F2)
   (set-key-code-name! KeyEvent:VK_F3 'F3)
@@ -9750,7 +9999,7 @@ required for the project to run.
   (set-key-code-name! KeyEvent:VK_7 #\7)
   (set-key-code-name! KeyEvent:VK_8 #\8)
   (set-key-code-name! KeyEvent:VK_9 #\9)
-  
+
   (set-key-code-name! KeyEvent:VK_0 0)
   (set-key-code-name! KeyEvent:VK_1 1)
   (set-key-code-name! KeyEvent:VK_2 2)
@@ -9788,7 +10037,7 @@ required for the project to run.
   (set-key-code-name! KeyEvent:VK_X #\x)
   (set-key-code-name! KeyEvent:VK_Y #\y)
   (set-key-code-name! KeyEvent:VK_Z #\z)
-  
+
   (set-key-code-name! KeyEvent:VK_A 'a)
   (set-key-code-name! KeyEvent:VK_B 'b)
   (set-key-code-name! KeyEvent:VK_C 'c)
@@ -9828,7 +10077,7 @@ required for the project to run.
 
   (set-key-code-name! KeyEvent:VK_SPACE #\space)
   (set-key-code-name! KeyEvent:VK_SPACE 'space)
-  
+
   (set-key-code-name! KeyEvent:VK_BACK_SPACE #\backspace)
   (set-key-code-name! KeyEvent:VK_BACK_SPACE 'backspace)
   (set-key-code-name! KeyEvent:VK_DELETE 'del)
@@ -9842,63 +10091,62 @@ required for the project to run.
   (set-key-code-name! KeyEvent:VK_HOME 'home)
   (set-key-code-name! KeyEvent:VK_INSERT 'ins)
   (set-key-code-name! KeyEvent:VK_INSERT 'insert)
-  
+
   (set-key-code-name! KeyEvent:VK_PAGE_UP 'pgup)
   (set-key-code-name! KeyEvent:VK_PAGE_UP 'page-up)
   (set-key-code-name! KeyEvent:VK_PAGE_DOWN 'pgdn)
   (set-key-code-name! KeyEvent:VK_PAGE_DOWN 'page-down)
-    
+
   (set-key-code-name! KeyEvent:VK_PAUSE 'pause)
 
   (set-key-code-name! KeyEvent:VK_PRINTSCREEN 'print-screen)
   (set-key-code-name! KeyEvent:VK_SCROLL_LOCK 'scroll-lock)
   (set-key-code-name! KeyEvent:VK_NUM_LOCK 'num-lock)
-  
+
   (set-key-code-name! KeyEvent:VK_TAB #\t)
   (set-key-code-name! KeyEvent:VK_TAB 'tab)
-  
+
   (set-key-code-name! KeyEvent:VK_LEFT_PARENTHESIS
-	'opening-parenthesis)
+                      'opening-parenthesis)
   (set-key-code-name! KeyEvent:VK_LEFT_PARENTHESIS 'opening-paren)
   (set-key-code-name! KeyEvent:VK_LEFT_PARENTHESIS 'open-parenthesis)
   (set-key-code-name! KeyEvent:VK_LEFT_PARENTHESIS 'open-paren)
   (set-key-code-name! KeyEvent:VK_LEFT_PARENTHESIS 'left-parenthesis)
   (set-key-code-name! KeyEvent:VK_LEFT_PARENTHESIS 'left-paren)
   (set-key-code-name! KeyEvent:VK_LEFT_PARENTHESIS #\()
-  
+
   (set-key-code-name! KeyEvent:VK_RIGHT_PARENTHESIS
-	'closing-parenthesis)
+                      'closing-parenthesis)
   (set-key-code-name! KeyEvent:VK_RIGHT_PARENTHESIS
-	'closing-paren)
+                      'closing-paren)
   (set-key-code-name! KeyEvent:VK_RIGHT_PARENTHESIS
-	'close-parenthesis)
+                      'close-parenthesis)
   (set-key-code-name! KeyEvent:VK_RIGHT_PARENTHESIS 'close-paren)
   (set-key-code-name! KeyEvent:VK_RIGHT_PARENTHESIS
-	'right-parenthesis)
+                      'right-parenthesis)
   (set-key-code-name! KeyEvent:VK_RIGHT_PARENTHESIS 'right-paren)
   (set-key-code-name! KeyEvent:VK_RIGHT_PARENTHESIS #\))
-  
+
   (set-key-code-name! KeyEvent:VK_OPEN_BRACKET 'opening-bracket)
   (set-key-code-name! KeyEvent:VK_OPEN_BRACKET 'open-bracket)
   (set-key-code-name! KeyEvent:VK_OPEN_BRACKET 'left-bracket)
   (set-key-code-name! KeyEvent:VK_OPEN_BRACKET #\[)
-  
+
   (set-key-code-name! KeyEvent:VK_CLOSE_BRACKET 'closing-bracket)
   (set-key-code-name! KeyEvent:VK_CLOSE_BRACKET 'close-bracket)
   (set-key-code-name! KeyEvent:VK_CLOSE_BRACKET 'right-bracket)
   (set-key-code-name! KeyEvent:VK_CLOSE_BRACKET #\])
-  
+
   (set-key-code-name! KeyEvent:VK_BRACELEFT 'opening-brace)
   (set-key-code-name! KeyEvent:VK_BRACELEFT 'open-brace)
   (set-key-code-name! KeyEvent:VK_BRACELEFT 'left-brace)
   (set-key-code-name! KeyEvent:VK_BRACELEFT #\{)
-  
+
   (set-key-code-name! KeyEvent:VK_BRACERIGHT 'closing-brace)
   (set-key-code-name! KeyEvent:VK_BRACERIGHT 'close-brace)
   (set-key-code-name! KeyEvent:VK_BRACERIGHT 'right-brace)
   (set-key-code-name! KeyEvent:VK_BRACERIGHT #\})
-  
-  )
+
 #+END_SRC
 
 
@@ -9913,4 +10161,6 @@ Emacs manual.
 # mode: org
 # fill-column: 60
 # indent-tabs-mode: nil
+# eval: (modify-syntax-entry ?< ".")
+# eval: (modify-syntax-entry ?> ".")
 # End:
