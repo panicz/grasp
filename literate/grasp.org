@@ -200,7 +200,6 @@ itself that is only going to be used when we have a simple
 transform consisting of a single rewrite rule:
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm :comment link
-
 (define-syntax define-syntax-rule
   (syntax-rules ()
     ((define-syntax-rule (<keyword> . <arguments>)
@@ -217,7 +216,6 @@ consider that if we had it available, we could have defined it
 in terms of itself in the following way:
 
 #+BEGIN_SRC scheme :tangle no
-
 (define-syntax-rule (define-syntax-rule <keyword> . <arguments>)
   (define-syntax <keyword>
     (syntax-rules ()
@@ -235,7 +233,6 @@ We can now use it for defining our first utility macro,
 namely ~comment~ - which discards all of its arguments.
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm :comment org
-
 (define-syntax-rule (comment . <anything>)
   (values))
 
@@ -247,7 +244,6 @@ example, we could include the content of the first snippet
 from this section inside our ~comment~ form:
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
 ;; this code is valid, even though the code
 ;; inside the ~comment~ form is not - that's
 ;; because it will be discarded according to
@@ -272,7 +268,6 @@ temporarily mark things in our program that haven't been
 implemented yet:
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm :comment org
-
 (define-syntax-rule (TODO . <anything>)
   (values))
 
@@ -289,7 +284,6 @@ that we might have, the typical interpretation of asserting
 a false belief is to raise an error and stop the program:
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
 (define-syntax-rule (assert proposition)
   (or proposition
     (error "Assertion failed: "'proposition)))
@@ -321,7 +315,6 @@ their behavior (for example, to count the number of evaluated
 examples)
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
   (define invalid-example
     (make-parameter
       (lambda (expression result . expectation)
@@ -379,7 +372,6 @@ As you can see, there are three rules in our ~e.g.~ macro.
 The first one corresponds to the usages such as
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
 (e.g. (+ 2 2) ===> 4)
 
 (e.g. (append '(a b c) '(d e)) ===> (a b c d e))
@@ -392,7 +384,6 @@ The second rule corresponds to the usages of /predicates/, i.e.
 functions whose value is (typically) either true or false, as in
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
 (e.g. (even? 4))
 
 (e.g. (pair? (cons 1 2)))
@@ -411,7 +402,6 @@ The last rule allows to express examples involving functions
 that are capable of returning multiple values:
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
 (e.g. (values 1 2 3) ===> 1 2 3)
 
 (e.g. (values) ===>)
@@ -490,7 +480,6 @@ programming in Scheme - it's OK to skip the analysis of the
 ~extract-_~ helper macro. Othewise enjoy.
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
 (define-syntax infix/postfix
   (syntax-rules ()
     
@@ -666,7 +655,6 @@ submit a pull-request containing a use of ~do~, I will most
 certainly reject it).
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
 (define-syntax-rule (while condition actions ...)
   (let ()
     (define (loop)
@@ -703,7 +691,6 @@ use the bad word /continuation/ which means nothing to
 anyone except a bunch of nerds):
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
 (define-syntax-rule (escape-with label . commands)
   (call/cc (lambda (label) . commands)))
 
@@ -713,7 +700,6 @@ With that macro, we can introduce our own ~break~ statement
 (and name it however we like) and use it like this:
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
 (e.g.
   (let ((x 0))
     (escape-with break
@@ -744,7 +730,6 @@ blocks the current thread until all the sub-programs
 terminate:
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
 (define-syntax concurrently
   (lambda (stx)
     (syntax-case stx ()
@@ -779,7 +764,6 @@ classes and interfaces from the Java world that are used in
 our code:
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
   (define-alias Collection java.util.Collection)
   (define-alias List java.util.List)
   (define-alias ArrayList java.util.ArrayList)
@@ -804,6 +788,7 @@ our code:
   (define-alias Thread java.lang.Thread)
 
   (define-alias Comparable java.lang.Comparable)
+  
 #+END_SRC
 
 Moreover, Java provides the interface ~java.lang.Comparable~,
@@ -811,7 +796,6 @@ whereas Scheme only provides numeric comparison. It is easy to
 define generalized comparison operators:
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
   (define (preceding? a ::Comparable b ::Comparable)::boolean
     (is (a:compareTo b) < 0))
 
@@ -848,7 +832,6 @@ iterating over a range of numbers (without allocating array
 of numbers or creating coroutines):
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
   (define (par-for-each function collection)
     (let ((futures ::List (ArrayList)))
       (for-each (lambda (x)
@@ -926,6 +909,7 @@ of numbers or creating coroutines):
        (for var::type from: start below: end by: 1 actions ...))
 
       ))
+  
 #+END_SRC
 
 Note that in the above snippet, the ~::~ symbol appeared.
@@ -934,7 +918,6 @@ reader treats the sequence of two consecutive colons as a
 separate token:
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
 (e.g.
   (call-with-input-string "(a::b::c)" read)
   ===> (a :: b :: c))
@@ -952,7 +935,6 @@ in other Scheme implementations, so we make up for this
 shoritcoming.
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
   (define-alias InputPort gnu.kawa.io.InPort)
 
   (define-alias OutputPort gnu.kawa.io.OutPort)
@@ -1027,7 +1009,6 @@ which simplifies the definition of interfaces.
 It is used in the following way:
 
 #+BEGIN_SRC scheme :tangle no
-
 (define-interface InterfaceName (SuperInterfaces ...)
   (method-name argument-types ...) :: return-value-type
   ...)
@@ -1041,7 +1022,6 @@ of parentheses, as required by the ~define-simple-class~
 form.
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
 (define-syntax define-interface
   (syntax-rules ()
     ((define-interface (name type-args ...) (supers ...) prototypes ...)
@@ -1076,7 +1056,6 @@ uses a wrapper that simplifies the definition of new classes.
 It is used in the following way:
 
 #+BEGIN_SRC scheme :tangle no
-
 (define-object (ClassName constructor-args ...)::ImplementedInterface
   (define slot-name ::type init-value)
   ...
@@ -1092,6 +1071,10 @@ It is used in the following way:
 As you can see, it restricts the way classes can be defined by:
 - only allowing a single constructor
 - only allowing to provide a single interface
+
+The first limitation can be overcome by defining a
+constructor with a maximum number of arguments, and then
+defining a procedure with default arguments.
 
 The second limitation isn't problematic in practice, because
 it's always possible to agregate multiple interfaces
@@ -1124,7 +1107,6 @@ instead we want them pasted verbatim in the final class
 definition.)
 
 #+BEGIN_SRC  scheme :tangle language-extensions.scm
-
   (define-syntax delegate
     (syntax-rules (::)
       ((delegate (method . params) :: type object)
@@ -1636,7 +1618,7 @@ definition.)
 For the time being, the generic interface specification of
 the ~define-object~ clause can have either of the forms:
 
-#+BEGIN_SRC  scheme :tangle no
+#+BEGIN_SRC scheme :tangle no
 
 (define-object (ClassName ...)::(Type TypeArgs)
   ...)
@@ -1645,7 +1627,7 @@ the ~define-object~ clause can have either of the forms:
 
 and
 
-#+BEGIN_SRC  scheme :tangle no
+#+BEGIN_SRC scheme :tangle no
 
 (define-object (ClassName ...)::(specialize Type TypeArgs)
   ...)
@@ -1716,7 +1698,6 @@ a way to convert between symbols and keywords:
 
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
 (define (keyword->symbol kw)
   (string->symbol (keyword->string kw)))
 
@@ -1730,7 +1711,6 @@ functions during macro expansion, we need to resort to the
 ~syntax-case~ macro system.
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
 (define-syntax-rule (define-type (type-name . fields))
   (type-definition type-name fields #;slots () #;initializers (begin)))
 
@@ -1830,7 +1810,6 @@ hopefully become clearer later), the ~copy~ procedure is
 defined in the following way:
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
   (define (clonable? object)::boolean
     (or (instance? object Cloneable)
         (and (procedure? object)
@@ -1922,7 +1901,6 @@ we'll introduce an interface called ~Matchable~ and a new
 predicate called ~match/equal?~:
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
 (define-interface Matchable ()
   (matches? x)::boolean)
 
@@ -1942,7 +1920,6 @@ which is going to invoke a helper form, called
 (which is the heart of our matcher). 
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
   (define-syntax-rule (match expression (pattern actions* ... value) ...)
     (let ((evaluated expression))
       (match/evaluated evaluated (pattern actions* ... value) ...)))
@@ -2221,7 +2198,6 @@ quadratic, but since human-readable patterns are usually
 very small, this isn't a problem in practice):
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
 (define-syntax check/unique
   (lambda (stx)
     "add equality checks for repeated identifiers \
@@ -2310,7 +2286,6 @@ those features (and also supports multiple values). We also
 give it a better name: we call it ~given~.
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
 (define-syntax given
   (lambda (stx)
     (syntax-case stx (::)
@@ -2392,7 +2367,6 @@ Unfortunately, this seems impossible without patching Kawa.
 So instead we are just going to provide the ~match-let*~ syntax.
 
 #+BEGIN_SRC  scheme :tangle language-extensions.scm
-
 (define-syntax match-let*
   (lambda (stx)
     (syntax-case stx ()
@@ -2474,7 +2448,6 @@ improved syntax. They will also allow to perform
 destructuring of the arguments of the defined functions.
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
 (define-syntax lambda*
   (lambda (stx)
     (syntax-case stx ()
@@ -2709,7 +2682,6 @@ reader reads as ~($bracket-apply$ Map KeyType
 ValueType)~:
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
   (e.g.
     (call-with-input-string "Map[KeyType ValueType]" read)
   ===> ($bracket-apply$ Map KeyType ValueType))
@@ -2721,7 +2693,6 @@ extensions, including the one above, we are not using it in
 GRASP's source code in order to make it editable in GRASP.
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
   (define-syntax-rule (specialize generic-type concrete-types ...)
     ($bracket-apply$ generic-type concrete-types ...))
 
@@ -2730,32 +2701,31 @@ GRASP's source code in order to make it editable in GRASP.
 Here are the definitions of the ~mapping~ and ~define-mapping~ macros:
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
+  (define-syntax mapping
+    (syntax-rules (::)
+      ((mapping (object::key-type)::value-type . default)
+       (let* ((entries ::Map ((specialize HashMap key-type value-type)))
+              (getter (lambda (object::key-type)::value-type
+                        (if (entries:containsKey object)
+                            (entries:get object)
+                            (begin . default)))))
+         (set! (setter getter) (lambda (arg value)
+                                 (entries:put arg value)))
+         (with-procedure-properties ((table entries))
+            getter)))
 
-(define-syntax mapping
-  (syntax-rules (::)
-    ((mapping (object::key-type)::value-type default)
-     (let* ((entries ::Map ((specialize HashMap key-type value-type)))
-            (getter (lambda (object::key-type)::value-type
-                      (if (entries:containsKey object)
-                          (entries:get object)
-                          default))))
-       (set! (setter getter) (lambda (arg value)
-                               (entries:put arg value)))
-       (with-procedure-properties ((table entries))
-          getter)))
+      ((mapping (object::key-type) . default)
+       (mapping (object::key-type)::Object
+                . default))
 
-    ((mapping (object::key-type) default)
-     (mapping (object::key-type)::Object
-               default))
+      ((mapping (object)::value-type . default)
+       (mapping (object::Object)::value-type
+                . default))
 
-    ((mapping (object)::value-type default)
-     (mapping (object::Object)::value-type
-               default))
-
-    ((mapping (object) default)
-     (mapping (object::Object)::Object
-              default))
-    ))
+      ((mapping (object) . default)
+       (mapping (object::Object)::Object
+                . default))
+      ))
 
 #+END_SRC
 
@@ -2764,31 +2734,26 @@ fairly straightforward. The main difficulty is that we need
 to account for users omitting key and value type specifier:
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
+  (define-syntax define-mapping
+    (syntax-rules (::)
+      ((define-mapping (mapping-name object ::key-type)::value-type
+         . default)
+       (define-early-constant mapping-name
+         (with-procedure-properties ((name 'mapping-name))
+           (mapping (object ::key-type)::value-type . default))))
 
-(define-syntax define-mapping
-  (syntax-rules (::)
-    ((define-mapping (mapping-name object ::key-type)::value-type
-       default)
-     (define-early-constant mapping-name
-       (with-procedure-properties ((name 'mapping-name))
-         (mapping (object ::key-type)::value-type default))))
+      ((define-mapping (mapping-name object ::key-type) . default)
+       (define-mapping (mapping-name object ::key-type)
+         ::Object . default))
 
-    ((define-mapping (mapping-name object ::key-type) default)
-     (define-mapping (mapping-name object ::key-type)
-       ::Object
-       default))
+      ((define-mapping (mapping-name object)::value-type . default)
+       (define-mapping (mapping-name object ::Object)
+         ::value-type . default))
 
-    ((define-mapping (mapping-name object)::value-type default)
-     (define-mapping (mapping-name object ::Object)
-       ::value-type
-       default))
-
-    ((define-mapping (mapping-name object) default)
-     (define-mapping (mapping-name object ::Object)
-       ::Object
-       default))
-    ))
-
+      ((define-mapping (mapping-name object) . default)
+       (define-mapping (mapping-name object ::Object)
+         ::Object . default))
+      ))
 #+END_SRC
 
 Mind however, that associating keys with values isn't the
@@ -2798,7 +2763,6 @@ obtain an iterable set of (assigned) keys of mapping by using
 the ~keys~ function:
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
 (define (keys dict)
   (let ((table ::Map (procedure-property dict 'table)))
     (table:keySet)))
@@ -2847,7 +2811,6 @@ which can be a bit confusing).
 This interface might change in the future.
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
   (define-syntax bimapping
     (syntax-rules (::)
       ((bimapping (object::key-type default-inverse)::value-type
@@ -2957,7 +2920,6 @@ the same interface (and a very similar implementation) as we
 did in case of ~mapping~.
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
   (define-syntax attribute
     (syntax-rules (::)
       ((attribute (object::key-type)::value-type default)
@@ -3098,7 +3060,6 @@ Here we provide a bunch of functions and macros for
 removing all or some elements of a mapping:
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
 (define-syntax-rule (unset! (mapping object))
   (let ((table ::Map (procedure-property mapping 'table)))
     (table:remove object)))
@@ -3119,7 +3080,6 @@ value. This allows to save space in case someone tries to
 add a default value to the mapping.
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
 (define-syntax-rule (update! (mapping object) expression)
   (let ((value expression))
     (unless (equal? (mapping object) value)
@@ -3219,7 +3179,6 @@ of syntactic currying:
 Having currying in place, we can use it for defining cache:
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
   (define-syntax cache
     (syntax-rules (::)
       ((cache args::type body)
@@ -3263,7 +3222,6 @@ We can use the cache defined that way to implement /hash
 consing/:
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
 (define-object (immutable-pair car cdr)
 
   (define (setCar value)
@@ -3297,7 +3255,6 @@ For example, we can define the following macro to
 express a type signature of a procedure:
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
 (define-syntax maps
   (syntax-rules (to:)
     ((_ input-types to: output-type + ...)
@@ -3310,7 +3267,6 @@ procedure that is meant to be mutable (like ~attribute~
 or ~mapping~)
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
 (define-syntax !maps
   (syntax-rules (to:)
     ((_ input-types to: output-type + ...)
@@ -3326,7 +3282,6 @@ operator outside of the ~quasiquote~ context to designate
 a type variable (rather than syntax error):
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
   (define-syntax-rule (list-of type)
     list)
 
@@ -3391,7 +3346,6 @@ Haskell prelude is named ~only~, because the name ~filter~
 is ambiguous.
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
   (define (any satisfying? elements)
     (escape-with return
       (for x in: elements
@@ -3791,7 +3745,6 @@ Java. But in the spirit of SRFI-1, we also allow to treat
 lists as sets.
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
   (define-object (set)::Set
     (define (toString)::String
       (with-output-to-string
@@ -3918,7 +3871,6 @@ For this reason, we define a bunch of convenience procedures
 for operating with Java's collections.
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
   (define* (remove-range! elements ::List
                           from: start ::int := 0
                           to: end ::int := (- (length elements) 1))
@@ -3956,7 +3908,6 @@ variant of parameters whose instant value is shared between
 theads.
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
 (define-simple-class SharedThreadLocation (gnu.mapping.ThreadLocation)
 
   (location-name ::gnu.mapping.Symbol)
@@ -4066,7 +4017,6 @@ location, which can be achieved with the
 ~parameterize!~ macro:
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
   (define-syntax parameterize!
     (lambda (stx)
       (syntax-case stx ()
@@ -4120,6 +4070,7 @@ closure (which is reified) that we call /a box/:
                                    (set! state value)))
            getter)))
       ))
+  
 #+END_SRC
 
 
@@ -4136,7 +4087,6 @@ Kawa, to make their interpretation more apparent to the
 reader.
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
 (define-alias <0.0-1.0> real)
 
 (define-alias percent real)
@@ -4153,7 +4103,6 @@ The following definitons will hopefully be explained some
 day in the future.
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
   (define-syntax otherwise
     (syntax-rules ()
       ((_)
@@ -4412,7 +4361,6 @@ day in the future.
 
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-
   (define-private successful-tests ::int 0)
   (define-private failed-tests ::int 0)
 
@@ -4559,7 +4507,6 @@ is supposed to be executed in the modified context. This way
 we won't need to worry about restoring the context.
 
 #+BEGIN_SRC scheme :tangle no :noweb-ref painter-subinterfaces
-
   (define-interface CanManageRenderingContext ()
     (with-translation x::real y::real action::(maps () to: ,A))::,A
     (with-rotation angle::real action::(maps () to: ,A))::,A
@@ -4588,10 +4535,11 @@ CanProvideBasicSizes
 #+END_SRC
 
 #+BEGIN_SRC scheme :noweb-ref painter-subinterfaces
-(define-interface CanProvideBasicSizes ()
-  (space-width)::real
-  (min-line-height)::real
-  )
+  (define-interface CanProvideBasicSizes ()
+    (space-width)::real
+    (min-line-height)::real
+    )
+
 #+END_SRC
 
 **** Rendering tall parentheses
@@ -4612,7 +4560,6 @@ We are going to support a number of styles for a few
 different types of borders.
 
 #+BEGIN_SRC scheme :tangle no :noweb-ref painter-subinterfaces
-
   (define-enum BorderStyle
     (None
      Atom
@@ -4691,7 +4638,6 @@ The functions assume that ~text~ contains no newline
 characters.
 
 #+BEGIN_SRC scheme :tangle no :noweb-ref painter-subinterfaces
-
   (define-interface CanRenderText ()
     (draw-text! text::CharSequence font::FontProxy)::real
     (text-width text::CharSequence font::FontProxy)::real
@@ -4723,9 +4669,7 @@ It is going to use a helper object called
 ~ParenthesesCharacters~, whose purpose is to define how the
 specific types of boxes are going to look.
 
-#+NAME: BorderCharacters--object-definition
-#+BEGIN_SRC scheme :tangle no
-
+#+BEGIN_SRC scheme :noweb-ref BorderCharacters--object-definition
   (define-object
     (BorderCharacters
      leftTop ::String     top ::String      rightTop ::String
@@ -5029,6 +4973,7 @@ happens, this section will most certainly be updated.
 #+BEGIN_SRC scheme :tangle no
   (define-object (BasicTextPainterFont)::FontProxy
     (define (height)::real 1))
+
 #+END_SRC
 
 As to the definition of the ~TextPainter~, it's going to
@@ -5131,7 +5076,6 @@ recommend reading it.
 
 #+NAME: basic-text-painter
 #+BEGIN_SRC scheme :tangle no :noweb no-export
-
   <<painter-subinterfaces>>
 
   (define-interface Painter
@@ -5303,9 +5247,7 @@ and there are going to be two distinct sub-types of
 is a concrete type and ~Tile~ is an interface representing
 elements that occupy a rectangular area of the screen.
 
-#+NAME: Comb--collection-operations
-#+BEGIN_SRC scheme :tangle no
-
+#+BEGIN_SRC scheme :noweb-ref Comb--collection-operations
   (define elements ::(sequence-of Tile)
     (ArrayList))
 
@@ -6329,7 +6271,7 @@ we have everything that is needed to define the ~Visual~,
 ~Spatial~ and ~Tile~ parts of ~Textual~ elements.
 
 #+BEGIN_SRC scheme :noweb-ref TextualTileBase--rendering
-  (define-private current-index ::int 0)
+  (define-protected current-index ::int 0)
 
   (define-protected (border-style)::BorderStyle
     #!abstract)
@@ -6411,7 +6353,6 @@ We can now use the code to define the built-in ~Textual~
 units in GRASP
 
 #+BEGIN_SRC scheme :noweb no-export :noweb-ref TextualTileSubclasses--rendering
-
   (define-object (Atom)::TextualTile
     (define-protected (font)::FontProxy
       (painter:atom-font))
@@ -6709,8 +6650,7 @@ We can now test the simplified parser on sample data:
 
 we expect the first test to yield
 
-#+NAME: simple-parser-test-result-with-indentation
-#+BEGIN_SRC text
+#+BEGIN_SRC text :noweb-ref simple-parser-test-result-with-indentation
 ╭        ╭     ╮                   ╮
 │ define │ ! n │                   │
 │        ╰     ╯                   │
@@ -6736,8 +6676,7 @@ we expect the first test to yield
 
 and the second one -- to produce
 
-#+NAME: simple-parser-test-result-no-indentation
-#+BEGIN_SRC text
+#+BEGIN_SRC text :noweb-ref simple-parser-test-result-no-indentation
 ╭        ╭     ╮              ╮
 │ define │ ! n │              │
 │        ╰     ╯              │
@@ -6790,6 +6729,7 @@ arguments if they are also instances of ~Comb~.
             (result:addAll! element)
             (result:add element)))
       result))
+  
 #+END_SRC
 
 The other argument contains a path to a given expression.
@@ -6873,6 +6813,7 @@ it supports more objects):
               (c   (result:add (read-atom into: (Atom c) from: port))))))
       (path:pop!)
       result))
+  
 #+END_SRC
 
 You can observe that this definition refers a number of
@@ -6909,6 +6850,7 @@ to make the above code shorter, and it looks like this:
                   (read-list from: port at: path upto: 1))
            path))))
       (c (read-atom into: (Atom #\# c) from: port))))
+  
 #+END_SRC
 
 It also refers to the ~read-atom~ procedure mentioned
@@ -6932,6 +6874,7 @@ definition of ~read-line-comment~ is the simplest:
         (else
          (result:add c)
          (loop))))))
+  
 #+END_SRC
 
 and the definition of ~read-atom~ is almost identical (the
@@ -6953,6 +6896,7 @@ only difference is its termination condition):
          (else
           (result:add (read-char port))
           (loop))))))
+  
 #+END_SRC
 
 The ~read-block-comment~ procedure is a bit more complex,
@@ -6997,6 +6941,7 @@ because block comments in Scheme can be nested:
        (else
         (result:add c)
         (read-block-comment into: result from: port)))))
+  
 #+END_SRC
 
 The ~read-text~ procedure is the most complex of them all,
@@ -7048,6 +6993,7 @@ because it needs to handle various escape sequences.
           (read-normal)))))
 
     (read-normal))
+  
 #+END_SRC
 
 We can now test our parser. Note that we haven't defined the
@@ -7167,7 +7113,7 @@ class that will be elaborated in the future.
   ╭        ╭     ╮                ╮
   │ define │ ! n │                │
   │        ╰     ╯                │
-  │  ╭    ╭        ╮ ⸾>         ╮ │
+  │  ╭    ╭        ╮            ╮ │
   │  │ if │ <= n 1 │            │ │
   │  │    ╰        ╯            │ │
   │  │       ╔═══════════╗      │ │
@@ -7265,7 +7211,6 @@ Lastly, we need to define serialization for ~TextualTileBase~
 We also need to implement serialization for our textual elements:
 
 #+BEGIN_SRC scheme :noweb no-export :noweb-ref TextualTileSubclasses--serialization
-
   (define-object (Atom)::TextualTile
     (define-protected (prefix)::string "")
 
@@ -7483,7 +7428,7 @@ obtained in the following way:
 #+BEGIN_SRC scheme :noweb-ref cursor-target--definition
   (define (cursor-target root::Element cursor::(sequence-of int))
     ::Element
-    (for index::int in cursor
+    (for index::int in: cursor
       (set! root (root:element-at index)))
     root)
  #+END_SRC
@@ -7629,6 +7574,7 @@ straightforward:
     (let ((previous-index current-index))
       (set! current-index RIGHT-PAREN-INDEX)
       (isnt previous-index = current-index)))
+  
 #+END_SRC
 
 Likewise, the ~cursor-index~ method simply returns
@@ -7637,6 +7583,7 @@ Likewise, the ~cursor-index~ method simply returns
 #+BEGIN_SRC scheme :noweb-ref Comb--navigation
   (define (cursor-index)::int
     current-index)
+  
 #+END_SRC
 
 #+BEGIN_SRC scheme :noweb-ref Comb--navigation
@@ -7645,6 +7592,7 @@ Likewise, the ~cursor-index~ method simply returns
       (if (eq? target (this))
           target
           (target:current-target))))
+  
 #+END_SRC
 
 
@@ -7694,7 +7642,6 @@ a row and the appearence of a next number causes a line
 break.
 
 #+BEGIN_SRC scheme :noweb-ref Space--navigation
-
   (define (cursor-index)::int
     current-index)
 
@@ -8590,6 +8537,7 @@ We can obtain a code of a combination by means of the
        ((inverse key-code-name) key))
       (,@(isnt _ pair?)
        ((inverse key-code-name) combination))))
+  
 #+END_SRC
 
 Likewise, we can obtain a combination from code using the
@@ -8601,52 +8549,31 @@ Likewise, we can obtain a combination from code using the
     (cond
      ((isnt (bitwise-and key-code CTRL_MASK) zero?)
       (let ((unmasked (bitwise-and (bitwise-not CTRL_MASK)
-				 key-code)))
-	(if (eqv? unmasked ((inverse key-code-name) 'ctrl))
-	  'ctrl
-	  `(ctrl . ,(listify (key-chord unmasked))))))
+                                 key-code)))
+        (if (eqv? unmasked ((inverse key-code-name) 'ctrl))
+          'ctrl
+          `(ctrl . ,(listify (key-chord unmasked))))))
 
      ((isnt (bitwise-and key-code ALT_MASK) zero?)
       (let ((unmasked (bitwise-and (bitwise-not ALT_MASK)
-				 key-code)))
-	(if (eqv? unmasked ((inverse key-code-name) 'alt))
-	  'alt
-	  `(alt . ,(listify (key-chord unmasked))))))
+                                 key-code)))
+        (if (eqv? unmasked ((inverse key-code-name) 'alt))
+          'alt
+          `(alt . ,(listify (key-chord unmasked))))))
 
      ((isnt (bitwise-and key-code SHIFT_MASK) zero?)
       (let ((unmasked (bitwise-and (bitwise-not SHIFT_MASK)
-				 key-code)))
-	(if (eqv? unmasked ((inverse key-code-name) 'shift))
-	  'shift
-	  `(shift . ,(listify (key-chord unmasked))))))
+                                 key-code)))
+        (if (eqv? unmasked ((inverse key-code-name) 'shift))
+          'shift
+          `(shift . ,(listify (key-chord unmasked))))))
 
      (else
       (key-code-name key-code))))
+  
 #+END_SRC
 
 *** Handling the input
-
-When a key is pressed, GRASP invokes the ~key-typed!~ method
-of the ~main~ object. The ~main~ object represents the
-application that runs in the GRASP environment, and it's
-created during intialization. The initialization process
-will be explained in more detail later on -- we currently
-assume that the ~main~ object is going to be the
-~GRASP-Editor~, which contains a ~current-document~ property
-and a ~key-typed!~ method defined in the following way:
-
-#+BEGIN_SRC scheme :noweb-ref Editor--key-typed!
-
-  (define current-document ::Document (Document))
-
-  (define (key-typed! key-code::KeyCode)::boolean
-    (given ((action ::Edit (current-document:key-typed!
-                            key-code)))
-      (truly
-       (action:perform! current-document)
-       (current-document:history:record! action))))
-
-#+END_SRC
 
 We've already seen that a ~Document~ is a specialization of
 the ~Comb~ class. It's going to be elaborated further in the
@@ -8656,37 +8583,34 @@ allows users to define new keyboard shortcuts in runtime,
 but it comes with a bunch of them predefined:
 
 #+BEGIN_SRC scheme :noweb-ref Document--keyboard-editing :noweb no-export
-
   (define-static key-bindings
     (let* ((bindings (mapping (key-code::KeyCode)
                       (lambda (self::Comb code::KeyCode)
                         ::(maybe Edit)
-                        (WARN "code "code", name "
-                              (key-code-name code))
-                        #;(given ((input (unicode-input))
-                                ((char-standard? input)))
-                          (self:insert-character (ArrayStack))))))
+                        <<Document--default-key-press-handler>>)))
            (set-key! (lambda (name::KeyName
                               handler::(maps (Comb KeyCode)
                                              to: (maybe Edit)))
                        (let ((code ::KeyCode ((inverse key-code-name)
                                               name)))
-                       (WARN "binding new hander to key "name" (code "
-                             code")")
-                       (set! (bindings code) handler)))))
-      <<Document--default-key-bindings>>
+                         (set! (bindings code) handler)))))
+      <<Document--initial-key-bindings>>
       bindings))
 
 #+END_SRC
 
-Where ~<<Document--default-key-bindings>>~ are to be defined
-later.
+Where ~<<Document--initial-key-bindings>>~ are to be defined
+later. The ~<<Document--default-key-press-handler>>~ will be
+elaborated later on. For now it can do nothing:
+
+#+BEGIN_SRC scheme :noweb-ref Document--default-key-press-handler
+  (values) ;; this is a placeholder that can be safely removed
+#+END_SRC
 
 The ~key-bindings~ table is referenced in ~Document~'s
 ~key-typed!~ method:
 
 #+BEGIN_SRC scheme :noweb-ref Document--keyboard-editing
-
   (define (key-typed! key-code::KeyCode)
     ::(maybe Edit)
     (let ((target ::Element (invoke-special Comb (this)
@@ -8696,7 +8620,6 @@ The ~key-bindings~ table is referenced in ~Document~'s
          ;; TODO: (current-cursor) nie istnieje!
          (magic:key-typed! key-code (current-cursor)))
         (_
-         (WARN (keys key-bindings))
          (given ((handler ::(maps (Comb KeyCode) to: (maybe Edit))
                           (key-bindings key-code)))
            (handler (this) key-code))))))
@@ -8720,23 +8643,146 @@ We now have enough definitions to build a stub of an
 actually working editor. The code layout is very similar to
 that of ~cursor-navigation~ -- the main difference is that
 ~<<terminal-document-cursor-navigation>>~ is replaced with
-~<<terminal-document-input-processing>>~, which is defined
-in a very similar, but slightly more abstract way, to
-invoke the ~key-typed!~ method of ~document~.
+~<<terminal-input-processing>>~, which is defined in a very
+similar, but slightly more abstract way, to invoke the
+~key-typed!~ method of the ~main~ ~Application~.
 
-#+BEGIN_SRC scheme :noweb-ref terminal-document-input-processing
+#+BEGIN_SRC scheme :noweb-ref terminal-input-processing
   (define (edit terminal ::LanternaScreen)::void
     (while #true
       (safely
        (let ((key ::KeyStroke (terminal:readInput)))
          (parameterize ((unicode-input (input-character key)))
-           (document:key-typed! (scancode key)))))
+           (main:key-typed! (scancode key)))))
       (synchronized screen-up-to-date?
         (set! (screen-up-to-date?) #f)
         (invoke screen-up-to-date? 'notify))))
+
+#+END_SRC
+
+Similarly, we need to define the ~<<terminal-rendering>>~ routine,
+that's going to continuously invoke the ~main~ object's ~render!~
+method (and do some bookkeeping around that):
+
+#+BEGIN_SRC scheme :noweb-ref terminal-rendering
+  (define-box (screen-up-to-date?)::boolean #f)
+
+  (define (render terminal ::LanternaScreen)::void
+    (let loop ()
+      (synchronized screen-up-to-date?
+        (while (screen-up-to-date?)
+          (invoke screen-up-to-date? 'wait))
+        ;; if - during rendering - the state of
+        ;; the screen changes (by the editing thread),
+        ;; then this value will be set to #f, and
+        ;; another iteration of the rendering loop
+        ;; will be forced.
+        ;; (This idea was inspired by Richard Stallman's
+        ;; 1981 paper "EMACS: The Extensible,
+        ;; Customizable Display Editor", section 13
+        ;; "The Display Processor")
+        (set! (screen-up-to-date?) #t))
+      (let ((resize ::TerminalSize (terminal:doResizeIfNecessary)))
+        (painter:clear!)
+        (main:render!)
+        (if resize
+            (terminal:refresh LanternaScreen:RefreshType:COMPLETE)
+            (terminal:refresh LanternaScreen:RefreshType:DELTA))
+        (loop))))
 #+END_SRC
 
 
+We're also going to provide
+~<<TextualTileSubclasses-definitions>>~, that are a merger
+of ~<<TextualTileSubclasses--rendering>>~ and
+~<<TextualTileSublcasses--serialization>>~:
+
+
+#+BEGIN_SRC scheme :noweb no-export :noweb-ref TextualTileSubclasses--definitions
+  (define-object (Atom)::TextualTile
+    (define-protected (prefix)::string "")
+
+    (define-protected (suffix)::string "")
+
+    (define-protected (font)::FontProxy
+      (painter:atom-font))
+
+    (define-protected (border-style)::BorderStyle
+      BorderStyle:Atom)
+
+    <<Atom--editing>>
+
+    (TextualTileBase))
+
+  (define-object (Text)::TextualTile
+    (define-protected (prefix)::string "\"")
+
+    (define-protected (suffix)::string "\"")
+
+    (define-protected (escape? c)::boolean
+      (or (eq? c #\" #|"|#)  (eq? c #\\)))
+
+    (define-protected (font)::FontProxy
+      (painter:text-font))
+
+    (define-protected (border-style)::BorderStyle
+      BorderStyle:Text)
+
+    <<Text--editing>>
+
+    (TextualTileBase))
+
+  (define-object (BlockComment)::TextualComment
+
+    (define (breaks-line?)::boolean #false)
+
+    (define-protected (prefix)::string "#|")
+
+    (define-protected (suffix)::string "|#")
+
+    (define-protected (font)::FontProxy
+      (painter:comment-font))
+
+    (define-protected (border-style)::BorderStyle
+      BorderStyle:Comment)
+
+    <<BlockComment--editing>>
+
+    (TextualTileBase))
+
+  (define-object (LineComment)::TextualComment
+
+    (define (breaks-line?)::boolean #true)
+
+    (define-protected (prefix)::string ";")
+
+    (define-protected (suffix)::string "\n")
+
+    (define-protected (font)::FontProxy
+      (painter:comment-font))
+
+    (define-protected (border-style)::BorderStyle
+      BorderStyle:LineComment)
+
+    (define (render! active? ::boolean state::LayoutState)::void
+      (invoke-special TextualTileBase (this) 'render! active? state))
+
+    (define (advance-layout! state ::LayoutState)::void
+      (expand-layout! state (invoke (this) 'width) (invoke (this) 'height))
+      (break-layout! state))
+
+    <<LineComment--editing>>
+
+    (TextualTileBase))
+
+#+END_SRC
+
+
+The definitons of ~<<Atom--editing>>~, ~<<Text--editing>>~,
+~<<BlockComment--editing>>~ and ~<<LineComment--editing>>~
+are empty at the moment, and they will be filled later.
+
+As to the main part of the stub, it is defined as follows:
 
 #+HEADER: :shebang "#!/bin/sh" :mkdirp yes :noweb no-export
 #+BEGIN_SRC scheme :tangle test/interactive/editing.scm 
@@ -8764,7 +8810,12 @@ invoke the ~key-typed!~ method of ~document~.
 
   (define-interface Element (Visual)
     <<Element--cursor-operations>>
+    <<Element--editing>>
     )
+
+  <<Edit-interface>>
+
+  <<cursor-target--definition>>
 
   (define-interface Tile (Element)
     (width)::real
@@ -8776,6 +8827,9 @@ invoke the ~key-typed!~ method of ~document~.
 
   (define-interface Enchanted (Tile))
 
+  (define-interface Application ()
+    (key-typed! key-code::KeyCode)::boolean)
+
   (define-mixin WriteToString
     (define (toString)::String
       (call-with-output-string
@@ -8786,6 +8840,7 @@ invoke the ~key-typed!~ method of ~document~.
     <<Space--representation>>
     <<Space--rendering>>
     <<Space--navigation>>
+    <<Space--editing>>
     )
 
   (define-object (Comb)::Compound
@@ -8793,6 +8848,7 @@ invoke the ~key-typed!~ method of ~document~.
     <<Comb--whitespace-support>>
     <<Comb--rendering>>
     <<Comb--navigation>>
+    <<Comb--editing>>
     )
 
   <<TextualBase>>
@@ -8802,9 +8858,12 @@ invoke the ~key-typed!~ method of ~document~.
   (define-object (TextualTileBase)::TextualTile
     <<TextualTileBase--rendering>>
     <<TextualTileBase--navigation>>
+    <<TextualTileBase--editing>>
     (TextualBase))
 
-  <<TextualTileSubclasses--rendering>>
+  <<TextualTileSubclasses--definitions>>
+
+  <<Edit--operations>>
 
   <<advanced-parser>>
 
@@ -8816,55 +8875,175 @@ invoke the ~key-typed!~ method of ~document~.
     (Comb)
     (set! style BorderStyle:None))
 
-  (define* (read-document port ::InputPort := (current-input-port))::Document
-    (read-list from: port into: (Document)))
+  (define-object (GRASP-Editor)::Application
+    (define current-document ::Document (Document))
 
-  (define document ::Document
-    (call-with-input-string "
+    (define (key-typed! key-code::KeyCode)::boolean
+      (given ((action ::Edit (current-document:key-typed!
+                              key-code)))
+        (truly
+         <<GRASP-key-typed>>)))
+
+    (define (render!)::void
+      (current-document:render! #true (LayoutState))))
+
+  (define main ::Application
+    (let ((editor ::GRASP-Editor (GRASP-Editor)))
+      (call-with-input-string "
   (define (! n) ; int to int
   (if (is n <= 1)
      1           
    (* n (! (- n 1)))))
-  (e.g. (! 5) ===> 120)" read-document))
+  (e.g. (! 5) ===> 120)"
+              (lambda (port)
+                (read-list from: port into: editor:current-document)))
+      editor))
 
-  <<terminal-document-input-processing>>
+  <<terminal-input-processing>>
 
-  <<terminal-document-rendering>>
+  <<terminal-rendering>>
 
   <<terminal-runner>>
 #+END_SRC
 
-Note that this editor does not allow document scrolling or
+The above stub is operational, even though we're yet to
+define ~<<Element--editing>>~, ~<<Space--editing>>~,
+~<<Comb--editing>>~ and ~<<TextualTileBase--editing>>~ (at
+the moment of writing this, their definitions are empty, but
+we will be building up the editing features incrementally).
+
+Mind that this editor does not allow document scrolling or
 screen splitting, and it doesn't support mouse operations.
 These are going to be added in the subsequent chapters.
 
-#+BEGIN_SRC scheme :noweb-ref Document--default-key-bindings
-  (set-key! 'a
-            (lambda (self::Comb code::KeyCode)
-              (WARN "A button was pressed")))
+By default, we let the user exit our application by pressing
+the \texttt{escape} button:
 
+#+BEGIN_SRC scheme :noweb-ref Document--initial-key-bindings
   (set-key! 'escape
             (lambda (self::Comb code::KeyCode)
-              (WARN "exitting")
               (exit)))
-  #|
-  (set-key! 'backspace
-            (lambda (self::Comb code::KeyCode)
-              (self:delete-backward (ArrayStack))))
+#+END_SRC
 
-  (set-key! 'delete
-            (lambda (self::Comb code::KeyCode)
-              (self:delete-forward (ArrayStack))))
+We also invoke the keyboard navigation capabilities from
+our cursor navigation test:
 
+#+BEGIN_SRC scheme :noweb-ref Document--initial-key-bindings  
   (set-key! 'left
             (lambda (self::Comb code::KeyCode)
               (self:cursor-retreat!)))
 
   (set-key! 'right
             (lambda (self::Comb code::KeyCode)
-              (self:cursor-advance!)))
-  |#
+              (self:cursor-advance!)))  
 #+END_SRC
+
+*** Edit operations
+
+We previously defined the ~Edit~ interface, and we can
+define the ~key-typed!~ method of the ~GRASP-Editor~ class
+to execute its ~perform!~ method:
+
+#+BEGIN_SRC scheme :noweb-ref GRASP-key-typed
+  (action:perform! current-document)
+#+END_SRC
+
+But we currently have no instances of the ~Edit~ interface!
+
+So now we need to define a bunch of ~Edit~ operations and
+procedures that return them, and hook them to our input
+handling system.
+
+We can start by defining ~insert-character~ method inside
+elements. It takes a character and possibly returns an
+~Edit~ object. It also needs to accept the current path
+in the document tree, in order to be able to pass it to the
+~Edit~ object (which needs to keep track of that information):
+
+#+BEGIN_SRC scheme :noweb-ref Element--editing
+  (insert-character c ::Char path ::StackList)::(maybe Edit)
+#+END_SRC
+
+It is invoked as a default of the ~key-bindings~:
+
+#+BEGIN_SRC scheme :noweb-ref Document--default-key-press-handler
+  (given ((input (unicode-input))
+          ((char-standard? input)))
+    (self:insert-character input (ArrayStack)))
+#+END_SRC
+
+We now need to provide the definition of ~insert-character~
+for every class that implements the ~Element~ interface --
+which currently means ~Comb~, ~Space~ and ~Textual~ elements.
+
+We will start with ~TextualTileBase~ -- in the first
+approximation, every such element should return an operation
+that simply appends a character at a ~current-index~.
+
+#+BEGIN_SRC scheme :noweb-ref TextualTileBase--editing
+  (define (insert-character c ::Char path ::StackList)::(maybe Edit)
+    (path:push! current-index)
+    (cursor-advance!)
+    (AppendCharacters (string c) (copy path)))
+#+END_SRC
+
+We now need to define the ~AppendCharacters~ operation, and for
+completeness we also need to define its inverse, ~EraseCharacters~:
+
+#+BEGIN_SRC scheme :noweb-ref Edit--operations
+  (define-object (AppendCharacters characters ::CharSequence
+                                   cursor ::(ListOf int))
+    ::Edit
+    (define (perform! document::Element)::void
+      (let* ((depth ::int (length cursor))
+             (root ::List (cursor:subList 0 (- depth 1)))
+             (tip ::int (cursor (- depth 1)))
+             (target ::TextualTile (cursor-target document root)))
+        (for c in: characters
+          (target:add tip c)
+          (increase! tip))))
+
+    (define (inverse)::Edit
+      (EraseCharacters characters cursor)))
+
+  (define-object (EraseCharacters characters ::CharSequence
+                                  cursor ::(ListOf int))
+    ::Edit
+    (define (perform! document::Element)::void
+      (let* ((depth ::int (length cursor))
+             (root ::List (cursor:subList 0 (- depth 1)))
+             (tip ::int (cursor (- depth 1)))
+             (target ::TextualTile (cursor-target document root))
+             (last-index ::int (- (length characters) 1)))
+        (assert (is tip >= last-index))
+        (for c in: characters
+          (let ((removed (target:remove tip)))
+            (assert (eq? removed c))))))
+
+    (define (inverse)::Edit
+      (AppendCharacters characters cursor)))
+#+END_SRC
+
+# TODO trzeba będzie rozbudować tego dispatcha tak, żeby
+# mógł również wstawiać nowe elementy, ale na razie zobaczmy,
+# czy edycja w ogóle działa
+
+#+BEGIN_SRC scheme :noweb-ref Comb--editing
+  (define (insert-character c ::Char path ::StackList)::(maybe Edit)
+    (otherwise
+     #!null
+     (given ((child ::Element (element-at current-index))
+             ((isnt child eq? (this))))
+       (path:push! current-index)
+       (child:insert-character c path))))
+#+END_SRC
+
+#+BEGIN_SRC scheme :noweb-ref Space--editing
+  (define (insert-character c ::Char path ::StackList)::(maybe Edit)
+    #!null)
+#+END_SRC
+
+
 
 *** Text editing operations
 
@@ -8874,7 +9053,7 @@ to our type signatures, they ought to return instances
 of ~Edit~. They should belong to the ~Comb~ class. Its role
 is to actually delegate work to some of its children:
 
-#+BEGIN_SRC scheme :noweb-ref Comb--editing
+#+BEGIN_SRC scheme :noweb-ref xComb--editing
   (define (insert-character c path::StackList)::Edit
     (let* ((index ::int (match current-index
                           (,LEFT-PAREN-INDEX
@@ -8892,7 +9071,7 @@ The most complex interpretation of ~insert-character~ is
 within ~Space~ -- we need to decide whether we just add
 more space or create a new type of element:
 
-#+BEGIN_SRC scheme :noweb-ref Space--editing
+#+BEGIN_SRC scheme :noweb-ref xSpace--editing
   (define (insert-character c path::StackList)::Edit
     (path:push! current-index)
     (match c
@@ -8903,10 +9082,10 @@ more space or create a new type of element:
        (advance-current-index!)
        (SpliceComb (Comb (LineComment)) path))
       (#\space
-       (space:advance-current-index!)
+       (advance-current-index!)
        (GrowSpace 1 path))
       (#\newline
-       (space:advance-current-index!)
+       (advance-current-index!)
        (BreakSpace path))
       (,@(is _ in '(#\( \[))
        (SpliceComb (Comb (Comb)) path))
@@ -8918,15 +9097,17 @@ more space or create a new type of element:
        (advance-current-index!)
        (SpliceComb (Comb (Atom c)) path)))
     )
+
 #+END_SRC
 
 The default case of ~TextualTileBase~ is much simpler
 -- we simply issue the ~AppendCharacters~ operation:
 
 #+BEGIN_SRC scheme :noweb-ref TextualTileBase--editing
-  (define (insert-character c path::StackList)::Edit
+  (define (insert-character c::Char path::StackList)::Edit
     (advance-current-index!)
     (AppendCharacters (string c) path))
+
 #+END_SRC
 
 However, different specializations of ~TextualTileBase~ need
