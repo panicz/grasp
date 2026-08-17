@@ -1844,9 +1844,7 @@ defined in the following way:
           (number? object)
           (boolean? object))
       object)
-
-
-
+     
      (else
       (error "Unable to clone "object" "(object:getClass)))))
 
@@ -4264,6 +4262,8 @@ day in the future.
     (push! element)::void
     (pop!)::Object
     (empty?)::boolean
+    (with element action::(maps () to: ,a))::,a
+    (set-top! element)::void
     (top)::Object)
 
   (define-interface StackList (Stack List))
@@ -4281,11 +4281,23 @@ day in the future.
     (define (pop!)::Object
       (remove (- (size) 1)))
 
+    (define (with element action::(maps () to: ,a))::,a
+      (push! element)
+      (try-finally
+       (action)
+       (pop!)))
+
     (define (empty?)::boolean
       (isEmpty))
 
     (define (top)::Object
       (get (- (size) 1)))
+
+    (define (set-top! element)::void
+      (let* ((n ::int (size))
+             (index ::int (- n 1)))
+        (invoke-special ArrayList (this)
+  		       'set index element)))
 
     (define (clone)::Object
       (let ((copy ::ArrayStack (ArrayStack)))
@@ -4295,15 +4307,24 @@ day in the future.
 
     (ArrayList))
 
-  (define-object (HashConsStack)::Stack
+  (define-object (ConsStack)::Stack
     (define tip ::list '())
 
     (define (push! element)::void
-      (set! tip (hash-cons element tip)))
+      (set! tip (cons element tip)))
 
     (define (top)::Object
       (car tip))
 
+    (define (set-top! element)::void
+      (set-car! tip element))
+    
+    (define (with element action::(maps () to: ,a))::,a
+      (push! element)
+      (try-finally
+       (action)
+       (pop!)))
+    
     (define (empty?)::boolean
       (null? tip))
 
@@ -4390,7 +4411,7 @@ day in the future.
 
 #+END_SRC
 
-*** Ending remarks
+*** Closing remarks
 
 The language extensions described in this chapter are not
 perfect. For example, the type signatures for collections
@@ -4459,10 +4480,10 @@ specific methods corresponding to some particular rendering
 capabilities of GRASP (like drawing horizontal and vertical
 lines etc.).
 
-Therefore we are going to split our description into subsections
-describing particular capabilities. Each section will define
-a name of a capability and an interface that needs to be
-implemented for the capability to be effective.
+Therefore we are going to split our description into
+sections describing particular capabilities. Each section
+will define a name of a capability and an interface that
+needs to be implemented for the capability to be effective.
 
 The resulting interface and its implementations are going
 to be rather complex, so it is important to be able to develop
@@ -4715,6 +4736,7 @@ by its descendant classes.
 #+BEGIN_SRC scheme :tangle no
   (define-static Borders
     ::(sequence-of BorderCharacters)
+    #|BorderStyle:|#
     (vector
      (BorderCharacters
       ""    ""    ""
@@ -4804,14 +4826,16 @@ by its descendant classes.
   (define-protected clip-width ::int Integer:MAX_VALUE)
   (define-protected clip-height ::int Integer:MAX_VALUE)
 
-  (define (with-translation x::real y::real action::(maps () to: ,A))::,A
+  (define (with-translation x::real y::real
+  			  action::(maps () to: ,A))::,A
     (with ((shift-left (as int (+ shift-left x)))
            (shift-top (as int (+ shift-top y)))
            (clip-width (- clip-width x))
            (clip-height (- clip-height y)))
           (action)))
 
-  (define (with-rotation angle::real action::(maps () to: ,A))::,A
+  (define (with-rotation angle::real
+  		       action::(maps () to: ,A))::,A
     (action))
 
   (define-protected stretch-horizontal ::float 1.0)
@@ -4821,7 +4845,8 @@ by its descendant classes.
                         action::(maps () to: ,A))
     ::,A
     (assert (and (is 0 < horizontal) (is vertical > 0)))
-    (with ((stretch-horizontal (* stretch-horizontal horizontal))
+    (with ((stretch-horizontal (* stretch-horizontal
+  				horizontal))
            (stretch-vertical (* stretch-vertical vertical)))
           (action)))
 
@@ -4830,12 +4855,15 @@ by its descendant classes.
     ::,A
     (assert (and (is 0 <= width) (is height >= 0)))
     (with ((clip-width (min clip-width
-                            (nearby-int (* width stretch-horizontal))))
+                            (nearby-int
+  			   (* width stretch-horizontal))))
            (clip-height (min clip-height
-                             (nearby-int (* height stretch-vertical)))))
+                             (nearby-int
+  			    (* height stretch-vertical)))))
           (action)))
 
-  (define (with-scale scale::real action::(maps () to: ,A))::,A
+  (define (with-scale scale::real
+  		    action::(maps () to: ,A))::,A
     (action))
 
   #;(define (with-intensity intensity::<0.0-1.0>
@@ -4843,11 +4871,9 @@ by its descendant classes.
     ::,A
     #!abstract)
 
-  (define (space-width)::real
-    1)
+  (define (space-width)::real 1)
 
-  (define (min-line-height)::real
-    3)
+  (define (min-line-height)::real 3)
 
   (define-protected (draw-top! width ::real
                                border ::BorderCharacters
@@ -5205,7 +5231,7 @@ of encoding tree structures.
 However, most programming languages often introduce
 components that are mostly ignored by tools that process
 source code. These components are called /comments/ and
-/irrelevant whitespace/.
+/insignificant whitespace/.
 
 GRASP can be viewed as an editor that lets its users operate
 directly on the program's tree structure, rather than on its
@@ -5739,10 +5765,10 @@ of advancing the layout state:
     (advance-layout! state::LayoutState)::void)
 #+END_SRC
 
-Likewise, an object is ~Visual~ if it can be rendered (we
-assume that it can be rendered as either an active element
--- if it is pointed to by the ~current-index~ -- or non-active
-otherwise):
+Likewise, an object is ~Visual~ if it can be rendered.
+The rendering procedure also receives a ~context~, i.e.
+a list of integers that specifies the position of the
+currently rendered element in the document tree
 
 #+BEGIN_SRC scheme :tangle no :noweb-ref GRASP-ontology
   (define-interface Visual (Spatial)
@@ -5752,7 +5778,7 @@ otherwise):
 We therefore expect an ~Element~ to be both ~Visual~ and
 ~Spatial~. But there is more: we just mentioned that an
 element can be active, which means that it's pointed to by
-the ~current-index~.
+a cursor (which we'll explain in more detail shortly).
 
 We aren't yet ready to define exactly what an ~Element~ is,
 because we haven't considered its interactive and editable
@@ -5763,6 +5789,7 @@ parenthesis, we can represent them as indices -1 and -2,
 respectively.
 
 #+BEGIN_SRC scheme :tangle no :noweb-ref Comb--rendering
+
   (define-static LEFT-PAREN-INDEX -1)
   (define-static RIGHT-PAREN-INDEX -2)
 
@@ -6766,54 +6793,75 @@ it supports more objects):
     ::Comb
     (let ((indentation ::int (port:getColumnNumber))
           (running? ::boolean #true))
-      (path:push! 0)
-      (while running?
-        (set! (last path) (result:size))
-        (if (or (is (result:elements:size) >= max-elements)
-                (eof-object? (peek-char port)))
-            (set! running? #false)
-            (match (read-char port)
-              (,@eof-object? (set! running? #false))
-              (#\( (result:add (read-list from: port at: path)))
-              (#\space (let ((last-space ::Space (last result)))
-                         (last-space:widen! 1)))
-              (#\newline (let ((last-space ::Space (last result)))
-                           (last-space:add (- indentation))))
-              (#\) (set! running? #false))
-              (#\[ (result:add (enchanted (read-list from: port at: path)
-                                          path)))
-              (#\] (set! running? #false))
-              (#\" #|"|# (result:add (read-text from: port)))
-              (#\# (result:add (read-hash port path)))
-              (#\' (result:add (enchanted
-                                (Comb* (Atom "quote")
-                                       (read-list from: port at: path upto: 1))
-                                path)))
-              (#\` (result:add (enchanted
-                                (Comb* (Atom "quasiquote")
-                                       (read-list from: port at: path upto: 1))
-                                path)))
-              (#\,
-               (match (peek-char port)
-                 (#\@
-                  (read-char port)
-                  (result:add (enchanted
-                               (Comb* (Atom "unquote-splicing")
-                                      (read-list from: port at: path upto: 1))
-                               path)))
-                 (_
-                  (result:add (enchanted
-                               (Comb* (Atom "unquote")
-                                      (read-list from: port at: path upto: 1))
-                               path)))))
-              (#\;
-               (result:add (read-line-comment from: port))
-               (let ((next-space ::Space (last result)))
-                 (set! (last next-space:fragments) (- indentation))))
-              (c   (result:add (read-atom into: (Atom c) from: port))))))
-      (path:pop!)
-      result))
-  
+      (path:with
+       0
+       (lambda ()
+         (while running?
+  	 (set! (last path) (result:size))
+  	 (if (or (is (result:elements:size) >= max-elements)
+  		 (eof-object? (peek-char port)))
+               (set! running? #false)
+               (match (read-char port)
+                 (,@eof-object? (set! running? #false))
+                 (#\( (result:add (read-list from: port
+  					   at: path)))
+                 (#\space (let ((last-space ::Space
+  					  (last result)))
+  			  (last-space:widen! 1)))
+                 (#\newline (let ((last-space ::Space
+  					    (last result)))
+                              (last-space:add
+  			     (- indentation))))
+                 (#\) (set! running? #false))
+                 (#\[ (result:add (enchanted (read-list
+  					    from: port
+  					    at: path)
+                                             path)))
+                 (#\] (set! running? #false))
+                 (#\" #|"|# (result:add (read-text
+  				       from: port)))
+                 (#\# (result:add (read-hash port path)))
+                 (#\' (result:add (enchanted
+  				 (Comb* (Atom "quote")
+  					(read-list
+  					 from: port
+  					 at: path upto: 1))
+  				 path)))
+                 (#\` (result:add (enchanted
+  				 (Comb* (Atom "quasiquote")
+  					(read-list
+  					 from: port
+  					 at: path upto: 1))
+  				 path)))
+                 (#\,
+  		(match (peek-char port)
+  		  (#\@
+                     (read-char port)
+                     (result:add (enchanted
+  				(Comb*
+  				 (Atom "unquote-splicing")
+                                   (read-list
+  				  from: port
+  				  at: path
+  				  upto: 1))
+  				path)))
+  		  (_
+                     (result:add (enchanted
+  				(Comb* (Atom "unquote")
+                                         (read-list
+  					from: port
+  					at: path
+  					upto: 1))
+  				path)))))
+                 (#\;
+  		(result:add (read-line-comment from: port))
+  		(let ((next-space ::Space (last result)))
+  		  (set! (last next-space:fragments)
+  			(- indentation))))
+                 (c   (result:add (read-atom into: (Atom c)
+  					   from: port))))))
+         result))))
+
 #+END_SRC
 
 You can observe that this definition refers a number of
@@ -8600,8 +8648,8 @@ but it comes with a bunch of them predefined:
 #+END_SRC
 
 Where ~<<Document--initial-key-bindings>>~ are to be defined
-later. The ~<<Document--default-key-press-handler>>~ will be
-elaborated later on. For now it can do nothing:
+later. The ~<<Document--default-key-press-handler>>~ also
+will be elaborated later on. For now it can do nothing:
 
 #+BEGIN_SRC scheme :noweb-ref Document--default-key-press-handler
   (values) ;; this is a placeholder that can be safely removed
