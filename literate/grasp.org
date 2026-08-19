@@ -3696,7 +3696,7 @@ is ambiguous.
   (define (char-standard? c ::character) ::boolean
     (or (char-graphic? c)
         (eqv? c #\newline)))
-  
+
   (define (char-hex-value c::char)::int
     (let ((code (char->integer c)))
       (cond ((char-digit? c)
@@ -3724,6 +3724,24 @@ is ambiguous.
   (e.g.
    (take 3 #;elements-from '(1 2 3 4 5))
    ===> (1 2 3))
+
+  (define (prefix? a::List b::List)::boolean
+    (let ((ai ::Iterator (a:listIterator))
+  	(bi ::Iterator (b:listIterator)))
+      (let loop ()
+        (or (not (ai:hasNext))
+  	  (and (bi:hasNext)
+  	       (equal? (ai:next) (bi:next))
+  	       (loop))))))
+
+  (e.g.
+   (is '(a b c) prefix? '(a b c d e)))
+
+  (e.g.
+   (isnt '(a b c d e) prefix? '(a b c)))
+
+  (e.g.
+   (isnt '(d e) prefix? '(a b c)))
 
 #+END_SRC
 
@@ -5730,9 +5748,9 @@ rectangular area of the screen, and ~Space~ is something
 that is located between ~Tile~ elements. 
 
 Because of the irregular shape of ~Space~, we need to be
-able to track during rendering how we're supposed to shift
-our coordinate system. If a ~Space~ contains a new line, we
-need to terminate the current line, i.e. move the origin
+able to track how we're supposed to shift our coordinate
+system during rendering. If a ~Space~ contains a new line,
+we need to terminate the current line, i.e. move the origin
 down and to the left (the same is true for ~LineComment~).
 Therefore we need an object that would represent the current
 ~LayoutState~:
@@ -5765,42 +5783,76 @@ of advancing the layout state:
     (advance-layout! state::LayoutState)::void)
 #+END_SRC
 
-Likewise, an object is ~Visual~ if it can be rendered.
-The rendering procedure also receives a ~context~, i.e.
-a list of integers that specifies the position of the
-currently rendered element in the document tree
+Likewise, an object is ~Visual~ if it can be rendered.  The
+rendering method shall also receive the ~LayoutState~
+object, but that's not enough. Like most code editors, GRASP
+ought to let its users utilize keyboard for navigation and
+editing, and the way a certain ~Element~ looks might depend
+on the position of a cursor. Unlike in text editors, the
+cursor of GRASP can be imagined as a sequence of integer
+numbers, where each integer is an index to an element at a
+given nesting level in the document.
+
+For pragmatic reasons, we're going to represent cursors
+in GRASP using ~ArrayStack~:
+
+#+BEGIN_SRC scheme :tangle no :noweb-ref GRASP-ontology
+  (define-object (Cursor)::StackList
+
+    (define (activates? path ::Cursor)
+      (and (not (invoke-special ArrayList (this) 'isEmpty))
+  	 (is (this) prefix? path)
+  	 (= (length (this)) (- (length path) 1))))
+
+    (ArrayStack))
+
+#+END_SRC
+
+As to the cursor itself, it's going to be represented
+using a /parameter/ (or a /dynamic variable/) called
+~current-cursor~:
+
+#+BEGIN_SRC scheme :tangle no :noweb-ref GRASP-ontology
+  (define-parameter (current-cursor)::Cursor
+    (Cursor))
+
+#+END_SRC
+
+The disadvantage of parameters is that they make an implicit
+dependence of program's behavior on some hidden piece of
+state. On the other hand, they allow us to decouple the
+implementation of rendering from any knowledge about the
+state's owner, thereby improving the implementation's
+modularity.
+
+Lastly, we need to track the position of each rendered
+node in the document tree -- which is why we're going
+to pass in an additional parameter of type ~Cursor~
+that we are going to call ~path~. If ~(current-cursor)~
+is a ~prefix?~ of a given ~path~, then the element
+can be considered active.
 
 #+BEGIN_SRC scheme :tangle no :noweb-ref GRASP-ontology
   (define-interface Visual (Spatial)
-    (render! active?::boolean state::LayoutState)::void)
+    (render! path ::Cursor state::LayoutState)::void)
+
 #+END_SRC
 
-We therefore expect an ~Element~ to be both ~Visual~ and
-~Spatial~. But there is more: we just mentioned that an
-element can be active, which means that it's pointed to by
-a cursor (which we'll explain in more detail shortly).
+We expect an ~Element~ to be both ~Visual~ and
+~Spatial~. But there is more: an element can be active,
+which means that it's pointed to by the cursor (which we'll
+explain in more detail shortly).
 
 We aren't yet ready to define exactly what an ~Element~ is,
 because we haven't considered its interactive and editable
-nature, but as far as a ~Comb~ is concerned, we will
-represent the ~current-index~ as an integer. Since we also
-assume that the ~current-index~ can indicate a left or a right
-parenthesis, we can represent them as indices -1 and -2,
-respectively.
+nature.
 
-#+BEGIN_SRC scheme :tangle no :noweb-ref Comb--rendering
-
-  (define-static LEFT-PAREN-INDEX -1)
-  (define-static RIGHT-PAREN-INDEX -2)
-
-  (define current-index ::int LEFT-PAREN-INDEX)
-#+END_SRC
-
-Mind also, that a ~Comb~ is supposed to be a ~Tile~, and
-therefore occupy a rectangular area of the screen, so we
-need some way to calculate its ~width~ and ~height~.  They
-will be known after rendering, so we can cache them in
-variables to avoid their recomputation on every access.
+But as far as a ~Comb~ is concerned, it is supposed to be a
+~Tile~, and therefore occupy a rectangular area of the
+screen, so we need some way to calculate its ~width~ and
+~height~.  They will be known after rendering, so we can
+cache them in variables to avoid their recomputation on
+every access.
 
 #+BEGIN_SRC scheme :tangle no :noweb-ref Comb--rendering
   (define-private last-width ::real -1)
@@ -5812,40 +5864,50 @@ rendering function for ~Comb~ and its thereabouts.
 
 #+BEGIN_SRC scheme :tangle no :noweb-ref Comb--rendering
   (define style ::BorderStyle BorderStyle:Parentheses)
+  (define-static LEFT-PAREN-INDEX -1)
+  (define-static RIGHT-PAREN-INDEX -2)
 
-  (define (render! active? ::boolean state::LayoutState)::void
-    (let ((active ::Element (or (and active? (get current-index))
-                                #!null))
-          (current-layout ::LayoutState (LayoutState))
+  (define (render! path ::Cursor state::LayoutState)::void
+    (let ((current-layout ::LayoutState (LayoutState))
           (border-width ::real (painter:border-width style))
+  	 (index ::int 0)
+  	 (cursor ::Cursor (current-cursor))
           (border-height ::real (painter:border-height style)))
       (painter:with-translation
        border-width border-height
        (lambda ()
-         (for element ::Element in: (this)
-           (painter:with-translation
-            current-layout:left current-layout:top
-            (lambda ()
-              (element:render! (and active? (eq? element active))
-                               current-layout))))))
-      (update-size-from-layout-state! current-layout)
-      (painter:draw-box! last-width last-height
-                         (if active?
-                             (match current-index
-                               (,LEFT-PAREN-INDEX  SideSelected:Left)
-                               (,RIGHT-PAREN-INDEX SideSelected:Right)
-                               (_                  SideSelected:None))
-                             SideSelected:None)
-                         style))
-    (advance-layout! state))
+         (path:with
+  	index
+     	(lambda ()
+     	  (for element ::Element in: (this)
+     	       (path:set-top! index)
+                 (painter:with-translation
+     		current-layout:left current-layout:top
+     		(lambda ()
+     		  (element:render! path
+     				   current-layout)))
+     	       (increase! index))))
+         (update-size-from-layout-state! current-layout)
+         (painter:draw-box! last-width last-height
+     			  (if (cursor:activates? path)
+                                (match (path:top)
+     				(,LEFT-PAREN-INDEX
+     				 SideSelected:Left)
+     				(,RIGHT-PAREN-INDEX
+     				 SideSelected:Right)
+     				(_
+     				 SideSelected:None))
+                                SideSelected:None)
+     			  style)))
+      (advance-layout! state)))
 
   (define-private (update-size-from-layout-state!
                    state ::LayoutState)
     ::void
     (set! last-width (+ (* 2 (painter:border-width style))
-                        state:max-width))
+     		      state:max-width))
     (set! last-height (+ state:top state:line-height
-                         (* 2 (painter:border-height style)))))
+     		       (* 2 (painter:border-height style)))))
 
   (define (width)::real
     (when (is last-width < 0)
@@ -5882,8 +5944,6 @@ everything, we can provide a /partial implementation/.
 
   (define-static (empty)::Space
     (Space))
-
-  (define-private current-index ::int 0)
 
   (define (index-positions fragment ::int)::int
     (max 1 (+ fragment 1)))
@@ -5932,20 +5992,22 @@ everything, we can provide a /partial implementation/.
 
 
 #+BEGIN_SRC scheme :noweb-ref Space--rendering
-  (define (render! active? ::boolean state::LayoutState)::void
+  (define (render! path ::Cursor state::LayoutState)::void
     (let ((index ::int 0)
           (initial-left ::real state:left)
           (initial-top ::real state:top)
+  	(cursor ::Cursor (current-cursor))
           (last-index ::int (- (length fragments) 1)))
       (for i::int from: 0 to: last-index
            (let ((n ::int (fragments i)))
              (when (is n > 0)
-               (when (and active?
-                          (is index <= current-index <= (+ index n)))
+               (when (and (cursor:activates? path)
+                          (is index <= (cursor:top)
+  			    <= (+ index n)))
                  (painter:with-translation
                      (- state:left initial-left) (- state:top initial-top)
                    (lambda ()
-                     (painter:mark-cursor! (- current-index index) #!null))))
+                     (painter:mark-cursor! (- (cursor:top) index) #!null))))
                (expand-layout! state (* n (painter:space-width))
                                (painter:min-line-height)))
              (unless (= i last-index)
@@ -6027,7 +6089,7 @@ everything, we can provide a /partial implementation/.
         (s::string
          (builder:append s))))
 
-    (define (render! active? ::boolean state ::LayoutState)::void
+    (define (render! path ::Cursor state ::LayoutState)::void
       (let ((border-width ::real
                           (painter:border-width BorderStyle:Atom))
             (border-height ::real
@@ -6072,7 +6134,7 @@ everything, we can provide a /partial implementation/.
                    (Comb (Atom "-") (Space " ")
                          (Atom "n") (Space " ")
                          (Atom "1"))))))))
-     (document:render! #f (LayoutState))
+     (document:render! (Cursor) (LayoutState))
      (let ((snapshot (painter:toString)))
        (display snapshot)
        snapshot)) ===> "
@@ -6298,7 +6360,6 @@ we have everything that is needed to define the ~Visual~,
 ~Spatial~ and ~Tile~ parts of ~Textual~ elements.
 
 #+BEGIN_SRC scheme :noweb-ref TextualTileBase--rendering
-  (define-protected current-index ::int 0)
 
   (define-protected (border-style)::BorderStyle
     #!abstract)
@@ -6309,9 +6370,10 @@ we have everything that is needed to define the ~Visual~,
   (define-protected last-width ::int -1)
   (define-protected last-height ::int -1)
 
-  (define (render! active? ::boolean state::LayoutState)::void
+  (define (render! path ::Cursor state::LayoutState)::void
     (let* ((font ::FontProxy (font))
            (style ::BorderStyle (border-style))
+  	 (cursor ::Cursor (current-cursor))
            (inner-width ::real 0)
            (inner-height ::real 0)
            (border-width ::real
@@ -6330,17 +6392,21 @@ we have everything that is needed to define the ~Visual~,
                     (lambda ()
                       (let* ((line-width (painter:draw-text!
                                           line font))
-                             (l ::int (string-length line)))
-                        (when (and active?
-                                   (is n <= current-index
+                             (k ::int (string-length line)))
+                        (when (and (cursor:activates? path)
+                                   (is n <= (cursor:top)
                                        <= (+ n l) ))
-                          (painter:mark-cursor! (- current-index n) font))
-                        (increase! n by: l)
+                          (painter:mark-cursor!
+  			   (- (cursor:top) n)
+  			   font))
+                        (increase! n by: k)
                         (maximize! inner-width line-width)
-                        (increase! inner-height by: (font:height)))))))))))
+                        (increase! inner-height
+  				 by: (font:height)))))))))))
       (set! last-width (+ inner-width (* 2 border-width)))
       (set! last-height (+ inner-height (* 2 border-height)))
-      (painter:draw-box! last-width last-height SideSelected:None style))
+      (painter:draw-box! last-width last-height
+  		       SideSelected:None style))
     (advance-layout! state))
 
   (define-private (recalculate-size!)::void
@@ -6420,8 +6486,8 @@ units in GRASP
     (define-protected (border-style)::BorderStyle
       BorderStyle:LineComment)
 
-    (define (render! active? ::boolean state::LayoutState)::void
-      (invoke-special TextualTileBase (this) 'render! active? state))
+    (define (render! path ::Cursor state::LayoutState)::void
+      (invoke-special TextualTileBase (this) 'render! path state))
 
     (define (advance-layout! state ::LayoutState)::void
       (expand-layout! state (invoke (this) 'width) (invoke (this) 'height))
@@ -6494,7 +6560,7 @@ rendering with our ~TextPainter~.
           (painter:with-translation
            state:left state:top
            (lambda ()
-             (item:render! #false state))))
+             (item:render! (Cursor) state))))
      (display (painter:toString))
      (painter:toString))
    ===> "
@@ -6649,7 +6715,7 @@ We can now test the simplified parser on sample data:
     (! 5) ===> 120)
   " read-list)))
      (set! document:style BorderStyle:None)
-     (document:render! #true (LayoutState))
+     (document:render! (Cursor) (LayoutState))
      (display (painter:toString))
      (painter:toString)) ===> "
   <<simple-parser-test-result-with-indentation>>
@@ -6666,7 +6732,7 @@ We can now test the simplified parser on sample data:
   " read-list)))
      (set! document:style BorderStyle:None)
      (painter:clear!)
-     (document:render! #true (LayoutState))
+     (document:render! (Cursor) (LayoutState))
      (display (painter:toString))
      (painter:toString)) ===> "
   <<simple-parser-test-result-no-indentation>>
@@ -6797,7 +6863,7 @@ it supports more objects):
        0
        (lambda ()
          (while running?
-  	 (set! (last path) (result:size))
+  	 (path:set-top! (result:size))
   	 (if (or (is (result:elements:size) >= max-elements)
   		 (eof-object? (peek-char port)))
                (set! running? #false)
@@ -7125,7 +7191,7 @@ class that will be elaborated in the future.
   (* n (! (- n 1)))))
   (e.g. (! 5) ===> 120)
   " read-document)))
-     (document:render! #true (LayoutState))
+     (document:render! (Cursor) (LayoutState))
      (display (painter:toString))
 
      (painter:toString)) ===> "
@@ -7155,7 +7221,7 @@ class that will be elaborated in the future.
   (e.g. (! 5) ===> 120)
   " read-document)))
     (painter:clear!)
-    (document:render! #true (LayoutState))
+    (document:render! (Cursor) (LayoutState))
     (display (painter:toString))
     (painter:toString)) ===> "
   ╭        ╭     ╮                ╮
@@ -8102,7 +8168,7 @@ one for handling input, and another for rendering:
         (set! (screen-up-to-date?) #t))
       (let ((resize ::TerminalSize (terminal:doResizeIfNecessary)))
         (painter:clear!)
-        (document:render! #true (LayoutState))
+        (document:render! (Cursor) (LayoutState))
         (if resize
             (terminal:refresh LanternaScreen:RefreshType:COMPLETE)
             (terminal:refresh LanternaScreen:RefreshType:DELTA))
@@ -8812,8 +8878,8 @@ of ~<<TextualTileSubclasses--rendering>>~ and
     (define-protected (border-style)::BorderStyle
       BorderStyle:LineComment)
 
-    (define (render! active? ::boolean state::LayoutState)::void
-      (invoke-special TextualTileBase (this) 'render! active? state))
+    (define (render! path ::Cursor state::LayoutState)::void
+      (invoke-special TextualTileBase (this) 'render! path state))
 
     (define (advance-layout! state ::LayoutState)::void
       (expand-layout! state (invoke (this) 'width) (invoke (this) 'height))
@@ -8932,8 +8998,10 @@ As to the main part of the stub, it is defined as follows:
         (truly
          <<GRASP-key-typed>>)))
 
+    (define initial-path ::Cursor (Cursor))
+    
     (define (render!)::void
-      (current-document:render! #true (LayoutState))))
+      (current-document:render! initial-path (LayoutState))))
 
   (define main ::Application
     (let ((editor ::GRASP-Editor (GRASP-Editor)))
