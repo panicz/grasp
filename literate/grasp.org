@@ -4306,7 +4306,7 @@ day in the future.
        (pop!)))
 
     (define (empty?)::boolean
-      (isEmpty))
+      (invoke-special ArrayList (this) 'isEmpty))
 
     (define (top)::Object
       (get (- (size) 1)))
@@ -6395,7 +6395,7 @@ we have everything that is needed to define the ~Visual~,
                              (k ::int (string-length line)))
                         (when (and (cursor:activates? path)
                                    (is n <= (cursor:top)
-                                       <= (+ n l) ))
+                                       <= (+ n k) ))
                           (painter:mark-cursor!
   			   (- (cursor:top) n)
   			   font))
