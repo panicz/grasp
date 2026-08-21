@@ -3924,105 +3924,109 @@ variant of parameters whose instant value is shared between
 theads.
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-(define-simple-class SharedThreadLocation (gnu.mapping.ThreadLocation)
+  (define-simple-class SharedThreadLocation (gnu.mapping.ThreadLocation)
 
-  (location-name ::gnu.mapping.Symbol)
-  (default-value)
-  
-  ((setWithSave value) access: 'synchronized
-   (let* ((old-location (invoke-special gnu.mapping.ThreadLocation (this) 'get))
-	  (new-location (gnu.mapping.SharedLocation
-			 location-name
-			 #!null
-			 (java.lang.System:currentTimeMillis))))
-     (invoke-special gnu.mapping.ThreadLocation (this) 'set new-location)
-     (new-location:set value)
-     old-location))
-  
-  ((setRestore old-location) access: 'synchronized
-   (invoke-special gnu.mapping.ThreadLocation (this) 'set old-location))
-  
-  ((set value) access: 'synchronized
-   (let ((location ::gnu.mapping.SharedLocation
-		   (invoke-special gnu.mapping.ThreadLocation
-				   (this) 'get)))
-     (if location
-	 (location:set value)
-	 (let ((new-location (gnu.mapping.SharedLocation
-			      location-name
-			      #!null
-			      (java.lang.System:currentTimeMillis))))
-	   (invoke-special gnu.mapping.ThreadLocation (this) 'set new-location)
-	   (new-location:set value)))))
-  
-  ((get) access: 'synchronized
-   (let ((location ::gnu.mapping.SharedLocation
-		   (invoke-special gnu.mapping.ThreadLocation
-				   (this) 'get)))
-     (if location
-	 (location:get)
-	 default-value)))
-  
-  ((*init* name ::gnu.mapping.Symbol value)
-   (set! location-name name)
-   (set! default-value value)
-   (let ((new-location (gnu.mapping.SharedLocation
-			location-name
-			#!null
-			(java.lang.System:currentTimeMillis))))
-     (invoke-special gnu.mapping.ThreadLocation (this) 'set new-location)
-     (new-location:set value))))
-
-(define (make-shared-parameter name init #!optional (converter #!null))
-  (unless (eq? converter #!null)
-    (set! init (converter init)))
-  (let* ((loc (SharedThreadLocation:new name init))
-         (conv ::gnu.mapping.Procedure
-               (if (or (eq? converter #!null)
-                       (gnu.mapping.Procedure? converter))
-                   converter
-                   (lambda (x) (converter x)))))
-    (gnu.mapping.LocationProc:new loc conv)))
-
-(define-syntax define-parameter
-  (syntax-rules (::)
+    (location-name ::gnu.mapping.Symbol)
+    (default-value)
     
-    ((_ (parameter-name) :: type initial-value)
-     (define-early-constant parameter-name :: (specialize parameter type)
-       (make-shared-parameter 'parameter-name initial-value)))
-
-    ((_ (parameter-name) :: type)
-     (define-early-constant parameter-name :: (specialize parameter type)
-       (make-shared-parameter 'parameter-name #!null)))
+    ((setWithSave value) access: 'synchronized
+     (let* ((old-location (invoke-special gnu.mapping.ThreadLocation (this) 'get))
+  	  (new-location (gnu.mapping.SharedLocation
+  			 location-name
+  			 #!null
+  			 (java.lang.System:currentTimeMillis))))
+       (invoke-special gnu.mapping.ThreadLocation (this) 'set new-location)
+       (new-location:set value)
+       old-location))
     
-    ((_ (parameter-name) initial-value)
-     (define-early-constant parameter-name :: parameter
-       (make-shared-parameter 'parameter-name initial-value)))
-
-    ((_ (parameter-name))
-     (define-early-constant parameter-name :: parameter
-       (make-shared-parameter 'parameter-name #!null)))
-    ))
-
-(define-syntax define-parameter+
-  (syntax-rules (::)
+    ((setRestore old-location) access: 'synchronized
+     (invoke-special gnu.mapping.ThreadLocation (this) 'set old-location))
     
-    ((_ (parameter-name) :: type initial-value)
-     (define parameter-name :: parameter[type]
-       (make-shared-parameter 'parameter-name initial-value)))
-
-    ((_ (parameter-name) :: type)
-     (define parameter-name :: parameter[type]
-       (make-shared-parameter 'parameter-name #!null)))
+    ((set value) access: 'synchronized
+     (let ((location ::gnu.mapping.SharedLocation
+  		   (invoke-special gnu.mapping.ThreadLocation
+  				   (this) 'get)))
+       (if location
+  	 (location:set value)
+  	 (let ((new-location (gnu.mapping.SharedLocation
+  			      location-name
+  			      #!null
+  			      (java.lang.System:currentTimeMillis))))
+  	   (invoke-special gnu.mapping.ThreadLocation (this) 'set new-location)
+  	   (new-location:set value)))))
     
-    ((_ (parameter-name) initial-value)
-     (define parameter-name :: parameter
-       (make-shared-parameter 'parameter-name initial-value)))
+    ((get) access: 'synchronized
+     (let ((location ::gnu.mapping.SharedLocation
+  		   (invoke-special gnu.mapping.ThreadLocation
+  				   (this) 'get)))
+       (if location
+  	 (location:get)
+  	 default-value)))
+    
+    ((*init* name ::gnu.mapping.Symbol value)
+     (set! location-name name)
+     (set! default-value value)
+     (let ((new-location (gnu.mapping.SharedLocation
+  			location-name
+  			#!null
+  			(java.lang.System:currentTimeMillis))))
+       (invoke-special gnu.mapping.ThreadLocation (this) 'set new-location)
+       (new-location:set value))))
 
-    ((_ (parameter-name))
-     (define parameter-name :: parameter
-       (make-shared-parameter 'parameter-name #!null)))
-    ))
+  (define (make-shared-parameter name init
+  			       #!optional (converter #!null))
+    (unless (eq? converter #!null)
+      (set! init (converter init)))
+    (let* ((loc (SharedThreadLocation:new name init))
+           (conv ::gnu.mapping.Procedure
+                 (if (or (eq? converter #!null)
+                         (gnu.mapping.Procedure? converter))
+                     converter
+                     (lambda (x) (converter x))))
+  	 (parameter ::gnu.mapping.LocationProc
+  		    (gnu.mapping.LocationProc:new loc conv)))
+      (parameter:setSymbol name)
+      parameter))
+
+  (define-syntax define-parameter
+    (syntax-rules (::)
+      
+      ((_ (parameter-name) :: type initial-value)
+       (define-early-constant parameter-name :: (specialize parameter type)
+         (make-shared-parameter 'parameter-name initial-value)))
+
+      ((_ (parameter-name) :: type)
+       (define-early-constant parameter-name :: (specialize parameter type)
+         (make-shared-parameter 'parameter-name #!null)))
+      
+      ((_ (parameter-name) initial-value)
+       (define-early-constant parameter-name :: parameter
+         (make-shared-parameter 'parameter-name initial-value)))
+
+      ((_ (parameter-name))
+       (define-early-constant parameter-name :: parameter
+         (make-shared-parameter 'parameter-name #!null)))
+      ))
+
+  (define-syntax define-parameter+
+    (syntax-rules (::)
+      
+      ((_ (parameter-name) :: type initial-value)
+       (define parameter-name :: parameter[type]
+         (make-shared-parameter 'parameter-name initial-value)))
+
+      ((_ (parameter-name) :: type)
+       (define parameter-name :: parameter[type]
+         (make-shared-parameter 'parameter-name #!null)))
+      
+      ((_ (parameter-name) initial-value)
+       (define parameter-name :: parameter
+         (make-shared-parameter 'parameter-name initial-value)))
+
+      ((_ (parameter-name))
+       (define parameter-name :: parameter
+         (make-shared-parameter 'parameter-name #!null)))
+      ))
 
 #+END_SRC
 
@@ -5794,15 +5798,15 @@ numbers, where each integer is an index to an element at a
 given nesting level in the document.
 
 For pragmatic reasons, we're going to represent cursors
-in GRASP using ~ArrayStack~:
+in GRASP using ~ArrayStack~ with a bunch of helper methods:
 
 #+BEGIN_SRC scheme :tangle no :noweb-ref GRASP-ontology
-  (define-object (Cursor)::StackList
+  (define-object (Cursor)::Stack::List::StackList
 
-    (define (activates? path ::Cursor)
-      (and (not (invoke-special ArrayList (this) 'isEmpty))
-  	 (is (this) prefix? path)
-  	 (= (length (this)) (- (length path) 1))))
+    (define (active-at? path ::Cursor)
+      (and (not (invoke (this) 'empty?))
+  	 (is path prefix? (this))
+  	 (= (length path) (- (length (this)) 1))))
 
     (ArrayStack))
 
@@ -5870,27 +5874,27 @@ rendering function for ~Comb~ and its thereabouts.
   (define (render! path ::Cursor state::LayoutState)::void
     (let ((current-layout ::LayoutState (LayoutState))
           (border-width ::real (painter:border-width style))
-  	 (index ::int 0)
-  	 (cursor ::Cursor (current-cursor))
+  	(index ::int 0)
+  	(cursor ::Cursor (current-cursor))
           (border-height ::real (painter:border-height style)))
       (painter:with-translation
        border-width border-height
        (lambda ()
          (path:with
   	index
-     	(lambda ()
-     	  (for element ::Element in: (this)
+  	(lambda ()
+  	  (for element ::Element in: (this)
      	       (path:set-top! index)
                  (painter:with-translation
      		current-layout:left current-layout:top
      		(lambda ()
      		  (element:render! path
      				   current-layout)))
-     	       (increase! index))))
+     	       (increase! index))))))
          (update-size-from-layout-state! current-layout)
          (painter:draw-box! last-width last-height
-     			  (if (cursor:activates? path)
-                                (match (path:top)
+     			  (if (cursor:active-at? path)
+                                (match (cursor:top)
      				(,LEFT-PAREN-INDEX
      				 SideSelected:Left)
      				(,RIGHT-PAREN-INDEX
@@ -5898,11 +5902,11 @@ rendering function for ~Comb~ and its thereabouts.
      				(_
      				 SideSelected:None))
                                 SideSelected:None)
-     			  style)))
-      (advance-layout! state)))
+     			  style))
+      (advance-layout! state))
 
   (define-private (update-size-from-layout-state!
-                   state ::LayoutState)
+  		 state ::LayoutState)
     ::void
     (set! last-width (+ (* 2 (painter:border-width style))
      		      state:max-width))
@@ -5922,7 +5926,7 @@ rendering function for ~Comb~ and its thereabouts.
   (define-private (recalculate-size!)::void
     (let ((state ::LayoutState (LayoutState)))
       (for element ::Element in: (this)
-           (element:advance-layout! state))
+  	 (element:advance-layout! state))
       (update-size-from-layout-state! state)))
 
   (define (advance-layout! state ::LayoutState)::void
@@ -6001,14 +6005,17 @@ everything, we can provide a /partial implementation/.
       (for i::int from: 0 to: last-index
            (let ((n ::int (fragments i)))
              (when (is n > 0)
-               (when (and (cursor:activates? path)
+               (when (and (cursor:active-at? path)
                           (is index <= (cursor:top)
   			    <= (+ index n)))
                  (painter:with-translation
-                     (- state:left initial-left) (- state:top initial-top)
-                   (lambda ()
-                     (painter:mark-cursor! (- (cursor:top) index) #!null))))
-               (expand-layout! state (* n (painter:space-width))
+                  (- state:left initial-left)
+  		(- state:top initial-top)
+                  (lambda ()
+                    (painter:mark-cursor!
+  		   (- (cursor:top) index) #!null))))
+               (expand-layout! state
+  			     (* n (painter:space-width))
                                (painter:min-line-height)))
              (unless (= i last-index)
                (break-layout! state))
@@ -6381,28 +6388,28 @@ we have everything that is needed to define the ~Visual~,
            (border-height ::real
                           (painter:border-height style)))
       (painter:with-translation
-          border-width border-height
-        (lambda ()
-          (call-with-input-string builder
-            (lambda (port ::InputPort)
-              (let ((n ::int 0))
-                (for line in: (lines port)
-                  (painter:with-translation
-                      0 inner-height
-                    (lambda ()
-                      (let* ((line-width (painter:draw-text!
-                                          line font))
-                             (k ::int (string-length line)))
-                        (when (and (cursor:activates? path)
-                                   (is n <= (cursor:top)
-                                       <= (+ n k) ))
-                          (painter:mark-cursor!
-  			   (- (cursor:top) n)
-  			   font))
-                        (increase! n by: k)
-                        (maximize! inner-width line-width)
-                        (increase! inner-height
-  				 by: (font:height)))))))))))
+       border-width border-height
+       (lambda ()
+         (call-with-input-string builder
+           (lambda (port ::InputPort)
+             (let ((n ::int 0))
+               (for line in: (lines port)
+                    (painter:with-translation
+                     0 inner-height
+                     (lambda ()
+                       (let* ((line-width (painter:draw-text!
+                                           line font))
+                              (k ::int (string-length line)))
+                         (when (and (cursor:active-at? path)
+                                    (is n <= (cursor:top)
+                                        <= (+ n k)))
+                           (painter:mark-cursor!
+  			  (- (cursor:top) n)
+  			  font))
+                         (increase! n by: k)
+                         (maximize! inner-width line-width)
+                         (increase! inner-height
+  				  by: (font:height)))))))))))
       (set! last-width (+ inner-width (* 2 border-width)))
       (set! last-height (+ inner-height (* 2 border-height)))
       (painter:draw-box! last-width last-height
@@ -6421,9 +6428,9 @@ we have everything that is needed to define the ~Visual~,
       (call-with-input-string builder
         (lambda (port ::InputPort)
           (for line in: (lines port)
-            (let ((line-width (painter:text-width line font)))
-              (maximize! inner-width line-width)
-              (increase! inner-height by: (font:height))))))
+               (let ((line-width (painter:text-width line font)))
+                 (maximize! inner-width line-width)
+                 (increase! inner-height by: (font:height))))))
       (set! last-width (+ inner-width (* 2 border-width)))
       (set! last-height (+ inner-height (* 2 border-height)))))
 
