@@ -5608,8 +5608,6 @@ going to provide mock definitions of ~Element~, ~Tile~ and
       name)
     )
 
-  (define-interface Compound (Tile List))
-
   (define-object (Space content::string)::Element
 
     #|
@@ -5649,7 +5647,7 @@ going to provide mock definitions of ~Element~, ~Tile~ and
     (define (toString)::String
       content))
 
-  (define-object (Comb)::Compound
+  (define-object (Comb)::Tile::List
 
     <<Comb--collection-operations>>
 
@@ -5869,7 +5867,6 @@ rendering function for ~Comb~ and its thereabouts.
 #+BEGIN_SRC scheme :tangle no :noweb-ref Comb--rendering
   (define style ::BorderStyle BorderStyle:Parentheses)
   (define-static LEFT-PAREN-INDEX -1)
-  (define-static RIGHT-PAREN-INDEX -2)
 
   (define (render! path ::Cursor state::LayoutState)::void
     (let ((current-layout ::LayoutState (LayoutState))
@@ -5895,9 +5892,9 @@ rendering function for ~Comb~ and its thereabouts.
          (painter:draw-box! last-width last-height
      			  (if (cursor:active-at? path)
                                 (match (cursor:top)
-     				(,LEFT-PAREN-INDEX
+     				(0
      				 SideSelected:Left)
-     				(,RIGHT-PAREN-INDEX
+     				(,(+ (size) 1)
      				 SideSelected:Right)
      				(_
      				 SideSelected:None))
@@ -6026,6 +6023,7 @@ everything, we can provide a /partial implementation/.
       (for i::int from: 0 to: last-index
            (let ((n ::int (fragments i)))
              (when (is n > 0)
+
                (expand-layout! state (* n (painter:space-width))
                                (painter:min-line-height)))
              (unless (= i last-index)
@@ -6062,9 +6060,6 @@ everything, we can provide a /partial implementation/.
     (width)::real
     (height)::real)
 
-
-  (define-interface Compound (Tile List))
-
   (define-interface Comment (Tile)
     (breaks-line?)::boolean)
 
@@ -6073,7 +6068,7 @@ everything, we can provide a /partial implementation/.
     <<Space--rendering>>
     )
 
-  (define-object (Comb)::Compound
+  (define-object (Comb)::Tile::List
     <<Comb--collection-operations>>
     <<Comb--rendering>>
     )
@@ -6683,8 +6678,6 @@ We can now test the simplified parser on sample data:
     (width)::real
     (height)::real)
 
-  (define-interface Compound (Tile List))
-
   (define-interface Comment (Tile)
     (breaks-line?)::boolean)
 
@@ -6693,7 +6686,7 @@ We can now test the simplified parser on sample data:
     <<Space--rendering>>
     )
 
-  (define-object (Comb)::Compound
+  (define-object (Comb)::Tile::List
     <<Comb--collection-operations>>
     <<Comb--whitespace-support>>
     <<Comb--rendering>>
@@ -7153,8 +7146,6 @@ class that will be elaborated in the future.
     (width)::real
     (height)::real)
 
-  (define-interface Compound (Tile List))
-
   (define-interface Comment (Tile))
 
   (define-object (Space)::Element
@@ -7162,7 +7153,7 @@ class that will be elaborated in the future.
     <<Space--rendering>>
     )
 
-  (define-object (Comb)::Compound
+  (define-object (Comb)::Tile::List
     <<Comb--collection-operations>>
     <<Comb--whitespace-support>>
     <<Comb--rendering>>
@@ -7395,8 +7386,6 @@ We can now test whether the algorithm works correctly:
 
   (define-interface Tile (Element))
 
-  (define-interface Compound (Tile List))
-
   (define-interface Comment (Tile)
     (breaks-line?)::boolean)
 
@@ -7413,7 +7402,7 @@ We can now test whether the algorithm works correctly:
     <<Space--serialize>>
     )
 
-  (define-object (Comb)::Compound
+  (define-object (Comb)::Tile::List
     <<Comb--collection-operations>>
     <<Comb--whitespace-support>>    
     <<Comb--serialize>>
@@ -7526,279 +7515,129 @@ But before we move on to the second dimension, we first need
 to worry how to represent a sequential, linear position in a
 file.
 
-We've already seen our representation as we were
-implementing the ~render!~ method for the ~Comb~ class -- we
-had to introduce the ~current-index~ variable to check
-whether a given rendered element was ~active?~. At that
-point it probably wasn't very useful -- rendering active and
-non-active objects is something that we had to anticipate.
+We've already seen our representation of ~Cursor~ as we were
+implementing the ~render!~ method for the ~Comb~ class.
 
-Now we need to actually be able to modify the ~current-index~
-and conceptualize it in the big picture.
+Now we need to actually be able to modify the cursor and
+conceptualize it in the big picture.
 
 As we know, a document in GRASP consists of nested ~Comb~
 elements -- and therefore the active element can be reached
 by providing /a sequence of indices/. The exact lenght of
 that sequence depends on the nesting level of the
-expressions involved. In the contet od GRASP, we will be
-calling this sequence of indices -- /a cursor/.
+expressions involved. In the context of GRASP, we've
+been calling this sequence of indices -- a ~Cursor~.
 
-Consequently, an element pointed to by a cursor can be
+Consequently, an element pointed to by a ~Cursor~ can be
 obtained in the following way:
 
 #+BEGIN_SRC scheme :noweb-ref cursor-target--definition
-  (define (cursor-target root::Element cursor::(sequence-of int))
+  (define (cursor-target root ::Element cursor ::Cursor)
     ::Element
     (for index::int in: cursor
       (set! root (root:element-at index)))
     root)
  #+END_SRC
 
-
 The two most basic operations that can be performed on
 cursor are /advancing/ and /retreating/. Those operations
 are in turn based on advancing and retreating indices.
 
+**** The ~Indexable~ interface
+
+We saw that the definition of ~cursor-target~ procedure
+refers to the ~element-at~ method. We need to extend our
+~Element~ interface with it, plus a method that specifies
+the last index that can be accepted by a given element:
+
+#+BEGIN_SRC scheme :noweb-ref GRASP-ontology
+  (define-interface Indexable ()
+    (last-index)::int
+    (element-at index ::int)::Element)
+#+END_SRC
+
+Additionally we're assuming that all integers between
+0 and ~(last-index)~ are valid indices.
+
 **** Cursor-related operations in ~Comb~
 
-An index is simply an integer. Regular indices are
-non-negative, but we've already seen the ~Comb~'s
-parentheses having negative indices. Because of those
-irregularities, we need to model the order of indices using
-method of our ~Comb~ class (and, as it will soon turn out,
-other ~Element~-s as well). More specifically, we wish to
-have two methods, ~index-succeeding~ and ~index-preceding~,
-which -- given a valid index -- return its successor and
-predecessor. For ~Comb~, those methods could be defined as
+In the case of ~Comb~, the last index -- or the index
+of the right parenthesis -- is one larger than the number
+if its actual elements:
 
 #+BEGIN_SRC scheme :noweb-ref Comb--navigation
-
-  (define (index-succeeding index::int)::int
-    (match index
-      (,LEFT-PAREN-INDEX  0)
-      (,RIGHT-PAREN-INDEX index)
-      (,(- (size) 1)      RIGHT-PAREN-INDEX)
-      (_                  (+ index 1))))
-
-  (define (index-preceding index::int)::int
-    (match index
-      (,RIGHT-PAREN-INDEX (- (size) 1))        
-      (,LEFT-PAREN-INDEX  index)
-      (0                  LEFT-PAREN-INDEX)
-      (_                  (- index 1))))
+  (define (last-index)::int
+    (+ (size) 1))
 
 #+END_SRC
 
-Having them defined, we can develop two helper methods,
-~advance-current-index!~ and ~retreat-current-index!~, which
-apply them to the ~current-index~.
-
-#+BEGIN_SRC scheme :noweb-ref Comb--navigation
-
-  (define-private (advance-current-index!)::boolean
-    (let ((previous ::int current-index))
-      (set! current-index (index-succeeding current-index))
-      (isnt previous = current-index)))
-
-  (define-private (retreat-current-index!)::boolean
-    (let ((previous ::int current-index))
-      (set! current-index (index-preceding current-index))
-      (isnt previous = current-index)))
-
-#+END_SRC
-
-With these definitions, we can now define what it means to
-~cursor-advance!~ and/or ~cursor-retreat!~. Both these
-methods return a boolean value which is true when the
-cursor has successfully been moved. This is important,
-because they call the corresponding methods on their
-children recursively, so this way the children can inform
-their parents whether the cursor has reached its
-end/beginning at a given level, and the parent index needs
-to be updated:
-
-#+BEGIN_SRC scheme :noweb-ref Comb--navigation
-
-  (define (cursor-advance!)::boolean
-    (when (= current-index LEFT-PAREN-INDEX)
-      (set! current-index 0))
-    (and (isnt current-index = RIGHT-PAREN-INDEX)
-         (let ((element ::Element (element-at current-index)))
-           (or (element:cursor-advance!)
-               (and (advance-current-index!)
-                    (let ((next ::Element
-                                (element-at current-index)))
-                      (and (isnt next eq? element)
-                           (or (eq? next (this))
-                               (truly (next:cursor-to-start!))))))))))
-
-  (define (cursor-retreat!)::boolean
-    (when (= current-index RIGHT-PAREN-INDEX)
-      (set! current-index (- (size) 1)))
-    (and (isnt current-index = LEFT-PAREN-INDEX)
-         (let ((element ::Element (element-at current-index)))
-           (or (element:cursor-retreat!)
-               (and (retreat-current-index!)
-                    (let ((previous ::Element
-                                    (element-at current-index)))
-                      (and (isnt previous eq? element)
-                           (or (eq? previous (this))
-                               (truly (previous:cursor-to-end!))))))))))
-
-#+END_SRC
-
-We can immediately observe that it's not only the ~Comb~
-class that is supposed to possess the ~cursor-retreat!~ and
-~cursor-advance!~ methods, but that we expect every
-~Element~ to have them -- just like a few other operations:
-
-#+BEGIN_SRC scheme :noweb-ref Element--cursor-operations
-  (cursor-advance!)::boolean
-  (cursor-retreat!)::boolean
-  (cursor-to-start!)::boolean
-  (cursor-to-end!)::boolean
-  (cursor-index)::int
-  (element-at index ::int)::Element
-  (current-target)::Element
-#+END_SRC
-
-Of course, the definition of ~element-at~ for ~Comb~
-is fairly easy (but that's mainly because we almost
-implemented it under a different name):
+Moreover, since we assume that 0 is the index of the left
+parenthesis, we need to subtract 1 in order to get the index
+of some of its actual elements (otherwise the ~element-at~
+method will return the ~Comb~ itself).
 
 #+BEGIN_SRC scheme :noweb-ref Comb--navigation
   (define (element-at index ::int)::Element
-    (if (is 0 <= index < (size))
-        (get index)
+    (if (is 0 < index <= (size))
+        (get (- index 1))
         (this)))
 #+END_SRC
 
-What may not be immediately visible, is the convention that
-that an element whose index does not refer to any other
-element, should return itself. (For example, it could be
-tempting to implement ~element-at~ for ~Atom~ that would
-return respective characters -- but in our ontology a
-character is not an ~Element~, which means that our atoms
-are actually atomic.)
+As a consequence, the cursor indices of tiles inside ~Comb~
+are going to be even numbers starting from 2.
 
-When it comes to the ~cursor-to-start!~ and ~cursor-to-end!~
-methods, their implementation for ~Comb~ are also rather
-straightforward:
+**** Cursor-related operations in ~Textual~ ~Tile~
 
-#+BEGIN_SRC scheme :noweb-ref Comb--navigation
-  (define (cursor-to-start!)::boolean
-    (let ((previous-index current-index))
-      (set! current-index LEFT-PAREN-INDEX)
-      (isnt previous-index = current-index)))
-
-  (define (cursor-to-end!)::boolean
-    (let ((previous-index current-index))
-      (set! current-index RIGHT-PAREN-INDEX)
-      (isnt previous-index = current-index)))
-  
-#+END_SRC
-
-Likewise, the ~cursor-index~ method simply returns
-~current-index~:
-
-#+BEGIN_SRC scheme :noweb-ref Comb--navigation
-  (define (cursor-index)::int
-    current-index)
-  
-#+END_SRC
-
-#+BEGIN_SRC scheme :noweb-ref Comb--navigation
-  (define (current-target)::Element
-    (let ((target ::Element (element-at current-index)))
-      (if (eq? target (this))
-          target
-          (target:current-target))))
-  
-#+END_SRC
-
-
-In addition to ~Comb~, we also need to implement cursor
-movement for ~Space~ and for ~TextualTileBase~ (which forms
-the basis of ~Atom~, ~Text~ and a few other classe).
-
-**** Cursor-related operations in ~TextualTileBase~
-
-The case of ~TextualTileBase~ is particularly simple:
+It may seem surprising but the ~Textual~ elements are
+considered atomic from the perspective of the ~element-at~
+method -- it could be tempting to return the characters
+that such elements are composed of, but a character is
+not an ~Element~ in the sense employed by GRASP.
 
 #+BEGIN_SRC scheme :noweb-ref TextualTileBase--navigation
-  (define (cursor-advance!)::boolean
-    (and (is current-index < (builder:length))
-         (truly (increase! current-index))))
-
-  (define (cursor-retreat!)::boolean
-    (and (is current-index > 0)
-         (truly (decrease! current-index))))
-
-  (define (cursor-to-start!)::boolean
-    (let ((previous-index current-index))
-      (set! current-index 0)
-      (isnt previous-index = current-index)))
-
-  (define (cursor-to-end!)::boolean
-    (let ((previous-index current-index))
-      (set! current-index (builder:length))
-      (isnt previous-index = current-index)))
-
-  (define (cursor-index)::int current-index)
-
   (define (element-at index ::int)::Element
     (this))
 
-  (define (current-target)::Element
-    (this))
+#+END_SRC
+
+The above does not mean that there is no meaningful range of
+indices within ~Textual~ elements. More specifically, the
+amount of positons where one can place their cursor in such
+elements is one greater than the number of its characters:
+
+#+BEGIN_SRC scheme :noweb-ref TextualTileBase--navigation
+  (define (last-index)::int
+    (+ 1 (invoke (the builder) 'length)))
 
 #+END_SRC
 
 **** Cursor-related operations in ~Space~
 
-The case of ~Space~ is only slightly more complicated,
-because spaces are represented by sequences of integer
-numbers, where the number represents the number of spaces in
-a row and the appearence of a next number causes a line
-break.
+Spaces in GRASP are also atomic in the same sense as
+~Textual~ objects:
 
 #+BEGIN_SRC scheme :noweb-ref Space--navigation
-  (define (cursor-index)::int
-    current-index)
-
-  (define (last-index)::int
-    (- (fold-left (lambda (sum::int space::int)
-                    (+ sum (index-positions space)))
-                  0 fragments)
-       1))
-
-  (define (cursor-to-start!)::boolean
-    (let ((previous-index current-index))
-      (set! current-index 0)
-      (isnt previous-index = current-index)))
-
-  (define (cursor-to-end!)::boolean
-    (let ((previous-index current-index))
-      (set! current-index (last-index))
-      (isnt previous-index = current-index)))
-
-  (define (cursor-advance!)::boolean
-    (and (is current-index < (last-index))
-         (truly
-          (increase! current-index))))
-
-  (define (cursor-retreat!)::boolean
-    (and (is current-index > 0)
-         (truly
-          (decrease! current-index))))
-
-  (define (element-at index::int)::Element
-    (this))
-
-  (define (current-target)::Element
+  (define (element-at index ::int)::Element
     (this))
   
 #+END_SRC
+
+The number of cursor positions in ~Space~ can be computed
+quite easily -- by adding together index positions from
+each fragment. If we want to get the value of the last
+index, we need to subtract 1 from that number (because
+we count from 0):
+
+#+BEGIN_SRC scheme :noweb-ref Space--navigation
+  (define (last-index)::int
+    (fold-left (lambda (sum::int space::int)
+                    (+ sum (index-positions space)))
+               -1 fragments))
+
+#+END_SRC
+
+**** Operations on ~Cursor~
+
 
 *** Interactivity (and testing)
 
@@ -8243,8 +8082,6 @@ keys (for moving the cursor left and right), and to the
     (width)::real
     (height)::real)
 
-  (define-interface Compound (Tile List))
-
   (define-interface Comment (Tile))
 
   (define-mixin WriteToString
@@ -8259,7 +8096,7 @@ keys (for moving the cursor left and right), and to the
     <<Space--navigation>>
     )
 
-  (define-object (Comb)::Compound
+  (define-object (Comb)::Tile::List
     <<Comb--collection-operations>>
     <<Comb--whitespace-support>>
     <<Comb--rendering>>
@@ -8421,8 +8258,6 @@ These operations can be tested non-interactively:
       name)
     )
 
-  (define-interface Compound (Tile List))
-
   (define-object (Space content::string)::Element
 
     #|
@@ -8458,7 +8293,7 @@ These operations can be tested non-interactively:
           "."
           content)))
 
-  (define-object (Comb)::Compound
+  (define-object (Comb)::Tile::List
 
     <<Comb--collection-operations>>
     <<Comb--whitespace-support>>
@@ -8942,8 +8777,6 @@ As to the main part of the stub, it is defined as follows:
     (width)::real
     (height)::real)
 
-  (define-interface Compound (Tile List))
-
   (define-interface Comment (Tile))
 
   (define-interface Enchanted (Tile))
@@ -8964,7 +8797,7 @@ As to the main part of the stub, it is defined as follows:
     <<Space--editing>>
     )
 
-  (define-object (Comb)::Compound
+  (define-object (Comb)::Tile::List
     <<Comb--collection-operations>>
     <<Comb--whitespace-support>>
     <<Comb--rendering>>
