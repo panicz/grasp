@@ -8269,7 +8269,10 @@ keys (for moving the cursor left and right), and to the
     (read-list from: port into: (Document)))
 
   (define-parameter (current-document) ::Document
-    (call-with-input-string "
+    (Document))
+
+  (set! (current-document)
+        (call-with-input-string "
   (define (! n) ; int to int
   (if (is n <= 1)
      1           
