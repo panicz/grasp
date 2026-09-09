@@ -7555,17 +7555,14 @@ The two most basic operations that can be performed on
 cursor are /advancing/ and /retreating/. Those operations
 are in turn based on advancing and retreating indices.
 
-**** The ~Indexable~ interface
-
 We saw that the definition of ~cursor-target~ procedure
 refers to the ~element-at~ method. We need to extend our
 ~Element~ interface with it, plus a method that specifies
 the last index that can be accepted by a given element:
 
-#+BEGIN_SRC scheme :noweb-ref GRASP-ontology
-  (define-interface Indexable ()
-    (last-index)::int
-    (element-at index ::int)::Element)
+#+BEGIN_SRC scheme :noweb-ref Element--indexing
+  (last-index)::int
+  (element-at index ::int)::Element
 #+END_SRC
 
 Additionally we're assuming that all integers between
@@ -8112,16 +8109,20 @@ one for handling input, and another for rendering:
       (while running?
         (safely
          (let* ((key ::KeyStroke (terminal:readInput))
-                (type ::KeyType (key:getKeyType)))
+                (type ::KeyType (key:getKeyType))
+  	      (cursor ::Cursor (current-cursor))
+  	      (document ::Document (current-document)))
            (match type
              (,KeyType:ARROW_LEFT
-              (document:cursor-retreat!))
+  	    (cursor:retreat-in! document))
              (,KeyType:ARROW_RIGHT
-              (document:cursor-advance!))
+  	    (cursor:advance-in! document))
              (,KeyType:HOME
-              (document:cursor-to-start!))
+  	    (cursor:clear)
+  	    (cursor:climb-front! document))
              (,KeyType:END
-              (document:cursor-to-end!))
+  	    (cursor:clear)
+              (cursor:climb-back! document))
              (,KeyType:ESCAPE
               (set! running? #false))
              (_
@@ -8151,7 +8152,9 @@ one for handling input, and another for rendering:
         ;; Customizable Display Editor", section 13
         ;; "The Display Processor")
         (set! (screen-up-to-date?) #t))
-      (let ((resize ::TerminalSize (terminal:doResizeIfNecessary)))
+      (let ((resize ::TerminalSize
+  		  (terminal:doResizeIfNecessary))
+  	  (document ::Document (current-document)))
         (painter:clear!)
         (document:render! (Cursor) (LayoutState))
         (if resize
@@ -8214,7 +8217,7 @@ keys (for moving the cursor left and right), and to the
   <<GRASP-ontology>>
 
   (define-interface Element (Visual)
-    <<Element--cursor-operations>>
+    <<Element--indexing>>
     )
 
   (define-interface Tile (Element)
@@ -8265,7 +8268,7 @@ keys (for moving the cursor left and right), and to the
   (define* (read-document port ::InputPort := (current-input-port))::Document
     (read-list from: port into: (Document)))
 
-  (define document ::Document
+  (define-parameter (current-document) ::Document
     (call-with-input-string "
   (define (! n) ; int to int
   (if (is n <= 1)
