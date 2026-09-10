@@ -5877,7 +5877,6 @@ rendering function for ~Comb~ and its thereabouts.
 
 #+BEGIN_SRC scheme :tangle no :noweb-ref Comb--rendering
   (define style ::BorderStyle BorderStyle:Parentheses)
-  (define-static LEFT-PAREN-INDEX -1)
 
   (define (render! path ::Cursor state::LayoutState)::void
     (let ((current-layout ::LayoutState (LayoutState))
@@ -7302,6 +7301,7 @@ the new line plus current indentation):
          (write-char #\newline port)
          (times (+ (fragments i) indent) write-char #\space port)))
 
+  (mix-in WriteToString)
 #+END_SRC
 
 Lastly, we need to define serialization for ~TextualTileBase~
@@ -7545,7 +7545,7 @@ Consequently, an element pointed to by a ~Cursor~ can be
 obtained in the following way:
 
 #+BEGIN_SRC scheme :noweb-ref Cursor--operations
-  (define (target root ::Element)::Element
+  (define (target-in root ::Element)::Element
     (for index::int in: (this)
       (set! root (root:element-at index)))
     root)
@@ -7674,10 +7674,10 @@ to the same element:
 #+BEGIN_SRC scheme :noweb-ref Cursor--operations
   (define (final-in? document ::Element)::boolean
     (let ((top ::Element document)
-  	(tip ::Element #!null))
+          (tip ::Element #!null))
       (for index::int in: (this)
-   	 (set! tip top)
-   	 (set! top (top:element-at index)))
+         (set! tip top)
+         (set! top (top:element-at index)))
       (eq? tip top)))
 
 #+END_SRC
@@ -7711,25 +7711,28 @@ to /climb/ the current cursor /front/ and /back/ (until
 it is final):
 
 #+BEGIN_SRC scheme :noweb-ref Cursor--operations
-  (define (climb-front! document ::Element)::void
+  (define-private (climb! document ::Element indexer ::(maps (Element) to: int))
+    ::void
     (assert (valid-in? document))
-    (self push! 0)
-    (let loop ((root ::Element document))
-      (let ((next ::Element (root:element-at 0)))
-        (self push! 0)
-        (unless (eq? next root)
-  	(loop next))))
+    (let ((top ::Element document)
+          (tip ::Element #!null))
+      (for index::int in: (this)
+        (set! tip top)
+         (set! top (top:element-at index)))
+      (unless (eq? tip top)
+        (let loop ((root ::Element top))
+          (let* ((index ::int (indexer root))
+                 (next ::Element (root:element-at index)))
+            (self push! index)
+            (unless (eq? next root)
+              (loop next))))))
     (assert (final-in? document)))
 
+  (define (climb-front! document ::Element)::void
+    (climb! document (lambda (root ::Element)::int 0)))
+
   (define (climb-back! document ::Element)::void
-    (assert (valid-in? document))
-    (self push! (document:last-index))
-    (let loop ((root ::Element document))
-      (let ((next ::Element (root:element-at (self top))))
-        (self push! (next:last-index))
-        (unless (eq? next root)
-  	(loop next))))
-    (assert (final-in? document)))
+    (climb! document (lambda (root ::Element)::int (root:last-index))))
 
 #+END_SRC
 
@@ -7740,38 +7743,38 @@ methods to advance and retreat the cursor:
   (define (advance-in! document ::Element)::void
     (assert (valid-in? document))
     (let ((elements ::(StackListOf Element)
-  		  (track document)))
+                  (track document)))
       (assert (= (length elements)
-  	       (length (this))))
+                 (length (this))))
       (let loop ()
         (if (elements:empty?)
-  	  (climb-front! document)
-  	  (let ((top-element ::Element (elements:pop!))
-  		(top-index ::int (self pop!)))
-  	    (cond
-  	     ((is top-index < (top-element:last-index))
-  	      (self push! (+ top-index 1))
-  	      (climb-front! top-element))
-  	     (else
-  	      (loop))))))))
+          (climb-front! document)
+          (let ((top-element ::Element (elements:pop!))
+                (top-index ::int (self pop!)))
+            (cond
+             ((is top-index < (top-element:last-index))
+              (self push! (+ top-index 1))
+              (climb-front! document))
+             (else
+              (loop))))))))
 
   (define (retreat-in! document ::Element)::void
     (assert (valid-in? document))
     (let ((elements ::(StackListOf Element)
-  		  (track document)))
+                  (track document)))
       (assert (= (length elements)
-  	       (length (this))))
+               (length (this))))
       (let loop ()
         (if (elements:empty?)
-  	  (climb-back! document)
-  	  (let ((top-element ::Element (elements:pop!))
-  		(top-index ::int (self pop!)))
-  	    (cond
-  	     ((is top-index > 0)
-  	      (self push! (- top-index 1))
-  	      (climb-back! top-element))
-  	     (else
-  	      (loop))))))))
+          (climb-back! document)
+          (let ((top-element ::Element (elements:pop!))
+                (top-index ::int (self pop!)))
+            (cond
+             ((is top-index > 0)
+              (self push! (- top-index 1))
+              (climb-back! document))
+             (else
+              (loop))))))))
 
 #+END_SRC
 
@@ -8096,7 +8099,7 @@ to obtain the most basic version of ~TerminalPainter~:
            (invoke-special CharPainter (this)
                            'draw-right! height border selected)
            (mark-cursor! 0 #!null)))))
-    
+
     (CharPainter))
 #+END_SRC
 
@@ -8110,24 +8113,25 @@ one for handling input, and another for rendering:
         (safely
          (let* ((key ::KeyStroke (terminal:readInput))
                 (type ::KeyType (key:getKeyType))
-  	      (cursor ::Cursor (current-cursor))
-  	      (document ::Document (current-document)))
+                (cursor ::Cursor (current-cursor))
+                (document ::Document (current-document)))
            (match type
              (,KeyType:ARROW_LEFT
-  	    (cursor:retreat-in! document))
+              (cursor:retreat-in! document))
              (,KeyType:ARROW_RIGHT
-  	    (cursor:advance-in! document))
+              (cursor:advance-in! document))
              (,KeyType:HOME
-  	    (cursor:clear)
-  	    (cursor:climb-front! document))
+              (cursor:clear)
+              (cursor:climb-front! document))
              (,KeyType:END
-  	    (cursor:clear)
+              (cursor:clear)
               (cursor:climb-back! document))
              (,KeyType:ESCAPE
               (set! running? #false))
              (_
               (values)
-              #;(print "Unsupported key type: "type", key "key)))))
+              #;(print "Unsupported key type: "type", key "key)))
+           ))
         (synchronized screen-up-to-date?
           (set! (screen-up-to-date?) #f)
           (invoke screen-up-to-date? 'notify)))))
@@ -8236,6 +8240,7 @@ keys (for moving the cursor left and right), and to the
     <<Space--representation>>
     <<Space--rendering>>
     <<Space--navigation>>
+    <<Space--serialize>>
     )
 
   (define-object (Comb)::Tile::List
@@ -8275,7 +8280,7 @@ keys (for moving the cursor left and right), and to the
         (call-with-input-string "
   (define (! n) ; int to int
   (if (is n <= 1)
-     1           
+     1
    (* n (! (- n 1)))))
   (e.g. (! 5) ===> 120)" read-document))
 
@@ -9143,7 +9148,6 @@ completeness we also need to define its inverse, ~EraseCharacters~:
   (define (insert-character c ::Char path ::StackList)::(maybe Edit)
     #!null)
 #+END_SRC
-
 
 
 *** Text editing operations
