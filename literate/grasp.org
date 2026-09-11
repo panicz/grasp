@@ -7549,6 +7549,15 @@ obtained in the following way:
     (for index::int in: (this)
       (set! root (root:element-at index)))
     root)
+
+  (define (target-in/at root ::Element limit ::int)::Element
+    (when (is limit < 0)
+      (set! limit (max 0 (+ (self size) limit))))
+    (set! limit (min (self size) limit))
+    (for i::int from: 0 below: limit
+         (set! root (root:element-at ((this) i))))
+    root)
+
  #+END_SRC
 
 The two most basic operations that can be performed on
@@ -8532,7 +8541,7 @@ objects that implement the ~Edit~ interface:
 
 #+BEGIN_SRC scheme :noweb-ref Edit-interface
   (define-interface Edit ()
-    (perform! document::Element)::void
+    (perform! document::Element)::Cursor
     (inverse)::Edit)
 #+END_SRC
 
@@ -8624,8 +8633,8 @@ interesting, it can be found in the Appendices section at
 the end of this work.
 
 But in addition to naming particular keys, we want to be
-able to name typical key combinations, such as ~(ctrl c)~
-and so on.
+able to name typical key combinations, such as ~(ctrl c)~,
+~(ctrl alt delete)~ and so on.
 
 We can obtain a code of a combination by means of the
 ~keychord-code~ function:
@@ -8719,12 +8728,11 @@ The ~key-bindings~ table is referenced in ~Document~'s
 #+BEGIN_SRC scheme :noweb-ref Document--keyboard-editing
   (define (key-typed! key-code::KeyCode)
     ::(maybe Edit)
-    (let ((target ::Element (invoke-special Comb (this)
-                                            'current-target)))
+    (let* ((cursor ::Cursor (current-cursor))
+  	 (target ::Element (cursor:target-in (this))))
       (match target
         (magic::Enchanted
-         ;; TODO: (current-cursor) nie istnieje!
-         (magic:key-typed! key-code (current-cursor)))
+         (magic:key-typed! key-code))
         (_
          (given ((handler ::(maps (Comb KeyCode) to: (maybe Edit))
                           (key-bindings key-code)))
@@ -8917,6 +8925,7 @@ As to the main part of the stub, it is defined as follows:
   (define-interface Element (Visual)
     <<Element--cursor-operations>>
     <<Element--editing>>
+    <<Element--indexing>>
     )
 
   <<Edit-interface>>
@@ -8929,10 +8938,13 @@ As to the main part of the stub, it is defined as follows:
 
   (define-interface Comment (Tile))
 
-  (define-interface Enchanted (Tile))
-
-  (define-interface Application ()
+  (define-interface Interactive ()
     (key-typed! key-code::KeyCode)::boolean)
+
+  (define-interface Application (Interactive)
+    (render!)::void)
+
+  (define-interface Enchanted (Interactive Tile))
 
   (define-mixin WriteToString
     (define (toString)::String
@@ -8971,6 +8983,9 @@ As to the main part of the stub, it is defined as follows:
 
   <<advanced-parser>>
 
+  (define-parameter (current-document) ::Document
+    (Document))
+
   (define (enchanted item ::Tile path ::Stack)::Tile
     item)
 
@@ -8980,18 +8995,24 @@ As to the main part of the stub, it is defined as follows:
     (set! style BorderStyle:None))
 
   (define-object (GRASP-Editor)::Application
-    (define current-document ::Document (Document))
+    (define document ::Document (Document))
 
+    (define cursor ::Cursor (Cursor))
+    
     (define (key-typed! key-code::KeyCode)::boolean
-      (given ((action ::Edit (current-document:key-typed!
-                              key-code)))
-        (truly
-         <<GRASP-key-typed>>)))
+      (parameterize ((current-document document)
+  		   (current-cursor cursor))
+        (given ((action ::Edit (document:key-typed!
+                                key-code)))
+  	     (truly
+  	      <<GRASP-key-typed>>))))
 
-    (define initial-path ::Cursor (Cursor))
+    (define-private initial-path ::Cursor (Cursor))
+
+    (define-private initial-layout ::LayoutState (LayoutState))
     
     (define (render!)::void
-      (current-document:render! initial-path (LayoutState))))
+      (document:render! initial-path (LayoutState))))
 
   (define main ::Application
     (let ((editor ::GRASP-Editor (GRASP-Editor)))
@@ -9001,8 +9022,8 @@ As to the main part of the stub, it is defined as follows:
      1           
    (* n (! (- n 1)))))
   (e.g. (! 5) ===> 120)"
-              (lambda (port)
-                (read-list from: port into: editor:current-document)))
+        (lambda (port)
+          (read-list from: port into: editor:document)))
       editor))
 
   <<terminal-input-processing>>
@@ -9027,7 +9048,7 @@ the \texttt{escape} button:
 
 #+BEGIN_SRC scheme :noweb-ref Document--initial-key-bindings
   (set-key! 'escape
-            (lambda (self::Comb code::KeyCode)
+            (lambda (code::KeyCode)
               (exit)))
 #+END_SRC
 
@@ -9036,12 +9057,16 @@ our cursor navigation test:
 
 #+BEGIN_SRC scheme :noweb-ref Document--initial-key-bindings  
   (set-key! 'left
-            (lambda (self::Comb code::KeyCode)
-              (self:cursor-retreat!)))
+            (lambda (code::KeyCode)
+  	    (invoke (current-cursor)
+  		    'retreat-in!
+  		    (current-document))))
 
   (set-key! 'right
-            (lambda (self::Comb code::KeyCode)
-              (self:cursor-advance!)))  
+            (lambda (code::KeyCode)
+  	    (invoke (current-cursor)
+  		    'advance-in!
+  		    (current-document))))
 #+END_SRC
 
 *** Edit operations
@@ -9051,10 +9076,25 @@ define the ~key-typed!~ method of the ~GRASP-Editor~ class
 to execute its ~perform!~ method:
 
 #+BEGIN_SRC scheme :noweb-ref GRASP-key-typed
-  (action:perform! current-document)
+  (invoke (current-cursor) 'assign!
+  	(action:perform! (current-document)))
+
 #+END_SRC
 
-But we currently have no instances of the ~Edit~ interface!
+Of course, in order for it to work, we need ~Cursor~
+to implement the ~assign!~ method:
+
+#+BEGIN_SRC scheme :noweb-ref Cursor--operations
+  (define (assign! another ::(ListOf int))::void
+    (unless (eq? (this) another)
+      (self clear)
+      (for index::int in: another
+  	 (self push! index))))
+  
+ #+END_SRC
+
+Mind however that we currently have no instances of the
+~Edit~ interface!
 
 So now we need to define a bunch of ~Edit~ operations and
 procedures that return them, and hook them to our input
@@ -9067,7 +9107,7 @@ in the document tree, in order to be able to pass it to the
 ~Edit~ object (which needs to keep track of that information):
 
 #+BEGIN_SRC scheme :noweb-ref Element--editing
-  (insert-character c ::Char path ::StackList)::(maybe Edit)
+  (insert-character c ::Char)::(maybe Edit)
 #+END_SRC
 
 It is invoked as a default of the ~key-bindings~:
@@ -9075,7 +9115,7 @@ It is invoked as a default of the ~key-bindings~:
 #+BEGIN_SRC scheme :noweb-ref Document--default-key-press-handler
   (given ((input (unicode-input))
           ((char-standard? input)))
-    (self:insert-character input (ArrayStack)))
+    (self insert-character input))
 #+END_SRC
 
 We now need to provide the definition of ~insert-character~
@@ -9087,10 +9127,8 @@ approximation, every such element should return an operation
 that simply appends a character at a ~current-index~.
 
 #+BEGIN_SRC scheme :noweb-ref TextualTileBase--editing
-  (define (insert-character c ::Char path ::StackList)::(maybe Edit)
-    (path:push! current-index)
-    (cursor-advance!)
-    (AppendCharacters (string c) (copy path)))
+  (define (insert-character c ::Char)::(maybe Edit)
+    (AppendCharacters (string c) (copy (current-cursor))))
 #+END_SRC
 
 We now need to define the ~AppendCharacters~ operation, and for
@@ -9098,33 +9136,52 @@ completeness we also need to define its inverse, ~EraseCharacters~:
 
 #+BEGIN_SRC scheme :noweb-ref Edit--operations
   (define-object (AppendCharacters characters ::CharSequence
-                                   cursor ::(ListOf int))
+                                   cursor ::Cursor)
     ::Edit
-    (define (perform! document::Element)::void
-      (let* ((depth ::int (length cursor))
-             (root ::List (cursor:subList 0 (- depth 1)))
-             (tip ::int (cursor (- depth 1)))
-             (target ::TextualTile (cursor-target document root)))
+    #|
+    (mix-in Caching)
+    (define-private mixed-in-cache ::(maps (Object) to: Object)
+      (attribute (expression) #!null))
+
+    (define-syntax-rule (cached expression)
+      (let ((e 'expression))
+        (if (is e in (keys (the mixed-in-cache)))
+  	  ((the mixed-in-cache) e)
+  	  (let ((result expression))
+  	    (set! ((the mixed-in-cache) e) result)
+  	    result))))
+    |#
+    
+    (define (perform! document::Element)::Cursor
+      (let* ((tip ::int (last cursor))
+  	   (target ::TextualTile (cursor:target-in/at
+  				  document -1)))
         (for c in: characters
-          (target:add tip c)
-          (increase! tip))))
+  	   (target:add tip c)
+  	   (increase! tip))
+        (values ;cached
+         (let ((shifted ::Cursor (copy cursor)))
+  	 (shifted:pop!)
+  	 (shifted:push! tip)
+  	 shifted))))
 
     (define (inverse)::Edit
-      (EraseCharacters characters cursor)))
+      (values ;cached
+       (EraseCharacters characters cursor))))
 
   (define-object (EraseCharacters characters ::CharSequence
-                                  cursor ::(ListOf int))
+  				cursor ::Cursor)
     ::Edit
-    (define (perform! document::Element)::void
-      (let* ((depth ::int (length cursor))
-             (root ::List (cursor:subList 0 (- depth 1)))
-             (tip ::int (cursor (- depth 1)))
-             (target ::TextualTile (cursor-target document root))
-             (last-index ::int (- (length characters) 1)))
+    (define (perform! document::Element)::Cursor
+      (let* ((tip ::int (last cursor))
+  	   (target ::TextualTile (cursor:target-in/at
+  				  document -1))
+  	   (last-index ::int (- (length characters) 1)))
         (assert (is tip >= last-index))
         (for c in: characters
-          (let ((removed (target:remove tip)))
-            (assert (eq? removed c))))))
+  	   (let ((removed (target:remove tip)))
+  	     (assert (eq? removed c))))
+        cursor))
 
     (define (inverse)::Edit
       (AppendCharacters characters cursor)))
@@ -9135,17 +9192,19 @@ completeness we also need to define its inverse, ~EraseCharacters~:
 # czy edycja w ogóle działa
 
 #+BEGIN_SRC scheme :noweb-ref Comb--editing
-  (define (insert-character c ::Char path ::StackList)::(maybe Edit)
-    (otherwise
-     #!null
-     (given ((child ::Element (element-at current-index))
-             ((isnt child eq? (this))))
-       (path:push! current-index)
-       (child:insert-character c path))))
+  (define (insert-character c ::Char)::(maybe Edit)
+    (let* ((cursor ::Cursor (current-cursor))
+  	 (tip ::int (last cursor))
+  	 (target ::Element (cursor:target-in/at
+  			    (current-document) -1)))
+      (if (eq? target (this))
+  	#!null ;; tak naprawde to cos tutaj jednak chcemy
+  	(target:insert-character c))))
+
 #+END_SRC
 
 #+BEGIN_SRC scheme :noweb-ref Space--editing
-  (define (insert-character c ::Char path ::StackList)::(maybe Edit)
+  (define (insert-character c ::Char)::(maybe Edit)
     #!null)
 #+END_SRC
 
@@ -9159,7 +9218,7 @@ of ~Edit~. They should belong to the ~Comb~ class. Its role
 is to actually delegate work to some of its children:
 
 #+BEGIN_SRC scheme :noweb-ref xComb--editing
-  (define (insert-character c path::StackList)::Edit
+  (define (insert-character c)::Edit
     (let* ((index ::int (match current-index
                           (,LEFT-PAREN-INDEX
                            (index-succeeding current-index))
@@ -9205,20 +9264,9 @@ more space or create a new type of element:
 
 #+END_SRC
 
-The default case of ~TextualTileBase~ is much simpler
--- we simply issue the ~AppendCharacters~ operation:
 
-#+BEGIN_SRC scheme :noweb-ref TextualTileBase--editing
-  (define (insert-character c::Char path::StackList)::Edit
-    (advance-current-index!)
-    (AppendCharacters (string c) path))
 
-#+END_SRC
 
-However, different specializations of ~TextualTileBase~ need
-to provide specific behavior for particular characters --
-for example, pressing a space inside an ~Atom~ should break
-it.
 
 (TODO potrzebujemy jeszcze implementacji ~delete-backward~ oraz
 ~delete-forward~ oraz ~insert-character~ dla wszystkich
