@@ -7619,7 +7619,7 @@ elements is one greater than the number of its characters:
 
 #+BEGIN_SRC scheme :noweb-ref TextualTileBase--navigation
   (define (last-index)::int
-    (+ 1 (invoke (the builder) 'length)))
+    (invoke (the builder) 'length))
 
 #+END_SRC
 
@@ -9076,7 +9076,7 @@ to execute its ~perform!~ method:
 
 #+BEGIN_SRC scheme :noweb-ref GRASP-key-typed
   (given ((cursor ::Cursor (current-cursor))
-  	(post-action ::Cursor (action:perform! (current-document))))
+          (post-action ::Cursor (action:perform! (current-document))))
     (cursor:assign! post-action))
 
 #+END_SRC
@@ -9115,7 +9115,7 @@ It is invoked as a default of the ~key-bindings~:
 #+BEGIN_SRC scheme :noweb-ref Document--default-key-press-handler
   (given ((input (unicode-input))
           ((char-standard? input))
-  	(document ::Document (current-document)))
+          (document ::Document (current-document)))
     (document:insert-character input))
 #+END_SRC
 
@@ -9195,12 +9195,12 @@ completeness we also need to define its inverse, ~EraseCharacters~:
 #+BEGIN_SRC scheme :noweb-ref Comb--editing
   (define (insert-character c ::Char)::(maybe Edit)
     (let* ((cursor ::Cursor (current-cursor))
-  	 (tip ::int (last cursor))
-  	 (target ::Element (cursor:target-in/at
-  			    (current-document) -1)))
+           (tip ::int (last cursor))
+           (target ::Element (cursor:target-in/at
+                              (current-document) -1)))
       (if (eq? target (this))
-  	#!null ;; tak naprawde to cos tutaj jednak chcemy
-  	(target:insert-character c))))
+          #!null ;; tak naprawde to cos tutaj jednak chcemy
+          (target:insert-character c))))
 
 #+END_SRC
 
