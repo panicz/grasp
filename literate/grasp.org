@@ -4330,12 +4330,6 @@ day in the future.
         (invoke-special ArrayList (this)
   		       'set index element)))
 
-    (define (clone)::Object
-      (let ((copy ::ArrayStack (ArrayStack)))
-        (for element in: (this)
-          (copy:push! element))
-        copy))
-
     (ArrayList))
 
   (define-object (ConsStack)::Stack
@@ -5812,11 +5806,11 @@ in GRASP using ~ArrayStack~ with a bunch of helper methods:
 
     (define (active-at? path ::Cursor)
       (and (not (self empty?))
-  	 (is path prefix? (this))
-  	 (= (length path) (- (length (this)) 1))))
+         (is path prefix? (this))
+         (= (length path) (- (length (this)) 1))))
 
     <<Cursor--operations>>
-    
+
     (ArrayStack))
 
 #+END_SRC
@@ -8734,9 +8728,9 @@ The ~key-bindings~ table is referenced in ~Document~'s
         (magic::Enchanted
          (magic:key-typed! key-code))
         (_
-         (given ((handler ::(maps (Comb KeyCode) to: (maybe Edit))
+         (given ((handler ::(maps (KeyCode) to: (maybe Edit))
                           (key-bindings key-code)))
-           (handler (this) key-code))))))
+           (handler key-code))))))
 
 #+END_SRC
 
@@ -8983,8 +8977,7 @@ As to the main part of the stub, it is defined as follows:
 
   <<advanced-parser>>
 
-  (define-parameter (current-document) ::Document
-    (Document))
+  (define-parameter (current-document) ::Document)
 
   (define (enchanted item ::Tile path ::Stack)::Tile
     item)
