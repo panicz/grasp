@@ -8700,11 +8700,11 @@ but it comes with a bunch of them predefined:
 #+BEGIN_SRC scheme :noweb-ref Document--keyboard-editing :noweb no-export
   (define-static key-bindings
     (let* ((bindings (mapping (key-code::KeyCode)
-                      (lambda (self::Comb code::KeyCode)
+                      (lambda (code::KeyCode)
                         ::(maybe Edit)
                         <<Document--default-key-press-handler>>)))
            (set-key! (lambda (name::KeyName
-                              handler::(maps (Comb KeyCode)
+                              handler::(maps (KeyCode)
                                              to: (maybe Edit)))
                        (let ((code ::KeyCode ((inverse key-code-name)
                                               name)))
@@ -9007,12 +9007,18 @@ As to the main part of the stub, it is defined as follows:
   	     (truly
   	      <<GRASP-key-typed>>))))
 
-    (define-private initial-path ::Cursor (Cursor))
-
+    (define-private path ::Cursor (Cursor))
+    
+    (define-private layout ::LayoutState (LayoutState))
+    
     (define-private initial-layout ::LayoutState (LayoutState))
     
     (define (render!)::void
-      (document:render! initial-path (LayoutState))))
+      (parameterize ((current-document document)
+  		   (current-cursor cursor))      
+        (document:render! path layout)
+        (assert (path:empty?))
+        (layout:assign initial-layout))))
 
   (define main ::Application
     (let ((editor ::GRASP-Editor (GRASP-Editor)))
@@ -9076,8 +9082,9 @@ define the ~key-typed!~ method of the ~GRASP-Editor~ class
 to execute its ~perform!~ method:
 
 #+BEGIN_SRC scheme :noweb-ref GRASP-key-typed
-  (invoke (current-cursor) 'assign!
-  	(action:perform! (current-document)))
+  (given ((cursor ::Cursor (current-cursor))
+  	(post-action ::Cursor (action:perform! (current-document))))
+    (cursor:assign! post-action))
 
 #+END_SRC
 
@@ -9114,8 +9121,9 @@ It is invoked as a default of the ~key-bindings~:
 
 #+BEGIN_SRC scheme :noweb-ref Document--default-key-press-handler
   (given ((input (unicode-input))
-          ((char-standard? input)))
-    (self insert-character input))
+          ((char-standard? input))
+  	(document ::Document (current-document)))
+    (document:insert-character input))
 #+END_SRC
 
 We now need to provide the definition of ~insert-character~
@@ -9206,62 +9214,6 @@ completeness we also need to define its inverse, ~EraseCharacters~:
 #+BEGIN_SRC scheme :noweb-ref Space--editing
   (define (insert-character c ::Char)::(maybe Edit)
     #!null)
-#+END_SRC
-
-
-*** Text editing operations
-
-What's now left to define are the ~insert-character~,
-~delete-backward~ and ~delete-forward~ methods. According
-to our type signatures, they ought to return instances
-of ~Edit~. They should belong to the ~Comb~ class. Its role
-is to actually delegate work to some of its children:
-
-#+BEGIN_SRC scheme :noweb-ref xComb--editing
-  (define (insert-character c)::Edit
-    (let* ((index ::int (match current-index
-                          (,LEFT-PAREN-INDEX
-                           (index-succeeding current-index))
-                          (,RIGHT-PAREN-INDEX
-                           (index-preceeding current-index))
-                          (_
-                           current-index)))
-           (child ::Element (element-at index)))
-      (path:push! index)
-      (child:insert-character c path)))
-#+END_SRC
-
-The most complex interpretation of ~insert-character~ is
-within ~Space~ -- we need to decide whether we just add
-more space or create a new type of element:
-
-#+BEGIN_SRC scheme :noweb-ref xSpace--editing
-  (define (insert-character c path::StackList)::Edit
-    (path:push! current-index)
-    (match c
-      (#\" #|"|#
-       (advance-current-index!)
-       (SpliceComb (Comb (Text)) path))
-      (#\;
-       (advance-current-index!)
-       (SpliceComb (Comb (LineComment)) path))
-      (#\space
-       (advance-current-index!)
-       (GrowSpace 1 path))
-      (#\newline
-       (advance-current-index!)
-       (BreakSpace path))
-      (,@(is _ in '(#\( \[))
-       (SpliceComb (Comb (Comb)) path))
-
-      (,@(is _ in '(#\] \)))
-       ;; tutaj powinniśmy dodać nawigowanie
-       #!null)
-      (_
-       (advance-current-index!)
-       (SpliceComb (Comb (Atom c)) path)))
-    )
-
 #+END_SRC
 
 
