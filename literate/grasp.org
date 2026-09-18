@@ -9338,7 +9338,7 @@ cursor index to the index of a fragment:
         (for index::int from: 0 below: (length fragments)
              (let ((positions ::int (index-positions
                                      (fragments index))))
-               (when (is cursor-index <= (+ base positions))
+               (when (is cursor-index < (+ base positions))
                  (return index))
                (increase! base by: positions)))
         (return (- (length fragments) 1)))))
@@ -9359,31 +9359,32 @@ the two subsequent fragments into a single number:
     (define (position)::Cursor cursor)
 
     (define (perform! document::Element)::Edit
-      (otherwise
-       #!null
-       (given ((space ::Space (cursor:target-in document))
-               (tip ::integer (last cursor))
-               (index rest (space:fragment-index+offset tip)))
-         (space:fragments:add index rest)
-         (decrease! (space:fragments index) by: rest)
-         (let ((cursor ::Cursor (copy cursor)))
-           (cursor:advance-in! document)
-           (JoinSpace cursor))))))
+      (let* ((space ::Space (cursor:target-in document))
+             (tip ::int (last cursor)))
+        (let-values (((index offset) (space:fragment-index+offset tip)))
+          (let ((width ::int (space:fragments index)))
+            (set! (space:fragments index) offset)
+            (space:fragments:add (+ index 1) (- width offset))
+            (let ((cursor ::Cursor (copy cursor)))
+              (cursor:pop!)
+              (cursor:push! (+ tip 1))
+              (JoinSpace cursor)))))))
 
   (define-object (JoinSpace cursor ::Cursor)::Edit
 
     (define (position)::Cursor cursor)
-    
+
     (define (perform! document::Element)::Edit
       (let* ((space ::Space (cursor:target-in document))
              (tip ::integer (last cursor))
              (index ::int (space:fragment-index tip)))
-        (assert (is (+ index 1) < (length space:fragments)))
-        (increase! (space:fragments index)
-                   by: (space:fragments (+ index 1)))
-        (space:fragments:remove (as int (+ index 1)))
+        (assert (is index > 0))
+        (increase! (space:fragments (- index 1))
+                   by: (space:fragments index))
+        (space:fragments:remove index)
         (let ((cursor ::Cursor (copy cursor)))
-          (cursor:retreat-in! document)
+          (cursor:pop!)
+          (cursor:push! (- tip 1))
           (BreakSpace cursor)))))
 
 #+END_SRC
@@ -9400,11 +9401,11 @@ As we can see, the ~BreakSpace~ operation refers to the
         (for index::int from: 0 below: (length fragments)
              (let ((positions ::int (index-positions
                                      (fragments index))))
-               (when (is cursor-index <= (+ base positions))
+               (when (is cursor-index < (+ base positions))
                  (return index (- cursor-index base)))
-               (increase! base by: positions))
+               (increase! base by: positions)))
         (return (- (length fragments) 1)
-                (max 0 (last fragments)))))))
+                (max 0 (last fragments))))))
 
 #+END_SRC
 
