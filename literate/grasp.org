@@ -854,14 +854,14 @@ of numbers or creating coroutines):
        (for var :: Object in: . rest))
 
       ((for var in/reverse: . rest)
-       (for var :: Object in-reverse: . rest))
+       (for var :: Object in/reverse: . rest))
 
       ((for var in/parallel: . rest)
        (for var :: Object in/parallel: . rest))
 
       ((for var :: type in/reverse: collection . actions)
        (let ((it ::ListIterator (collection:listIterator
-                                           (length collection))))
+                                 (length collection))))
          (while (it:hasPrevious)
                 (let ((var ::type (it:previous)))
                   . actions))))
@@ -869,35 +869,29 @@ of numbers or creating coroutines):
       ((for var :: type in/parallel: collection . actions)
        (par-for-each (lambda (var :: type) . actions) collection))
 
-      ((for var :: type in: collection . actions)
-       (for-each (lambda (var :: type) . actions) collection))
-
-      ((for (vars ...) in: collection . actions)
-       (for-each (lambda (var)
-                   (apply (lambda (vars ...) . actions) var))
-                 collection))
+      ((for var::type in: collection . actions)
+       (let ((it ::Iterator (gnu.lists.Sequences:getIterator collection)))
+         (while (it:hasNext)
+           (let ((var ::type (it:next))) . actions))))
 
       ((for var::type from: start to: end by: increment actions ...)
        (let loop ((var::type start))
-         (if (is var <= end)
-             (begin
-               actions ...
-               (loop (+ var increment))))))
+         (when (is var <= end)
+           actions ...
+           (loop (+ var increment)))))
 
       ((for var::type from: start down-to: end by: increment actions ...)
        (let ((inc (abs increment)))
          (let loop ((var::type start))
-           (if (is var >= end)
-                   (begin
-                     actions ...
-                     (loop (- var inc)))))))
+           (when (is var >= end)
+             actions ...
+             (loop (- var inc))))))
 
       ((for var::type from: start below: end by: increment actions ...)
        (let loop ((var ::type start))
-         (if (is var < end)
-             (begin
-               actions ...
-               (loop (+ var increment))))))
+         (when (is var < end)
+           actions ...
+           (loop (+ var increment)))))
 
       ((for var::type from: start to: end actions ...)
        (for var::type from: start to: end by: 1 actions ...))
@@ -909,7 +903,7 @@ of numbers or creating coroutines):
        (for var::type from: start below: end by: 1 actions ...))
 
       ))
-  
+
 #+END_SRC
 
 Note that in the above snippet, the ~::~ symbol appeared.
@@ -4155,13 +4149,13 @@ day in the future.
   (define (memoize proc)
     (let ((table ::Map (HashMap)))
       (with-procedure-properties ((table table))
-        (lambda args
-          (if (table:contains-key args)
-              (apply values (table:get args))
-              (call-with-values (lambda () (apply proc args))
-                (lambda result
-                  (table:put args result)
-                  (apply values result))))))))
+                                 (lambda args
+                                   (if (table:contains-key args)
+                                       (apply values (table:get args))
+                                       (call-with-values (lambda () (apply proc args))
+                                         (lambda result
+                                           (table:put args result)
+                                           (apply values result))))))))
 
   (define-syntax-rule (define/memoized (name . args) . body)
     (define name (memoize (lambda args . body))))
@@ -4196,16 +4190,29 @@ day in the future.
 
   (define-object (InputPortLineIterator port::InputPort)
     ::(specialize Iterator string)
-    (define next-line ::(maybe (either string EndOfFile)) #!null)
+    (define-private next-line ::(maybe (either string EndOfFile)) #!null)
+    (define-private reached-the-end? ::boolean #false)
+
+    (define-private (read-next-line!)::void
+      (unless next-line
+        (let ((line ::(either string EndOfFile) (read-line port 'concat)))
+          (cond
+           ((eof-object? line)
+            (set! next-line (if reached-the-end? line ""))
+            (set! reached-the-end? #true))
+           ((and (is (string-length line) > 0)
+                 (eqv? (last line) #\newline))
+            (set! next-line (string-drop-right line 1)))
+           (else
+            (set! next-line line)
+            (set! reached-the-end? #true))))))
 
     (define (hasNext) ::boolean
-      (unless next-line
-        (set! next-line (read-line port)))
+      (read-next-line!)
       (isnt next-line eof-object?))
 
     (define (next)
-      (unless next-line
-        (set! next-line (read-line port)))
+      (read-next-line!)
       (unless (string? next-line)
         (throw (NoSuchElementException)))
       (let ((result next-line))
@@ -4217,9 +4224,50 @@ day in the future.
     (define (iterator)::(specialize Iterator string)
       (InputPortLineIterator port)))
 
-  (define* (lines port ::InputPort := (current-input-port))
+  (define* (char-index text ::CharSequence c ::char start ::int := 0)::int
+    (let ((code ::int (as int c)))
+      (escape-with return
+        (for i::int from: start below: (text:length)
+             (when (= (as int (text:charAt i)) code)
+               (return i)))
+        (return -1))))
+
+  (define-object (CharSequenceLineIterator text::CharSequence)
+    ::(specialize Iterator CharSequence)
+
+    (define-private start ::int 0)
+
+    (define-private reached-the-end? ::boolean #false)
+
+    (define (hasNext)::boolean
+      (not reached-the-end?))
+    ;; the lines are views of `text' (nothing is copied),
+    ;; so they remain valid only as long as `text' isn't modified
+    (define (next)
+      (when reached-the-end?
+        (throw (NoSuchElementException)))
+      (let ((end ::int (char-index text #\newline start)))
+        (if (is end < 0)
+            (let ((line ::CharSequence (java.nio.CharBuffer:wrap
+                                        text start (text:length))))
+              (set! reached-the-end? #true)
+              line)
+            (let ((line ::CharSequence (java.nio.CharBuffer:wrap
+                                        text start end)))
+              (set! start (+ end 1))
+              line)))))
+
+  (define-object (CharSequenceLines text::CharSequence)
+    ::(specialize Iterable CharSequence)
+
+    (define (iterator)::(specialize Iterator CharSequence)
+      (CharSequenceLineIterator text)))
+
+  (define* (lines source ::(either InputPort CharSequence) := (current-input-port))
     ::(specialize Iterable string)
-    (InputPortLines port))
+    (match source
+      (port::InputPort (InputPortLines port))
+      (text::CharSequence (CharSequenceLines text))))
 
   (define-syntax with
     (lambda (stx)
@@ -4227,14 +4275,14 @@ day in the future.
         ((with ((variable type* ... value) ...) . actions)
          (with-syntax (((previous-value ...)
                         (generate-temporaries #'(variable ...))))
-                      #'(let ((previous-value variable) ...)
-                          (set! variable value)
-                          ...
-                          (try-finally
-                           (begin . actions)
-                           (begin
-                             (set! variable previous-value)
-                             ...))))))))
+           #'(let ((previous-value variable) ...)
+               (set! variable value)
+               ...
+               (try-finally
+                (begin . actions)
+                (begin
+                  (set! variable previous-value)
+                  ...))))))))
 
   (define-syntax-rule (the slot-name)
     (slot-ref (this) 'slot-name))
@@ -4298,7 +4346,7 @@ day in the future.
 
   (define-syntax-rule (StackListOf type)
     StackList)
-  
+
   (define-object (ArrayStack)::StackList
 
     (define (get index ::int)::Object
@@ -4328,7 +4376,7 @@ day in the future.
       (let* ((n ::int (size))
              (index ::int (- n 1)))
         (invoke-special ArrayList (this)
-  		       'set index element)))
+                        'set index element)))
 
     (ArrayList))
 
@@ -4343,13 +4391,13 @@ day in the future.
 
     (define (set-top! element)::void
       (set-car! tip element))
-    
+
     (define (with element action::(maps () to: ,a))::,a
       (push! element)
       (try-finally
        (action)
        (pop!)))
-    
+
     (define (empty?)::boolean
       (null? tip))
 
@@ -4385,11 +4433,11 @@ day in the future.
       (given ((m ::int (string-length s))
               ((= m n)))
         (escape-with
-         return
-         (for i::int from: 0 below: m
-              (unless (eqv? (s i) (charAt i))
-                (return #false)))
-         (return #true))))
+            return
+          (for i::int from: 0 below: m
+               (unless (eqv? (s i) (charAt i))
+                 (return #false)))
+          (return #true))))
 
     (define (toString)::String
       (call-with-output-string
@@ -5972,7 +6020,7 @@ everything, we can provide a /partial implementation/.
                  (let ((result ::Space (Space)))
                    (result:add (- n (- index base)))
                    (for k::int from: (+ i 1) below: (length fragments)
-                        (result:add (fragments i)))
+                        (result:add (fragments k)))
                    (remove-range! fragments from: (+ i 1))
                    (set! (fragments i) (- index base))
                    (return result)))
@@ -6001,23 +6049,22 @@ everything, we can provide a /partial implementation/.
     (let ((index ::int 0)
           (initial-left ::real state:left)
           (initial-top ::real state:top)
-  	(cursor ::Cursor (current-cursor))
+          (cursor ::Cursor (current-cursor))
           (last-index ::int (- (length fragments) 1)))
       (for i::int from: 0 to: last-index
            (let ((n ::int (fragments i)))
-             (when (is n > 0)
-               (when (and (cursor:active-at? path)
-                          (is index <= (cursor:top)
-  			    <= (+ index n)))
-                 (painter:with-translation
-                  (- state:left initial-left)
-  		(- state:top initial-top)
-                  (lambda ()
-                    (painter:mark-cursor!
-  		   (- (cursor:top) index) #!null))))
-               (expand-layout! state
-  			     (* n (painter:space-width))
-                               (painter:min-line-height)))
+             (when (and (cursor:active-at? path)
+                        (is index <= (cursor:top)
+                            <= (+ index (max 0 n))))
+               (painter:with-translation
+                   (- state:left initial-left)
+                   (- state:top initial-top)
+                 (lambda ()
+                   (painter:mark-cursor!
+                    (- (cursor:top) index) #!null))))
+             (expand-layout! state
+                             (* (max 0 n) (painter:space-width))
+                             (painter:min-line-height))
              (unless (= i last-index)
                (break-layout! state))
              (increase! index by: (index-positions n))))))
@@ -6026,10 +6073,8 @@ everything, we can provide a /partial implementation/.
     (let ((last-index ::int (- (length fragments) 1)))
       (for i::int from: 0 to: last-index
            (let ((n ::int (fragments i)))
-             (when (is n > 0)
-
-               (expand-layout! state (* n (painter:space-width))
-                               (painter:min-line-height)))
+             (expand-layout! state (* (max 0 n) (painter:space-width))
+                             (painter:min-line-height))
              (unless (= i last-index)
                (break-layout! state))))))
 
@@ -6379,7 +6424,7 @@ we have everything that is needed to define the ~Visual~,
   (define (render! path ::Cursor state::LayoutState)::void
     (let* ((font ::FontProxy (font))
            (style ::BorderStyle (border-style))
-  	 (cursor ::Cursor (current-cursor))
+           (cursor ::Cursor (current-cursor))
            (inner-width ::real 0)
            (inner-height ::real 0)
            (border-width ::real
@@ -6387,32 +6432,30 @@ we have everything that is needed to define the ~Visual~,
            (border-height ::real
                           (painter:border-height style)))
       (painter:with-translation
-       border-width border-height
-       (lambda ()
-         (call-with-input-string builder
-           (lambda (port ::InputPort)
-             (let ((n ::int 0))
-               (for line in: (lines port)
-                    (painter:with-translation
-                     0 inner-height
-                     (lambda ()
-                       (let* ((line-width (painter:draw-text!
-                                           line font))
-                              (k ::int (string-length line)))
-                         (when (and (cursor:active-at? path)
-                                    (is n <= (cursor:top)
-                                        <= (+ n k)))
-                           (painter:mark-cursor!
-  			  (- (cursor:top) n)
-  			  font))
-                         (increase! n by: k)
-                         (maximize! inner-width line-width)
-                         (increase! inner-height
-  				  by: (font:height)))))))))))
+          border-width border-height
+        (lambda ()
+          (let ((n ::int 0))
+            (for line in: (lines builder)
+              (painter:with-translation
+                  0 inner-height
+                (lambda ()
+                  (let* ((line-width (painter:draw-text!
+                                      line font))
+                         (k ::int (string-length line)))
+                    (when (and (cursor:active-at? path)
+                               (is n <= (cursor:top)
+                                   <= (+ n k)))
+                      (painter:mark-cursor!
+                       (- (cursor:top) n)
+                       font))
+                    (increase! n by: (+ k 1))
+                    (maximize! inner-width line-width)
+                    (increase! inner-height
+                               by: (font:height)))))))))
       (set! last-width (+ inner-width (* 2 border-width)))
       (set! last-height (+ inner-height (* 2 border-height)))
       (painter:draw-box! last-width last-height
-  		       SideSelected:None style))
+                         SideSelected:None style))
     (advance-layout! state))
 
   (define-private (recalculate-size!)::void
@@ -6424,12 +6467,10 @@ we have everything that is needed to define the ~Visual~,
                          (painter:border-width style))
            (border-height ::real
                           (painter:border-height style)))
-      (call-with-input-string builder
-        (lambda (port ::InputPort)
-          (for line in: (lines port)
-               (let ((line-width (painter:text-width line font)))
-                 (maximize! inner-width line-width)
-                 (increase! inner-height by: (font:height))))))
+      (for line in: (lines builder)
+        (let ((line-width (painter:text-width line font)))
+          (maximize! inner-width line-width)
+          (increase! inner-height by: (font:height))))
       (set! last-width (+ inner-width (* 2 border-width)))
       (set! last-height (+ inner-height (* 2 border-height)))))
 
@@ -8285,6 +8326,9 @@ keys (for moving the cursor left and right), and to the
   (if (is n <= 1)
      1
    (* n (! (- n 1)))))
+  
+  
+  
   (e.g. (! 5) ===> 120)" read-document))
 
   <<terminal-document-cursor-navigation>>
@@ -8531,18 +8575,25 @@ We prefer the latter approach, as it allows to analyze
 user's actions in familiar terms.
 
 We're going to represent these reified operations using
-objects that implement the ~Edit~ interface:
+objects that implement the ~Edit~ interface (this is
+actually an abstract class, because all implementations
+are going to share the ~cursor~ field). It only has a single
+method, ~perform!~, which is supposed to return an inverse
+of this operation (which is how we're going to implement
+the /undo/ mechanism):
 
 #+BEGIN_SRC scheme :noweb-ref Edit-interface
   (define-interface Edit ()
-    (perform! document::Element)::Cursor
-    (inverse)::Edit)
+    (position)::Cursor
+    ;; the `perform` method should return an Edit
+    ;; operation that un-does this one
+    (perform! document::Element)::Edit)
 #+END_SRC
 
-The exact operations are going to be defined later, when
-there's sufficient infrastructure to try them out. In order
-to build this infrastructure we need to ask how should those
-operations be managed.
+The exact set of operations is going to be defined later,
+when there's sufficient infrastructure to try it out. In
+order to build this infrastructure we need to ask how should
+those operations be managed.
 
 When an event (say, a keyboard event) is issued, it is
 passed on to the active document. The document in turn
@@ -8801,7 +8852,7 @@ method (and do some bookkeeping around that):
 
 
 We're also going to provide
-~<<TextualTileSubclasses-definitions>>~, that are a merger
+~<<TextualTileSubclasses--definitions>>~, that are a merger
 of ~<<TextualTileSubclasses--rendering>>~ and
 ~<<TextualTileSublcasses--serialization>>~:
 
@@ -8958,6 +9009,8 @@ As to the main part of the stub, it is defined as follows:
     <<Comb--whitespace-support>>
     <<Comb--rendering>>
     <<Comb--navigation>>
+    <<Comb--extract!>>
+    <<Comb--splice!>>
     <<Comb--editing>>
     )
 
@@ -8991,27 +9044,32 @@ As to the main part of the stub, it is defined as follows:
     (define document ::Document (Document))
 
     (define cursor ::Cursor (Cursor))
-    
+
     (define (key-typed! key-code::KeyCode)::boolean
       (parameterize ((current-document document)
-  		   (current-cursor cursor))
+                     (current-cursor cursor))
         (given ((action ::Edit (document:key-typed!
                                 key-code)))
-  	     (truly
-  	      <<GRASP-key-typed>>))))
+             (truly
+              <<GRASP-key-typed>>))))
 
     (define-private path ::Cursor (Cursor))
-    
+
     (define-private layout ::LayoutState (LayoutState))
-    
+
     (define-private initial-layout ::LayoutState (LayoutState))
-    
+
     (define (render!)::void
       (parameterize ((current-document document)
-  		   (current-cursor cursor))      
-        (document:render! path layout)
-        (assert (path:empty?))
-        (layout:assign initial-layout))))
+                     (current-cursor cursor))
+
+        (let ((f ::FontProxy (painter:text-font)))
+          (painter:draw-text! (cursor:toString) f)
+          (painter:with-translation 0 (f:height)
+            (lambda ()
+              (document:render! path layout)))
+          (assert (path:empty?))
+          (layout:assign initial-layout)))))
 
   (define main ::Application
     (let ((editor ::GRASP-Editor (GRASP-Editor)))
@@ -9057,15 +9115,19 @@ our cursor navigation test:
 #+BEGIN_SRC scheme :noweb-ref Document--initial-key-bindings  
   (set-key! 'left
             (lambda (code::KeyCode)
-  	    (invoke (current-cursor)
-  		    'retreat-in!
-  		    (current-document))))
+            (invoke (current-cursor)
+                    'retreat-in!
+                    (current-document))))
 
   (set-key! 'right
             (lambda (code::KeyCode)
-  	    (invoke (current-cursor)
-  		    'advance-in!
-  		    (current-document))))
+            (invoke (current-cursor)
+                    'advance-in!
+                    (current-document))))
+
+  (set-key! 'f1
+            (lambda (code::KeyCode)
+              (print (current-cursor))))
 #+END_SRC
 
 *** Edit operations
@@ -9076,8 +9138,8 @@ to execute its ~perform!~ method:
 
 #+BEGIN_SRC scheme :noweb-ref GRASP-key-typed
   (given ((cursor ::Cursor (current-cursor))
-          (post-action ::Cursor (action:perform! (current-document))))
-    (cursor:assign! post-action))
+          (undo ::Edit (action:perform! (current-document))))
+    (cursor:assign! (undo:position)))
 
 #+END_SRC
 
@@ -9107,7 +9169,7 @@ in the document tree, in order to be able to pass it to the
 ~Edit~ object (which needs to keep track of that information):
 
 #+BEGIN_SRC scheme :noweb-ref Element--editing
-  (insert-character c ::Char)::(maybe Edit)
+  (insert-character c)::(maybe Edit)
 #+END_SRC
 
 It is invoked as a default of the ~key-bindings~:
@@ -9117,6 +9179,7 @@ It is invoked as a default of the ~key-bindings~:
           ((char-standard? input))
           (document ::Document (current-document)))
     (document:insert-character input))
+  
 #+END_SRC
 
 We now need to provide the definition of ~insert-character~
@@ -9128,7 +9191,7 @@ approximation, every such element should return an operation
 that simply appends a character at a ~current-index~.
 
 #+BEGIN_SRC scheme :noweb-ref TextualTileBase--editing
-  (define (insert-character c ::Char)::(maybe Edit)
+  (define (insert-character c)::(maybe Edit)
     (AppendCharacters (string c) (copy (current-cursor))))
 #+END_SRC
 
@@ -9139,87 +9202,235 @@ completeness we also need to define its inverse, ~EraseCharacters~:
   (define-object (AppendCharacters characters ::CharSequence
                                    cursor ::Cursor)
     ::Edit
-    #|
-    (mix-in Caching)
-    (define-private mixed-in-cache ::(maps (Object) to: Object)
-      (attribute (expression) #!null))
+    (define (position)::Cursor cursor)
 
-    (define-syntax-rule (cached expression)
-      (let ((e 'expression))
-        (if (is e in (keys (the mixed-in-cache)))
-  	  ((the mixed-in-cache) e)
-  	  (let ((result expression))
-  	    (set! ((the mixed-in-cache) e) result)
-  	    result))))
-    |#
-    
-    (define (perform! document::Element)::Cursor
-      (let* ((tip ::int (last cursor))
-  	   (target ::TextualTile (cursor:target-in/at
-  				  document -1)))
+    (define (perform! document::Element)::Edit
+      (let* ((target ::TextualTile (cursor:target-in/at document -1))
+             (tip ::int (last cursor)))
         (for c in: characters
-  	   (target:add tip c)
-  	   (increase! tip))
-        (values ;cached
-         (let ((shifted ::Cursor (copy cursor)))
-  	 (shifted:pop!)
-  	 (shifted:push! tip)
-  	 shifted))))
-
-    (define (inverse)::Edit
-      (values ;cached
-       (EraseCharacters characters cursor))))
+          (target:add tip c)
+          (increase! tip))
+        (let ((cursor ::Cursor (copy cursor)))
+          (cursor:pop!)
+          (cursor:push! tip)
+          (EraseCharacters characters cursor)))))
 
   (define-object (EraseCharacters characters ::CharSequence
-  				cursor ::Cursor)
+                                  cursor ::Cursor)
     ::Edit
-    (define (perform! document::Element)::Cursor
-      (let* ((tip ::int (last cursor))
-  	   (target ::TextualTile (cursor:target-in/at
-  				  document -1))
-  	   (last-index ::int (- (length characters) 1)))
-        (assert (is tip >= last-index))
-        (for c in: characters
-  	   (let ((removed (target:remove tip)))
-  	     (assert (eq? removed c))))
-        cursor))
+    (define (position)::Cursor cursor)
 
-    (define (inverse)::Edit
-      (AppendCharacters characters cursor)))
+    (define (perform! document::Element)::Edit
+      (let* ((target ::TextualTile (cursor:target-in/at document -1))
+             (start ::int (- (last cursor) (characters:length))))
+        (assert (is start >= 0))
+        (for c in: characters
+          (let ((removed (target:remove start)))
+            (assert (eq? removed c))))
+        (let ((cursor ::Cursor (copy cursor)))
+          (cursor:pop!)
+          (cursor:push! start)
+          (AppendCharacters characters cursor)))))
+  
 #+END_SRC
 
-# TODO trzeba będzie rozbudować tego dispatcha tak, żeby
-# mógł również wstawiać nowe elementy, ale na razie zobaczmy,
-# czy edycja w ogóle działa
+This allows us to implement the ~insert-character~ for ~Comb~:
 
 #+BEGIN_SRC scheme :noweb-ref Comb--editing
-  (define (insert-character c ::Char)::(maybe Edit)
+  (define (insert-character c)::(maybe Edit)
     (let* ((cursor ::Cursor (current-cursor))
+           (document ::Document (current-document))
            (tip ::int (last cursor))
-           (target ::Element (cursor:target-in/at
-                              (current-document) -1)))
-      (if (eq? target (this))
-          #!null ;; tak naprawde to cos tutaj jednak chcemy
-          (target:insert-character c))))
+           (target ::Element (cursor:target-in document)))
+      (assert (cursor:valid-in? document))
+      (assert (cursor:final-in? document))
+      (cond
+       ((eq? target (this))
+        (if (= tip 0)
+            (cursor:advance-in! document)
+            (cursor:retreat-in! document))
+        (insert-character c))
+       (else
+        (target:insert-character c)))))
 
 #+END_SRC
+
+Now, we still need to implement the ~insert-character~
+method for the remaining primitive instances of ~Element~,
+in particular for ~Space~:
 
 #+BEGIN_SRC scheme :noweb-ref Space--editing
-  (define (insert-character c ::Char)::(maybe Edit)
-    #!null)
+  (define (insert-character c)::(maybe Edit)
+    (match c
+      (#\space
+       (GrowSpace 1 (copy (current-cursor))))
+      (#\newline
+       (BreakSpace (copy (current-cursor))))
+      (#\" ;"
+       (InsertSlice (Comb (Text)) (copy (current-cursor))))
+      (#\;
+       (InsertSlice (Comb (LineComment)) (copy (current-cursor))))
+      (#\[ ;]
+       (InsertSlice (Comb (Comb)) (copy (current-cursor))))
+      (_
+       (InsertSlice (Comb (Atom (string c))) (copy (current-cursor))))))
+
 #+END_SRC
 
+As we can see, this requires us to define a bunch of new
+~Edit~ operations, in particular ~GrowSpace~, ~BreakSpace~
+and ~InsertSlice~. We will soon discover that we also need
+to define inverses for some of those operations.
 
+Let's start with ~GrowSpace~. It can be defined as its
+own inverse. Its purpose is to simply increase the value
+of the appropriate fragment:
 
+#+BEGIN_SRC scheme :noweb-ref Edit--operations
+  (define-object (GrowSpace width ::int cursor ::Cursor)
+    ::Edit
+    (define (position)::Cursor cursor)
+
+    (define (perform! document::Element)::Edit
+      (let* ((space ::Space (cursor:target-in document))
+             (tip ::int (last cursor))
+             (index (space:fragment-index tip)))
+        (increase! (space:fragments index) by: width)
+        (let ((cursor ::Cursor (copy cursor)))
+          (if (is width < 0)
+              (times (- width) (lambda ()
+                                 (cursor:retreat-in! document)))
+              (times width (lambda ()
+                             (cursor:advance-in! document))))
+          (GrowSpace (- width) cursor)))))
+
+#+END_SRC
+
+But in order to make it operational, we need to define the
+~fragment-index~ method inside ~Space~. It translates the
+cursor index to the index of a fragment:
+
+#+BEGIN_SRC scheme :noweb-ref Space--editing
+  (define (fragment-index cursor-index::int)::int
+    (escape-with return
+      (let ((total ::int 0))
+        (for index::int from: 0 below: (length fragments)
+             (increase! total by: (fragments index))
+             (when (is cursor-index <= total)
+               (return index)))
+        (return (- (length fragments) 1)))))
+
+#+END_SRC
+
+The case of ~BreakSpace~ is slightly more complicated,
+because here we actually need to also define its inverse,
+that we're going to call ~JoinSpace~. The first of those
+operations should create a new element in the ~fragments~
+array at an appropriate position, splitting the integer
+number appropriately. The inverse should, conversely, merge
+the two subsequent fragments into a single number:
+
+#+BEGIN_SRC scheme :noweb-ref Edit--operations
+  (define-object (BreakSpace cursor::Cursor)::Edit
+
+    (define (position)::Cursor cursor)
+
+    (define (perform! document::Element)::Edit
+      (otherwise
+       #!null
+       (given ((space ::Space (cursor:target-in document))
+               (tip ::integer (last cursor))
+               (index rest (space:fragment-index+rest tip)))
+         (space:fragments:add index rest)
+         (decrease! (space:fragments index) by: rest)
+         (let ((cursor ::Cursor (copy cursor)))
+           (cursor:advance-in! document)
+           (JoinSpace cursor))))))
+
+  (define-object (JoinSpace cursor ::Cursor)::Edit
+
+    (define (position)::Cursor cursor)
+    
+    (define (perform! document::Element)::Edit
+      (let* ((space ::Space (cursor:target-in document))
+             (tip ::integer (last cursor))
+             (index ::int (space:fragment-index tip)))
+        (assert (is (+ index 1) < (length space:fragments)))
+        (increase! (space:fragments index)
+                   by: (space:fragments (+ index 1)))
+        (space:fragments:remove (as int (+ index 1)))
+        (let ((cursor ::Cursor (copy cursor)))
+          (cursor:retreat-in! document)
+          (BreakSpace cursor)))))
+
+#+END_SRC
+
+As we can see, the ~BreakSpace~ operation refers to the
+~fragment-index+rest~ method that we haven't yet defined in
+~Space~. The definition is almost identical to that of the
+~fragment-index~ method, but it returns an additional value:
+
+#+BEGIN_SRC scheme :noweb-ref Space--editing
+  (define (fragment-index+rest cursor-index::int)::(Values int int)
+    (escape-with return
+      (let ((total ::int 0))
+        (for index::int from: 0 below: (length fragments)
+             (increase! total by: (fragments index))
+             (when (is cursor-index <= total)
+               (return index (- total cursor-index))))
+        (return (- (length fragments) 1) 0))))
+
+#+END_SRC
+
+What's now left is the implementation of ~InsertSlice~ and
+its inverse, that we're going to call ~RemoveSlice~. They
+are obviously going to refer to the methods ~splice!~ and
+~extract!~ defined earlier for ~Comb~:
+
+#+BEGIN_SRC scheme :noweb-ref Edit--operations
+  (define-object (InsertSlice elements ::Comb cursor ::Cursor)
+    ::Edit
+    (define (position)::Cursor cursor)
+
+    (define (perform! document::Element)::Edit
+      (assert (is (length cursor) >= 2))
+      (let* ((cursor ::Cursor (copy cursor))
+             (tip ::int (cursor:pop!))
+             (top ::int (cursor:pop!))
+             (parent ::Comb (as Comb (cursor:target-in document)))
+             (last-space ::Space (as Space (last elements))))
+        (parent:splice! elements (- top 1) tip)
+        (cursor:push! (+ top (length elements) -1))
+        (cursor:push! (last-space:last-index))
+        (RemoveSlice elements cursor))))
+
+  (define-object (RemoveSlice elements ::Comb cursor ::Cursor)
+    ::Edit
+    (define (position)::Cursor cursor)
+
+    (define (perform! document::Element)::Edit
+      (assert (is (length cursor) > 2))
+      (let* ((cursor ::Cursor (copy cursor))
+             (sub-end ::int (cursor:pop!))
+             (end ::int (cursor:pop!))
+             (start ::int (- end (length elements) -1))
+             (parent ::Comb (as Comb (cursor:target-in document)))
+             (preceding ::Space (as Space (parent:element-at start)))
+             (sub-start ::int (preceding:last-index))
+             (extracted ::Comb
+                        (parent:extract! (- start 1) sub-start
+                                         (- end 1) sub-end)))
+        (assert (equal? extracted elements))
+        (cursor:push! start)
+        (cursor:push! sub-start)
+        (InsertSlice elements cursor))))
+
+#+END_SRC
 
 
 (TODO potrzebujemy jeszcze implementacji ~delete-backward~ oraz
 ~delete-forward~ oraz ~insert-character~ dla wszystkich
 istotnych typów ~TextualTileBase~)
-
-
-
-But before
 
 ** Splitting up
 
