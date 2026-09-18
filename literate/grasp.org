@@ -6018,7 +6018,7 @@ everything, we can provide a /partial implementation/.
                     (positions ::int (index-positions n)))
                (when (is base <= index < (+ base positions))
                  (let ((result ::Space (Space)))
-                   (result:add (- n (- index base)))
+                   (set! (result:fragments 0) (- n (- index base)))
                    (for k::int from: (+ i 1) below: (length fragments)
                         (result:add (fragments k)))
                    (remove-range! fragments from: (+ i 1))
@@ -8952,6 +8952,7 @@ As to the main part of the stub, it is defined as follows:
   |#
   <<header>>
   (module-name (test interactive editing))
+  (import (kawa regex))
   (import (language-extensions))
   (import (terminal-definitions))
   (import (utils tcp-output-server))
@@ -8968,6 +8969,7 @@ As to the main part of the stub, it is defined as follows:
   <<GRASP-ontology>>
 
   (define-interface Element (Visual)
+    (serialize port ::OutputPort indent ::int)::void
     <<Element--cursor-operations>>
     <<Element--editing>>
     <<Element--indexing>>
@@ -9002,6 +9004,7 @@ As to the main part of the stub, it is defined as follows:
     <<Space--rendering>>
     <<Space--navigation>>
     <<Space--editing>>
+    <<Space--serialize>>
     )
 
   (define-object (Comb)::Tile::List
@@ -9012,6 +9015,7 @@ As to the main part of the stub, it is defined as follows:
     <<Comb--extract!>>
     <<Comb--splice!>>
     <<Comb--editing>>
+    <<Comb--serialize>>
     )
 
   <<TextualBase>>
@@ -9022,6 +9026,7 @@ As to the main part of the stub, it is defined as follows:
     <<TextualTileBase--rendering>>
     <<TextualTileBase--navigation>>
     <<TextualTileBase--editing>>
+    <<TextualTileBase--serialization>>
     (TextualBase))
 
   <<TextualTileSubclasses--definitions>>
@@ -9059,12 +9064,28 @@ As to the main part of the stub, it is defined as follows:
 
     (define-private initial-layout ::LayoutState (LayoutState))
 
+    (define (normalize-spaces s::string)::string
+      (regex-replace* "\\s+" (regex-replace* "\n" s "") " "))
+
     (define (render!)::void
       (parameterize ((current-document document)
                      (current-cursor cursor))
 
-        (let ((f ::FontProxy (painter:text-font)))
-          (painter:draw-text! (cursor:toString) f)
+        (let* ((f ::FontProxy (painter:text-font))
+               (w ::int (painter:draw-text! (cursor:toString) (painter:text-font))))
+          (painter:with-translation w 0
+            (lambda ()
+              (let ((target ::Element (cursor:target-in document)))
+                (painter:draw-text! (string-append
+                                     " "
+                                     (*:getName (target:getClass))
+                                     "@"
+                                     (number->string (target:hashCode) 16)
+                                     ": "
+                                     (match target
+                                       (space::Space (space:fragments:toString))
+                                       (_ (normalize-spaces (target:toString)))))
+                                    (painter:text-font)))))
           (painter:with-translation 0 (f:height)
             (lambda ()
               (document:render! path layout)))
@@ -9313,11 +9334,13 @@ cursor index to the index of a fragment:
 #+BEGIN_SRC scheme :noweb-ref Space--editing
   (define (fragment-index cursor-index::int)::int
     (escape-with return
-      (let ((total ::int 0))
+      (let ((base ::int 0))
         (for index::int from: 0 below: (length fragments)
-             (increase! total by: (fragments index))
-             (when (is cursor-index <= total)
-               (return index)))
+             (let ((positions ::int (index-positions
+                                     (fragments index))))
+               (when (is cursor-index <= (+ base positions))
+                 (return index))
+               (increase! base by: positions)))
         (return (- (length fragments) 1)))))
 
 #+END_SRC
@@ -9340,7 +9363,7 @@ the two subsequent fragments into a single number:
        #!null
        (given ((space ::Space (cursor:target-in document))
                (tip ::integer (last cursor))
-               (index rest (space:fragment-index+rest tip)))
+               (index rest (space:fragment-index+offset tip)))
          (space:fragments:add index rest)
          (decrease! (space:fragments index) by: rest)
          (let ((cursor ::Cursor (copy cursor)))
@@ -9366,19 +9389,22 @@ the two subsequent fragments into a single number:
 #+END_SRC
 
 As we can see, the ~BreakSpace~ operation refers to the
-~fragment-index+rest~ method that we haven't yet defined in
+~fragment-index+offset~ method that we haven't yet defined in
 ~Space~. The definition is almost identical to that of the
 ~fragment-index~ method, but it returns an additional value:
 
 #+BEGIN_SRC scheme :noweb-ref Space--editing
-  (define (fragment-index+rest cursor-index::int)::(Values int int)
+  (define (fragment-index+offset cursor-index::int)::(Values int int)
     (escape-with return
-      (let ((total ::int 0))
+      (let ((base ::int 0))
         (for index::int from: 0 below: (length fragments)
-             (increase! total by: (fragments index))
-             (when (is cursor-index <= total)
-               (return index (- total cursor-index))))
-        (return (- (length fragments) 1) 0))))
+             (let ((positions ::int (index-positions
+                                     (fragments index))))
+               (when (is cursor-index <= (+ base positions))
+                 (return index (- cursor-index base)))
+               (increase! base by: positions))
+        (return (- (length fragments) 1)
+                (max 0 (last fragments)))))))
 
 #+END_SRC
 
@@ -9398,10 +9424,11 @@ are obviously going to refer to the methods ~splice!~ and
              (tip ::int (cursor:pop!))
              (top ::int (cursor:pop!))
              (parent ::Comb (as Comb (cursor:target-in document)))
-             (last-space ::Space (as Space (last elements))))
+             (last-space ::Space (as Space (last elements)))
+             (last-tile-index ::int (+ top (length elements) -2)))
         (parent:splice! elements (- top 1) tip)
-        (cursor:push! (+ top (length elements) -1))
-        (cursor:push! (last-space:last-index))
+        (cursor:push! last-tile-index)
+        (cursor:climb-back! document)
         (RemoveSlice elements cursor))))
 
   (define-object (RemoveSlice elements ::Comb cursor ::Cursor)
