@@ -1,8 +1,15 @@
+#+LATEX_CLASS: book
+#+OPTIONS: H:6
+
 * The GRASP editor
 
 #+LATEX_HEADER: \usepackage[a4paper,hmargin=1.5cm,vmargin=2cm]{geometry}
 #+LATEX_HEADER: \usepackage{fvextra}
+#+LATEX_HEADER: \usepackage{xcolor}
 #+LATEX_HEADER: \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere=false}
+#+LATEX_HEADER: \RecustomVerbatimEnvironment{verbatim}{Verbatim}{breaklines,breakanywhere=false}
+#+LATEX_HEADER: \newcommand{\chunklabel}[1]{\hspace{0pt}\hfill{\small #1}\hfill\hspace{0pt}}
+#+LATEX_HEADER: \newenvironment{chunk}[1]{\fvset{frame=single,framesep=3pt,rulecolor=\color{black},labelposition=all,label=[\chunklabel{#1}]{\chunklabel{#1}}}}{}
 #+LATEX_HEADER: \usepackage{pmboxdraw}
 #+LATEX_HEADER: \usepackage{newunicodechar}
 #+LATEX_HEADER: \newunicodechar{─}{\textSFx}
@@ -17,6 +24,17 @@
 #+LATEX_HEADER: \newunicodechar{╚}{\textSFxxxviii}
 #+LATEX_HEADER: \newunicodechar{╗}{\textSFxxv}
 #+LATEX_HEADER: \newunicodechar{╝}{\textSFxxvi}
+#+LATEX_HEADER: % pmboxdraw has no dashed box-drawing characters, so these get the solid glyphs of the same cell
+#+LATEX_HEADER: \newunicodechar{┈}{\textSFx}
+#+LATEX_HEADER: \newunicodechar{┊}{\textSFxi}
+#+LATEX_HEADER: \newunicodechar{┆}{\textSFxi}
+#+LATEX_HEADER: \newunicodechar{┇}{\textSFxi}
+#+LATEX_HEADER: \newunicodechar{┋}{\textSFxi}
+#+LATEX_HEADER: % symbols from other fonts, forced into one character cell of the current (monospace) font
+#+LATEX_HEADER: \usepackage{pifont}
+#+LATEX_HEADER: \newunicodechar{⸾}{\makebox[\fontcharwd\font`0][c]{\ensuremath{\wr}}}
+#+LATEX_HEADER: \newunicodechar{❝}{\makebox[\fontcharwd\font`0][c]{\ding{125}}}
+#+LATEX_HEADER: \newunicodechar{❞}{\makebox[\fontcharwd\font`0][c]{\ding{126}}}
 
 GRASP is an extensible structural code editor for languages
 that are based on s-expressions.
@@ -4220,16 +4238,24 @@ day in the future.
     (syntax-rules (by:)
       ((increase! location)
        (increase! location by: 1))
+      ((increase! location as: type)
+       (increase! location by: 1 as: type))
       ((increase! location by: value)
        (set! location (+ location value)))
+      ((increase! location by: value as: type)
+       (set! location (as type (+ location value))))
       ))
 
   (define-syntax decrease!
     (syntax-rules (by:)
       ((decrease! location)
        (decrease! location by: 1))
-      ((increase! location by: value)
+      ((decrease! location as: type)
+       (decrease! location by: 1 as: type))
+      ((decrease! location by: value)
        (set! location (- location value)))
+      ((decrease! location by: value as: type)
+       (set! location (as type (- location value))))
       ))
 
   (define-syntax-rule (maximize! location values ...)
@@ -6040,7 +6066,7 @@ everything, we can provide a /partial implementation/.
 #+BEGIN_SRC scheme :noweb-ref Space--representation
 
   (define fragments ::(sequence-of int)
-    (ArrayList ||: 0))
+    (ArrayList ||: (as int 0)))
 
   (define (equals another)::boolean
     (given ((another ::Space))
@@ -6066,12 +6092,12 @@ everything, we can provide a /partial implementation/.
 
   (define (clear!)::void
     (fragments:clear)
-    (fragments:add 0))
+    (fragments:add (as int 0)))
 
   (define (merge-with! space::Space)::void
-    (increase! (last fragments) by: (space:fragments 0))
+    (increase! (last fragments) by: (space:fragments 0) as: int)
     (for i::int from: 1 below: (length space:fragments)
-         (fragments:add (space:fragments i))))
+         (fragments:add (as int (space:fragments i)))))
 
   (define (split-at! index::int)::Space
     (escape-with return
@@ -6081,11 +6107,11 @@ everything, we can provide a /partial implementation/.
                     (positions ::int (index-positions n)))
                (when (is base <= index < (+ base positions))
                  (let ((result ::Space (Space)))
-                   (set! (result:fragments 0) (- n (- index base)))
+                   (set! (result:fragments 0) (as int (- n (- index base))))
                    (for k::int from: (+ i 1) below: (length fragments)
-                        (result:add (fragments k)))
+                        (result:add (as int (fragments k))))
                    (remove-range! fragments from: (+ i 1))
-                   (set! (fragments i) (- index base))
+                   (set! (fragments i) (as int (- index base)))
                    (return result)))
                (increase! base by: positions))))
       (return (Space))))
@@ -6093,17 +6119,17 @@ everything, we can provide a /partial implementation/.
   (define (add item::(either int #\space #\newline string))::boolean
     (match item
       (width::integer
-       (fragments:add width))
+       (fragments:add (as int width)))
       (#\space
        (widen! 1))
       (#\newline
-       (fragments:add 0))
+       (fragments:add (as int 0)))
       (s::string
        (for c in: s
          (add c)))))
 
   (define (widen! increment::int)::void
-    (increase! (last fragments) by: increment))
+    (increase! (last fragments) by: increment as: int))
 #+END_SRC
 
 
@@ -9397,13 +9423,11 @@ in particular for ~Space~:
                 (top ::int (cursor -2)))
            (cond
             ((given (((= tip (self last-index)))
-                     ((is (parent:size) > (+ top 2)))
                      (next ::Atom (parent:element-at (+ top 1)))))
              (cursor:advance-in! document)
              (document:insert-character c))
 
             ((given (((= tip 0))
-                     ((is top > 1))
                      (previous ::Atom (parent:element-at (- top 1)))))
              (cursor:retreat-in! document)
              (document:insert-character c))
@@ -9430,7 +9454,7 @@ of the appropriate fragment:
       (let* ((space ::Space (cursor:target-in document))
              (tip ::int (last cursor))
              (index (space:fragment-index tip)))
-        (increase! (space:fragments index) by: width)
+        (increase! (space:fragments index) by: width as: int)
         (let ((cursor ::Cursor (copy cursor)))
           (cursor:pop!)
           (cursor:push! (+ tip width))
@@ -9474,8 +9498,8 @@ the two subsequent fragments into a single number:
              (tip ::int (last cursor)))
         (let-values (((index offset) (space:fragment-index+offset tip)))
           (let ((width ::int (space:fragments index)))
-            (set! (space:fragments index) offset)
-            (space:fragments:add (+ index 1) (- width offset))
+            (set! (space:fragments index) (as int offset))
+            (space:fragments:add (as int (+ index 1)) (as int (- width offset)))
             (let ((cursor ::Cursor (copy cursor)))
               (cursor:pop!)
               (cursor:push! (+ tip 1))
@@ -9491,7 +9515,7 @@ the two subsequent fragments into a single number:
              (index ::int (space:fragment-index tip)))
         (assert (is index > 0))
         (increase! (space:fragments (- index 1))
-                   by: (space:fragments index))
+                   by: (space:fragments index) as: int)
         (space:fragments:remove index)
         (let ((cursor ::Cursor (copy cursor)))
           (cursor:pop!)
@@ -9548,7 +9572,7 @@ are obviously going to refer to the methods ~splice!~ and
     (define (position)::Cursor cursor)
 
     (define (perform! document::Element)::Edit
-      (assert (is (length cursor) > 2))
+      (assert (is (length cursor) >= 2))
       (let* ((cursor ::Cursor (copy cursor))
              (sub-end ::int (cursor:pop!))
              (end ::int (cursor:pop!))
@@ -9603,17 +9627,19 @@ is to split the ~Atom~:
            (let ((space ::Space (Space)))
              (space:add c)
              (SplitElement space (copy cursor))))))
-       ((#\; #\| #\{ #\} #\( #\) #\[ #\]) #!null)
+       ((#\; #\| #\{ #\} #\( #\) #\[ #\] #\" #|"|#) #!null)
        (else
         (super insert-character c)))))
 
 
 #+END_SRC
 
-
+In order for the above to work, we need to define ~SplitElement~
+and its inverse, ~MergeElements~:
 
 #+BEGIN_SRC scheme :noweb-ref Edit--operations
-  (define-object (SplitElement #;with space ::Space #;at cursor ::Cursor)
+  (define-object (SplitElement #;with space ::Space
+                                      #;at cursor ::Cursor)
     ::Edit
     (define (position)::Cursor cursor)
 
@@ -9629,7 +9655,8 @@ is to split the ~Atom~:
         (cursor:climb-back! document)
         (MergeElements #;removing space #;at cursor))))
 
-  (define-object (MergeElements #;removing space ::Space #;at cursor ::Cursor)
+  (define-object (MergeElements #;removing space ::Space
+                                           #;at cursor ::Cursor)
     ::Edit
     (define (position)::Cursor cursor)
 
@@ -9653,8 +9680,32 @@ is to split the ~Atom~:
           (SplitElement #;with space cursor)))))
 
 #+END_SRC
-      
-    
+
+At this point, we're equipped with a fairly satisfactory
+model for navigating the document and inserting data.  It is
+not perfect yet, though. In particular, we're unable to
+insert ~BlockComment~ elements to our document. This
+functionality contains some tricky bits, and we can live
+without it for a while, so we will implement it later.
+
+As for now, we're still missing a more important editor
+capability, namely -- the /deletion/ of elements and their
+components.
+
+Just like in the case of insertion, we're going to issue
+certain ~Edit~ operations. Moreover, most of those
+operations are already defined for the sake of undoing
+actions (a feature that we're yet to implement, but which
+should be easy to do with the current infrastructure).
+
+So we're now mainly concerned with merely /issuing/ some of
+the existing ~Edit~ operations. We previously required that
+all instances of ~Element~ provide the ~insert-character~
+method, which accepted a character as its argument. 
+
+
+
+
 
 
 (TODO potrzebujemy jeszcze implementacji ~delete-backward~ oraz
@@ -9665,6 +9716,7 @@ istotnych typów ~TextualTileBase~)
 
 (podział na moduły)
 
+#+LATEX: \appendix
 * Appendices
 
 This section contains code that is too lengthy to be
@@ -10869,14 +10921,14 @@ required for the project to run.
 #+END_SRC
 
 
-* Emacs file-local variables
+** Emacs file-local variables
 
 This section contains some variables that are used
 internally by Emacs. They are not displayed in the rendered
 view.  To learn more, see the [[https://www.gnu.org/software/emacs/manual/html_node/emacs/File-Variables.html][File Variables]] section of the
 Emacs manual.
 
-** Adding ~:noweb-scope~ to Org-Babel
+*** Adding ~:noweb-scope~ and ~:noweb-override~ to Org-Babel
 
 The following code adds support for the ~:noweb-scope
 preceding~ header argument in the org-mode's code
@@ -10926,8 +10978,8 @@ have very little idea about what's going on in here.
 
   (defun ob-noweb-scope--table (bounds)
     "Map every :noweb-ref of the current buffer to the blocks that define it,
-  ignoring the blocks that start outside BOUNDS.  A block with :noweb-override
-  replaces the blocks collected so far under its :noweb-ref."
+    ignoring the blocks that start outside BOUNDS.  A block with :noweb-override
+    replaces the blocks collected so far under its :noweb-ref."
     (let ((table (make-hash-table :test #'equal)))
       (org-with-wide-buffer
        (org-babel-map-src-blocks nil
@@ -10962,15 +11014,98 @@ have very little idea about what's going on in here.
           (funcall expand info parent-buffer)))))
 
   (advice-add 'org-babel-expand-noweb-references :around #'ob-noweb-scope)
+
+  #+END_SRC
+
+*** Labelling the code snippets in the exported document
+
+When the document is exported to LaTeX, every source block
+that defines something -- a ~#+NAME~, a ~:noweb-ref~ chunk,
+or a file that it is tangled to -- is framed and labelled
+on its bottom edge: ~<<name>>~ for a chunk (marked
+/(continued)/ when it adds to an earlier definition, and
+/(overrides previous definition)/ for a ~:noweb-override~),
+or the name of the file for tangled blocks. The frame itself
+is the ~chunk~ LaTeX environment defined in the
+~#+LATEX_HEADER~ lines at the top of this file (it only sets
+~fancyvrb~ options, so the blocks may still break across
+pages).
+
+#+NAME: chunk-labels
+#+BEGIN_SRC emacs-lisp :tangle no :results none
+  ;; Frames every source block that defines a noweb chunk (#+NAME or
+  ;; :noweb-ref) or that is tangled to a file, with a label centered on
+  ;; the bottom rule: <name>= for the first definition, <name>+= for a
+  ;; continuation, <name>:= for a :noweb-override, and the file name
+  ;; for tangled blocks.  Runs on the copy of the buffer that Org
+  ;; exports, before Babel strips the header arguments from the blocks.
+  (defun ob-noweb-chunk-label (block)
+    "The label of BLOCK, or nil if it defines nothing."
+    (let* ((params (org-babel-parse-header-arguments
+                    (mapconcat #'identity
+                               (append (org-element-property :header block)
+                                       (list (or (org-element-property :parameters block) "")))
+                               " ")))
+           (tangle (cdr (assq :tangle params))))
+      (cond ((and tangle (not (member tangle '("no" "yes"))))
+             (list tangle 'file))
+            ((org-element-property :name block)
+             (list (org-element-property :name block) 'chunk))
+            ((cdr (assq :noweb-ref params))
+             (list (cdr (assq :noweb-ref params))
+                   (if (equal (cdr (assq :noweb-override params)) "yes")
+                       'override 'chunk))))))
+
+  (defun ob-noweb-latex-name (name)
+    "NAME in typewriter, with the T1 ligatures (<< >> --) broken up."
+    (format "\\texttt{%s}"
+            (replace-regexp-in-string
+             "[<>-]" "\\&{}" (org-latex--protect-text name))))
+
+  (defun ob-noweb-label-chunks (backend)
+    (when (org-export-derived-backend-p backend 'latex)
+      (let ((seen (make-hash-table :test #'equal))
+            (chunks '()))
+        (org-element-map (org-element-parse-buffer) 'src-block
+          (lambda (block)
+            (pcase (ob-noweb-chunk-label block)
+              (`(,name ,kind)
+               (push (list (org-element-property :begin block)
+                           (org-element-property :end block)
+                           (concat
+                            (ob-noweb-latex-name
+                             (if (eq kind 'file) name (format "<<%s>>" name)))
+                            ;; \normalfont, because the label is typeset in
+                            ;; the typewriter font of the verbatim environment
+                            (cond ((eq kind 'override)
+                                   " {\\normalfont\\itshape (overrides previous definition)}")
+                                  ((gethash name seen)
+                                   " {\\normalfont\\itshape (continued)}")
+                                  (t ""))))
+                     chunks)
+               (puthash name t seen)))))
+        ;; `chunks' is in reverse buffer order: editing from the end
+        ;; backwards keeps the earlier positions valid
+        (dolist (chunk chunks)
+          (pcase-let ((`(,begin ,end ,label) chunk))
+            (goto-char end)
+            (skip-chars-backward " \t\n")
+            (insert "\n#+BEGIN_EXPORT latex\n\\end{chunk}\n#+END_EXPORT")
+            (goto-char begin)
+            (insert (format "#+BEGIN_EXPORT latex\n\\begin{chunk}{%s}\n#+END_EXPORT\n" label)))))))
+
+  (add-hook 'org-export-before-processing-functions #'ob-noweb-label-chunks)
 #+END_SRC
 
-** Initializing file-local variables
+*** Initializing file-local variables
 
-# Local variables:
-# eval: (let ((org-confirm-babel-evaluate nil)) (save-excursion (org-babel-goto-named-src-block "noweb-scope") (org-babel-execute-src-block)))
-# mode: org
-# fill-column: 60
-# indent-tabs-mode: nil
-# eval: (modify-syntax-entry ?< ".")
-# eval: (modify-syntax-entry ?> ".")
-# End:
+#+BEGIN_EXAMPLE
+Local variables:
+eval: (let ((org-confirm-babel-evaluate nil)) (save-excursion (org-babel-goto-named-src-block "noweb-scope") (org-babel-execute-src-block)) (save-excursion (org-babel-goto-named-src-block "chunk-labels") (org-babel-execute-src-block)))
+mode: org
+fill-column: 60
+indent-tabs-mode: nil
+eval: (modify-syntax-entry ?< ".")
+eval: (modify-syntax-entry ?> ".")
+End:
+#+END_EXAMPLE
