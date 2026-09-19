@@ -3710,8 +3710,6 @@ is ambiguous.
 
   (define-alias hypotenuse java.lang.Math:hypot)
 
-  (define-alias hash java.util.Objects:hash)
-
   (define (nearby-int x ::real)::int
     (as int (round x)))
 
@@ -5423,16 +5421,16 @@ elements that occupy a rectangular area of the screen.
             ((spaces:equals those:spaces)))))
 
   (define (hashCode)::int
-    (hash spaces elements))
+    (+ (* 31 (spaces:hashCode)) (elements:hashCode)))
 
   (define (clone)
     (let ((copied ::Comb (invoke-special java.lang.Object (this) 'clone)))
       (set! copied:elements (ArrayList))
       (set! copied:spaces (ArrayList))
       (for tile::Tile in: elements
-        (copied:elements:add tile))
+        (copied:elements:add (copy tile)))
       (for space::Space in: spaces
-        (copied:spaces:add space))
+        (copied:spaces:add (copy space)))
       copied))
 
   ;; and the test can be easily generalized to a colleciton
@@ -5478,7 +5476,7 @@ elements that occupy a rectangular area of the screen.
         (return -1)))
 
   (define (contains object ::Object)::boolean
-    (is (indexOf object) > 0))
+    (is (indexOf object) >= 0))
 
   ;; the interpretation of "being empty" may be a little
   ;; controversial. Our representation doesn't allow the
@@ -6066,6 +6064,10 @@ everything, we can provide a /partial implementation/.
     (and (= (fragments:size) 1)
          (= 0 (fragments 0))))
 
+  (define (clear!)::void
+    (fragments:clear)
+    (fragments:add 0))
+
   (define (merge-with! space::Space)::void
     (increase! (last fragments) by: (space:fragments 0))
     (for i::int from: 1 below: (length space:fragments)
@@ -6339,9 +6341,9 @@ be used as a base class for our text-like things.
     (define (hashCode)::int
       (let ((code ::int 0)
             (class ::Class (self getClass)))
-        (for c in: builder
-          (set! code (+ (* 31 code) (as int c))))
-        (+ (* 31 (class:hashCode) code))))
+        (for i::int from: 0 below: (builder:length)
+          (set! code (+ (* 31 code) (as int (builder:charAt i)))))
+        (+ (* 31 (invoke class 'hashCode)) code)))
 
     (define (split-at! index::int)::Textual
       (let ((copied ::TextualBase (clone)))
@@ -7683,7 +7685,7 @@ obtained in the following way:
          (set! root (root:element-at ((this) i))))
     root)
 
- #+END_SRC
+#+END_SRC
 
 The two most basic operations that can be performed on
 cursor are /advancing/ and /retreating/. Those operations
@@ -9242,11 +9244,19 @@ We previously defined the ~Edit~ interface, and we can
 define the ~key-typed!~ method of the ~GRASP-Editor~ class
 to execute its ~perform!~ method:
 
-#+BEGIN_SRC scheme :noweb-ref GRASP-key-typed
+#+BEGIN_SRC scheme :noweb no-export :noweb-ref GRASP-key-typed
   (given ((cursor ::Cursor (current-cursor))
-          (undo ::Edit (action:perform! (current-document))))
-    (cursor:assign! (undo:position)))
+          (document ::Document (current-document))
+          (undo ::Edit (action:perform! document)))
+    (cursor:assign! (undo:position))
+    <<Edit-performed>>)
 
+#+END_SRC
+
+The ~Edit-performed~ part is currently empty, but it will be
+elaborated later:
+
+#+BEGIN_SRC scheme :noweb-ref Edit-performed
 #+END_SRC
 
 Of course, in order for it to work, we need ~Cursor~
@@ -9259,7 +9269,7 @@ to implement the ~assign!~ method:
       (for index::int in: another
   	 (self push! index))))
   
- #+END_SRC
+#+END_SRC
 
 Mind however that we currently have no instances of the
 ~Edit~ interface!
@@ -9285,7 +9295,7 @@ It is invoked as a default of the ~key-bindings~:
           ((char-standard? input))
           (document ::Document (current-document)))
     (document:insert-character input))
-  
+
 #+END_SRC
 
 We now need to provide the definition of ~insert-character~
@@ -9299,6 +9309,7 @@ that simply appends a character at a ~current-index~.
 #+BEGIN_SRC scheme :noweb-ref TextualTileBase--editing
   (define (insert-character c)::(maybe Edit)
     (AppendCharacters (string c) (copy (current-cursor))))
+  
 #+END_SRC
 
 We now need to define the ~AppendCharacters~ operation, and for
@@ -9367,19 +9378,37 @@ in particular for ~Space~:
 
 #+BEGIN_SRC scheme :noweb-ref Space--editing
   (define (insert-character c)::(maybe Edit)
-    (match c
-      (#\space
-       (GrowSpace 1 (copy (current-cursor))))
-      (#\newline
-       (BreakSpace (copy (current-cursor))))
-      (#\" ;"
-       (InsertSlice (Comb (Text)) (copy (current-cursor))))
-      (#\;
-       (InsertSlice (Comb (LineComment)) (copy (current-cursor))))
-      (#\[ ;]
-       (InsertSlice (Comb (Comb)) (copy (current-cursor))))
-      (_
-       (InsertSlice (Comb (Atom (string c))) (copy (current-cursor))))))
+    (let ((cursor ::Cursor (current-cursor)))
+      (match c
+        (#\space
+         (GrowSpace 1 (copy cursor)))
+        (#\newline
+         (BreakSpace (copy cursor)))
+        (#\" ;"
+         (InsertSlice (Comb (Text)) (copy cursor)))
+        (#\;
+         (InsertSlice (Comb (LineComment)) (copy cursor)))
+        (#\[ ;]
+         (InsertSlice (Comb (Comb)) (copy cursor)))
+        (_
+         (let* ((document ::Document (current-document))
+                (parent ::Comb (cursor:target-in/at document -2))
+                (tip ::int (cursor:top))
+                (top ::int (cursor -2)))
+           (cond
+            ((given (((= tip (self last-index)))
+                     ((is (parent:size) > (+ top 2)))
+                     (next ::Atom (parent:element-at (+ top 1)))))
+             (cursor:advance-in! document)
+             (document:insert-character c))
+
+            ((given (((= tip 0))
+                     ((is top > 1))
+                     (previous ::Atom (parent:element-at (- top 1)))))
+             (cursor:retreat-in! document)
+             (document:insert-character c))
+            (else
+             (InsertSlice (Comb (Atom (string c))) (copy cursor)))))))))
 
 #+END_SRC
 
@@ -9536,6 +9565,96 @@ are obviously going to refer to the methods ~splice!~ and
         (InsertSlice elements cursor))))
 
 #+END_SRC
+
+Although we defined the ~insert-character~ method for ~TextualTileBase~,
+we still need to refine its behavior for certain particular instances:
+for example, we can block accepting the ~#\newline~ character inside
+~LineComment~ instances:
+
+#+BEGIN_SRC scheme :noweb-ref LineComment--editing
+  (define (insert-character c)::(maybe Edit)
+    (match c
+      (#\newline #!null)
+      (_
+       (super insert-character c))))
+
+#+END_SRC
+
+The case of ~Atom~ is a bit more complex: when we insert a
+white space at a boundary (either left or right), we
+actually want the edit to go to the adjacent ~Space~. But
+when we insert it inside of an ~Atom~, what we actually want
+is to split the ~Atom~:
+
+#+BEGIN_SRC scheme :noweb-ref Atom--editing
+  (define (insert-character c)::(maybe Edit)
+    (let ((cursor ::Cursor (current-cursor))
+          (document ::Document (current-document)))
+      (case c
+       ((#\space #\newline)
+        (match (cursor:top)
+          (0
+           (cursor:retreat-in! document)
+           (document:insert-character c))
+          (,(self last-index)
+           (cursor:advance-in! document)
+           (document:insert-character c))
+          (n
+           (let ((space ::Space (Space)))
+             (space:add c)
+             (SplitElement space (copy cursor))))))
+       ((#\; #\| #\{ #\} #\( #\) #\[ #\]) #!null)
+       (else
+        (super insert-character c)))))
+
+
+#+END_SRC
+
+
+
+#+BEGIN_SRC scheme :noweb-ref Edit--operations
+  (define-object (SplitElement #;with space ::Space #;at cursor ::Cursor)
+    ::Edit
+    (define (position)::Cursor cursor)
+
+    (define (perform! document::Element)::Edit
+      (let* ((cursor ::Cursor (copy cursor))
+             (tip ::int (cursor:pop!))
+             (top ::int (cursor:pop!))
+             (parent ::Comb (cursor:target-in document))
+             (target ::TextualTile (parent:element-at top))
+             (suffix ::TextualTile (target:split-at! tip)))
+        (parent:splice! (Comb space suffix) top 0)
+        (cursor:push! (+ top 1))
+        (cursor:climb-back! document)
+        (MergeElements #;removing space #;at cursor))))
+
+  (define-object (MergeElements #;removing space ::Space #;at cursor ::Cursor)
+    ::Edit
+    (define (position)::Cursor cursor)
+
+    (define (perform! document::Element)::Edit
+      (let* ((cursor ::Cursor (copy cursor))
+             (tip ::int (cursor:pop!))
+             (top ::int (cursor:pop!))
+             (parent ::Comb (cursor:target-in document))
+             (left ::TextualTile (parent:element-at (- top 1)))
+             (space* ::Space (parent:element-at top)))
+        (assert (equal? space space*))
+        (space*:clear!)
+        ;; we need to subtract 1 to translate element-at to
+        ;; remove-at index but we also need to add 1 to indicate
+        ;; the element following the space, so these two cancel out
+        (let ((right ::TextualTile (parent:remove-at top))
+              (tip ::int (string-length left)))
+          (left:merge-with! right)
+          (cursor:push! (- top 1))
+          (cursor:push! tip)
+          (SplitElement #;with space cursor)))))
+
+#+END_SRC
+      
+    
 
 
 (TODO potrzebujemy jeszcze implementacji ~delete-backward~ oraz
@@ -10360,7 +10479,7 @@ required for the project to run.
   (set! (key-code-name (regular-key-code #\})) 'right-brace)
   (set! (key-code-name (regular-key-code #\})) #\})
 
-  #+END_SRC
+#+END_SRC
 
 *** Keyboard initialization of Desktop client
 
