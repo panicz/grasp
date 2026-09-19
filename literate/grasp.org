@@ -1356,7 +1356,7 @@ definition.)
                             methods
                             (initializers ...)
                             ((define-private slot value)
-                            . spec))
+                             . spec))
          #'(object-definition (object-name . args)
                               ()
                               supers
@@ -1374,7 +1374,7 @@ definition.)
                             methods
                             (initializers ...)
                             ((define-protected slot value)
-                            . spec))
+                             . spec))
          #'(object-definition (object-name . args)
                               ()
                               supers
@@ -1412,7 +1412,7 @@ definition.)
                             methods
                             initializers
                             ((define-static slot :: type value)
-                            . spec))
+                             . spec))
          #'(object-definition (object-name . args)
                               ()
                               supers
@@ -1544,6 +1544,7 @@ definition.)
          #'(define-simple-class object-name (supers ...)
              slots ... methods ...))
 
+
         ((object-definition (object-name . args)
                             ()
                             (supers ...)
@@ -1568,22 +1569,69 @@ definition.)
                             slots
                             (methods ...)
                             (initializers ...)
-                            ((super . args*) . init))
-         #'(object-definition (object-name)
-                              ()
-                              (supers ... super)
-                              slots
-                              (methods
-                               ...
-                               ((*init* . args)
-                                (invoke-special super (this)
-                                                '*init*
-                                                . args*)
-                                initializers ...
-                                . init))
-                              ()
-                              ()))
+                            ((parent . args*) . init))
+         (with-syntax ((super (datum->syntax #'object-name 'super)))
+           #'(with-super-in-methods object-name (supers ... parent) slots
+                                    parent super ()
+                                    (methods
+                                     ...
+                                     ((*init* . args)
+                                      (invoke-special parent (this)
+                                                      '*init*
+                                                      . args*)
+                                      initializers ...
+                                      . init)))))
         )))
+
+  (define-syntax with-super-in-methods
+    (syntax-rules ()
+      ((_ name supers (slots ...) parent super (done ...) ())
+       (define-simple-class name supers
+         slots ... done ...))
+
+      ((_ name supers slots parent super done
+          ((prototype . spec) . pending))
+       (with-super-in-method name supers slots parent super done
+                             (prototype () spec) pending))))
+
+  (define-syntax with-super-in-method
+    (syntax-rules (::)
+      ((_ name supers slots parent super done
+          (prototype (attributes ...) (:: type . spec)) pending)
+       (with-super-in-method name supers slots parent super done
+                             (prototype (attributes ... :: type) spec) pending))
+
+      ((_ name supers slots parent super done
+          (prototype (attributes ...) (access: value . spec)) pending)
+       (with-super-in-method name supers slots parent super done
+                             (prototype (attributes ... access: value) spec)
+                             pending))
+
+      ((_ name supers slots parent super done
+          (prototype (attributes ...) (allocation: value . spec)) pending)
+       (with-super-in-method name supers slots parent super done
+                             (prototype (attributes ... allocation: value) spec)
+                             pending))
+
+      ((_ name supers slots parent super (done ...)
+          (prototype (attributes ...) (#!abstract)) pending)
+       (with-super-in-methods name supers slots parent super
+                              (done ... (prototype attributes ... #!abstract))
+                              pending))
+
+      ((_ name supers slots parent super (done ...)
+          (prototype (attributes ...) body) pending)
+       (with-super-in-methods
+        name supers slots parent super
+        (done ... (prototype attributes ...
+                             (let-syntax ((super (syntax-rules ()
+                                                   ((_ method arg (... ...))
+                                                    (invoke-special parent (this)
+                                                                    'method
+                                                                    arg (... ...))))))
+                               . body)))
+        pending))))
+
 
   (define-syntax-rule (define-mixin mixin-name mixin-definitions ...)
     (define-macro (mixin-name constructor supers slots methods initializers spec)
@@ -4352,10 +4400,10 @@ day in the future.
     (define (get index ::int)::Object
       (let* ((n ::int (size))
              (index (modulo index n)))
-        (invoke-special ArrayList (this) 'get index)))
+        (super get index)))
 
     (define (push! element)::void
-      (invoke-special ArrayList (this) 'add element))
+      (super add element))
 
     (define (pop!)::Object
       (remove (- (size) 1)))
@@ -4367,7 +4415,7 @@ day in the future.
        (pop!)))
 
     (define (empty?)::boolean
-      (invoke-special ArrayList (this) 'isEmpty))
+      (super isEmpty))
 
     (define (top)::Object
       (get (- (size) 1)))
@@ -4375,8 +4423,7 @@ day in the future.
     (define (set-top! element)::void
       (let* ((n ::int (size))
              (index ::int (- n 1)))
-        (invoke-special ArrayList (this)
-                        'set index element)))
+        (super set index element)))
 
     (ArrayList))
 
@@ -6534,7 +6581,7 @@ units in GRASP
       BorderStyle:LineComment)
 
     (define (render! path ::Cursor state::LayoutState)::void
-      (invoke-special TextualTileBase (this) 'render! path state))
+      (super render! path state))
 
     (define (advance-layout! state ::LayoutState)::void
       (expand-layout! state (self width) (self height))
@@ -8111,37 +8158,31 @@ to obtain the most basic version of ~TerminalPainter~:
                                   selected ::SideSelected)
       (match selected
         (,SideSelected:None
-         (invoke-special CharPainter (this)
-                         'draw-left! height border selected))
+         (super draw-left! height border selected))
         (,SideSelected:Left
          (with ((fgcolor TerminalColor:ANSI:BLACK)
                 (bgcolor TerminalColor:ANSI:WHITE_BRIGHT))
-           (invoke-special CharPainter (this)
-                           'draw-left! height border selected)
+           (super draw-left! height border selected)
            (mark-cursor! 0 #!null)))
         (,SideSelected:Right
          (with ((fgcolor TerminalColor:ANSI:BLACK_BRIGHT)
                 (bgcolor TerminalColor:ANSI:WHITE))
-           (invoke-special CharPainter (this)
-                           'draw-left! height border selected)))))
+           (super draw-left! height border selected)))))
 
     (define-protected (draw-right! height ::real
                                    border ::BorderCharacters
                                    selected ::SideSelected)
       (match selected
         (,SideSelected:None
-         (invoke-special CharPainter (this)
-                         'draw-right! height border selected))
+         (super draw-right! height border selected))
         (,SideSelected:Left
          (with ((fgcolor TerminalColor:ANSI:BLACK_BRIGHT)
                 (bgcolor TerminalColor:ANSI:WHITE))
-           (invoke-special CharPainter (this)
-                           'draw-right! height border selected)))
+           (super draw-right! height border selected)))
         (,SideSelected:Right
          (with ((fgcolor TerminalColor:ANSI:BLACK)
                 (bgcolor TerminalColor:ANSI:WHITE_BRIGHT))
-           (invoke-special CharPainter (this)
-                           'draw-right! height border selected)
+           (super draw-right! height border selected)
            (mark-cursor! 0 #!null)))))
 
     (CharPainter))
@@ -8924,7 +8965,7 @@ of ~<<TextualTileSubclasses--rendering>>~ and
       BorderStyle:LineComment)
 
     (define (render! path ::Cursor state::LayoutState)::void
-      (invoke-special TextualTileBase (this) 'render! path state))
+      (super render! path state))
 
     (define (advance-layout! state ::LayoutState)::void
       (expand-layout! state (self width) (self height))
