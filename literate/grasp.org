@@ -788,7 +788,8 @@ our code:
   (define-alias Thread java.lang.Thread)
 
   (define-alias Comparable java.lang.Comparable)
-  
+
+  (define-alias Class java.lang.Class)
 #+END_SRC
 
 Moreover, Java provides the interface ~java.lang.Comparable~,
@@ -843,7 +844,7 @@ of numbers or creating coroutines):
       (futures:clear)))
 
   (define-syntax for
-    (syntax-rules (in: from: to: down-to: below: by:
+    (syntax-rules (in: from: to: down-to: below: above: by:
                       in/reverse:
                       in/parallel: ::)
 
@@ -887,6 +888,13 @@ of numbers or creating coroutines):
              actions ...
              (loop (- var inc))))))
 
+      ((for var::type from: start above: end by: increment actions ...)
+       (let ((inc (abs increment)))
+         (let loop ((var::type start))
+           (when (is var > end)
+             actions ...
+             (loop (- var inc))))))
+      
       ((for var::type from: start below: end by: increment actions ...)
        (let loop ((var ::type start))
          (when (is var < end)
@@ -3702,6 +3710,8 @@ is ambiguous.
 
   (define-alias hypotenuse java.lang.Math:hypot)
 
+  (define-alias hash java.util.Objects:hash)
+
   (define (nearby-int x ::real)::int
     (as int (round x)))
 
@@ -3769,12 +3779,12 @@ is ambiguous.
 
   (define (prefix? a::List b::List)::boolean
     (let ((ai ::Iterator (a:listIterator))
-  	(bi ::Iterator (b:listIterator)))
+        (bi ::Iterator (b:listIterator)))
       (let loop ()
         (or (not (ai:hasNext))
-  	  (and (bi:hasNext)
-  	       (equal? (ai:next) (bi:next))
-  	       (loop))))))
+          (and (bi:hasNext)
+               (equal? (ai:next) (bi:next))
+               (loop))))))
 
   (e.g.
    (is '(a b c) prefix? '(a b c d e)))
@@ -5412,11 +5422,18 @@ elements that occupy a rectangular area of the screen.
             ((elements:equals those:elements))
             ((spaces:equals those:spaces)))))
 
-  ;; testing for presence of an object depends on
-  ;; the type of that object
-  (define (contains object ::Object)::boolean
-    (or (and (Space? object) (spaces:contains object))
-        (and (Tile? object) (elements:contains object))))
+  (define (hashCode)::int
+    (hash spaces elements))
+
+  (define (clone)
+    (let ((copied ::Comb (invoke-special java.lang.Object (this) 'clone)))
+      (set! copied:elements (ArrayList))
+      (set! copied:spaces (ArrayList))
+      (for tile::Tile in: elements
+        (copied:elements:add tile))
+      (for space::Space in: spaces
+        (copied:spaces:add space))
+      copied))
 
   ;; and the test can be easily generalized to a colleciton
   (define (containsAll collection ::Collection)
@@ -5445,38 +5462,23 @@ elements that occupy a rectangular area of the screen.
   (define (listIterator index ::int)::ListIterator
     (IndexBasedIterator (this) index))
 
-  ;; the indexOf and lastIndexOf methods are probably
-  ;; never going to be used by anyone, but we provide them
-  ;; anyway, because they are straightforward to implement
   (define (indexOf object ::Object)::int
-    (cond
-     ((Space? object)
-      (let ((index ::int (spaces:indexOf object)))
-        (if (is index < 0)
-            index
-            (* 2 index))))
-     ((Tile? object)
-      (let ((index ::int (elements:indexOf object)))
-        (if (is index < 0)
-            index
-            (+ (* 2 index) 1))))
-     (else
-      -1)))
+    (let ((s ::int (size)))
+      (escape-with return
+        (for i::int from: 0 below: s
+             (when (eq? (get i) object)
+               (return i)))
+        (return -1))))
 
   (define (lastIndexOf object ::Object)::int
-    (cond
-     ((Space? object)
-      (let ((index ::int (spaces:lastIndexOf object)))
-        (if (is index < 0)
-            index
-            (* 2 index))))
-     ((Tile? object)
-      (let ((index ::int (elements:lastIndexOf object)))
-        (if (is index < 0)
-            index
-            (+ (* 2 index) 1))))
-     (else
-      -1)))
+    (escape-with return
+      (for i::int from: (- (size) 1) down-to: 0
+           (when (eq? (get i) object)
+             (return i)))
+        (return -1)))
+
+  (define (contains object ::Object)::boolean
+    (is (indexOf object) > 0))
 
   ;; the interpretation of "being empty" may be a little
   ;; controversial. Our representation doesn't allow the
@@ -5679,7 +5681,7 @@ going to provide mock definitions of ~Element~, ~Tile~ and
   (import (language-extensions))
   (this-is-a-test!)
 
-  (define-interface Element ()
+  (define-interface Element (Cloneable)
     #|
     This is a mock implementation
     that is only used for testing
@@ -6042,6 +6044,18 @@ everything, we can provide a /partial implementation/.
   (define fragments ::(sequence-of int)
     (ArrayList ||: 0))
 
+  (define (equals another)::boolean
+    (given ((another ::Space))
+      (fragments:equals another:fragments)))
+
+  (define (clone)
+    (let ((copied ::Space (invoke-special java.lang.Object (this) 'clone)))
+      (set! copied:fragments (ArrayList fragments))
+      copied))
+
+  (define (hashCode)::int
+    (fragments:hashCode))
+
   (define-static (empty)::Space
     (Space))
 
@@ -6143,7 +6157,7 @@ everything, we can provide a /partial implementation/.
 
   <<GRASP-ontology>>
 
-  (define-interface Element (Visual)
+  (define-interface Element (Visual Cloneable)
     #|
     This is a mock implementation
     that is only used for testing
@@ -6301,13 +6315,42 @@ be used as a base class for our text-like things.
 
 #+BEGIN_SRC scheme :tangle no :noweb-ref TextualBase
 
-  (define-interface Textual (List CharSequence))
+  (define-interface Textual (List CharSequence Cloneable)
+    (split-at! index::int)::Textual
+    (merge-with! suffix::CharSequence)::void)
 
   (define-interface TextualTile (Textual Tile))
 
   (define-object (TextualBase)::Textual
     (define-protected builder ::StringBuilder
       (StringBuilder))
+
+    (define (clone)
+      (let ((copied ::TextualBase (as TextualBase
+                                      (invoke-special Object (this) 'clone))))
+        (set! copied:builder (StringBuilder copied:builder))
+        copied))
+
+    (define (equals another)
+      (given ((another ::TextualBase)
+              ((eq? (another:getClass) (self getClass))))
+        (string=? builder another:builder)))
+
+    (define (hashCode)::int
+      (let ((code ::int 0)
+            (class ::Class (self getClass)))
+        (for c in: builder
+          (set! code (+ (* 31 code) (as int c))))
+        (+ (* 31 (class:hashCode) code))))
+
+    (define (split-at! index::int)::Textual
+      (let ((copied ::TextualBase (clone)))
+        (builder:delete index (builder:length))
+        (copied:builder:delete 0 index)
+        copied))
+
+    (define (merge-with! s::CharSequence)::void
+      (builder:append s))
 
     (delegate (charAt index::int)::char builder)
     (delegate (chars)::IntStream builder)
@@ -6610,7 +6653,7 @@ rendering with our ~TextPainter~.
 
   <<GRASP-ontology>>
 
-  (define-interface Element (Visual)
+  (define-interface Element (Visual Cloneable)
     #|
     This is a mock implementation
     that is only used for testing
@@ -6757,7 +6800,7 @@ We can now test the simplified parser on sample data:
 
   <<GRASP-ontology>>
 
-  (define-interface Element (Visual)
+  (define-interface Element (Visual Cloneable)
     #|
     This is a mock implementation
     that is only used for testing
@@ -7227,7 +7270,7 @@ class that will be elaborated in the future.
 
   <<GRASP-ontology>>
 
-  (define-interface Element (Visual)
+  (define-interface Element (Visual Cloneable)
     #|
     This is a mock implementation
     that is only used for testing
@@ -7470,7 +7513,7 @@ We can now test whether the algorithm works correctly:
   (import (language-extensions))
   (this-is-a-test!)
 
-  (define-interface Element ()
+  (define-interface Element (Cloneable)
     (serialize port ::OutputPort indent ::int)::void
     #|
     This is a mock implementation
@@ -8305,7 +8348,7 @@ keys (for moving the cursor left and right), and to the
 
   <<GRASP-ontology>>
 
-  (define-interface Element (Visual)
+  (define-interface Element (Visual Cloneable)
     <<Element--indexing>>
     )
 
@@ -8473,7 +8516,7 @@ These operations can be tested non-interactively:
   (import (language-extensions))
   (this-is-a-test!)
 
-  (define-interface Element ()
+  (define-interface Element (Cloneable)
     #|
     This is a mock implementation
     that is only used for testing
@@ -9009,7 +9052,7 @@ As to the main part of the stub, it is defined as follows:
 
   <<GRASP-ontology>>
 
-  (define-interface Element (Visual)
+  (define-interface Element (Visual Cloneable)
     (serialize port ::OutputPort indent ::int)::void
     <<Element--cursor-operations>>
     <<Element--editing>>
@@ -9083,6 +9126,7 @@ As to the main part of the stub, it is defined as follows:
 
   (define-object (Document)
     <<Document--keyboard-editing>>
+    <<Document--definition>>
     (Comb)
     (set! style BorderStyle:None))
 
@@ -9359,11 +9403,8 @@ of the appropriate fragment:
              (index (space:fragment-index tip)))
         (increase! (space:fragments index) by: width)
         (let ((cursor ::Cursor (copy cursor)))
-          (if (is width < 0)
-              (times (- width) (lambda ()
-                                 (cursor:retreat-in! document)))
-              (times width (lambda ()
-                             (cursor:advance-in! document))))
+          (cursor:pop!)
+          (cursor:push! (+ tip width))
           (GrowSpace (- width) cursor)))))
 
 #+END_SRC
