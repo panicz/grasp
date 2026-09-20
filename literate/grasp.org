@@ -808,6 +808,7 @@ our code:
   (define-alias Comparable java.lang.Comparable)
 
   (define-alias Class java.lang.Class)
+
 #+END_SRC
 
 Moreover, Java provides the interface ~java.lang.Comparable~,
@@ -2820,6 +2821,7 @@ to account for users omitting key and value type specifier:
        (define-mapping (mapping-name object ::Object)
          ::Object . default))
       ))
+  
 #+END_SRC
 
 Mind however, that associating keys with values isn't the
@@ -5276,6 +5278,7 @@ recommend reading it.
   (define-object (TextPainter)::Painter
     <<BasicTextPainter--body>>
     (CharPainter))
+
 #+END_SRC
 
 
@@ -5355,7 +5358,6 @@ recommend reading it.
   │ │  │ * n │ ! │ - n 1 │ │ │ │ │
   ╰ ╰  ╰     ╰   ╰       ╯ ╯ ╯ ╯ ╯
   ")
-
 
   (test-report)
 #+END_SRC
@@ -5907,6 +5909,7 @@ of advancing the layout state:
 #+BEGIN_SRC scheme :tangle no :noweb-ref GRASP-ontology
   (define-interface Spatial ()
     (advance-layout! state::LayoutState)::void)
+  
 #+END_SRC
 
 Likewise, an object is ~Visual~ if it can be rendered.  The
@@ -5985,6 +5988,7 @@ every access.
 #+BEGIN_SRC scheme :tangle no :noweb-ref Comb--rendering
   (define-private last-width ::real -1)
   (define-private last-height ::real -1)
+  
 #+END_SRC
 
 We're now equipped with everything needed to define the
@@ -6130,6 +6134,7 @@ everything, we can provide a /partial implementation/.
 
   (define (widen! increment::int)::void
     (increase! (last fragments) by: increment as: int))
+  
 #+END_SRC
 
 
@@ -7432,6 +7437,7 @@ children and adjust the column value accordingly.
     (write-char #\) port))
 
   (mix-in WriteToString)
+  
 #+END_SRC
 
 The case of ~Space~ is more complicated, because it's
@@ -7455,6 +7461,7 @@ the new line plus current indentation):
          (times (+ (fragments i) indent) write-char #\space port)))
 
   (mix-in WriteToString)
+  
 #+END_SRC
 
 Lastly, we need to define serialization for ~TextualTileBase~
@@ -7484,6 +7491,7 @@ Lastly, we need to define serialization for ~TextualTileBase~
       (write-char c port)))
 
   (mix-in WriteToString)
+  
 #+END_SRC
 
 We also need to implement serialization for our textual elements:
@@ -8107,6 +8115,7 @@ so that we can collect it using ~netcat~ or a similar utility:
             (connection:write byte)
             (when (= byte (char->integer #\newline))
               (connection:flush))))))))
+  
 #+END_SRC
 
 In cases like this, it's also convenient to be able to print stack
@@ -8257,6 +8266,7 @@ to obtain the most basic version of ~TerminalPainter~:
            (mark-cursor! 0 #!null)))))
 
     (CharPainter))
+  
 #+END_SRC
 
 Having defined ~TerminalPainter~, we can define two procedures:
@@ -8313,14 +8323,15 @@ one for handling input, and another for rendering:
         ;; "The Display Processor")
         (set! (screen-up-to-date?) #t))
       (let ((resize ::TerminalSize
-  		  (terminal:doResizeIfNecessary))
-  	  (document ::Document (current-document)))
+                  (terminal:doResizeIfNecessary))
+          (document ::Document (current-document)))
         (painter:clear!)
         (document:render! (Cursor) (LayoutState))
         (if resize
             (terminal:refresh LanternaScreen:RefreshType:COMPLETE)
             (terminal:refresh LanternaScreen:RefreshType:DELTA))
         (loop))))
+  
 #+END_SRC
 
 The only thing that's left if we want to obtain a running
@@ -8438,9 +8449,9 @@ keys (for moving the cursor left and right), and to the
   (if (is n <= 1)
      1
    (* n (! (- n 1)))))
-  
-  
-  
+
+
+
   (e.g. (! 5) ===> 120)" read-document))
 
   <<terminal-document-cursor-navigation>>
@@ -8448,6 +8459,7 @@ keys (for moving the cursor left and right), and to the
   <<terminal-document-rendering>>
 
   <<terminal-runner>>
+
 #+END_SRC
 
 When tangled, this program has around 1800 lines of code
@@ -8505,6 +8517,7 @@ spaces, to indicate the break point inside of them.
         (elements*:clear)
         (spaces*:clear)
         result))
+  
 #+END_SRC
 
 The second method takes a ~Comb~, an index and a sub-index,
@@ -8700,6 +8713,7 @@ the /undo/ mechanism):
     ;; the `perform` method should return an Edit
     ;; operation that un-does this one
     (perform! document::Element)::Edit)
+  
 #+END_SRC
 
 The exact set of operations is going to be defined later,
@@ -8742,6 +8756,7 @@ key codes:
 
 #+BEGIN_SRC scheme :tangle input/keyboard.scm
   (define-alias KeyCode ulong)
+  
 #+END_SRC
 
 This type is big enough to account for differences in all of the
@@ -8754,6 +8769,7 @@ APIs. We're going to use the oldest bits to represent modifier keys
   (define-early-constant ALT_MASK       ::KeyCode #x2000000000000000)
   (define-early-constant SHIFT_MASK     ::KeyCode #x1000000000000000)
   (define-early-constant MODIFIERS_MASK ::KeyCode #x7000000000000000)
+  
 #+END_SRC
 
 When it comes to the actual input that is being typed, we're
@@ -8762,6 +8778,7 @@ going to pass it through a /parameter/ called
 
 #+BEGIN_SRC scheme :tangle input/keyboard.scm
   (define-parameter (unicode-input)::gnu.text.Char #\null)
+  
 #+END_SRC
 
 The most important part of the mapping is the table that
@@ -8782,6 +8799,7 @@ defined by the particular host:
   (define-early-constant key-code-name
     (bimapping (key-code::KeyCode 0)
       'unknown-key))
+  
 #+END_SRC
 
 The table is populated by particular clients during
@@ -8960,6 +8978,7 @@ method (and do some bookkeeping around that):
             (terminal:refresh LanternaScreen:RefreshType:COMPLETE)
             (terminal:refresh LanternaScreen:RefreshType:DELTA))
         (loop))))
+  
 #+END_SRC
 
 
@@ -9222,6 +9241,7 @@ As to the main part of the stub, it is defined as follows:
   <<terminal-rendering>>
 
   <<terminal-runner>>
+
 #+END_SRC
 
 The above stub is operational, even though we're yet to
@@ -9241,6 +9261,7 @@ the \texttt{escape} button:
   (set-key! 'escape
             (lambda (code::KeyCode)
               (exit)))
+  
 #+END_SRC
 
 We also invoke the keyboard navigation capabilities from
@@ -9258,10 +9279,7 @@ our cursor navigation test:
             (invoke (current-cursor)
                     'advance-in!
                     (current-document))))
-
-  (set-key! 'f1
-            (lambda (code::KeyCode)
-              (print (current-cursor))))
+  
 #+END_SRC
 
 *** Edit operations
@@ -9374,7 +9392,7 @@ completeness we also need to define its inverse, ~EraseCharacters~:
           (cursor:pop!)
           (cursor:push! start)
           (AppendCharacters characters cursor)))))
-  
+
 #+END_SRC
 
 This allows us to implement the ~insert-character~ for ~Comb~:
@@ -9383,7 +9401,7 @@ This allows us to implement the ~insert-character~ for ~Comb~:
   (define (insert-character c)::(maybe Edit)
     (let* ((cursor ::Cursor (current-cursor))
            (document ::Document (current-document))
-           (tip ::int (last cursor))
+           (tip ::int (cursor:top))
            (target ::Element (cursor:target-in document)))
       (assert (cursor:valid-in? document))
       (assert (cursor:final-in? document))
@@ -9555,31 +9573,37 @@ are obviously going to refer to the methods ~splice!~ and
     (define (position)::Cursor cursor)
 
     (define (perform! document::Element)::Edit
-      (assert (is (length cursor) >= 2))
+      (assert (is (length cursor) #;< >= 2))
       (let* ((cursor ::Cursor (copy cursor))
              (tip ::int (cursor:pop!))
              (top ::int (cursor:pop!))
              (parent ::Comb (as Comb (cursor:target-in document)))
              (last-space ::Space (as Space (last elements)))
              (last-tile-index ::int (+ top (length elements) -2)))
-        (parent:splice! elements (- top 1) tip)
+        (parent:splice! (copy elements) (- top 1) tip)
         (cursor:push! last-tile-index)
-        (cursor:climb-back! document)
-        (RemoveSlice elements cursor))))
+        (let ((last-tile ::Element (parent:element-at last-tile-index)))
+          (cursor:push! (last-tile:last-index))
+          (RemoveSlice elements cursor)))))
 
   (define-object (RemoveSlice elements ::Comb cursor ::Cursor)
     ::Edit
+    ;; by convention, cursor points to the penultimate element
+    ;; from elements
     (define (position)::Cursor cursor)
 
     (define (perform! document::Element)::Edit
-      (assert (is (length cursor) >= 2))
+      (assert (is (length cursor) #;< >= 2))
       (let* ((cursor ::Cursor (copy cursor))
-             (sub-end ::int (cursor:pop!))
-             (end ::int (cursor:pop!))
+             (_ ::int (cursor:pop!))
+             (end ::int (+ (cursor:pop!) 1))
+             (parent ::Comb (as Comb (cursor:target-in document)))             
+             (last-space ::Space (as Space (last elements)))
+             (first-space ::Space (as Space (elements 0)))
+             (sub-end ::int (last-space:last-index))
              (start ::int (- end (length elements) -1))
-             (parent ::Comb (as Comb (cursor:target-in document)))
              (preceding ::Space (as Space (parent:element-at start)))
-             (sub-start ::int (preceding:last-index))
+             (sub-start ::int (- (preceding:last-index) (first-space:last-index)))
              (extracted ::Comb
                         (parent:extract! (- start 1) sub-start
                                          (- end 1) sub-end)))
@@ -9590,15 +9614,23 @@ are obviously going to refer to the methods ~splice!~ and
 
 #+END_SRC
 
-Although we defined the ~insert-character~ method for ~TextualTileBase~,
-we still need to refine its behavior for certain particular instances:
-for example, we can block accepting the ~#\newline~ character inside
-~LineComment~ instances:
+Although we defined the ~insert-character~ method for
+~TextualTileBase~, we still need to refine its behavior for
+certain particular instances: for example, we can block
+accepting the ~#\newline~ character inside ~LineComment~
+instances (and make it move cursor to the beginning of the
+following ~Space~ instead):
 
 #+BEGIN_SRC scheme :noweb-ref LineComment--editing
   (define (insert-character c)::(maybe Edit)
     (match c
-      (#\newline #!null)
+      (#\newline
+       (let* ((cursor ::Cursor (current-cursor))
+              (tip ::int (cursor:pop!))
+              (top ::int (cursor:pop!)))
+         (cursor:push! (+ top 1))
+         (cursor:push! 0)
+         #!null))
       (_
        (super insert-character c))))
 
@@ -9630,7 +9662,6 @@ is to split the ~Atom~:
        ((#\; #\| #\{ #\} #\( #\) #\[ #\] #\" #|"|#) #!null)
        (else
         (super insert-character c)))))
-
 
 #+END_SRC
 
@@ -9703,14 +9734,117 @@ the existing ~Edit~ operations. We previously required that
 all instances of ~Element~ provide the ~insert-character~
 method, which accepted a character as its argument. 
 
+Now we need to add another method to ~Element~, namely
+~delete-character~:
 
+#+BEGIN_SRC scheme :noweb-ref Element--editing
+  (delete-character)::(maybe Edit)
+#+END_SRC
 
+Like in most text editors, it's going to be bound to the
+~backspace~ and ~delete~ buttons:
 
+#+BEGIN_SRC scheme :noweb-ref Document--initial-key-bindings  
+  (set-key! 'backspace
+            (lambda (code::KeyCode)
+              (let ((document ::Document (current-document)))
+                (document:delete-character))))
 
+  (set-key! 'delete
+            (lambda (code::KeyCode)
+              (let ((document ::Document (current-document))
+                    (cursor ::Cursor (current-cursor)))
+                (cursor:advance-in! document)
+                (document:delete-character))))
+  
+#+END_SRC
 
-(TODO potrzebujemy jeszcze implementacji ~delete-backward~ oraz
-~delete-forward~ oraz ~insert-character~ dla wszystkich
-istotnych typów ~TextualTileBase~)
+As before, we will first provide an implementation for
+~TextualTileBase~. Deletion is going to be slightly more
+complicated than insertion, because if there's only one
+character left, we need to delete the entire element.  Also,
+if the cursor's tip is at the beginning of the element, we
+should move our cursor to the adjacent space. By the way, we
+also provide ~minimum-width~ method, defaulting to 0.  We
+will override it in ~Atom~, because while it makes sense to
+have empty strings or empty comments, empty atoms can't be
+allowed.
+
+#+BEGIN_SRC scheme :noweb-ref TextualTileBase--editing
+  (define-protected (minimum-width)::int 0)
+
+  (define (delete-character)::(maybe Edit)
+    (let* ((cursor ::Cursor (current-cursor))
+           (document ::Document (current-document))
+           (tip ::int (cursor:top)))
+      (cond
+       ((and (= tip 0) (is (size) #;< > 0))
+        (cursor:retreat-in! document)
+        (document:delete-character))
+       ((is (self size) <= (minimum-width)) #;>
+        (let ((cursor ::Cursor (copy cursor)))
+          (RemoveSlice (Comb (this)) cursor)))
+       (else
+        (EraseCharacters (string (charAt (- tip 1))) (copy cursor))))))
+
+#+END_SRC
+
+#+BEGIN_SRC scheme :noweb-ref Atom--editing
+  (define-protected (minimum-width)::int 1)
+  
+#+END_SRC
+
+We also need to provide character deletion for ~Space~.  We
+only delete it if we're deleting a single space between two
+atoms (because then those atoms need to be merged). 
+
+#+BEGIN_SRC scheme :noweb-ref Space--editing
+  (define (delete-character)::(maybe Edit)
+    (let* ((cursor ::Cursor (current-cursor))
+           (tip ::int (cursor:top))
+           (document ::Document (current-document)))
+      (cond
+       ((= tip 0)
+        (cursor:retreat-in! document)
+        (document:delete-character))
+
+       ((given ((1 (last-index))
+                (parent ::Comb (cursor:target-in/at document -2))
+                (top (cursor -2))
+                (left ::Atom (parent:element-at (- top 1)))
+                (right ::Atom (parent:element-at (+ top 1)))))
+        (MergeElements #;removing (copy (this)) #;at (copy cursor)))
+
+       (else
+        (given ((index offset (fragment-index+offset tip))
+                (fragment (fragments index)))
+          (if #;< (is offset > 0)
+              (GrowSpace -1 (copy cursor))
+              (JoinSpace (copy cursor))))))))
+
+#+END_SRC
+
+Lastly, we need to implement ~delete-character~ for ~Comb~.
+And here the case is fairly simple: if the cursor is at the
+boundary (either left or right), then we remove the entire
+expression (the only exception is when cursor points to the
+~(current-document)~, in which case we do nothing).
+Otherwise we invoke ~delete-character~ on one of the
+elements inside of ~Comb~:
+
+#+BEGIN_SRC scheme :noweb-ref Comb--editing
+  (define (delete-character)::(maybe Edit)
+    (let* ((cursor ::Cursor (current-cursor))
+           (document ::Document (current-document))
+           (target ::Element (cursor:target-in document)))
+      (cond
+       ((eq? target document) #!null)
+       ((eq? target (this))
+        (RemoveSlice (Comb (this)) (copy cursor)))
+       (else
+        (target:delete-character)))))
+
+#+END_SRC
 
 ** Splitting up
 
@@ -9722,7 +9856,6 @@ istotnych typów ~TextualTileBase~)
 This section contains code that is too lengthy to be
 incorporated into the main body of text, but is still
 required for the project to run.
-
 
 ** Keyboard initialization
 
@@ -11095,6 +11228,7 @@ pages).
             (insert (format "#+BEGIN_EXPORT latex\n\\begin{chunk}{%s}\n#+END_EXPORT\n" label)))))))
 
   (add-hook 'org-export-before-processing-functions #'ob-noweb-label-chunks)
+
 #+END_SRC
 
 *** Initializing file-local variables
