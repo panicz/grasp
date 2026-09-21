@@ -7931,7 +7931,9 @@ operations later on):
           (= (target:last-index) 0)
           (is 0 < tip < (target:last-index))))) ;>>
 
-          #+END_SRC
+#+END_SRC
+
+**** Cursor movement
 
 With these methods at hand, we can finally define the
 methods to advance and retreat the cursor. But we're going
@@ -8021,6 +8023,8 @@ the ~stdio~ model that modern operating systems inherited
 from the teletype tradition of UNIX, and therefore we need
 to resort to a slightly newer tradition, namely that of
 /character terminals/.
+
+**** Terminal User Interfaces on the JVM
 
 Since GRASP runs on the JVM, we can use some Java library
 that provides character terminal support. And since the only
@@ -8188,6 +8192,8 @@ that allows to execute shell commands:
 
 #+END_SRC
 
+**** Debug utilities
+
 Moreover, because Lanterna occupies an entire screen output,
 and it's still convenient to be able to display diagnostic
 messages somewhere, we're going to define a simple socket
@@ -8273,6 +8279,8 @@ traces:
          #!null)))
 
 #+END_SRC
+
+**** Terminal implementation of ~Painter~
 
 We can now add/override relevant methods to ~CharPainter~
 to obtain the most basic version of ~TerminalPainter~:
@@ -8370,6 +8378,8 @@ to obtain the most basic version of ~TerminalPainter~:
   
 #+END_SRC
 
+**** Input handling and rendering
+
 Having defined ~TerminalPainter~, we can define two procedures:
 one for handling input, and another for rendering:
 
@@ -8465,6 +8475,8 @@ it can't do much yet: according to the definition of
 the ~edit~ procedure above, it only reacts to the arrow
 keys (for moving the cursor left and right), and to the
 /escape/ key, which terminates the program.
+
+**** Putting it all together
 
 #+HEADER: :shebang "#!/bin/sh" :mkdirp yes :noweb no-export
 #+BEGIN_SRC scheme :tangle test/interactive/cursor-navigation.scm
@@ -8789,7 +8801,7 @@ These operations can be tested non-interactively:
   (test-report)
 #+END_SRC
 
-*** Representing operations
+**** Representing operations
 
 Being able to modify a document is nice, but in practice we
 want to be able to /undo/ our changes. In order for this to
@@ -8835,7 +8847,7 @@ Mind however, that elements do not know in principle what
 the cursor that points to them is, and for this reason
 it needs to be built up and passed along with the event.
 
-*** Intermission: Representing keyboard input
+**** Intermission: Representing keyboard input
 
 But before we move on any further, we need to make some
 decisions regarding the way input is handled in GRASP.
@@ -8964,7 +8976,7 @@ Likewise, we can obtain a combination from code using the
   
 #+END_SRC
 
-*** Handling the input
+**** Handling the input
 
 We've already seen that a ~Document~ is a specialization of
 the ~Comb~ class. It's going to be elaborated further in the
@@ -9026,7 +9038,7 @@ However, we aren't concerned with the exact definition of
 ~Enchanted~ yet, so for the time being we're simply going
 to mock it.
 
-*** Input-processing machinery
+**** Input-processing machinery
 
 We now have enough definitions to build a stub of an
 actually working editor. The code layout is very similar to
@@ -9382,7 +9394,7 @@ our cursor navigation test:
   
 #+END_SRC
 
-*** Edit operations
+**** Edit operations
 
 We previously defined the ~Edit~ interface, and we can
 define the ~key-typed!~ method of the ~GRASP-Editor~ class
@@ -9423,6 +9435,8 @@ So now we need to define a bunch of ~Edit~ operations and
 procedures that return them, and hook them to our input
 handling system.
 
+**** Inserting characters
+
 We can start by defining ~insert-character~ method inside
 elements. It takes a character and possibly returns an
 ~Edit~ object. It also needs to accept the current path
@@ -9446,6 +9460,8 @@ It is invoked as a default of the ~key-bindings~:
 We now need to provide the definition of ~insert-character~
 for every class that implements the ~Element~ interface --
 which currently means ~Comb~, ~Space~ and ~Textual~ elements.
+
+***** Into ~TextualTileBase~
 
 We will start with ~TextualTileBase~ -- in the first
 approximation, every such element should return an operation
@@ -9496,6 +9512,8 @@ completeness we also need to define its inverse, ~EraseCharacters~:
 
 #+END_SRC
 
+***** Into ~Comb~
+
 This allows us to implement the ~insert-character~ for ~Comb~:
 
 #+BEGIN_SRC scheme :noweb-ref Comb--editing
@@ -9516,6 +9534,8 @@ This allows us to implement the ~insert-character~ for ~Comb~:
         (target:insert-character c)))))
 
 #+END_SRC
+
+***** Into ~Space~
 
 Now, we still need to implement the ~insert-character~
 method for the remaining primitive instances of ~Element~,
@@ -9715,6 +9735,8 @@ are obviously going to refer to the methods ~splice!~ and
 
 #+END_SRC
 
+***** Into ~LineComment~
+
 Although we defined the ~insert-character~ method for
 ~TextualTileBase~, we still need to refine its behavior for
 certain particular instances: for example, we can block
@@ -9736,6 +9758,8 @@ following ~Space~ instead):
        (super insert-character c))))
 
 #+END_SRC
+
+***** Into ~Atom~
 
 The case of ~Atom~ is a bit more complex: when we insert a
 white space at a boundary (either left or right), we
@@ -9835,6 +9859,8 @@ the existing ~Edit~ operations. We previously required that
 all instances of ~Element~ provide the ~insert-character~
 method, which accepted a character as its argument. 
 
+**** Deleting characters
+
 Now we need to add another method to ~Element~, namely
 ~delete-character~:
 
@@ -9859,6 +9885,8 @@ Like in most text editors, it's going to be bound to the
                 (document:delete-character))))
   
 #+END_SRC
+
+***** From ~TextualTileBase~
 
 As before, we will first provide an implementation for
 ~TextualTileBase~. Deletion is going to be slightly more
@@ -9895,6 +9923,8 @@ allowed.
   
 #+END_SRC
 
+***** From ~Space~
+
 We also need to provide character deletion for ~Space~.  We
 only delete it if we're deleting a single space between two
 atoms (because then those atoms need to be merged). 
@@ -9924,6 +9954,8 @@ atoms (because then those atoms need to be merged).
               (JoinSpace (copy cursor))))))))
 
 #+END_SRC
+
+***** From ~Comb~
 
 Lastly, we need to implement ~delete-character~ for ~Comb~.
 And here the case is fairly simple: if the cursor is at the
