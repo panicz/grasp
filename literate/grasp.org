@@ -809,6 +809,11 @@ our code:
 
   (define-alias Class java.lang.Class)
 
+  (define-alias InputStream java.io.InputStream)
+  (define-alias Process java.lang.Process)
+  (define-alias ProcessBuilder java.lang.ProcessBuilder)
+  (define-alias Charset java.nio.charset.StandardCharsets)
+
 #+END_SRC
 
 Moreover, Java provides the interface ~java.lang.Comparable~,
@@ -8038,6 +8043,7 @@ definitions in a ~(terminal definitions)~ module.
   <<header>>
   (module-name (terminal-definitions))
   (import (language-extensions))
+  (import (utils shell))
 
   (define-alias DefaultTerminalFactory
     com.googlecode.lanterna.terminal.DefaultTerminalFactory)
@@ -8094,6 +8100,12 @@ definitions in a ~(terminal definitions)~ module.
   (define-alias CTRL+C-behaviour
     com.googlecode.lanterna.terminal.ansi.UnixLikeTerminal:CtrlCBehaviour)
 
+  (define-alias StreamBasedTerminal
+    com.googlecode.lanterna.terminal.ansi.StreamBasedTerminal)
+
+  (define-alias TerminalInputDecoder
+    com.googlecode.lanterna.input.InputDecoder)
+
   (define MouseButton:None ::int 0)
   (define MouseButton:Left ::int 1)
   (define MouseButton:Middle ::int 2)
@@ -8109,12 +8121,19 @@ definitions in a ~(terminal definitions)~ module.
            (mouse-capture-mode::MouseCaptureMode
             MouseCaptureMode:CLICK_RELEASE_DRAG)
            (ctrl+c-behaviour::CTRL+C-behaviour
-            CTRL+C-behaviour:TRAP))
+            CTRL+C-behaviour:TRAP)
+           (escape-timeout-ms ::int 0))
     ::Terminal
     (defaultTerminalFactory:setMouseCaptureMode mouse-capture-mode)
     (defaultTerminalFactory:setUnixTerminalCtrlCBehaviour
       ctrl+c-behaviour)
-    (defaultTerminalFactory:createTerminal))
+    (let ((escape-timeout-units ::int (quotient escape-timeout-ms 250))
+          (terminal ::Terminal (defaultTerminalFactory:createTerminal)))
+      (given ((terminal ::StreamBasedTerminal)
+              (decoder ::TerminalInputDecoder (terminal:getInputDecoder)))
+        (decoder:setTimeoutUnits escape-timeout-units))
+      (shell "stty susp undef < /dev/tty")
+      terminal))
 
   (define (make-terminal-screen
            #!key (background ::TerminalCharacter
@@ -8137,6 +8156,35 @@ definitions in a ~(terminal definitions)~ module.
        (screen:startScreen)
        . actions)
      (screen:stopScreen)))
+
+#+END_SRC
+
+where the ~(utils shell)~ module contains a single procedure
+that allows to execute shell commands:
+
+#+BEGIN_SRC scheme :tangle utils/shell.scm :mkdirp yes :noweb no-export
+  <<header>>
+  (module-name (utils shell))
+  (import (language-extensions))
+
+  (define (shell . command-parts)::(Values string string)
+    (let* ((command ::string (apply string-append command-parts))
+           (builder ::ProcessBuilder (ProcessBuilder
+                                      (java.util.Arrays:asList
+                                       (as String "sh")
+                                       (as String "-c")
+                                       (as String command))))
+           (process ::Process (builder:start))
+           (stdout ::InputStream (process:getInputStream))
+           (stderr ::InputStream (process:getErrorStream))
+           (errors-pending (future (stderr:readAllBytes)))
+           (output ::(array-of byte) (stdout:readAllBytes))
+           (errors ::(array-of byte) (force errors-pending)))
+        (stdout:close)
+        (stderr:close)
+        (process:waitFor)
+        (values (as string (String output Charset:UTF_8))
+                (as string (String errors Charset:UTF_8)))))
 
 #+END_SRC
 
@@ -8934,8 +8982,7 @@ but it comes with a bunch of them predefined:
            (set-key! (lambda (name::KeyName
                               handler::(maps (KeyCode)
                                              to: (maybe Edit)))
-                       (let ((code ::KeyCode ((inverse key-code-name)
-                                              name)))
+                       (let ((code ::KeyCode (keychord-code name)))
                          (set! (bindings code) handler)))))
       <<Document--initial-key-bindings>>
       bindings))
