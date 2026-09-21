@@ -7547,7 +7547,7 @@ We can now test whether the algorithm works correctly:
   <<header>>
   (module-name (test serialization))
   (import (language-extensions))
-  (this-is-a-test!)
+   (this-is-a-test!)
 
   (define-interface Element (Cloneable)
     (serialize port ::OutputPort indent ::int)::void
@@ -7906,11 +7906,37 @@ it is final):
 
 #+END_SRC
 
-With these methods at hand, we can finalky define the
-methods to advance and retreat the cursor:
+One important thing to note is that there are some redundant
+cursor positions in our representation: a cursor placed on
+the last position of a ~Space~ and a cursor placed on the
+first position of its adjacent ~Textual~ element map to the
+same screen position. For this reason it may be worthwhile
+to skip some of those positions in our cursor movement.
+
+We choose that positions lying at the boundaries of ~Space~
+are going to be canonical (this decision is roughly
+arbitrary, but it affects the way we implement edit
+operations later on):
 
 #+BEGIN_SRC scheme :noweb-ref Cursor--operations  
-  (define (advance-in! document ::Element)::void
+  (define (canonical-in? document::Element)::boolean
+    (let ((target ::Element (self target-in document))
+          (tip ::int (self top)))
+      (or (isnt target Atom?)
+          (= (target:last-index) 0)
+          (is 0 < tip < (target:last-index))))) ;>>
+
+          #+END_SRC
+
+With these methods at hand, we can finally define the
+methods to advance and retreat the cursor. But we're going
+to do this in two stages: we'll first define primitive
+variants of those methods, which don't necessarily end
+up in canonical positions, and then we'll also provide
+the canonical versions:
+
+#+BEGIN_SRC scheme :noweb-ref Cursor--operations  
+  (define (primitive-advance-in! document ::Element)::void
     (assert (valid-in? document))
     (let ((elements ::(StackListOf Element)
                   (track document)))
@@ -7925,10 +7951,11 @@ methods to advance and retreat the cursor:
              ((is top-index < (top-element:last-index))
               (self push! (+ top-index 1))
               (climb-front! document))
+
              (else
               (loop))))))))
 
-  (define (retreat-in! document ::Element)::void
+  (define (primitive-retreat-in! document ::Element)::void
     (assert (valid-in? document))
     (let ((elements ::(StackListOf Element)
                   (track document)))
@@ -7943,8 +7970,34 @@ methods to advance and retreat the cursor:
              ((is top-index > 0)
               (self push! (- top-index 1))
               (climb-back! document))
+
              (else
               (loop))))))))
+
+  (define (advance-in! document ::Element)::void
+    (let loop ()
+      (primitive-advance-in! document)
+      (unless (canonical-in? document)
+        (loop))))
+
+  (define (retreat-in! document ::Element)::void
+    (let loop ()
+      (primitive-retreat-in! document)
+      (unless (canonical-in? document)
+        (loop))))
+
+#+END_SRC
+
+Lastly, equipped with cursor movement, we can define a
+routine that brings a cursor to the nearest canonical
+position:
+
+#+BEGIN_SRC scheme :noweb-ref Cursor--operations
+  (define (canonicalize-in! document::Element)::void
+    (unless (canonical-in? document)
+      (if (= (self top) 0)
+          (retreat-in! document)
+          (advance-in! document))))
 
 #+END_SRC
 
@@ -9293,6 +9346,7 @@ to execute its ~perform!~ method:
           (document ::Document (current-document))
           (undo ::Edit (action:perform! document)))
     (cursor:assign! (undo:position))
+    (cursor:canonicalize-in! document)
     <<Edit-performed>>)
 
 #+END_SRC
@@ -9408,8 +9462,8 @@ This allows us to implement the ~insert-character~ for ~Comb~:
       (cond
        ((eq? target (this))
         (if (= tip 0)
-            (cursor:advance-in! document)
-            (cursor:retreat-in! document))
+            (cursor:primitive-advance-in! document)
+            (cursor:primitive-retreat-in! document))
         (insert-character c))
        (else
         (target:insert-character c)))))
@@ -9442,12 +9496,12 @@ in particular for ~Space~:
            (cond
             ((given (((= tip (self last-index)))
                      (next ::Atom (parent:element-at (+ top 1)))))
-             (cursor:advance-in! document)
+             (cursor:primitive-advance-in! document)
              (document:insert-character c))
 
             ((given (((= tip 0))
                      (previous ::Atom (parent:element-at (- top 1)))))
-             (cursor:retreat-in! document)
+             (cursor:primitive-retreat-in! document)
              (document:insert-character c))
             (else
              (InsertSlice (Comb (Atom (string c))) (copy cursor)))))))))
@@ -9650,10 +9704,10 @@ is to split the ~Atom~:
        ((#\space #\newline)
         (match (cursor:top)
           (0
-           (cursor:retreat-in! document)
+           (cursor:primitive-retreat-in! document)
            (document:insert-character c))
           (,(self last-index)
-           (cursor:advance-in! document)
+           (cursor:primitive-advance-in! document)
            (document:insert-character c))
           (n
            (let ((space ::Space (Space)))
@@ -9779,7 +9833,7 @@ allowed.
            (tip ::int (cursor:top)))
       (cond
        ((and (= tip 0) (is (size) #;< > 0))
-        (cursor:retreat-in! document)
+        (cursor:primitive-retreat-in! document)
         (document:delete-character))
        ((is (self size) <= (minimum-width)) #;>
         (let ((cursor ::Cursor (copy cursor)))
@@ -9805,7 +9859,7 @@ atoms (because then those atoms need to be merged).
            (document ::Document (current-document)))
       (cond
        ((= tip 0)
-        (cursor:retreat-in! document)
+        (cursor:primitive-retreat-in! document)
         (document:delete-character))
 
        ((given ((1 (last-index))
