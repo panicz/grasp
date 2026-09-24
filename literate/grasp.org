@@ -78,9 +78,11 @@ including (at the moment of writing) terminal, desktop and
 Android. These programs are called /clients/ or /frontends/
 of GRASP.
 
-This document presents the complete source code for GRASP,
-but more importantly, it instructs its readers how to define
-new interactive extensions.
+This document is a work in progress, but it aims to present
+the complete source code for GRASP, and, more importantly,
+instructs its readers how to define new interactive
+extensions. (Currently it only describes document
+representation and keyboard editing)
 
 ** About this document
 
@@ -1149,15 +1151,9 @@ definition.)
 
   (define-syntax object-definition
     (lambda (stx)
-      (syntax-case stx (::
-                        define
-                        define-private
-                        define-internal
-                        define-protected                      
-                        define-static
-                        delegate
-                        specialize
-                        mix-in)
+      (syntax-case stx (:: define define-private define-internal
+                           define-protected define-static delegate
+                           specialize mix-in)
 
         ((object-definition (object-name . args)
                             (arg :: type . rest)
@@ -9978,6 +9974,57 @@ elements inside of ~Comb~:
         (target:delete-character)))))
 
 #+END_SRC
+
+**** Tracking history
+
+The design of the ~Edit~ operations assumed that the
+~perform!~ method returns an inverse operation (which was
+actually a fairly big part of the design, and a big
+burden). But there was no way for us to actually undo
+anything.
+
+In order for that to be possible, we need to keep track of
+the actions performed by the user, or in other words -- we
+need to store these "inverse operations" somewhere.
+
+There is a number of alternative approaches to representing
+a history of edits. We are going to represent it as a tree,
+where the root of the tree (or an empty list) represents the
+initial document state, and each edit action contains a
+pointer to the previous state.
+
+The tree will be branching off when we undo one or more
+operations and then perform an ~Edit~ action. But to make
+the undone operations still accessible we're going to
+maintain a list of /fronts/.
+
+#+BEGIN_SRC scheme :noweb-ref History
+  (define-object (History)
+    (define fronts ::(list-of (list-of Edit)) '())
+
+    (define undo-stack ::Stack (ArrayStack))
+
+    (define (record! operation ::Edit)::void
+      (cond
+       ((undo-stack:empty?)
+        (match fronts
+          ('() (set! fronts `((,operation))))
+          ('(,first . ,_)
+           (set-car! fronts `(,operation . ,first)))))
+       (else
+        (set! fronts ...)
+        (undo-stack:clear!))))
+
+    (define (undo!)::void
+      ...)
+
+    (define (redo!)::void
+      ...)
+
+    ...)
+
+#+END_SRC
+
 
 ** Splitting up
 
