@@ -1134,7 +1134,7 @@ hygienic macroexpander to mess up with our identifiers, and
 instead we want them pasted verbatim in the final class
 definition.)
 
-#+BEGIN_SRC  scheme :tangle language-extensions.scm
+#+BEGIN_SRC scheme :tangle language-extensions.scm
   (define-syntax delegate
     (syntax-rules (::)
       ((delegate (method . params) :: type object)
@@ -7292,7 +7292,7 @@ class that will be elaborated in the future.
   java -jar ../libs/kawa.jar test/advanced-parser.scm
 #+END_SRC
 
-#+BEGIN_SRC scheme :tangle test/advanced-parser.scm :mkdirp yes :noweb no-export :noweb-scope preceding
+#+BEGIN_SRC scheme :tangle test/advanced-parser.scm :mkdirp yes :noweb no-export
   <<header>>
   (module-name (test advanced-parser))
   (import (language-extensions))
@@ -7548,7 +7548,7 @@ We can now test whether the algorithm works correctly:
   <<header>>
   (module-name (test serialization))
   (import (language-extensions))
-   (this-is-a-test!)
+  (this-is-a-test!)
 
   (define-interface Element (Cloneable)
     (serialize port ::OutputPort indent ::int)::void
@@ -11411,11 +11411,81 @@ pages).
 
 #+END_SRC
 
+*** Tangling the document up to a point
+
+% TODO (prose -- replace this): the counterpart of ~:noweb-scope
+preceding~ at the level of the whole document.  Where that header
+argument lets a single snippet see only what came before it, the
+command below cuts the whole document at the cursor and tangles the
+program as it stood at that point of the narrative.  It is what makes
+the intermediate states of the program -- the ones the document
+explains and then improves upon -- into things that can actually be
+run and tested, rather than only read.
+
+#+NAME: tangle-upto-here
+#+BEGIN_SRC emacs-lisp :tangle no :results none
+  (defun org-babel-tangle-upto-here (&optional directory strict)
+    "Tangle this document into DIRECTORY, considering only what precedes point.
+
+  Source blocks that begin after point are ignored, both as tangle
+  targets and as noweb chunk definitions, so the files produced are the
+  program as the document defines it at this point of its narrative, and
+  not as it defines it at the end.
+
+  DIRECTORY defaults to the directory of the document itself, on the
+  assumption that the document is the only real file and everything
+  tangled from it is derived.  With a prefix argument, ask for one.
+
+  Unless STRICT is nil, a reference to a chunk that this part of the
+  document does not define is an error rather than an empty expansion;
+  otherwise the command would report success for a cut at which the
+  program does not actually exist.
+
+  The copy is tangled in a buffer of its own, which is what lets the
+  document's own extensions -- `:noweb-scope', `:noweb-override' -- keep
+  working: they see a shorter document rather than a changed mechanism."
+    (interactive
+     (list (when current-prefix-arg
+             (read-directory-name "Tangle the document so far into: "))
+           t))
+    (let* ((end (save-excursion
+                  (let ((element (org-element-at-point)))
+                    (if (eq (org-element-type element) 'src-block)
+                        (org-element-property :end element)
+                      (point)))))
+           (prefix (buffer-substring-no-properties (point-min) end))
+           (directory (file-name-as-directory
+                       (expand-file-name (or directory
+                                             (if buffer-file-name
+                                                 (file-name-directory buffer-file-name)
+                                               default-directory)))))
+           (tangled nil))
+      (make-directory directory t)
+      (with-temp-buffer
+        (insert prefix)
+        (setq default-directory directory)
+        ;; Relative :tangle targets resolve against this name, so it has to sit
+        ;; in DIRECTORY -- but it must never be the document itself, and nothing
+        ;; here ever writes it.
+        (setq buffer-file-name (expand-file-name ".tangle-upto-here.org" directory))
+        (org-mode)
+        (let ((org-babel-pre-tangle-hook nil)
+              (org-babel-post-tangle-hook nil)
+              (org-babel-noweb-error-all-langs (or strict
+                                                   org-babel-noweb-error-all-langs)))
+          (setq tangled (org-babel-tangle)))
+        (set-buffer-modified-p nil)
+        (setq buffer-file-name nil))
+      (when (called-interactively-p 'any)
+        (message "Tangled %d file(s) into %s" (length tangled) directory))
+      tangled))
+#+END_SRC
+
 *** Initializing file-local variables
 
 #+BEGIN_EXAMPLE
 Local variables:
-eval: (let ((org-confirm-babel-evaluate nil)) (save-excursion (org-babel-goto-named-src-block "noweb-scope") (org-babel-execute-src-block)) (save-excursion (org-babel-goto-named-src-block "chunk-labels") (org-babel-execute-src-block)))
+eval: (let ((org-confirm-babel-evaluate nil)) (dolist (block '("noweb-scope" "chunk-labels" "tangle-upto-here")) (save-excursion (org-babel-goto-named-src-block block) (org-babel-execute-src-block))))
 mode: org
 fill-column: 60
 indent-tabs-mode: nil
