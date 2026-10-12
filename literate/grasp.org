@@ -304,11 +304,39 @@ that we might have, the typical interpretation of asserting
 a false belief is to raise an error and stop the program:
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-(define-syntax-rule (assert proposition)
-  (or proposition
-    (error "Assertion failed: "'proposition)))
+  (define failed-assertion
+    (make-parameter
+     (lambda (proposition)
+       (error "Assertion failed: "proposition))))
+
+  (define-syntax-rule (assert proposition)
+    (unless proposition
+      ((failed-assertion) 'proposition)))
 
 #+END_SRC
+
+**** The ~surely~ macro
+Assertions have a somewhat weird status in programming:
+their behavior seems to depend on configuration of the
+environment, and in some programming languages they tend to
+be ignored. It is therefore considered a bad practice, for
+example, to perform effectful operations inside assertions,
+or even consider the values of the ~assert~ statements.
+
+For this reason we introduce another form, called ~surely~.
+It differs from ~assert~ in those two respects:
+- the effects in its argument are guaranteed to be performed
+- non-false/non-null return value will become the value
+  of the entire expression
+- the false/null value will raise an error
+
+#+BEGIN_SRC scheme :tangle language-extensions.scm
+  (define-syntax-rule (surely proposition)
+    (or proposition
+        (error "Assertion failed: "'proposition)))
+
+#+END_SRC
+
 
 **** The ~e.g.~ macro
 
@@ -3709,6 +3737,27 @@ is ambiguous.
   (e.g. (only. (is (+ _ _) even?)
                '(1 2 3 4 . 5) '(2 4 6 8 . 9))
         ===>    (  2   4 . 5)  (  4   8 . 9))
+
+  (define (remove! uncool? from::list)::list
+    (match from
+      ('() '())
+      (`(,head . ,tail)
+       (if (uncool? head)
+  	 (remove! uncool? tail)
+  	 (let loop ((elements from))
+  	   (match elements
+  	     (`(,first ,next . ,rest)
+  	      (cond
+  	       ((uncool? next)
+  		(set-cdr! elements rest)
+  		(loop elements))
+  	       (else
+  		(loop (cdr elements)))))
+  	     (_
+  	      from)))))))
+
+  (e.g. (remove! odd? (list 1 1 2 3 5 6 7 9))
+        ===> (2 6))
 
   (define (concatenate list-of-lists)
     (apply append list-of-lists))
@@ -7292,7 +7341,7 @@ class that will be elaborated in the future.
   java -jar ../libs/kawa.jar test/advanced-parser.scm
 #+END_SRC
 
-#+BEGIN_SRC scheme :tangle test/advanced-parser.scm :mkdirp yes :noweb no-export
+#+BEGIN_SRC scheme :tangle test/advanced-parser.scm :mkdirp yes :noweb no-export :noweb-scope preceding
   <<header>>
   (module-name (test advanced-parser))
   (import (language-extensions))
@@ -9510,7 +9559,11 @@ completeness we also need to define its inverse, ~EraseCharacters~:
 
 ***** Into ~Comb~
 
-This allows us to implement the ~insert-character~ for ~Comb~:
+The implementation of ~insert-character~ for ~Comb~
+typically delegates the decision to its children. One
+notable exception is when the user presses ~;~ on either
+the left or the right parenthesis -- in such cases, we
+wrap the entire expression inside ~ExpressionComment~:
 
 #+BEGIN_SRC scheme :noweb-ref Comb--editing
   (define (insert-character c)::(maybe Edit)
@@ -9520,14 +9573,54 @@ This allows us to implement the ~insert-character~ for ~Comb~:
            (target ::Element (cursor:target-in document)))
       (assert (cursor:valid-in? document))
       (assert (cursor:final-in? document))
-      (cond
-       ((eq? target (this))
-        (if (= tip 0)
-            (cursor:primitive-advance-in! document)
-            (cursor:primitive-retreat-in! document))
-        (insert-character c))
-       (else
-        (target:insert-character c)))))
+      (if (eq? target (this))
+  	(match c
+  	  (#\]
+  	   (cursor:unnest-right! document)
+  	   #!null)
+  	  (_
+  	   (if (= tip 0)
+  	       (cursor:primitive-advance-in! document)
+  	       (cursor:primitive-retreat-in! document))
+  	   (self insert-character c)))
+  	(target:insert-character c))))
+
+#+END_SRC
+
+#+BEGIN_SRC scheme :noweb-ref Cursor--operations
+  (define (unnest-right! document::Document)::void
+    (assert (valid-in? document))
+    (given (((is (size) >= 2))
+  	  (tip ::int (super pop!))
+  	  (top ::int (super pop!))
+  	  (parent ::Comb (target-in document)))
+      (super push! (parent:last-index))))
+
+  (define (unnest-left! document::Document)::void
+    (assert (valid-in? document))
+    (given (((is (size) >= 2))
+  	  (tip ::int (super pop!))
+  	  (top ::int (super pop!)))
+      (super push! 0)))
+  
+#+END_SRC
+
+#+BEGIN_SRC scheme :noweb-ref Edit--operations
+  (define-object (Replace old-expression ::Tile
+  			new-expression ::Tile
+  			cursor ::Cursor)
+    ::Edit
+    (define (position)::Cursor cursor)
+
+    (define (perform! document ::Element)::Edit
+      (let* ((cursor ::Cursor (copy cursor))
+  	   (top ::int (cursor:pop!))
+  	   (parent ::Comb (cursor:target-in document))
+  	   (target ::Element (parent (- top 1))))
+        (assert (old-expression:equals target))
+        (set! (parent (- top 1)) new-expression)
+        (cursor:climb-back! document)
+        (Replace new-expression old-expression cursor))))
 
 #+END_SRC
 
@@ -9551,6 +9644,9 @@ in particular for ~Space~:
          (InsertSlice (Comb (LineComment)) (copy cursor)))
         (#\[ ;]
          (InsertSlice (Comb (Comb)) (copy cursor)))
+        (#\]
+         (cursor:unnest-right! document)
+         #!null)
         (_
          (let* ((document ::Document (current-document))
                 (parent ::Comb (cursor:target-in/at document -2))
@@ -9761,7 +9857,9 @@ The case of ~Atom~ is a bit more complex: when we insert a
 white space at a boundary (either left or right), we
 actually want the edit to go to the adjacent ~Space~. But
 when we insert it inside of an ~Atom~, what we actually want
-is to split the ~Atom~:
+is to split the ~Atom~. Moreover, if we insert ~|~ into
+an atom that consists of ~#~, we want to replace the atom
+with an empty ~BlockComment~:
 
 #+BEGIN_SRC scheme :noweb-ref Atom--editing
   (define (insert-character c)::(maybe Edit)
@@ -9780,7 +9878,17 @@ is to split the ~Atom~:
            (let ((space ::Space (Space)))
              (space:add c)
              (SplitElement space (copy cursor))))))
-       ((#\; #\| #\{ #\} #\( #\) #\[ #\] #\" #|"|#) #!null)
+       ((#\|)
+        (if (string=? builder "#")
+  	  (let ((cursor ::Cursor (copy cursor)))
+  	    (cursor:pop!)
+  	    (Replace (this) (BlockComment) cursor))
+  	  #!null))
+
+       ((#\])
+        (cursor:unnest-right! document)
+        #!null)
+       ((#\; #\| #\{ #\} #\( #\) #\[ #\" #|"|#) #!null)
        (else
         (super insert-character c)))))
 
@@ -9999,24 +10107,26 @@ the undone operations still accessible we're going to
 maintain a list of /fronts/.
 
 #+BEGIN_SRC scheme :noweb-ref History
+
   (define-object (History)
     (define fronts ::(list-of (list-of Edit)) '())
-
-    (define undo-stack ::Stack (ArrayStack))
+    
+    (define redo-stack ::Stack (ArrayStack))
 
     (define (record! operation ::Edit)::void
       (cond
        ((undo-stack:empty?)
         (match fronts
           ('() (set! fronts `((,operation))))
-          ('(,first . ,_)
-           (set-car! fronts `(,operation . ,first)))))
+          ('(,front . ,_)
+           (set-car! fronts `(,operation . ,front)))))
        (else
-        (set! fronts ...)
+        (set! fronts `(,front . ,fronts))
         (undo-stack:clear!))))
 
-    (define (undo!)::void
-      ...)
+    (define (undo! document ::Document)::void
+      (given ((`(,previous::Edit . ,operations) front))
+        (undo-stack:push! (previous:perform! document))))
 
     (define (redo!)::void
       ...)
