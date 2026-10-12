@@ -11310,21 +11310,26 @@ have very little idea about what's going on in here.
       (puthash 'noweb-scope bounds table)   ; ...and that we are the ones who did it
       table))
 
-  (defun ob-noweb-scope (expand &optional info parent-buffer)
-    "Around-advice for `org-babel-expand-noweb-references'."
-    (let* ((buffer (or parent-buffer (current-buffer)))
-           (info (or info (org-babel-get-src-block-info 'no-eval)))
+  (defun ob-noweb-scope (expand &rest arguments)
+    "Around-advice for `org-babel-expand-noweb-references'.
+
+  The advised function has gained arguments over time -- Org 9.6 took
+  INFO and PARENT-BUFFER, later versions take a CONTEXT as well -- so we
+  accept whatever we are given, read the first two, and pass them all on
+  untouched."
+    (let* ((info (or (nth 0 arguments) (org-babel-get-src-block-info 'no-eval)))
+           (buffer (or (nth 1 arguments) (current-buffer)))
            (bounds (with-current-buffer buffer (ob-noweb-scope--bounds info))))
       (if (or (null bounds)
               ;; A scope is already in force: it belongs to the outermost block.
               (and (hash-table-p org-babel-expand-noweb-references--cache)
                    (gethash 'noweb-scope org-babel-expand-noweb-references--cache)))
-          (funcall expand info parent-buffer)
+          (apply expand arguments)
         (let ((org-babel-expand-noweb-references--cache
                (with-current-buffer buffer (ob-noweb-scope--table bounds)))
               (org-babel-expand-noweb-references--cache-buffer
                (cons buffer (buffer-chars-modified-tick buffer))))
-          (funcall expand info parent-buffer)))))
+          (apply expand arguments)))))
 
   (advice-add 'org-babel-expand-noweb-references :around #'ob-noweb-scope)
 
