@@ -9574,16 +9574,16 @@ wrap the entire expression inside ~ExpressionComment~:
       (assert (cursor:valid-in? document))
       (assert (cursor:final-in? document))
       (if (eq? target (this))
-  	(match c
-  	  (#\]
-  	   (cursor:unnest-right! document)
-  	   #!null)
-  	  (_
-  	   (if (= tip 0)
-  	       (cursor:primitive-advance-in! document)
-  	       (cursor:primitive-retreat-in! document))
-  	   (self insert-character c)))
-  	(target:insert-character c))))
+        (match c
+          (#\]
+           (cursor:unnest-right! document)
+           #!null)
+          (_
+           (if (= tip 0)
+               (cursor:primitive-advance-in! document)
+               (cursor:primitive-retreat-in! document))
+           (self insert-character c)))
+        (target:insert-character c))))
 
 #+END_SRC
 
@@ -9591,34 +9591,36 @@ wrap the entire expression inside ~ExpressionComment~:
   (define (unnest-right! document::Document)::void
     (assert (valid-in? document))
     (given (((is (size) >= 2))
-  	  (tip ::int (super pop!))
-  	  (top ::int (super pop!))
-  	  (parent ::Comb (target-in document)))
-      (super push! (parent:last-index))))
+            (tip ::int (super pop!))
+            (top ::int (super pop!))
+            (parent ::Comb (target-in document)))
+      (super push! (parent:last-index))
+      (advance-in! document)))
 
   (define (unnest-left! document::Document)::void
     (assert (valid-in? document))
     (given (((is (size) >= 2))
-  	  (tip ::int (super pop!))
-  	  (top ::int (super pop!)))
+            (tip ::int (super pop!))
+            (top ::int (super pop!)))
       (super push! 0)))
-  
+
 #+END_SRC
 
 #+BEGIN_SRC scheme :noweb-ref Edit--operations
   (define-object (Replace old-expression ::Tile
-  			new-expression ::Tile
-  			cursor ::Cursor)
+                        new-expression ::Tile
+                        cursor ::Cursor)
     ::Edit
     (define (position)::Cursor cursor)
 
     (define (perform! document ::Element)::Edit
       (let* ((cursor ::Cursor (copy cursor))
-  	   (top ::int (cursor:pop!))
-  	   (parent ::Comb (cursor:target-in document))
-  	   (target ::Element (parent (- top 1))))
+             (top ::int (cursor:pop!))
+             (parent ::Comb (cursor:target-in document))
+             (target ::Element (parent (- top 1))))
         (assert (old-expression:equals target))
         (set! (parent (- top 1)) new-expression)
+        (cursor:push! top)
         (cursor:climb-back! document)
         (Replace new-expression old-expression cursor))))
 
@@ -9645,7 +9647,7 @@ in particular for ~Space~:
         (#\[ ;]
          (InsertSlice (Comb (Comb)) (copy cursor)))
         (#\]
-         (cursor:unnest-right! document)
+         (cursor:unnest-right! (current-document))
          #!null)
         (_
          (let* ((document ::Document (current-document))
@@ -9662,8 +9664,10 @@ in particular for ~Space~:
                      (previous ::Atom (parent:element-at (- top 1)))))
              (cursor:primitive-retreat-in! document)
              (document:insert-character c))
+            ((isnt c eqv? #\|)
+             (InsertSlice (Comb (Atom (string c))) (copy cursor)))
             (else
-             (InsertSlice (Comb (Atom (string c))) (copy cursor)))))))))
+             #!null)))))))
 
 #+END_SRC
 
@@ -9880,15 +9884,15 @@ with an empty ~BlockComment~:
              (SplitElement space (copy cursor))))))
        ((#\|)
         (if (string=? builder "#")
-  	  (let ((cursor ::Cursor (copy cursor)))
-  	    (cursor:pop!)
-  	    (Replace (this) (BlockComment) cursor))
-  	  #!null))
+          (let ((cursor ::Cursor (copy cursor)))
+            (cursor:pop!)
+            (Replace (this) (BlockComment) cursor))
+          #!null))
 
-       ((#\])
+       (#;#\[ (#\])
         (cursor:unnest-right! document)
         #!null)
-       ((#\; #\| #\{ #\} #\( #\) #\[ #\" #|"|#) #!null)
+       ((#\; #\| #\{ #\} #\( #\) #\[ #;#\] #\" #|"|#) #!null)
        (else
         (super insert-character c)))))
 
@@ -11423,10 +11427,8 @@ have very little idea about what's going on in here.
   (defun ob-noweb-scope (expand &rest arguments)
     "Around-advice for `org-babel-expand-noweb-references'.
 
-  The advised function has gained arguments over time -- Org 9.6 took
-  INFO and PARENT-BUFFER, later versions take a CONTEXT as well -- so we
-  accept whatever we are given, read the first two, and pass them all on
-  untouched."
+  ARGUMENTS are taken as a rest list and passed on untouched, because the
+  argument list of the advised function differs between Org versions."
     (let* ((info (or (nth 0 arguments) (org-babel-get-src-block-info 'no-eval)))
            (buffer (or (nth 1 arguments) (current-buffer)))
            (bounds (with-current-buffer buffer (ob-noweb-scope--bounds info))))
