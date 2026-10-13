@@ -3845,6 +3845,20 @@ is ambiguous.
    (take 3 #;elements-from '(1 2 3 4 5))
    ===> (1 2 3))
 
+  (define (drop k::integer #;elements-from s::list)::list
+    (escape-with return
+      (for i::int from: 0 below: k
+  	 (when (null? s)
+  	   (return s))
+  	 (set! s (cdr s)))
+      (return s)))
+
+  (e.g.
+   (drop 3 '(1 2 3 4)) ===> (4))
+
+  (e.g.
+   (drop 6 '(1 2 3 4)) ===> ())
+  
   (define (prefix? a::List b::List)::boolean
     (let ((ai ::Iterator (a:listIterator))
         (bi ::Iterator (b:listIterator)))
@@ -4469,6 +4483,8 @@ day in the future.
     (push! element)::void
     (pop!)::Object
     (empty?)::boolean
+    (depth)::int
+    (clear!)::void
     (with element action::(maps () to: ,a))::,a
     (set-top! element)::void
     (top)::Object)
@@ -4491,6 +4507,9 @@ day in the future.
     (define (push! element)::void
       (super add element))
 
+    (define (depth)::int
+      (size))
+    
     (define (pop!)::Object
       (remove (- (size) 1)))
 
@@ -4511,6 +4530,9 @@ day in the future.
              (index ::int (- n 1)))
         (super set index element)))
 
+    (define (clear!)::void
+      (clear))
+    
     (ArrayList))
 
   (define-object (ConsStack)::Stack
@@ -4534,6 +4556,12 @@ day in the future.
     (define (empty?)::boolean
       (null? tip))
 
+    (define (depth)::int
+      (length tip))
+
+    (define (clear!)::void
+      (set! tip '()))
+    
     (define (pop!)::Object
       (let ((result (car tip)))
         (set! tip (cdr tip))
@@ -9418,7 +9446,11 @@ the \texttt{escape} button:
   (set-key! 'escape
             (lambda (code::KeyCode)
               (exit)))
-  
+
+  (set-key! 'f10
+            (lambda (code::KeyCode)
+              (exit)))
+
 #+END_SRC
 
 We also invoke the keyboard navigation capabilities from
@@ -10121,30 +10153,79 @@ maintain a list of /fronts/.
        ((undo-stack:empty?)
         (match fronts
           ('() (set! fronts `((,operation))))
-          ('(,front . ,_)
+          (`(,front . ,_)
            (set-car! fronts `(,operation . ,front)))))
        (else
         (given ((`(,front . ,_) fronts)
-  	      (new-front (drop (undo-stack:size) front)))
+  	      (new-front (drop (undo-stack:depth) front)))
   	(set! fronts `((,operation . ,new-front)
   		       . ,fronts)))
         (undo-stack:clear!))))
 
     (define (undo!)::boolean
       (given ((`(,front . ,_) fronts)
-  	    (`(,previous::Edit . ,_)
-  	     (drop (undo-stack:size) front)))
-        (truly
-         (undo-stack:push! (previous:perform! document)))))
+  	    (`(,previous::Edit . ,_) (drop (undo-stack:depth) front))
+  	    (cursor ::Cursor (current-cursor))
+  	    (redo ::Edit (previous:perform! document)))
+        (cursor:assign! (redo:position))
+        (undo-stack:push! redo)
+        #true))
 
     (define (redo!)::boolean
-      (and (undo-stack:empty?)
-        (let ((last ::Edit (undo-stack:pop!)))
-  	(truly (last:perform! document)))))
+      (given (((not (undo-stack:empty?)))
+  	    (previous ::Edit (undo-stack:pop!))
+  	    (cursor ::Cursor (current-cursor))
+  	    (undo ::Edit (previous:perform! document)))
+  	(cursor:assign! (undo:position))
+  	#true))
     )
 
 #+END_SRC
 
+In order to make it work, we need to put it somewhere in our
+program:
+
+#+BEGIN_SRC scheme :noweb-ref Edit--operations :noweb no-export
+  <<History>>
+#+END_SRC
+
+With this definition in place, we need to add an instance of
+the ~History~ class as a property of a ~Document~:
+
+#+BEGIN_SRC scheme :noweb-ref Document--definition
+  (define history ::History (History (this)))
+
+#+END_SRC
+
+We also need to record every performed action to the
+history:
+
+#+BEGIN_SRC scheme :noweb-ref Edit-performed
+  (document:history:record! undo)
+#+END_SRC
+
+Now we can test it by bindings keys to the appropriate
+functions:
+
+#+BEGIN_SRC scheme :noweb-ref Document--initial-key-bindings
+  (set-key! '(ctrl z)
+            (lambda (code::KeyCode)
+  	    (given ((document ::Document (current-document)))
+  	      (document:history:undo!))))
+
+  (set-key! '(ctrl y)
+            (lambda (code::KeyCode)
+  	    (given ((document ::Document (current-document)))
+  	      (document:history:redo!))))
+  
+#+END_SRC
+
+At this point, running ~test/interactive/editing.scm~
+should provide evidence that the feature is operational.
+
+(It would probably benefit from an automated test suite
+though, and maybe someone will implement them in some
+of the future versions of this document.)
 
 ** Splitting up
 
