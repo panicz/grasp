@@ -1213,7 +1213,7 @@ macro cannot see the methods of a parent class.
     (lambda (stx)
       (syntax-case stx (:: define define-private define-internal
                            define-protected define-static delegate
-                           specialize mix-in)
+                           delegate-internal specialize mix-in)
 
         ((object-definition (object-name . args)
                             (arg :: type . rest)
@@ -1536,6 +1536,41 @@ macro cannot see the methods of a parent class.
                               supers
                               slots
                               (methods ... ((method . params) . body))
+                              initializers
+                              spec))
+
+        ((object-definition (object-name . args)
+                            ()
+                            supers
+                            slots
+                            (methods ...)
+                            initializers
+                            ((delegate-internal (method . params)::type object)
+                             . spec))
+         #'(object-definition (object-name . args)
+                              ()
+                              supers
+                              slots
+                              (methods ... ((method . params)
+                                            access: 'package ::type
+                                            (delegate (method . params) object)))
+                              initializers
+                              spec))
+
+        ((object-definition (object-name . args)
+                            ()
+                            supers
+                            slots
+                            (methods ...)
+                            initializers
+                            ((delegate-internal (method . params) object) . spec))
+         #'(object-definition (object-name . args)
+                              ()
+                              supers
+                              slots
+                              (methods ... ((method . params)
+                                            access: 'package
+                                            (delegate (method . params) object)))
                               initializers
                               spec))
 
@@ -3962,9 +3997,9 @@ is ambiguous.
   (e.g.
    (drop 6 '(1 2 3 4)) ===> ())
   
-  (define (prefix? a::List b::List)::boolean
-    (let ((ai ::Iterator (a:listIterator))
-        (bi ::Iterator (b:listIterator)))
+  (define (prefix? a::Iterable b::Iterable)::boolean
+    (let ((ai ::Iterator (a:iterator))
+        (bi ::Iterator (b:iterator)))
       (let loop ()
         (or (not (ai:hasNext))
           (and (bi:hasNext)
@@ -6039,20 +6074,79 @@ cursor of GRASP can be imagined as a sequence of integer
 numbers, where each integer is an index to an element at a
 given nesting level in the document.
 
-For pragmatic reasons, we're going to represent cursors
-in GRASP using ~ArrayStack~ with a bunch of helper methods:
+Since the cursor is used as a stack -- we descend into the
+document by pushing an index and come back up by popping it
+-- we represent it using an ~ArrayStack~. But the cursor
+/wraps/ that stack rather than extending it: a cursor is not
+a list of indices that anyone may rearrange.
+
+The pushing and popping are still needed, because that is how
+the operations defined below walk a document, and so are
+~top~ and ~set-top!~. They are however declared with
+~delegate-internal~, which makes them visible only within
+this package, and that is deliberate: a cursor assembled by
+pushing arbitrary numbers would point at nothing, and nothing
+outside this package has any business making such a thing.
+The same goes for ~clear!~ and for the climbing operations:
+emptying a cursor or walking it to the front of whatever it
+happens to point at are steps, not things one wants to do.
+Seen from the outside, a cursor is something one
+~advance-in!~-s and ~retreat-in!~-s, or sends ~to-start!~ or
+~to-end!~ of a document. That is very nearly all of it.
 
 #+BEGIN_SRC scheme :tangle no :noweb no-export :noweb-ref GRASP-ontology
-  (define-object (Cursor)::Stack::List::StackList
+  (define-object (Cursor)::Iterable::Cloneable
+
+    ;; a cursor /has/ a stack of indices rather than /being/ one,
+    ;; so that it only offers the operations that make sense for a
+    ;; cursor, and none of the ones that a Java List would force it
+    ;; to offer
+    (define-protected indices ::ArrayStack (ArrayStack))
+
+    ;; these are the operations through which the modules of this
+    ;; package move a cursor around, and they are the ones that could
+    ;; leave it pointing at nothing, so they are not public
+    (delegate-internal (push! index)::void indices)
+    (delegate-internal (pop!)::Object indices)
+    (delegate-internal (top)::Object indices)
+    (delegate-internal (set-top! index)::void indices)
+
+    (delegate (empty?)::boolean indices)
+    (delegate-internal (clear!)::void indices)
+    (delegate (toString)::String indices)
+
+    (define (size)::int
+      (indices:depth))
+
+    (define-internal (index-at i ::int)::Object
+      (indices:get i))
+
+    (define-internal (with index action::(maps () to: ,a))::,a
+      (indices:with index action))
+
+    (define (iterator)::Iterator
+      (indices:iterator))
+
+    (define (clone)::Cursor
+      (let ((copied ::Cursor (Cursor)))
+        (for index in: indices
+          (copied:push! index))
+        copied))
+
+    (define (equals other ::Object)::boolean
+      (given ((another ::Cursor other))
+        (indices:equals another:indices)))
+
+    (define (hashCode)::int
+      (indices:hashCode))
 
     (define (active-at? path ::Cursor)
       (and (not (self empty?))
          (is path prefix? (this))
-         (= (length path) (- (length (this)) 1))))
+         (= (path:size) (- (self size) 1))))
 
     <<Cursor--operations>>
-
-    (ArrayStack))
+    )
 
 #+END_SRC
 
@@ -6457,30 +6551,23 @@ of ~Comb~, we want to be able to iterate over their contents,
 so they implement Java's ~Iterable~ interface.
 
 We are therefore going to define a class called
-~TextualBase~ which wraps a ~StringBuilder~ and provides the
+~Textual~ which wraps a ~StringBuilder~ and provides the
 operations that the text-like elements share, and that will
 be used as a base class for our text-like things.
 
-#+BEGIN_SRC scheme :tangle no :noweb-ref TextualBase
+#+BEGIN_SRC scheme :tangle no :noweb-ref Textual--contents
 
-  (define-interface Textual (Iterable Cloneable)
-    (split-at! index::int)::Textual
-    (merge-with! suffix::Textual)::void)
-
-  (define-interface TextualTile (Textual Tile))
-
-  (define-object (TextualBase)::Textual
     (define-protected builder ::StringBuilder
       (StringBuilder))
 
     (define (clone)
-      (let ((copied ::TextualBase (as TextualBase
+      (let ((copied ::Textual (as Textual
                                       (invoke-special Object (this) 'clone))))
         (set! copied:builder (StringBuilder copied:builder))
         copied))
 
     (define (equals another)
-      (given ((another ::TextualBase)
+      (given ((another ::Textual)
               ((eq? (another:getClass) (self getClass))))
         (string=? builder another:builder)))
 
@@ -6492,7 +6579,7 @@ be used as a base class for our text-like things.
         (+ (* 31 (invoke class 'hashCode)) code)))
 
     (define (split-at! index::int)::Textual
-      (let ((copied ::TextualBase (clone)))
+      (let ((copied ::Textual (clone)))
         (builder:delete index (builder:length))
         (copied:builder:delete 0 index)
         copied))
@@ -6540,15 +6627,13 @@ be used as a base class for our text-like things.
     (define-internal (replace-at! index ::int c::Object)::Object
       (builder:setCharAt index (as char c)))
 
-    )
-
 #+END_SRC
 
 Although we're still not ready to define the ~Element~,
 we have everything that is needed to define the ~Visual~,
 ~Spatial~ and ~Tile~ parts of ~Textual~ elements.
 
-#+BEGIN_SRC scheme :noweb-ref TextualTileBase--rendering
+#+BEGIN_SRC scheme :noweb-ref Textual--rendering
 
   (define-protected (border-style)::BorderStyle
     #!abstract)
@@ -6630,26 +6715,26 @@ we have everything that is needed to define the ~Visual~,
 We can now use the code to define the built-in ~Textual~
 units in GRASP
 
-#+BEGIN_SRC scheme :noweb no-export :noweb-ref TextualTileSubclasses--rendering
-  (define-object (Atom)::TextualTile
+#+BEGIN_SRC scheme :noweb no-export :noweb-ref TextualSubclasses--rendering
+  (define-object (Atom)
     (define-protected (font)::FontProxy
       (painter:atom-font))
 
     (define-protected (border-style)::BorderStyle
       BorderStyle:Atom)
 
-    (TextualTileBase))
+    (Textual))
 
-  (define-object (Text)::TextualTile
+  (define-object (Text)
     (define-protected (font)::FontProxy
       (painter:text-font))
 
     (define-protected (border-style)::BorderStyle
       BorderStyle:Text)
 
-    (TextualTileBase))
+    (Textual))
 
-  (define-object (BlockComment)::TextualComment
+  (define-object (BlockComment)::Comment
 
     (define (breaks-line?)::boolean #false)
 
@@ -6659,9 +6744,9 @@ units in GRASP
     (define-protected (border-style)::BorderStyle
       BorderStyle:Comment)
 
-    (TextualTileBase))
+    (Textual))
 
-  (define-object (LineComment)::TextualComment
+  (define-object (LineComment)::Comment
 
     (define (breaks-line?)::boolean #true)
 
@@ -6678,7 +6763,7 @@ units in GRASP
       (expand-layout! state (self width) (self height))
       (break-layout! state))
 
-    (TextualTileBase))
+    (Textual))
 
 #+END_SRC
 
@@ -6717,15 +6802,11 @@ rendering with our ~TextPainter~.
   (define-interface Comment (Tile)
     (breaks-line?)::boolean)
 
-  <<TextualBase>>
+  (define-object (Textual)::Tile
+    <<Textual--contents>>
+    <<Textual--rendering>>)
 
-  (define-interface TextualComment (Comment TextualTile))
-
-  (define-object (TextualTileBase)::TextualTile
-    <<TextualTileBase--rendering>>
-    (TextualBase))
-
-  <<TextualTileSubclasses--rendering>>
+  <<TextualSubclasses--rendering>>
 
   (e.g.
    (let ((atom ::Atom (Atom "this-is-an-atom"))
@@ -6875,15 +6956,11 @@ We can now test the simplified parser on sample data:
     <<Comb--rendering>>
     )
 
-  <<TextualBase>>
+  (define-object (Textual)::Tile
+    <<Textual--contents>>
+    <<Textual--rendering>>)
 
-  (define-interface TextualComment (Comment TextualTile))
-
-  (define-object (TextualTileBase)::TextualTile
-    <<TextualTileBase--rendering>>
-    (TextualBase))
-
-  <<TextualTileSubclasses--rendering>>
+  <<TextualSubclasses--rendering>>
 
   <<simple-parser>>
 
@@ -7344,15 +7421,11 @@ class that will be elaborated in the future.
     <<Comb--rendering>>
     )
 
-  <<TextualBase>>
+  (define-object (Textual)::Tile
+    <<Textual--contents>>
+    <<Textual--rendering>>)
 
-  (define-interface TextualComment (Comment TextualTile))
-
-  (define-object (TextualTileBase)::TextualTile
-    <<TextualTileBase--rendering>>
-    (TextualBase))
-
-  <<TextualTileSubclasses--rendering>>
+  <<TextualSubclasses--rendering>>
 
   <<advanced-parser>>
 
@@ -7439,7 +7512,7 @@ For this reason, when we convert our expressions to strings,
 we need to track their indentation levels.
 
 We now need to implement the ~serialize~ method for ~Comb~,
-~Space~ and ~TextualTileBase~. The case of ~Comb~ is fairly
+~Space~ and ~Textual~. The case of ~Comb~ is fairly
 straightforward: we simply invoke the ~serialize~ method on its
 children and adjust the column value accordingly.
 
@@ -7479,9 +7552,9 @@ the new line plus current indentation):
   
 #+END_SRC
 
-Lastly, we need to define serialization for ~TextualTileBase~
+Lastly, we need to define serialization for ~Textual~
 
-#+BEGIN_SRC scheme :noweb-ref TextualTileBase--serialization
+#+BEGIN_SRC scheme :noweb-ref Textual--serialization
 
   (define-protected (prefix)::string
     #!abstract)
@@ -7511,15 +7584,15 @@ Lastly, we need to define serialization for ~TextualTileBase~
 
 We also need to implement serialization for our textual elements:
 
-#+BEGIN_SRC scheme :noweb no-export :noweb-ref TextualTileSubclasses--serialization
-  (define-object (Atom)::TextualTile
+#+BEGIN_SRC scheme :noweb no-export :noweb-ref TextualSubclasses--serialization
+  (define-object (Atom)
     (define-protected (prefix)::string "")
 
     (define-protected (suffix)::string "")
 
-    (TextualTileBase))
+    (Textual))
 
-  (define-object (Text)::TextualTile
+  (define-object (Text)
     (define-protected (prefix)::string "\"")
 
     (define-protected (suffix)::string "\"")
@@ -7527,9 +7600,9 @@ We also need to implement serialization for our textual elements:
     (define-protected (escape? c)::boolean
       (or (eq? c #\" #|"|#)  (eq? c #\\)))
 
-    (TextualTileBase))
+    (Textual))
 
-  (define-object (BlockComment)::TextualComment
+  (define-object (BlockComment)::Comment
 
     (define (breaks-line?)::boolean #false)
 
@@ -7537,9 +7610,9 @@ We also need to implement serialization for our textual elements:
 
     (define-protected (suffix)::string "|#")
 
-    (TextualTileBase))
+    (Textual))
 
-  (define-object (LineComment)::TextualComment
+  (define-object (LineComment)::Comment
 
     (define (breaks-line?)::boolean #true)
 
@@ -7547,7 +7620,7 @@ We also need to implement serialization for our textual elements:
 
     (define-protected (suffix)::string "\n")
 
-    (TextualTileBase))
+    (Textual))
 
 #+END_SRC
 
@@ -7584,8 +7657,6 @@ We can now test whether the algorithm works correctly:
         (lambda (port)
           (serialize port 0)))))
 
-  <<TextualBase>>
-
   (define-object (Space)::Element
     <<Space--representation>>
     <<Space--serialize>>
@@ -7597,13 +7668,11 @@ We can now test whether the algorithm works correctly:
     <<Comb--serialize>>
     )
 
-  (define-interface TextualComment (Comment TextualTile))
+  (define-object (Textual)::Tile
+    <<Textual--contents>>
+    <<Textual--serialization>>)
 
-  (define-object (TextualTileBase)::TextualTile
-    <<TextualTileBase--serialization>>
-    (TextualBase))
-
-  <<TextualTileSubclasses--serialization>>
+  <<TextualSubclasses--serialization>>
 
   <<advanced-parser>>
 
@@ -7731,7 +7800,7 @@ obtained in the following way:
       (set! limit (max 0 (+ (self size) limit))))
     (set! limit (min (self size) limit))
     (for i::int from: 0 below: limit
-         (set! root (root:element-at ((this) i))))
+         (set! root (root:element-at (self index-at i))))
     root)
 
 #+END_SRC
@@ -7788,7 +7857,7 @@ method -- it could be tempting to return the characters
 that such elements are composed of, but a character is
 not an ~Element~ in the sense employed by GRASP.
 
-#+BEGIN_SRC scheme :noweb-ref TextualTileBase--navigation
+#+BEGIN_SRC scheme :noweb-ref Textual--navigation
   (define (element-at index ::int)::Element
     (this))
 
@@ -7799,7 +7868,7 @@ indices within ~Textual~ elements. More specifically, the
 amount of positons where one can place their cursor in such
 elements is one greater than the number of its characters:
 
-#+BEGIN_SRC scheme :noweb-ref TextualTileBase--navigation
+#+BEGIN_SRC scheme :noweb-ref Textual--navigation
   (define (last-index)::int
     (invoke (the builder) 'length))
 
@@ -7913,11 +7982,19 @@ it is final):
               (loop next))))))
     (assert (final-in? document)))
 
-  (define (climb-front! document ::Element)::void
+  (define-internal (climb-front! document ::Element)::void
     (climb! document (lambda (root ::Element)::int 0)))
 
-  (define (climb-back! document ::Element)::void
+  (define-internal (climb-back! document ::Element)::void
     (climb! document (lambda (root ::Element)::int (root:last-index))))
+
+  (define (to-start! document ::Element)::void
+    (self clear!)
+    (climb-front! document))
+
+  (define (to-end! document ::Element)::void
+    (self clear!)
+    (climb-back! document))
 
 #+END_SRC
 
@@ -7958,7 +8035,7 @@ the canonical versions:
     (let ((elements ::(StackListOf Element)
                   (track document)))
       (assert (= (length elements)
-                 (length (this))))
+                 (self size)))
       (let loop ()
         (if (elements:empty?)
           (climb-front! document)
@@ -7977,7 +8054,7 @@ the canonical versions:
     (let ((elements ::(StackListOf Element)
                   (track document)))
       (assert (= (length elements)
-               (length (this))))
+               (self size)))
       (let loop ()
         (if (elements:empty?)
           (climb-back! document)
@@ -8393,7 +8470,7 @@ required by the current (fairly minimal) version of the
 #+END_SRC
 
 
-#+BEGIN_SRC scheme :noweb-ref basic-terminal-painter
+#+BEGIN_SRC scheme :noweb-ref basic-terminal-painter :noweb no-export
   <<TerminalPainter--prerequisites>>
 
   (define-object (TerminalPainter terminal ::LanternaScreen)::Painter
@@ -8422,11 +8499,9 @@ one for handling input, and another for rendering:
              (,KeyType:ARROW_RIGHT
               (cursor:advance-in! document))
              (,KeyType:HOME
-              (cursor:clear)
-              (cursor:climb-front! document))
+              (cursor:to-start! document))
              (,KeyType:END
-              (cursor:clear)
-              (cursor:climb-back! document))
+              (cursor:to-end! document))
              (,KeyType:ESCAPE
               (set! running? #false))
              (_
@@ -8554,16 +8629,12 @@ keys (for moving the cursor left and right), and to the
     <<Comb--navigation>>
     )
 
-  <<TextualBase>>
+  (define-object (Textual)::Tile
+    <<Textual--contents>>
+    <<Textual--rendering>>
+    <<Textual--navigation>>)
 
-  (define-interface TextualComment (Comment TextualTile))
-
-  (define-object (TextualTileBase)::TextualTile
-    <<TextualTileBase--rendering>>
-    <<TextualTileBase--navigation>>
-    (TextualBase))
-
-  <<TextualTileSubclasses--rendering>>
+  <<TextualSubclasses--rendering>>
 
   <<advanced-parser>>
 
@@ -9119,13 +9190,13 @@ method (and do some bookkeeping around that):
 
 
 We're also going to provide
-~<<TextualTileSubclasses--definitions>>~, that are a merger
-of ~<<TextualTileSubclasses--rendering>>~ and
+~<<TextualSubclasses--definitions>>~, that are a merger
+of ~<<TextualSubclasses--rendering>>~ and
 ~<<TextualTileSublcasses--serialization>>~:
 
 
-#+BEGIN_SRC scheme :noweb no-export :noweb-ref TextualTileSubclasses--definitions
-  (define-object (Atom)::TextualTile
+#+BEGIN_SRC scheme :noweb no-export :noweb-ref TextualSubclasses--definitions
+  (define-object (Atom)
     (define-protected (prefix)::string "")
 
     (define-protected (suffix)::string "")
@@ -9138,9 +9209,9 @@ of ~<<TextualTileSubclasses--rendering>>~ and
 
     <<Atom--editing>>
 
-    (TextualTileBase))
+    (Textual))
 
-  (define-object (Text)::TextualTile
+  (define-object (Text)
     (define-protected (prefix)::string "\"")
 
     (define-protected (suffix)::string "\"")
@@ -9156,9 +9227,9 @@ of ~<<TextualTileSubclasses--rendering>>~ and
 
     <<Text--editing>>
 
-    (TextualTileBase))
+    (Textual))
 
-  (define-object (BlockComment)::TextualComment
+  (define-object (BlockComment)::Comment
 
     (define (breaks-line?)::boolean #false)
 
@@ -9174,9 +9245,9 @@ of ~<<TextualTileSubclasses--rendering>>~ and
 
     <<BlockComment--editing>>
 
-    (TextualTileBase))
+    (Textual))
 
-  (define-object (LineComment)::TextualComment
+  (define-object (LineComment)::Comment
 
     (define (breaks-line?)::boolean #true)
 
@@ -9199,7 +9270,7 @@ of ~<<TextualTileSubclasses--rendering>>~ and
 
     <<LineComment--editing>>
 
-    (TextualTileBase))
+    (Textual))
 
 #+END_SRC
 
@@ -9285,18 +9356,14 @@ As to the main part of the stub, it is defined as follows:
     <<Comb--serialize>>
     )
 
-  <<TextualBase>>
+  (define-object (Textual)::Tile
+    <<Textual--contents>>
+    <<Textual--rendering>>
+    <<Textual--navigation>>
+    <<Textual--editing>>
+    <<Textual--serialization>>)
 
-  (define-interface TextualComment (Comment TextualTile))
-
-  (define-object (TextualTileBase)::TextualTile
-    <<TextualTileBase--rendering>>
-    <<TextualTileBase--navigation>>
-    <<TextualTileBase--editing>>
-    <<TextualTileBase--serialization>>
-    (TextualBase))
-
-  <<TextualTileSubclasses--definitions>>
+  <<TextualSubclasses--definitions>>
 
   <<Edit--operations>>
 
@@ -9382,7 +9449,7 @@ As to the main part of the stub, it is defined as follows:
 
 The above stub is operational, even though we're yet to
 define ~<<Element--editing>>~, ~<<Space--editing>>~,
-~<<Comb--editing>>~ and ~<<TextualTileBase--editing>>~ (at
+~<<Comb--editing>>~ and ~<<Textual--editing>>~ (at
 the moment of writing this, their definitions are empty, but
 we will be building up the editing features incrementally).
 
@@ -9448,9 +9515,9 @@ Of course, in order for it to work, we need ~Cursor~
 to implement the ~assign!~ method:
 
 #+BEGIN_SRC scheme :noweb-ref Cursor--operations
-  (define (assign! another ::(ListOf int))::void
+  (define (assign! another ::Cursor)::void
     (unless (eq? (this) another)
-      (self clear)
+      (self clear!)
       (for index::int in: another
   	 (self push! index))))
   
@@ -9489,13 +9556,13 @@ We now need to provide the definition of ~insert-character~
 for every class that implements the ~Element~ interface --
 which currently means ~Comb~, ~Space~ and ~Textual~ elements.
 
-***** Into ~TextualTileBase~
+***** Into ~Textual~
 
-We will start with ~TextualTileBase~ -- in the first
+We will start with ~Textual~ -- in the first
 approximation, every such element should return an operation
 that simply appends a character at a ~current-index~.
 
-#+BEGIN_SRC scheme :noweb-ref TextualTileBase--editing
+#+BEGIN_SRC scheme :noweb-ref Textual--editing
   (define (insert-character c)::(maybe Edit)
     (AppendCharacters (string c) (copy (current-cursor))))
   
@@ -9511,10 +9578,10 @@ completeness we also need to define its inverse, ~EraseCharacters~:
     (define (position)::Cursor cursor)
 
     (define (perform! document::Element)::Edit
-      (let* ((target ::TextualTile (cursor:target-in/at document -1))
-             (tip ::int (last cursor)))
+      (let* ((target ::Textual (cursor:target-in/at document -1))
+             (tip ::int (cursor:top)))
         (for c in: characters
-          (target:add tip c)
+          (target:insert-at! tip c)
           (increase! tip))
         (let ((cursor ::Cursor (copy cursor)))
           (cursor:pop!)
@@ -9527,11 +9594,11 @@ completeness we also need to define its inverse, ~EraseCharacters~:
     (define (position)::Cursor cursor)
 
     (define (perform! document::Element)::Edit
-      (let* ((target ::TextualTile (cursor:target-in/at document -1))
-             (start ::int (- (last cursor) (characters:length))))
+      (let* ((target ::Textual (cursor:target-in/at document -1))
+             (start ::int (- (cursor:top) (characters:length))))
         (assert (is start >= 0))
         (for c in: characters
-          (let ((removed (target:remove start)))
+          (let ((removed (target:remove-at! start)))
             (assert (eq? removed c))))
         (let ((cursor ::Cursor (copy cursor)))
           (cursor:pop!)
@@ -9574,18 +9641,18 @@ wrap the entire expression inside ~ExpressionComment~:
   (define (unnest-right! document::Document)::void
     (assert (valid-in? document))
     (given (((is (size) >= 2))
-            (tip ::int (super pop!))
-            (top ::int (super pop!))
+            (tip ::int (self pop!))
+            (top ::int (self pop!))
             (parent ::Comb (target-in document)))
-      (super push! (parent:last-index))
+      (self push! (parent:last-index))
       (advance-in! document)))
 
   (define (unnest-left! document::Document)::void
     (assert (valid-in? document))
     (given (((is (size) >= 2))
-            (tip ::int (super pop!))
-            (top ::int (super pop!)))
-      (super push! 0)))
+            (tip ::int (self pop!))
+            (top ::int (self pop!)))
+      (self push! 0)))
 
 #+END_SRC
 
@@ -9670,7 +9737,7 @@ of the appropriate fragment:
 
     (define (perform! document::Element)::Edit
       (let* ((space ::Space (cursor:target-in document))
-             (tip ::int (last cursor))
+             (tip ::int (cursor:top))
              (index (space:fragment-index tip)))
         (increase! (space:fragments index) by: width as: int)
         (let ((cursor ::Cursor (copy cursor)))
@@ -9713,7 +9780,7 @@ the two subsequent fragments into a single number:
 
     (define (perform! document::Element)::Edit
       (let* ((space ::Space (cursor:target-in document))
-             (tip ::int (last cursor)))
+             (tip ::int (cursor:top)))
         (let-values (((index offset) (space:fragment-index+offset tip)))
           (let ((width ::int (space:fragments index)))
             (set! (space:fragments index) (as int offset))
@@ -9729,7 +9796,7 @@ the two subsequent fragments into a single number:
 
     (define (perform! document::Element)::Edit
       (let* ((space ::Space (cursor:target-in document))
-             (tip ::integer (last cursor))
+             (tip ::integer (cursor:top))
              (index ::int (space:fragment-index tip)))
         (assert (is index > 0))
         (increase! (space:fragments (- index 1))
@@ -9773,7 +9840,7 @@ are obviously going to refer to the methods ~splice!~ and
     (define (position)::Cursor cursor)
 
     (define (perform! document::Element)::Edit
-      (assert (is (length cursor) #;< >= 2))
+      (assert (is (cursor:size) #;< >= 2))
       (let* ((cursor ::Cursor (copy cursor))
              (tip ::int (cursor:pop!))
              (top ::int (cursor:pop!))
@@ -9793,7 +9860,7 @@ are obviously going to refer to the methods ~splice!~ and
     (define (position)::Cursor cursor)
 
     (define (perform! document::Element)::Edit
-      (assert (is (length cursor) #;< >= 2))
+      (assert (is (cursor:size) #;< >= 2))
       (let* ((cursor ::Cursor (copy cursor))
              (_ ::int (cursor:pop!))
              (end ::int (+ (cursor:pop!) 1))
@@ -9817,7 +9884,7 @@ are obviously going to refer to the methods ~splice!~ and
 ***** Into ~LineComment~
 
 Although we defined the ~insert-character~ method for
-~TextualTileBase~, we still need to refine its behavior for
+~Textual~, we still need to refine its behavior for
 certain particular instances: for example, we can block
 accepting the ~#\newline~ character inside ~LineComment~
 instances (and make it move cursor to the beginning of the
@@ -9895,8 +9962,8 @@ and its inverse, ~MergeElements~:
              (tip ::int (cursor:pop!))
              (top ::int (cursor:pop!))
              (parent ::Comb (cursor:target-in document))
-             (target ::TextualTile (parent:element-at top))
-             (suffix ::TextualTile (target:split-at! tip)))
+             (target ::Textual (parent:element-at top))
+             (suffix ::Textual (target:split-at! tip)))
         (parent:splice! (Comb space suffix) top 0)
         (cursor:push! (+ top 1))
         (cursor:climb-back! document)
@@ -9912,15 +9979,15 @@ and its inverse, ~MergeElements~:
              (tip ::int (cursor:pop!))
              (top ::int (cursor:pop!))
              (parent ::Comb (cursor:target-in document))
-             (left ::TextualTile (parent:element-at (- top 1)))
+             (left ::Textual (parent:element-at (- top 1)))
              (space* ::Space (parent:element-at top)))
         (assert (equal? space space*))
         (space*:clear!)
         ;; we need to subtract 1 to translate element-at to
         ;; remove-at index but we also need to add 1 to indicate
         ;; the element following the space, so these two cancel out
-        (let ((right ::TextualTile (parent:remove-at top))
-              (tip ::int (string-length left)))
+        (let ((right ::Textual (parent:remove-at! top))
+              (tip ::int (left:length)))
           (left:merge-with! right)
           (cursor:push! (- top 1))
           (cursor:push! tip)
@@ -9977,10 +10044,10 @@ Like in most text editors, it's going to be bound to the
   
 #+END_SRC
 
-***** From ~TextualTileBase~
+***** From ~Textual~
 
 As before, we will first provide an implementation for
-~TextualTileBase~. Deletion is going to be slightly more
+~Textual~. Deletion is going to be slightly more
 complicated than insertion, because if there's only one
 character left, we need to delete the entire element.  Also,
 if the cursor's tip is at the beginning of the element, we
@@ -9990,7 +10057,7 @@ will override it in ~Atom~, because while it makes sense to
 have empty strings or empty comments, empty atoms can't be
 allowed.
 
-#+BEGIN_SRC scheme :noweb-ref TextualTileBase--editing
+#+BEGIN_SRC scheme :noweb-ref Textual--editing
   (define-protected (minimum-width)::int 0)
 
   (define (delete-character)::(maybe Edit)
@@ -9998,14 +10065,14 @@ allowed.
            (document ::Document (current-document))
            (tip ::int (cursor:top)))
       (cond
-       ((and (= tip 0) (is (size) #;< > 0))
+       ((and (= tip 0) (is (self length) #;< > 0))
         (cursor:primitive-retreat-in! document)
         (document:delete-character))
-       ((is (self size) <= (minimum-width)) #;>
+       ((is (self length) <= (minimum-width)) #;>
         (let ((cursor ::Cursor (copy cursor)))
           (RemoveSlice (Comb (this)) cursor)))
        (else
-        (EraseCharacters (string (charAt (- tip 1))) (copy cursor))))))
+        (EraseCharacters (string (self charAt (- tip 1))) (copy cursor))))))
 
 #+END_SRC
 
@@ -10269,6 +10336,10 @@ We'll try to keep our modules as small as possible.
 
 
 
+#+BEGIN_COMMENT
+Kawa considers modules in the same directory to belong to the same package.
+java -Dkawa.immediate.shared-loader=true -jar ../libs/kawa.jar test/foo.scm
+#+END_COMMENT
 
 #+LATEX: \appendix
 * Appendices
