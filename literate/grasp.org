@@ -8356,99 +8356,113 @@ traces:
 **** Terminal implementation of ~Painter~
 
 We can now add/override relevant methods to ~CharPainter~
-to obtain the most basic version of ~TerminalPainter~:
+to obtain the most basic version of ~TerminalPainter~
+We'll start by defining the ~TerminalFont~ class:
 
-#+BEGIN_SRC scheme :noweb-ref basic-terminal-painter
+#+BEGIN_SRC scheme :noweb-ref TerminalPainter--prerequisites
   (define-object (TerminalFont fg ::TerminalColor
                                bg ::TerminalColor
                                style ::TerminalTextStyle)
     ::FontProxy
     (define (height)::real 1))
 
+#+END_SRC
+
+For now, we're only going to define the methods that are
+required by the current (fairly minimal) version of the
+~Painter~ interface:
+
+#+BEGIN_SRC scheme :noweb-ref TerminalPainter--definition
+  (define-private fgcolor ::TerminalColor
+    TerminalColor:ANSI:WHITE)
+
+  (define-private bgcolor ::TerminalColor
+    TerminalColor:ANSI:BLACK)
+
+  (define-private style ::TerminalTextStyle
+    (TerminalTextStyle:noneOf TerminalTextDecoration:class))
+
+  (define-private -atom-font ::FontProxy
+    (TerminalFont TerminalColor:ANSI:WHITE
+                  TerminalColor:ANSI:BLACK
+                  (EnumSet:of TerminalTextDecoration:BOLD)))
+
+  (define-private -text-font ::FontProxy
+    (TerminalFont TerminalColor:ANSI:WHITE
+                  TerminalColor:ANSI:BLACK
+                  (TerminalTextStyle:noneOf
+                   TerminalTextDecoration:class)))
+
+  (define-private -comment-font ::FontProxy
+    (TerminalFont (TerminalColorRGB 255 255 200)
+                  TerminalColor:ANSI:BLACK
+                  (EnumSet:of TerminalTextDecoration:ITALIC)))
+
+  (define (atom-font)::FontProxy -atom-font)
+  (define (text-font)::FontProxy -text-font)
+  (define (comment-font)::FontProxy -comment-font)
+  (define (caption-font)::FontProxy -atom-font)
+
+  (define (mark-cursor! position ::int font ::FontProxy)::void
+    (let ((x ::int (+ (the shift-left)
+                      (nearby-int (* (the stretch-horizontal) position))))
+          (y ::int (the shift-top)))
+      (terminal:setCursorPosition (TerminalPosition x y))))
+
+  (define (clear!)::void
+    (terminal:clear))
+
+  (define (put! c ::char left ::int top ::int)::void
+    (assert (and (is 0 <= left) (is top >= 0)))
+    (let ((x ::int (+ (the shift-left)
+                      (nearby-int (* (the stretch-horizontal) left))))
+          (y ::int (+ (the shift-top)
+                      (nearby-int (* (the stretch-vertical) top)))))
+      (terminal:setCharacter x y (decorated-character
+                                  c fgcolor bgcolor style))))
+
+  (define-protected (draw-left! height ::real
+                                border ::BorderCharacters
+                                selected ::SideSelected)
+    (match selected
+      (,SideSelected:None
+       (super draw-left! height border selected))
+      (,SideSelected:Left
+       (with ((fgcolor TerminalColor:ANSI:BLACK)
+              (bgcolor TerminalColor:ANSI:WHITE_BRIGHT))
+         (super draw-left! height border selected)
+         (mark-cursor! 0 #!null)))
+      (,SideSelected:Right
+       (with ((fgcolor TerminalColor:ANSI:BLACK_BRIGHT)
+              (bgcolor TerminalColor:ANSI:WHITE))
+         (super draw-left! height border selected)))))
+
+  (define-protected (draw-right! height ::real
+                                 border ::BorderCharacters
+                                 selected ::SideSelected)
+    (match selected
+      (,SideSelected:None
+       (super draw-right! height border selected))
+      (,SideSelected:Left
+       (with ((fgcolor TerminalColor:ANSI:BLACK_BRIGHT)
+              (bgcolor TerminalColor:ANSI:WHITE))
+         (super draw-right! height border selected)))
+      (,SideSelected:Right
+       (with ((fgcolor TerminalColor:ANSI:BLACK)
+              (bgcolor TerminalColor:ANSI:WHITE_BRIGHT))
+         (super draw-right! height border selected)
+         (mark-cursor! 0 #!null)))))
+
+#+END_SRC
+
+
+#+BEGIN_SRC scheme :noweb-ref basic-terminal-painter
+  <<TerminalPainter--prerequisites>>
+
   (define-object (TerminalPainter terminal ::LanternaScreen)::Painter
-
-    (define-private fgcolor ::TerminalColor
-      TerminalColor:ANSI:WHITE)
-
-    (define-private bgcolor ::TerminalColor
-      TerminalColor:ANSI:BLACK)
-
-    (define-private style ::TerminalTextStyle
-      (TerminalTextStyle:noneOf TerminalTextDecoration:class))
-
-    (define-private -atom-font ::FontProxy
-      (TerminalFont TerminalColor:ANSI:WHITE
-                    TerminalColor:ANSI:BLACK
-                    (EnumSet:of TerminalTextDecoration:BOLD)))
-
-    (define-private -text-font ::FontProxy
-      (TerminalFont TerminalColor:ANSI:WHITE
-                    TerminalColor:ANSI:BLACK
-                    (TerminalTextStyle:noneOf
-                     TerminalTextDecoration:class)))
-
-    (define-private -comment-font ::FontProxy
-      (TerminalFont (TerminalColorRGB 255 255 200)
-                    TerminalColor:ANSI:BLACK
-                    (EnumSet:of TerminalTextDecoration:ITALIC)))
-
-    (define (atom-font)::FontProxy -atom-font)
-    (define (text-font)::FontProxy -text-font)
-    (define (comment-font)::FontProxy -comment-font)
-    (define (caption-font)::FontProxy -atom-font)
-
-    (define (mark-cursor! position ::int font ::FontProxy)::void
-      (let ((x ::int (+ (the shift-left)
-                        (nearby-int (* (the stretch-horizontal) position))))
-            (y ::int (the shift-top)))
-        (terminal:setCursorPosition (TerminalPosition x y))))
-
-    (define (clear!)::void
-      (terminal:clear))
-
-    (define (put! c ::char left ::int top ::int)::void
-      (assert (and (is 0 <= left) (is top >= 0)))
-      (let ((x ::int (+ (the shift-left)
-                        (nearby-int (* (the stretch-horizontal) left))))
-            (y ::int (+ (the shift-top)
-                        (nearby-int (* (the stretch-vertical) top)))))
-        (terminal:setCharacter x y (decorated-character
-                                    c fgcolor bgcolor style))))
-
-    (define-protected (draw-left! height ::real
-                                  border ::BorderCharacters
-                                  selected ::SideSelected)
-      (match selected
-        (,SideSelected:None
-         (super draw-left! height border selected))
-        (,SideSelected:Left
-         (with ((fgcolor TerminalColor:ANSI:BLACK)
-                (bgcolor TerminalColor:ANSI:WHITE_BRIGHT))
-           (super draw-left! height border selected)
-           (mark-cursor! 0 #!null)))
-        (,SideSelected:Right
-         (with ((fgcolor TerminalColor:ANSI:BLACK_BRIGHT)
-                (bgcolor TerminalColor:ANSI:WHITE))
-           (super draw-left! height border selected)))))
-
-    (define-protected (draw-right! height ::real
-                                   border ::BorderCharacters
-                                   selected ::SideSelected)
-      (match selected
-        (,SideSelected:None
-         (super draw-right! height border selected))
-        (,SideSelected:Left
-         (with ((fgcolor TerminalColor:ANSI:BLACK_BRIGHT)
-                (bgcolor TerminalColor:ANSI:WHITE))
-           (super draw-right! height border selected)))
-        (,SideSelected:Right
-         (with ((fgcolor TerminalColor:ANSI:BLACK)
-                (bgcolor TerminalColor:ANSI:WHITE_BRIGHT))
-           (super draw-right! height border selected)
-           (mark-cursor! 0 #!null)))))
-
+    <<TerminalPainter--definition>>
     (CharPainter))
-  
+
 #+END_SRC
 
 **** Input handling and rendering
@@ -10229,7 +10243,95 @@ of the future versions of this document.)
 
 ** Splitting up
 
-(podział na moduły)
+Although so far we've produced some utility modules, such as
+~(language-extensions)~, ~(utils debug)~, ~(utils shell)~ or
+~(input keyboard)~, the actual content of the application
+was repeated multiple times in the test functions that we've
+developed. We managed to avoid some repetition in typing by
+relying on the literate programming features that come with
+the Emacs org-mode.
+
+However, our tests have gotten quite large at this point:
+~test/interactive/cursor-navigation.scm~ has over 1800
+lines, and ~test/interactive/editing.scm~ -- almost 2500
+lines, and they share a lot of their structure.
+
+While this is justified from the point of view of
+incremental development, we have now reached the point where
+our test is not very far from an operational editor: we are
+able to parse and serialize documents as well as edit them
+in a robust and history-preserving way.
+
+Of course, a lot of features are still missing, such as the
+ability to scroll the screen, or vertical cursor movement,
+or mouse support, or system clipboard integration, but if we
+just combined the things that we have developed to this
+point, we'd already have something that we could use for
+some editing tasks.
+
+This is a good moment to split our application into multiple
+modules: we have already seen which classes rely on one
+another and thus should be placed together in the same
+module.
+
+We'll try to keep our modules as small as possible.
+
+#+BEGIN_SRC scheme :tangle painter/interface.scm :mkdirp yes :noweb no-export
+  <<header>>
+  (module-name (painter interface))
+  (import (language-extensions))
+
+  <<painter-subinterfaces>>
+
+  (define-inteface Painter
+    (<<painter-capabilities>>)
+    (clear!)::void)
+#+END_SRC
+
+
+#+BEGIN_SRC scheme :tangle painter/character.scm :mkdirp yes :noweb no-export
+  <<header>>
+  (module-name (painter character))
+  (import (language-extensions))
+  (import (painter interface))
+
+  <<BorderCharacters--object-definition>>
+
+  (define-object (CharPainter)::Painter
+    <<CharPainter--body>>)
+
+#+END_SRC
+
+#+BEGIN_SRC scheme :tangle painter/string.scm :mkdirp yes :noweb no-export
+  <<header>>
+  (module-name (painter string))
+  (import (language-extensions))
+  (import (painter interface))
+  (import (painter character))
+
+  (define-object (TextPainter)::Painter
+    <<BasicTextPainter--body>>
+    (CharPainter))
+  
+#+END_SRC
+
+#+BEGIN_SRC scheme :tangle painter/terminal.scm :mkdirp yes :noweb no-export
+  <<header>>
+  (module-name (painter terminal))
+  (import (language-extensions))
+  (import (painter interface))
+  (import (painter character))
+
+  <<TerminalPainter--prerequisites>>
+
+  (define-object (TerminalPainter terminal ::LanternaScreen)::Painter
+    <<TerminalPainter--definition>>
+    (CharPainter))
+
+#+END_SRC
+
+
+
 
 #+LATEX: \appendix
 * Appendices
