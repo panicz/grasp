@@ -10111,11 +10111,10 @@ the undone operations still accessible we're going to
 maintain a list of /fronts/.
 
 #+BEGIN_SRC scheme :noweb-ref History
-
-  (define-object (History)
+  (define-object (History document::Document)
     (define fronts ::(list-of (list-of Edit)) '())
     
-    (define redo-stack ::Stack (ArrayStack))
+    (define undo-stack ::Stack (ArrayStack))
 
     (define (record! operation ::Edit)::void
       (cond
@@ -10125,17 +10124,24 @@ maintain a list of /fronts/.
           ('(,front . ,_)
            (set-car! fronts `(,operation . ,front)))))
        (else
-        (set! fronts `(,front . ,fronts))
+        (given ((`(,front . ,_) fronts)
+  	      (new-front (drop (undo-stack:size) front)))
+  	(set! fronts `((,operation . ,new-front)
+  		       . ,fronts)))
         (undo-stack:clear!))))
 
-    (define (undo! document ::Document)::void
-      (given ((`(,previous::Edit . ,operations) front))
-        (undo-stack:push! (previous:perform! document))))
+    (define (undo!)::boolean
+      (given ((`(,front . ,_) fronts)
+  	    (`(,previous::Edit . ,_)
+  	     (drop (undo-stack:size) front)))
+        (truly
+         (undo-stack:push! (previous:perform! document)))))
 
-    (define (redo!)::void
-      ...)
-
-    ...)
+    (define (redo!)::boolean
+      (and (undo-stack:empty?)
+        (let ((last ::Edit (undo-stack:pop!)))
+  	(truly (last:perform! document)))))
+    )
 
 #+END_SRC
 
