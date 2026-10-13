@@ -1162,6 +1162,24 @@ hygienic macroexpander to mess up with our identifiers, and
 instead we want them pasted verbatim in the final class
 definition.)
 
+Lastly, ~define-object~ reacts to the presence of a
+one-argument method called ~add~. If an object defines one,
+and takes no constructor arguments of its own, then -- in
+addition to the constructor that initializes its slots -- it
+is given a variadic constructor which adds all of its
+arguments in turn, so that we can write things like ~(Comb
+(Atom "A") (Space " "))~.
+
+Kawa can already construct an object this way, but only if
+its ~add~ method is public, which would force every
+collection-like object to expose a way of modifying itself.
+By generating the constructor ourselves we can keep ~add~
+internal to the module. The method has to be called ~add~
+rather than, say, ~add!~, because that is the name Kawa
+itself looks for, and because an object that inherits its
+~add~ from a parent is still constructed Kawa's way -- a
+macro cannot see the methods of a parent class.
+
 #+BEGIN_SRC scheme :tangle language-extensions.scm
   (define-syntax delegate
     (syntax-rules (::)
@@ -1176,6 +1194,20 @@ definition.)
 
       ((delegate (method param . params) object args ...)
        (delegate (method . params) object args ... param))))
+
+  (define-syntax object-definition-with-single-argument-add-method
+    (syntax-rules (add ::)
+      ((_ () then else)
+       else)
+
+      ((_ (((add argument) . body) . other-methods) then else)
+       then)
+
+      ((_ (((add argument :: type) . body) . other-methods) then else)
+       then)
+
+      ((_ (method . other-methods) then else)
+       (object-definition-with-single-argument-add-method other-methods then else))))
 
   (define-syntax object-definition
     (lambda (stx)
@@ -1601,6 +1633,42 @@ definition.)
              slots ... methods ...))
 
 
+        ;; if an object takes no constructor arguments but provides
+        ;; a one-argument `add' method, then -- in addition to the
+        ;; constructor that initializes its slots -- we also give it
+        ;; a variadic constructor which adds all of its arguments.
+        ;; This is what allows us to write (Comb (Atom "x") (Space " ")).
+        ;;
+        ;; Note that the slot initializers have to be repeated in both
+        ;; constructors, because Kawa only runs them in the constructor
+        ;; that they appear in. Note also that `add' is brought into
+        ;; the scope of the object being defined, so that it refers to
+        ;; the method of that object rather than to anything that might
+        ;; be called `add' here.
+        ((object-definition (object-name)
+                            ()
+                            (supers ...)
+                            (slots ...)
+                            (methods ...)
+                            (initializer initializers ...)
+                            ())
+         (with-syntax ((add (datum->syntax #'object-name 'add)))
+           #'(object-definition-with-single-argument-add-method
+              (methods ...)
+              (define-simple-class object-name (supers ...)
+                slots ... methods ...
+                ((*init*)
+                 initializer initializers ...)
+                ((*init* #!rest arguments ::(array-of Object))
+                             initializer initializers ...
+                             (for argument in: arguments
+                               (self add argument))))
+              (define-simple-class object-name (supers ...)
+                slots ... methods ...
+                ((*init*)
+                 initializer initializers ...)))))
+        
+
         ((object-definition (object-name . args)
                             ()
                             (supers ...)
@@ -1618,6 +1686,41 @@ definition.)
                                 initializers ...))
                               ()
                               ()))
+
+        ;; the same as above, for objects that call a constructor
+        ;; of their parent
+        ((object-definition (object-name)
+                            ()
+                            (supers ...)
+                            slots
+                            (methods ...)
+                            (initializers ...)
+                            ((parent . args*) init ...))
+         (with-syntax ((super (datum->syntax #'object-name 'super))
+                       (add (datum->syntax #'object-name 'add)))
+           #'(object-definition-with-single-argument-add-method
+              (methods ...)
+              (with-super-in-methods object-name (supers ... parent) slots
+                                     parent super ()
+                                     (methods ...
+                                      ((*init*)
+                                       (invoke-special parent (this)
+                                                       '*init* . args*)
+                                       initializers ... init ...)
+                                      ((*init* #!rest arguments
+                                               ::(array-of Object))
+                                       (invoke-special parent (this)
+                                                       '*init* . args*)
+                                       initializers ... init ...
+                                       (for argument in: arguments
+                                         (self add argument)))))
+              (with-super-in-methods object-name (supers ... parent) slots
+                                     parent super ()
+                                     (methods ...
+                                      ((*init*)
+                                       (invoke-special parent (this)
+                                                       '*init* . args*)
+                                       initializers ... init ...))))))
 
         ((object-definition (object-name . args)
                             ()
@@ -5491,15 +5594,13 @@ because the array containing semantically meaningful
 elements resembles the teeth of a comb, and the other array
 resembles spaces between those teeth.
 
-**** A ~Comb~ implements Java's ~List~ interface
+**** The collection operations of a ~Comb~
 
-We want ~Comb~ to implement the Java's ~List~ interface,
-so that we should be able to iterate over it using the ~for~
-loop.
-
-The ~List~ interface is somewhat complex and contains a lot of
-so called /optional operations/. We're going to implement the
-interface methods starting with the least controversial ones.
+We want to be able to iterate over a ~Comb~ using the ~for~
+loop, which requires it to implement Java's ~Iterable~
+interface. That interface asks for a single method, and in
+particular it asks for nothing that would modify the
+collection.
 
 Every component of the document will be called an ~Element~,
 and there are going to be two distinct sub-types of
@@ -5539,10 +5640,6 @@ elements that occupy a rectangular area of the screen.
         (copied:spaces:add (copy space)))
       copied))
 
-  ;; and the test can be easily generalized to a colleciton
-  (define (containsAll collection ::Collection)
-    (every (is _ in (this)) collection))
-
   ;; the indexing operator maps all the even indices to
   ;; spaces, and the odd elements to tiles
   (define (get index ::int)::Object
@@ -5555,58 +5652,32 @@ elements that occupy a rectangular area of the screen.
        ((odd? index)
         (elements (quotient (- index 1) 2))))))
 
-  ;; and the iterators can be implemented using
-  ;; the IndexBasedIterator defined in our (language-extensions)
+  ;; iterating over a Comb yields its spaces and elements
+  ;; in turn, which is precisely what the indexing operator
+  ;; above does, so the iterator is a cursor over its range
   (define (iterator)::Iterator
-    (IndexBasedIterator (this) 0))
-
-  (define (listIterator)::ListIterator
-    (IndexBasedIterator (this) 0))
-
-  (define (listIterator index ::int)::ListIterator
-    (IndexBasedIterator (this) index))
-
-  (define (indexOf object ::Object)::int
-    (let ((s ::int (size)))
-      (escape-with return
-        (for i::int from: 0 below: s
-             (when (eq? (get i) object)
-               (return i)))
-        (return -1))))
-
-  (define (lastIndexOf object ::Object)::int
-    (escape-with return
-      (for i::int from: (- (size) 1) down-to: 0
-           (when (eq? (get i) object)
-             (return i)))
-        (return -1)))
-
-  (define (contains object ::Object)::boolean
-    (is (indexOf object) >= 0))
+    (let ((index ::int 0))
+      (object (Iterator)
+        ((hasNext)::boolean
+         (is index < (size)))
+        ((next)::Object
+         (let ((result (get index)))
+           (set! index (+ index 1))
+           result)))))
 
   ;; the interpretation of "being empty" may be a little
   ;; controversial. Our representation doesn't allow the
   ;; spaces array to be empty, but we can consider the whole
   ;; thing to be empty if it only contains white space
-  (define (isEmpty)::boolean
+  (define (empty?)::boolean
     (and (elements:isEmpty)
          (= (length spaces) 1)))
-
-  ;; as a consequence, we can also define a routine to clear
-  ;; the content of a Comb
-  (define (clear)::void
-    (elements:clear)
-    (spaces:clear)
-    (spaces:add (Space:empty)))
 
   ;; adding another Comb at the end of this one is possible,
   ;; but in order to do this, we need to merge the last space
   ;; from us with the first space from them
-  (define (addAll! collection ::Collection)::boolean
-    (addAll (size) collection))
-
-  (define (addAll collection ::Collection)::boolean
-    (addAll! collection))
+  (define-internal (append-comb! comb ::Comb)::boolean
+    (splice-comb-at! (size) comb))
 
   ;; adding one comb in the middle of another is somewhat
   ;; controversial. This can only be allowed on even indices
@@ -5632,8 +5703,9 @@ elements that occupy a rectangular area of the screen.
   ;; 4: 0123478
   ;;        6
   ;;
-  (define-private (addAll* index ::int collection ::Collection)::boolean
-    (given ((comb ::Comb collection))
+  (define-internal (splice-comb-at! index ::int comb ::Comb)
+    ::boolean
+    (let ((index ::int (- index 1)))
       (if (even? index)
           (let* ((index* ::int (quotient index 2))
                  (enlarged ::Space (spaces index*))
@@ -5651,14 +5723,10 @@ elements that occupy a rectangular area of the screen.
             (let ((last-added ::Space (spaces (+ index*
                                                  (comb:spaces:size)
                                                  -1))))
-
               (last-added:merge-with! extra)
               (elements:addAll index* comb:elements))))))
 
-  (define (addAll index ::int collection ::Collection)
-    (addAll* (- index 1) collection))
-
-  (define (add index ::int element ::Element)::void
+  (define-internal (insert-at! index ::int element ::Element)::void
     (when (even? index)
       (let* ((index/2 ::int (quotient index 2))
              (affected ::Space (spaces index/2)))
@@ -5672,7 +5740,10 @@ elements that occupy a rectangular area of the screen.
   (define-static token-separators ::(set-of Char)
     (HashSet #\( #\) #\[ #\] #\;))
 
-  (define (add object ::Object)::boolean
+  ;; this is the operation that the variadic constructor
+  ;; generated by define-object uses, which is how we are
+  ;; able to write (Comb (Atom "A") (Space " "))
+  (define-internal (add object ::Object)::boolean
     (match object
       (tile::Tile
        (elements:add tile)
@@ -5683,7 +5754,7 @@ elements that occupy a rectangular area of the screen.
       (_
        #false)))
 
-  (define (remove-at index ::int)::Element
+  (define-internal (remove-at! index ::int)::Element
     (cond
      ((or (is index < 0) (is index >= (size))
           (even? index))
@@ -5696,28 +5767,7 @@ elements that occupy a rectangular area of the screen.
         (spaces:remove (+ index* 1))
         (elements:remove index*)))))
 
-  (define (remove index ::int)::Element
-    (remove-at index))
-
-  (define (remove element ::Element)::boolean
-    (isnt (remove-at (indexOf element)) eq? #!null))
-
-  (define (removeAll collection ::Collection)::boolean
-    (let ((removed? ::boolean #false))
-      (for element in: collection
-        (when (remove element)
-          (set! removed? #true)))
-      removed?))
-
-  (define (retainAll collection ::Collection)::boolean
-    (let ((removed? ::boolean #false))
-      (for element in: (this)
-        (unless (collection:contains element)
-          (when (remove element)
-            (set! removed? #true))))
-      removed?))
-
-  (define (set index ::int element ::Element)::Element
+  (define-internal (replace-at! index ::int element ::Element)::Element
     (cond
      ((or (is index < 0) (is index >= (size)))
       #!null)
@@ -5728,21 +5778,6 @@ elements that occupy a rectangular area of the screen.
      (else
       #!null)))
 
-  (define (toArray)::(array-of Object)
-    (let ((result ((array-of Object) length: (size))))
-      (for i from: 0 below: (size)
-           (set! (result i) (get i)))
-      result))
-
-  (define (toArray possible-output ::(array-of Object))
-    ::(array-of Object)
-    (let ((result (if (is possible-output:length >= (size))
-                      possible-output
-                      ((array-of Object) length: (size)))))
-      (for i from: 0 below: (size)
-           (set! (result i) (get i)))
-      result))
-
   ;;  0 1 2 3
   ;; 0 1 2 3 4
   ;; _A_B_C_D_
@@ -5750,7 +5785,7 @@ elements that occupy a rectangular area of the screen.
   ;;   |   |
   ;;   _B_C_
 
-  (define (subList fromIndex ::int toIndex ::int)::List
+  (define-internal (slice fromIndex ::int toIndex ::int)::Comb
     (let* ((fromIndex ::int (max 0 (if (odd? fromIndex)
                                        (- fromIndex 1)
                                        fromIndex)))
@@ -5767,13 +5802,17 @@ elements that occupy a rectangular area of the screen.
 
 #+END_SRC
 
-***** Testing that ~Comb~ implements Java's ~List~ interface
+***** Testing the collection operations of ~Comb~
 
-Having implemented all the operations of the ~List~
-interface, we want to test them without having to implement
-the rest of the capabilities of ~Comb~. For this reason, we're
-going to provide mock definitions of ~Element~, ~Tile~ and
-~Space~.
+Having implemented those operations, we want to test them
+without having to implement the rest of the capabilities of
+~Comb~. For this reason, we're going to provide mock
+definitions of ~Element~, ~Tile~ and ~Space~.
+
+The tests below are mostly concerned with the arithmetic of
+the interleaved indices -- that even indices address spaces
+and odd ones address elements -- which is the part of ~Comb~
+that is easiest to get wrong.
 
 #+BEGIN_SRC scheme :tangle test/everything.sh
   java -jar ../libs/kawa.jar test/comb-as-collection.scm
@@ -5789,8 +5828,8 @@ going to provide mock definitions of ~Element~, ~Tile~ and
     #|
     This is a mock implementation
     that is only used for testing
-    the implementation of the List
-    interface of the Comb class
+    the collection operations
+    of the Comb class
     |#
     )
 
@@ -5801,8 +5840,8 @@ going to provide mock definitions of ~Element~, ~Tile~ and
     #|
     This is a mock implementation
     that is only used for testing
-    the implementation of the List
-    interface of the Comb class
+    the collection operations
+    of the Comb class
     |#
 
     (define (add c::char)::void
@@ -5817,8 +5856,8 @@ going to provide mock definitions of ~Element~, ~Tile~ and
     #|
     This is a mock implementation
     that is only used for testing
-    the implementation of the List
-    interface of the Comb class
+    the collection operations
+    of the Comb class
     |#
 
     (define-static (empty)::Space
@@ -5851,7 +5890,7 @@ going to provide mock definitions of ~Element~, ~Tile~ and
     (define (toString)::String
       content))
 
-  (define-object (Comb)::Tile::List
+  (define-object (Comb)::Tile::Iterable
 
     <<Comb--collection-operations>>
 
@@ -5870,8 +5909,8 @@ going to provide mock definitions of ~Element~, ~Tile~ and
                          (Atom "E")
                          (Space " ")
                          (Atom "F"))))
-    (c1:addAll c2)
-    (let ((v1 ::Comb (c1:subList 3 6)))
+    (c1:append-comb! c2)
+    (let ((v1 ::Comb (c1:slice 3 6)))
       (e.g.
        (c1:toString) ===> "A B C D E F")
       (e.g.
@@ -5879,8 +5918,8 @@ going to provide mock definitions of ~Element~, ~Tile~ and
 
   (let ((c3 ::Comb (Comb)))
     (e.g.
-     (and (c3:isEmpty)
-          (is (length c3) = 1))))
+     (and (c3:empty?)
+          (is (c3:size) = 1))))
 
   (e.g.
    (let ((c1 ::Comb (Comb (Space "0")
@@ -5889,7 +5928,7 @@ going to provide mock definitions of ~Element~, ~Tile~ and
                           (Atom "3")
                           (Space "4")))
          (c2 ::Comb (Comb (Space "6") (Atom "7") (Space "8"))))
-     (c1:addAll 0 c2)
+     (c1:splice-comb-at! 0 c2)
      (c1:toString)) ===> "67801234")
 
   (e.g.
@@ -5899,7 +5938,7 @@ going to provide mock definitions of ~Element~, ~Tile~ and
                           (Atom "3")
                           (Space "4")))
          (c2 ::Comb (Comb (Space "6") (Atom "7") (Space "8"))))
-     (c1:addAll 1 c2)
+     (c1:splice-comb-at! 1 c2)
      (c1:toString)) ===> "06781234")
 
   (e.g.
@@ -5909,7 +5948,7 @@ going to provide mock definitions of ~Element~, ~Tile~ and
                           (Atom "3")
                           (Space "4")))
          (c2 ::Comb (Comb (Space "6") (Atom "7") (Space "8"))))
-     (c1:addAll 2 c2)
+     (c1:splice-comb-at! 2 c2)
      (c1:toString)) ===> "01678234")
 
   (e.g.
@@ -5919,7 +5958,7 @@ going to provide mock definitions of ~Element~, ~Tile~ and
                           (Atom "3")
                           (Space "4")))
          (c2 ::Comb (Comb (Space "6") (Atom "7") (Space "8"))))
-     (c1:addAll 3 c2)
+     (c1:splice-comb-at! 3 c2)
      (c1:toString)) ===> "01267834")
 
   (e.g.
@@ -5929,7 +5968,7 @@ going to provide mock definitions of ~Element~, ~Tile~ and
                           (Atom "3")
                           (Space "4")))
          (c2 ::Comb (Comb (Space "6") (Atom "7") (Space "8"))))
-     (c1:addAll 4 c2)
+     (c1:splice-comb-at! 4 c2)
      (c1:toString)) ===> "01236784")
 
   (e.g.
@@ -5939,7 +5978,7 @@ going to provide mock definitions of ~Element~, ~Tile~ and
                           (Atom "3")
                           (Space "4")))
          (c2 ::Comb (Comb (Space "6") (Atom "7") (Space "8"))))
-     (c1:addAll 5 c2)
+     (c1:splice-comb-at! 5 c2)
      (c1:toString)) ===> "01234678")
   
   (test-report)
@@ -6289,7 +6328,7 @@ everything, we can provide a /partial implementation/.
     <<Space--rendering>>
     )
 
-  (define-object (Comb)::Tile::List
+  (define-object (Comb)::Tile::Iterable
     <<Comb--collection-operations>>
     <<Comb--rendering>>
     )
@@ -6414,21 +6453,19 @@ constant height, and they do not allow for the presence of
 newlines inside themselves.
 
 We're going to call such elements ~Textual~. As in the case
-of ~Comb~, we wish them to implement Java's ~List~
-interface. But we also want them to implement the
-~CharSequence~ interface, so that they could be passed to
-some procedures that accept string-like things.
+of ~Comb~, we want to be able to iterate over their contents,
+so they implement Java's ~Iterable~ interface.
 
 We are therefore going to define a class called
-~TextualBase~ which wraps a ~StringBuilder~ and additionally
-provides operations from the ~List~ interface, that will
+~TextualBase~ which wraps a ~StringBuilder~ and provides the
+operations that the text-like elements share, and that will
 be used as a base class for our text-like things.
 
 #+BEGIN_SRC scheme :tangle no :noweb-ref TextualBase
 
-  (define-interface Textual (List CharSequence Cloneable)
+  (define-interface Textual (Iterable Cloneable)
     (split-at! index::int)::Textual
-    (merge-with! suffix::CharSequence)::void)
+    (merge-with! suffix::Textual)::void)
 
   (define-interface TextualTile (Textual Tile))
 
@@ -6460,15 +6497,11 @@ be used as a base class for our text-like things.
         (copied:builder:delete 0 index)
         copied))
 
-    (define (merge-with! s::CharSequence)::void
+    (define (merge-with! s::Textual)::void
       (builder:append s))
 
     (delegate (charAt index::int)::char builder)
-    (delegate (chars)::IntStream builder)
-    (delegate (codePoints)::IntStream builder)
     (delegate (length)::int builder)
-    (delegate (subSequence start::int end::int)::CharSequence
-              builder)
 
     (define (add element::Object)::boolean
       (match element
@@ -6477,7 +6510,7 @@ be used as a base class for our text-like things.
         (s::string
          (builder:append s))))
 
-    (define (add index ::int element::Object)::void
+    (define-internal (insert-at! index ::int element::Object)::void
       (match element
         (c::Char
          (builder:insert index (as char c)))
@@ -6485,123 +6518,27 @@ be used as a base class for our text-like things.
         (s::string
          (builder:insert index (as String s)))))
 
-    (define (addAll collection::Collection)::boolean
-      (for x in: collection
-        (self add x)))
-
-    (define (addAll index::int collection::Collection)::boolean
-      (if (or (string? collection)
-              (CharSequence? collection))
-          (builder:insert index string)
-          (for x::char in: collection
-            (self add index x)
-            (set! index (+ index 1)))))
-
-    (define (clear)::void
-      (builder:delete 0 (builder:length)))
-
-    (define (contains c::Object)::boolean                   
-      (and (Char? c)
-           (escape-with
-            return
-            (for x in: builder
-              (when (eq? x c)
-                (return #true)))
-            #false)))
-
-    (define (containsAll collection::Collection)::boolean
-      (every (lambda (object)
-               (contains object))
-             collection))
-
-    (define (get index::int)::Object
-      (builder:charAt index))
-
-    (define (indexOf c::Object)::int
-      (escape-with
-       return
-       (for i from: 0 below: (builder:length)
-            (when (eq? c (builder i))
-              (return i)))
-       (return -1)))
-
-    (define (lastIndexOf c::Object)::int
-      (escape-with
-       return
-       (for i from: (- (builder:length) 1) down-to: 0
-            (when (eq? c (builder i))
-              (return i)))
-       (return -1)))
-
-    (define (isEmpty)::boolean
+    (define (empty?)::boolean
       (= (builder:length) 0))
 
+    ;; iterating over a text element yields its characters
     (define (iterator)::Iterator
-      (IndexBasedIterator (this) 0))
+      (let ((index ::int 0))
+        (object (Iterator)
+          ((hasNext)::boolean
+           (is index < (builder:length)))
+          ((next)::Object
+           (let ((result (builder:charAt index)))
+             (set! index (+ index 1))
+             result)))))
 
-    (define (listIterator)::ListIterator
-      (IndexBasedIterator (this) 0))
-
-    (define (listIterator index::int)::ListIterator
-      (IndexBasedIterator (this) index))
-
-    (define (remove index::int)::Object
+    (define-internal (remove-at! index ::int)::Object
       (let ((removed (charAt index)))
         (builder:deleteCharAt index)
         removed))
 
-    (define (remove c::Object)::boolean
-      (escape-with
-       return
-       (for i::int from: 0 below: (builder:length)
-            (when (eq? c (builder i))
-              (builder:deleteCharAt i)
-              (return #true)))
-       (return #false)))
-
-    (define (removeAll c::Collection)::boolean
-      (let ((indices ::Stack (ArrayStack)))
-        (for i::int from: 0 below: (builder:length)
-             (when (c:contains (builder i))
-               (indices:push! i)))
-        (let ((result ::boolean (indices:empty?)))
-          (for i::int in: indices
-            (builder:deleteCharAt i))
-          result)))
-
-    (define (retainAll c::Collection)::boolean
-      (let ((indices ::Stack (ArrayStack)))
-        (for i::int from: 0 below: (builder:length)
-             (unless (c:contains (builder i))
-               (indices:push! i)))
-        (let ((result ::boolean (indices:empty?)))
-          (for i::int in: indices
-            (builder:deleteCharAt i))
-          result)))
-
-    (define (set index::int c::Object)::Object
+    (define-internal (replace-at! index ::int c::Object)::Object
       (builder:setCharAt index (as char c)))
-
-    (define (size)::int
-      (builder:length))
-
-    (define (subList start::int end::int)::List
-      (error "subList not implemented for "(getClass)))
-
-    (define (toArray)::(array-of Object)
-      (let ((result ((array-of Object) length: (size))))
-        (for i from: 0 below: (size)
-             (set! (result i) (get i)))
-        result))
-
-    (define (toArray possible-output ::(array-of Object))
-      ::(array-of Object)
-      (let ((result (if (is possible-output:length >= (size))
-                            possible-output
-                            ((array-of Object) length: (size)))))
-        (for i from: 0 below: (size)
-             (set! (result i) (get i)))
-        result))
 
     )
 
@@ -6932,7 +6869,7 @@ We can now test the simplified parser on sample data:
     <<Space--rendering>>
     )
 
-  (define-object (Comb)::Tile::List
+  (define-object (Comb)::Tile::Iterable
     <<Comb--collection-operations>>
     <<Comb--whitespace-support>>
     <<Comb--rendering>>
@@ -7067,7 +7004,7 @@ arguments if they are also instances of ~Comb~.
     (let ((result ::Comb (Comb)))
       (for element in: elements
         (if (Comb? element)
-            (result:addAll! element)
+            (result:append-comb! element)
             (result:add element)))
       result))
   
@@ -7120,10 +7057,10 @@ it supports more objects):
                  (#\( (result:add (read-list from: port
   					   at: path)))
                  (#\space (let ((last-space ::Space
-  					  (last result)))
+  					  (last result:spaces)))
   			  (last-space:widen! 1)))
                  (#\newline (let ((last-space ::Space
-  					    (last result)))
+  					    (last result:spaces)))
                               (last-space:add
   			     (- indentation))))
                  (#\) (set! running? #false))
@@ -7169,7 +7106,7 @@ it supports more objects):
   				path)))))
                  (#\;
   		(result:add (read-line-comment from: port))
-  		(let ((next-space ::Space (last result)))
+  		(let ((next-space ::Space (last result:spaces)))
   		  (set! (last next-space:fragments)
   			(- indentation))))
                  (c   (result:add (read-atom into: (Atom c)
@@ -7401,7 +7338,7 @@ class that will be elaborated in the future.
     <<Space--rendering>>
     )
 
-  (define-object (Comb)::Tile::List
+  (define-object (Comb)::Tile::Iterable
     <<Comb--collection-operations>>
     <<Comb--whitespace-support>>
     <<Comb--rendering>>
@@ -7654,7 +7591,7 @@ We can now test whether the algorithm works correctly:
     <<Space--serialize>>
     )
 
-  (define-object (Comb)::Tile::List
+  (define-object (Comb)::Tile::Iterable
     <<Comb--collection-operations>>
     <<Comb--whitespace-support>>    
     <<Comb--serialize>>
@@ -8610,7 +8547,7 @@ keys (for moving the cursor left and right), and to the
     <<Space--serialize>>
     )
 
-  (define-object (Comb)::Tile::List
+  (define-object (Comb)::Tile::Iterable
     <<Comb--collection-operations>>
     <<Comb--whitespace-support>>
     <<Comb--rendering>>
@@ -8731,7 +8668,7 @@ and splices that ~Comb~ into the current one.
            (cut-space ::Space (spaces index/2))
            (remnant ::Space (cut-space:split-at! sub-index))
            (end-space ::Space (last comb:spaces)))
-      (cut-space:merge-with! (comb 0))
+      (cut-space:merge-with! (comb:get 0))
       (end-space:merge-with! remnant)
       (elements:addAll index/2 comb:elements)
       (spaces:addAll (+ index/2 1) (comb:spaces:subList
@@ -8815,7 +8752,7 @@ These operations can be tested non-interactively:
           "."
           content)))
 
-  (define-object (Comb)::Tile::List
+  (define-object (Comb)::Tile::Iterable
 
     <<Comb--collection-operations>>
     <<Comb--whitespace-support>>
@@ -9337,7 +9274,7 @@ As to the main part of the stub, it is defined as follows:
     <<Space--serialize>>
     )
 
-  (define-object (Comb)::Tile::List
+  (define-object (Comb)::Tile::Iterable
     <<Comb--collection-operations>>
     <<Comb--whitespace-support>>
     <<Comb--rendering>>
