@@ -8170,9 +8170,9 @@ But, because Lanterna has some very lengthy package names,
 we're first going to define a bunch of aliases and helper
 definitions in a ~(terminal definitions)~ module.
 
-#+BEGIN_SRC scheme :tangle terminal-definitions.scm :mkdirp yes :noweb no-export
+#+BEGIN_SRC scheme :tangle terminal/definitions.scm :mkdirp yes :noweb no-export
   <<header>>
-  (module-name (terminal-definitions))
+  (module-name (terminal definitions))
   (import (language-extensions))
   (import (utils shell))
 
@@ -8605,8 +8605,6 @@ and ~render~ procedures:
           (rendering:setPriority Thread:MIN_PRIORITY)
           (force editing)))))
 
-  (run)
-  (exit)
 #+END_SRC
 
 We can now write an interactive test. At this moment
@@ -8627,7 +8625,7 @@ keys (for moving the cursor left and right), and to the
   <<header>>
   (module-name (test interactive cursor-navigation))
   (import (language-extensions))
-  (import (terminal-definitions))
+  (import (terminal definitions))
   (import (utils tcp-output-server))
   (import (utils debug))
 
@@ -8708,6 +8706,8 @@ keys (for moving the cursor left and right), and to the
 
   <<terminal-runner>>
 
+  (run)
+  (exit)
 #+END_SRC
 
 When tangled, this program has around 1800 lines of code
@@ -9332,7 +9332,7 @@ As to the main part of the stub, it is defined as follows:
   (module-name (test interactive editing))
   (import (kawa regex))
   (import (language-extensions))
-  (import (terminal-definitions))
+  (import (terminal definitions))
   (import (utils tcp-output-server))
   (import (utils debug))
   (import (input keyboard))
@@ -9485,6 +9485,8 @@ As to the main part of the stub, it is defined as follows:
 
   <<terminal-runner>>
 
+  (run)
+  (exit)
 #+END_SRC
 
 The above stub is operational, even though we're yet to
@@ -10384,9 +10386,9 @@ they would be able to corrupt the history. All edits should
 be intermediated by the ~Edit~ operations that are recorded
 in the ~History~ of a ~Document~ they concern.
 
-We are going to create module in the same order in which
-we defined them earlier in the text, so we will start with
-the ~Painter~ interface:
+We are going to create module in the same order in which we
+defined them earlier in the text, so we will start with the
+~Painter~ interface.
 
 #+BEGIN_SRC scheme :tangle painter/interface.scm :mkdirp yes :noweb no-export
   <<header>>
@@ -10398,9 +10400,21 @@ the ~Painter~ interface:
   (define-inteface Painter
     (<<painter-capabilities>>)
     (clear!)::void)
+
+  (define painter ::Painter #!null)
+
+  (define (initialize-painter! new-painter ::Painter)::void
+    (set! painter new-painter))
+
+  (define (with-painter new-painter::Painter
+                        action::(maps () to: ,a))::,a
+    (with ((painter new-painter))
+      (action)))
+
 #+END_SRC
 
-Then we will provide the implementations of that interface:
+Then we will provide the implementations of that
+interface. 
 
 #+BEGIN_SRC scheme :tangle painter/character.scm :mkdirp yes :noweb no-export
   <<header>>
@@ -10444,6 +10458,139 @@ Then we will provide the implementations of that interface:
 #+END_SRC
 
 
+#+BEGIN_SRC scheme :tangle document/elements.scm :mkdirp yes :noweb no-export
+  <<header>>
+  (module-name (document elements))
+  (import (language-extensions))
+  (import (painter interface))
+
+  <<GRASP-ontology>>
+
+  (define-interface Element (Visual Cloneable)
+    (serialize port ::OutputPort indent ::int)::void
+    <<Element--cursor-operations>>
+    <<Element--editing>>
+    <<Element--indexing>>
+    )
+
+  (define-interface Tile (Element)
+    (width)::real
+    (height)::real)
+
+  (define-interface Comment (Tile))
+
+  (define-mixin WriteToString
+    (define (toString)::String
+      (call-with-output-string
+        (lambda (port)
+          (serialize port 0)))))
+
+#+END_SRC
+
+#+BEGIN_SRC scheme :tangle document/spaces.scm :mkdirp yes :noweb no-export
+  <<header>>
+  (module-name (document spaces))
+  (import (language-extensions))
+  (import (document elements))
+
+  (define-object (Space)::Element
+    <<Space--representation>>
+    <<Space--rendering>>
+    <<Space--navigation>>
+    <<Space--editing>>
+    <<Space--serialize>>
+    )
+#+END_SRC
+
+#+BEGIN_SRC scheme :tangle document/textuals.scm :mkdirp yes :noweb no-export
+  <<header>>
+  (module-name (document textuals))
+  (import (language-extensions))
+  (import (document elements))
+
+  (define-object (Textual)::Tile
+    <<Textual--contents>>
+    <<Textual--rendering>>
+    <<Textual--navigation>>
+    <<Textual--editing>>
+    <<Textual--serialization>>)
+
+  <<TextualSubclasses--definitions>>
+
+#+END_SRC
+
+#+BEGIN_SRC scheme :tangle document/combs.scm :mkdirp yes :noweb no-export
+  <<header>>
+  (module-name (document combs))
+  (import (language-extensions))
+  (import (document elements))
+  (import (document spaces))
+
+  (define-object (Comb)::Tile::Iterable
+    <<Comb--collection-operations>>
+    <<Comb--whitespace-support>>
+    <<Comb--rendering>>
+    <<Comb--navigation>>
+    <<Comb--extract!>>
+    <<Comb--splice!>>
+    <<Comb--editing>>
+    <<Comb--serialize>>
+    )
+  
+#+END_SRC
+
+
+#+BEGIN_SRC scheme :noweb-ref Extensions--implementation
+  (define (enchanted item ::Tile path ::Stack)::Tile
+    item)
+ 
+#+END_SRC
+
+#+BEGIN_SRC scheme :tangle document/extensions.scm :mkdirp yes :noweb no-export
+  <<header>>
+  (module-name (document extensions))
+  (import (language-extensions))
+  (import (document elements))
+
+  <<Extensions--implementation>>
+#+END_SRC
+
+#+BEGIN_SRC scheme :tangle document/parsing.scm :mkdirp yes :noweb no-export
+  <<header>>
+  (module-name (document parsing))
+  (import (language-extensions))
+  (import (document elements))
+  (import (document spaces))
+  (import (document textuals))
+  (import (document combs))
+
+  <<advanced-parser>>  
+#+END_SRC
+
+#+BEGIN_SRC scheme :tangle document/editing.scm :mkdirp yes :noweb no-export
+  <<header>>
+  (module-name (document editing))
+  (import (language-extensions))
+  (import (document elements))
+  (import (document spaces))
+  (import (document textuals))
+  (import (document combs))
+
+  <<Edit--operations>>
+#+END_SRC
+
+
+#+BEGIN_SRC scheme :tangle terminal/runner.scm :mkdirp yes :noweb no-export
+  <<header>>
+  (module-name (terminal runner))
+  (import (language-extensions))
+  (import (terminal definitions))
+  (import (painter interface))
+
+  <<terminal-rendering>>
+  <<terminal-input-processing>>
+  <<terminal-runner>>
+#+END_SRC
 
 #+BEGIN_COMMENT
 Kawa considers modules in the same directory to belong to the same package.
@@ -10954,7 +11101,7 @@ required for the project to run.
   <<header>>
   (module-name (input terminal-keymap))
   (import (language-extensions))
-  (import (terminal-definitions))
+  (import (terminal definitions))
   (import (input keyboard))
 
   (define (special-key-code key::KeyType)::ulong
