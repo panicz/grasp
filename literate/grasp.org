@@ -9714,16 +9714,16 @@ wrap the entire expression inside ~ExpressionComment~:
 #+END_SRC
 
 #+BEGIN_SRC scheme :noweb-ref Cursor--operations
-  (define-private (unnest-right-in! document::Document)::void
+  (define-private (unnest-right-in! document::Element)::void
     (assert (valid-in? document))
     (given (((is (size) >= 2))
             (tip ::int (self pop!))
             (top ::int (self pop!))
-            (parent ::Comb (target-in document)))
+            (parent ::Element (target-in document)))
       (self push! (parent:last-index))
       (advance-in! document)))
 
-  (define-private (unnest-left-in! document::Document)::void
+  (define-private (unnest-left-in! document::Element)::void
     (assert (valid-in? document))
     (given (((is (size) >= 2))
             (tip ::int (self pop!))
@@ -10397,8 +10397,9 @@ defined them earlier in the text, so we will start with the
 
   <<painter-subinterfaces>>
 
-  (define-inteface Painter
-    (<<painter-capabilities>>)
+  (define-interface Painter (
+    <<painter-capabilities>>
+    )
     (clear!)::void)
 
   (define painter ::Painter #!null)
@@ -10414,7 +10415,7 @@ defined them earlier in the text, so we will start with the
 #+END_SRC
 
 Then we will provide the implementations of that
-interface. 
+interface:
 
 #+BEGIN_SRC scheme :tangle painter/character.scm :mkdirp yes :noweb no-export
   <<header>>
@@ -10436,10 +10437,12 @@ interface.
   (import (painter interface))
   (import (painter character))
 
+  <<BasicTextPainterFont--object-definition>>
+  
   (define-object (TextPainter)::Painter
     <<BasicTextPainter--body>>
     (CharPainter))
-  
+
 #+END_SRC
 
 #+BEGIN_SRC scheme :tangle painter/terminal.scm :mkdirp yes :noweb no-export
@@ -10448,6 +10451,7 @@ interface.
   (import (language-extensions))
   (import (painter interface))
   (import (painter character))
+  (import (terminal definitions))
 
   <<TerminalPainter--prerequisites>>
 
@@ -10457,6 +10461,10 @@ interface.
 
 #+END_SRC
 
+Having modules that describe ~Painter~, we can now move on
+to out document model, which consists of the
+~elements~ submodule, as well as module defining ~Space~,
+~Comb~ and ~Textual~ elements:
 
 #+BEGIN_SRC scheme :tangle document/elements.scm :mkdirp yes :noweb no-export
   <<header>>
@@ -10466,12 +10474,17 @@ interface.
 
   <<GRASP-ontology>>
 
+  (define-parameter (current-document)::Element
+    #!null)
+
   (define-interface Element (Visual Cloneable)
     (serialize port ::OutputPort indent ::int)::void
     <<Element--cursor-operations>>
     <<Element--editing>>
     <<Element--indexing>>
     )
+
+  <<Edit-interface>>
 
   (define-interface Tile (Element)
     (width)::real
@@ -10487,11 +10500,12 @@ interface.
 
 #+END_SRC
 
-#+BEGIN_SRC scheme :tangle document/spaces.scm :mkdirp yes :noweb no-export
+#+BEGIN_SRC scheme :tangle document/model.scm :mkdirp yes :noweb no-export
   <<header>>
-  (module-name (document spaces))
+  (module-name (document model))
   (import (language-extensions))
   (import (document elements))
+  (import (painter interface))
 
   (define-object (Space)::Element
     <<Space--representation>>
@@ -10500,31 +10514,6 @@ interface.
     <<Space--editing>>
     <<Space--serialize>>
     )
-#+END_SRC
-
-#+BEGIN_SRC scheme :tangle document/textuals.scm :mkdirp yes :noweb no-export
-  <<header>>
-  (module-name (document textuals))
-  (import (language-extensions))
-  (import (document elements))
-
-  (define-object (Textual)::Tile
-    <<Textual--contents>>
-    <<Textual--rendering>>
-    <<Textual--navigation>>
-    <<Textual--editing>>
-    <<Textual--serialization>>)
-
-  <<TextualSubclasses--definitions>>
-
-#+END_SRC
-
-#+BEGIN_SRC scheme :tangle document/combs.scm :mkdirp yes :noweb no-export
-  <<header>>
-  (module-name (document combs))
-  (import (language-extensions))
-  (import (document elements))
-  (import (document spaces))
 
   (define-object (Comb)::Tile::Iterable
     <<Comb--collection-operations>>
@@ -10536,9 +10525,22 @@ interface.
     <<Comb--editing>>
     <<Comb--serialize>>
     )
-  
+
+  (define-object (Textual)::Tile
+    <<Textual--contents>>
+    <<Textual--rendering>>
+    <<Textual--navigation>>
+    <<Textual--editing>>
+    <<Textual--serialization>>)
+
+  <<TextualSubclasses--definitions>>
+
+  <<Edit--operations>>
+
 #+END_SRC
 
+We also need a stub of a module that implements the
+extension mechanism.
 
 #+BEGIN_SRC scheme :noweb-ref Extensions--implementation
   (define (enchanted item ::Tile path ::Stack)::Tile
@@ -10555,28 +10557,16 @@ interface.
   <<Extensions--implementation>>
 #+END_SRC
 
+Ww also need a module to contain the parser and the ~Edit~
+operations:
+
 #+BEGIN_SRC scheme :tangle document/parsing.scm :mkdirp yes :noweb no-export
   <<header>>
   (module-name (document parsing))
   (import (language-extensions))
-  (import (document elements))
-  (import (document spaces))
-  (import (document textuals))
-  (import (document combs))
+  (import (document model))
 
   <<advanced-parser>>  
-#+END_SRC
-
-#+BEGIN_SRC scheme :tangle document/editing.scm :mkdirp yes :noweb no-export
-  <<header>>
-  (module-name (document editing))
-  (import (language-extensions))
-  (import (document elements))
-  (import (document spaces))
-  (import (document textuals))
-  (import (document combs))
-
-  <<Edit--operations>>
 #+END_SRC
 
 
