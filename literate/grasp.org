@@ -1103,6 +1103,36 @@ form.
 We are going to see many instances of the ~define-interface~
 macro in the sequel of the text.
 
+For our purposes we're also going to define what we're going
+to call an /internal interface/. In Java term, it's simply
+going to be an /abstract class/ whose all methods are
+package-private and abstract (so it is not an interface in
+Java's sense).
+
+#+BEGIN_SRC scheme :tangle language-extensions.scm
+  (define-syntax define-internal-interface
+    (syntax-rules ()
+      ((define-internal-interface (name type-args ...) (supers ...) prototypes ...)
+       ;; for the time being, we ignore type arguments in interfaces
+       (define-internal-interface name (supers ...) prototypes ...))
+
+      ((define-internal-interface name (supers ...) prototypes ...)
+       (internal-interface-definition name (supers ...) (prototypes ...) ()))))
+
+  (define-syntax internal-interface-definition
+    (syntax-rules (::)
+      ((_ name supers () methods)
+       (define-simple-class name supers . methods))
+
+      ((_ name supers (method :: result . rest) (methods ...))
+       (internal-interface-definition
+        name supers rest
+        (methods ... (method :: result access: 'package #!abstract))))
+      ))
+
+#+END_SRC
+
+
 **** The ~define-object~ macro
 
 The syntax of ~define-class~ and ~define-simple-class~ forms
@@ -5417,7 +5447,7 @@ buffer to a string.
       (set! height new-height)
       (set! buffer new-buffer)))
 
-  (define (put! c ::char left ::int top ::int)::void
+  (define-protected (put! c ::char left ::int top ::int)::void
     (assert (and (is 0 <= left) (is top >= 0)))
     (let ((x ::int (+ (the shift-left)
                       (nearby-int (* (the stretch-horizontal) left))))
@@ -5802,7 +5832,7 @@ elements that occupy a rectangular area of the screen.
         (spaces:remove (+ index* 1))
         (elements:remove index*)))))
 
-  (define-internal (replace-at! index ::int element ::Element)::Element
+  (define-private (replace-at! index ::int element ::Element)::Element
     (cond
      ((or (is index < 0) (is index >= (size)))
       #!null)
@@ -6090,9 +6120,19 @@ outside this package has any business making such a thing.
 The same goes for ~clear!~ and for the climbing operations:
 emptying a cursor or walking it to the front of whatever it
 happens to point at are steps, not things one wants to do.
-Seen from the outside, a cursor is something one
-~advance-in!~-s and ~retreat-in!~-s, or sends ~to-start!~ or
-~to-end!~ of a document. That is very nearly all of it.
+
+The operations defined below follow a convention that comes
+from the same consideration. Whether a cursor is valid, and
+what it points at, are properties of the cursor /and/ of a
+document, so each of those operations has to be told which
+document to use -- and such operations have names ending in
+~-in~ and are internal to this package. But the answer is
+nearly always the current document, so each of them also has
+a public counterpart, named without the ~-in~, which takes no
+document and reads ~(current-document)~ instead. Seen from
+the outside, then, a cursor is something one ~advance!~-s and
+~retreat!~-s, or sends ~to-start!~ or ~to-end!~, and that is
+very nearly all of it.
 
 #+BEGIN_SRC scheme :tangle no :noweb no-export :noweb-ref GRASP-ontology
   (define-object (Cursor)::Iterable::Cloneable
@@ -6118,7 +6158,7 @@ Seen from the outside, a cursor is something one
     (define (size)::int
       (indices:depth))
 
-    (define-internal (index-at i ::int)::Object
+    (define-private (index-at i ::int)::Object
       (indices:get i))
 
     (define-internal (with index action::(maps () to: ,a))::,a
@@ -6298,7 +6338,7 @@ everything, we can provide a /partial implementation/.
   (define-static (empty)::Space
     (Space))
 
-  (define (index-positions fragment ::int)::int
+  (define-private (index-positions fragment ::int)::int
     (max 1 (+ fragment 1)))
 
   (define (empty?)::boolean
@@ -6331,7 +6371,7 @@ everything, we can provide a /partial implementation/.
                (increase! base by: positions))))
       (return (Space))))
 
-  (define (add item::(either int #\space #\newline string))::boolean
+  (define-internal (add item::(either int #\space #\newline string))::boolean
     (match item
       (width::integer
        (fragments:add (as int width)))
@@ -6343,7 +6383,7 @@ everything, we can provide a /partial implementation/.
        (for c in: s
          (add c)))))
 
-  (define (widen! increment::int)::void
+  (define-internal (widen! increment::int)::void
     (increase! (last fragments) by: increment as: int))
   
 #+END_SRC
@@ -6624,7 +6664,7 @@ be used as a base class for our text-like things.
         (builder:deleteCharAt index)
         removed))
 
-    (define-internal (replace-at! index ::int c::Object)::Object
+    (define-private (replace-at! index ::int c::Object)::Object
       (builder:setCharAt index (as char c)))
 
 #+END_SRC
@@ -7790,12 +7830,12 @@ Consequently, an element pointed to by a ~Cursor~ can be
 obtained in the following way:
 
 #+BEGIN_SRC scheme :noweb-ref Cursor--operations
-  (define (target-in root ::Element)::Element
+  (define-private (target-in root ::Element)::Element
     (for index::int in: (this)
       (set! root (root:element-at index)))
     root)
 
-  (define (target-in/at root ::Element limit ::int)::Element
+  (define-private (target-in/at root ::Element limit ::int)::Element
     (when (is limit < 0)
       (set! limit (max 0 (+ (self size) limit))))
     (set! limit (min (self size) limit))
@@ -7910,7 +7950,7 @@ if each index is within the allowed range of a corresponding
 element:
 
 #+BEGIN_SRC scheme :noweb-ref Cursor--operations
-  (define (valid-in? root ::Element)::boolean
+  (define-private (valid-in? root ::Element)::boolean
     (escape-with
      return
      (for index::int in: (this)
@@ -7926,7 +7966,7 @@ expanded/) in a document if its two last indices refer
 to the same element:
 
 #+BEGIN_SRC scheme :noweb-ref Cursor--operations
-  (define (final-in? document ::Element)::boolean
+  (define-private (final-in? document ::Element)::boolean
     (let ((top ::Element document)
           (tip ::Element #!null))
       (for index::int in: (this)
@@ -7944,7 +7984,7 @@ reason, we will be gatheting the entire stack of elements in
 which the target is embedded:
 
 #+BEGIN_SRC scheme :noweb-ref Cursor--operations
-  (define (track root ::Element)::(StackListOf Element)
+  (define-private (track-in root ::Element)::(StackListOf Element)
     (assert (valid-in? root))
     (let ((result ::StackList (ArrayStack)))
       (for index::int in: (this)
@@ -7982,19 +8022,19 @@ it is final):
               (loop next))))))
     (assert (final-in? document)))
 
-  (define-internal (climb-front! document ::Element)::void
+  (define-private (climb-front! document ::Element)::void
     (climb! document (lambda (root ::Element)::int 0)))
 
   (define-internal (climb-back! document ::Element)::void
     (climb! document (lambda (root ::Element)::int (root:last-index))))
 
-  (define (to-start! document ::Element)::void
+  (define (to-start!)::void
     (self clear!)
-    (climb-front! document))
+    (climb-front! (current-document)))
 
-  (define (to-end! document ::Element)::void
+  (define (to-end!)::void
     (self clear!)
-    (climb-back! document))
+    (climb-back! (current-document)))
 
 #+END_SRC
 
@@ -8011,7 +8051,7 @@ arbitrary, but it affects the way we implement edit
 operations later on):
 
 #+BEGIN_SRC scheme :noweb-ref Cursor--operations  
-  (define (canonical-in? document::Element)::boolean
+  (define-private (canonical-in? document::Element)::boolean
     (let ((target ::Element (self target-in document))
           (tip ::int (self top)))
       (or (isnt target Atom?)
@@ -8030,10 +8070,10 @@ up in canonical positions, and then we'll also provide
 the canonical versions:
 
 #+BEGIN_SRC scheme :noweb-ref Cursor--operations  
-  (define (primitive-advance-in! document ::Element)::void
+  (define-private (primitive-advance-in! document ::Element)::void
     (assert (valid-in? document))
     (let ((elements ::(StackListOf Element)
-                  (track document)))
+                  (track-in document)))
       (assert (= (length elements)
                  (self size)))
       (let loop ()
@@ -8049,10 +8089,10 @@ the canonical versions:
              (else
               (loop))))))))
 
-  (define (primitive-retreat-in! document ::Element)::void
+  (define-private (primitive-retreat-in! document ::Element)::void
     (assert (valid-in? document))
     (let ((elements ::(StackListOf Element)
-                  (track document)))
+                  (track-in document)))
       (assert (= (length elements)
                (self size)))
       (let loop ()
@@ -8068,13 +8108,13 @@ the canonical versions:
              (else
               (loop))))))))
 
-  (define (advance-in! document ::Element)::void
+  (define-private (advance-in! document ::Element)::void
     (let loop ()
       (primitive-advance-in! document)
       (unless (canonical-in? document)
         (loop))))
 
-  (define (retreat-in! document ::Element)::void
+  (define-private (retreat-in! document ::Element)::void
     (let loop ()
       (primitive-retreat-in! document)
       (unless (canonical-in? document)
@@ -8087,7 +8127,7 @@ routine that brings a cursor to the nearest canonical
 position:
 
 #+BEGIN_SRC scheme :noweb-ref Cursor--operations
-  (define (canonicalize-in! document::Element)::void
+  (define-private (canonicalize-in! document::Element)::void
     (unless (canonical-in? document)
       (if (= (self top) 0)
           (retreat-in! document)
@@ -8426,7 +8466,7 @@ required by the current (fairly minimal) version of the
   (define (clear!)::void
     (terminal:clear))
 
-  (define (put! c ::char left ::int top ::int)::void
+  (define-protected (put! c ::char left ::int top ::int)::void
     (assert (and (is 0 <= left) (is top >= 0)))
     (let ((x ::int (+ (the shift-left)
                       (nearby-int (* (the stretch-horizontal) left))))
@@ -8495,13 +8535,13 @@ one for handling input, and another for rendering:
                 (document ::Document (current-document)))
            (match type
              (,KeyType:ARROW_LEFT
-              (cursor:retreat-in! document))
+              (cursor:retreat!))
              (,KeyType:ARROW_RIGHT
-              (cursor:advance-in! document))
+              (cursor:advance!))
              (,KeyType:HOME
-              (cursor:to-start! document))
+              (cursor:to-start!))
              (,KeyType:END
-              (cursor:to-end! document))
+              (cursor:to-end!))
              (,KeyType:ESCAPE
               (set! running? #false))
              (_
@@ -8916,7 +8956,7 @@ of this operation (which is how we're going to implement
 the /undo/ mechanism):
 
 #+BEGIN_SRC scheme :noweb-ref Edit-interface
-  (define-interface Edit ()
+  (define-internal-interface Edit ()
     (position)::Cursor
     ;; the `perform` method should return an Edit
     ;; operation that un-does this one
@@ -9111,7 +9151,7 @@ The ~key-bindings~ table is referenced in ~Document~'s
   (define (key-typed! key-code::KeyCode)
     ::(maybe Edit)
     (let* ((cursor ::Cursor (current-cursor))
-  	 (target ::Element (cursor:target-in (this))))
+  	 (target ::Element (cursor:target)))
       (match target
         (magic::Enchanted
          (magic:key-typed! key-code))
@@ -9399,7 +9439,7 @@ As to the main part of the stub, it is defined as follows:
 
     (define-private initial-layout ::LayoutState (LayoutState))
 
-    (define (normalize-spaces s::string)::string
+    (define-private (normalize-spaces s::string)::string
       (regex-replace* "\\s+" (regex-replace* "\n" s "") " "))
 
     (define (render!)::void
@@ -9410,7 +9450,7 @@ As to the main part of the stub, it is defined as follows:
                (w ::int (painter:draw-text! (cursor:toString) (painter:text-font))))
           (painter:with-translation w 0
             (lambda ()
-              (let ((target ::Element (cursor:target-in document)))
+              (let ((target ::Element (cursor:target)))
                 (painter:draw-text! (string-append
                                      " "
                                      (*:getName (target:getClass))
@@ -9477,16 +9517,14 @@ our cursor navigation test:
 #+BEGIN_SRC scheme :noweb-ref Document--initial-key-bindings  
   (set-key! 'left
             (lambda (code::KeyCode)
-            (invoke (current-cursor)
-                    'retreat-in!
-                    (current-document))))
+              (let ((cursor ::Cursor (current-cursor)))
+                (cursor:retreat!))))
 
   (set-key! 'right
             (lambda (code::KeyCode)
-            (invoke (current-cursor)
-                    'advance-in!
-                    (current-document))))
-  
+              (let ((cursor ::Cursor (current-cursor)))
+                (cursor:advance!))))
+
 #+END_SRC
 
 **** Edit operations
@@ -9500,7 +9538,7 @@ to execute its ~perform!~ method:
           (document ::Document (current-document))
           (undo ::Edit (action:perform! document)))
     (cursor:assign! (undo:position))
-    (cursor:canonicalize-in! document)
+    (cursor:canonicalize!)
     <<Edit-performed>>)
 
 #+END_SRC
@@ -9515,6 +9553,42 @@ Of course, in order for it to work, we need ~Cursor~
 to implement the ~assign!~ method:
 
 #+BEGIN_SRC scheme :noweb-ref Cursor--operations
+  ;; Each of the operations above has to be told which document the
+  ;; cursor is to be interpreted against, and the answer is nearly
+  ;; always the current one.  They are therefore internal to this
+  ;; package, and what the rest of the program uses are these public
+  ;; counterparts, which take no document and read the parameter:
+
+  (define (target)::Element
+    (target-in (current-document)))
+
+  (define (target/at limit ::int)::Element
+    (target-in/at (current-document) limit))
+
+  (define (valid?)::boolean
+    (valid-in? (current-document)))
+
+  (define (final?)::boolean
+    (final-in? (current-document)))
+
+  (define (primitive-advance!)::void
+    (primitive-advance-in! (current-document)))
+
+  (define (primitive-retreat!)::void
+    (primitive-retreat-in! (current-document)))
+
+  (define (advance!)::void
+    (advance-in! (current-document)))
+
+  (define (retreat!)::void
+    (retreat-in! (current-document)))
+
+  (define (canonicalize!)::void
+    (canonicalize-in! (current-document)))
+
+  (define (unnest-right!)::void
+    (unnest-right-in! (current-document)))
+
   (define (assign! another ::Cursor)::void
     (unless (eq? (this) another)
       (self clear!)
@@ -9575,10 +9649,10 @@ completeness we also need to define its inverse, ~EraseCharacters~:
   (define-object (AppendCharacters characters ::CharSequence
                                    cursor ::Cursor)
     ::Edit
-    (define (position)::Cursor cursor)
+    (define-internal (position)::Cursor cursor)
 
-    (define (perform! document::Element)::Edit
-      (let* ((target ::Textual (cursor:target-in/at document -1))
+    (define-internal (perform! document::Element)::Edit
+      (let* ((target ::Textual (cursor:target/at -1))
              (tip ::int (cursor:top)))
         (for c in: characters
           (target:insert-at! tip c)
@@ -9591,10 +9665,10 @@ completeness we also need to define its inverse, ~EraseCharacters~:
   (define-object (EraseCharacters characters ::CharSequence
                                   cursor ::Cursor)
     ::Edit
-    (define (position)::Cursor cursor)
+    (define-internal (position)::Cursor cursor)
 
-    (define (perform! document::Element)::Edit
-      (let* ((target ::Textual (cursor:target-in/at document -1))
+    (define-internal (perform! document::Element)::Edit
+      (let* ((target ::Textual (cursor:target/at -1))
              (start ::int (- (cursor:top) (characters:length))))
         (assert (is start >= 0))
         (for c in: characters
@@ -9620,25 +9694,25 @@ wrap the entire expression inside ~ExpressionComment~:
     (let* ((cursor ::Cursor (current-cursor))
            (document ::Document (current-document))
            (tip ::int (cursor:top))
-           (target ::Element (cursor:target-in document)))
-      (assert (cursor:valid-in? document))
-      (assert (cursor:final-in? document))
+           (target ::Element (cursor:target)))
+      (assert (cursor:valid?))
+      (assert (cursor:final?))
       (if (eq? target (this))
         (match c
           (#\]
-           (cursor:unnest-right! document)
+           (cursor:unnest-right!)
            #!null)
           (_
            (if (= tip 0)
-               (cursor:primitive-advance-in! document)
-               (cursor:primitive-retreat-in! document))
+               (cursor:primitive-advance!)
+               (cursor:primitive-retreat!))
            (self insert-character c)))
         (target:insert-character c))))
 
 #+END_SRC
 
 #+BEGIN_SRC scheme :noweb-ref Cursor--operations
-  (define (unnest-right! document::Document)::void
+  (define-private (unnest-right-in! document::Document)::void
     (assert (valid-in? document))
     (given (((is (size) >= 2))
             (tip ::int (self pop!))
@@ -9647,7 +9721,7 @@ wrap the entire expression inside ~ExpressionComment~:
       (self push! (parent:last-index))
       (advance-in! document)))
 
-  (define (unnest-left! document::Document)::void
+  (define-private (unnest-left-in! document::Document)::void
     (assert (valid-in? document))
     (given (((is (size) >= 2))
             (tip ::int (self pop!))
@@ -9661,12 +9735,12 @@ wrap the entire expression inside ~ExpressionComment~:
                         new-expression ::Tile
                         cursor ::Cursor)
     ::Edit
-    (define (position)::Cursor cursor)
+    (define-internal (position)::Cursor cursor)
 
-    (define (perform! document ::Element)::Edit
+    (define-internal (perform! document ::Element)::Edit
       (let* ((cursor ::Cursor (copy cursor))
              (top ::int (cursor:pop!))
-             (parent ::Comb (cursor:target-in document))
+             (parent ::Comb (cursor:target))
              (target ::Element (parent (- top 1))))
         (assert (old-expression:equals target))
         (set! (parent (- top 1)) new-expression)
@@ -9697,22 +9771,22 @@ in particular for ~Space~:
         (#\[ ;]
          (InsertSlice (Comb (Comb)) (copy cursor)))
         (#\]
-         (cursor:unnest-right! (current-document))
+         (cursor:unnest-right!)
          #!null)
         (_
          (let* ((document ::Document (current-document))
-                (parent ::Comb (cursor:target-in/at document -2))
+                (parent ::Comb (cursor:target/at -2))
                 (tip ::int (cursor:top))
                 (top ::int (cursor -2)))
            (cond
             ((given (((= tip (self last-index)))
                      (next ::Atom (parent:element-at (+ top 1)))))
-             (cursor:primitive-advance-in! document)
+             (cursor:primitive-advance!)
              (document:insert-character c))
 
             ((given (((= tip 0))
                      (previous ::Atom (parent:element-at (- top 1)))))
-             (cursor:primitive-retreat-in! document)
+             (cursor:primitive-retreat!)
              (document:insert-character c))
             ((isnt c eqv? #\|)
              (InsertSlice (Comb (Atom (string c))) (copy cursor)))
@@ -9733,10 +9807,10 @@ of the appropriate fragment:
 #+BEGIN_SRC scheme :noweb-ref Edit--operations
   (define-object (GrowSpace width ::int cursor ::Cursor)
     ::Edit
-    (define (position)::Cursor cursor)
+    (define-internal (position)::Cursor cursor)
 
-    (define (perform! document::Element)::Edit
-      (let* ((space ::Space (cursor:target-in document))
+    (define-internal (perform! document::Element)::Edit
+      (let* ((space ::Space (cursor:target))
              (tip ::int (cursor:top))
              (index (space:fragment-index tip)))
         (increase! (space:fragments index) by: width as: int)
@@ -9752,7 +9826,7 @@ But in order to make it operational, we need to define the
 cursor index to the index of a fragment:
 
 #+BEGIN_SRC scheme :noweb-ref Space--editing
-  (define (fragment-index cursor-index::int)::int
+  (define-internal (fragment-index cursor-index::int)::int
     (escape-with return
       (let ((base ::int 0))
         (for index::int from: 0 below: (length fragments)
@@ -9776,10 +9850,10 @@ the two subsequent fragments into a single number:
 #+BEGIN_SRC scheme :noweb-ref Edit--operations
   (define-object (BreakSpace cursor::Cursor)::Edit
 
-    (define (position)::Cursor cursor)
+    (define-internal (position)::Cursor cursor)
 
-    (define (perform! document::Element)::Edit
-      (let* ((space ::Space (cursor:target-in document))
+    (define-internal (perform! document::Element)::Edit
+      (let* ((space ::Space (cursor:target))
              (tip ::int (cursor:top)))
         (let-values (((index offset) (space:fragment-index+offset tip)))
           (let ((width ::int (space:fragments index)))
@@ -9792,10 +9866,10 @@ the two subsequent fragments into a single number:
 
   (define-object (JoinSpace cursor ::Cursor)::Edit
 
-    (define (position)::Cursor cursor)
+    (define-internal (position)::Cursor cursor)
 
-    (define (perform! document::Element)::Edit
-      (let* ((space ::Space (cursor:target-in document))
+    (define-internal (perform! document::Element)::Edit
+      (let* ((space ::Space (cursor:target))
              (tip ::integer (cursor:top))
              (index ::int (space:fragment-index tip)))
         (assert (is index > 0))
@@ -9837,14 +9911,14 @@ are obviously going to refer to the methods ~splice!~ and
 #+BEGIN_SRC scheme :noweb-ref Edit--operations
   (define-object (InsertSlice elements ::Comb cursor ::Cursor)
     ::Edit
-    (define (position)::Cursor cursor)
+    (define-internal (position)::Cursor cursor)
 
-    (define (perform! document::Element)::Edit
+    (define-internal (perform! document::Element)::Edit
       (assert (is (cursor:size) #;< >= 2))
       (let* ((cursor ::Cursor (copy cursor))
              (tip ::int (cursor:pop!))
              (top ::int (cursor:pop!))
-             (parent ::Comb (as Comb (cursor:target-in document)))
+             (parent ::Comb (as Comb (cursor:target)))
              (last-space ::Space (as Space (last elements)))
              (last-tile-index ::int (+ top (length elements) -2)))
         (parent:splice! (copy elements) (- top 1) tip)
@@ -9857,14 +9931,14 @@ are obviously going to refer to the methods ~splice!~ and
     ::Edit
     ;; by convention, cursor points to the penultimate element
     ;; from elements
-    (define (position)::Cursor cursor)
+    (define-internal (position)::Cursor cursor)
 
-    (define (perform! document::Element)::Edit
+    (define-internal (perform! document::Element)::Edit
       (assert (is (cursor:size) #;< >= 2))
       (let* ((cursor ::Cursor (copy cursor))
              (_ ::int (cursor:pop!))
              (end ::int (+ (cursor:pop!) 1))
-             (parent ::Comb (as Comb (cursor:target-in document)))             
+             (parent ::Comb (as Comb (cursor:target)))             
              (last-space ::Space (as Space (last elements)))
              (first-space ::Space (as Space (elements 0)))
              (sub-end ::int (last-space:last-index))
@@ -9923,10 +9997,10 @@ with an empty ~BlockComment~:
        ((#\space #\newline)
         (match (cursor:top)
           (0
-           (cursor:primitive-retreat-in! document)
+           (cursor:primitive-retreat!)
            (document:insert-character c))
           (,(self last-index)
-           (cursor:primitive-advance-in! document)
+           (cursor:primitive-advance!)
            (document:insert-character c))
           (n
            (let ((space ::Space (Space)))
@@ -9940,7 +10014,7 @@ with an empty ~BlockComment~:
           #!null))
 
        (#;#\[ (#\])
-        (cursor:unnest-right! document)
+        (cursor:unnest-right!)
         #!null)
        ((#\; #\| #\{ #\} #\( #\) #\[ #;#\] #\" #|"|#) #!null)
        (else
@@ -9955,13 +10029,13 @@ and its inverse, ~MergeElements~:
   (define-object (SplitElement #;with space ::Space
                                       #;at cursor ::Cursor)
     ::Edit
-    (define (position)::Cursor cursor)
+    (define-internal (position)::Cursor cursor)
 
-    (define (perform! document::Element)::Edit
+    (define-internal (perform! document::Element)::Edit
       (let* ((cursor ::Cursor (copy cursor))
              (tip ::int (cursor:pop!))
              (top ::int (cursor:pop!))
-             (parent ::Comb (cursor:target-in document))
+             (parent ::Comb (cursor:target))
              (target ::Textual (parent:element-at top))
              (suffix ::Textual (target:split-at! tip)))
         (parent:splice! (Comb space suffix) top 0)
@@ -9972,13 +10046,13 @@ and its inverse, ~MergeElements~:
   (define-object (MergeElements #;removing space ::Space
                                            #;at cursor ::Cursor)
     ::Edit
-    (define (position)::Cursor cursor)
+    (define-internal (position)::Cursor cursor)
 
-    (define (perform! document::Element)::Edit
+    (define-internal (perform! document::Element)::Edit
       (let* ((cursor ::Cursor (copy cursor))
              (tip ::int (cursor:pop!))
              (top ::int (cursor:pop!))
-             (parent ::Comb (cursor:target-in document))
+             (parent ::Comb (cursor:target))
              (left ::Textual (parent:element-at (- top 1)))
              (space* ::Space (parent:element-at top)))
         (assert (equal? space space*))
@@ -10039,7 +10113,7 @@ Like in most text editors, it's going to be bound to the
             (lambda (code::KeyCode)
               (let ((document ::Document (current-document))
                     (cursor ::Cursor (current-cursor)))
-                (cursor:advance-in! document)
+                (cursor:advance!)
                 (document:delete-character))))
   
 #+END_SRC
@@ -10066,7 +10140,7 @@ allowed.
            (tip ::int (cursor:top)))
       (cond
        ((and (= tip 0) (is (self length) #;< > 0))
-        (cursor:primitive-retreat-in! document)
+        (cursor:primitive-retreat!)
         (document:delete-character))
        ((is (self length) <= (minimum-width)) #;>
         (let ((cursor ::Cursor (copy cursor)))
@@ -10094,11 +10168,11 @@ atoms (because then those atoms need to be merged).
            (document ::Document (current-document)))
       (cond
        ((= tip 0)
-        (cursor:primitive-retreat-in! document)
+        (cursor:primitive-retreat!)
         (document:delete-character))
 
        ((given ((1 (last-index))
-                (parent ::Comb (cursor:target-in/at document -2))
+                (parent ::Comb (cursor:target/at -2))
                 (top (cursor -2))
                 (left ::Atom (parent:element-at (- top 1)))
                 (right ::Atom (parent:element-at (+ top 1)))))
@@ -10127,7 +10201,7 @@ elements inside of ~Comb~:
   (define (delete-character)::(maybe Edit)
     (let* ((cursor ::Cursor (current-cursor))
            (document ::Document (current-document))
-           (target ::Element (cursor:target-in document)))
+           (target ::Element (cursor:target)))
       (cond
        ((eq? target document) #!null)
        ((eq? target (this))
@@ -10162,9 +10236,9 @@ maintain a list of /fronts/.
 
 #+BEGIN_SRC scheme :noweb-ref History
   (define-object (History document::Document)
-    (define fronts ::(list-of (list-of Edit)) '())
-    
-    (define undo-stack ::Stack (ArrayStack))
+    (define-protected fronts ::(list-of (list-of Edit)) '())
+
+    (define-protected undo-stack ::Stack (ArrayStack))
 
     (define (record! operation ::Edit)::void
       (cond
@@ -10175,27 +10249,27 @@ maintain a list of /fronts/.
            (set-car! fronts `(,operation . ,front)))))
        (else
         (given ((`(,front . ,_) fronts)
-  	      (new-front (drop (undo-stack:depth) front)))
-  	(set! fronts `((,operation . ,new-front)
-  		       . ,fronts)))
+                (new-front (drop (undo-stack:depth) front)))
+          (set! fronts `((,operation . ,new-front)
+                         . ,fronts)))
         (undo-stack:clear!))))
 
     (define (undo!)::boolean
       (given ((`(,front . ,_) fronts)
-  	    (`(,previous::Edit . ,_) (drop (undo-stack:depth) front))
-  	    (cursor ::Cursor (current-cursor))
-  	    (redo ::Edit (previous:perform! document)))
+              (`(,previous::Edit . ,_) (drop (undo-stack:depth) front))
+              (cursor ::Cursor (current-cursor))
+              (redo ::Edit (previous:perform! document)))
         (cursor:assign! (redo:position))
         (undo-stack:push! redo)
         #true))
 
     (define (redo!)::boolean
       (given (((not (undo-stack:empty?)))
-  	    (previous ::Edit (undo-stack:pop!))
-  	    (cursor ::Cursor (current-cursor))
-  	    (undo ::Edit (previous:perform! document)))
-  	(cursor:assign! (undo:position))
-  	#true))
+              (previous ::Edit (undo-stack:pop!))
+              (cursor ::Cursor (current-cursor))
+              (undo ::Edit (previous:perform! document)))
+        (cursor:assign! (undo:position))
+        #true))
     )
 
 #+END_SRC
@@ -10228,14 +10302,14 @@ functions:
 #+BEGIN_SRC scheme :noweb-ref Document--initial-key-bindings
   (set-key! '(ctrl z)
             (lambda (code::KeyCode)
-  	    (given ((document ::Document (current-document)))
-  	      (document:history:undo!))))
+              (given ((document ::Document (current-document)))
+                (document:history:undo!))))
 
   (set-key! '(ctrl y)
             (lambda (code::KeyCode)
-  	    (given ((document ::Document (current-document)))
-  	      (document:history:redo!))))
-  
+              (given ((document ::Document (current-document)))
+                (document:history:redo!))))
+
 #+END_SRC
 
 At this point, running ~test/interactive/editing.scm~
@@ -10276,9 +10350,43 @@ some editing tasks.
 This is a good moment to split our application into multiple
 modules: we have already seen which classes rely on one
 another and thus should be placed together in the same
-module.
+module or package. The guiding principles are the following:
 
-We'll try to keep our modules as small as possible.
+- classes that use methods defined as /internal/ (or, in the
+  parlance of Java -- /package-private/) must all be at
+  least in the same directory (because that's resolved to
+  the JVM packages)
+
+- there must not be any circular definitions across the
+  module boundaries
+
+- ideally, modules should only contain the definitions
+  that need to be comprehended together
+
+Mind that this is a very different philosophy from the one
+that we employed in the first part of the book, where we
+were designing the language that we now use to express our
+system. In that case, throwing everything to one bag was
+justified, because we were defining the common language for
+expressing the system, and having to pick only particular
+definitions from it would be inconvenient.
+
+This time, however, we are using the module system to
+express the architecture of a system that consists of
+interconnected parts, and putting them apart actually helps
+to understand the organization of the system.
+
+In particular, consider the design of ~Element~ instances.
+They are edited using the ~Edit~ operations, which need to
+have access to their internal methods. But we don't want the
+users of our editor to be able to access them, because then
+they would be able to corrupt the history. All edits should
+be intermediated by the ~Edit~ operations that are recorded
+in the ~History~ of a ~Document~ they concern.
+
+We are going to create module in the same order in which
+we defined them earlier in the text, so we will start with
+the ~Painter~ interface:
 
 #+BEGIN_SRC scheme :tangle painter/interface.scm :mkdirp yes :noweb no-export
   <<header>>
@@ -10292,6 +10400,7 @@ We'll try to keep our modules as small as possible.
     (clear!)::void)
 #+END_SRC
 
+Then we will provide the implementations of that interface:
 
 #+BEGIN_SRC scheme :tangle painter/character.scm :mkdirp yes :noweb no-export
   <<header>>
