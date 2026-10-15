@@ -6763,6 +6763,8 @@ units in GRASP
     (define-protected (border-style)::BorderStyle
       BorderStyle:Atom)
 
+    <<Atom--navigation>>
+
     (Textual))
 
   (define-object (Text)
@@ -8048,15 +8050,62 @@ to skip some of those positions in our cursor movement.
 We choose that positions lying at the boundaries of ~Space~
 are going to be canonical (this decision is roughly
 arbitrary, but it affects the way we implement edit
-operations later on):
+operations later on).
 
-#+BEGIN_SRC scheme :noweb-ref Cursor--operations  
+Which of its own positions are redundant is something that
+only an element itself can tell, so rather than have the
+cursor inspect the type of its target, we extend the
+~Element~ interface with a predicate:
+
+#+BEGIN_SRC scheme :noweb-ref Element--cursor-operations
+  (canonical-at? index ::int)::boolean
+#+END_SRC
+
+and the cursor simply asks:
+
+#+BEGIN_SRC scheme :noweb-ref Cursor--operations
   (define-private (canonical-in? document::Element)::boolean
-    (let ((target ::Element (self target-in document))
-          (tip ::int (self top)))
-      (or (isnt target Atom?)
-          (= (target:last-index) 0)
-          (is 0 < tip < (target:last-index))))) ;>>
+    (let ((target ::Element (self target-in document)))
+      (target:canonical-at? (self top))))
+
+#+END_SRC
+
+For most elements every position is canonical, because their
+boundaries are marked on the screen by some visible
+delimiter -- a parenthesis, a quote or a comment marker --
+and therefore do not coincide with the boundaries of the
+adjacent ~Space~:
+
+#+BEGIN_SRC scheme :noweb-ref Comb--navigation
+  (define (canonical-at? index ::int)::boolean
+    #true)
+
+#+END_SRC
+
+#+BEGIN_SRC scheme :noweb-ref Space--navigation
+  (define (canonical-at? index ::int)::boolean
+    #true)
+
+#+END_SRC
+
+#+BEGIN_SRC scheme :noweb-ref Textual--navigation
+  (define (canonical-at? index ::int)::boolean
+    #true)
+
+#+END_SRC
+
+The exception is ~Atom~, whose prefix and suffix are both
+empty, so that its first and last position do land on the
+same spot as the boundaries of the surrounding ~Space~ (the
+case of an empty ~Atom~ needs to be excluded, because there
+the first and the last position are the same one, and
+skipping it would leave the atom unreachable):
+
+#+BEGIN_SRC scheme :noweb-ref Atom--navigation
+  (define (canonical-at? index ::int)::boolean
+    (let ((last ::int (self last-index)))
+      (or (= last 0)
+          (is 0 < index < last)))) ;>>
 
 #+END_SRC
 
@@ -8638,6 +8687,7 @@ keys (for moving the cursor left and right), and to the
   <<GRASP-ontology>>
 
   (define-interface Element (Visual Cloneable)
+    <<Element--cursor-operations>>
     <<Element--indexing>>
     )
 
@@ -9247,6 +9297,8 @@ of ~<<TextualSubclasses--rendering>>~ and
     (define-protected (border-style)::BorderStyle
       BorderStyle:Atom)
 
+    <<Atom--navigation>>
+
     <<Atom--editing>>
 
     (Textual))
@@ -9694,7 +9746,7 @@ wrap the entire expression inside ~ExpressionComment~:
 #+BEGIN_SRC scheme :noweb-ref Comb--editing
   (define (insert-character c)::(maybe Edit)
     (let* ((cursor ::Cursor (current-cursor))
-           (document ::Document (current-document))
+           (document ::Element (current-document))
            (tip ::int (cursor:top))
            (target ::Element (cursor:target)))
       (assert (cursor:valid?))
@@ -9776,7 +9828,7 @@ in particular for ~Space~:
          (cursor:unnest-right!)
          #!null)
         (_
-         (let* ((document ::Document (current-document))
+         (let* ((document ::Element (current-document))
                 (parent ::Comb (cursor:target/at -2))
                 (tip ::int (cursor:top))
                 (top ::int (cursor -2)))
@@ -9994,7 +10046,7 @@ with an empty ~BlockComment~:
 #+BEGIN_SRC scheme :noweb-ref Atom--editing
   (define (insert-character c)::(maybe Edit)
     (let ((cursor ::Cursor (current-cursor))
-          (document ::Document (current-document)))
+          (document ::Element (current-document)))
       (case c
        ((#\space #\newline)
         (match (cursor:top)
@@ -10138,7 +10190,7 @@ allowed.
 
   (define (delete-character)::(maybe Edit)
     (let* ((cursor ::Cursor (current-cursor))
-           (document ::Document (current-document))
+           (document ::Element (current-document))
            (tip ::int (cursor:top)))
       (cond
        ((and (= tip 0) (is (self length) #;< > 0))
@@ -10167,7 +10219,7 @@ atoms (because then those atoms need to be merged).
   (define (delete-character)::(maybe Edit)
     (let* ((cursor ::Cursor (current-cursor))
            (tip ::int (cursor:top))
-           (document ::Document (current-document)))
+           (document ::Element (current-document)))
       (cond
        ((= tip 0)
         (cursor:primitive-retreat!)
@@ -10202,7 +10254,7 @@ elements inside of ~Comb~:
 #+BEGIN_SRC scheme :noweb-ref Comb--editing
   (define (delete-character)::(maybe Edit)
     (let* ((cursor ::Cursor (current-cursor))
-           (document ::Document (current-document))
+           (document ::Element (current-document))
            (target ::Element (cursor:target)))
       (cond
        ((eq? target document) #!null)
@@ -10237,7 +10289,7 @@ the undone operations still accessible we're going to
 maintain a list of /fronts/.
 
 #+BEGIN_SRC scheme :noweb-ref History
-  (define-object (History document::Document)
+  (define-object (History document::Element)
     (define-protected fronts ::(list-of (list-of Edit)) '())
 
     (define-protected undo-stack ::Stack (ArrayStack))
@@ -10564,7 +10616,9 @@ operations:
   <<header>>
   (module-name (document parsing))
   (import (language-extensions))
+  (import (document elements))
   (import (document model))
+  (import (document extensions))
 
   <<advanced-parser>>  
 #+END_SRC
