@@ -5674,10 +5674,10 @@ is a concrete type and ~Tile~ is an interface representing
 elements that occupy a rectangular area of the screen.
 
 #+BEGIN_SRC scheme :noweb-ref Comb--collection-operations
-  (define elements ::(sequence-of Tile)
+  (define-internal elements ::(sequence-of Tile)
     (ArrayList))
 
-  (define spaces ::(sequence-of Space)
+  (define-internal spaces ::(sequence-of Space)
     (ArrayList ||: (Space:empty)))
 
   ;; in order to get the size of the collection, we sum
@@ -5716,6 +5716,16 @@ elements that occupy a rectangular area of the screen.
 
        ((odd? index)
         (elements (quotient (- index 1) 2))))))
+
+  (define-internal (put! index ::int value ::Element)::void
+    (let* ((n ::int (size))
+           (index (modulo index n)))
+      (cond
+       ((even? index)
+        (spaces:set (quotient index 2) value))
+
+       ((odd? index)
+        (elements:set (quotient (- index 1) 2) value)))))
 
   ;; iterating over a Comb yields its spaces and elements
   ;; in turn, which is precisely what the indexing operator
@@ -6158,7 +6168,7 @@ very nearly all of it.
     (define (size)::int
       (indices:depth))
 
-    (define-private (index-at i ::int)::Object
+    (define (get i ::int)::Object
       (indices:get i))
 
     (define-internal (with index action::(maps () to: ,a))::,a
@@ -7842,7 +7852,7 @@ obtained in the following way:
       (set! limit (max 0 (+ (self size) limit))))
     (set! limit (min (self size) limit))
     (for i::int from: 0 below: limit
-         (set! root (root:element-at (self index-at i))))
+         (set! root (root:element-at (self get i))))
     root)
 
 #+END_SRC
@@ -8028,7 +8038,8 @@ it is final):
     (climb! document (lambda (root ::Element)::int 0)))
 
   (define-internal (climb-back! document ::Element)::void
-    (climb! document (lambda (root ::Element)::int (root:last-index))))
+    (climb! document (lambda (root ::Element)::int
+                             (root:last-index))))
 
   (define (to-start!)::void
     (self clear!)
@@ -8401,8 +8412,8 @@ so that we can collect it using ~netcat~ or a similar utility:
   
 #+END_SRC
 
-In cases like this, it's also convenient to be able to print stack
-traces:
+In cases like this, it's also convenient to be able to print
+stack traces:
 
 #+BEGIN_SRC scheme :tangle utils/debug.scm :mkdirp yes :noweb no-export
   <<header>>
@@ -8570,43 +8581,90 @@ required by the current (fairly minimal) version of the
 
 **** Input handling and rendering
 
-Having defined ~TerminalPainter~, we can define two procedures:
-one for handling input, and another for rendering:
+Having defined ~TerminalPainter~, we can define two
+procedures: one for handling input, and another for
+rendering. Those two aspects brought together --
+interactivity and renderability -- form the concept
+of an ~Application~:
 
-#+BEGIN_SRC scheme :noweb-ref terminal-document-cursor-navigation
-  (define (edit terminal ::LanternaScreen)::void
-    (let ((running? ::boolean #true))
-      (while running?
-        (safely
-         (let* ((key ::KeyStroke (terminal:readInput))
-                (type ::KeyType (key:getKeyType))
-                (cursor ::Cursor (current-cursor))
-                (document ::Document (current-document)))
-           (match type
-             (,KeyType:ARROW_LEFT
-              (cursor:retreat!))
-             (,KeyType:ARROW_RIGHT
-              (cursor:advance!))
-             (,KeyType:HOME
-              (cursor:to-start!))
-             (,KeyType:END
-              (cursor:to-end!))
-             (,KeyType:ESCAPE
-              (set! running? #false))
-             (_
-              (values)
-              #;(print "Unsupported key type: "type", key "key)))
-           ))
-        (synchronized screen-up-to-date?
-          (set! (screen-up-to-date?) #f)
-          (invoke screen-up-to-date? 'notify)))))
+#+BEGIN_SRC scheme :noweb-ref GRASP-ontology
+  (define-interface Interactive ()
+    (key-typed! key-code::KeyCode)::boolean)
+
+  (define-interface Application (Interactive)
+    (render!)::void)
 
 #+END_SRC
+
+Our ~CursorNavigationTest~ application's ~key-typed!~ method
+is mainly going to support the left and the right arrow keys.
+The ~render!~ method is going to render the ~document~:
+
+#+BEGIN_SRC scheme :noweb-ref cursor-navigation-test-app
+  (define-object (CursorNavigationTest document::Document)::Application
+    (define-private cursor ::Cursor (Cursor))
+    (define-private path ::Cursor (Cursor))
+    (define-private layout-state ::LayoutState (LayoutState))
+
+    (define (key-typed! key::KeyStroke)::boolean
+      (parameterize ((current-document document)
+                     (current-cursor cursor))
+        (let ((type ::KeyType (key:getKeyType)))
+          (match type
+            (,KeyType:ARROW_LEFT
+             (cursor:retreat!))
+            (,KeyType:ARROW_RIGHT
+             (cursor:advance!))
+            (,KeyType:HOME
+             (cursor:to-start!))
+            (,KeyType:END
+             (cursor:to-end!))
+            (,KeyType:ESCAPE
+             (exit))
+            (_
+             (values)
+             #;(print "Unsupported key type: "type", key "key)))
+          )))
+
+    ;; The first argument of ~render!~ is a scratch path that
+    ;; the renderer pushes onto and pops from as it descends,
+    ;; so it must not be the cursor itself: the rendering and
+    ;; the editing threads would then be mutating the same
+    ;; object, and the cursor would intermittently be observed
+    ;; in a state that is neither valid nor final.
+    (define (render!)::void
+      (parameterize ((current-document document)
+                     (current-cursor cursor))
+        (document:render! path layout-state)
+        (assert (path:empty?)))))
+
+#+END_SRC
+
+We now need to implement the editing process (which is
+simply going to pass the read key to the ~Application~'s
+~key-typed!~ method)
+
+#+BEGIN_SRC scheme :noweb-ref terminal-document-cursor-navigation
+  (define (edit application ::Application
+                terminal ::LanternaScreen)
+    ::void
+    (while #true
+      (safely
+       (application:key-typed! (terminal:readInput)))
+      (synchronized screen-up-to-date?
+        (set! (screen-up-to-date?) #f)
+        (invoke screen-up-to-date? 'notify))))
+
+#+END_SRC
+
+And the rendering process (which is going to invoke
+the ~Application~'s ~render!~ method):
 
 #+BEGIN_SRC scheme :noweb-ref terminal-document-rendering
   (define-box (screen-up-to-date?)::boolean #f)
 
-  (define (render terminal ::LanternaScreen)::void
+  (define (render application ::Application
+                  terminal ::LanternaScreen)::void
     (let loop ()
       (synchronized screen-up-to-date?
         (while (screen-up-to-date?)
@@ -8622,15 +8680,14 @@ one for handling input, and another for rendering:
         ;; "The Display Processor")
         (set! (screen-up-to-date?) #t))
       (let ((resize ::TerminalSize
-                  (terminal:doResizeIfNecessary))
-          (document ::Document (current-document)))
+                    (terminal:doResizeIfNecessary)))
         (painter:clear!)
-        (document:render! (Cursor) (LayoutState))
+        (application:render!)
         (if resize
             (terminal:refresh LanternaScreen:RefreshType:COMPLETE)
             (terminal:refresh LanternaScreen:RefreshType:DELTA))
         (loop))))
-  
+
 #+END_SRC
 
 The only thing that's left if we want to obtain a running
@@ -8638,19 +8695,14 @@ program is to initialize threads that would run the ~edit~
 and ~render~ procedures:
 
 #+BEGIN_SRC scheme :noweb-ref terminal-runner
-  (define* (run terminal ::LanternaScreen := (make-terminal-screen))
-    (given ((`(,program "-p" ,port) (command-line))
-            ((every char-digit? port)))
-      (let ((tcp-server (tcp-output-server (string->number port))))
-        (set! (current-output-port) tcp-server)
-        (set! (current-error-port) tcp-server)))
-
+  (define* (run application ::Application
+                terminal ::LanternaScreen := (make-terminal-screen))
     (with ((painter (TerminalPainter terminal)))
       (with-terminal-screen terminal
         (terminal:clear)
         (terminal:refresh)
-        (let* ((editing (future (edit terminal)))
-               (rendering (future (render terminal))))
+        (let* ((editing (future (edit application terminal)))
+               (rendering (future (render application terminal))))
           (rendering:setPriority Thread:MIN_PRIORITY)
           (force editing)))))
 
@@ -8678,6 +8730,8 @@ keys (for moving the cursor left and right), and to the
   (import (utils tcp-output-server))
   (import (utils debug))
 
+  (define-alias KeyCode KeyStroke)
+
   <<basic-text-painter>>
 
   <<basic-terminal-painter>>
@@ -8694,6 +8748,8 @@ keys (for moving the cursor left and right), and to the
   (define-interface Tile (Element)
     (width)::real
     (height)::real)
+
+  (define-interface Enchanted (Interactive Tile))
 
   (define-interface Comment (Tile))
 
@@ -8736,9 +8792,15 @@ keys (for moving the cursor left and right), and to the
   (define* (read-document port ::InputPort := (current-input-port))::Document
     (read-list from: port into: (Document)))
 
-  (define-parameter (current-document) ::Document
+  (define-parameter (current-document)::Document
     (Document))
 
+  ;; Mind that the document cannot be parsed in the initializer
+  ;; of the parameter above: ~define-parameter~ expands to
+  ;; ~define-early-constant~, whose initializers run before the
+  ;; rest of the module body -- and therefore before
+  ;; ~atom-delimiters~ (an ordinary ~define-constant~ that the
+  ;; parser relies on) has been assigned.
   (set! (current-document)
         (call-with-input-string "
   (define (! n) ; int to int
@@ -8756,7 +8818,15 @@ keys (for moving the cursor left and right), and to the
 
   <<terminal-runner>>
 
-  (run)
+  <<cursor-navigation-test-app>>
+
+  (given ((`(,program "-p" ,port) (command-line))
+          ((every char-digit? port)))
+    (let ((tcp-server (tcp-output-server (string->number port))))
+      (set! (current-output-port) tcp-server)
+      (set! (current-error-port) tcp-server)))
+
+  (run (CursorNavigationTest (current-document)))
   (exit)
 #+END_SRC
 
@@ -9234,12 +9304,13 @@ similar, but slightly more abstract way, to invoke the
 ~key-typed!~ method of the ~main~ ~Application~.
 
 #+BEGIN_SRC scheme :noweb-ref terminal-input-processing
-  (define (edit terminal ::LanternaScreen)::void
+  (define (edit application ::Application
+                terminal ::LanternaScreen)::void
     (while #true
       (safely
        (let ((key ::KeyStroke (terminal:readInput)))
          (parameterize ((unicode-input (input-character key)))
-           (main:key-typed! (scancode key)))))
+           (application:key-typed! (scancode key)))))
       (synchronized screen-up-to-date?
         (set! (screen-up-to-date?) #f)
         (invoke screen-up-to-date? 'notify))))
@@ -9253,7 +9324,8 @@ method (and do some bookkeeping around that):
 #+BEGIN_SRC scheme :noweb-ref terminal-rendering
   (define-box (screen-up-to-date?)::boolean #f)
 
-  (define (render terminal ::LanternaScreen)::void
+  (define (render application ::Application
+                  terminal ::LanternaScreen)::void
     (let loop ()
       (synchronized screen-up-to-date?
         (while (screen-up-to-date?)
@@ -9270,12 +9342,12 @@ method (and do some bookkeeping around that):
         (set! (screen-up-to-date?) #t))
       (let ((resize ::TerminalSize (terminal:doResizeIfNecessary)))
         (painter:clear!)
-        (main:render!)
+        (application:render!)
         (if resize
             (terminal:refresh LanternaScreen:RefreshType:COMPLETE)
             (terminal:refresh LanternaScreen:RefreshType:DELTA))
         (loop))))
-  
+
 #+END_SRC
 
 
@@ -9415,12 +9487,6 @@ As to the main part of the stub, it is defined as follows:
 
   (define-interface Comment (Tile))
 
-  (define-interface Interactive ()
-    (key-typed! key-code::KeyCode)::boolean)
-
-  (define-interface Application (Interactive)
-    (render!)::void)
-
   (define-interface Enchanted (Interactive Tile))
 
   (define-mixin WriteToString
@@ -9482,8 +9548,8 @@ As to the main part of the stub, it is defined as follows:
                      (current-cursor cursor))
         (given ((action ::Edit (document:key-typed!
                                 key-code)))
-             (truly
-              <<GRASP-key-typed>>))))
+          (truly
+           <<GRASP-key-typed>>))))
 
     (define-private path ::Cursor (Cursor))
 
@@ -9519,25 +9585,29 @@ As to the main part of the stub, it is defined as follows:
           (assert (path:empty?))
           (layout:assign initial-layout)))))
 
-  (define main ::Application
-    (let ((editor ::GRASP-Editor (GRASP-Editor)))
-      (call-with-input-string "
-  (define (! n) ; int to int
-  (if (is n <= 1)
-     1           
-   (* n (! (- n 1)))))
-  (e.g. (! 5) ===> 120)"
-        (lambda (port)
-          (read-list from: port into: editor:document)))
-      editor))
-
   <<terminal-input-processing>>
 
   <<terminal-rendering>>
 
   <<terminal-runner>>
 
-  (run)
+  (given ((`(,program "-p" ,port) (command-line))
+          ((every char-digit? port)))
+    (let ((tcp-server (tcp-output-server (string->number port))))
+      (set! (current-output-port) tcp-server)
+      (set! (current-error-port) tcp-server)))
+
+  (let ((editor ::GRASP-Editor (GRASP-Editor)))
+    (call-with-input-string "
+  (define (! n) ; int to int
+  (if (is n <= 1)
+     1           
+   (* n (! (- n 1)))))
+  (e.g. (! 5) ===> 120)"
+      (lambda (port)
+        (read-list from: port into: editor:document)))
+    (run editor))
+
   (exit)
 #+END_SRC
 
@@ -9786,20 +9856,28 @@ wrap the entire expression inside ~ExpressionComment~:
 
 #+BEGIN_SRC scheme :noweb-ref Edit--operations
   (define-object (Replace old-expression ::Tile
-                        new-expression ::Tile
-                        cursor ::Cursor)
+                          new-expression ::Tile
+                          cursor ::Cursor)
     ::Edit
-    (define-internal (position)::Cursor cursor)
+    ;; The ~cursor~ points /at/ the replaced expression, from
+    ;; within its parent -- that is what ~perform!~ needs in
+    ;; order to find it.  The caret, on the other hand, belongs
+    ;; at the end of whatever expression is in that place now,
+    ;; which is one ~climb-back!~ deeper (and deeper by an
+    ;; amount that depends on the expression), so the two must
+    ;; not share a cursor.
+    (define-internal (position)::Cursor
+      (let ((caret ::Cursor (copy cursor)))
+        (caret:climb-back! (current-document))
+        caret))
 
     (define-internal (perform! document ::Element)::Edit
-      (let* ((cursor ::Cursor (copy cursor))
-             (top ::int (cursor:pop!))
-             (parent ::Comb (cursor:target))
-             (target ::Element (parent (- top 1))))
+      (let* ((at ::Cursor (copy cursor))
+             (top ::int (at:pop!))
+             (parent ::Comb (at:target))
+             (target ::Element (parent:get (- top 1))))
         (assert (old-expression:equals target))
-        (set! (parent (- top 1)) new-expression)
-        (cursor:push! top)
-        (cursor:climb-back! document)
+        (parent:put! (- top 1) new-expression)
         (Replace new-expression old-expression cursor))))
 
 #+END_SRC
@@ -9831,7 +9909,7 @@ in particular for ~Space~:
          (let* ((document ::Element (current-document))
                 (parent ::Comb (cursor:target/at -2))
                 (tip ::int (cursor:top))
-                (top ::int (cursor -2)))
+                (top ::int (cursor:get -2)))
            (cond
             ((given (((= tip (self last-index)))
                      (next ::Atom (parent:element-at (+ top 1)))))
@@ -9973,8 +10051,8 @@ are obviously going to refer to the methods ~splice!~ and
              (tip ::int (cursor:pop!))
              (top ::int (cursor:pop!))
              (parent ::Comb (as Comb (cursor:target)))
-             (last-space ::Space (as Space (last elements)))
-             (last-tile-index ::int (+ top (length elements) -2)))
+             (last-space ::Space (as Space (last elements:spaces)))
+             (last-tile-index ::int (+ top (elements:size) -2)))
         (parent:splice! (copy elements) (- top 1) tip)
         (cursor:push! last-tile-index)
         (let ((last-tile ::Element (parent:element-at last-tile-index)))
@@ -9992,11 +10070,11 @@ are obviously going to refer to the methods ~splice!~ and
       (let* ((cursor ::Cursor (copy cursor))
              (_ ::int (cursor:pop!))
              (end ::int (+ (cursor:pop!) 1))
-             (parent ::Comb (as Comb (cursor:target)))             
-             (last-space ::Space (as Space (last elements)))
-             (first-space ::Space (as Space (elements 0)))
+             (parent ::Comb (as Comb (cursor:target)))
+             (last-space ::Space (as Space (last elements:spaces)))
+             (first-space ::Space (as Space (elements:get 0)))
              (sub-end ::int (last-space:last-index))
-             (start ::int (- end (length elements) -1))
+             (start ::int (- end (elements:size) -1))
              (preceding ::Space (as Space (parent:element-at start)))
              (sub-start ::int (- (preceding:last-index) (first-space:last-index)))
              (extracted ::Comb
@@ -10227,7 +10305,7 @@ atoms (because then those atoms need to be merged).
 
        ((given ((1 (last-index))
                 (parent ::Comb (cursor:target/at -2))
-                (top (cursor -2))
+                (top (cursor:get -2))
                 (left ::Atom (parent:element-at (- top 1)))
                 (right ::Atom (parent:element-at (+ top 1)))))
         (MergeElements #;removing (copy (this)) #;at (copy cursor)))
@@ -10523,6 +10601,7 @@ to out document model, which consists of the
   (module-name (document elements))
   (import (language-extensions))
   (import (painter interface))
+  (import (input keyboard))
 
   <<GRASP-ontology>>
 
@@ -10549,6 +10628,8 @@ to out document model, which consists of the
       (call-with-output-string
         (lambda (port)
           (serialize port 0)))))
+
+  (define-interface Enchanted (Interactive Tile))
 
 #+END_SRC
 
@@ -10609,7 +10690,7 @@ extension mechanism.
   <<Extensions--implementation>>
 #+END_SRC
 
-Ww also need a module to contain the parser and the ~Edit~
+We also need a module to contain the parser and the ~Edit~
 operations:
 
 #+BEGIN_SRC scheme :tangle document/parsing.scm :mkdirp yes :noweb no-export
@@ -10623,18 +10704,146 @@ operations:
   <<advanced-parser>>  
 #+END_SRC
 
+Finally we need some definition of the document's editor:
+
+#+BEGIN_SRC scheme :tangle document/editor.scm :mkdirp yes :noweb no-export
+  <<header>>
+  (module-name (document editor))
+  (import (language-extensions))
+  (import (painter interface))
+  (import (input keyboard))
+  (import (kawa regex))
+  (import (document elements))
+  (import (document model))
+
+  (define-object (Document)
+    <<Document--keyboard-editing>>
+    <<Document--definition>>
+    (Comb)
+    (set! style BorderStyle:None))
+
+  (define-object (GRASP-Editor)::Application
+    (define document ::Document (Document))
+
+    (define cursor ::Cursor (Cursor))
+
+    (define (key-typed! key-code::KeyCode)::boolean
+      (parameterize ((current-document document)
+                     (current-cursor cursor))
+        (given ((action ::Edit (document:key-typed!
+                                key-code)))
+          (truly
+           <<GRASP-key-typed>>))))
+
+    (define-private path ::Cursor (Cursor))
+
+    (define-private layout ::LayoutState (LayoutState))
+
+    (define-private initial-layout ::LayoutState (LayoutState))
+
+    (define-private (normalize-spaces s::string)::string
+      (regex-replace* "\\s+" (regex-replace* "\n" s "") " "))
+
+    (define (render!)::void
+      (parameterize ((current-document document)
+                     (current-cursor cursor))
+
+        (let* ((f ::FontProxy (painter:text-font))
+               (w ::int (painter:draw-text! (cursor:toString) (painter:text-font))))
+          (painter:with-translation w 0
+            (lambda ()
+              (let ((target ::Element (cursor:target)))
+                (painter:draw-text! (string-append
+                                     " "
+                                     (*:getName (target:getClass))
+                                     "@"
+                                     (number->string (target:hashCode) 16)
+                                     ": "
+                                     (match target
+                                       (space::Space (space:fragments:toString))
+                                       (_ (normalize-spaces (target:toString)))))
+                                    (painter:text-font)))))
+          (painter:with-translation 0 (f:height)
+            (lambda ()
+              (document:render! path layout)))
+          (assert (path:empty?))
+          (layout:assign initial-layout)))))
+
+#+END_SRC
+
+In order to be able to reconstruct the things that we did so
+far, and in particular the ~interactive/editing.scm~ test,
+we also need a module that would allow us to run things
+in the terminal:
 
 #+BEGIN_SRC scheme :tangle terminal/runner.scm :mkdirp yes :noweb no-export
   <<header>>
   (module-name (terminal runner))
   (import (language-extensions))
   (import (terminal definitions))
+  (import (input keyboard))
+  (import (input terminal-keymap))
+  (import (utils debug))
   (import (painter interface))
+  (import (painter terminal))
+  (import (document elements))
 
   <<terminal-rendering>>
   <<terminal-input-processing>>
   <<terminal-runner>>
 #+END_SRC
+
+This allows us to rephrase the test:
+
+#+HEADER: :shebang "#!/bin/sh" :mkdirp yes :noweb no-export
+#+BEGIN_SRC scheme :tangle test/interactive/modular-editing.scm
+  #| -*- scheme -*-
+  exec java -Dkawa.immediate.shared-loader=true \
+  -cp "$(dirname "$0")/../../../libs/kawa.jar"\
+  :"$(dirname "$0")/../../../libs/lanterna-3.2.0-SNAPSHOT.jar"\
+  :. kawa.repl "$0" "$@"
+  |#
+  <<header>>
+  (module-name (test interactive modular-editing))
+  (import (language-extensions))
+  (import (terminal definitions))
+  (import (painter interface))
+  (import (painter terminal))
+  (import (terminal runner))
+  (import (document elements))
+  (import (document editor))
+  (import (document parsing))
+  (import (utils tcp-output-server))
+
+  (given ((`(,program "-p" ,port) (command-line))
+          ((every char-digit? port)))
+    (let ((tcp-server (tcp-output-server (string->number port))))
+      (set! (current-output-port) tcp-server)
+      (set! (current-error-port) tcp-server)))
+
+  ;; The painter has to be installed before the editor is
+  ;; built, because ~LayoutState~ asks it for the line height
+  ;; in its field initializers.
+  (define terminal ::LanternaScreen (make-terminal-screen))
+
+  (initialize-painter! (TerminalPainter terminal))
+
+  (define main ::Application
+    (let ((editor ::GRASP-Editor (GRASP-Editor)))
+      (call-with-input-string "
+  (define (! n) ; int to int
+  (if (is n <= 1)
+     1           
+   (* n (! (- n 1)))))
+  (e.g. (! 5) ===> 120)"
+        (lambda (port)
+          (read-list from: port into: editor:document)))
+      editor))
+
+  (run main terminal)
+  (exit)
+#+END_SRC
+
 
 #+BEGIN_COMMENT
 Kawa considers modules in the same directory to belong to the same package.
