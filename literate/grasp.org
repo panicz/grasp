@@ -4858,7 +4858,7 @@ the documents back to the disk. It needs to be able to
 render documents not only in a generic way, but in a way
 that is defined by users, and the rendering must work in
 environments whose graphics capabilities range from fully
-scallable vector graphics to fairly limited character
+scalable vector graphics to fairly limited character
 terminals.
 
 *** The basic ~Painter~ interface
@@ -10451,7 +10451,7 @@ should provide evidence that the feature is operational.
 though, and maybe someone will implement them in some
 of the future versions of this document.)
 
-** Splitting up
+*** Splitting up
 
 Although so far we've produced some utility modules, such as
 ~(language-extensions)~, ~(utils debug)~, ~(utils shell)~ or
@@ -10664,7 +10664,8 @@ to out document model, which consists of the
     <<Textual--rendering>>
     <<Textual--navigation>>
     <<Textual--editing>>
-    <<Textual--serialization>>)
+    <<Textual--serialization>>
+    )
 
   <<TextualSubclasses--definitions>>
 
@@ -10843,6 +10844,33 @@ This allows us to rephrase the test:
   (run main terminal)
   (exit)
 #+END_SRC
+
+*** Support for pointing devices
+
+So far we managed to develop a fairly decent document model
+and a set of operations that allow to edit the document in a
+fairly natural way (where by /natural/ we mean /akin to text
+editing/).
+
+But interactive computers tend to be equipped in some kind
+of pointing device -- be it a mouse in case of desktop
+computers, a touch pad in case of laptops, or touch screens
+in case of smartphones and tablets.
+
+Such devices let us operate on various representations in
+domains that are familiar to our visual cortex. In case of
+text editing, they let us place the text carret anywhere in
+the visible parts of documents quickly, or select the
+desired portions of text for editing. In case of program
+source code, they also allow us to navigate the program
+by taking us to function definitions or their usages, or
+to collapse and expand certain blocks of code.
+
+In case of GRASP, we want to be able to perform drag'n'drop
+operations on ~Textual~ elements and on ~Comb~ (by dragging
+their left parentheses), as well as to resize the ~Comb~
+elements (by dragging their right parentheses).
+
 
 
 #+BEGIN_COMMENT
