@@ -6259,38 +6259,34 @@ rendering function for ~Comb~ and its thereabouts.
   (define style ::BorderStyle BorderStyle:Parentheses)
 
   (define (render! path ::Cursor state::LayoutState)::void
-    (let ((current-layout ::LayoutState (LayoutState))
+    (let ((at ::LayoutState (LayoutState))
           (border-width ::real (painter:border-width style))
   	(index ::int 1)
   	(cursor ::Cursor (current-cursor))
           (border-height ::real (painter:border-height style)))
-      (painter:with-translation
-       border-width border-height
-       (lambda ()
-         (path:with
-  	index
-  	(lambda ()
-  	  (for element ::Element in: (this)
-     	       (path:set-top! index)
-                 (painter:with-translation
-     		current-layout:left current-layout:top
-     		(lambda ()
-     		  (element:render! path
-     				   current-layout)))
-     	       (increase! index))))))
-         (update-size-from-layout-state! current-layout)
-         (painter:draw-box! last-width last-height
-     			  (if (cursor:active-at? path)
-                                (match (cursor:top)
-     				(0
-     				 SideSelected:Left)
-     				(,(+ (size) 1)
-     				 SideSelected:Right)
-     				(_
-     				 SideSelected:None))
-                                SideSelected:None)
-     			  style))
-      (advance-layout! state))
+      (painter:with-translation border-width border-height
+        (lambda ()
+  	(path:with
+  	 index
+  	 (lambda ()
+  	   (for element ::Element in: (this)
+  		(path:set-top! index)
+  		(painter:with-translation at:left at:top
+  		  (lambda () (element:render! path at)))
+     		(increase! index))))))
+      (update-size-from-layout-state! at)
+      (painter:draw-box! last-width last-height
+     		       (if (cursor:active-at? path)
+                             (match (cursor:top)
+     			     (0
+     			      SideSelected:Left)
+     			     (,(+ (size) 1)
+     			      SideSelected:Right)
+     			     (_
+     			      SideSelected:None))
+                             SideSelected:None)
+     		       style))
+    (advance-layout! state))
 
   (define-private (update-size-from-layout-state!
   		 state ::LayoutState)
@@ -6704,14 +6700,12 @@ we have everything that is needed to define the ~Visual~,
                          (painter:border-width style))
            (border-height ::real
                           (painter:border-height style)))
-      (painter:with-translation
-          border-width border-height
+      (painter:with-translation border-width border-height
         (lambda ()
           (let ((n ::int 0))
             (for line in: (lines builder)
-              (painter:with-translation
-                  0 inner-height
-                (lambda ()
+              (painter:with-translation 0 inner-height
+  	      (lambda ()
                   (let* ((line-width (painter:draw-text!
                                       line font))
                          (k ::int (string-length line)))
@@ -10529,6 +10523,7 @@ defined them earlier in the text, so we will start with the
 
   (define-interface Painter (
     <<painter-capabilities>>
+    <<remaining-painter-capabilities>>
     )
     (clear!)::void)
 
@@ -10613,6 +10608,7 @@ to out document model, which consists of the
     <<Element--cursor-operations>>
     <<Element--editing>>
     <<Element--indexing>>
+    <<Element--remaining-methods>>
     )
 
   <<Edit-interface>>
@@ -10646,6 +10642,7 @@ to out document model, which consists of the
     <<Space--navigation>>
     <<Space--editing>>
     <<Space--serialize>>
+    <<Space--remaining-methods>>
     )
 
   (define-object (Comb)::Tile::Iterable
@@ -10657,6 +10654,7 @@ to out document model, which consists of the
     <<Comb--splice!>>
     <<Comb--editing>>
     <<Comb--serialize>>
+    <<Comb--remaining-methods>>
     )
 
   (define-object (Textual)::Tile
@@ -10665,6 +10663,7 @@ to out document model, which consists of the
     <<Textual--navigation>>
     <<Textual--editing>>
     <<Textual--serialization>>
+    <<Textual--remaining-methods>>
     )
 
   <<TextualSubclasses--definitions>>
@@ -10870,6 +10869,149 @@ In case of GRASP, we want to be able to perform drag'n'drop
 operations on ~Textual~ elements and on ~Comb~ (by dragging
 their left parentheses), as well as to resize the ~Comb~
 elements (by dragging their right parentheses).
+
+The support for pointing devices needs to be added in a few
+places. First and foremost, every ~Element~ needs to be able
+to provide a method that takes screen coordinates and a path
+to that element,, and possibly returns the extended path
+that leads to its child element that is marked by those
+coordinates:
+
+#+BEGIN_SRC scheme :noweb-ref Element--remaining-methods
+  (cursor-under* x ::real y ::real path ::Cursor
+  	       position ::LayoutState)
+  ::(Maybe Cursor)
+#+END_SRC
+
+Of course, we need to provide implementations of this method
+for all kinds of ~Element~-s.
+
+In case of ~Textual~ elements, we need to go through all the
+lines (to sum all of the preceding characters) and when we
+reach the line that includes the ~y~ coordinate, we need to
+invoke ~Painter~'s ~character-index~ method (that we defined
+earlier):
+
+#+BEGIN_SRC scheme :noweb-ref Textual--remaining-methods
+  (define (cursor-under* x ::real y ::real
+  		       path ::Cursor
+  		       position ::LayoutState)
+    ::(Maybe Cursor)
+    (escape-with return
+      (let* ((font ::FontProxy (font))
+             (style ::BorderStyle (border-style))
+             (cursor ::Cursor (current-cursor))
+             (border-width ::real
+  			 (painter:border-width style))
+             (border-height ::real
+                            (painter:border-height style))
+  	   (line-height ::real (font:height))
+  	   (top ::real border-height)
+  	   (x ::int (- x position:left))
+  	   (y ::int (- y position:top))
+  	   (n ::int 0))
+        (advance-layout! position)
+        (cond
+         ((or (is x < 0) (is x >= (width))
+  	    (is y < 0) (is y >= (height)))
+  	(return #!null))
+         ((is y < border-height)
+  	(path:push! 0)
+  	(return path))
+         (else
+  	(for line in: (lines builder)
+  	  (when (is top < y <= (+ top line-height))
+  	    (path:push! (+ n (painter:character-index
+  			      x line font)))
+  	    (return path))
+  	  (increase! top by: line-height)
+  	  (increase! n by: (+ (string-length line) 1)))
+  	(path:push! (last-index))
+  	(return path))))))
+
+#+END_SRC
+
+The case of ~Space~-s is very similar, although there are
+some significant differences. For one, a ~Space~ is not a
+~Tile~, so it do it doesn't have any definite width or
+height.
+
+#+BEGIN_SRC scheme :noweb-ref Space--remaining-methods
+  (define (cursor-under* x ::real y ::real
+  		       path ::Cursor
+  		       position ::LayoutState)
+    ::(Maybe Cursor)
+    (escape-with return
+      (let ((last-index ::int (- (fragments:size) 1))
+  	  (space-width ::int (painter:space-width)))
+        (for i::int from: 0 to: last-index
+  	   (let ((fragment ::int (fragments i)))
+  	     (expand-layout! position (* space-width
+  					 fragment))
+  	     (when (is position:top <= y
+  		       < (+ position:top
+  			    position:line-height))
+  	       (when (is position:left <= x
+  			 < (+ position:left
+  			      (* space-width fragment)))
+  		 (path:push! (nearby-int (/ (- x position:left)
+  					    space-width)))
+  		 (return path))
+  	       (unless (= i last-index)
+  		 (path:push! fragment)
+  		 (return path))
+  	       (return #!null)))
+  	   (unless (= i last-index)
+  	     (break-layout! position))))))
+#+END_SRC
+
+In the case of ~Comb~, we need to check whether the pointer
+position is at either of its parentheses, and otherwise we
+need to check every element inside.
+
+#+BEGIN_SRC scheme :noweb-ref Comb--remaining-methods
+  (define (cursor-under* x ::real y ::real
+  		       path ::Cursor
+  		       position ::LayoutState)
+    ::(Maybe Cursor)
+    (escape-with return
+      (let* ((font ::FontProxy (font))
+  	   (state ::LayoutState (LayoutState))
+             (style ::BorderStyle (border-style))
+             (cursor ::Cursor (current-cursor))
+             (border-width ::real
+  			 (painter:border-width style))
+             (border-height ::real
+                            (painter:border-height style))
+  	   (line-height ::real (font:height))
+  	   (top ::real border-height)
+  	   (x ::int (- x position:left))
+  	   (y ::int (- y position:top))
+  	   (index ::int 1))
+        (cond
+         ((or (is x < 0) (is x >= (width))
+  	    (is y < 0) (is y >= (height)))
+  	(return #!null))
+         ((or (is x < border-width)
+  	    (is y < border-height))
+  	(path:push! 0)
+  	(return path))
+         ((or (is x > (- (width) (* 2 border-width)))
+  	    (is y > (- (height) (* 2 border-height))))
+  	(path:push! (last-index))
+  	(return path))
+         (else
+  	(for element ::Element in: (this)
+  	     (path:push! index)
+  	     (given ((result ::Cursor
+  			     (element:cursor-under*
+  			      x y path state)))
+  	       (return result))
+  	     (path:pop!)
+  	     (increase! index by: 1))
+  	(advance-layout! position)
+  	(return #!null))))))
+#+END_SRC
 
 
 
