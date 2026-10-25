@@ -8583,7 +8583,8 @@ of an ~Application~:
 
 #+BEGIN_SRC scheme :noweb-ref GRASP-ontology
   (define-interface Interactive ()
-    (key-typed! key-code::KeyCode)::boolean)
+    (key-typed! key-code::KeyCode)::boolean
+    <<Interactive--definition>>)
 
   (define-interface Application (Interactive)
     (render!)::void)
@@ -11013,7 +11014,8 @@ need to check every element inside.
   	(return #!null))))))
 #+END_SRC
 
-
+Of course, for these methods to be useful, we need to
+somehow hook them up to the host's event system.
 
 #+BEGIN_COMMENT
 Kawa considers modules in the same directory to belong to the same package.
