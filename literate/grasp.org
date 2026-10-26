@@ -1987,13 +1987,13 @@ functions during macro expansion, we need to resort to the
        #'(define-simple-class type-name (Cloneable)
            (slot-symbol . slot-spec)
            ...
-           ((assign source ::type-name)::void
+           ((assign! source ::type-name)::void
             (set! slot-symbol (slot-ref source 'slot-symbol))
             ...)
 
            ((clone)::Object
             (let ((copy (type-name)))
-              (invoke copy 'assign (this))
+              (invoke copy 'assign! (this))
               copy))
 
            ((prettyPrint port ::OutputPort)::void
@@ -9581,7 +9581,7 @@ As to the main part of the stub, it is defined as follows:
             (lambda ()
               (document:render! path layout)))
           (assert (path:empty?))
-          (layout:assign initial-layout)))))
+          (layout:assign! initial-layout)))))
 
   <<terminal-input-processing>>
 
@@ -10078,10 +10078,10 @@ are obviously going to refer to the methods ~splice!~ and
              (extracted ::Comb
                         (parent:extract! (- start 1) sub-start
                                          (- end 1) sub-end)))
-        (assert (equal? extracted elements))
+        (assert (equal? extracted:elements elements:elements))
         (cursor:push! start)
         (cursor:push! sub-start)
-        (InsertSlice elements cursor))))
+        (InsertSlice extracted cursor))))
 
 #+END_SRC
 
@@ -10755,6 +10755,8 @@ Finally we need some definition of the document's editor:
     (define-private (normalize-spaces s::string)::string
       (regex-replace* "\\s+" (regex-replace* "\n" s "") " "))
 
+    <<GRASP-Editor--definition>>
+
     (define (render!)::void
       (parameterize ((current-document document)
                      (current-cursor cursor))
@@ -10778,7 +10780,7 @@ Finally we need some definition of the document's editor:
             (lambda ()
               (document:render! path layout)))
           (assert (path:empty?))
-          (layout:assign initial-layout)))))
+          (layout:assign! initial-layout)))))
 
 #+END_SRC
 
@@ -10825,6 +10827,7 @@ This allows us to rephrase the test:
   (import (document editor))
   (import (document parsing))
   (import (utils tcp-output-server))
+  <<modular-editing-imports>>
 
   (given ((`(,program "-p" ,port) (command-line))
           ((every char-digit? port)))
@@ -10905,40 +10908,40 @@ earlier):
 
 #+BEGIN_SRC scheme :noweb-ref Textual--remaining-methods
   (define (cursor-under* x ::real y ::real
-  		       path ::Cursor
-  		       position ::LayoutState)
+                         path ::Cursor
+                         position ::LayoutState)
     ::(maybe Cursor)
     (escape-with return
       (let* ((font ::FontProxy (self font))
              (style ::BorderStyle (self border-style))
              (cursor ::Cursor (current-cursor))
              (border-width ::real
-  			 (painter:border-width style))
+                           (painter:border-width style))
              (border-height ::real
                             (painter:border-height style))
-  	   (line-height ::real (font:height))
-  	   (top ::real border-height)
-  	   (x ::int (- x position:left))
-  	   (y ::int (- y position:top))
-  	   (n ::int 0))
+             (line-height ::real (font:height))
+             (top ::real border-height)
+             (x ::int (- x position:left))
+             (y ::int (- y position:top))
+             (n ::int 0))
         (advance-layout! position)
         (cond
          ((or (is x < 0) (is x >= (width))
-  	    (is y < 0) (is y >= (height)))
-  	(return #!null))
+              (is y < 0) (is y >= (height)))
+          (return #!null))
          ((is y < border-height)
-  	(path:push! 0)
-  	(return path))
+          (path:push! 0)
+          (return path))
          (else
-  	(for line in: (lines builder)
-  	  (when (is top < y <= (+ top line-height))
-  	    (path:push! (+ n (painter:character-index
-  			      x line font)))
-  	    (return path))
-  	  (increase! top by: line-height)
-  	  (increase! n by: (+ (string-length line) 1)))
-  	(path:push! (last-index))
-  	(return path))))))
+          (for line in: (lines builder)
+            (when (is top < y <= (+ top line-height))
+              (path:push! (+ n (painter:character-index
+                                x line font)))
+              (return path))
+            (increase! top by: line-height)
+            (increase! n by: (+ (string-length line) 1)))
+          (path:push! (last-index))
+          (return path))))))
 
 #+END_SRC
 
@@ -10958,14 +10961,14 @@ height.
         (for i::int from: 0 to: last-index
            (let ((fragment ::int (fragments i)))
              (expand-layout! position (* space-width
-                                         fragment)
+                                         (max 0 fragment))
                              (painter:min-line-height))
              (when (is position:top <= y
                        < (+ position:top
                             position:line-height))
                (when (is position:left <= x
                          < (+ position:left
-                              (* space-width fragment)))
+                              (* space-width (max 0 fragment))))
                  (path:push! (nearby-int (/ (- x position:left)
                                             space-width)))
                  (return path))
@@ -10983,47 +10986,89 @@ need to check every element inside.
 
 #+BEGIN_SRC scheme :noweb-ref Comb--remaining-methods
   (define (cursor-under* x ::real y ::real
-                       path ::Cursor
-                       position ::LayoutState)
+                         path ::Cursor
+                         position ::LayoutState)
     ::(maybe Cursor)
     (escape-with return
       (let* ((state ::LayoutState (LayoutState))
              (cursor ::Cursor (current-cursor))
              (border-width ::real
-                         (painter:border-width style))
+                           (painter:border-width style))
              (border-height ::real
                             (painter:border-height style))
              (top ::real border-height)
              (x ::int (- x position:left))
              (y ::int (- y position:top))
-           (index ::int 1))
+             (index ::int 1))
         (cond
          ((or (is x < 0) (is x >= (width))
               (is y < 0) (is y >= (height)))
-        (return #!null))
+          (return #!null))
          ((or (is x < border-width)
               (is y < border-height))
-        (path:push! 0)
-        (return path))
+          (path:push! 0)
+          (return path))
          ((or (is x > (- (width) (* 2 border-width)))
-            (is y > (- (height) (* 2 border-height))))
-        (path:push! (last-index))
-        (return path))
+              (is y > (- (height) (* 2 border-height))))
+          (path:push! (last-index))
+          (return path))
          (else
-        (for element ::Element in: (this)
-             (path:push! index)
-             (given ((result ::Cursor
-                             (element:cursor-under*
-                              x y path state)))
-               (return result))
-             (path:pop!)
-             (increase! index by: 1))
-        (advance-layout! position)
-        (return #!null))))))
+          (for element ::Element in: (this)
+               (path:push! index)
+               (given ((result ::Cursor
+                               (element:cursor-under*
+                                x y path state)))
+                 (return result))
+               (path:pop!)
+               (increase! index by: 1))
+          (advance-layout! position)
+          (return #!null))))))
 #+END_SRC
 
 Of course, for these methods to be useful, we need to
-somehow hook them up to the host's event system.
+somehow hook them up to the host's event system.  In
+particular, we want ~Interactive~ things (such as the
+~Application~) to be able to handle the ~tap!~ method:
+
+#+BEGIN_SRC scheme :noweb-ref Interactive--definition
+  (tap! finger::byte #;at x::real y::real)::boolean
+#+END_SRC
+
+And in the case of the ~GRASP-Editor~, we want this method
+to set the current ~cursor~ as the ~cursor-under*~ the given
+pointer coordinate:
+
+#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--definition
+  (define (tap! finger::byte #;at x::real y::real)::boolean
+    (given ((new-cursor ::Cursor (document:cursor-under*
+                                  x y path layout)))
+      (cursor:assign! new-cursor)
+      (new-cursor:clear!)
+      (layout:assign! initial-layout)
+      #true))
+
+#+END_SRC
+
+Still, we need the underlying event system to be able to
+invoke that method. As we noted many times before, GRASP is
+supposed to work in a variety of environments -- and not all
+of them provide ~click~ or ~tap~ events. Therefore we need
+to be able to process raw events (such as pressing and
+releasing the mouse button) and turn them into higher-level
+events.
+
+
+
+#+BEGIN_SRC scheme :tangle input/pointer.scm
+  <<header>>
+  (module-name (input pointer))
+  (import (language-extensions))
+  
+#+END_SRC
+
+
+
+
 
 #+BEGIN_COMMENT
 Kawa considers modules in the same directory to belong to the same package.
