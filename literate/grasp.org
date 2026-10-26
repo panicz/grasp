@@ -4677,7 +4677,7 @@ day in the future.
 
     (define (depth)::int
       (size))
-    
+
     (define (pop!)::Object
       (remove (- (size) 1)))
 
@@ -4700,7 +4700,7 @@ day in the future.
 
     (define (clear!)::void
       (clear))
-    
+
     (ArrayList))
 
   (define-object (ConsStack)::Stack
@@ -4729,7 +4729,7 @@ day in the future.
 
     (define (clear!)::void
       (set! tip '()))
-    
+
     (define (pop!)::Object
       (let ((result (car tip)))
         (set! tip (cdr tip))
@@ -8581,10 +8581,9 @@ rendering. Those two aspects brought together --
 interactivity and renderability -- form the concept
 of an ~Application~:
 
-#+BEGIN_SRC scheme :noweb-ref GRASP-ontology
+#+BEGIN_SRC scheme :noweb-ref GRASP-interactivity :noweb no-export
   (define-interface Interactive ()
-    (key-typed! key-code::KeyCode)::boolean
-    <<Interactive--definition>>)
+    (key-typed! key-code::KeyCode)::boolean)
 
   (define-interface Application (Interactive)
     (render!)::void)
@@ -8734,6 +8733,8 @@ keys (for moving the cursor left and right), and to the
   (define painter ::Painter (TextPainter))
 
   <<GRASP-ontology>>
+
+  <<GRASP-interactivity>>
 
   (define-interface Element (Visual Cloneable)
     <<Element--cursor-operations>>
@@ -9441,7 +9442,7 @@ are empty at the moment, and they will be filled later.
 As to the main part of the stub, it is defined as follows:
 
 #+HEADER: :shebang "#!/bin/sh" :mkdirp yes :noweb no-export
-#+BEGIN_SRC scheme :tangle test/interactive/editing.scm 
+#+BEGIN_SRC scheme :tangle test/interactive/editing.scm :noweb-scope ***
   #| -*- scheme -*-
   exec java -cp "$(dirname "$0")/../../../libs/kawa.jar"\
   :"$(dirname "$0")/../../../libs/lanterna-3.2.0-SNAPSHOT.jar"\
@@ -9464,6 +9465,8 @@ As to the main part of the stub, it is defined as follows:
   (define painter ::Painter (TextPainter))
 
   <<GRASP-ontology>>
+
+  <<GRASP-interactivity>>
 
   (define-interface Element (Visual Cloneable)
     (serialize port ::OutputPort indent ::int)::void
@@ -10601,6 +10604,13 @@ to out document model, which consists of the
 
   <<GRASP-ontology>>
 
+  (define-interface Interactive ()
+    (key-typed! key-code::KeyCode)::boolean
+    <<Interactive--definition>>)
+
+  (define-interface Application (Interactive)
+    (render!)::void)
+
   (define-parameter (current-document)::Element
     #!null)
 
@@ -10880,8 +10890,8 @@ coordinates:
 
 #+BEGIN_SRC scheme :noweb-ref Element--remaining-methods
   (cursor-under* x ::real y ::real path ::Cursor
-  	       position ::LayoutState)
-  ::(Maybe Cursor)
+                 position ::LayoutState)
+  ::(maybe Cursor)
 #+END_SRC
 
 Of course, we need to provide implementations of this method
@@ -10897,10 +10907,10 @@ earlier):
   (define (cursor-under* x ::real y ::real
   		       path ::Cursor
   		       position ::LayoutState)
-    ::(Maybe Cursor)
+    ::(maybe Cursor)
     (escape-with return
-      (let* ((font ::FontProxy (font))
-             (style ::BorderStyle (border-style))
+      (let* ((font ::FontProxy (self font))
+             (style ::BorderStyle (self border-style))
              (cursor ::Cursor (current-cursor))
              (border-width ::real
   			 (painter:border-width style))
@@ -10939,31 +10949,32 @@ height.
 
 #+BEGIN_SRC scheme :noweb-ref Space--remaining-methods
   (define (cursor-under* x ::real y ::real
-  		       path ::Cursor
-  		       position ::LayoutState)
-    ::(Maybe Cursor)
+                       path ::Cursor
+                       position ::LayoutState)
+    ::(maybe Cursor)
     (escape-with return
       (let ((last-index ::int (- (fragments:size) 1))
-  	  (space-width ::int (painter:space-width)))
+          (space-width ::int (painter:space-width)))
         (for i::int from: 0 to: last-index
-  	   (let ((fragment ::int (fragments i)))
-  	     (expand-layout! position (* space-width
-  					 fragment))
-  	     (when (is position:top <= y
-  		       < (+ position:top
-  			    position:line-height))
-  	       (when (is position:left <= x
-  			 < (+ position:left
-  			      (* space-width fragment)))
-  		 (path:push! (nearby-int (/ (- x position:left)
-  					    space-width)))
-  		 (return path))
-  	       (unless (= i last-index)
-  		 (path:push! fragment)
-  		 (return path))
-  	       (return #!null)))
-  	   (unless (= i last-index)
-  	     (break-layout! position))))))
+           (let ((fragment ::int (fragments i)))
+             (expand-layout! position (* space-width
+                                         fragment)
+                             (painter:min-line-height))
+             (when (is position:top <= y
+                       < (+ position:top
+                            position:line-height))
+               (when (is position:left <= x
+                         < (+ position:left
+                              (* space-width fragment)))
+                 (path:push! (nearby-int (/ (- x position:left)
+                                            space-width)))
+                 (return path))
+               (unless (= i last-index)
+                 (path:push! fragment)
+                 (return path))
+               (return #!null)))
+           (unless (= i last-index)
+             (break-layout! position))))))
 #+END_SRC
 
 In the case of ~Comb~, we need to check whether the pointer
@@ -10972,46 +10983,43 @@ need to check every element inside.
 
 #+BEGIN_SRC scheme :noweb-ref Comb--remaining-methods
   (define (cursor-under* x ::real y ::real
-  		       path ::Cursor
-  		       position ::LayoutState)
-    ::(Maybe Cursor)
+                       path ::Cursor
+                       position ::LayoutState)
+    ::(maybe Cursor)
     (escape-with return
-      (let* ((font ::FontProxy (font))
-  	   (state ::LayoutState (LayoutState))
-             (style ::BorderStyle (border-style))
+      (let* ((state ::LayoutState (LayoutState))
              (cursor ::Cursor (current-cursor))
              (border-width ::real
-  			 (painter:border-width style))
+                         (painter:border-width style))
              (border-height ::real
                             (painter:border-height style))
-  	   (line-height ::real (font:height))
-  	   (top ::real border-height)
-  	   (x ::int (- x position:left))
-  	   (y ::int (- y position:top))
-  	   (index ::int 1))
+             (top ::real border-height)
+             (x ::int (- x position:left))
+             (y ::int (- y position:top))
+           (index ::int 1))
         (cond
          ((or (is x < 0) (is x >= (width))
-  	    (is y < 0) (is y >= (height)))
-  	(return #!null))
+              (is y < 0) (is y >= (height)))
+        (return #!null))
          ((or (is x < border-width)
-  	    (is y < border-height))
-  	(path:push! 0)
-  	(return path))
+              (is y < border-height))
+        (path:push! 0)
+        (return path))
          ((or (is x > (- (width) (* 2 border-width)))
-  	    (is y > (- (height) (* 2 border-height))))
-  	(path:push! (last-index))
-  	(return path))
+            (is y > (- (height) (* 2 border-height))))
+        (path:push! (last-index))
+        (return path))
          (else
-  	(for element ::Element in: (this)
-  	     (path:push! index)
-  	     (given ((result ::Cursor
-  			     (element:cursor-under*
-  			      x y path state)))
-  	       (return result))
-  	     (path:pop!)
-  	     (increase! index by: 1))
-  	(advance-layout! position)
-  	(return #!null))))))
+        (for element ::Element in: (this)
+             (path:push! index)
+             (given ((result ::Cursor
+                             (element:cursor-under*
+                              x y path state)))
+               (return result))
+             (path:pop!)
+             (increase! index by: 1))
+        (advance-layout! position)
+        (return #!null))))))
 #+END_SRC
 
 Of course, for these methods to be useful, we need to
@@ -11022,7 +11030,7 @@ Kawa considers modules in the same directory to belong to the same package.
 java -Dkawa.immediate.shared-loader=true -jar ../libs/kawa.jar test/foo.scm
 #+END_COMMENT
 
-#+LATEX: \appendix
+#+LATEX: c \appendix
 * Appendices
 
 This section contains code that is too lengthy to be
@@ -12259,7 +12267,8 @@ have very little idea about what's going on in here.
 #+NAME: noweb-scope
 #+BEGIN_SRC emacs-lisp :tangle no :results none
   (unless (assq 'noweb-scope org-babel-common-header-args-w-values)
-    (push '(noweb-scope . ((buffer preceding)   ; positional, mutually exclusive
+    (push '(noweb-scope . ((buffer preceding * ** *** **** *****)
+                                                ; positional, mutually exclusive
                            (subtree)))          ; structural, orthogonal
           org-babel-common-header-args-w-values)
     (push '(noweb-override . ((no yes))) org-babel-common-header-args-w-values)
@@ -12273,6 +12282,22 @@ have very little idea about what's going on in here.
       (let ((beg (point-min)) (end (point-max)))
         (when (member "preceding" scope)
           (setq end (min end start)))
+        ;; A scope of "*", "**", ... reaches to the end of the nearest
+        ;; enclosing headline of that level: like "preceding", but measured
+        ;; at the end of one's own section rather than at one's own position.
+        (let ((level (car (delq nil (mapcar (lambda (token)
+                                              (and (string-match "\\`\\*+\\'" token)
+                                                   (length token)))
+                                            scope)))))
+          (when level
+            (org-with-point-at start
+              (unless (org-before-first-heading-p)
+                (org-back-to-heading t)
+                (while (> (org-current-level) level)
+                  (org-up-heading-safe))
+                (setq end (min end (save-excursion
+                                     (org-end-of-subtree t t)
+                                     (point))))))))
         (when (member "subtree" scope)
           (org-with-point-at start
             (unless (org-before-first-heading-p)
