@@ -9145,6 +9145,15 @@ going to pass it through a /parameter/ called
   
 #+END_SRC
 
+We also want to have an interface that can be employed for
+entities that support keyboard:
+
+#+BEGIN_SRC scheme :tangle input/keyboard.scm
+  (define-interface SupportsKeyboard ()
+    (key-typed! key-code::KeyCode)::boolean)
+  
+#+END_SRC
+
 The most important part of the mapping is the table that
 provides unified names to the event values represented in
 the different APIs. This is achieved through the
@@ -9857,13 +9866,6 @@ wrap the entire expression inside ~ExpressionComment~:
                           new-expression ::Tile
                           cursor ::Cursor)
     ::Edit
-    ;; The ~cursor~ points /at/ the replaced expression, from
-    ;; within its parent -- that is what ~perform!~ needs in
-    ;; order to find it.  The caret, on the other hand, belongs
-    ;; at the end of whatever expression is in that place now,
-    ;; which is one ~climb-back!~ deeper (and deeper by an
-    ;; amount that depends on the expression), so the two must
-    ;; not share a cursor.
     (define-internal (position)::Cursor
       (let ((caret ::Cursor (copy cursor)))
         (caret:climb-back! (current-document))
@@ -10601,12 +10603,14 @@ to out document model, which consists of the
   (import (language-extensions))
   (import (painter interface))
   (import (input keyboard))
+  <<document/elements:dependencies>>
 
   <<GRASP-ontology>>
 
-  (define-interface Interactive ()
-    (key-typed! key-code::KeyCode)::boolean
-    <<Interactive--definition>>)
+  (define-interface Interactive
+    (SupportsKeyboard
+     <<interaction-capabilities>>
+     ))
 
   (define-interface Application (Interactive)
     (render!)::void)
@@ -10978,6 +10982,7 @@ height.
                (return #!null)))
            (unless (= i last-index)
              (break-layout! position))))))
+  
 #+END_SRC
 
 In the case of ~Comb~, we need to check whether the pointer
@@ -11023,18 +11028,53 @@ need to check every element inside.
                (increase! index by: 1))
           (advance-layout! position)
           (return #!null))))))
+  
 #+END_SRC
 
 Of course, for these methods to be useful, we need to
 somehow hook them up to the host's event system.  In
 particular, we want ~Interactive~ things (such as the
-~Application~) to be able to handle the ~tap!~ method:
+~Application~) to support pointing devices:
 
-#+BEGIN_SRC scheme :noweb-ref Interactive--definition
-  (tap! finger::byte #;at x::real y::real)::boolean
+#+BEGIN_SRC scheme :noweb-ref interaction-capabilities
+  SupportsPointingDevice
 #+END_SRC
 
-And in the case of the ~GRASP-Editor~, we want this method
+where the support for pointing devices requires the ~tap!~
+method, but also the ~double-tap!~ method, the ~press!~
+method, the ~second-press!~ method and the ~long-press!~
+method (and the definition of the interface will go to a new
+module):
+
+#+BEGIN_SRC scheme :tangle input/pointing-devices.scm :noweb no-export
+  <<header>>
+  (module-name (input pointing-devices))
+  (import (language-extensions))
+  <<input/pointing-devices:dependencies>>
+
+  (define-interface SupportsPointingDevice ()
+    (tap! finger::byte #;at x::real y::real)::boolean
+    (double-tap! finger::byte #;at x::real y::real)::boolean
+    (press! finger::byte #;at x::real y::real)::boolean
+    (second-press! finger::byte #;at x::real y::real)::boolean
+    (long-press! finger::byte #;at x::real y::real)::boolean
+    )
+
+  (define-interface SupportsPointerMovement (SupportsPointingDevice)
+    (move! finger::byte x::real y::real dx::real dy::real)::boolean
+    (release! finger::byte x::real y::real vx::real vy::real)::boolean
+    )
+
+#+END_SRC
+
+The ~(input pointing-devices)~ module needs to be included
+by the ~(document elements)~ module:
+
+#+BEGIN_SRC scheme :noweb-ref document/elements:dependencies
+  (import (input pointing-devices))
+#+END_SRC
+
+In the case of the ~GRASP-Editor~, we want the ~tap!~ method
 to set the current ~cursor~ as the ~cursor-under*~ the given
 pointer coordinate:
 
@@ -11057,13 +11097,182 @@ to be able to process raw events (such as pressing and
 releasing the mouse button) and turn them into higher-level
 events.
 
+Naively it would seem that detecting a tap would be as
+simple as detecting a press followed by a release, but if
+we'd also want to detect other events, such as a long press
+or a double tap, we need a slightly more elaborate component.
 
+Moreover, in order to describe movements, we may need to
+track the ~last-known-pointer-position~ -- or actually more
+of them, because some of our targets can support up to 10
+concurrent pointers (which is the case for Android).
 
-#+BEGIN_SRC scheme :tangle input/pointer.scm
-  <<header>>
-  (module-name (input pointer))
-  (import (language-extensions))
+#+BEGIN_SRC scheme :tangle input/pointing-devices.scm :noweb no-export
+  (define-type (Position left: real := 0
+                         top: real := 0))
+
+  (define-early-constant last-known-pointer-position
+    ((array-of Position)
+     (Position left: 0 top: 0)
+     (Position left: 0 top: 0)
+     (Position left: 0 top: 0)
+     (Position left: 0 top: 0)
+     (Position left: 0 top: 0)
+     (Position left: 0 top: 0)
+     (Position left: 0 top: 0)
+     (Position left: 0 top: 0)
+     (Position left: 0 top: 0)
+     (Position left: 0 top: 0)))
+
+#+END_SRC
+
+For every pointer in the system, we're going to have a
+~TouchEventProcessor~ that's going to receive raw input
+events, and generate derivative events (such as a long press
+or a double tap):
+
+#+BEGIN_SRC scheme :tangle input/pointing-devices.scm
+(define-object (TouchEventProcessor finger::byte
+				    target::SupportsPointerMovement
+				    run::Postponed)
   
+  (define-static (distance x1::real y1::real x2::real y2::real)::real
+    (hypotenuse (- x2 x1) (- y2 y1)))
+
+  (define-private last-known-position ::Position
+    (last-known-pointer-position finger))
+  
+  (define-private x0 ::real +nan.0)
+  (define-private y0 ::real +nan.0)
+
+  (define-private vx ::float 0.0)
+  (define-private vy ::float 0.0)
+
+  (define-private dx ::real +nan.0)
+  (define-private dy ::real +nan.0)
+  
+  (define vicinity ::real 1.0)
+  
+  (define-private suppressed-presses ::byte 0)
+  
+  (define-private press-time-ms ::real -inf.0)
+  
+  (define-private release-time-ms ::real -inf.0)
+
+  (define-private move-time-ms ::real -inf.0)
+
+  (define long-press-time-ms ::real 700)
+
+  (define double-tap-timeout-ms ::real 350)
+  
+  (define-private timeout ::Cancellable cancellable-nothing)
+
+  (define (move! x::real y::real time-ms::real)::boolean
+    (cond
+     ((zero? suppressed-presses)
+      (set! timeout (timeout:cancel))
+      (let ((delta-ms ::real (- time-ms move-time-ms)))
+	(set! dx (- x last-known-position:left))
+	(set! dy (- y last-known-position:top))
+	(set! vx (/ dx delta-ms))
+	(set! vy (/ dy delta-ms))
+	(set! last-known-position:left x)
+	(set! last-known-position:top y)
+	(set! move-time-ms time-ms)
+	(target:move! finger x y dx dy)))
+     
+     ((is (distance x0 y0 x y) > vicinity)
+      (set! timeout (timeout:cancel))
+      (let ((suppressed ::int suppressed-presses))
+	(set! suppressed-presses 0)
+	(begin/or
+	 (if (is suppressed >= 2)
+	     (target:second-press! finger x0 y0)
+	     (target:press! finger x0 y0))
+	 (target:move! finger x0 y0 0 0)
+	 (target:move! finger x y (- x x0) (- y y0)))))
+     
+     (else
+      #f)))
+
+  (define (press! x::real y::real time-ms::real)::boolean
+    (set! timeout (timeout:cancel))
+    (set! last-known-position:left x)
+    (set! last-known-position:top y)
+    (set! vx 0)
+    (set! vy 0)
+    (set! press-time-ms time-ms)
+    (set! move-time-ms time-ms)
+
+    (match suppressed-presses
+      (0 (set! suppressed-presses 1)
+	 (set! x0 x)
+	 (set! y0 y)
+	 (set! timeout
+	       (run:after
+		long-press-time-ms
+		(lambda ()
+		  (set! suppressed-presses 0)
+		  (target:long-press! finger x0 y0))))
+	 #f)
+      (1 (cond
+	  ((is (distance x0 y0 x y) <= vicinity)
+	   (set! suppressed-presses 2)
+	   #f)
+	  (else
+	   (let ((x0- x0)
+		 (y0- y0))
+	     (set! x0 x)
+	     (set! y0 y)
+	     (target:tap! finger x0- y0-)))))))
+
+  (define (release! x::real y::real time-ms::real)::boolean
+    (set! timeout (timeout:cancel))
+    (match suppressed-presses
+      (0 (target:release! finger x y vx vy))
+      (1 (set! timeout
+	       (run:after
+		double-tap-timeout-ms
+		(lambda ()
+		  (set! suppressed-presses 0)
+		  (target:tap! finger x0 y0))))
+	 #f)
+      (2 (set! suppressed-presses 0)
+	 (target:double-tap! finger x y))))
+
+  )
+
+#+END_SRC
+
+We can see that one of the arguments to the
+~TouchEventProcessor~ (called ~run~) can schedule the run of
+a given procedure ~after~ a desired amount of time, and that
+it returns a handle of that schedule that can be used to
+~cancel~ it:
+
+#+BEGIN_SRC scheme :tangle input/posponed.scm :noweb no-export
+  <<header>>
+  (module-name (input postponed))
+  (import (language-extensions))
+
+  (define-interface Cancellable ()
+    (cancel)::Cancellable)
+
+  (define-object (CancellableNothing)::Cancellable
+    (define (cancel)::Cancellable
+      (this)))
+
+  (define-early-constant cancellable-nothing ::Cancellable
+    (CancellableNothing))
+
+  (define-interface Postponed ()
+    (after delay-ms::long action::procedure)::Cancellable)
+
+#+END_SRC
+
+
+#+BEGIN_SRC scheme :noweb-ref input/pointing-devices:dependencies
+  (import (input postponed))
 #+END_SRC
 
 
