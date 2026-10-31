@@ -6080,13 +6080,14 @@ Therefore we need an object that would represent the current
                 left: real := 0
                 top: real := 0
                 max-width: real := 0
-                line-height: real := (painter:min-line-height)))
+                line-height: real := 0))
 
-  (define (break-layout! state ::LayoutState)::void
+  (define (break-layout! state ::LayoutState
+                         min-line-height ::real)::void
     (maximize! state:max-width state:left)
     (set! state:left 0)
     (increase! state:top by: state:line-height)
-    (set! state:line-height (painter:min-line-height)))
+    (set! state:line-height min-line-height))
 
   (define (expand-layout! state ::LayoutState width ::real height ::real)::void
     (increase! state:left by: width)
@@ -6417,7 +6418,7 @@ everything, we can provide a /partial implementation/.
                              (* (max 0 n) (painter:space-width))
                              (painter:min-line-height))
              (unless (= i last-index)
-               (break-layout! state))
+               (break-layout! state (painter:min-line-height)))
              (increase! index by: (index-positions n))))))
 
   (define (advance-layout! state ::LayoutState)::void
@@ -6427,7 +6428,7 @@ everything, we can provide a /partial implementation/.
              (expand-layout! state (* (max 0 n) (painter:space-width))
                              (painter:min-line-height))
              (unless (= i last-index)
-               (break-layout! state))))))
+               (break-layout! state (painter:min-line-height)))))))
 
 #+END_SRC
 
@@ -6807,7 +6808,7 @@ units in GRASP
 
     (define (advance-layout! state ::LayoutState)::void
       (expand-layout! state (self width) (self height))
-      (break-layout! state))
+      (break-layout! state (painter:min-line-height)))
 
     (Textual))
 
@@ -9435,7 +9436,7 @@ of ~<<TextualSubclasses--rendering>>~ and
 
     (define (advance-layout! state ::LayoutState)::void
       (expand-layout! state (self width) (self height))
-      (break-layout! state))
+      (break-layout! state (painter:min-line-height)))
 
     <<LineComment--editing>>
 
@@ -10601,19 +10602,8 @@ to out document model, which consists of the
   <<header>>
   (module-name (document elements))
   (import (language-extensions))
-  (import (painter interface))
-  (import (input keyboard))
-  <<document/elements:dependencies>>
 
   <<GRASP-ontology>>
-
-  (define-interface Interactive
-    (SupportsKeyboard
-     <<interaction-capabilities>>
-     ))
-
-  (define-interface Application (Interactive)
-    (render!)::void)
 
   (define-parameter (current-document)::Element
     #!null)
@@ -10639,8 +10629,6 @@ to out document model, which consists of the
       (call-with-output-string
         (lambda (port)
           (serialize port 0)))))
-
-  (define-interface Enchanted (Interactive Tile))
 
 #+END_SRC
 
@@ -10687,8 +10675,8 @@ to out document model, which consists of the
 
 #+END_SRC
 
-We also need a stub of a module that implements the
-extension mechanism.
+In order for the parser module to build, we're going to need
+a stub of a module that implements the extension mechanism.
 
 #+BEGIN_SRC scheme :noweb-ref Extensions--implementation
   (define (enchanted item ::Tile path ::Stack)::Tile
@@ -10696,14 +10684,57 @@ extension mechanism.
  
 #+END_SRC
 
+That module is also the right home for the ~Enchanted~
+interface, which is eventually going to be used as a return
+type of the ~enchanted~ procedure:
+
 #+BEGIN_SRC scheme :tangle document/extensions.scm :mkdirp yes :noweb no-export
   <<header>>
   (module-name (document extensions))
   (import (language-extensions))
+  (import (input interaction))
   (import (document elements))
+
+  (define-interface Enchanted (Interactive Tile))
 
   <<Extensions--implementation>>
 #+END_SRC
+
+As you can see, it refers to the ~(input interaction)~
+module that is supposed to define the ~Interactive~
+interface, as well as the ~Application~ interface whose
+glimpse we've already seen. Currently our input devices are
+limited to keyboard, but this will change soon.
+
+#+BEGIN_SRC scheme :tangle input/interaction.scm :noweb no-export
+  <<header>>
+  (module-name (input interaction))
+  (import (language-extensions))
+  (import (input keyboard))
+  <<input/interaction:dependencies>>
+
+  (define-interface Interactive
+    (SupportsKeyboard
+     <<interaction-capabilities>>
+     ))
+
+  (define-interface Application
+    (Interactive
+     <<application-capabilities>>)
+    (render!)::void)
+
+  (define-object (IgnoreInput)::Interactive
+    (define (key-typed! key-code::KeyCode)::boolean #f)
+    <<IgnoreInput--definition>>
+    )
+
+  (define-object (ConsumeInput)::Interactive
+    (define (key-typed! key-code::KeyCode)::boolean #t)
+    <<ConsumeInput--definition>>
+    )
+
+#+END_SRC
+
 
 We also need a module to contain the parser and the ~Edit~
 operations:
@@ -10728,7 +10759,9 @@ Finally we need some definition of the document's editor:
   (import (painter interface))
   (import (input keyboard))
   (import (kawa regex))
+  (import (input interaction))
   (import (document elements))
+  (import (document extensions))
   (import (document model))
 
   (define-object (Document)
@@ -10784,7 +10817,9 @@ Finally we need some definition of the document's editor:
             (lambda ()
               (document:render! path layout)))
           (assert (path:empty?))
-          (layout:assign! initial-layout)))))
+          (layout:assign! initial-layout))))
+
+    <<GRASP-Editor--base-class>>)
 
 #+END_SRC
 
@@ -10803,7 +10838,7 @@ in the terminal:
   (import (utils debug))
   (import (painter interface))
   (import (painter terminal))
-  (import (document elements))
+  (import (input interaction))
 
   <<terminal-rendering>>
   <<terminal-input-processing>>
@@ -10827,11 +10862,11 @@ This allows us to rephrase the test:
   (import (painter interface))
   (import (painter terminal))
   (import (terminal runner))
-  (import (document elements))
+  (import (input interaction))
   (import (document editor))
   (import (document parsing))
   (import (utils tcp-output-server))
-  <<modular-editing-imports>>
+  <<test/interactive/modular-editing:dependencies>>
 
   (given ((`(,program "-p" ,port) (command-line))
           ((every char-digit? port)))
@@ -10839,9 +10874,6 @@ This allows us to rephrase the test:
       (set! (current-output-port) tcp-server)
       (set! (current-error-port) tcp-server)))
 
-  ;; The painter has to be installed before the editor is
-  ;; built, because ~LayoutState~ asks it for the line height
-  ;; in its field initializers.
   (define terminal ::LanternaScreen (make-terminal-screen))
 
   (initialize-painter! (TerminalPainter terminal))
@@ -10981,7 +11013,7 @@ height.
                  (return path))
                (return #!null)))
            (unless (= i last-index)
-             (break-layout! position))))))
+             (break-layout! position (painter:min-line-height)))))))
   
 #+END_SRC
 
@@ -11060,23 +11092,84 @@ module):
     (long-press! finger::byte #;at x::real y::real)::boolean
     )
 
+#+END_SRC
+
+Mind that the extension of the ~Interactive~ interface requires
+that we also provide the implementations of the required methods
+to the ~IgnoreInput~ implementation:
+
+#+BEGIN_SRC scheme :noweb-ref IgnoreInput--definition
+  (define (tap! finger::byte #;at x::real y::real)::boolean #f)
+  (define (double-tap! finger::byte #;at x::real y::real)::boolean #f)
+  (define (press! finger::byte #;at x::real y::real)::boolean #f)
+  (define (second-press! finger::byte #;at x::real y::real)::boolean #f)
+  (define (long-press! finger::byte #;at x::real y::real)::boolean #f)
+#+END_SRC
+
+and the ~ConsumeInput~ implementation (which may prove to be
+useful once we start developing extensions):
+
+#+BEGIN_SRC scheme :noweb-ref ConsumeInput--definition
+    (define (tap! finger::byte #;at x::real y::real)::boolean #t)
+    (define (double-tap! finger::byte #;at x::real y::real)::boolean #t)
+    (define (press! finger::byte #;at x::real y::real)::boolean #t)
+    (define (second-press! finger::byte #;at x::real y::real)::boolean #t)
+    (define (long-press! finger::byte #;at x::real y::real)::boolean #t)
+#+END_SRC
+
+Moreover, the ~(input interaction)~ now depends on ~(input
+pointing-devices)~:
+
+#+BEGIN_SRC scheme :noweb-ref input/interaction:dependencies
+  (import (input pointing-devices))
+#+END_SRC
+
+In the case of ~Application~, we're also going to want it to
+support pointer movements (for reasons that are going to
+become clearer later).
+
+#+BEGIN_SRC scheme :tangle input/pointing-devices.scm :noweb no-export
   (define-interface SupportsPointerMovement (SupportsPointingDevice)
     (move! finger::byte x::real y::real dx::real dy::real)::boolean
     (release! finger::byte x::real y::real vx::real vy::real)::boolean
     )
-
+  
 #+END_SRC
 
-The ~(input pointing-devices)~ module needs to be included
-by the ~(document elements)~ module:
-
-#+BEGIN_SRC scheme :noweb-ref document/elements:dependencies
-  (import (input pointing-devices))
+#+BEGIN_SRC scheme :noweb-ref application-capabilities
+  SupportsPointerMovement
 #+END_SRC
 
-In the case of the ~GRASP-Editor~, we want the ~tap!~ method
-to set the current ~cursor~ as the ~cursor-under*~ the given
-pointer coordinate:
+We're also going to provide a ~TrivialApplication~ that
+could be used as a base for all applications:
+
+#+BEGIN_SRC scheme :tangle input/interaction.scm :noweb no-export
+  (define-object (TrivialApplication)::Application
+    (define (render!)::void
+      #!abstract)
+
+    (define (move! finger::byte x::real y::real dx::real dy::real)::boolean
+      #f)
+
+    (define (release! finger::byte x::real y::real vx::real vy::real)::boolean
+      #f)
+
+    (IgnoreInput))
+  
+#+END_SRC
+
+and make ~GRASP-Editor~ inherit from it, so that we don't
+have to worry about implementing methods that we don't care
+about yet:
+
+#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--base-class
+  (TrivialApplication)
+#+END_SRC
+
+However, at this moment we do want a non-tivial
+implementation of the ~tap!~ method, which is going to be
+expected to set the current ~cursor~ as the ~cursor-under*~
+the given pointer coordinate:
 
 #+BEGIN_SRC scheme :noweb-ref GRASP-Editor--definition
   (define (tap! finger::byte #;at x::real y::real)::boolean
@@ -11098,9 +11191,10 @@ releasing the mouse button) and turn them into higher-level
 events.
 
 Naively it would seem that detecting a tap would be as
-simple as detecting a press followed by a release, but if
-we'd also want to detect other events, such as a long press
-or a double tap, we need a slightly more elaborate component.
+simple as detecting a press followed by a release, but as we
+have seen in the ~SupportsPointingDevice~ interface, we also
+want to detect other events, such as a long press or a
+double tap, so we need a slightly more elaborate component.
 
 Moreover, in order to describe movements, we may need to
 track the ~last-known-pointer-position~ -- or actually more
@@ -11250,7 +11344,7 @@ a given procedure ~after~ a desired amount of time, and that
 it returns a handle of that schedule that can be used to
 ~cancel~ it:
 
-#+BEGIN_SRC scheme :tangle input/posponed.scm :noweb no-export
+#+BEGIN_SRC scheme :tangle input/postponed.scm :noweb no-export
   <<header>>
   (module-name (input postponed))
   (import (language-extensions))
@@ -11270,12 +11364,16 @@ it returns a handle of that schedule that can be used to
 
 #+END_SRC
 
+Therefore the ~(input pointing-devices)~ module depends on
+the ~(input postponed)~ module.
 
 #+BEGIN_SRC scheme :noweb-ref input/pointing-devices:dependencies
   (import (input postponed))
 #+END_SRC
 
-
+Of course, ~Postponed~ and ~Cancellable~ are only
+interfaces, and they need to be implemented by the
+particular front-ends of GRASP.
 
 
 
