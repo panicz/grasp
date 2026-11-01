@@ -834,6 +834,11 @@ our code:
   (define-alias IntStream java.util.stream.IntStream)
 
   (define-alias Thread java.lang.Thread)
+  (define-alias BlockingQueue java.util.concurrent.BlockingQueue)
+  (define-alias ThreadPool java.util.concurrent.ScheduledThreadPoolExecutor)
+  (define-alias Scheduler java.util.concurrent.ScheduledExecutorService)
+  (define-alias ScheduledTask java.util.concurrent.ScheduledFuture)
+  (define-alias TimeUnit java.util.concurrent.TimeUnit)
 
   (define-alias Comparable java.lang.Comparable)
 
@@ -10723,6 +10728,16 @@ limited to keyboard, but this will change soon.
      <<application-capabilities>>)
     (render!)::void)
 
+#+END_SRC
+
+We also define two trivial implementations of the
+~Interactive~ interface. The protocol is that the return
+value #f means that the event has not been handled, whereas
+#t means that the event was handled. This will become
+significant later, when we start to lay elements over one
+another.
+
+#+BEGIN_SRC scheme :tangle input/interaction.scm :noweb no-export  
   (define-object (IgnoreInput)::Interactive
     (define (key-typed! key-code::KeyCode)::boolean #f)
     <<IgnoreInput--definition>>
@@ -10797,27 +10812,7 @@ Finally we need some definition of the document's editor:
     (define (render!)::void
       (parameterize ((current-document document)
                      (current-cursor cursor))
-
-        (let* ((f ::FontProxy (painter:text-font))
-               (w ::int (painter:draw-text! (cursor:toString) (painter:text-font))))
-          (painter:with-translation w 0
-            (lambda ()
-              (let ((target ::Element (cursor:target)))
-                (painter:draw-text! (string-append
-                                     " "
-                                     (*:getName (target:getClass))
-                                     "@"
-                                     (number->string (target:hashCode) 16)
-                                     ": "
-                                     (match target
-                                       (space::Space (space:fragments:toString))
-                                       (_ (normalize-spaces (target:toString)))))
-                                    (painter:text-font)))))
-          (painter:with-translation 0 (f:height)
-            (lambda ()
-              (document:render! path layout)))
-          (assert (path:empty?))
-          (layout:assign! initial-layout))))
+        (document:render! path layout)))
 
     <<GRASP-Editor--base-class>>)
 
@@ -10839,6 +10834,7 @@ in the terminal:
   (import (painter interface))
   (import (painter terminal))
   (import (input interaction))
+  <<terminal/runner:dependencies>>
 
   <<terminal-rendering>>
   <<terminal-input-processing>>
@@ -11344,9 +11340,9 @@ a given procedure ~after~ a desired amount of time, and that
 it returns a handle of that schedule that can be used to
 ~cancel~ it:
 
-#+BEGIN_SRC scheme :tangle input/postponed.scm :noweb no-export
+#+BEGIN_SRC scheme :tangle utils/scheduling-interface.scm :noweb no-export
   <<header>>
-  (module-name (input postponed))
+  (module-name (utils scheduling-interface))
   (import (language-extensions))
 
   (define-interface Cancellable ()
@@ -11365,16 +11361,176 @@ it returns a handle of that schedule that can be used to
 #+END_SRC
 
 Therefore the ~(input pointing-devices)~ module depends on
-the ~(input postponed)~ module.
+the ~(utils scheduling-interface)~ module.
 
 #+BEGIN_SRC scheme :noweb-ref input/pointing-devices:dependencies
-  (import (input postponed))
+  (import (utils scheduling-interface))
 #+END_SRC
 
 Of course, ~Postponed~ and ~Cancellable~ are only
 interfaces, and they need to be implemented by the
 particular front-ends of GRASP.
 
+In particular, we are going to override out previous
+definition of the ~<<terminal-input-processing>>~ block
+to also be able to handle the mouse.
+
+We want the events generated from ~TouchEventProcessor~ to
+be handled by in the same thread as other events. Since the
+Lanterna library doesn't provide us with the means to add
+events to its queue, we need to introduce another thread
+that is going to read events from the Lanterna queue and
+rewrite them to a shared queue, to which the
+~TouchEventProcessor~, and in particular its implementation
+of the ~Postponed~ interface, is going to add its events.
+
+#+BEGIN_SRC scheme :noweb-ref terminal-input-processing :noweb-override yes
+  (define (rewrite-events terminal::LanternaScreen
+  			queue::BlockingQueue)::void
+  			(while #t
+  			  (let ((event::KeyStroke
+  				 (terminal:readInput)))
+  			    (queue:put event))))
+
+  (define-object (CancellableScheduledFuture
+  		task::ScheduledFuture)
+    ::Cancellable
+    (define (cancel)::Cancellable
+      (task:cancel #f)
+      (this)))
+
+  (define-object (EventQueueScheduler queue::BlockingQueue)
+    ::Postponed
+    (define scheduler ::Scheduler (ThreadPool 1))
+
+    (define (after time/ms action)::Cancellable
+      (CancellableScheduledTask
+       (scheduler:schedule
+        (lambda () (queue:put action))
+        time/ms TimeUnit:MILLISECONDS)))
+    )
+
+  (define (edit application ::Application
+  	      terminal ::LanternaScreen
+  	      queue ::BlockingQueue)
+    ::void
+    (let* ((postpone ::Postponed (EventQueueScheduler queue))
+  	 (pointer ::TouchEventProcessor
+  		  (TouchEventProcessor
+  		   0 application
+  		   postpone vicinity: 1)))
+      (while #t
+        (safely
+         (let ((input (queue:take)))
+  	 (if (procedure? input)
+  	     (input)
+  	     (let* ((key ::KeyStroke input)
+  		    (type ::KeyType (key:getKeyType))
+  		    (caret ::TerminalPosition
+  			   (terminal:getCursorPosition)))
+  	       (match type
+  		 (,KeyType:MOUSE_EVENT
+  		  (let* ((action ::MouseAction
+  				 (as MouseAction key))
+  			 (position ::TerminalPosition
+  				   (action:getPosition))
+  			 (last-position::Position
+  			  (last-known-pointer-position 0))
+  			 (left (position:getColumn))
+  			 (top (position:getRow)))
+  		    (match (action:getActionType)
+  		      (,MouseActionType:MOVE
+  		       (set! last-position:left left)
+  		       (set! last-position:top top))
+  		      (,MouseActionType:CLICK_DOWN
+  		       (match (action:getButton)
+  			 (,MouseButton:Left
+  			  (pointer:press!
+  			   left top
+  			   (current-time-ms)))
+  			 (,MouseButton:Right
+  			  (set! last-position:left left)
+  			  (set! last-position:top top))
+  			 (,MouseButton:WheelUp
+  			  (set! last-position:left left)
+  			  (set! last-position:top top)
+  			  (application:key-typed!
+  			   (special-key-code
+  			    KeyType:PAGE_UP)))
+  			 (,MouseButton:WheelDown
+  			  (set! last-position:left left)
+  			  (set! last-position:top top)
+  			  (application:key-typed!
+  			   (special-key-code
+  			    KeyType:PAGE_DOWN)))
+  			 (_
+  			  (values))))
+  		      (,MouseActionType:DRAG
+  		       (pointer:move!
+  			left top
+  			(current-time-ms)))
+
+  		      (,MouseActionType:CLICK_RELEASE
+  		       (pointer:release!
+  			left top
+  			(current-time-ms)))
+  		      (,MouseActionType:SCROLL_UP
+  		       (set! last-position:left left)
+  		       (set! last-position:top top)
+  		       (application:key-typed!
+  			(special-key-code
+  			 KeyType:PAGE_UP)))
+  		      (,MouseActionType:SCROLL_DOWN
+  		       (set! last-position:left left)
+  		       (set! last-position:top top)
+  		       (application:key-typed!
+  			(special-key-code
+  			 KeyType:PAGE_DOWN)))
+  		      )))
+  		 (_
+  		  (parameterize ((unicode-input
+  				  (input-character key)))
+  		    (application:key-typed!
+  		     (scancode key))))))))         
+         (synchronized screen-up-to-date?
+  	 (set! (screen-up-to-date?) #f)
+  	 (invoke screen-up-to-date? 'notify))))
+      ))
+
+#+END_SRC
+
+Of course now that we require another thread, and the
+interface to running the ~edit~ procedure has changed, we
+also need to update the ~<<terminal-runner>>~:
+
+#+BEGIN_SRC scheme :noweb-ref terminal-runner :noweb-override yes
+  (define* (run application ::Application
+                terminal ::LanternaScreen
+  	      := (make-terminal-screen))
+    (with ((painter (TerminalPainter terminal)))
+      (with-terminal-screen terminal
+        (terminal:clear)
+        (terminal:refresh)
+        (let* ((event-queue ::BlockingQueue
+  			   (ArrayBlockingQueue 16))
+  	     (rewriting (future (rewrite-events
+  				 terminal event-queue)))
+  	     (editing (future (edit application terminal
+  				    event-queue)))
+               (rendering (future (render application
+  					terminal))))
+          (rendering:setPriority Thread:MIN_PRIORITY)
+          (force editing)))))
+
+#+END_SRC
+
+Lastly, we need to update the dependencies of the ~(terminal
+runner)~ module:
+
+#+BEGIN_SRC scheme :noweb-ref terminal/runner:dependencies
+  (import (input postponed))
+  (import (utils scheduling-interface))
+#+END_SRC
 
 
 #+BEGIN_COMMENT
