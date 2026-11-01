@@ -834,6 +834,7 @@ our code:
   (define-alias IntStream java.util.stream.IntStream)
 
   (define-alias Thread java.lang.Thread)
+  (define-alias ArrayBlockingQueue java.util.concurrent.ArrayBlockingQueue)
   (define-alias BlockingQueue java.util.concurrent.BlockingQueue)
   (define-alias ThreadPool java.util.concurrent.ScheduledThreadPoolExecutor)
   (define-alias Scheduler java.util.concurrent.ScheduledExecutorService)
@@ -8626,12 +8627,6 @@ The ~render!~ method is going to render the ~document~:
              #;(print "Unsupported key type: "type", key "key)))
           )))
 
-    ;; The first argument of ~render!~ is a scratch path that
-    ;; the renderer pushes onto and pops from as it descends,
-    ;; so it must not be the cursor itself: the rendering and
-    ;; the editing threads would then be mutating the same
-    ;; object, and the cursor would intermittently be observed
-    ;; in a state that is neither valid nor final.
     (define (render!)::void
       (parameterize ((current-document document)
                      (current-cursor cursor))
@@ -8797,12 +8792,6 @@ keys (for moving the cursor left and right), and to the
   (define-parameter (current-document)::Document
     (Document))
 
-  ;; Mind that the document cannot be parsed in the initializer
-  ;; of the parameter above: ~define-parameter~ expands to
-  ;; ~define-early-constant~, whose initializers run before the
-  ;; rest of the module body -- and therefore before
-  ;; ~atom-delimiters~ (an ordinary ~define-constant~ that the
-  ;; parser relies on) has been assigned.
   (set! (current-document)
         (call-with-input-string "
   (define (! n) ; int to int
@@ -9564,12 +9553,6 @@ As to the main part of the stub, it is defined as follows:
           (truly
            <<GRASP-key-typed>>))))
 
-    (define-private path ::Cursor (Cursor))
-
-    (define-private layout ::LayoutState (LayoutState))
-
-    (define-private initial-layout ::LayoutState (LayoutState))
-
     (define-private (normalize-spaces s::string)::string
       (regex-replace* "\\s+" (regex-replace* "\n" s "") " "))
 
@@ -9594,9 +9577,7 @@ As to the main part of the stub, it is defined as follows:
                                     (painter:text-font)))))
           (painter:with-translation 0 (f:height)
             (lambda ()
-              (document:render! path layout)))
-          (assert (path:empty?))
-          (layout:assign! initial-layout)))))
+              (document:render! (Cursor) (LayoutState))))))))
 
   <<terminal-input-processing>>
 
@@ -10798,12 +10779,6 @@ Finally we need some definition of the document's editor:
           (truly
            <<GRASP-key-typed>>))))
 
-    (define-private path ::Cursor (Cursor))
-
-    (define-private layout ::LayoutState (LayoutState))
-
-    (define-private initial-layout ::LayoutState (LayoutState))
-
     (define-private (normalize-spaces s::string)::string
       (regex-replace* "\\s+" (regex-replace* "\n" s "") " "))
 
@@ -10812,7 +10787,7 @@ Finally we need some definition of the document's editor:
     (define (render!)::void
       (parameterize ((current-document document)
                      (current-cursor cursor))
-        (document:render! path layout)))
+        (document:render! (Cursor) (LayoutState))))
 
     <<GRASP-Editor--base-class>>)
 
@@ -10823,7 +10798,7 @@ far, and in particular the ~interactive/editing.scm~ test,
 we also need a module that would allow us to run things
 in the terminal:
 
-#+BEGIN_SRC scheme :tangle terminal/runner.scm :mkdirp yes :noweb no-export
+#+BEGIN_SRC scheme :tangle terminal/runner.scm :mkdirp yes :noweb no-export :noweb-scope buffer
   <<header>>
   (module-name (terminal runner))
   (import (language-extensions))
@@ -10946,7 +10921,6 @@ earlier):
     (escape-with return
       (let* ((font ::FontProxy (self font))
              (style ::BorderStyle (self border-style))
-             (cursor ::Cursor (current-cursor))
              (border-width ::real
                            (painter:border-width style))
              (border-height ::real
@@ -10966,7 +10940,7 @@ earlier):
           (return path))
          (else
           (for line in: (lines builder)
-            (when (is top < y <= (+ top line-height))
+            (when (is top <= y < (+ top line-height))
               (path:push! (+ n (painter:character-index
                                 x line font)))
               (return path))
@@ -10989,19 +10963,18 @@ height.
     ::(maybe Cursor)
     (escape-with return
       (let ((last-index ::int (- (fragments:size) 1))
-          (space-width ::int (painter:space-width)))
+            (space-width ::int (painter:space-width)))
         (for i::int from: 0 to: last-index
-           (let ((fragment ::int (fragments i)))
-             (expand-layout! position (* space-width
-                                         (max 0 fragment))
+           (let* ((fragment ::int (fragments i))
+                  (width ::int (* space-width (max 0 fragment)))
+                  (left ::real position:left))
+             (expand-layout! position width
                              (painter:min-line-height))
              (when (is position:top <= y
                        < (+ position:top
                             position:line-height))
-               (when (is position:left <= x
-                         < (+ position:left
-                              (* space-width (max 0 fragment))))
-                 (path:push! (nearby-int (/ (- x position:left)
+               (when (is left <= x < (+ left width))
+                 (path:push! (nearby-int (/ (- x left)
                                             space-width)))
                  (return path))
                (unless (= i last-index)
@@ -11010,7 +10983,7 @@ height.
                (return #!null)))
            (unless (= i last-index)
              (break-layout! position (painter:min-line-height)))))))
-  
+
 #+END_SRC
 
 In the case of ~Comb~, we need to check whether the pointer
@@ -11024,38 +10997,42 @@ need to check every element inside.
     ::(maybe Cursor)
     (escape-with return
       (let* ((state ::LayoutState (LayoutState))
-             (cursor ::Cursor (current-cursor))
              (border-width ::real
                            (painter:border-width style))
              (border-height ::real
                             (painter:border-height style))
-             (top ::real border-height)
              (x ::int (- x position:left))
              (y ::int (- y position:top))
              (index ::int 1))
         (cond
          ((or (is x < 0) (is x >= (width))
               (is y < 0) (is y >= (height)))
+          (advance-layout! position)
           (return #!null))
          ((or (is x < border-width)
               (is y < border-height))
           (path:push! 0)
           (return path))
-         ((or (is x > (- (width) (* 2 border-width)))
-              (is y > (- (height) (* 2 border-height))))
+         ((or (is x >= (- (width) border-width))
+              (is y >= (- (height) border-height)))
           (path:push! (last-index))
           (return path))
          (else
-          (for element ::Element in: (this)
-               (path:push! index)
-               (given ((result ::Cursor
-                               (element:cursor-under*
-                                x y path state)))
-                 (return result))
-               (path:pop!)
-               (increase! index by: 1))
-          (advance-layout! position)
-          (return #!null))))))
+          (let ((x ::int (- x border-width))
+                (y ::int (- y border-height))
+                (line-end ::int 0))
+            (for element ::Element in: (this)
+                 (when (is state:top <= y)
+                   (set! line-end index))
+                 (path:push! index)
+                 (given ((result ::Cursor
+                                 (element:cursor-under*
+                                  x y path state)))
+                   (return result))
+                 (path:pop!)
+                 (increase! index by: 1))
+            (path:push! line-end)
+            (return path)))))))
   
 #+END_SRC
 
@@ -11170,10 +11147,8 @@ the given pointer coordinate:
 #+BEGIN_SRC scheme :noweb-ref GRASP-Editor--definition
   (define (tap! finger::byte #;at x::real y::real)::boolean
     (given ((new-cursor ::Cursor (document:cursor-under*
-                                  x y path layout)))
+                                  x y (Cursor) (LayoutState))))
       (cursor:assign! new-cursor)
-      (new-cursor:clear!)
-      (layout:assign! initial-layout)
       #true))
 
 #+END_SRC
@@ -11386,14 +11361,15 @@ of the ~Postponed~ interface, is going to add its events.
 
 #+BEGIN_SRC scheme :noweb-ref terminal-input-processing :noweb-override yes
   (define (rewrite-events terminal::LanternaScreen
-  			queue::BlockingQueue)::void
-  			(while #t
-  			  (let ((event::KeyStroke
-  				 (terminal:readInput)))
-  			    (queue:put event))))
+                          queue::BlockingQueue)
+    ::void
+    (while #t
+      (let ((event::KeyStroke
+             (terminal:readInput)))
+        (queue:put event))))
 
-  (define-object (CancellableScheduledFuture
-  		task::ScheduledFuture)
+  (define-object (CancellableScheduledTask
+                  task::ScheduledTask)
     ::Cancellable
     (define (cancel)::Cancellable
       (task:cancel #f)
@@ -11411,90 +11387,90 @@ of the ~Postponed~ interface, is going to add its events.
     )
 
   (define (edit application ::Application
-  	      terminal ::LanternaScreen
-  	      queue ::BlockingQueue)
+                terminal ::LanternaScreen
+                queue ::BlockingQueue)
     ::void
     (let* ((postpone ::Postponed (EventQueueScheduler queue))
-  	 (pointer ::TouchEventProcessor
-  		  (TouchEventProcessor
-  		   0 application
-  		   postpone vicinity: 1)))
+           (pointer ::TouchEventProcessor
+                    (TouchEventProcessor
+                     0 application
+                     postpone vicinity: 1)))
       (while #t
         (safely
          (let ((input (queue:take)))
-  	 (if (procedure? input)
-  	     (input)
-  	     (let* ((key ::KeyStroke input)
-  		    (type ::KeyType (key:getKeyType))
-  		    (caret ::TerminalPosition
-  			   (terminal:getCursorPosition)))
-  	       (match type
-  		 (,KeyType:MOUSE_EVENT
-  		  (let* ((action ::MouseAction
-  				 (as MouseAction key))
-  			 (position ::TerminalPosition
-  				   (action:getPosition))
-  			 (last-position::Position
-  			  (last-known-pointer-position 0))
-  			 (left (position:getColumn))
-  			 (top (position:getRow)))
-  		    (match (action:getActionType)
-  		      (,MouseActionType:MOVE
-  		       (set! last-position:left left)
-  		       (set! last-position:top top))
-  		      (,MouseActionType:CLICK_DOWN
-  		       (match (action:getButton)
-  			 (,MouseButton:Left
-  			  (pointer:press!
-  			   left top
-  			   (current-time-ms)))
-  			 (,MouseButton:Right
-  			  (set! last-position:left left)
-  			  (set! last-position:top top))
-  			 (,MouseButton:WheelUp
-  			  (set! last-position:left left)
-  			  (set! last-position:top top)
-  			  (application:key-typed!
-  			   (special-key-code
-  			    KeyType:PAGE_UP)))
-  			 (,MouseButton:WheelDown
-  			  (set! last-position:left left)
-  			  (set! last-position:top top)
-  			  (application:key-typed!
-  			   (special-key-code
-  			    KeyType:PAGE_DOWN)))
-  			 (_
-  			  (values))))
-  		      (,MouseActionType:DRAG
-  		       (pointer:move!
-  			left top
-  			(current-time-ms)))
+           (if (procedure? input)
+               (input)
+               (let* ((key ::KeyStroke input)
+                      (type ::KeyType (key:getKeyType))
+                      (caret ::TerminalPosition
+                             (terminal:getCursorPosition)))
+                 (match type
+                   (,KeyType:MOUSE_EVENT
+                    (let* ((action ::MouseAction
+                                   (as MouseAction key))
+                           (position ::TerminalPosition
+                                     (action:getPosition))
+                           (last-position::Position
+                            (last-known-pointer-position 0))
+                           (left (position:getColumn))
+                           (top (position:getRow)))
+                      (match (action:getActionType)
+                        (,MouseActionType:MOVE
+                         (set! last-position:left left)
+                         (set! last-position:top top))
+                        (,MouseActionType:CLICK_DOWN
+                         (match (action:getButton)
+                           (,MouseButton:Left
+                            (pointer:press!
+                             left top
+                             (current-time-ms)))
+                           (,MouseButton:Right
+                            (set! last-position:left left)
+                            (set! last-position:top top))
+                           (,MouseButton:WheelUp
+                            (set! last-position:left left)
+                            (set! last-position:top top)
+                            (application:key-typed!
+                             (special-key-code
+                              KeyType:PAGE_UP)))
+                           (,MouseButton:WheelDown
+                            (set! last-position:left left)
+                            (set! last-position:top top)
+                            (application:key-typed!
+                             (special-key-code
+                              KeyType:PAGE_DOWN)))
+                           (_
+                            (values))))
+                        (,MouseActionType:DRAG
+                         (pointer:move!
+                          left top
+                          (current-time-ms)))
 
-  		      (,MouseActionType:CLICK_RELEASE
-  		       (pointer:release!
-  			left top
-  			(current-time-ms)))
-  		      (,MouseActionType:SCROLL_UP
-  		       (set! last-position:left left)
-  		       (set! last-position:top top)
-  		       (application:key-typed!
-  			(special-key-code
-  			 KeyType:PAGE_UP)))
-  		      (,MouseActionType:SCROLL_DOWN
-  		       (set! last-position:left left)
-  		       (set! last-position:top top)
-  		       (application:key-typed!
-  			(special-key-code
-  			 KeyType:PAGE_DOWN)))
-  		      )))
-  		 (_
-  		  (parameterize ((unicode-input
-  				  (input-character key)))
-  		    (application:key-typed!
-  		     (scancode key))))))))         
+                        (,MouseActionType:CLICK_RELEASE
+                         (pointer:release!
+                          left top
+                          (current-time-ms)))
+                        (,MouseActionType:SCROLL_UP
+                         (set! last-position:left left)
+                         (set! last-position:top top)
+                         (application:key-typed!
+                          (special-key-code
+                           KeyType:PAGE_UP)))
+                        (,MouseActionType:SCROLL_DOWN
+                         (set! last-position:left left)
+                         (set! last-position:top top)
+                         (application:key-typed!
+                          (special-key-code
+                           KeyType:PAGE_DOWN)))
+                        )))
+                   (_
+                    (parameterize ((unicode-input
+                                    (input-character key)))
+                      (application:key-typed!
+                       (scancode key))))))))
          (synchronized screen-up-to-date?
-  	 (set! (screen-up-to-date?) #f)
-  	 (invoke screen-up-to-date? 'notify))))
+           (set! (screen-up-to-date?) #f)
+           (invoke screen-up-to-date? 'notify))))
       ))
 
 #+END_SRC
@@ -11528,8 +11504,8 @@ Lastly, we need to update the dependencies of the ~(terminal
 runner)~ module:
 
 #+BEGIN_SRC scheme :noweb-ref terminal/runner:dependencies
-  (import (input postponed))
   (import (utils scheduling-interface))
+  (import (input pointing-devices))
 #+END_SRC
 
 
@@ -12764,9 +12740,13 @@ written and tested earlier on.
 It also adds the ~:noweb-override yes~ header argument: a
 snippet marked with it /replaces/ the earlier snippets with
 the same ~:noweb-ref~ identifier instead of being appended
-to them -- but only in the eyes of the snippets that come
-with an explicit ~:noweb-scope~ (the ones without it are
-expanded by Org itself, which always accumulates).
+to them. The replacement reaches only the snippets that
+follow it: those that come earlier are left with the
+definition that stood at their own place in the narrative,
+which is what keeps the programs from the earlier sections
+runnable. A snippet that wants the finished program rather
+than one of its stages says ~:noweb-scope buffer~, and then
+every override in the document applies to it.
 
 Unlike all the Scheme code above, which was written by me (a
 human), the code below was generated by Claude Code, and I
@@ -12783,8 +12763,45 @@ have very little idea about what's going on in here.
     (push 'noweb-scope org-babel-header-arg-names)
     (push 'noweb-override org-babel-header-arg-names))
 
+  (defvar ob-noweb-scope--blocks-cache nil
+    "A cons of (BUFFER . TICK) and the block list read from that buffer then.")
+
+  (defun ob-noweb-scope--blocks ()
+    "The source blocks of the current buffer, in buffer order, each as
+  (POSITION OVERRIDE-P REF INFO).  Cached per buffer modification tick: a
+  table is assembled for every block that gets expanded, and reading the
+  whole buffer once for each of them is what makes tangling quadratic."
+    (let ((key (cons (current-buffer) (buffer-chars-modified-tick))))
+      (unless (equal (car ob-noweb-scope--blocks-cache) key)
+        (setq ob-noweb-scope--blocks-cache
+              (cons key
+                    (let ((blocks '()))
+                      (org-with-wide-buffer
+                       (org-babel-map-src-blocks nil
+                         (if (org-in-commented-heading-p)
+                             (org-forward-heading-same-level nil t)
+                           (let* ((info (org-babel-get-src-block-info t))
+                                  (params (nth 2 info)))
+                             (push (list (nth 5 info)
+                                         (equal (cdr (assq :noweb-override
+                                                           params))
+                                                "yes")
+                                         (cdr (assq :noweb-ref params))
+                                         info)
+                                   blocks)))))
+                      (nreverse blocks)))))
+      (cdr ob-noweb-scope--blocks-cache)))
+
+  (defun ob-noweb-scope--overrides-p ()
+    "Whether any block of the current buffer carries :noweb-override yes."
+    (cl-some #'cadr (ob-noweb-scope--blocks)))
+
   (defun ob-noweb-scope--bounds (info)
-    "The interval INFO collects its chunks from, or nil if it has no :noweb-scope."
+    "The interval INFO collects its chunks from, or nil if it collects none.
+
+  A block with no :noweb-scope still gets the whole buffer as its interval
+  when the buffer uses :noweb-override anywhere, because an override is a
+  statement about the document rather than about its reader."
     (let ((scope (split-string (or (cdr (assq :noweb-scope (nth 2 info))) "")))
           (start (nth 5 info)))
       (let ((beg (point-min)) (end (point-max)))
@@ -12812,28 +12829,38 @@ have very little idea about what's going on in here.
               (org-back-to-heading t)
               (setq beg (max beg (point))
                     end (min end (save-excursion (org-end-of-subtree t t) (point)))))))
-        (and scope (cons beg end)))))
+        (and (or scope (ob-noweb-scope--overrides-p))
+             (cons beg end)))))
 
-  (defun ob-noweb-scope--table (bounds)
+  (defun ob-noweb-scope--table (bounds &optional overrides-from)
     "Map every :noweb-ref of the current buffer to the blocks that define it,
     ignoring the blocks that start outside BOUNDS.  A block with :noweb-override
-    replaces the blocks collected so far under its :noweb-ref."
+    replaces the blocks collected so far under its :noweb-ref -- unless it
+    starts at or after OVERRIDES-FROM, in which case it is skipped altogether,
+    so that a consumer is left with the definition that stood before it.  A nil
+    OVERRIDES-FROM means that every override within BOUNDS applies."
     (let ((table (make-hash-table :test #'equal)))
-      (org-with-wide-buffer
-       (org-babel-map-src-blocks nil
-         (if (org-in-commented-heading-p)
-             (org-forward-heading-same-level nil t)
-           (let* ((info (org-babel-get-src-block-info t))
-                  (pos (nth 5 info))
-                  (params (nth 2 info))
-                  (ref (cdr (assq :noweb-ref params))))
-             (when (and (<= (car bounds) pos) (< pos (cdr bounds)))
-               (if (equal (cdr (assq :noweb-override params)) "yes")
-                   (puthash ref (list info) table)
-                 (push info (gethash ref table))))))))
+      (pcase-dolist (`(,pos ,override ,ref ,info) (ob-noweb-scope--blocks))
+        (when (and (<= (car bounds) pos) (< pos (cdr bounds)))
+          (cond ((not override)
+                 (push info (gethash ref table)))
+                ((and overrides-from (>= pos overrides-from))
+                 nil)            ; an override that the consumer predates
+                (t
+                 (puthash ref (list info) table)))))
       (puthash 'buffer-processed t table)   ; tell Org the scan is done
       (puthash 'noweb-scope bounds table)   ; ...and that we are the ones who did it
       table))
+
+  (defun ob-noweb-scope--overrides-from (info)
+    "The position from which overrides are invisible to INFO, or nil if none is.
+
+  A block that states no :noweb-scope is read at the place where it stands, so
+  the overrides that follow it are not yet in force.  One that states a scope
+  has said which part of the document it is read against, and BOUNDS already
+  say it."
+    (and (null (split-string (or (cdr (assq :noweb-scope (nth 2 info))) "")))
+         (nth 5 info)))
 
   (defun ob-noweb-scope (expand &rest arguments)
     "Around-advice for `org-babel-expand-noweb-references'.
@@ -12849,7 +12876,9 @@ have very little idea about what's going on in here.
                    (gethash 'noweb-scope org-babel-expand-noweb-references--cache)))
           (apply expand arguments)
         (let ((org-babel-expand-noweb-references--cache
-               (with-current-buffer buffer (ob-noweb-scope--table bounds)))
+               (with-current-buffer buffer
+                 (ob-noweb-scope--table
+                  bounds (ob-noweb-scope--overrides-from info))))
               (org-babel-expand-noweb-references--cache-buffer
                (cons buffer (buffer-chars-modified-tick buffer))))
           (apply expand arguments)))))
