@@ -8466,6 +8466,17 @@ stack traces:
          ((stack-trace-action) (stack-trace ex))
          #!null)))
 
+  ;; For the loops that have nothing to fall back on.  SAFELY turns a
+  ;; failure into #!NULL and lets the caller carry on, which is right
+  ;; where carrying on means anything; where it does not, the same
+  ;; wrapper would only convert a clean death into a hot loop.
+  (define-syntax-rule (critically actions ...)
+    (try-catch
+     (begin actions ...)
+     (ex java.lang.Throwable
+         ((stack-trace-action) (stack-trace ex))
+         (exit))))
+
 #+END_SRC
 
 **** Terminal implementation of ~Painter~
@@ -9340,13 +9351,24 @@ method (and do some bookkeeping around that):
         ;; Customizable Display Editor", section 13
         ;; "The Display Processor")
         (set! (screen-up-to-date?) #t))
-      (let ((resize ::TerminalSize (terminal:doResizeIfNecessary)))
-        (painter:clear!)
-        (application:render!)
-        (if resize
-            (terminal:refresh LanternaScreen:RefreshType:COMPLETE)
-            (terminal:refresh LanternaScreen:RefreshType:DELTA))
-        (loop))))
+      ;; An exception here must not take the rendering thread down
+      ;; for good: that would leave the editor accepting keys and
+      ;; showing nothing.  This cannot spin, because SCREEN-UP-TO-DATE?
+      ;; has already been set above, so a failed traversal is retried
+      ;; only once the editing thread next clears the flag.
+      (safely
+       (let ((resize ::TerminalSize (terminal:doResizeIfNecessary)))
+         (painter:clear!)
+         ;; the editing thread mutates the document while this one
+         ;; traverses it, so the two must not overlap
+         (synchronized application
+           (application:render!))
+         (if resize
+             (terminal:refresh LanternaScreen:RefreshType:COMPLETE)
+             (terminal:refresh LanternaScreen:RefreshType:DELTA))))
+      ;; outside SAFELY, which is a TRY-CATCH, so that this stays a
+      ;; tail call rather than growing the stack on every frame
+      (loop)))
 
 #+END_SRC
 
@@ -10771,25 +10793,28 @@ Finally we need some definition of the document's editor:
 
     (define cursor ::Cursor (Cursor))
 
-    (define (key-typed! key-code::KeyCode)::boolean
-      (parameterize ((current-document document)
-                     (current-cursor cursor))
-        (given ((action ::Edit (document:key-typed!
-                                key-code)))
-          (truly
-           <<GRASP-key-typed>>))))
-
-    (define-private (normalize-spaces s::string)::string
-      (regex-replace* "\\s+" (regex-replace* "\n" s "") " "))
-
     <<GRASP-Editor--definition>>
 
-    (define (render!)::void
-      (parameterize ((current-document document)
-                     (current-cursor cursor))
-        (document:render! (Cursor) (LayoutState))))
-
     <<GRASP-Editor--base-class>>)
+
+#+END_SRC
+
+where ~GRASP-Editor~ implements at least ~key-typed!~ and
+~render!~ methods:
+
+#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--definition
+  (define (key-typed! key-code::KeyCode)::boolean
+    (parameterize ((current-document document)
+                   (current-cursor cursor))
+      (given ((action ::Edit (document:key-typed!
+                              key-code)))
+        (truly
+         <<GRASP-key-typed>>))))
+
+  (define (render!)::void
+    (parameterize ((current-document document)
+                   (current-cursor cursor))
+      (document:render! (Cursor) (LayoutState))))
 
 #+END_SRC
 
@@ -10982,7 +11007,8 @@ height.
                  (return path))
                (return #!null)))
            (unless (= i last-index)
-             (break-layout! position (painter:min-line-height)))))))
+             (break-layout! position (painter:min-line-height))))
+        #!null)))
 
 #+END_SRC
 
@@ -11034,6 +11060,16 @@ need to check every element inside.
             (path:push! line-end)
             (return path)))))))
   
+#+END_SRC
+
+For convenience, we also define a simplified variant of
+~cursor-under*~ inside ~Document~, that passes a fresh
+~Cursor~ and a fresh ~LayoutState~ as the two last arguments
+to the full variant:
+
+#+BEGIN_SRC scheme :noweb-ref Document--definition
+  (define (cursor-under* x::real y::real)::(maybe Cursor)
+    (self cursor-under* x y (Cursor) (LayoutState)))
 #+END_SRC
 
 Of course, for these methods to be useful, we need to
@@ -11146,8 +11182,7 @@ the given pointer coordinate:
 
 #+BEGIN_SRC scheme :noweb-ref GRASP-Editor--definition
   (define (tap! finger::byte #;at x::real y::real)::boolean
-    (given ((new-cursor ::Cursor (document:cursor-under*
-                                  x y (Cursor) (LayoutState))))
+    (given ((new-cursor ::Cursor (document:cursor-under* x y)))
       (cursor:assign! new-cursor)
       #true))
 
@@ -11363,10 +11398,13 @@ of the ~Postponed~ interface, is going to add its events.
   (define (rewrite-events terminal::LanternaScreen
                           queue::BlockingQueue)
     ::void
-    (while #t
-      (let ((event::KeyStroke
-             (terminal:readInput)))
-        (queue:put event))))
+    ;; if this thread dies, the queue stops filling and EDIT blocks on
+    ;; QUEUE:TAKE for good -- the editor becomes a picture, silently
+    (critically
+     (while #t
+       (let ((event::KeyStroke
+              (terminal:readInput)))
+         (queue:put event)))))
 
   (define-object (CancellableScheduledTask
                   task::ScheduledTask)
@@ -11398,12 +11436,11 @@ of the ~Postponed~ interface, is going to add its events.
       (while #t
         (safely
          (let ((input (queue:take)))
-           (if (procedure? input)
+           (synchronized application
+            (if (procedure? input)
                (input)
                (let* ((key ::KeyStroke input)
-                      (type ::KeyType (key:getKeyType))
-                      (caret ::TerminalPosition
-                             (terminal:getCursorPosition)))
+                      (type ::KeyType (key:getKeyType)))
                  (match type
                    (,KeyType:MOUSE_EVENT
                     (let* ((action ::MouseAction
@@ -11467,7 +11504,7 @@ of the ~Postponed~ interface, is going to add its events.
                     (parameterize ((unicode-input
                                     (input-character key)))
                       (application:key-typed!
-                       (scancode key))))))))
+                       (scancode key)))))))))
          (synchronized screen-up-to-date?
            (set! (screen-up-to-date?) #f)
            (invoke screen-up-to-date? 'notify))))
@@ -11482,19 +11519,19 @@ also need to update the ~<<terminal-runner>>~:
 #+BEGIN_SRC scheme :noweb-ref terminal-runner :noweb-override yes
   (define* (run application ::Application
                 terminal ::LanternaScreen
-  	      := (make-terminal-screen))
+                := (make-terminal-screen))
     (with ((painter (TerminalPainter terminal)))
       (with-terminal-screen terminal
         (terminal:clear)
         (terminal:refresh)
         (let* ((event-queue ::BlockingQueue
-  			   (ArrayBlockingQueue 16))
-  	     (rewriting (future (rewrite-events
-  				 terminal event-queue)))
-  	     (editing (future (edit application terminal
-  				    event-queue)))
+                            (ArrayBlockingQueue 16))
+               (rewriting (future (rewrite-events
+                                   terminal event-queue)))
+               (editing (future (edit application terminal
+                                      event-queue)))
                (rendering (future (render application
-  					terminal))))
+                                          terminal))))
           (rendering:setPriority Thread:MIN_PRIORITY)
           (force editing)))))
 
@@ -11507,6 +11544,95 @@ runner)~ module:
   (import (utils scheduling-interface))
   (import (input pointing-devices))
 #+END_SRC
+
+**** ~Tile~ drag&drop, ~Comb~ resize and other ~Drag~ instances
+
+Being able to set the cursor position using a pointing
+device is certainly a valuable feature, but it also seems to
+utilize only a small part of what such devices have to offer.
+
+In particular, it can be desirable to be able to /drag and
+drop/ certain parts of the expressions.
+
+In order for that to work, we are going to provide the ~Drag~
+interface with two methods:
+
+#+BEGIN_SRC scheme :tangle input/pointing-devices.scm :noweb no-export
+  (define-interface Drag ()
+    (move! x::real y::real dx::real dy::real)::void
+    (drop! x::real y::real vx::real vy::real)::void
+    )
+
+  (define-mixin NoDrop
+    (define (drop! x::real y::real vx::real vy::real)::void
+      (values)))
+  
+#+END_SRC
+
+The ~GRASP-Editor~ will keep track of all the dragging
+processes that are currently taking place. For each finger
+(of which there is only one in the case of a mouse pointer,
+but potentially up to ten on Android devices), we're going
+to keep a corresponding ~Drag~ object in the ~dragging~
+mapping, adding it on the ~press!~ event, updating it on
+each movement, and terminating it on pointer release:
+
+#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--definition :noweb no-export
+  (define dragging ::(maps byte to: Drag)
+    (mapping (finger::byte)::Drag #!null))
+
+  (define (press! finger::byte x::real y::real)::boolean
+    (given ((drag ::Drag (drag-from x y)))
+      (set! (dragging finger) drag)
+      #t))
+  
+  (define (move! finger::byte x::real y::real dx::real dy::real)::boolean
+    (given ((drag ::Drag (dragging finger)))
+      (drag:move! x y dx dy)
+      #t))
+
+  (define (release! finger::byte x::real y::real vx::real vy::real)::boolean
+    (given ((drag ::Drag (dragging finger)))
+      (drag:drop! x y vx vy)
+      (unset! (dragging finger))
+      #t))
+
+  <<GRASP-Editor--drag-from-definition>>
+
+#+END_SRC
+
+We can see that the ~press!~ event delegates the creation
+of ~Drag~ object to ~drag-from~.
+
+The question that remains is: how are the ~Drag~ instances
+supposed to be created? It's hard to give a complete and
+definite answer at this point, but we can at least provide a
+scaffolding:
+
+#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--drag-from-definition
+  (define-private (drag-from x::real y::real)::(maybe Drag)
+    (otherwise
+     #!null
+     (parameterize ((current-document document))
+       (given ((cursor ::Cursor (document:cursor-under* x y))
+               ((is (cursor:size) > 2))
+               (tip (cursor:pop!))
+               (top (cursor:pop!))
+               (parent ::Element (cursor:target))
+               (target ::Element (target:element-at top)))
+         (cond
+          <<GRASP-Editor--drag-from-dispatch>>
+          (else
+           #false))))))
+
+#+END_SRC
+
+Now, 
+
+#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--drag-from-dispatch
+
+#+END_SRC
+
 
 
 #+BEGIN_COMMENT
@@ -13026,7 +13152,8 @@ run and tested, rather than only read.
         ;; here ever writes it.
         (setq buffer-file-name (expand-file-name ".tangle-upto-here.org" directory))
         (org-mode)
-        (let ((org-babel-pre-tangle-hook nil)
+        (let ((grasp-tangle-inhibit-prune t)
+              (org-babel-pre-tangle-hook nil)
               (org-babel-post-tangle-hook nil)
               (org-babel-noweb-error-all-langs (or strict
                                                    org-babel-noweb-error-all-langs)))
@@ -13038,11 +13165,136 @@ run and tested, rather than only read.
       tangled))
 #+END_SRC
 
+*** Removing the files the document no longer produces
+
+% TODO (prose -- replace this): ~org-babel-tangle~ writes the
+files that the document names, and leaves alone every file that
+it does not.  That is the right default for a tangler, but it
+means that renaming a module leaves the old one on disk, where
+it goes on being compiled and imported.  What follows reconciles
+the tree after each tangling: it records what the document
+produced, and deletes whatever an earlier tangling produced and
+this one no longer does.
+
+The record is named after the document, so two documents in one
+directory do not share one, and its mere existence is what arms
+the mechanism -- the first tangling of a document therefore
+deletes nothing.  Only paths from the record are ever removed,
+so a file written by hand into the tangled tree survives.
+
+Reconciling happens only when the tangling covered the whole
+document, because every other case produces a subset and the
+rest of the tree would then look deletable.  Three such cases
+are recognised from the arguments and the buffer, and one --
+~org-babel-tangle-upto-here~, which tangles a prefix of the
+document into the document's own directory by default -- has to
+say so for itself, which is what ~grasp-tangle-inhibit-prune~ is
+for.
+
+#+NAME: tangle-prune
+#+BEGIN_SRC emacs-lisp :tangle no :results none
+  (defvar grasp-tangle-inhibit-prune nil
+    "When non-nil, tangling deletes nothing.
+  Bound by commands that tangle a derived or partial copy of a document,
+  such as `org-babel-tangle-upto-here'.")
+
+  (defun grasp-tangle--manifest (&optional file)
+    "The record of what tangling FILE produced, kept next to FILE.
+  Named after the document, so that two documents in one directory do
+  not share a record."
+    (let ((file (or file (buffer-file-name))))
+      (expand-file-name (concat "." (file-name-nondirectory file) ".tangled")
+                        (file-name-directory file))))
+
+  (defun grasp-tangle--read ()
+    "The paths recorded by the previous tangling, or nil if there is no record."
+    (let ((file (grasp-tangle--manifest)))
+      (when (file-readable-p file)
+        (with-temp-buffer
+          (insert-file-contents file)
+          (seq-remove (lambda (line) (string-prefix-p ";" line))
+                      (split-string (buffer-string) "\n" t "[ \t\r]+"))))))
+
+  (defun grasp-tangle--write (files)
+    (with-temp-file (grasp-tangle--manifest)
+      (insert ";; Written by the prune advice on `org-babel-tangle'.  These are the\n"
+              ";; files that the document currently produces; anything listed here\n"
+              ";; and no longer produced is deleted on the next tangling.  Derived\n"
+              ";; file -- there is no point in editing it.\n")
+      (dolist (file (sort (copy-sequence files) #'string<))
+        (insert file "\n"))))
+
+  (defun grasp-tangle--prune-empty-dirs (root paths)
+    "Remove the directories under ROOT that deleting PATHS has left empty."
+    (dolist (path paths)
+      (let ((dir (file-name-directory (expand-file-name path root))))
+        (while (and dir
+                    (not (file-equal-p dir root))
+                    (file-directory-p dir)
+                    (null (directory-files
+                           dir nil directory-files-no-dot-files-regexp t)))
+          (delete-directory dir)
+          (setq dir (file-name-directory (directory-file-name dir)))))))
+
+  (defun grasp-tangle--reconcile (produced)
+    "Delete what an earlier tangling produced and PRODUCED no longer does."
+    (let* ((root (file-name-directory (buffer-file-name)))
+           (produced (mapcar (lambda (file)
+                               (file-relative-name
+                                (expand-file-name file root) root))
+                             produced))
+           (stale (seq-difference (grasp-tangle--read) produced #'string=))
+           (gone '()))
+      (dolist (file stale)
+        (let ((path (expand-file-name file root)))
+          (when (file-exists-p path)
+            (delete-file path)
+            (push file gone))))
+      (grasp-tangle--prune-empty-dirs root stale)
+      (grasp-tangle--write produced)
+      (when gone
+        (message "Tangled %d file(s); removed %d no longer produced (%s)"
+                 (length produced) (length gone)
+                 (mapconcat #'identity (nreverse gone) ", ")))))
+
+  (defun grasp-tangle-prune (tangle &optional arg target-file lang-re)
+    "Tangle, then delete the files that the document no longer produces.
+
+  Around-advice for `org-babel-tangle'.  It reconciles the tree only when
+  this tangling covered the whole document, because every other case
+  produces a subset and the rest of the tree would then look deletable:
+
+    ARG         a prefix argument restricts tangling to one block, or to
+                the blocks of one tangle target
+    TARGET-FILE sends every block to one given file instead
+    narrowing   is what `:noweb-scope' and `org-babel-tangle-upto-here'
+                already use to mean `a shorter document'
+
+  Only paths from the record are ever removed, so a file written by hand
+  into the tangled tree survives, and the first tangling of a document
+  deletes nothing, because there is no record yet.  A failure to reconcile
+  is reported and otherwise ignored: tangling must not break because
+  cleaning up did."
+    (let ((produced (funcall tangle arg target-file lang-re)))
+      (when (and (not grasp-tangle-inhibit-prune)
+                 (null arg)
+                 (null target-file)
+                 (not (buffer-narrowed-p))
+                 (buffer-file-name))
+        (condition-case error
+            (grasp-tangle--reconcile produced)
+          (error (message "grasp-tangle: left the tree alone (%s)"
+                          (error-message-string error)))))
+      produced))
+
+  (advice-add 'org-babel-tangle :around #'grasp-tangle-prune)
+#+END_SRC
+
 *** Initializing file-local variables
 
 #+BEGIN_EXAMPLE
 Local variables:
-eval: (let ((org-confirm-babel-evaluate nil)) (dolist (block '("noweb-scope" "chunk-labels" "tangle-upto-here")) (save-excursion (org-babel-goto-named-src-block block) (org-babel-execute-src-block))))
+eval: (let ((org-confirm-babel-evaluate nil)) (dolist (block '("noweb-scope" "chunk-labels" "tangle-upto-here" "tangle-prune")) (save-excursion (org-babel-goto-named-src-block block) (org-babel-execute-src-block))))
 mode: org
 fill-column: 60
 indent-tabs-mode: nil
