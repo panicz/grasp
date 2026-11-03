@@ -1,0 +1,24 @@
+# Everything in these directories is tangled from grasp.org; the document
+# is the source, and `M-x grasp-tangle-and-prune' is what produces them.
+/document/
+/input/
+/painter/
+/terminal/
+/test/
+/utils/
+/language-extensions.scm
+
+# the record of what each document last produced when tangled
+/.*.tangled
+
+# org export output
+/grasp.tex
+/grasp.pdf
+
+# Emacs auto-saves and lock files that the repository root
+# .gitignore does not catch for .org files
+\#*\#
+.\#*
+
+# a scratch bin for prose cut out of grasp.org -- kept locally, not shared
+/trash.org
