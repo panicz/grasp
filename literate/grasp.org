@@ -5691,16 +5691,6 @@ elements that occupy a rectangular area of the screen.
   (define (size)::int
     (+ (length elements) (length spaces)))
 
-  ;; and to check if two Comb objects are equal,
-  ;; we check for equality of their arrays
-  (define (equals object ::Object)::boolean
-    (given ((those ::Comb object)
-            ((elements:equals those:elements))
-            ((spaces:equals those:spaces)))))
-
-  (define (hashCode)::int
-    (+ (* 31 (spaces:hashCode)) (elements:hashCode)))
-
   (define (clone)
     (let ((copied ::Comb (invoke-special java.lang.Object (this) 'clone)))
       (set! copied:elements (ArrayList))
@@ -6061,7 +6051,7 @@ that is easiest to get wrong.
          (c2 ::Comb (Comb (Space "6") (Atom "7") (Space "8"))))
      (c1:splice-comb-at! 5 c2)
      (c1:toString)) ===> "01234678")
-  
+
   (test-report)
 #+END_SRC
 
@@ -6268,40 +6258,41 @@ rendering function for ~Comb~ and its thereabouts.
   (define (render! path ::Cursor state::LayoutState)::void
     (let ((at ::LayoutState (LayoutState))
           (border-width ::real (painter:border-width style))
-  	(index ::int 1)
-  	(cursor ::Cursor (current-cursor))
+          (index ::int 1)
+          (cursor ::Cursor (current-cursor))
           (border-height ::real (painter:border-height style)))
       (painter:with-translation border-width border-height
         (lambda ()
-  	(path:with
-  	 index
-  	 (lambda ()
-  	   (for element ::Element in: (this)
-  		(path:set-top! index)
-  		(painter:with-translation at:left at:top
-  		  (lambda () (element:render! path at)))
-     		(increase! index))))))
+          (path:with
+           index
+           (lambda ()
+             (for element ::Element in: (this)
+                  (path:set-top! index)
+                  (painter:with-translation at:left at:top
+                    (lambda ()
+                      (element:render! path at)))
+                  (increase! index))))))
       (update-size-from-layout-state! at)
       (painter:draw-box! last-width last-height
-     		       (if (cursor:active-at? path)
+                         (if (cursor:active-at? path)
                              (match (cursor:top)
-     			     (0
-     			      SideSelected:Left)
-     			     (,(+ (size) 1)
-     			      SideSelected:Right)
-     			     (_
-     			      SideSelected:None))
+                               (0
+                                SideSelected:Left)
+                               (,(+ (size) 1)
+                                SideSelected:Right)
+                               (_
+                                SideSelected:None))
                              SideSelected:None)
-     		       style))
+                         style))
     (advance-layout! state))
 
   (define-private (update-size-from-layout-state!
-  		 state ::LayoutState)
+                   state ::LayoutState)
     ::void
     (set! last-width (+ (* 2 (painter:border-width style))
-     		      state:max-width))
+                        state:max-width))
     (set! last-height (+ state:top state:line-height
-     		       (* 2 (painter:border-height style)))))
+                         (* 2 (painter:border-height style)))))
 
   (define (width)::real
     (when (is last-width < 0)
@@ -6316,7 +6307,7 @@ rendering function for ~Comb~ and its thereabouts.
   (define-private (recalculate-size!)::void
     (let ((state ::LayoutState (LayoutState)))
       (for element ::Element in: (this)
-  	 (element:advance-layout! state))
+           (element:advance-layout! state))
       (update-size-from-layout-state! state)))
 
   (define (advance-layout! state ::LayoutState)::void
@@ -6336,17 +6327,10 @@ everything, we can provide a /partial implementation/.
   (define fragments ::(sequence-of int)
     (ArrayList ||: (as int 0)))
 
-  (define (equals another)::boolean
-    (given ((another ::Space))
-      (fragments:equals another:fragments)))
-
   (define (clone)
     (let ((copied ::Space (invoke-special java.lang.Object (this) 'clone)))
       (set! copied:fragments (ArrayList fragments))
       copied))
-
-  (define (hashCode)::int
-    (fragments:hashCode))
 
   (define-static (empty)::Space
     (Space))
@@ -6610,75 +6594,63 @@ be used as a base class for our text-like things.
 
 #+BEGIN_SRC scheme :tangle no :noweb-ref Textual--contents
 
-    (define-protected builder ::StringBuilder
-      (StringBuilder))
+  (define-protected builder ::StringBuilder
+    (StringBuilder))
 
-    (define (clone)
-      (let ((copied ::Textual (as Textual
-                                      (invoke-special Object (this) 'clone))))
-        (set! copied:builder (StringBuilder copied:builder))
-        copied))
+  (define (clone)
+    (let ((copied ::Textual (as Textual
+                                    (invoke-special Object (this) 'clone))))
+      (set! copied:builder (StringBuilder copied:builder))
+      copied))
 
-    (define (equals another)
-      (given ((another ::Textual)
-              ((eq? (another:getClass) (self getClass))))
-        (string=? builder another:builder)))
+  (define (split-at! index::int)::Textual
+    (let ((copied ::Textual (clone)))
+      (builder:delete index (builder:length))
+      (copied:builder:delete 0 index)
+      copied))
 
-    (define (hashCode)::int
-      (let ((code ::int 0)
-            (class ::Class (self getClass)))
-        (for i::int from: 0 below: (builder:length)
-          (set! code (+ (* 31 code) (as int (builder:charAt i)))))
-        (+ (* 31 (invoke class 'hashCode)) code)))
+  (define (merge-with! s::Textual)::void
+    (builder:append s))
 
-    (define (split-at! index::int)::Textual
-      (let ((copied ::Textual (clone)))
-        (builder:delete index (builder:length))
-        (copied:builder:delete 0 index)
-        copied))
+  (delegate (charAt index::int)::char builder)
+  (delegate (length)::int builder)
 
-    (define (merge-with! s::Textual)::void
-      (builder:append s))
+  (define (add element::Object)::boolean
+    (match element
+      (c::Char
+       (builder:append (as char c)))
+      (s::string
+       (builder:append s))))
 
-    (delegate (charAt index::int)::char builder)
-    (delegate (length)::int builder)
+  (define-internal (insert-at! index ::int element::Object)::void
+    (match element
+      (c::Char
+       (builder:insert index (as char c)))
 
-    (define (add element::Object)::boolean
-      (match element
-        (c::Char
-         (builder:append (as char c)))
-        (s::string
-         (builder:append s))))
+      (s::string
+       (builder:insert index (as String s)))))
 
-    (define-internal (insert-at! index ::int element::Object)::void
-      (match element
-        (c::Char
-         (builder:insert index (as char c)))
+  (define (empty?)::boolean
+    (= (builder:length) 0))
 
-        (s::string
-         (builder:insert index (as String s)))))
+  ;; iterating over a text element yields its characters
+  (define (iterator)::Iterator
+    (let ((index ::int 0))
+      (object (Iterator)
+        ((hasNext)::boolean
+         (is index < (builder:length)))
+        ((next)::Object
+         (let ((result (builder:charAt index)))
+           (set! index (+ index 1))
+           result)))))
 
-    (define (empty?)::boolean
-      (= (builder:length) 0))
+  (define-internal (remove-at! index ::int)::Object
+    (let ((removed (charAt index)))
+      (builder:deleteCharAt index)
+      removed))
 
-    ;; iterating over a text element yields its characters
-    (define (iterator)::Iterator
-      (let ((index ::int 0))
-        (object (Iterator)
-          ((hasNext)::boolean
-           (is index < (builder:length)))
-          ((next)::Object
-           (let ((result (builder:charAt index)))
-             (set! index (+ index 1))
-             result)))))
-
-    (define-internal (remove-at! index ::int)::Object
-      (let ((removed (charAt index)))
-        (builder:deleteCharAt index)
-        removed))
-
-    (define-private (replace-at! index ::int c::Object)::Object
-      (builder:setCharAt index (as char c)))
+  (define-private (replace-at! index ::int c::Object)::Object
+    (builder:setCharAt index (as char c)))
 
 #+END_SRC
 
@@ -9251,38 +9223,38 @@ the presence of the static ~key-bindings~ table. This solution
 allows users to define new keyboard shortcuts in runtime,
 but it comes with a bunch of them predefined:
 
-#+BEGIN_SRC scheme :noweb-ref Document--keyboard-editing :noweb no-export
+#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--keyboard-editing :noweb no-export
   (define-static key-bindings
     (let* ((bindings (mapping (key-code::KeyCode)
                       (lambda (code::KeyCode)
                         ::(maybe Edit)
-                        <<Document--default-key-press-handler>>)))
+                        <<GRASP-Editor--default-key-press-handler>>)))
            (set-key! (lambda (name::KeyName
                               handler::(maps (KeyCode)
                                              to: (maybe Edit)))
                        (let ((code ::KeyCode (keychord-code name)))
                          (set! (bindings code) handler)))))
-      <<Document--initial-key-bindings>>
+      <<GRASP-Editor--initial-key-bindings>>
       bindings))
 
 #+END_SRC
 
-Where ~<<Document--initial-key-bindings>>~ are to be defined
-later. The ~<<Document--default-key-press-handler>>~ also
+Where ~<<GRASP-Editor--initial-key-bindings>>~ are to be defined
+later. The ~<<GRASP-Editor--default-key-press-handler>>~ also
 will be elaborated later on. For now it can do nothing:
 
-#+BEGIN_SRC scheme :noweb-ref Document--default-key-press-handler
+#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--default-key-press-handler
   (values) ;; this is a placeholder that can be safely removed
 #+END_SRC
 
 The ~key-bindings~ table is referenced in ~Document~'s
 ~key-typed!~ method:
 
-#+BEGIN_SRC scheme :noweb-ref Document--keyboard-editing
-  (define (key-typed! key-code::KeyCode)
+#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--keyboard-editing
+  (define (key-press-action key-code::KeyCode)
     ::(maybe Edit)
     (let* ((cursor ::Cursor (current-cursor))
-  	 (target ::Element (cursor:target)))
+           (target ::Element (cursor:target)))
       (match target
         (magic::Enchanted
          (magic:key-typed! key-code))
@@ -9468,7 +9440,7 @@ are empty at the moment, and they will be filled later.
 As to the main part of the stub, it is defined as follows:
 
 #+HEADER: :shebang "#!/bin/sh" :mkdirp yes :noweb no-export
-#+BEGIN_SRC scheme :tangle test/interactive/editing.scm :noweb-scope ***
+#+BEGIN_SRC scheme :tangle test/interactive/editing.scm :noweb no-export :noweb-scope ***
   #| -*- scheme -*-
   exec java -cp "$(dirname "$0")/../../../libs/kawa.jar"\
   :"$(dirname "$0")/../../../libs/lanterna-3.2.0-SNAPSHOT.jar"\
@@ -9495,6 +9467,7 @@ As to the main part of the stub, it is defined as follows:
   <<GRASP-interactivity>>
 
   (define-interface Element (Visual Cloneable)
+    (congruent-with? another::Element)::boolean
     (serialize port ::OutputPort indent ::int)::void
     <<Element--cursor-operations>>
     <<Element--editing>>
@@ -9557,7 +9530,6 @@ As to the main part of the stub, it is defined as follows:
     item)
 
   (define-object (Document)
-    <<Document--keyboard-editing>>
     <<Document--definition>>
     (Comb)
     (set! style BorderStyle:None))
@@ -9567,11 +9539,12 @@ As to the main part of the stub, it is defined as follows:
 
     (define cursor ::Cursor (Cursor))
 
+    <<GRASP-Editor--keyboard-editing>>
+
     (define (key-typed! key-code::KeyCode)::boolean
-      (parameterize ((current-document document)
-                     (current-cursor cursor))
-        (given ((action ::Edit (document:key-typed!
-                                key-code)))
+      (parameterize ((current-cursor (the cursor))
+                     (current-document (the document)))
+        (given ((action ::Edit (key-press-action key-code)))
           (truly
            <<GRASP-key-typed>>))))
 
@@ -9579,9 +9552,8 @@ As to the main part of the stub, it is defined as follows:
       (regex-replace* "\\s+" (regex-replace* "\n" s "") " "))
 
     (define (render!)::void
-      (parameterize ((current-document document)
-                     (current-cursor cursor))
-
+      (parameterize ((current-cursor (the cursor))
+                     (current-document (the document)))
         (let* ((f ::FontProxy (painter:text-font))
                (w ::int (painter:draw-text! (cursor:toString) (painter:text-font))))
           (painter:with-translation w 0
@@ -9640,7 +9612,7 @@ These are going to be added in the subsequent chapters.
 By default, we let the user exit our application by pressing
 the \texttt{escape} button:
 
-#+BEGIN_SRC scheme :noweb-ref Document--initial-key-bindings
+#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--initial-key-bindings
   (set-key! 'escape
             (lambda (code::KeyCode)
               (exit)))
@@ -9654,7 +9626,7 @@ the \texttt{escape} button:
 We also invoke the keyboard navigation capabilities from
 our cursor navigation test:
 
-#+BEGIN_SRC scheme :noweb-ref Document--initial-key-bindings  
+#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--initial-key-bindings  
   (set-key! 'left
             (lambda (code::KeyCode)
               (let ((cursor ::Cursor (current-cursor)))
@@ -9758,7 +9730,7 @@ in the document tree, in order to be able to pass it to the
 
 It is invoked as a default of the ~key-bindings~:
 
-#+BEGIN_SRC scheme :noweb-ref Document--default-key-press-handler
+#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--default-key-press-handler :noweb-override yes
   (given ((input (unicode-input))
           ((char-standard? input))
           (document ::Document (current-document)))
@@ -9779,6 +9751,12 @@ that simply appends a character at a ~current-index~.
 #+BEGIN_SRC scheme :noweb-ref Textual--editing
   (define (insert-character c)::(maybe Edit)
     (AppendCharacters (string c) (copy (current-cursor))))
+
+  (define (congruent-with? another::Element)::boolean
+    (or (eq? (this) another)
+        (given ((another ::Textual)
+                ((eq? (another:getClass) (self getClass))))
+          (string=? builder another:builder))))
   
 #+END_SRC
 
@@ -9849,6 +9827,18 @@ wrap the entire expression inside ~ExpressionComment~:
            (self insert-character c)))
         (target:insert-character c))))
 
+  (define (congruent-with? another::Element)::boolean
+    (or (eq? (this) another)
+        (given ((another ::Comb)
+                ((= (size) (another:size))))
+          (escape-with return
+            (for i::int from: 0 below: (size)
+                 (let ((our ::Element (get i))
+                       (their ::Element (another:get i)))
+                   (unless (our:congruent-with? their)
+                     (return #false))))
+            (return #true)))))
+
 #+END_SRC
 
 #+BEGIN_SRC scheme :noweb-ref Cursor--operations
@@ -9885,7 +9875,7 @@ wrap the entire expression inside ~ExpressionComment~:
              (top ::int (at:pop!))
              (parent ::Comb (at:target))
              (target ::Element (parent:get (- top 1))))
-        (assert (old-expression:equals target))
+        (assert (old-expression:congruent-with? target))
         (parent:put! (- top 1) new-expression)
         (Replace new-expression old-expression cursor))))
 
@@ -9933,6 +9923,10 @@ in particular for ~Space~:
              (InsertSlice (Comb (Atom (string c))) (copy cursor)))
             (else
              #!null)))))))
+
+  (define (congruent-with? another::Element)::boolean
+    (given ((another ::Space))
+      (fragments:equals another:fragments)))
 
 #+END_SRC
 
@@ -10089,7 +10083,7 @@ are obviously going to refer to the methods ~splice!~ and
              (extracted ::Comb
                         (parent:extract! (- start 1) sub-start
                                          (- end 1) sub-end)))
-        (assert (equal? extracted:elements elements:elements))
+        (assert (extracted:congruent-with? elements))
         (cursor:push! start)
         (cursor:push! sub-start)
         (InsertSlice extracted cursor))))
@@ -10196,7 +10190,7 @@ and its inverse, ~MergeElements~:
              (parent ::Comb (cursor:target))
              (left ::Textual (parent:element-at (- top 1)))
              (space* ::Space (parent:element-at top)))
-        (assert (equal? space space*))
+        (assert (space:congruent-with? space*))
         (space*:clear!)
         ;; we need to subtract 1 to translate element-at to
         ;; remove-at index but we also need to add 1 to indicate
@@ -10244,7 +10238,7 @@ Now we need to add another method to ~Element~, namely
 Like in most text editors, it's going to be bound to the
 ~backspace~ and ~delete~ buttons:
 
-#+BEGIN_SRC scheme :noweb-ref Document--initial-key-bindings  
+#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--initial-key-bindings  
   (set-key! 'backspace
             (lambda (code::KeyCode)
               (let ((document ::Document (current-document)))
@@ -10440,7 +10434,7 @@ history:
 Now we can test it by bindings keys to the appropriate
 functions:
 
-#+BEGIN_SRC scheme :noweb-ref Document--initial-key-bindings
+#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--initial-key-bindings
   (set-key! '(ctrl z)
             (lambda (code::KeyCode)
               (given ((document ::Document (current-document)))
@@ -10618,6 +10612,7 @@ to out document model, which consists of the
 
   (define-interface Element (Visual Cloneable)
     (serialize port ::OutputPort indent ::int)::void
+    (congruent-with? another::Element)::boolean
     <<Element--cursor-operations>>
     <<Element--editing>>
     <<Element--indexing>>
@@ -10656,7 +10651,8 @@ to out document model, which consists of the
     <<Space--remaining-methods>>
     )
 
-  (define-object (Comb)::Tile::Iterable
+  (define-object (Comb)
+    ::Tile ::Iterable <<Comb--interfaces>>
     <<Comb--collection-operations>>
     <<Comb--whitespace-support>>
     <<Comb--rendering>>
@@ -10679,6 +10675,11 @@ to out document model, which consists of the
 
   <<TextualSubclasses--definitions>>
 
+  (define-object (Document)
+    <<Document--definition>>
+    (Comb)
+    (set! style BorderStyle:None))
+  
   <<Edit--operations>>
 
 #+END_SRC
@@ -10781,18 +10782,18 @@ Finally we need some definition of the document's editor:
   (import (document elements))
   (import (document extensions))
   (import (document model))
+  <<document/editor:dependencies>>
 
-  (define-object (Document)
-    <<Document--keyboard-editing>>
-    <<Document--definition>>
-    (Comb)
-    (set! style BorderStyle:None))
+  (define-syntax-rule (with-editor-context . actions)
+    (parameterize ((current-cursor (the cursor))
+                   (current-document (the document)))
+      . actions))
 
   (define-object (GRASP-Editor)::Application
     (define document ::Document (Document))
 
     (define cursor ::Cursor (Cursor))
-
+    
     <<GRASP-Editor--definition>>
 
     <<GRASP-Editor--base-class>>)
@@ -10802,19 +10803,18 @@ Finally we need some definition of the document's editor:
 where ~GRASP-Editor~ implements at least ~key-typed!~ and
 ~render!~ methods:
 
-#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--definition
-  (define (key-typed! key-code::KeyCode)::boolean
-    (parameterize ((current-document document)
-                   (current-cursor cursor))
-      (given ((action ::Edit (document:key-typed!
-                              key-code)))
-        (truly
-         <<GRASP-key-typed>>))))
+#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--definition :noweb no-export
+  <<GRASP-Editor--keyboard-editing>>
 
-  (define (render!)::void
-    (parameterize ((current-document document)
-                   (current-cursor cursor))
-      (document:render! (Cursor) (LayoutState))))
+  (define (key-typed! key-code::KeyCode)::boolean
+      (with-editor-context
+       (given ((action ::Edit (key-press-action key-code)))
+         (truly
+          <<GRASP-key-typed>>))))
+
+    (define (render!)::void
+      (with-editor-context
+       (document:render! (Cursor) (LayoutState))))
 
 #+END_SRC
 
@@ -11545,7 +11545,7 @@ runner)~ module:
   (import (input pointing-devices))
 #+END_SRC
 
-**** ~Tile~ drag&drop, ~Comb~ resize and other ~Drag~ instances
+**** ~Drag~ operatons
 
 Being able to set the cursor position using a pointing
 device is certainly a valuable feature, but it also seems to
@@ -11560,40 +11560,55 @@ interface with two methods:
 #+BEGIN_SRC scheme :tangle input/pointing-devices.scm :noweb no-export
   (define-interface Drag ()
     (move! x::real y::real dx::real dy::real)::void
-    (drop! x::real y::real vx::real vy::real)::void
+    (drop! x::real y::real vx::real vy::real)::(maybe Edit)
     )
 
   (define-mixin NoDrop
-    (define (drop! x::real y::real vx::real vy::real)::void
-      (values)))
-  
+    (define (drop! x::real y::real vx::real vy::real)::(maybe Edit)
+      #!null))
+
 #+END_SRC
 
-The ~GRASP-Editor~ will keep track of all the dragging
-processes that are currently taking place. For each finger
-(of which there is only one in the case of a mouse pointer,
-but potentially up to ten on Android devices), we're going
-to keep a corresponding ~Drag~ object in the ~dragging~
-mapping, adding it on the ~press!~ event, updating it on
-each movement, and terminating it on pointer release:
+Mind that the ~drop!~ method optionally returns an ~Edit~
+operation -- it is meant to serve as an undo to any changes
+that it made, and to be recorded in the document's history.
+
+The ~GRASP-Editor~ needs to know about ~Drag~, so it has to
+import the ~(input pointing-devices)~ module.
+
+#+BEGIN_SRC scheme :noweb-ref document/editor:dependencies
+  (import (input pointing-devices))
+#+END_SRC
+
+It will keep track of all the dragging processes that are
+currently taking place. For each finger (of which there is
+only one in the case of a mouse pointer, but potentially up
+to ten on Android devices), we're going to keep a
+corresponding ~Drag~ object in the ~dragging~ mapping,
+adding it on the ~press!~ event, updating it on each
+movement, and terminating it on pointer release:
 
 #+BEGIN_SRC scheme :noweb-ref GRASP-Editor--definition :noweb no-export
   (define dragging ::(maps byte to: Drag)
     (mapping (finger::byte)::Drag #!null))
 
   (define (press! finger::byte x::real y::real)::boolean
-    (given ((drag ::Drag (drag-from x y)))
+    (given ((drag ::Drag (with-editor-context
+                          (drag-from x y))))
       (set! (dragging finger) drag)
       #t))
-  
+
   (define (move! finger::byte x::real y::real dx::real dy::real)::boolean
     (given ((drag ::Drag (dragging finger)))
-      (drag:move! x y dx dy)
+      (with-editor-context
+       (drag:move! x y dx dy))
       #t))
 
   (define (release! finger::byte x::real y::real vx::real vy::real)::boolean
     (given ((drag ::Drag (dragging finger)))
-      (drag:drop! x y vx vy)
+      (given ((undo ::Edit (with-editor-context
+                            (drag:drop! x y vx vy))))
+        (document:history:record! undo))
       (unset! (dragging finger))
       #t))
 
@@ -11609,30 +11624,124 @@ supposed to be created? It's hard to give a complete and
 definite answer at this point, but we can at least provide a
 scaffolding:
 
-#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--drag-from-definition
+#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--drag-from-definition :noweb no-export
   (define-private (drag-from x::real y::real)::(maybe Drag)
     (otherwise
      #!null
-     (parameterize ((current-document document))
-       (given ((cursor ::Cursor (document:cursor-under* x y))
-               ((is (cursor:size) > 2))
-               (tip (cursor:pop!))
-               (top (cursor:pop!))
-               (parent ::Element (cursor:target))
-               (target ::Element (target:element-at top)))
+     (given ((cursor ::Cursor (document:cursor-under* x y))
+             ((is (cursor:size) #;< >= 2))
+             (tip (cursor:pop!))
+             (top (cursor:pop!))
+             (parent ::Tile (cursor:target))
+             (target ::Tile (parent:element-at top))
+             #|
+             (origin ::Position (document:position target))
+             (x0 ::real (- x origin:left))
+             (y0 ::real (- y origin:top))
+             |#
+             )
          (cond
           <<GRASP-Editor--drag-from-dispatch>>
           (else
-           #false))))))
+           #false)))))
 
 #+END_SRC
 
-Now, 
+***** Resizing elements
+
+Now, the simplest case to handle is when we press on a
+~Resizable~ ~Tile~
 
 #+BEGIN_SRC scheme :noweb-ref GRASP-Editor--drag-from-dispatch
+  ((given ((target ::Resizable))
+     (target:resizing-position? #|x0 y0|# tip))
+   (cursor:push! top)
+   (cursor:push! tip)
+   (Resize target cursor (target:width) (target:height)))
+#+END_SRC
+
+where ~Resize~ is a ~Drag~ whose ~move!~ method invokes a
+resizing method on its taget, and whose ~drop!~ method
+returns a ~ResizeBox~ ~Edit~ operation:
+
+#+BEGIN_SRC scheme :tangle document/editor.scm :noweb no-export
+  (define-object (Resize target ::Resizable cursor ::Cursor
+                         initial-width ::real initial-height ::real)
+    ::Drag
+    (define (move! x::real y::real dx::real dy::real)::void
+      (target:resize-by! dx dy))
+
+    (define (drop! x::real y::real vx::real vy::real)::(maybe Edit)
+      (let ((current-width ::real (target:width))
+            (current-height ::real (target:height)))
+        (if (and (= current-width initial-width)
+                 (= current-height initial-height))
+            #!null
+            (ResizeBox cursor current-width current-height))))
+    )
 
 #+END_SRC
 
+The ~ResizeBox~ ~Edit~ operation also has a rather trivial
+implementation, delegating all the complexity to the
+~set-size!~ method:
+
+#+BEGIN_SRC scheme :tangle document/editor.scm :noweb no-export
+  (define-object (ResizeBox cursor ::Cursor
+                            target-width ::real
+                            target-height ::real)
+    ::Edit
+    (define-internal (position)::Cursor cursor)
+
+    (define-internal (perform! document::Element)::Edit
+      (let* ((target ::Resizable (as Resizable (cursor:target)))
+             (original-width ::real (target:width))
+             (original-height ::real (target:height)))
+        (target:set-size! target-width target-height)
+        (ResizeBox cursor original-width original-height))))
+#+END_SRC
+
+Now, it can be a little bit puzzling what it means for a
+~Tile~ to be ~Resizable~, as well as: what kinds of ~Tile~
+are ~Resizable~.
+
+The answer to the first question is fairly simple an element
+is ~Resizable~ if it implements the ~Resizable~ interface:
+
+#+BEGIN_SRC scheme :tangle document/elements.scm :noweb no-export
+  (define-interface Resizable (Tile)
+    (resizing-position? #|x::real y::real|# index::int)::boolean
+    (set-size! width ::real height ::real)::void
+    (resize-by! +width ::real +height ::real)::void
+    )
+
+#+END_SRC
+
+When it comes to the second question, a ~Comb~ is ~Resizable~:
+
+#+BEGIN_SRC scheme :noweb-ref Comb--interfaces :noweb no-export
+  ::Resizable
+#+END_SRC
+
+and its /resizing position/ is its last index (i.e. the
+index of its closing parenthesis):
+
+#+BEGIN_SRC scheme :noweb-ref Comb--remaining-methods :noweb no-export
+  (define (resizing-position? #|x::real y::real|# index::int)::boolean
+    (= index (last-index)))
+
+#+END_SRC
+
+Now, the ~set-size!~ operation 
+
+#+BEGIN_SRC scheme :noweb-ref Comb--remaining-methods :noweb no-export
+  (define (set-size! width ::real height ::real)::void
+    (values))
+
+  (define (resize-by! +width ::real +height ::real)::void
+    (values))
+
+#+END_SRC
 
 
 #+BEGIN_COMMENT
