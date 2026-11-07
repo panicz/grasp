@@ -2556,73 +2556,93 @@ those features (and also supports multiple values). We also
 give it a better name: we call it ~given~.
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-(define-syntax given
-  (lambda (stx)
-    (syntax-case stx (::)
+  (define-syntax-rule (first-of-values expression)
+    (let ((result expression))
+      (if (is result instance? gnu.mapping.Values)
+          (let ((result ::gnu.mapping.Values result))
+            (if (is (result:size) > 0)
+                (result:get 0)
+                result))
+          result)))
 
-      ((_)
-       #'#t)
+  (define-syntax given
+    (lambda (stx)
+      (syntax-case stx (:: values)
 
-      ((_ ())
-       #'#t)
+        ((_)
+         #'#t)
 
-      ((_ () . body)
-       #'(let () . body))
+        ((_ ())
+         #'#t)
 
-      ((_ ((name binding) . rest) . body)
-       (identifier? #'name)
-       #'(let ((name binding))
-           (and name
-                (given rest
-                  . body))))
+        ((_ () . body)
+         #'(let () . body))
 
-      ((_ ((name :: type binding) . rest) . body)
-       (identifier? #'name)
-       #'(let ((value binding))
-           (and (instance? value type)
-                value
-                (let ((name ::type value))
+        ((_ ((name binding) . rest) . body)
+         (identifier? #'name)
+         #'(let ((name (first-of-values binding)))
+             (and name
                   (given rest
-                    . body)))))
+                    . body))))
 
-      ((_ ((name :: type) . rest) . body)
-       (identifier? #'name)
-       #'(and (instance? name type)
-              name
-              (let ((name ::type (as type name)))
-                (given rest
-                  . body))))
+        ((_ ((name :: type binding) . rest) . body)
+         (identifier? #'name)
+         #'(let ((value (first-of-values binding)))
+             (and (instance? value type)
+                  value
+                  (let ((name ::type value))
+                    (given rest
+                      . body)))))
 
-      ((_ ((value binding) . rest) . body)
-       #'(match binding
-           (value
-            (given rest
-              . body))
-           (_ #f)))
+        ((_ ((name :: type) . rest) . body)
+         (identifier? #'name)
+         #'(and (instance? name type)
+                name
+                (let ((name ::type (as type name)))
+                  (given rest
+                    . body))))
 
-      ((_ ((condition) . rest) . body)
-       #'(and condition
-              (given rest . body)))
+        ((_ (((values . results) expression) . rest) . body)
+         #'(call-with-values (lambda () expression)
+             (lambda args
+               (match-values args results (given rest . body)))))
 
-      ((_ ((value * ... expression) . rest) . body)
-       (identifier? #'value)
-       #'(call-with-values (lambda () expression)
-           (lambda args
-             (match args
-               (`(,value ,* ... . ,_)
-                (and value
-                     (given rest . body)))
-               (_ #f)))))
+        ((_ ((value binding) . rest) . body)
+         #'(match binding
+             (value
+              (given rest
+                . body))
+             (_ #f)))
 
-      ((_ ((value ... expression) . rest) . body)
-       #'(call-with-values (lambda () expression)
-           (lambda args
-             (match args
-               (`(,value ... . ,_)
-                (given rest . body))
-               (_ #f)))))
+        ((_ ((condition) . rest) . body)
+         #'(and condition
+                (given rest . body)))
 
-      )))
+        ((_ ((value ... expression) . rest) . body)
+         #'(call-with-values (lambda () expression)
+             (lambda args
+               (match-values args (value ...) (given rest . body)))))
+
+        )))
+
+  (define-syntax match-values
+    (syntax-rules (::)
+      ((match-values args (h :: type . t) continuation)
+       (match args
+         (`(,h ::type . ,tail)
+          (match-values tail t continuation))
+         (_
+          #f)))
+      ((match-values args (h . t) continuation)
+       (match args
+         (`(,h . ,tail)
+          (match-values tail t continuation))
+         (_
+          #f)))
+      ((match-values args prim continuation)
+       (match args
+         (prim continuation)
+         (_ #f)))))
 
 #+END_SRC
 
@@ -8410,6 +8430,11 @@ stack traces:
     (parameterize ((current-output-port (current-error-port)))
       (apply print messages)))
 
+  (define-syntax-rule (DUMP variables ...)
+    (begin
+      (print 'variables": "variables)
+      ...))
+
   (define-parameter (stack-dump-length)::integer 32)
 
   (define-parameter (show-in-stack-dump?)::(maps (string)
@@ -10782,6 +10807,7 @@ Finally we need some definition of the document's editor:
   (import (document elements))
   (import (document extensions))
   (import (document model))
+  (import (utils debug))
   <<document/editor:dependencies>>
 
   (define-syntax-rule (with-editor-context . actions)
@@ -10793,7 +10819,7 @@ Finally we need some definition of the document's editor:
     (define document ::Document (Document))
 
     (define cursor ::Cursor (Cursor))
-    
+
     <<GRASP-Editor--definition>>
 
     <<GRASP-Editor--base-class>>)
@@ -10926,7 +10952,7 @@ coordinates:
 #+BEGIN_SRC scheme :noweb-ref Element--remaining-methods
   (cursor-under* x ::real y ::real path ::Cursor
                  position ::LayoutState)
-  ::(maybe Cursor)
+  ::(maybe (Values Cursor x y))
 #+END_SRC
 
 Of course, we need to provide implementations of this method
@@ -10942,7 +10968,7 @@ earlier):
   (define (cursor-under* x ::real y ::real
                          path ::Cursor
                          position ::LayoutState)
-    ::(maybe Cursor)
+    ::(maybe (Values Cursor real real))
     (escape-with return
       (let* ((font ::FontProxy (self font))
              (style ::BorderStyle (self border-style))
@@ -10962,17 +10988,17 @@ earlier):
           (return #!null))
          ((is y < border-height)
           (path:push! 0)
-          (return path))
+          (return path x y))
          (else
           (for line in: (lines builder)
             (when (is top <= y < (+ top line-height))
               (path:push! (+ n (painter:character-index
                                 x line font)))
-              (return path))
+              (return path x y))
             (increase! top by: line-height)
             (increase! n by: (+ (string-length line) 1)))
           (path:push! (last-index))
-          (return path))))))
+          (return path x y))))))
 
 #+END_SRC
 
@@ -10983,9 +11009,9 @@ height.
 
 #+BEGIN_SRC scheme :noweb-ref Space--remaining-methods
   (define (cursor-under* x ::real y ::real
-                       path ::Cursor
-                       position ::LayoutState)
-    ::(maybe Cursor)
+                         path ::Cursor
+                         position ::LayoutState)
+    ::(maybe (Values Cursor real real))
     (escape-with return
       (let ((last-index ::int (- (fragments:size) 1))
             (space-width ::int (painter:space-width)))
@@ -11001,10 +11027,10 @@ height.
                (when (is left <= x < (+ left width))
                  (path:push! (nearby-int (/ (- x left)
                                             space-width)))
-                 (return path))
+                 (return path x y))
                (unless (= i last-index)
                  (path:push! fragment)
-                 (return path))
+                 (return path x y))
                (return #!null)))
            (unless (= i last-index)
              (break-layout! position (painter:min-line-height))))
@@ -11020,7 +11046,7 @@ need to check every element inside.
   (define (cursor-under* x ::real y ::real
                          path ::Cursor
                          position ::LayoutState)
-    ::(maybe Cursor)
+    ::(maybe (Values Cursor real real))
     (escape-with return
       (let* ((state ::LayoutState (LayoutState))
              (border-width ::real
@@ -11038,11 +11064,11 @@ need to check every element inside.
          ((or (is x < border-width)
               (is y < border-height))
           (path:push! 0)
-          (return path))
+          (return path x y))
          ((or (is x >= (- (width) border-width))
               (is y >= (- (height) border-height)))
           (path:push! (last-index))
-          (return path))
+          (return path x y))
          (else
           (let ((x ::int (- x border-width))
                 (y ::int (- y border-height))
@@ -11051,15 +11077,15 @@ need to check every element inside.
                  (when (is state:top <= y)
                    (set! line-end index))
                  (path:push! index)
-                 (given ((result ::Cursor
+                 (given ((result x* y*
                                  (element:cursor-under*
                                   x y path state)))
-                   (return result))
+                   (return result x* y*))
                  (path:pop!)
                  (increase! index by: 1))
             (path:push! line-end)
-            (return path)))))))
-  
+            (return path x y)))))))
+
 #+END_SRC
 
 For convenience, we also define a simplified variant of
@@ -11182,7 +11208,8 @@ the given pointer coordinate:
 
 #+BEGIN_SRC scheme :noweb-ref GRASP-Editor--definition
   (define (tap! finger::byte #;at x::real y::real)::boolean
-    (given ((new-cursor ::Cursor (document:cursor-under* x y)))
+    (given ((new-cursor ::Cursor x* ::real y* ::real
+                        (document:cursor-under* x y)))
       (cursor:assign! new-cursor)
       #true))
 
@@ -11628,22 +11655,18 @@ scaffolding:
   (define-private (drag-from x::real y::real)::(maybe Drag)
     (otherwise
      #!null
-     (given ((cursor ::Cursor (document:cursor-under* x y))
+     (given ((cursor ::Cursor x0 ::real y0 ::real
+                     (document:cursor-under* x y))
+             ((truly (DUMP cursor x0 y0)))
              ((is (cursor:size) #;< >= 2))
              (tip (cursor:pop!))
              (top (cursor:pop!))
              (parent ::Tile (cursor:target))
-             (target ::Tile (parent:element-at top))
-             #|
-             (origin ::Position (document:position target))
-             (x0 ::real (- x origin:left))
-             (y0 ::real (- y origin:top))
-             |#
-             )
-         (cond
-          <<GRASP-Editor--drag-from-dispatch>>
-          (else
-           #false)))))
+             (target ::Tile (parent:element-at top)))
+       (cond
+        <<GRASP-Editor--drag-from-dispatch>>
+        (else
+         #false)))))
 
 #+END_SRC
 
@@ -11654,7 +11677,7 @@ Now, the simplest case to handle is when we press on a
 
 #+BEGIN_SRC scheme :noweb-ref GRASP-Editor--drag-from-dispatch
   ((given ((target ::Resizable))
-     (target:resizing-position? #|x0 y0|# tip))
+     (target:resizing-position? x0 y0 tip))
    (cursor:push! top)
    (cursor:push! tip)
    (Resize target cursor (target:width) (target:height)))
@@ -11699,6 +11722,7 @@ implementation, delegating all the complexity to the
              (original-height ::real (target:height)))
         (target:set-size! target-width target-height)
         (ResizeBox cursor original-width original-height))))
+  
 #+END_SRC
 
 Now, it can be a little bit puzzling what it means for a
@@ -11710,7 +11734,7 @@ is ~Resizable~ if it implements the ~Resizable~ interface:
 
 #+BEGIN_SRC scheme :tangle document/elements.scm :noweb no-export
   (define-interface Resizable (Tile)
-    (resizing-position? #|x::real y::real|# index::int)::boolean
+    (resizing-position? x::real y::real index::int)::boolean
     (set-size! width ::real height ::real)::void
     (resize-by! +width ::real +height ::real)::void
     )
@@ -11727,7 +11751,7 @@ and its /resizing position/ is its last index (i.e. the
 index of its closing parenthesis):
 
 #+BEGIN_SRC scheme :noweb-ref Comb--remaining-methods :noweb no-export
-  (define (resizing-position? #|x::real y::real|# index::int)::boolean
+  (define (resizing-position? x::real y::real index::int)::boolean
     (= index (last-index)))
 
 #+END_SRC
