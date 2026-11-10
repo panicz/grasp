@@ -1957,6 +1957,20 @@ following way:
 
 #+END_SRC
 
+or -- in a more general setup -- we can also provide methods
+(but not fields) and implement interfaces:
+
+#+BEGIN_SRC scheme :tangle no
+
+  (define-type (TypeName field1-name: field1-type
+                         field2-name: field2-type := initializer
+                         ...)
+    ::Interface
+    (define (method . args) . body)
+    ...)
+
+#+END_SRC
+
 Kawa reader treats symbols that end with a colon as /keywords/
 (that are typically used as named arguments to functions).
 
@@ -1983,96 +1997,138 @@ functions during macro expansion, we need to resort to the
 ~syntax-case~ macro system.
 
 #+BEGIN_SRC scheme :tangle language-extensions.scm
-(define-syntax-rule (define-type (type-name . fields))
-  (type-definition type-name fields #;slots () #;initializers (begin)))
+  (define-syntax define-type
+    (syntax-rules ()
+      ((define-type (type-name . fields) . body)
+       (type-fields type-name fields
+                    #;slots ()
+                            #;initializers ()
+                                           body))))
 
-(define-syntax type-definition
-  (lambda (stx)
-    (syntax-case stx (:=)
-      ((_ type-name () ((slot-symbol . slot-spec) ...) (initializers ...))
-       #'(define-simple-class type-name (Cloneable)
-           (slot-symbol . slot-spec)
-           ...
-           ((assign! source ::type-name)::void
-            (set! slot-symbol (slot-ref source 'slot-symbol))
-            ...)
+  (define-syntax type-fields
+    (lambda (stx)
+      (syntax-case stx (:=)
 
-           ((clone)::Object
-            (let ((copy (type-name)))
-              (invoke copy 'assign! (this))
-              copy))
+        ((_ type-name () slots initializers body)
+         #'(type-body type-name body
+                      #;interfaces ()
+                                   #;methods ()
+                                             slots initializers))
 
-           ((prettyPrint port ::OutputPort)::void
-            (kawa.lib.kawa.pprint:pprintStartLogicalBlock "[" #f "]" port)
-            (try-finally
-              (begin
-               (display 'type-name port)
-               (kawa.lib.kawa.pprint:pprintNewline 'miser port)
-               (begin
-                (write-char #\space port)
-                (kawa.lib.kawa.pprint:pprintNewline 'fill port)
-                (write 'slot-symbol port)
-                (write-char #\: port)
-                (write-char #\space port)
-                (kawa.lib.kawa.pprint:pprintNewline 'linear port)
-                (cond ((string? slot-symbol)
-                       (write slot-symbol port))
-                      ((Collection? slot-symbol)
-                       (kawa.lib.kawa.pprint:pprintStartLogicalBlock "[" #f "]" port)
-                       (try-finally
-                        (for item in: slot-symbol
-                         (kawa.lib.kawa.pprint:pprint item port))
-                        (kawa.lib.kawa.pprint:pprintEndLogicalBlock "]" port)))
-                      (else
-                       (kawa.lib.kawa.pprint:pprint slot-symbol port))))
-               ...)
-             (kawa.lib.kawa.pprint:pprintEndLogicalBlock "]" port)))
+        ((_ type-name (field-keyword field-type := default . fields)
+            (slot ...) (initializer ...) body)
+         (keyword? (syntax->datum #'field-keyword))
+         (with-syntax ((field (datum->syntax
+                               stx (keyword->symbol
+                                    (syntax->datum #'field-keyword)))))
+           #'(type-fields type-name fields
+                          (slot ... (field type: field-type))
+                          (initializer ... (set! field default))
+                          body)))
 
-           ((toString)::String
-            (call-with-output-string 
-              (lambda (port ::OutputPort) 
-                (invoke (this) 'prettyPrint port))))
+        ((_ type-name (field-keyword field-type . fields)
+            (slot ...) initializers body)
+         (keyword? (syntax->datum #'field-keyword))
+         (with-syntax ((field (datum->syntax
+                               stx (keyword->symbol
+                                    (syntax->datum #'field-keyword)))))
+           #'(type-fields type-name fields
+                          (slot ... (field type: field-type))
+                          initializers
+                          body)))
 
-           ((equals another ::Object)::boolean
-            (and (instance? another type-name)
-                 (let ((another ::type-name (as type-name another)))
-                    (and (equal? slot-symbol (slot-ref another 
-                                                       'slot-symbol))
-                         ...))))
+        ((_ type-name fields slots initializers body)
+         #'(syntax-error "define-type: not a field list" fields)))))
 
-           ((hashCode)::int
-            (let ((hash ::int (invoke 'type-name 'hashCode)))
-              (set! hash (+ (* hash 31) (invoke slot-symbol 'hashCode)))
-              ...
-              hash))
-             
-           ((*init*)
-            (initializers ... (values)))
-          ))
+  (define-syntax type-body
+    (lambda (stx)
+      (syntax-case stx (:: define)
 
-      ((_ type-name (slot-keyword slot-type := value . fields)
-          (slot-definitions ...) (initializers ...))
-       (keyword? (syntax->datum #'slot-keyword))
-       (with-syntax ((slot-symbol
-                      (datum->syntax
-                       stx
-                       (keyword->symbol
-                         (syntax->datum #'slot-keyword)))))
-         #'(type-definition type-name fields
-            (slot-definitions ... (slot-symbol type: slot-type))
-            (initializers ... (set! slot-symbol value)))))
+        ((_ type-name () interfaces methods slots initializers)
+         #'(type-class type-name interfaces methods slots initializers))
 
-      ((_ type-name (slot-keyword slot-type . fields)
-        (slot-definitions ...) initializers)
-       (keyword? (syntax->datum #'slot-keyword))
-       (with-syntax ((slot-symbol (datum->syntax
-                                   stx
-                                   (keyword->symbol
-                                     (syntax->datum #'slot-keyword)))))
-         #'(type-definition type-name fields
-            (slot-definitions ... (slot-symbol type: slot-type))
-            initializers)))
-      )))
+        ((_ type-name (:: interface . body)
+            (declared ...) methods slots initializers)
+         #'(type-body type-name body (declared ... interface)
+                      methods slots initializers))
+
+        ((_ type-name ((define (name . arguments) . method-body) . body)
+            interfaces (method ...) slots initializers)
+         #'(type-body type-name body interfaces
+                      (method ... ((name . arguments) . method-body))
+                      slots initializers))
+
+        ((_ type-name (item . body) interfaces methods slots initializers)
+         #'(syntax-error "define-type: neither a method nor an interface"
+                         item)))))
+
+  (define-syntax-rule (type-class type-name
+                                  (interface ...)
+                                  (method ...)
+                                  ((slot-symbol . slot-spec) ...) (initializer ...))
+    
+    (define-simple-class type-name (Cloneable interface ...)
+      (slot-symbol . slot-spec)
+      ...
+      ((assign! source ::type-name)::void
+       (set! slot-symbol (slot-ref source 'slot-symbol))
+       ...)
+
+      ((clone)::Object
+       (let ((copy (type-name)))
+         (invoke copy 'assign! (this))
+         copy))
+
+      ((prettyPrint port ::OutputPort)::void
+       (kawa.lib.kawa.pprint:pprintStartLogicalBlock "[" #f "]" port)
+       (try-finally
+        (begin
+          (display 'type-name port)
+          (kawa.lib.kawa.pprint:pprintNewline 'miser port)
+          (begin
+            (write-char #\space port)
+            (kawa.lib.kawa.pprint:pprintNewline 'fill port)
+            (write 'slot-symbol port)
+            (write-char #\: port)
+            (write-char #\space port)
+            (kawa.lib.kawa.pprint:pprintNewline 'linear port)
+            (cond ((string? slot-symbol)
+                   (write slot-symbol port))
+                  ((Collection? slot-symbol)
+                   (kawa.lib.kawa.pprint:pprintStartLogicalBlock
+                    "[" #f "]" port)
+                   (try-finally
+                    (for item in: slot-symbol
+                      (kawa.lib.kawa.pprint:pprint item port))
+                    (kawa.lib.kawa.pprint:pprintEndLogicalBlock
+                     "]" port)))
+                  (else
+                   (kawa.lib.kawa.pprint:pprint slot-symbol port))))
+          ...)
+        (kawa.lib.kawa.pprint:pprintEndLogicalBlock "]" port)))
+
+      ((toString)::String
+       (call-with-output-string 
+         (lambda (port ::OutputPort) 
+           (invoke (this) 'prettyPrint port))))
+
+      ((equals another ::Object)::boolean
+       (and (instance? another type-name)
+            (let ((another ::type-name (as type-name another)))
+              (and (equal? slot-symbol (slot-ref another 
+                                                 'slot-symbol))
+                   ...))))
+
+      ((hashCode)::int
+       (let ((hash ::int (invoke 'type-name 'hashCode)))
+         (set! hash (+ (* hash 31) (invoke slot-symbol 'hashCode)))
+         ...
+         hash))
+
+      ((*init*)
+       initializer ... (values))
+
+      method ...))
 
 #+END_SRC
 
@@ -6096,19 +6152,18 @@ Therefore we need an object that would represent the current
                 left: real := 0
                 top: real := 0
                 max-width: real := 0
-                line-height: real := 0))
+                line-height: real := 0)
 
-  (define (break-layout! state ::LayoutState
-                         min-line-height ::real)::void
-    (maximize! state:max-width state:left)
-    (set! state:left 0)
-    (increase! state:top by: state:line-height)
-    (set! state:line-height min-line-height))
+    (define (break! min-line-height ::real)::void
+      (maximize! max-width left)
+      (set! left 0)
+      (increase! top by: line-height)
+      (set! line-height min-line-height))
 
-  (define (expand-layout! state ::LayoutState width ::real height ::real)::void
-    (increase! state:left by: width)
-    (maximize! state:max-width state:left)
-    (maximize! state:line-height state:line-height height))
+    (define (expand! width ::real height ::real)::void
+      (increase! left by: width)
+      (maximize! max-width left)
+      (maximize! line-height height)))
 
 #+END_SRC
 
@@ -6331,7 +6386,7 @@ rendering function for ~Comb~ and its thereabouts.
       (update-size-from-layout-state! state)))
 
   (define (advance-layout! state ::LayoutState)::void
-    (expand-layout! state (width) (height)))
+    (state:expand! (width) (height)))
 
 #+END_SRC
 
@@ -6424,21 +6479,20 @@ everything, we can provide a /partial implementation/.
                  (lambda ()
                    (painter:mark-cursor!
                     (- (cursor:top) index) #!null))))
-             (expand-layout! state
-                             (* (max 0 n) (painter:space-width))
-                             (painter:min-line-height))
+             (state:expand! (* (max 0 n) (painter:space-width))
+                            (painter:min-line-height))
              (unless (= i last-index)
-               (break-layout! state (painter:min-line-height)))
+               (state:break! (painter:min-line-height)))
              (increase! index by: (index-positions n))))))
 
   (define (advance-layout! state ::LayoutState)::void
     (let ((last-index ::int (- (length fragments) 1)))
       (for i::int from: 0 to: last-index
            (let ((n ::int (fragments i)))
-             (expand-layout! state (* (max 0 n) (painter:space-width))
+             (state:expand! (* (max 0 n) (painter:space-width))
                              (painter:min-line-height))
              (unless (= i last-index)
-               (break-layout! state (painter:min-line-height)))))))
+               (state:break! (painter:min-line-height)))))))
 
 #+END_SRC
 
@@ -6522,7 +6576,7 @@ everything, we can provide a /partial implementation/.
          (invoke (painter:atom-font) 'height)))
 
     (define (advance-layout! state ::LayoutState)::void
-      (expand-layout! state (width) (height)))
+      (state:expand! (width) (height)))
 
     )
 
@@ -6741,7 +6795,7 @@ we have everything that is needed to define the ~Visual~,
       (set! last-height (+ inner-height (* 2 border-height)))))
 
   (define (advance-layout! state ::LayoutState)::void
-    (expand-layout! state (width) (height)))
+    (state:expand! (width) (height)))
 
   (define (width)::real
     (when (is last-width < 0)
@@ -6805,8 +6859,8 @@ units in GRASP
       (super render! path state))
 
     (define (advance-layout! state ::LayoutState)::void
-      (expand-layout! state (self width) (self height))
-      (break-layout! state (painter:min-line-height)))
+      (state:expand! (self width) (self height))
+      (state:break! (painter:min-line-height)))
 
     (Textual))
 
@@ -9448,8 +9502,8 @@ of ~<<TextualSubclasses--rendering>>~ and
       (super render! path state))
 
     (define (advance-layout! state ::LayoutState)::void
-      (expand-layout! state (self width) (self height))
-      (break-layout! state (painter:min-line-height)))
+      (state:expand! (self width) (self height))
+      (state:break! (painter:min-line-height)))
 
     <<LineComment--editing>>
 
@@ -10650,7 +10704,8 @@ to out document model, which consists of the
     (width)::real
     (height)::real)
 
-  (define-interface Comment (Tile))
+  (define-interface Comment (Tile)
+    (breaks-line?)::boolean)
 
   (define-mixin WriteToString
     (define (toString)::String
@@ -11019,8 +11074,8 @@ height.
            (let* ((fragment ::int (fragments i))
                   (width ::int (* space-width (max 0 fragment)))
                   (left ::real position:left))
-             (expand-layout! position width
-                             (painter:min-line-height))
+             (position:expand! width
+                               (painter:min-line-height))
              (when (is position:top <= y
                        < (+ position:top
                             position:line-height))
@@ -11033,7 +11088,7 @@ height.
                  (return path x y))
                (return #!null)))
            (unless (= i last-index)
-             (break-layout! position (painter:min-line-height))))
+             (position:break! (painter:min-line-height))))
         #!null)))
 
 #+END_SRC
@@ -11070,8 +11125,8 @@ need to check every element inside.
           (path:push! (last-index))
           (return path x y))
          (else
-          (let ((x ::int (- x border-width))
-                (y ::int (- y border-height))
+          (let ((inner-x ::real (- x border-width))
+                (inner-y ::real (- y border-height))
                 (line-end ::int 0))
             (for element ::Element in: (this)
                  (when (is state:top <= y)
@@ -11079,7 +11134,7 @@ need to check every element inside.
                  (path:push! index)
                  (given ((result x* y*
                                  (element:cursor-under*
-                                  x y path state)))
+                                  inner-x inner-y path state)))
                    (return result x* y*))
                  (path:pop!)
                  (increase! index by: 1))
@@ -11657,8 +11712,7 @@ scaffolding:
      #!null
      (given ((cursor ::Cursor x0 ::real y0 ::real
                      (document:cursor-under* x y))
-             ((truly (DUMP cursor x0 y0)))
-             ((is (cursor:size) #;< >= 2))
+             ((is (cursor:size) >= 2))
              (tip (cursor:pop!))
              (top (cursor:pop!))
              (parent ::Tile (cursor:target))
@@ -11676,11 +11730,12 @@ Now, the simplest case to handle is when we press on a
 ~Resizable~ ~Tile~
 
 #+BEGIN_SRC scheme :noweb-ref GRASP-Editor--drag-from-dispatch
-  ((given ((target ::Resizable))
-     (target:resizing-position? x0 y0 tip))
-   (cursor:push! top)
-   (cursor:push! tip)
-   (Resize target cursor (target:width) (target:height)))
+  ((given ((target ::Resizable)
+           ((target:resizing-position? x0 y0 tip)))
+     (cursor:push! top)
+     (cursor:push! tip)
+     (Resize target cursor (target:width) (target:height)
+             (target:resize-anchor x0 y0))))
 #+END_SRC
 
 where ~Resize~ is a ~Drag~ whose ~move!~ method invokes a
@@ -11689,10 +11744,13 @@ returns a ~ResizeBox~ ~Edit~ operation:
 
 #+BEGIN_SRC scheme :tangle document/editor.scm :noweb no-export
   (define-object (Resize target ::Resizable cursor ::Cursor
-                         initial-width ::real initial-height ::real)
+                         initial-width ::real initial-height ::real
+                         anchor ::ResizeAnchor)
     ::Drag
     (define (move! x::real y::real dx::real dy::real)::void
-      (target:resize-by! dx dy))
+      (target:set-size! (+ (target:width) dx)
+                        (+ (target:height) dy)
+                        anchor))
 
     (define (drop! x::real y::real vx::real vy::real)::(maybe Edit)
       (let ((current-width ::real (target:width))
@@ -11700,7 +11758,7 @@ returns a ~ResizeBox~ ~Edit~ operation:
         (if (and (= current-width initial-width)
                  (= current-height initial-height))
             #!null
-            (ResizeBox cursor current-width current-height))))
+            (ResizeBox cursor current-width current-height anchor))))
     )
 
 #+END_SRC
@@ -11712,7 +11770,8 @@ implementation, delegating all the complexity to the
 #+BEGIN_SRC scheme :tangle document/editor.scm :noweb no-export
   (define-object (ResizeBox cursor ::Cursor
                             target-width ::real
-                            target-height ::real)
+                            target-height ::real
+                            anchor ::(maybe ResizeAnchor))
     ::Edit
     (define-internal (position)::Cursor cursor)
 
@@ -11720,26 +11779,37 @@ implementation, delegating all the complexity to the
       (let* ((target ::Resizable (as Resizable (cursor:target)))
              (original-width ::real (target:width))
              (original-height ::real (target:height)))
-        (target:set-size! target-width target-height)
-        (ResizeBox cursor original-width original-height))))
-  
+        (target:set-size! target-width target-height anchor)
+        (ResizeBox cursor original-width original-height anchor))))
+
 #+END_SRC
 
 Now, it can be a little bit puzzling what it means for a
 ~Tile~ to be ~Resizable~, as well as: what kinds of ~Tile~
-are ~Resizable~.
+are ~Resizable~ (and what is this ~ResizeAnchor~ thing).
 
 The answer to the first question is fairly simple an element
 is ~Resizable~ if it implements the ~Resizable~ interface:
 
 #+BEGIN_SRC scheme :tangle document/elements.scm :noweb no-export
+  (define-interface ResizeAnchor ())
+
   (define-interface Resizable (Tile)
     (resizing-position? x::real y::real index::int)::boolean
-    (set-size! width ::real height ::real)::void
-    (resize-by! +width ::real +height ::real)::void
+    (resize-anchor x::real y::real)::ResizeAnchor
+    (set-size! width ::real height ::real
+               anchor ::(maybe ResizeAnchor))
+    ::void
     )
 
 #+END_SRC
+
+where ~ResizeAnchor~ is a token whose implementation depends
+on the particular ~Resizable~ class, but the contract here
+is that the token returned by the ~resize-anchor~ method is
+then passed as the last argument of the ~set-size!~ method.
+
+The usefulness of this mechanism will become clear shortly.
 
 When it comes to the second question, a ~Comb~ is ~Resizable~:
 
@@ -11756,14 +11826,97 @@ index of its closing parenthesis):
 
 #+END_SRC
 
-Now, the ~set-size!~ operation 
+~Comb~'s implementation of the ~resize-anchor~ method looks
+line-ending spaces (or spaces following any line-ending
+~Comment~) to find the one that corresponds to the ~y~
+coordinate:
 
 #+BEGIN_SRC scheme :noweb-ref Comb--remaining-methods :noweb no-export
-  (define (set-size! width ::real height ::real)::void
-    (values))
+  (define (resize-anchor x::real y::real)::ResizeAnchor
+    (escape-with return
+      (let ((layout ::LayoutState (LayoutState))
+            (last-index ::int (- (self size) 1)))
+        (for i::int from: 0 to: last-index
+             (let ((item ::Element (self get i)))
+               (match item
+                 (space::Space
+                  (let ((n ::int (- (space:fragments:size) 1)))
+                    (when (or (is n > 0)
+                              (= i last-index))
+                      (for index::int from: 0 to: n
+                           (let ((fragment ::int (space:fragments index)))
+                             (layout:expand! (* (max 0 fragment)
+                                                (painter:space-width))
+                                             (painter:min-line-height))
+                             (when (is y < (+ layout:top
+                                              layout:line-height))
+                               (return
+                                (CombLineEnding reach: layout:left
+                                                space: space
+                                                index: index)))
+                             (unless (= index n)
+                               (layout:break!
+                                (painter:min-line-height))))))))
+                 (comment::Comment
+                  (if (and (comment:breaks-line?)
+                           (is y < (+ layout:top
+                                      layout:line-height)))
+                      (let ((next-space ::Space (self get (+ i 1))))
+                        (comment:advance-layout! layout)
+                        (return (CombLineEnding reach: layout:left
+                                                space: next-space
+                                                index: 0)))
+                      (comment:advance-layout! layout)))
 
-  (define (resize-by! +width ::real +height ::real)::void
-    (values))
+                 (_
+                  (item:advance-layout! layout))))))))
+
+#+END_SRC
+
+where ~CombLineEnding~ implements the ~ResizeAnchor~ contract:
+
+#+BEGIN_SRC scheme :tangle document/model.scm :noweb no-export
+  (define-type (CombLineEnding reach: real
+                               space: Space
+                               index: int)
+    ::ResizeAnchor)
+#+END_SRC
+
+Now, the ~set-size!~ operation needs to adjust the width and
+the height of the ~Comb~ by inserting or removing horizontal
+and vertical space.
+
+#+BEGIN_SRC scheme :noweb-ref Comb--remaining-methods :noweb no-export
+  (define-private (remove-trailing-whitespace!)::void
+    (for space::Space in: spaces
+          (when (is (space:fragments:size) > 1)
+            (for i::int from: 0 below: (- (space:fragments:size) 1)
+                 (set! (space:fragments i) 0)))))
+
+  (define (set-size! width ::real height ::real
+                     anchor ::(maybe ResizeAnchor))
+      ::void
+      (remove-trailing-whitespace!)
+      (let ((ending ::CombLineEnding (as CombLineEnding anchor))
+            (line-increase ::int (as int (quotient
+                                          (- height (self height))
+                                          (painter:min-line-height)))))
+        (set! (ending:space:fragments ending:index)
+              (as int (quotient (- width ending:reach
+                                   (* 2 (painter:border-width style)))
+                                (painter:space-width))))
+        (cond
+         ((is line-increase > 0)
+          (for i::int from: 0 below: line-increase
+               (ending:space:fragments:add ending:index (as int 0))))
+         ((is line-increase < 0)
+          (escape-with break
+            (for space::Space in: spaces
+              (while (is (space:fragments:size) > 2)
+                (space:fragments:remove 2)
+                (increase! line-increase)
+                (when (is line-increase >= 0)
+                  (break)))))))))
 
 #+END_SRC
 
