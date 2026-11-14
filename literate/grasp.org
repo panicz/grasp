@@ -2700,6 +2700,12 @@ give it a better name: we call it ~given~.
          (prim continuation)
          (_ #f)))))
 
+  ;; we also provide a variant of given called given*,
+  ;; which returns #!null rather than #f
+
+  (define-syntax-rule (given* . clauses)
+    (or (given . clauses) #!null))
+
 #+END_SRC
 
 **** The ~match-let*~ macro
@@ -6470,6 +6476,12 @@ everything, we can provide a /partial implementation/.
           (last-index ::int (- (length fragments) 1)))
       (for i::int from: 0 to: last-index
            (let ((n ::int (fragments i)))
+             (painter:with-translation
+                 (- state:left initial-left)
+                 (- state:top initial-top)
+               (lambda ()
+                 (painter:draw-text! (number->string n)
+                                     (painter:atom-font))))
              (when (and (cursor:active-at? path)
                         (is index <= (cursor:top)
                             <= (+ index (max 0 n))))
@@ -10962,7 +10974,8 @@ This allows us to rephrase the test:
   (if (is n <= 1)
      1           
    (* n (! (- n 1)))))
-  (e.g. (! 5) ===> 120)"
+  (e.g. (! 5) ===> 120)
+  "
         (lambda (port)
           (read-list from: port into: editor:document)))
       editor))
@@ -11367,6 +11380,13 @@ or a double tap):
       (set! timeout (timeout:cancel))
       (let ((suppressed ::int suppressed-presses))
 	(set! suppressed-presses 0)
+	;; the pointer is reported at (x y) below, so this is where
+	;; it was last known to be, and when.  Without this, the
+	;; next `move!' would measure its delta from the PRESS, and
+	;; count the first stretch of the drag twice.
+	(set! last-known-position:left x)
+	(set! last-known-position:top y)
+	(set! move-time-ms time-ms)
 	(begin/or
 	 (if (is suppressed >= 2)
 	     (target:second-press! finger x0 y0)
@@ -11708,19 +11728,17 @@ scaffolding:
 
 #+BEGIN_SRC scheme :noweb-ref GRASP-Editor--drag-from-definition :noweb no-export
   (define-private (drag-from x::real y::real)::(maybe Drag)
-    (otherwise
-     #!null
-     (given ((cursor ::Cursor x0 ::real y0 ::real
+    (given* ((cursor ::Cursor x0 ::real y0 ::real
                      (document:cursor-under* x y))
              ((is (cursor:size) >= 2))
              (tip (cursor:pop!))
              (top (cursor:pop!))
              (parent ::Tile (cursor:target))
              (target ::Tile (parent:element-at top)))
-       (cond
-        <<GRASP-Editor--drag-from-dispatch>>
-        (else
-         #false)))))
+      (cond
+       <<GRASP-Editor--drag-from-dispatch>>
+       (else
+        #false))))
 
 #+END_SRC
 
@@ -11731,56 +11749,41 @@ Now, the simplest case to handle is when we press on a
 
 #+BEGIN_SRC scheme :noweb-ref GRASP-Editor--drag-from-dispatch
   ((given ((target ::Resizable)
-           ((target:resizing-position? x0 y0 tip)))
+           (anchor ::ResizeAnchor
+                   (target:resize-anchor x0 y0)))
      (cursor:push! top)
      (cursor:push! tip)
-     (Resize target cursor (target:width) (target:height)
-             (target:resize-anchor x0 y0))))
+     (Resize target cursor
+             (target:width) (target:height) anchor)))
 #+END_SRC
 
-where ~Resize~ is a ~Drag~ whose ~move!~ method invokes a
-resizing method on its taget, and whose ~drop!~ method
-returns a ~ResizeBox~ ~Edit~ operation:
+where ~Resize~ is a ~Drag~ whose ~move!~ method invokes 
+the ~set-size!~ method on its taget, and whose ~drop!~ method
+returns the last result of that method:
 
 #+BEGIN_SRC scheme :tangle document/editor.scm :noweb no-export
   (define-object (Resize target ::Resizable cursor ::Cursor
                          initial-width ::real initial-height ::real
                          anchor ::ResizeAnchor)
     ::Drag
+
+    ;; the actual width and height after set-size!  may differ from that
+    ;; passed in the arguments (which is the case e.g. for Comb, whose
+    ;; width can grow by space-width, and whose height can grow by
+    ;; min-line-height), so we need to acumulate all dxs and dys
+    (define purported-width ::real initial-width)
+    (define purported-height ::real initial-height)
+    (define edit ::(maybe Edit) (target:resizing-edit cursor))
+
     (define (move! x::real y::real dx::real dy::real)::void
-      (target:set-size! (+ (target:width) dx)
-                        (+ (target:height) dy)
-                        anchor))
+      (increase! purported-width by: dx)
+      (increase! purported-height by: dy)
+      (set! edit (target:set-size! purported-width purported-height
+                                   anchor edit)))
 
     (define (drop! x::real y::real vx::real vy::real)::(maybe Edit)
-      (let ((current-width ::real (target:width))
-            (current-height ::real (target:height)))
-        (if (and (= current-width initial-width)
-                 (= current-height initial-height))
-            #!null
-            (ResizeBox cursor current-width current-height anchor))))
+      edit)
     )
-
-#+END_SRC
-
-The ~ResizeBox~ ~Edit~ operation also has a rather trivial
-implementation, delegating all the complexity to the
-~set-size!~ method:
-
-#+BEGIN_SRC scheme :tangle document/editor.scm :noweb no-export
-  (define-object (ResizeBox cursor ::Cursor
-                            target-width ::real
-                            target-height ::real
-                            anchor ::(maybe ResizeAnchor))
-    ::Edit
-    (define-internal (position)::Cursor cursor)
-
-    (define-internal (perform! document::Element)::Edit
-      (let* ((target ::Resizable (as Resizable (cursor:target)))
-             (original-width ::real (target:width))
-             (original-height ::real (target:height)))
-        (target:set-size! target-width target-height anchor)
-        (ResizeBox cursor original-width original-height anchor))))
 
 #+END_SRC
 
@@ -11788,42 +11791,41 @@ Now, it can be a little bit puzzling what it means for a
 ~Tile~ to be ~Resizable~, as well as: what kinds of ~Tile~
 are ~Resizable~ (and what is this ~ResizeAnchor~ thing).
 
-The answer to the first question is fairly simple an element
+The answer to the first question is fairly simple: an element
 is ~Resizable~ if it implements the ~Resizable~ interface:
 
 #+BEGIN_SRC scheme :tangle document/elements.scm :noweb no-export
   (define-interface ResizeAnchor ())
 
   (define-interface Resizable (Tile)
-    (resizing-position? x::real y::real index::int)::boolean
-    (resize-anchor x::real y::real)::ResizeAnchor
+    (resize-anchor x::real y::real)::(maybe ResizeAnchor)
+    (resizing-edit cursor::Cursor)::Edit
     (set-size! width ::real height ::real
-               anchor ::(maybe ResizeAnchor))
-    ::void
+               anchor ::ResizeAnchor edit ::(maybe Edit))
+    ::(maybe Edit)
     )
 
 #+END_SRC
 
 where ~ResizeAnchor~ is a token whose implementation depends
 on the particular ~Resizable~ class, but the contract here
-is that the token returned by the ~resize-anchor~ method is
-then passed as the last argument of the ~set-size!~ method.
+is that the token returned by the ~resize-anchor~ method, if
+it is non-~#!null~, is passed as the third argument of the
+~set-size!~ method. 
 
 The usefulness of this mechanism will become clear shortly.
+
+You can also see that there is another weird argument to
+~set-size~, called here ~edit~. It is supposed to be
+~#!null~ on first invocation, and subsequent invocations
+within the same session should receive the value returned
+from the previous call to ~set-size!~ (which is exactly how
+~Resize~ does it).
 
 When it comes to the second question, a ~Comb~ is ~Resizable~:
 
 #+BEGIN_SRC scheme :noweb-ref Comb--interfaces :noweb no-export
   ::Resizable
-#+END_SRC
-
-and its /resizing position/ is its last index (i.e. the
-index of its closing parenthesis):
-
-#+BEGIN_SRC scheme :noweb-ref Comb--remaining-methods :noweb no-export
-  (define (resizing-position? x::real y::real index::int)::boolean
-    (= index (last-index)))
-
 #+END_SRC
 
 ~Comb~'s implementation of the ~resize-anchor~ method looks
@@ -11832,54 +11834,73 @@ line-ending spaces (or spaces following any line-ending
 coordinate:
 
 #+BEGIN_SRC scheme :noweb-ref Comb--remaining-methods :noweb no-export
-  (define (resize-anchor x::real y::real)::ResizeAnchor
-    (escape-with return
-      (let ((layout ::LayoutState (LayoutState))
-            (last-index ::int (- (self size) 1)))
-        (for i::int from: 0 to: last-index
-             (let ((item ::Element (self get i)))
-               (match item
-                 (space::Space
-                  (let ((n ::int (- (space:fragments:size) 1)))
-                    (when (or (is n > 0)
-                              (= i last-index))
-                      (for index::int from: 0 to: n
-                           (let ((fragment ::int (space:fragments index)))
-                             (layout:expand! (* (max 0 fragment)
-                                                (painter:space-width))
-                                             (painter:min-line-height))
-                             (when (is y < (+ layout:top
-                                              layout:line-height))
-                               (return
-                                (CombLineEnding reach: layout:left
-                                                space: space
-                                                index: index)))
-                             (unless (= index n)
-                               (layout:break!
-                                (painter:min-line-height))))))))
-                 (comment::Comment
-                  (if (and (comment:breaks-line?)
-                           (is y < (+ layout:top
-                                      layout:line-height)))
-                      (let ((next-space ::Space (self get (+ i 1))))
-                        (comment:advance-layout! layout)
-                        (return (CombLineEnding reach: layout:left
-                                                space: next-space
-                                                index: 0)))
-                      (comment:advance-layout! layout)))
+  (define (resize-anchor x::real y::real)
+    ::(maybe ResizeAnchor)
+    (given* (((is x >= (- (self width) (painter:border-width style)))))
+      (if (is (- y (painter:border-height style))
+              <= (* 0.5 (painter:min-line-height)))
+          (CombLineEnding 0)
+          (let ((layout ::LayoutState (LayoutState))
+                (last-space-index ::int (- (spaces:size) 1)))
+            (escape-with return
+              (for i::int from: 0 below: last-space-index
+                   (let ((space ::Space (spaces i)))
+                     (space:advance-layout! layout)
+                     (when (and (is (space:fragments:size) > 1)
+                                (is y <= layout:top))
+                       (return
+                        (CombLineEnding i)))
+                     (let ((element ::Element (elements i)))
+                       (element:advance-layout! layout)
+                       (given ((element ::Comment)
+                               ((element:breaks-line?))
+                               ((is y <= layout:top)))
+                         (return
+                          (CombLineEnding (+ i 1)))))))
 
-                 (_
-                  (item:advance-layout! layout))))))))
+              (return
+               (CombLineEnding last-space-index)))))))
+
+  (define (resizing-edit cursor::Cursor)::Edit
+    (ResizeComb (current-cursor) (clone-spaces)))
 
 #+END_SRC
 
-where ~CombLineEnding~ implements the ~ResizeAnchor~ contract:
+where ~CombLineEnding~ implements the ~ResizeAnchor~
+contract, and it only wraps around a single integer: the
+index of the ~Space~ that is affected by the ~set-size!~
+operation:
 
 #+BEGIN_SRC scheme :tangle document/model.scm :noweb no-export
-  (define-type (CombLineEnding reach: real
-                               space: Space
-                               index: int)
-    ::ResizeAnchor)
+  (define-object (CombLineEnding space-index::int)::ResizeAnchor)
+
+#+END_SRC
+
+We need to define a new type of ~Edit~ to be returned by
+~Comb~'s ~resizing-edit~ method. Its structure is going to
+mimic the structure of the ~Comb~, or more specifically
+-- of its ~spaces~:
+
+#+BEGIN_SRC scheme :tangle document/model.scm :noweb no-export
+  (define-object (ResizeComb cursor ::Cursor
+                             final-spaces ::(ListOf Space))
+    ::Edit
+    (define (position)::Cursor
+      cursor)
+
+    (define (perform! document::Element)::Edit
+      (let* ((top ::int (cursor:pop!))
+             (tip ::int (cursor:pop!))
+             (target ::Comb (cursor:target))
+             (original-spaces ::(ListOf Space)
+                              (target:clone-spaces))
+             (cursor ::Cursor (copy cursor))
+             (child ::Element (target:element-at tip)))
+        (cursor:push! tip)
+        (cursor:push! (min (child:last-index) top))
+        (assign-spaces! target:spaces final-spaces)
+        (ResizeComb cursor original-spaces))))
+  
 #+END_SRC
 
 Now, the ~set-size!~ operation needs to adjust the width and
@@ -11887,39 +11908,88 @@ the height of the ~Comb~ by inserting or removing horizontal
 and vertical space.
 
 #+BEGIN_SRC scheme :noweb-ref Comb--remaining-methods :noweb no-export
-  (define-private (remove-trailing-whitespace!)::void
-    (for space::Space in: spaces
-          (when (is (space:fragments:size) > 1)
-            (for i::int from: 0 below: (- (space:fragments:size) 1)
-                 (set! (space:fragments i) 0)))))
-
   (define (set-size! width ::real height ::real
-                     anchor ::(maybe ResizeAnchor))
-      ::void
-      (remove-trailing-whitespace!)
-      (let ((ending ::CombLineEnding (as CombLineEnding anchor))
-            (line-increase ::int (as int (quotient
-                                          (- height (self height))
-                                          (painter:min-line-height)))))
-        (set! (ending:space:fragments ending:index)
-              (as int (quotient (- width ending:reach
-                                   (* 2 (painter:border-width style)))
-                                (painter:space-width))))
-        (cond
-         ((is line-increase > 0)
-          (for i::int from: 0 below: line-increase
-               (ending:space:fragments:add ending:index (as int 0))))
-         ((is line-increase < 0)
-          (escape-with break
-            (for space::Space in: spaces
-              (while (is (space:fragments:size) > 2)
-                (space:fragments:remove 2)
-                (increase! line-increase)
-                (when (is line-increase >= 0)
-                  (break)))))))))
+                     anchor ::ResizeAnchor edit ::Edit)
+    ::Edit
+    (let* ((height-increase ::real (- height last-height))
+           (last-space-index ::int (- (spaces:size) 1))
+           (added-lines ::int (as int (quotient
+                                       height-increase
+                                       (painter:min-line-height)))))
+      (cond
+       ((is added-lines > 0)
+        (let* ((ending ::CombLineEnding (as CombLineEnding anchor))
+               (space ::Space (spaces ending:space-index)))
+          (for i::int from: 0 below: added-lines
+               (space:fragments:add 0 (as int 0)))))
+       ((is added-lines < 0)
+        (escape-with break
+          (for n::int from: 0 to: last-space-index
+               (let* ((space ::Space (spaces n))
+                      (limit ::int (- (space:fragments:size) 1)))
+                 (when (or (is (space:fragments:size) > 2)
+                           (= n 0)
+                           (= n last-space-index)
+                           (given ((comment ::Comment (get (- (* 2 n) 1))))
+                             (comment:breaks-line?)))
+                   (for i::int from: 0 below: limit
+                        (space:fragments:remove 0)
+                        (increase! added-lines)
+                        (when (is added-lines >= 0)
+                          (break)))))))))
+      (set-width! width)
+      (given ((edit ::ResizeComb))
+        (assign-spaces! edit:final-spaces spaces))
+      edit))
+
+  (define-private (set-width! width ::real)::void
+    (let* ((coda ::Space (last spaces))
+           (layout ::LayoutState (LayoutState))
+           (border ::real (* 2 (painter:border-width style)))
+           (space-width ::real (painter:space-width)))
+      (set! (last coda:fragments) 0)
+      (for space ::Space in: spaces
+           (for i::int from: 0 below: (- (space:fragments:size) 1)
+                (set! (space:fragments i) 0)))
+      (for element ::Element in: (this)
+           (element:advance-layout! layout))
+      (let* ((inner-width ::real (max 0 (- width layout:left border)))
+             (padding ::int (as int (quotient inner-width
+                                              space-width))))
+        (set! (last coda:fragments) padding)
+        (maximize! layout:max-width (* padding space-width))
+        (update-size-from-layout-state! layout))))
 
 #+END_SRC
 
+#+BEGIN_SRC scheme :noweb-ref Comb--collection-operations
+  (define-internal (clone-spaces)::(ListOf Space)
+    (let* ((n ::int (spaces:size))
+           (cloned ::(ListOf Space) (ArrayList n)))
+      (for i::int from: 0 below: n
+           (set! (cloned i) (copy (spaces i))))
+      cloned))
+
+#+END_SRC
+
+#+BEGIN_SRC scheme :tangle document/model.scm :noweb no-export
+  (define-private (assign-spaces! spaces::(ListOf Space)
+                                  sources::(ListOf Space))
+    ::void
+    (let ((n ::int (min (spaces:size) (sources:size))))
+      (for i::int from: 0 below: n
+           (let ((space ::Space (spaces i))
+                 (source ::Space (sources i)))
+             (space:assign-fragments! source)))))
+#+END_SRC
+
+#+BEGIN_SRC scheme :noweb-ref Space--representation
+  (define-internal (assign-fragments! another ::Space)::void
+    (fragments:clear)
+    (for fragment::int in: another:fragments
+      (fragments:add fragment)))
+  
+#+END_SRC
 
 #+BEGIN_COMMENT
 Kawa considers modules in the same directory to belong to the same package.
