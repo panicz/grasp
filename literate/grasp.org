@@ -11826,7 +11826,7 @@ The usefulness of this mechanism will become clear shortly.
 
 We also expect two additional methods: ~resizing-edit~,
 which is supposed to return an initial ~Edit~ object to be
-returned by ~Drag~'s ~drop!~ method, and the
+returned by ~Resize~'s ~drop!~ method, and the
 ~finalize-resize~ method which is gives an opportunity to
 modify that ~Edit~ before returning it from ~drop!~.
 
