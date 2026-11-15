@@ -5510,16 +5510,24 @@ buffer to a string.
   (define (caption-font)::FontProxy basic-font)
 
   (define (mark-cursor! position ::int font ::FontProxy)::void
-    (put! #\^ position 1))
+    (set! caret-left (+ (the shift-left)
+                        (nearby-int (* (the stretch-horizontal)
+                                       position))))
+    (set! caret-top (+ (the shift-top)
+                       (nearby-int (the stretch-vertical)))))
 
   (define-private width ::int 0)
   (define-private height ::int 0)
   (define-private buffer ::(array-of char) #!null)
+  (define-private caret-left ::int -1)
+  (define-private caret-top ::int -1)
 
   (define (clear!)::void
     (set! width 0)
     (set! height 0)
-    (set! buffer #!null))
+    (set! buffer #!null)
+    (set! caret-left -1)
+    (set! caret-top -1))
 
   (define-private (expand-buffer! new-width ::int new-height ::int)::void
     (assert (and (is width <= new-width) (is new-height >= height)))
@@ -5570,7 +5578,10 @@ buffer to a string.
                   (let* ((n (+ (* line width)
                                column))
                          (c (buffer n)))
-                    (write-char c)))
+                    (write-char (if (and (= line caret-top)
+                                         (= column caret-left))
+                                    #\^
+                                    c))))
              (write-char #\newline)))))
 
 #+END_SRC
@@ -6469,33 +6480,32 @@ everything, we can provide a /partial implementation/.
 
 #+BEGIN_SRC scheme :noweb-ref Space--rendering
   (define (render! path ::Cursor state::LayoutState)::void
-    (let ((index ::int 0)
-          (initial-left ::real state:left)
+    (let ((initial-left ::real state:left)
           (initial-top ::real state:top)
           (cursor ::Cursor (current-cursor))
           (last-index ::int (- (length fragments) 1)))
-      (for i::int from: 0 to: last-index
-           (let ((n ::int (fragments i)))
-             (painter:with-translation
-                 (- state:left initial-left)
-                 (- state:top initial-top)
-               (lambda ()
-                 (painter:draw-text! (number->string n)
-                                     (painter:atom-font))))
-             (when (and (cursor:active-at? path)
-                        (is index <= (cursor:top)
-                            <= (+ index (max 0 n))))
+      (let-values (((caret-fragment caret-offset)
+                    (if (cursor:active-at? path)
+                        (fragment-index+offset (cursor:top))
+                        (values -1 0))))
+        (for i::int from: 0 to: last-index
+             (let ((n ::int (fragments i)))
                (painter:with-translation
                    (- state:left initial-left)
                    (- state:top initial-top)
                  (lambda ()
-                   (painter:mark-cursor!
-                    (- (cursor:top) index) #!null))))
-             (state:expand! (* (max 0 n) (painter:space-width))
-                            (painter:min-line-height))
-             (unless (= i last-index)
-               (state:break! (painter:min-line-height)))
-             (increase! index by: (index-positions n))))))
+                   (painter:draw-text! (number->string n)
+                                       (painter:atom-font))))
+               (when (= i caret-fragment)
+                 (painter:with-translation
+                     (- state:left initial-left)
+                     (- state:top initial-top)
+                   (lambda ()
+                     (painter:mark-cursor! caret-offset #!null))))
+               (state:expand! (* (max 0 n) (painter:space-width))
+                              (painter:min-line-height))
+               (unless (= i last-index)
+                 (state:break! (painter:min-line-height))))))))
 
   (define (advance-layout! state ::LayoutState)::void
     (let ((last-index ::int (- (length fragments) 1)))
@@ -8047,6 +8057,12 @@ to the same element:
 
 #+END_SRC
 
+Mind that editing a document can cause a certain cursor to
+become invalid. Having an invalid cursor should not cause
+further navigation and editing actions to fail. Our
+operations should be naturally able to recover from any
+invalid state (relative to a given document).
+
 Often advancing an index is as simple as increasing its top
 index -- but the problem appears when we go beyond the index
 limits set by a given ~Element~.  In extreme cases, we may
@@ -8056,7 +8072,6 @@ which the target is embedded:
 
 #+BEGIN_SRC scheme :noweb-ref Cursor--operations
   (define-private (track-in root ::Element)::(StackListOf Element)
-    (assert (valid-in? root))
     (let ((result ::StackList (ArrayStack)))
       (for index::int in: (this)
   	 (result:push! root)
@@ -8064,7 +8079,6 @@ which the target is embedded:
       result))
 
 #+END_SRC
-
 
 The two fundamental operations that need to be supported by
 the cursor concern its movement: we need to be able to move
@@ -8078,7 +8092,6 @@ it is final):
 #+BEGIN_SRC scheme :noweb-ref Cursor--operations
   (define-private (climb! document ::Element indexer ::(maps (Element) to: int))
     ::void
-    (assert (valid-in? document))
     (let ((top ::Element document)
           (tip ::Element #!null))
       (for index::int in: (this)
@@ -8190,7 +8203,6 @@ the canonical versions:
 
 #+BEGIN_SRC scheme :noweb-ref Cursor--operations  
   (define-private (primitive-advance-in! document ::Element)::void
-    (assert (valid-in? document))
     (let ((elements ::(StackListOf Element)
                   (track-in document)))
       (assert (= (length elements)
@@ -8209,7 +8221,6 @@ the canonical versions:
               (loop))))))))
 
   (define-private (primitive-retreat-in! document ::Element)::void
-    (assert (valid-in? document))
     (let ((elements ::(StackListOf Element)
                   (track-in document)))
       (assert (= (length elements)
@@ -9904,7 +9915,6 @@ wrap the entire expression inside ~ExpressionComment~:
            (document ::Element (current-document))
            (tip ::int (cursor:top))
            (target ::Element (cursor:target)))
-      (assert (cursor:valid?))
       (assert (cursor:final?))
       (if (eq? target (this))
         (match c
@@ -9934,7 +9944,6 @@ wrap the entire expression inside ~ExpressionComment~:
 
 #+BEGIN_SRC scheme :noweb-ref Cursor--operations
   (define-private (unnest-right-in! document::Element)::void
-    (assert (valid-in? document))
     (given (((is (size) >= 2))
             (tip ::int (self pop!))
             (top ::int (self pop!))
@@ -9943,7 +9952,6 @@ wrap the entire expression inside ~ExpressionComment~:
       (advance-in! document)))
 
   (define-private (unnest-left-in! document::Element)::void
-    (assert (valid-in? document))
     (given (((is (size) >= 2))
             (tip ::int (self pop!))
             (top ::int (self pop!)))
@@ -11758,7 +11766,7 @@ Now, the simplest case to handle is when we press on a
 #+END_SRC
 
 where ~Resize~ is a ~Drag~ whose ~move!~ method invokes 
-the ~set-size!~ method on its taget, and whose ~drop!~ method
+the ~set-size!~ method on its target, and whose ~drop!~ method
 returns the last result of that method:
 
 #+BEGIN_SRC scheme :tangle document/editor.scm :noweb no-export
@@ -11773,7 +11781,7 @@ returns the last result of that method:
     ;; min-line-height), so we need to acumulate all dxs and dys
     (define purported-width ::real initial-width)
     (define purported-height ::real initial-height)
-    (define edit ::(maybe Edit) (target:resizing-edit cursor))
+    (define edit ::Edit (target:resizing-edit cursor))
 
     (define (move! x::real y::real dx::real dy::real)::void
       (increase! purported-width by: dx)
@@ -11782,7 +11790,7 @@ returns the last result of that method:
                                    anchor edit)))
 
     (define (drop! x::real y::real vx::real vy::real)::(maybe Edit)
-      edit)
+      (target:finalize-resize! edit))
     )
 
 #+END_SRC
@@ -11801,8 +11809,9 @@ is ~Resizable~ if it implements the ~Resizable~ interface:
     (resize-anchor x::real y::real)::(maybe ResizeAnchor)
     (resizing-edit cursor::Cursor)::Edit
     (set-size! width ::real height ::real
-               anchor ::ResizeAnchor edit ::(maybe Edit))
-    ::(maybe Edit)
+               anchor ::ResizeAnchor)
+    ::Edit
+    (finalize-resize! edit ::Edit)::(maybe Edit)
     )
 
 #+END_SRC
@@ -11815,12 +11824,11 @@ it is non-~#!null~, is passed as the third argument of the
 
 The usefulness of this mechanism will become clear shortly.
 
-You can also see that there is another weird argument to
-~set-size~, called here ~edit~. It is supposed to be
-~#!null~ on first invocation, and subsequent invocations
-within the same session should receive the value returned
-from the previous call to ~set-size!~ (which is exactly how
-~Resize~ does it).
+We also expect two additional methods: ~resizing-edit~,
+which is supposed to return an initial ~Edit~ object to be
+returned by ~Drag~'s ~drop!~ method, and the
+~finalize-resize~ method which is gives an opportunity to
+modify that ~Edit~ before returning it from ~drop!~.
 
 When it comes to the second question, a ~Comb~ is ~Resizable~:
 
@@ -11829,9 +11837,9 @@ When it comes to the second question, a ~Comb~ is ~Resizable~:
 #+END_SRC
 
 ~Comb~'s implementation of the ~resize-anchor~ method looks
-line-ending spaces (or spaces following any line-ending
-~Comment~) to find the one that corresponds to the ~y~
-coordinate:
+through line-ending spaces (or spaces following any
+line-ending ~Comment~) to find the one that corresponds to
+the ~y~ coordinate:
 
 #+BEGIN_SRC scheme :noweb-ref Comb--remaining-methods :noweb no-export
   (define (resize-anchor x::real y::real)
@@ -11862,7 +11870,7 @@ coordinate:
                (CombLineEnding last-space-index)))))))
 
   (define (resizing-edit cursor::Cursor)::Edit
-    (ResizeComb (current-cursor) (clone-spaces)))
+    (ResizeComb cursor (clone-spaces)))
 
 #+END_SRC
 
@@ -11873,6 +11881,18 @@ operation:
 
 #+BEGIN_SRC scheme :tangle document/model.scm :noweb no-export
   (define-object (CombLineEnding space-index::int)::ResizeAnchor)
+
+#+END_SRC
+
+And ~clone-spaces~ is a method of ~Comb~:
+
+#+BEGIN_SRC scheme :noweb-ref Comb--collection-operations
+  (define-internal (clone-spaces)::(ListOf Space)
+    (let* ((n ::int (spaces:size))
+           (cloned ::(ListOf Space) (ArrayList n)))
+      (for i::int from: 0 below: n
+           (cloned:add (copy (spaces i))))
+      cloned))
 
 #+END_SRC
 
@@ -11889,17 +11909,41 @@ mimic the structure of the ~Comb~, or more specifically
       cursor)
 
     (define (perform! document::Element)::Edit
-      (let* ((top ::int (cursor:pop!))
-             (tip ::int (cursor:pop!))
-             (target ::Comb (cursor:target))
+      (let* ((restored ::Cursor (copy cursor))
+             (tip ::int (restored:pop!))
+             (top ::int (restored:pop!))
+             (parent ::Comb (restored:target))
+             (target ::Comb (as Comb (parent:element-at top)))
              (original-spaces ::(ListOf Space)
-                              (target:clone-spaces))
-             (cursor ::Cursor (copy cursor))
-             (child ::Element (target:element-at tip)))
-        (cursor:push! tip)
-        (cursor:push! (min (child:last-index) top))
+                              (target:clone-spaces)))
+        (restored:push! top)
+        (restored:push! (min (target:last-index) tip))
         (assign-spaces! target:spaces final-spaces)
-        (ResizeComb cursor original-spaces))))
+        (ResizeComb restored original-spaces))))
+  
+#+END_SRC
+
+where ~assign-spaces~ is a private procedure defined in the
+~(document model)~ module:
+
+#+BEGIN_SRC scheme :tangle document/model.scm :noweb no-export
+  (define-private (assign-spaces! spaces::(ListOf Space)
+                                  sources::(ListOf Space))
+    ::void
+    (let ((n ::int (min (spaces:size) (sources:size))))
+      (for i::int from: 0 below: n
+           (let ((space ::Space (spaces i))
+                 (source ::Space (sources i)))
+             (space:assign-fragments! source)))))
+#+END_SRC
+
+and ~assign-fragments!~ is an internal method of ~Space~:
+
+#+BEGIN_SRC scheme :noweb-ref Space--representation
+  (define-internal (assign-fragments! another ::Space)::void
+    (fragments:clear)
+    (for fragment::int in: another:fragments
+      (fragments:add fragment)))
   
 #+END_SRC
 
@@ -11909,7 +11953,7 @@ and vertical space.
 
 #+BEGIN_SRC scheme :noweb-ref Comb--remaining-methods :noweb no-export
   (define (set-size! width ::real height ::real
-                     anchor ::ResizeAnchor edit ::Edit)
+                     anchor ::ResizeAnchor)
     ::Edit
     (let* ((height-increase ::real (- height last-height))
            (last-space-index ::int (- (spaces:size) 1))
@@ -11937,9 +11981,11 @@ and vertical space.
                         (increase! added-lines)
                         (when (is added-lines >= 0)
                           (break)))))))))
-      (set-width! width)
-      (given ((edit ::ResizeComb))
-        (assign-spaces! edit:final-spaces spaces))
+      (set-width! width)))
+
+  (define (finalize-resize! edit ::Edit)::(maybe Edit)
+    (given* ((edit ::ResizeComb)
+             ((not (congruent-spaces? spaces edit:final-spaces))))
       edit))
 
   (define-private (set-width! width ::real)::void
@@ -11947,10 +11993,10 @@ and vertical space.
            (layout ::LayoutState (LayoutState))
            (border ::real (* 2 (painter:border-width style)))
            (space-width ::real (painter:space-width)))
-      (set! (last coda:fragments) 0)
+      (set! (last coda:fragments) (as int 0))
       (for space ::Space in: spaces
            (for i::int from: 0 below: (- (space:fragments:size) 1)
-                (set! (space:fragments i) 0)))
+                (set! (space:fragments i) (as int 0))))
       (for element ::Element in: (this)
            (element:advance-layout! layout))
       (let* ((inner-width ::real (max 0 (- width layout:left border)))
@@ -11962,34 +12008,24 @@ and vertical space.
 
 #+END_SRC
 
-#+BEGIN_SRC scheme :noweb-ref Comb--collection-operations
-  (define-internal (clone-spaces)::(ListOf Space)
-    (let* ((n ::int (spaces:size))
-           (cloned ::(ListOf Space) (ArrayList n)))
-      (for i::int from: 0 below: n
-           (set! (cloned i) (copy (spaces i))))
-      cloned))
-
-#+END_SRC
+The ~congruent-spaces?~ test is again a private procedure in
+the ~(document model)~ module.
 
 #+BEGIN_SRC scheme :tangle document/model.scm :noweb no-export
-  (define-private (assign-spaces! spaces::(ListOf Space)
-                                  sources::(ListOf Space))
-    ::void
-    (let ((n ::int (min (spaces:size) (sources:size))))
-      (for i::int from: 0 below: n
-           (let ((space ::Space (spaces i))
-                 (source ::Space (sources i)))
-             (space:assign-fragments! source)))))
+  (define-private (congruent-spaces? a ::(ListOf Space)
+                                     b ::(ListOf Space))
+    ::boolean
+    (and (= (a:size) (b:size))
+         (escape-with return
+           (for i::int from: 0 below: (a:size)
+                (let ((ours ::Space (a i))
+                      (theirs ::Space (b i)))
+                  (unless (ours:congruent-with? theirs)
+                    (return #false))))
+           (return #true))))
+
 #+END_SRC
 
-#+BEGIN_SRC scheme :noweb-ref Space--representation
-  (define-internal (assign-fragments! another ::Space)::void
-    (fragments:clear)
-    (for fragment::int in: another:fragments
-      (fragments:add fragment)))
-  
-#+END_SRC
 
 #+BEGIN_COMMENT
 Kawa considers modules in the same directory to belong to the same package.
