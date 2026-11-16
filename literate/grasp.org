@@ -1160,17 +1160,11 @@ It is used in the following way:
 
 #+END_SRC
 
-As you can see, it restricts the way classes can be defined by:
-- only allowing a single constructor
-- only allowing to provide a single interface
-
-The first limitation can be overcome by defining a
-constructor with a maximum number of arguments, and then
-defining a procedure with default arguments.
-
-The second limitation isn't problematic in practice, because
-it's always possible to agregate multiple interfaces
-together into a new interface.
+As you can see, it restricts the way classes can be defined
+by only allowing a single constructor. This limitation can
+often be overcome by defining a constructor with a maximum
+number of arguments, and then defining a procedure with
+default arguments.
 
 The ~define-object~ form deliberately resembles defining a
 function with nested definitions, thus reinforcing the idea
@@ -5152,7 +5146,12 @@ characters.
   (define-interface CanRenderText ()
     (draw-text! text::CharSequence font::FontProxy)::real
     (text-width text::CharSequence font::FontProxy)::real
-    (mark-cursor! position::int font::FontProxy)::void
+    (mark-caret! position::int font::FontProxy)::void
+    ;; where the caret was last marked, in absolute screen
+    ;; coordinates -- nothing, if the frame being rendered
+    ;; hasn't marked one
+    (caret-position)::(maybe (Values real real))
+    (caret-height)::real
     (character-index position::real text::CharSequence font::FontProxy)::int
 
     (atom-font)::FontProxy
@@ -5463,8 +5462,33 @@ by its descendant classes.
   (define (text-width text::CharSequence font::FontProxy)::real
     (string-length text))
 
-  (define (mark-cursor! index::int font::FontProxy)::void
-    #!abstract)
+  (define-protected caret-left ::real -1)
+  (define-protected caret-top ::real -1)
+  (define-protected caret-line-height ::real 0)
+
+  ;; the caret is marked at the current origin: a caller that
+  ;; wants it on the text row of a line has to translate there
+  ;; itself, the way that `Textual:render!' does through its
+  ;; own border
+  (define (mark-caret! position ::int font ::FontProxy)::void
+    (set! caret-left (+ (the shift-left)
+                        (nearby-int (* (the stretch-horizontal)
+                                       position))))
+    (set! caret-top (the shift-top))
+    (set! caret-line-height (font:height)))
+
+  (define (caret-position)::(maybe (Values real real))
+    (if (is caret-left < 0)
+        #!null
+        (values caret-left caret-top)))
+
+  (define (caret-height)::real caret-line-height)
+
+  ;; called when a frame begins, so that a caret which hasn't
+  ;; been rendered cannot report a stale position
+  (define-protected (forget-caret!)::void
+    (set! caret-left -1)
+    (set! caret-top -1))
 
   (define (character-index horizontal-position::real text::CharSequence
                            font::FontProxy)
@@ -5509,25 +5533,15 @@ buffer to a string.
   (define (comment-font)::FontProxy basic-font)
   (define (caption-font)::FontProxy basic-font)
 
-  (define (mark-cursor! position ::int font ::FontProxy)::void
-    (set! caret-left (+ (the shift-left)
-                        (nearby-int (* (the stretch-horizontal)
-                                       position))))
-    (set! caret-top (+ (the shift-top)
-                       (nearby-int (the stretch-vertical)))))
-
   (define-private width ::int 0)
   (define-private height ::int 0)
   (define-private buffer ::(array-of char) #!null)
-  (define-private caret-left ::int -1)
-  (define-private caret-top ::int -1)
 
   (define (clear!)::void
     (set! width 0)
     (set! height 0)
     (set! buffer #!null)
-    (set! caret-left -1)
-    (set! caret-top -1))
+    (self forget-caret!))
 
   (define-private (expand-buffer! new-width ::int new-height ::int)::void
     (assert (and (is width <= new-width) (is new-height >= height)))
@@ -5572,17 +5586,20 @@ buffer to a string.
   (define (toString)::String
     (with-output-to-string
       (lambda ()
-        (write-char #\newline)
-        (for line from: 0 below: height
-             (for column from: 0 below: width
-                  (let* ((n (+ (* line width)
-                               column))
-                         (c (buffer n)))
-                    (write-char (if (and (= line caret-top)
-                                         (= column caret-left))
-                                    #\^
-                                    c))))
-             (write-char #\newline)))))
+        (let ((mark-line ::int (+ (the caret-top) 1))
+              (mark-column ::int (the caret-left)))
+          (write-char #\newline)
+          (for line from: 0 below: height
+               (for column from: 0 below: width
+                    (let* ((n (+ (* line width)
+                                 column))
+                           (c (buffer n)))
+                      (write-char (if (and (is mark-column >= 0)
+                                           (= line mark-line)
+                                           (= column mark-column))
+                                      #\^
+                                      c))))
+               (write-char #\newline))))))
 
 #+END_SRC
 
@@ -6171,6 +6188,12 @@ Therefore we need an object that would represent the current
                 max-width: real := 0
                 line-height: real := 0)
 
+    (define (clear!)::void
+      (set! left 0)
+      (set! top 0)
+      (set! max-width 0)
+      (set! line-height 0))
+
     (define (break! min-line-height ::real)::void
       (maximize! max-width left)
       (set! left 0)
@@ -6235,29 +6258,34 @@ very nearly all of it.
 
 #+BEGIN_SRC scheme :tangle no :noweb no-export :noweb-ref GRASP-ontology
   (define-object (Cursor)::Iterable::Cloneable
-
-    ;; a cursor /has/ a stack of indices rather than /being/ one,
-    ;; so that it only offers the operations that make sense for a
-    ;; cursor, and none of the ones that a Java List would force it
-    ;; to offer
     (define-protected indices ::ArrayStack (ArrayStack))
 
-    ;; these are the operations through which the modules of this
-    ;; package move a cursor around, and they are the ones that could
-    ;; leave it pointing at nothing, so they are not public
-    (delegate-internal (push! index)::void indices)
-    (delegate-internal (pop!)::Object indices)
+    (define-internal (push! index)::void
+      <<Cursor-modified!>>
+      (indices:push! index))
+
+    (define-internal (pop!)::Object
+      <<Cursor-modified!>>
+      (indices:pop!))
+
     (delegate-internal (top)::Object indices)
-    (delegate-internal (set-top! index)::void indices)
+
+    (define-internal (set-top! index)::void
+      <<Cursor-modified!>>
+      (indices:set-top! index))
 
     (delegate (empty?)::boolean indices)
-    (delegate-internal (clear!)::void indices)
+
+    (define-internal (clear!)::void
+      <<Cursor-modifed!>>
+      (indices:clear!))
+    
     (delegate (toString)::String indices)
 
     (define (size)::int
       (indices:depth))
 
-    (define (get i ::int)::Object
+    (define (get i ::int)::int
       (indices:get i))
 
     (define-internal (with index action::(maps () to: ,a))::,a
@@ -6490,7 +6518,7 @@ everything, we can provide a /partial implementation/.
                         (values -1 0))))
         (for i::int from: 0 to: last-index
              (let ((n ::int (fragments i)))
-               (painter:with-translation
+               #;(painter:with-translation
                    (- state:left initial-left)
                    (- state:top initial-top)
                  (lambda ()
@@ -6499,9 +6527,11 @@ everything, we can provide a /partial implementation/.
                (when (= i caret-fragment)
                  (painter:with-translation
                      (- state:left initial-left)
-                     (- state:top initial-top)
+                     (+ (- state:top initial-top)
+                        (painter:border-height BorderStyle:Atom))
                    (lambda ()
-                     (painter:mark-cursor! caret-offset #!null))))
+                     (painter:mark-caret!
+                      caret-offset (painter:atom-font)))))
                (state:expand! (* (max 0 n) (painter:space-width))
                               (painter:min-line-height))
                (unless (= i last-index)
@@ -6780,14 +6810,14 @@ we have everything that is needed to define the ~Visual~,
           (let ((n ::int 0))
             (for line in: (lines builder)
               (painter:with-translation 0 inner-height
-  	      (lambda ()
+              (lambda ()
                   (let* ((line-width (painter:draw-text!
                                       line font))
                          (k ::int (string-length line)))
                     (when (and (cursor:active-at? path)
                                (is n <= (cursor:top)
                                    <= (+ n k)))
-                      (painter:mark-cursor!
+                      (painter:mark-caret!
                        (- (cursor:top) n)
                        font))
                     (increase! n by: (+ k 1))
@@ -6795,7 +6825,9 @@ we have everything that is needed to define the ~Visual~,
                     (increase! inner-height
                                by: (font:height)))))))))
       (set! last-width (+ inner-width (* 2 border-width)))
-      (set! last-height (+ inner-height (* 2 border-height)))
+      (set! last-height (max (painter:min-line-height)
+                             (+ inner-height
+                                (* 2 border-height))))
       (painter:draw-box! last-width last-height
                          SideSelected:None style))
     (advance-layout! state))
@@ -8603,13 +8635,14 @@ required by the current (fairly minimal) version of the
   (define (comment-font)::FontProxy -comment-font)
   (define (caption-font)::FontProxy -atom-font)
 
-  (define (mark-cursor! position ::int font ::FontProxy)::void
-    (let ((x ::int (+ (the shift-left)
-                      (nearby-int (* (the stretch-horizontal) position))))
-          (y ::int (the shift-top)))
-      (terminal:setCursorPosition (TerminalPosition x y))))
+  (define (mark-caret! position ::int font ::FontProxy)::void
+    (super mark-caret! position font)
+    (terminal:setCursorPosition
+     (TerminalPosition (as int (the caret-left))
+                       (as int (the caret-top)))))
 
   (define (clear!)::void
+    (self forget-caret!)
     (terminal:clear))
 
   (define-protected (put! c ::char left ::int top ::int)::void
@@ -8631,7 +8664,8 @@ required by the current (fairly minimal) version of the
        (with ((fgcolor TerminalColor:ANSI:BLACK)
               (bgcolor TerminalColor:ANSI:WHITE_BRIGHT))
          (super draw-left! height border selected)
-         (mark-cursor! 0 #!null)))
+         (super with-translation 0 (super border-height BorderStyle:Atom)
+           (lambda () (mark-caret! 0 (atom-font))))))
       (,SideSelected:Right
        (with ((fgcolor TerminalColor:ANSI:BLACK_BRIGHT)
               (bgcolor TerminalColor:ANSI:WHITE))
@@ -8651,7 +8685,8 @@ required by the current (fairly minimal) version of the
        (with ((fgcolor TerminalColor:ANSI:BLACK)
               (bgcolor TerminalColor:ANSI:WHITE_BRIGHT))
          (super draw-right! height border selected)
-         (mark-cursor! 0 #!null)))))
+         (super with-translation 0 (super border-height BorderStyle:Atom)
+                (lambda () (mark-caret! 0 (atom-font))))))))
 
 #+END_SRC
 
@@ -10703,6 +10738,7 @@ to out document model, which consists of the
   <<header>>
   (module-name (document elements))
   (import (language-extensions))
+  (import (painter interface))
 
   <<GRASP-ontology>>
 
@@ -11018,6 +11054,8 @@ operations on ~Textual~ elements and on ~Comb~ (by dragging
 their left parentheses), as well as to resize the ~Comb~
 elements (by dragging their right parentheses).
 
+**** Selecting ~Element~ based on coordinates
+
 The support for pointing devices needs to be added in a few
 places. First and foremost, every ~Element~ needs to be able
 to provide a method that takes screen coordinates and a path
@@ -11053,28 +11091,30 @@ earlier):
              (border-height ::real
                             (painter:border-height style))
              (line-height ::real (font:height))
-             (top ::real border-height)
-             (x ::int (- x position:left))
-             (y ::int (- y position:top))
-             (n ::int 0))
+             (x ::real (- x position:left))
+             (y ::real (- y position:top)))
         (advance-layout! position)
-        (cond
-         ((or (is x < 0) (is x >= (width))
-              (is y < 0) (is y >= (height)))
+        (when (or (is x < 0) (is x >= (width))
+                  (is y < 0) (is y >= (height)))
           (return #!null))
-         ((is y < border-height)
-          (path:push! 0)
-          (return path x y))
-         (else
+        (let ((inner-x ::real (- x border-width))
+              (inner-y ::real (- y border-height))
+              (bottom ::real line-height)
+              (n ::int 0)
+              (base ::int 0)
+              (previous-line ::CharSequence ""))
           (for line in: (lines builder)
-            (when (is top <= y < (+ top line-height))
+            (when (is inner-y < bottom)
               (path:push! (+ n (painter:character-index
-                                x line font)))
+                                inner-x line font)))
               (return path x y))
-            (increase! top by: line-height)
+            (set! base n)
+            (set! previous-line line)
+            (increase! bottom by: line-height)
             (increase! n by: (+ (string-length line) 1)))
-          (path:push! (last-index))
-          (return path x y))))))
+          (path:push! (+ base (painter:character-index
+                               inner-x previous-line font)))
+          (return path x y)))))
 
 #+END_SRC
 
@@ -11089,11 +11129,15 @@ height.
                          position ::LayoutState)
     ::(maybe (Values Cursor real real))
     (escape-with return
-      (let ((last-index ::int (- (fragments:size) 1))
-            (space-width ::int (painter:space-width)))
-        (for i::int from: 0 to: last-index
+      (let ((last-fragment ::int (- (fragments:size) 1))
+            (space-width ::real (painter:space-width))
+            ;; a cursor index into a Space runs across all of its
+            ;; fragments, so the indices of every fragment but the
+            ;; first one begin where the preceding ones left off
+            (base ::int 0))
+        (for i::int from: 0 to: last-fragment
            (let* ((fragment ::int (fragments i))
-                  (width ::int (* space-width (max 0 fragment)))
+                  (width ::real (* space-width (max 0 fragment)))
                   (left ::real position:left))
              (position:expand! width
                                (painter:min-line-height))
@@ -11101,14 +11145,18 @@ height.
                        < (+ position:top
                             position:line-height))
                (when (is left <= x < (+ left width))
-                 (path:push! (nearby-int (/ (- x left)
-                                            space-width)))
+                 (path:push! (+ base (nearby-int (/ (- x left)
+                                                    space-width))))
                  (return path x y))
-               (unless (= i last-index)
-                 (path:push! fragment)
+               (unless (= i last-fragment)
+                 ;; to the right of this fragment, on its own
+                 ;; line: its last index.  A negative fragment
+                 ;; holds a single index, so that one is `base'
+                 (path:push! (+ base (max 0 fragment)))
                  (return path x y))
-               (return #!null)))
-           (unless (= i last-index)
+               (return #!null))
+             (increase! base by: (index-positions fragment)))
+           (unless (= i last-fragment)
              (position:break! (painter:min-line-height))))
         #!null)))
 
@@ -11164,20 +11212,114 @@ need to check every element inside.
 
 #+END_SRC
 
+In case of ~Document~ we want to ~canonicalize!~ the
+resulting ~Cursor~:
+
+#+BEGIN_SRC scheme :noweb-ref Document--definition
+  (define (cursor-under* x::real y::real
+                         cursor::Cursor
+                         state::LayoutState)
+    ::(maybe (Values Cursor real real))
+    (given* ((cursor ::Cursor x* ::real y* ::real
+                     (super cursor-under* x y
+                            cursor state)))
+      (cursor:canonicalize!)
+      (values cursor x* y*)))
+#+END_SRC
+
+
 For convenience, we also define a simplified variant of
 ~cursor-under*~ inside ~Document~, that passes a fresh
 ~Cursor~ and a fresh ~LayoutState~ as the two last arguments
 to the full variant:
 
 #+BEGIN_SRC scheme :noweb-ref Document--definition
-  (define (cursor-under* x::real y::real)::(maybe Cursor)
+  (define (cursor-under* x::real y::real)
+    ::(maybe (Values Cursor real real))
     (self cursor-under* x y (Cursor) (LayoutState)))
 #+END_SRC
 
-Of course, for these methods to be useful, we need to
-somehow hook them up to the host's event system.  In
-particular, we want ~Interactive~ things (such as the
-~Application~) to support pointing devices:
+**** Vertical cursor movement
+
+We can use the ~cursor-under*~ method to implement vertical
+cursor movement. We want it to preserve the column
+information even if we move to a shorter line (which seems
+to be the standard among text editors):
+
+#+BEGIN_SRC scheme :noweb-ref Cursor--operations :noweb no-export
+  (define-private sticky-column ::real -1)
+
+  (define-private (move-vertically! direction ::int)
+    (given ((screen-x ::real screen-y ::real
+                      (painter:caret-position)))
+      (when (is sticky-column < 0)
+        (set! sticky-column screen-x))
+      (given ((column ::real sticky-column)
+              (step ::real (* direction
+                              (if (is (painter:caret-height) > 0)
+                                  (painter:caret-height)
+                                  (painter:min-line-height))))
+              (document ::Tile (current-document))
+              (bottom ::real (document:height))
+              (cursor ::Cursor (Cursor))
+              (layout ::LayoutState (LayoutState))
+              (probe-x ::real (min column
+                                   (- (document:width)
+                                      (painter:space-width))))
+              (here ::Cursor _ _
+                    (document:cursor-under* probe-x screen-y
+                                            (Cursor) (LayoutState))))
+        (let scan ((probe-y ::real (+ screen-y step)))
+          (when (is 0 <= probe-y < bottom)
+            (cursor:clear!)
+            (layout:clear!)
+            (unless (given ((probe ::Cursor _ _
+                                   (document:cursor-under*
+                                    probe-x probe-y cursor layout))
+                            ((not (equal? probe here))))
+                      (assign! probe)
+                      (set! sticky-column column)
+                      #true)
+              (scan (+ probe-y step))))))))
+
+  (define (move-up!)
+    (move-vertically! -1))
+
+  (define (move-down!)
+    (move-vertically! +1))
+
+#+END_SRC
+
+We need to invalidate ~sticky-column~ whenever the ~Cursor~
+is modified:
+
+#+BEGIN_SRC scheme :noweb-ref Cursor-modified! :noweb no-export
+  (set! sticky-column -1)
+#+END_SRC
+
+Once it's defined, we can bind ~up~ and ~down~ arrows
+to support it.
+
+#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--initial-key-bindings :noweb no-export
+  (set-key! 'up
+            (lambda (code::KeyCode)
+              (let ((cursor ::Cursor (current-cursor)))
+                (cursor:move-up!))))
+
+  (set-key! 'down
+            (lambda (code::KeyCode)
+              (let ((cursor ::Cursor (current-cursor)))
+                (cursor:move-down!))))
+
+#+END_SRC
+
+**** Handling pointer events
+
+Of course, if we want to be able to use ~cursor-under*~ with
+a mouse or a touch screen, we need to somehow hook them it
+to the host's event system.  In particular, we want
+~Interactive~ things (such as the ~Application~) to support
+pointing devices:
 
 #+BEGIN_SRC scheme :noweb-ref interaction-capabilities
   SupportsPointingDevice
@@ -11739,9 +11881,9 @@ scaffolding:
     (given* ((cursor ::Cursor x0 ::real y0 ::real
                      (document:cursor-under* x y))
              ((is (cursor:size) >= 2))
-             (tip (cursor:pop!))
-             (top (cursor:pop!))
-             (parent ::Tile (cursor:target))
+             (tip ::int (cursor:top))
+             (top ::int (cursor:get -2))
+             (parent ::Tile (cursor:target/at -2))
              (target ::Tile (parent:element-at top)))
       (cond
        <<GRASP-Editor--drag-from-dispatch>>
@@ -11759,8 +11901,6 @@ Now, the simplest case to handle is when we press on a
   ((given ((target ::Resizable)
            (anchor ::ResizeAnchor
                    (target:resize-anchor x0 y0)))
-     (cursor:push! top)
-     (cursor:push! tip)
      (Resize target cursor
              (target:width) (target:height) anchor)))
 #+END_SRC
@@ -11786,8 +11926,8 @@ returns the last result of that method:
     (define (move! x::real y::real dx::real dy::real)::void
       (increase! purported-width by: dx)
       (increase! purported-height by: dy)
-      (set! edit (target:set-size! purported-width purported-height
-                                   anchor edit)))
+      (target:set-size! purported-width purported-height
+                                   anchor))
 
     (define (drop! x::real y::real vx::real vy::real)::(maybe Edit)
       (target:finalize-resize! edit))
@@ -11808,9 +11948,7 @@ is ~Resizable~ if it implements the ~Resizable~ interface:
   (define-interface Resizable (Tile)
     (resize-anchor x::real y::real)::(maybe ResizeAnchor)
     (resizing-edit cursor::Cursor)::Edit
-    (set-size! width ::real height ::real
-               anchor ::ResizeAnchor)
-    ::Edit
+    (set-size! width ::real height ::real anchor ::ResizeAnchor)::void
     (finalize-resize! edit ::Edit)::(maybe Edit)
     )
 
@@ -11954,7 +12092,7 @@ and vertical space.
 #+BEGIN_SRC scheme :noweb-ref Comb--remaining-methods :noweb no-export
   (define (set-size! width ::real height ::real
                      anchor ::ResizeAnchor)
-    ::Edit
+    ::void
     (let* ((height-increase ::real (- height last-height))
            (last-space-index ::int (- (spaces:size) 1))
            (added-lines ::int (as int (quotient
@@ -12026,9 +12164,23 @@ the ~(document model)~ module.
 
 #+END_SRC
 
+***** Moving elements around
 
-#+BEGIN_COMMENT
-Kawa considers modules in the same directory to belong to the same package.
+In addition to resizing elements, we also want to be able to
+copy and rearrange them by simply picking them up and
+dragging them. Since it makes little sense to resize, say,
+atoms, pressing them anywhere should extract them from the
+document 
+
+
+#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--drag-from-dispatch
+  #;((given ((target ::Movable)
+             ((target:can-be-moved-from? x0 y0)))
+     (Resize target cursor
+             (target:width) (target:height) anchor)))
+#+END_SRC
+
+
 java -Dkawa.immediate.shared-loader=true -jar ../libs/kawa.jar test/foo.scm
 #+END_COMMENT
 
