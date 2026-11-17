@@ -4986,7 +4986,7 @@ things to a character string.
 
 **** Managing rendering context
 
-#+BEGIN_SRC scheme :noweb-ref painter-capabilities
+#+BEGIN_SRC scheme :noweb-ref painter-capabilities :noweb no-export
 CanManageRenderingContext
 #+END_SRC
 
@@ -5011,7 +5011,7 @@ to take some number of parameters followed by a /thunk/ that
 is supposed to be executed in the modified context. This way
 we won't need to worry about restoring the context.
 
-#+BEGIN_SRC scheme :tangle no :noweb-ref painter-subinterfaces
+#+BEGIN_SRC scheme :tangle no :noweb-ref painter-subinterfaces :noweb no-export
   (define-interface CanManageRenderingContext ()
     (with-translation x::real y::real action::(maps () to: ,A))::,A
     (with-rotation angle::real action::(maps () to: ,A))::,A
@@ -5035,11 +5035,11 @@ pointing right and the y axis (vertical) pointing down.
 
 **** Providing sizes of various things
 
-#+BEGIN_SRC scheme :noweb-ref painter-capabilities
+#+BEGIN_SRC scheme :noweb-ref painter-capabilities :noweb no-export
 CanProvideBasicSizes
 #+END_SRC
 
-#+BEGIN_SRC scheme :noweb-ref painter-subinterfaces
+#+BEGIN_SRC scheme :noweb-ref painter-subinterfaces :noweb no-export
   (define-interface CanProvideBasicSizes ()
     (space-width)::real
     (min-line-height)::real
@@ -5057,14 +5057,14 @@ that can be rendered by GRASP, like for example /block
 comments/ that are delimited with ~#|~ and ~|#~, or strings
 that are delimited by a pair of matching double-quotes.
 
-#+BEGIN_SRC scheme :noweb-ref painter-capabilities
+#+BEGIN_SRC scheme :noweb-ref painter-capabilities :noweb no-export
 CanRenderBoxes
 #+END_SRC
 
 We are going to support a number of styles for a few
 different types of borders.
 
-#+BEGIN_SRC scheme :tangle no :noweb-ref painter-subinterfaces
+#+BEGIN_SRC scheme :tangle no :noweb-ref painter-subinterfaces :noweb no-export
   (define-enum BorderStyle
     (None
      Atom
@@ -5099,7 +5099,7 @@ different types of borders.
 One of the basic capabilities of most code editors is
 that of rendering text.
 
-#+BEGIN_SRC scheme :noweb-ref painter-capabilities
+#+BEGIN_SRC scheme :noweb-ref painter-capabilities :noweb no-export
 CanRenderText
 #+END_SRC
 
@@ -5111,7 +5111,7 @@ because every client represents fonts in a different way.
 For this reason, we are going to define a ~FontProxy~ type
 that will stand for particular font representations. 
 
-#+BEGIN_SRC scheme :tangle no :noweb-ref painter-subinterfaces
+#+BEGIN_SRC scheme :tangle no :noweb-ref painter-subinterfaces :noweb no-export
 
   (define-interface FontProxy ()
     (height)::real)
@@ -5142,11 +5142,11 @@ into a character index.
 The functions assume that ~text~ contains no newline
 characters.
 
-#+BEGIN_SRC scheme :tangle no :noweb-ref painter-subinterfaces
+#+BEGIN_SRC scheme :tangle no :noweb-ref painter-subinterfaces :noweb no-export
   (define-interface CanRenderText ()
     (draw-text! text::CharSequence font::FontProxy)::real
     (text-width text::CharSequence font::FontProxy)::real
-    (mark-caret! position::int font::FontProxy)::void
+    (mark-caret! font::FontProxy)::void
     ;; where the caret was last marked, in absolute screen
     ;; coordinates -- nothing, if the frame being rendered
     ;; hasn't marked one
@@ -5179,7 +5179,7 @@ It is going to use a helper object called
 ~ParenthesesCharacters~, whose purpose is to define how the
 specific types of boxes are going to look.
 
-#+BEGIN_SRC scheme :noweb-ref BorderCharacters--object-definition
+#+BEGIN_SRC scheme :noweb-ref BorderCharacters--object-definition :noweb no-export
   (define-object
     (BorderCharacters
      leftTop ::String     top ::String      rightTop ::String
@@ -5316,7 +5316,8 @@ by its descendant classes.
   (define-protected clip-height ::int Integer:MAX_VALUE)
 
   (define (with-translation x::real y::real
-  			  action::(maps () to: ,A))::,A
+            action::(maps () to: ,A))
+    ::,A
     (with ((shift-left (as int (+ shift-left x)))
            (shift-top (as int (+ shift-top y)))
            (clip-width (- clip-width x))
@@ -5324,7 +5325,8 @@ by its descendant classes.
           (action)))
 
   (define (with-rotation angle::real
-  		       action::(maps () to: ,A))::,A
+                         action::(maps () to: ,A))
+    ::,A
     (action))
 
   (define-protected stretch-horizontal ::float 1.0)
@@ -5335,7 +5337,7 @@ by its descendant classes.
     ::,A
     (assert (and (is 0 < horizontal) (is vertical > 0)))
     (with ((stretch-horizontal (* stretch-horizontal
-  				horizontal))
+                                  horizontal))
            (stretch-vertical (* stretch-vertical vertical)))
           (action)))
 
@@ -5345,14 +5347,15 @@ by its descendant classes.
     (assert (and (is 0 <= width) (is height >= 0)))
     (with ((clip-width (min clip-width
                             (nearby-int
-  			   (* width stretch-horizontal))))
+                             (* width stretch-horizontal))))
            (clip-height (min clip-height
                              (nearby-int
-  			    (* height stretch-vertical)))))
+                              (* height stretch-vertical)))))
           (action)))
 
   (define (with-scale scale::real
-  		    action::(maps () to: ,A))::,A
+                      action::(maps () to: ,A))
+    ::,A
     (action))
 
   #;(define (with-intensity intensity::<0.0-1.0>
@@ -5400,7 +5403,9 @@ by its descendant classes.
            (put! (border:leftMiddle i) i (- height 2))))
     (when (is height > 1)
       (for i ::int from: 0 below: border:width
-           (put! (border:leftBottom i) i (- height 1)))))
+           (put! (border:leftBottom i) i (- height 1))))
+    (when (eq? selected SideSelected:Left)
+      (mark-parenthesis-caret!)))
 
   (define-protected (draw-right! height ::real
                                  border ::BorderCharacters
@@ -5416,7 +5421,14 @@ by its descendant classes.
            (put! (border:rightMiddle i) i (- height 2))))
     (when (is height > 1)
       (for i ::int from: 0 below: border:width
-           (put! (border:rightBottom i) i (- height 1)))))
+           (put! (border:rightBottom i) i (- height 1))))
+    (when (eq? selected SideSelected:Right)
+      (mark-parenthesis-caret!)))
+
+  (define-protected (mark-parenthesis-caret!)::void
+    (with-translation 0 (border-height BorderStyle:Atom)
+      (lambda ()
+        (mark-caret! (self atom-font)))))
 
   (define (draw-box! width ::real height ::real
                      selected ::SideSelected
@@ -5470,10 +5482,8 @@ by its descendant classes.
   ;; wants it on the text row of a line has to translate there
   ;; itself, the way that `Textual:render!' does through its
   ;; own border
-  (define (mark-caret! position ::int font ::FontProxy)::void
-    (set! caret-left (+ (the shift-left)
-                        (nearby-int (* (the stretch-horizontal)
-                                       position))))
+  (define (mark-caret! font ::FontProxy)::void
+    (set! caret-left (the shift-left))
     (set! caret-top (the shift-top))
     (set! caret-line-height (font:height)))
 
@@ -5789,7 +5799,7 @@ and there are going to be two distinct sub-types of
 is a concrete type and ~Tile~ is an interface representing
 elements that occupy a rectangular area of the screen.
 
-#+BEGIN_SRC scheme :noweb-ref Comb--collection-operations
+#+BEGIN_SRC scheme :noweb-ref Comb--collection-operations :noweb no-export
   (define-internal elements ::(sequence-of Tile)
     (ArrayList))
 
@@ -6181,7 +6191,7 @@ down and to the left (the same is true for ~LineComment~).
 Therefore we need an object that would represent the current
 ~LayoutState~:
 
-#+BEGIN_SRC scheme :tangle no :noweb-ref GRASP-ontology
+#+BEGIN_SRC scheme :tangle no :noweb-ref GRASP-ontology :noweb no-export
   (define-type (LayoutState
                 left: real := 0
                 top: real := 0
@@ -6210,7 +6220,7 @@ Therefore we need an object that would represent the current
 We can consider an object to be ~Spatial~ if it is capable
 of advancing the layout state:
 
-#+BEGIN_SRC scheme :tangle no :noweb-ref GRASP-ontology
+#+BEGIN_SRC scheme :tangle no :noweb-ref GRASP-ontology :noweb no-export
   (define-interface Spatial ()
     (advance-layout! state::LayoutState)::void)
   
@@ -6321,7 +6331,7 @@ As to the cursor itself, it's going to be represented
 using a /parameter/ (or a /dynamic variable/) called
 ~current-cursor~:
 
-#+BEGIN_SRC scheme :tangle no :noweb-ref GRASP-ontology
+#+BEGIN_SRC scheme :tangle no :noweb-ref GRASP-ontology :noweb no-export
   (define-parameter (current-cursor)::Cursor
     (Cursor))
 
@@ -6341,7 +6351,7 @@ that we are going to call ~path~. If ~(current-cursor)~
 is a ~prefix?~ of a given ~path~, then the element
 can be considered active.
 
-#+BEGIN_SRC scheme :tangle no :noweb-ref GRASP-ontology
+#+BEGIN_SRC scheme :tangle no :noweb-ref GRASP-ontology :noweb no-export
   (define-interface Visual (Spatial)
     (render! path ::Cursor state::LayoutState)::void)
 
@@ -6363,7 +6373,7 @@ screen, so we need some way to calculate its ~width~ and
 cache them in variables to avoid their recomputation on
 every access.
 
-#+BEGIN_SRC scheme :tangle no :noweb-ref Comb--rendering
+#+BEGIN_SRC scheme :tangle no :noweb-ref Comb--rendering :noweb no-export
   (define-private last-width ::real -1)
   (define-private last-height ::real -1)
   
@@ -6372,7 +6382,7 @@ every access.
 We're now equipped with everything needed to define the
 rendering function for ~Comb~ and its thereabouts.
 
-#+BEGIN_SRC scheme :tangle no :noweb-ref Comb--rendering
+#+BEGIN_SRC scheme :tangle no :noweb-ref Comb--rendering :noweb no-export
   (define style ::BorderStyle BorderStyle:Parentheses)
 
   (define (render! path ::Cursor state::LayoutState)::void
@@ -6442,7 +6452,7 @@ definitions of ~Element~. But we also need some definition
 of ~Space~.  Although we're not ready yet to define
 everything, we can provide a /partial implementation/.
 
-#+BEGIN_SRC scheme :noweb-ref Space--representation
+#+BEGIN_SRC scheme :noweb-ref Space--representation :noweb no-export
 
   (define fragments ::(sequence-of int)
     (ArrayList ||: (as int 0)))
@@ -6506,7 +6516,7 @@ everything, we can provide a /partial implementation/.
 #+END_SRC
 
 
-#+BEGIN_SRC scheme :noweb-ref Space--rendering
+#+BEGIN_SRC scheme :noweb-ref Space--rendering :noweb no-export
   (define (render! path ::Cursor state::LayoutState)::void
     (let ((initial-left ::real state:left)
           (initial-top ::real state:top)
@@ -6526,12 +6536,12 @@ everything, we can provide a /partial implementation/.
                                        (painter:atom-font))))
                (when (= i caret-fragment)
                  (painter:with-translation
-                     (- state:left initial-left)
+                     (+ (- state:left initial-left)
+                        (* caret-offset (painter:space-width)))
                      (+ (- state:top initial-top)
                         (painter:border-height BorderStyle:Atom))
                    (lambda ()
-                     (painter:mark-caret!
-                      caret-offset (painter:atom-font)))))
+                     (painter:mark-caret! (painter:atom-font)))))
                (state:expand! (* (max 0 n) (painter:space-width))
                               (painter:min-line-height))
                (unless (= i last-index)
@@ -6718,7 +6728,7 @@ We are therefore going to define a class called
 operations that the text-like elements share, and that will
 be used as a base class for our text-like things.
 
-#+BEGIN_SRC scheme :tangle no :noweb-ref Textual--contents
+#+BEGIN_SRC scheme :tangle no :noweb-ref Textual--contents :noweb no-export
 
   (define-protected builder ::StringBuilder
     (StringBuilder))
@@ -6784,7 +6794,7 @@ Although we're still not ready to define the ~Element~,
 we have everything that is needed to define the ~Visual~,
 ~Spatial~ and ~Tile~ parts of ~Textual~ elements.
 
-#+BEGIN_SRC scheme :noweb-ref Textual--rendering
+#+BEGIN_SRC scheme :noweb-ref Textual--rendering :noweb no-export
 
   (define-protected (border-style)::BorderStyle
     #!abstract)
@@ -6808,7 +6818,7 @@ we have everything that is needed to define the ~Visual~,
       (painter:with-translation border-width border-height
         (lambda ()
           (let ((n ::int 0))
-            (for line in: (lines builder)
+            (for line::string in: (lines builder)
               (painter:with-translation 0 inner-height
               (lambda ()
                   (let* ((line-width (painter:draw-text!
@@ -6817,9 +6827,12 @@ we have everything that is needed to define the ~Visual~,
                     (when (and (cursor:active-at? path)
                                (is n <= (cursor:top)
                                    <= (+ n k)))
-                      (painter:mark-caret!
-                       (- (cursor:top) n)
-                       font))
+                      (let ((offset ::int (- (cursor:top) n)))
+                        (painter:with-translation
+                            (painter:text-width
+                             (line:subSequence 0 offset) font) 0
+                          (lambda ()
+                            (painter:mark-caret! font)))))
                     (increase! n by: (+ k 1))
                     (maximize! inner-width line-width)
                     (increase! inner-height
@@ -6994,8 +7007,8 @@ We expect to get the following result:
 #+NAME: textual-rendering-result
 #+BEGIN_SRC text
                ⸾here's a line comment 
-this-is-an-atom                       
-                                      
+this-is-an-atom⸾                      
+               ⸾                      
 ❝┈┈┈┈┈┈┈┈┈┈┈┈┈┈•╔══════════╗          
 ┊this          ┊║while here║          
 ┊is            ┊║is a block║          
@@ -7025,7 +7038,7 @@ to develop it in two steps:
 
 ***** A simple parser
 
-#+BEGIN_SRC scheme :noweb-ref simple-parser
+#+BEGIN_SRC scheme :noweb-ref simple-parser :noweb no-export
 
   (define-constant atom-delimiters ::(set-of Char)
     (set #\space #\newline #\( #\) #\[ #\] #\" #\;))
@@ -7229,7 +7242,7 @@ read a single element. For this reason we also provide an
 additional "constructor" for ~Comb~, which splices its
 arguments if they are also instances of ~Comb~.
 
-#+BEGIN_SRC scheme :noweb-ref advanced-parser
+#+BEGIN_SRC scheme :noweb-ref advanced-parser :noweb no-export
   (define (Comb* . elements)::Comb
     (let ((result ::Comb (Comb)))
       (for element in: elements
@@ -7266,7 +7279,7 @@ The code itself is rather similar to that of our simple
 parser, although it needs to consider more cases (because
 it supports more objects):
 
-#+BEGIN_SRC scheme :noweb-ref advanced-parser
+#+BEGIN_SRC scheme :noweb-ref advanced-parser :noweb no-export
   (define* (read-list from: port ::InputPort := (current-input-port)
                       at: path ::Stack := (ArrayStack)
                       upto: max-elements ::real := +inf.0
@@ -7351,7 +7364,7 @@ procedures that we haven't defined, namely ~read-text~,
 ~enchanted~. The ~read-hash~ procedure has been factored out
 to make the above code shorter, and it looks like this:
 
-#+BEGIN_SRC scheme :noweb-ref advanced-parser
+#+BEGIN_SRC scheme :noweb-ref advanced-parser :noweb no-export
   (define (read-hash port ::InputPort path ::Stack)
     ::Tile
     (match (read-char port)
@@ -7390,7 +7403,7 @@ Most of these procedures are similar: they simply
 collect their input to some ~Textual~ object. The
 definition of ~read-line-comment~ is the simplest:
 
-#+BEGIN_SRC scheme :noweb-ref advanced-parser
+#+BEGIN_SRC scheme :noweb-ref advanced-parser :noweb no-export
   (define* (read-line-comment into: result ::LineComment := (LineComment)
                               from: port ::InputPort := (current-input-port))
     ::LineComment
@@ -7409,7 +7422,7 @@ definition of ~read-line-comment~ is the simplest:
 and the definition of ~read-atom~ is almost identical (the
 only difference is its termination condition):
 
-#+BEGIN_SRC scheme :noweb-ref advanced-parser
+#+BEGIN_SRC scheme :noweb-ref advanced-parser :noweb no-export
   (define-constant atom-delimiters ::(set-of Char)
     (set #\space #\newline #\( #\) #\[ #\] #\" #|"|# #\;))
 
@@ -7431,7 +7444,7 @@ only difference is its termination condition):
 The ~read-block-comment~ procedure is a bit more complex,
 because block comments in Scheme can be nested:
 
-#+BEGIN_SRC scheme :noweb-ref advanced-parser  
+#+BEGIN_SRC scheme :noweb-ref advanced-parser  :noweb no-export
   (define* (read-block-comment into: result ::BlockComment := (BlockComment)
                                from: port ::InputPort := (current-input-port))
     ::BlockComment
@@ -7476,7 +7489,7 @@ because block comments in Scheme can be nested:
 The ~read-text~ procedure is the most complex of them all,
 because it needs to handle various escape sequences.
 
-#+BEGIN_SRC scheme :noweb-ref advanced-parser  
+#+BEGIN_SRC scheme :noweb-ref advanced-parser :noweb no-export
   (define* (read-text into: result ::Text := (Text)
                       from: port ::InputPort := (current-input-port))
     ::Text
@@ -7605,8 +7618,8 @@ class that will be elaborated in the future.
 
      (painter:toString)) ===> "
   ╭        ╭     ╮ ⸾ int -> int  ╮
-  │ define │ ! n │               │
-  │        ╰     ╯               │
+  │ define │ ! n │ ⸾             │
+  │        ╰     ╯ ⸾             │
   │ ╭    ╭           ╮        ╮  │
   │ │ if │ is n <= 1 │        │  │
   │ │    ╰           ╯        │  │
@@ -7669,7 +7682,15 @@ We now need to implement the ~serialize~ method for ~Comb~,
 straightforward: we simply invoke the ~serialize~ method on its
 children and adjust the column value accordingly.
 
-#+BEGIN_SRC scheme :noweb-ref Comb--serialize
+#+BEGIN_SRC scheme :noweb-ref serialize-toString :noweb no-export
+  (define (toString)::String
+      (call-with-output-string
+        (lambda (port)
+          (serialize port 0))))
+  
+#+END_SRC
+
+#+BEGIN_SRC scheme :noweb-ref Comb--serialize :noweb no-export
   (define (serialize port ::OutputPort indent ::int)::void
     (write-char #\( port)
     (set! indent (port:getColumnNumber))
@@ -7677,8 +7698,8 @@ children and adjust the column value accordingly.
       (element:serialize port indent))
     (write-char #\) port))
 
-  (mix-in WriteToString)
-  
+  <<serialize-toString>>
+
 #+END_SRC
 
 The case of ~Space~ is more complicated, because it's
@@ -7689,7 +7710,7 @@ spaces after it reaches a new line (where by /the right
 amount/ we mean the number of spaces immediately following
 the new line plus current indentation):
 
-#+BEGIN_SRC scheme :noweb-ref Space--serialize
+#+BEGIN_SRC scheme :noweb-ref Space--serialize :noweb no-export
   (define (serialize port ::OutputPort indent ::int)::void
     (times (+ (fragments 0)
                 (if (= (port:getColumnNumber) 0)
@@ -7701,13 +7722,13 @@ the new line plus current indentation):
          (write-char #\newline port)
          (times (+ (fragments i) indent) write-char #\space port)))
 
-  (mix-in WriteToString)
-  
+  <<serialize-toString>>
+
 #+END_SRC
 
 Lastly, we need to define serialization for ~Textual~
 
-#+BEGIN_SRC scheme :noweb-ref Textual--serialization
+#+BEGIN_SRC scheme :noweb-ref Textual--serialization :noweb no-export
 
   (define-protected (prefix)::string
     #!abstract)
@@ -7731,7 +7752,7 @@ Lastly, we need to define serialization for ~Textual~
     (for c in: (suffix)
       (write-char c port)))
 
-  (mix-in WriteToString)
+  <<serialize-toString>>
   
 #+END_SRC
 
@@ -7803,12 +7824,6 @@ We can now test whether the algorithm works correctly:
 
   (define-interface Comment (Tile)
     (breaks-line?)::boolean)
-
-  (define-mixin WriteToString
-    (define (toString)::String
-      (call-with-output-string
-        (lambda (port)
-          (serialize port 0)))))
 
   (define-object (Space)::Element
     <<Space--representation>>
@@ -7942,7 +7957,7 @@ been calling this sequence of indices -- a ~Cursor~.
 Consequently, an element pointed to by a ~Cursor~ can be
 obtained in the following way:
 
-#+BEGIN_SRC scheme :noweb-ref Cursor--operations
+#+BEGIN_SRC scheme :noweb-ref Cursor--operations :noweb no-export
   (define-private (target-in root ::Element)::Element
     (for index::int in: (this)
       (set! root (root:element-at index)))
@@ -7967,7 +7982,7 @@ refers to the ~element-at~ method. We need to extend our
 ~Element~ interface with it, plus a method that specifies
 the last index that can be accepted by a given element:
 
-#+BEGIN_SRC scheme :noweb-ref Element--indexing
+#+BEGIN_SRC scheme :noweb-ref Element--indexing :noweb no-export
   (last-index)::int
   (element-at index ::int)::Element
 #+END_SRC
@@ -7981,7 +7996,7 @@ In the case of ~Comb~, the last index -- or the index
 of the right parenthesis -- is one larger than the number
 if its actual elements:
 
-#+BEGIN_SRC scheme :noweb-ref Comb--navigation
+#+BEGIN_SRC scheme :noweb-ref Comb--navigation :noweb no-export
   (define (last-index)::int
     (+ (size) 1))
 
@@ -7992,7 +8007,7 @@ parenthesis, we need to subtract 1 in order to get the index
 of some of its actual elements (otherwise the ~element-at~
 method will return the ~Comb~ itself).
 
-#+BEGIN_SRC scheme :noweb-ref Comb--navigation
+#+BEGIN_SRC scheme :noweb-ref Comb--navigation :noweb no-export
   (define (element-at index ::int)::Element
     (if (is 0 < index <= (size))
         (get (- index 1))
@@ -8010,7 +8025,7 @@ method -- it could be tempting to return the characters
 that such elements are composed of, but a character is
 not an ~Element~ in the sense employed by GRASP.
 
-#+BEGIN_SRC scheme :noweb-ref Textual--navigation
+#+BEGIN_SRC scheme :noweb-ref Textual--navigation :noweb no-export
   (define (element-at index ::int)::Element
     (this))
 
@@ -8021,7 +8036,7 @@ indices within ~Textual~ elements. More specifically, the
 amount of positons where one can place their cursor in such
 elements is one greater than the number of its characters:
 
-#+BEGIN_SRC scheme :noweb-ref Textual--navigation
+#+BEGIN_SRC scheme :noweb-ref Textual--navigation :noweb no-export
   (define (last-index)::int
     (invoke (the builder) 'length))
 
@@ -8032,7 +8047,7 @@ elements is one greater than the number of its characters:
 Spaces in GRASP are also atomic in the same sense as
 ~Textual~ objects:
 
-#+BEGIN_SRC scheme :noweb-ref Space--navigation
+#+BEGIN_SRC scheme :noweb-ref Space--navigation :noweb no-export
   (define (element-at index ::int)::Element
     (this))
   
@@ -8044,7 +8059,7 @@ each fragment. If we want to get the value of the last
 index, we need to subtract 1 from that number (because
 we count from 0):
 
-#+BEGIN_SRC scheme :noweb-ref Space--navigation
+#+BEGIN_SRC scheme :noweb-ref Space--navigation :noweb no-export
   (define (last-index)::int
     (fold-left (lambda (sum::int space::int)
                     (+ sum (index-positions space)))
@@ -8062,7 +8077,7 @@ We will say that a cursor is /valid/ in a document
 if each index is within the allowed range of a corresponding
 element:
 
-#+BEGIN_SRC scheme :noweb-ref Cursor--operations
+#+BEGIN_SRC scheme :noweb-ref Cursor--operations :noweb no-export
   (define-private (valid-in? root ::Element)::boolean
     (escape-with
      return
@@ -8078,7 +8093,7 @@ Likewise, a cursor can be considered /final/ (or /fully
 expanded/) in a document if its two last indices refer
 to the same element:
 
-#+BEGIN_SRC scheme :noweb-ref Cursor--operations
+#+BEGIN_SRC scheme :noweb-ref Cursor--operations :noweb no-export
   (define-private (final-in? document ::Element)::boolean
     (let ((top ::Element document)
           (tip ::Element #!null))
@@ -8102,7 +8117,7 @@ need to go many levels up to reach another element. For this
 reason, we will be gatheting the entire stack of elements in
 which the target is embedded:
 
-#+BEGIN_SRC scheme :noweb-ref Cursor--operations
+#+BEGIN_SRC scheme :noweb-ref Cursor--operations :noweb no-export
   (define-private (track-in root ::Element)::(StackListOf Element)
     (let ((result ::StackList (ArrayStack)))
       (for index::int in: (this)
@@ -8172,13 +8187,13 @@ only an element itself can tell, so rather than have the
 cursor inspect the type of its target, we extend the
 ~Element~ interface with a predicate:
 
-#+BEGIN_SRC scheme :noweb-ref Element--cursor-operations
+#+BEGIN_SRC scheme :noweb-ref Element--cursor-operations :noweb no-export
   (canonical-at? index ::int)::boolean
 #+END_SRC
 
 and the cursor simply asks:
 
-#+BEGIN_SRC scheme :noweb-ref Cursor--operations
+#+BEGIN_SRC scheme :noweb-ref Cursor--operations :noweb no-export
   (define-private (canonical-in? document::Element)::boolean
     (let ((target ::Element (self target-in document)))
       (target:canonical-at? (self top))))
@@ -8191,19 +8206,19 @@ delimiter -- a parenthesis, a quote or a comment marker --
 and therefore do not coincide with the boundaries of the
 adjacent ~Space~:
 
-#+BEGIN_SRC scheme :noweb-ref Comb--navigation
+#+BEGIN_SRC scheme :noweb-ref Comb--navigation :noweb no-export
   (define (canonical-at? index ::int)::boolean
     #true)
 
 #+END_SRC
 
-#+BEGIN_SRC scheme :noweb-ref Space--navigation
+#+BEGIN_SRC scheme :noweb-ref Space--navigation :noweb no-export
   (define (canonical-at? index ::int)::boolean
     #true)
 
 #+END_SRC
 
-#+BEGIN_SRC scheme :noweb-ref Textual--navigation
+#+BEGIN_SRC scheme :noweb-ref Textual--navigation :noweb no-export
   (define (canonical-at? index ::int)::boolean
     #true)
 
@@ -8216,7 +8231,7 @@ case of an empty ~Atom~ needs to be excluded, because there
 the first and the last position are the same one, and
 skipping it would leave the atom unreachable):
 
-#+BEGIN_SRC scheme :noweb-ref Atom--navigation
+#+BEGIN_SRC scheme :noweb-ref Atom--navigation :noweb no-export
   (define (canonical-at? index ::int)::boolean
     (let ((last ::int (self last-index)))
       (or (= last 0)
@@ -8233,7 +8248,7 @@ variants of those methods, which don't necessarily end
 up in canonical positions, and then we'll also provide
 the canonical versions:
 
-#+BEGIN_SRC scheme :noweb-ref Cursor--operations  
+#+BEGIN_SRC scheme :noweb-ref Cursor--operations :noweb no-export
   (define-private (primitive-advance-in! document ::Element)::void
     (let ((elements ::(StackListOf Element)
                   (track-in document)))
@@ -8288,7 +8303,7 @@ Lastly, equipped with cursor movement, we can define a
 routine that brings a cursor to the nearest canonical
 position:
 
-#+BEGIN_SRC scheme :noweb-ref Cursor--operations
+#+BEGIN_SRC scheme :noweb-ref Cursor--operations :noweb no-export
   (define-private (canonicalize-in! document::Element)::void
     (unless (canonical-in? document)
       (if (= (self top) 0)
@@ -8591,7 +8606,7 @@ We can now add/override relevant methods to ~CharPainter~
 to obtain the most basic version of ~TerminalPainter~
 We'll start by defining the ~TerminalFont~ class:
 
-#+BEGIN_SRC scheme :noweb-ref TerminalPainter--prerequisites
+#+BEGIN_SRC scheme :noweb-ref TerminalPainter--prerequisites :noweb no-export
   (define-object (TerminalFont fg ::TerminalColor
                                bg ::TerminalColor
                                style ::TerminalTextStyle)
@@ -8604,7 +8619,7 @@ For now, we're only going to define the methods that are
 required by the current (fairly minimal) version of the
 ~Painter~ interface:
 
-#+BEGIN_SRC scheme :noweb-ref TerminalPainter--definition
+#+BEGIN_SRC scheme :noweb-ref TerminalPainter--definition :noweb no-export
   (define-private fgcolor ::TerminalColor
     TerminalColor:ANSI:WHITE)
 
@@ -8635,8 +8650,8 @@ required by the current (fairly minimal) version of the
   (define (comment-font)::FontProxy -comment-font)
   (define (caption-font)::FontProxy -atom-font)
 
-  (define (mark-caret! position ::int font ::FontProxy)::void
-    (super mark-caret! position font)
+  (define (mark-caret! font ::FontProxy)::void
+    (super mark-caret! font)
     (terminal:setCursorPosition
      (TerminalPosition (as int (the caret-left))
                        (as int (the caret-top)))))
@@ -8663,9 +8678,7 @@ required by the current (fairly minimal) version of the
       (,SideSelected:Left
        (with ((fgcolor TerminalColor:ANSI:BLACK)
               (bgcolor TerminalColor:ANSI:WHITE_BRIGHT))
-         (super draw-left! height border selected)
-         (super with-translation 0 (super border-height BorderStyle:Atom)
-           (lambda () (mark-caret! 0 (atom-font))))))
+         (super draw-left! height border selected)))
       (,SideSelected:Right
        (with ((fgcolor TerminalColor:ANSI:BLACK_BRIGHT)
               (bgcolor TerminalColor:ANSI:WHITE))
@@ -8684,9 +8697,7 @@ required by the current (fairly minimal) version of the
       (,SideSelected:Right
        (with ((fgcolor TerminalColor:ANSI:BLACK)
               (bgcolor TerminalColor:ANSI:WHITE_BRIGHT))
-         (super draw-right! height border selected)
-         (super with-translation 0 (super border-height BorderStyle:Atom)
-                (lambda () (mark-caret! 0 (atom-font))))))))
+         (super draw-right! height border selected)))))
 
 #+END_SRC
 
@@ -8721,7 +8732,7 @@ Our ~CursorNavigationTest~ application's ~key-typed!~ method
 is mainly going to support the left and the right arrow keys.
 The ~render!~ method is going to render the ~document~:
 
-#+BEGIN_SRC scheme :noweb-ref cursor-navigation-test-app
+#+BEGIN_SRC scheme :noweb-ref cursor-navigation-test-app :noweb no-export
   (define-object (CursorNavigationTest document::Document)::Application
     (define-private cursor ::Cursor (Cursor))
     (define-private path ::Cursor (Cursor))
@@ -8759,7 +8770,7 @@ We now need to implement the editing process (which is
 simply going to pass the read key to the ~Application~'s
 ~key-typed!~ method)
 
-#+BEGIN_SRC scheme :noweb-ref terminal-document-cursor-navigation
+#+BEGIN_SRC scheme :noweb-ref terminal-document-cursor-navigation :noweb no-export
   (define (edit application ::Application
                 terminal ::LanternaScreen)
     ::void
@@ -8775,7 +8786,7 @@ simply going to pass the read key to the ~Application~'s
 And the rendering process (which is going to invoke
 the ~Application~'s ~render!~ method):
 
-#+BEGIN_SRC scheme :noweb-ref terminal-document-rendering
+#+BEGIN_SRC scheme :noweb-ref terminal-document-rendering :noweb no-export
   (define-box (screen-up-to-date?)::boolean #f)
 
   (define (render application ::Application
@@ -8809,7 +8820,7 @@ The only thing that's left if we want to obtain a running
 program is to initialize threads that would run the ~edit~
 and ~render~ procedures:
 
-#+BEGIN_SRC scheme :noweb-ref terminal-runner
+#+BEGIN_SRC scheme :noweb-ref terminal-runner :noweb no-export
   (define* (run application ::Application
                 terminal ::LanternaScreen := (make-terminal-screen))
     (with ((painter (TerminalPainter terminal)))
@@ -8869,12 +8880,6 @@ keys (for moving the cursor left and right), and to the
   (define-interface Enchanted (Interactive Tile))
 
   (define-interface Comment (Tile))
-
-  (define-mixin WriteToString
-    (define (toString)::String
-      (call-with-output-string
-        (lambda (port)
-          (serialize port 0)))))
 
   (define-object (Space)::Element
     <<Space--representation>>
@@ -8970,7 +8975,7 @@ takes indices to two spaces inside a ~Comb~, plus two
 sub-indices that should point inside corresponding
 spaces, to indicate the break point inside of them.
 
-#+BEGIN_SRC scheme :noweb-ref Comb--extract!
+#+BEGIN_SRC scheme :noweb-ref Comb--extract! :noweb no-export
   ;;
   ;; [ _ A _/_ B _ C _\_ D _ ]
   ;;   0 1  2  3 4 5  6  7 8
@@ -9002,7 +9007,7 @@ spaces, to indicate the break point inside of them.
 The second method takes a ~Comb~, an index and a sub-index,
 and splices that ~Comb~ into the current one.
 
-#+BEGIN_SRC scheme :noweb-ref Comb--splice! 
+#+BEGIN_SRC scheme :noweb-ref Comb--splice! :noweb no-export
 
   (define-internal (splice! comb ::Comb index ::int sub-index ::int)
     ::void
@@ -9186,7 +9191,7 @@ method, ~perform!~, which is supposed to return an inverse
 of this operation (which is how we're going to implement
 the /undo/ mechanism):
 
-#+BEGIN_SRC scheme :noweb-ref Edit-interface
+#+BEGIN_SRC scheme :noweb-ref Edit-interface :noweb no-export
   (define-internal-interface Edit ()
     (position)::Cursor
     ;; the `perform` method should return an Edit
@@ -9380,14 +9385,14 @@ Where ~<<GRASP-Editor--initial-key-bindings>>~ are to be defined
 later. The ~<<GRASP-Editor--default-key-press-handler>>~ also
 will be elaborated later on. For now it can do nothing:
 
-#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--default-key-press-handler
+#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--default-key-press-handler :noweb no-export
   (values) ;; this is a placeholder that can be safely removed
 #+END_SRC
 
 The ~key-bindings~ table is referenced in ~Document~'s
 ~key-typed!~ method:
 
-#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--keyboard-editing
+#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--keyboard-editing :noweb no-export
   (define (key-press-action key-code::KeyCode)
     ::(maybe Edit)
     (let* ((cursor ::Cursor (current-cursor))
@@ -9423,7 +9428,7 @@ that of ~cursor-navigation~ -- the main difference is that
 similar, but slightly more abstract way, to invoke the
 ~key-typed!~ method of the ~main~ ~Application~.
 
-#+BEGIN_SRC scheme :noweb-ref terminal-input-processing
+#+BEGIN_SRC scheme :noweb-ref terminal-input-processing :noweb no-export
   (define (edit application ::Application
                 terminal ::LanternaScreen)::void
     (while #true
@@ -9441,7 +9446,7 @@ Similarly, we need to define the ~<<terminal-rendering>>~ routine,
 that's going to continuously invoke the ~main~ object's ~render!~
 method (and do some bookkeeping around that):
 
-#+BEGIN_SRC scheme :noweb-ref terminal-rendering
+#+BEGIN_SRC scheme :noweb-ref terminal-rendering :noweb no-export
   (define-box (screen-up-to-date?)::boolean #f)
 
   (define (render application ::Application
@@ -9623,12 +9628,6 @@ As to the main part of the stub, it is defined as follows:
 
   (define-interface Enchanted (Interactive Tile))
 
-  (define-mixin WriteToString
-    (define (toString)::String
-      (call-with-output-string
-        (lambda (port)
-          (serialize port 0)))))
-
   (define-object (Space)::Element
     <<Space--representation>>
     <<Space--rendering>>
@@ -9749,7 +9748,7 @@ These are going to be added in the subsequent chapters.
 By default, we let the user exit our application by pressing
 the \texttt{escape} button:
 
-#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--initial-key-bindings
+#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--initial-key-bindings :noweb no-export
   (set-key! 'escape
             (lambda (code::KeyCode)
               (exit)))
@@ -9763,7 +9762,7 @@ the \texttt{escape} button:
 We also invoke the keyboard navigation capabilities from
 our cursor navigation test:
 
-#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--initial-key-bindings  
+#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--initial-key-bindings :noweb no-export
   (set-key! 'left
             (lambda (code::KeyCode)
               (let ((cursor ::Cursor (current-cursor)))
@@ -9795,13 +9794,13 @@ to execute its ~perform!~ method:
 The ~Edit-performed~ part is currently empty, but it will be
 elaborated later:
 
-#+BEGIN_SRC scheme :noweb-ref Edit-performed
+#+BEGIN_SRC scheme :noweb-ref Edit-performed :noweb no-export
 #+END_SRC
 
 Of course, in order for it to work, we need ~Cursor~
 to implement the ~assign!~ method:
 
-#+BEGIN_SRC scheme :noweb-ref Cursor--operations
+#+BEGIN_SRC scheme :noweb-ref Cursor--operations :noweb no-export
   ;; Each of the operations above has to be told which document the
   ;; cursor is to be interpreted against, and the answer is nearly
   ;; always the current one.  They are therefore internal to this
@@ -9885,7 +9884,7 @@ We will start with ~Textual~ -- in the first
 approximation, every such element should return an operation
 that simply appends a character at a ~current-index~.
 
-#+BEGIN_SRC scheme :noweb-ref Textual--editing
+#+BEGIN_SRC scheme :noweb-ref Textual--editing :noweb no-export
   (define (insert-character c)::(maybe Edit)
     (AppendCharacters (string c) (copy (current-cursor))))
 
@@ -9900,7 +9899,7 @@ that simply appends a character at a ~current-index~.
 We now need to define the ~AppendCharacters~ operation, and for
 completeness we also need to define its inverse, ~EraseCharacters~:
 
-#+BEGIN_SRC scheme :noweb-ref Edit--operations
+#+BEGIN_SRC scheme :noweb-ref Edit--operations :noweb no-export
   (define-object (AppendCharacters characters ::CharSequence
                                    cursor ::Cursor)
     ::Edit
@@ -9944,7 +9943,7 @@ notable exception is when the user presses ~;~ on either
 the left or the right parenthesis -- in such cases, we
 wrap the entire expression inside ~ExpressionComment~:
 
-#+BEGIN_SRC scheme :noweb-ref Comb--editing
+#+BEGIN_SRC scheme :noweb-ref Comb--editing :noweb no-export
   (define (insert-character c)::(maybe Edit)
     (let* ((cursor ::Cursor (current-cursor))
            (document ::Element (current-document))
@@ -9977,7 +9976,7 @@ wrap the entire expression inside ~ExpressionComment~:
 
 #+END_SRC
 
-#+BEGIN_SRC scheme :noweb-ref Cursor--operations
+#+BEGIN_SRC scheme :noweb-ref Cursor--operations :noweb no-export
   (define-private (unnest-right-in! document::Element)::void
     (given (((is (size) >= 2))
             (tip ::int (self pop!))
@@ -9994,7 +9993,7 @@ wrap the entire expression inside ~ExpressionComment~:
 
 #+END_SRC
 
-#+BEGIN_SRC scheme :noweb-ref Edit--operations
+#+BEGIN_SRC scheme :noweb-ref Edit--operations :noweb no-export
   (define-object (Replace old-expression ::Tile
                           new-expression ::Tile
                           cursor ::Cursor)
@@ -10021,7 +10020,7 @@ Now, we still need to implement the ~insert-character~
 method for the remaining primitive instances of ~Element~,
 in particular for ~Space~:
 
-#+BEGIN_SRC scheme :noweb-ref Space--editing
+#+BEGIN_SRC scheme :noweb-ref Space--editing :noweb no-export
   (define (insert-character c)::(maybe Edit)
     (let ((cursor ::Cursor (current-cursor)))
       (match c
@@ -10073,7 +10072,7 @@ Let's start with ~GrowSpace~. It can be defined as its
 own inverse. Its purpose is to simply increase the value
 of the appropriate fragment:
 
-#+BEGIN_SRC scheme :noweb-ref Edit--operations
+#+BEGIN_SRC scheme :noweb-ref Edit--operations :noweb no-export
   (define-object (GrowSpace width ::int cursor ::Cursor)
     ::Edit
     (define-internal (position)::Cursor cursor)
@@ -10094,7 +10093,7 @@ But in order to make it operational, we need to define the
 ~fragment-index~ method inside ~Space~. It translates the
 cursor index to the index of a fragment:
 
-#+BEGIN_SRC scheme :noweb-ref Space--editing
+#+BEGIN_SRC scheme :noweb-ref Space--editing :noweb no-export
   (define-internal (fragment-index cursor-index::int)::int
     (escape-with return
       (let ((base ::int 0))
@@ -10116,7 +10115,7 @@ array at an appropriate position, splitting the integer
 number appropriately. The inverse should, conversely, merge
 the two subsequent fragments into a single number:
 
-#+BEGIN_SRC scheme :noweb-ref Edit--operations
+#+BEGIN_SRC scheme :noweb-ref Edit--operations :noweb no-export
   (define-object (BreakSpace cursor::Cursor)::Edit
 
     (define-internal (position)::Cursor cursor)
@@ -10157,7 +10156,7 @@ As we can see, the ~BreakSpace~ operation refers to the
 ~Space~. The definition is almost identical to that of the
 ~fragment-index~ method, but it returns an additional value:
 
-#+BEGIN_SRC scheme :noweb-ref Space--editing
+#+BEGIN_SRC scheme :noweb-ref Space--editing :noweb no-export
   (define (fragment-index+offset cursor-index::int)::(Values int int)
     (escape-with return
       (let ((base ::int 0))
@@ -10177,7 +10176,7 @@ its inverse, that we're going to call ~RemoveSlice~. They
 are obviously going to refer to the methods ~splice!~ and
 ~extract!~ defined earlier for ~Comb~:
 
-#+BEGIN_SRC scheme :noweb-ref Edit--operations
+#+BEGIN_SRC scheme :noweb-ref Edit--operations :noweb no-export
   (define-object (InsertSlice elements ::Comb cursor ::Cursor)
     ::Edit
     (define-internal (position)::Cursor cursor)
@@ -10233,7 +10232,7 @@ accepting the ~#\newline~ character inside ~LineComment~
 instances (and make it move cursor to the beginning of the
 following ~Space~ instead):
 
-#+BEGIN_SRC scheme :noweb-ref LineComment--editing
+#+BEGIN_SRC scheme :noweb-ref LineComment--editing :noweb no-export
   (define (insert-character c)::(maybe Edit)
     (match c
       (#\newline
@@ -10258,7 +10257,7 @@ is to split the ~Atom~. Moreover, if we insert ~|~ into
 an atom that consists of ~#~, we want to replace the atom
 with an empty ~BlockComment~:
 
-#+BEGIN_SRC scheme :noweb-ref Atom--editing
+#+BEGIN_SRC scheme :noweb-ref Atom--editing :noweb no-export
   (define (insert-character c)::(maybe Edit)
     (let ((cursor ::Cursor (current-cursor))
           (document ::Element (current-document)))
@@ -10294,7 +10293,7 @@ with an empty ~BlockComment~:
 In order for the above to work, we need to define ~SplitElement~
 and its inverse, ~MergeElements~:
 
-#+BEGIN_SRC scheme :noweb-ref Edit--operations
+#+BEGIN_SRC scheme :noweb-ref Edit--operations :noweb no-export
   (define-object (SplitElement #;with space ::Space
                                       #;at cursor ::Cursor)
     ::Edit
@@ -10365,14 +10364,14 @@ method, which accepted a character as its argument.
 Now we need to add another method to ~Element~, namely
 ~delete-character~:
 
-#+BEGIN_SRC scheme :noweb-ref Element--editing
+#+BEGIN_SRC scheme :noweb-ref Element--editing :noweb no-export
   (delete-character)::(maybe Edit)
 #+END_SRC
 
 Like in most text editors, it's going to be bound to the
 ~backspace~ and ~delete~ buttons:
 
-#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--initial-key-bindings  
+#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--initial-key-bindings :noweb no-export
   (set-key! 'backspace
             (lambda (code::KeyCode)
               (let ((document ::Document (current-document)))
@@ -10400,7 +10399,7 @@ will override it in ~Atom~, because while it makes sense to
 have empty strings or empty comments, empty atoms can't be
 allowed.
 
-#+BEGIN_SRC scheme :noweb-ref Textual--editing
+#+BEGIN_SRC scheme :noweb-ref Textual--editing :noweb no-export
   (define-protected (minimum-width)::int 0)
 
   (define (delete-character)::(maybe Edit)
@@ -10419,7 +10418,7 @@ allowed.
 
 #+END_SRC
 
-#+BEGIN_SRC scheme :noweb-ref Atom--editing
+#+BEGIN_SRC scheme :noweb-ref Atom--editing :noweb no-export
   (define-protected (minimum-width)::int 1)
   
 #+END_SRC
@@ -10430,7 +10429,7 @@ We also need to provide character deletion for ~Space~.  We
 only delete it if we're deleting a single space between two
 atoms (because then those atoms need to be merged). 
 
-#+BEGIN_SRC scheme :noweb-ref Space--editing
+#+BEGIN_SRC scheme :noweb-ref Space--editing :noweb no-export
   (define (delete-character)::(maybe Edit)
     (let* ((cursor ::Cursor (current-cursor))
            (tip ::int (cursor:top))
@@ -10466,7 +10465,7 @@ expression (the only exception is when cursor points to the
 Otherwise we invoke ~delete-character~ on one of the
 elements inside of ~Comb~:
 
-#+BEGIN_SRC scheme :noweb-ref Comb--editing
+#+BEGIN_SRC scheme :noweb-ref Comb--editing :noweb no-export
   (define (delete-character)::(maybe Edit)
     (let* ((cursor ::Cursor (current-cursor))
            (document ::Element (current-document))
@@ -10503,7 +10502,7 @@ operations and then perform an ~Edit~ action. But to make
 the undone operations still accessible we're going to
 maintain a list of /fronts/.
 
-#+BEGIN_SRC scheme :noweb-ref History
+#+BEGIN_SRC scheme :noweb-ref History :noweb no-export
   (define-object (History document::Element)
     (define-protected fronts ::(list-of (list-of Edit)) '())
 
@@ -10553,7 +10552,7 @@ program:
 With this definition in place, we need to add an instance of
 the ~History~ class as a property of a ~Document~:
 
-#+BEGIN_SRC scheme :noweb-ref Document--definition
+#+BEGIN_SRC scheme :noweb-ref Document--definition :noweb no-export
   (define history ::History (History (this)))
 
 #+END_SRC
@@ -10561,14 +10560,14 @@ the ~History~ class as a property of a ~Document~:
 We also need to record every performed action to the
 history:
 
-#+BEGIN_SRC scheme :noweb-ref Edit-performed
+#+BEGIN_SRC scheme :noweb-ref Edit-performed :noweb no-export
   (document:history:record! undo)
 #+END_SRC
 
 Now we can test it by bindings keys to the appropriate
 functions:
 
-#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--initial-key-bindings
+#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--initial-key-bindings :noweb no-export
   (set-key! '(ctrl z)
             (lambda (code::KeyCode)
               (given ((document ::Document (current-document)))
@@ -10763,12 +10762,6 @@ to out document model, which consists of the
   (define-interface Comment (Tile)
     (breaks-line?)::boolean)
 
-  (define-mixin WriteToString
-    (define (toString)::String
-      (call-with-output-string
-        (lambda (port)
-          (serialize port 0)))))
-
 #+END_SRC
 
 #+BEGIN_SRC scheme :tangle document/model.scm :mkdirp yes :noweb no-export
@@ -10823,7 +10816,7 @@ to out document model, which consists of the
 In order for the parser module to build, we're going to need
 a stub of a module that implements the extension mechanism.
 
-#+BEGIN_SRC scheme :noweb-ref Extensions--implementation
+#+BEGIN_SRC scheme :noweb-ref Extensions--implementation :noweb no-export
   (define (enchanted item ::Tile path ::Stack)::Tile
     item)
  
@@ -11063,7 +11056,7 @@ to that element,, and possibly returns the extended path
 that leads to its child element that is marked by those
 coordinates:
 
-#+BEGIN_SRC scheme :noweb-ref Element--remaining-methods
+#+BEGIN_SRC scheme :noweb-ref Element--remaining-methods :noweb no-export
   (cursor-under* x ::real y ::real path ::Cursor
                  position ::LayoutState)
   ::(maybe (Values Cursor x y))
@@ -11078,7 +11071,7 @@ reach the line that includes the ~y~ coordinate, we need to
 invoke ~Painter~'s ~character-index~ method (that we defined
 earlier):
 
-#+BEGIN_SRC scheme :noweb-ref Textual--remaining-methods
+#+BEGIN_SRC scheme :noweb-ref Textual--remaining-methods :noweb no-export
   (define (cursor-under* x ::real y ::real
                          path ::Cursor
                          position ::LayoutState)
@@ -11123,7 +11116,7 @@ some significant differences. For one, a ~Space~ is not a
 ~Tile~, so it do it doesn't have any definite width or
 height.
 
-#+BEGIN_SRC scheme :noweb-ref Space--remaining-methods
+#+BEGIN_SRC scheme :noweb-ref Space--remaining-methods :noweb no-export
   (define (cursor-under* x ::real y ::real
                          path ::Cursor
                          position ::LayoutState)
@@ -11166,7 +11159,7 @@ In the case of ~Comb~, we need to check whether the pointer
 position is at either of its parentheses, and otherwise we
 need to check every element inside.
 
-#+BEGIN_SRC scheme :noweb-ref Comb--remaining-methods
+#+BEGIN_SRC scheme :noweb-ref Comb--remaining-methods :noweb no-export
   (define (cursor-under* x ::real y ::real
                          path ::Cursor
                          position ::LayoutState)
@@ -11215,7 +11208,7 @@ need to check every element inside.
 In case of ~Document~ we want to ~canonicalize!~ the
 resulting ~Cursor~:
 
-#+BEGIN_SRC scheme :noweb-ref Document--definition
+#+BEGIN_SRC scheme :noweb-ref Document--definition :noweb no-export
   (define (cursor-under* x::real y::real
                          cursor::Cursor
                          state::LayoutState)
@@ -11321,7 +11314,7 @@ to the host's event system.  In particular, we want
 ~Interactive~ things (such as the ~Application~) to support
 pointing devices:
 
-#+BEGIN_SRC scheme :noweb-ref interaction-capabilities
+#+BEGIN_SRC scheme :noweb-ref interaction-capabilities :noweb no-export
   SupportsPointingDevice
 #+END_SRC
 
@@ -11351,7 +11344,7 @@ Mind that the extension of the ~Interactive~ interface requires
 that we also provide the implementations of the required methods
 to the ~IgnoreInput~ implementation:
 
-#+BEGIN_SRC scheme :noweb-ref IgnoreInput--definition
+#+BEGIN_SRC scheme :noweb-ref IgnoreInput--definition :noweb no-export
   (define (tap! finger::byte #;at x::real y::real)::boolean #f)
   (define (double-tap! finger::byte #;at x::real y::real)::boolean #f)
   (define (press! finger::byte #;at x::real y::real)::boolean #f)
@@ -11362,7 +11355,7 @@ to the ~IgnoreInput~ implementation:
 and the ~ConsumeInput~ implementation (which may prove to be
 useful once we start developing extensions):
 
-#+BEGIN_SRC scheme :noweb-ref ConsumeInput--definition
+#+BEGIN_SRC scheme :noweb-ref ConsumeInput--definition :noweb no-export
     (define (tap! finger::byte #;at x::real y::real)::boolean #t)
     (define (double-tap! finger::byte #;at x::real y::real)::boolean #t)
     (define (press! finger::byte #;at x::real y::real)::boolean #t)
@@ -11373,7 +11366,7 @@ useful once we start developing extensions):
 Moreover, the ~(input interaction)~ now depends on ~(input
 pointing-devices)~:
 
-#+BEGIN_SRC scheme :noweb-ref input/interaction:dependencies
+#+BEGIN_SRC scheme :noweb-ref input/interaction:dependencies :noweb no-export
   (import (input pointing-devices))
 #+END_SRC
 
@@ -11389,7 +11382,7 @@ become clearer later).
   
 #+END_SRC
 
-#+BEGIN_SRC scheme :noweb-ref application-capabilities
+#+BEGIN_SRC scheme :noweb-ref application-capabilities :noweb no-export
   SupportsPointerMovement
 #+END_SRC
 
@@ -11415,7 +11408,7 @@ and make ~GRASP-Editor~ inherit from it, so that we don't
 have to worry about implementing methods that we don't care
 about yet:
 
-#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--base-class
+#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--base-class :noweb no-export
   (TrivialApplication)
 #+END_SRC
 
@@ -11424,12 +11417,13 @@ implementation of the ~tap!~ method, which is going to be
 expected to set the current ~cursor~ as the ~cursor-under*~
 the given pointer coordinate:
 
-#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--definition
+#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--definition :noweb no-export
   (define (tap! finger::byte #;at x::real y::real)::boolean
-    (given ((new-cursor ::Cursor x* ::real y* ::real
-                        (document:cursor-under* x y)))
-      (cursor:assign! new-cursor)
-      #true))
+    (with-editor-context
+     (given ((new-cursor ::Cursor x* ::real y* ::real
+                         (document:cursor-under* x y)))
+       (cursor:assign! new-cursor)
+       #true)))
 
 #+END_SRC
 
@@ -11625,7 +11619,7 @@ it returns a handle of that schedule that can be used to
 Therefore the ~(input pointing-devices)~ module depends on
 the ~(utils scheduling-interface)~ module.
 
-#+BEGIN_SRC scheme :noweb-ref input/pointing-devices:dependencies
+#+BEGIN_SRC scheme :noweb-ref input/pointing-devices:dependencies :noweb no-export
   (import (utils scheduling-interface))
 #+END_SRC
 
@@ -11792,7 +11786,7 @@ also need to update the ~<<terminal-runner>>~:
 Lastly, we need to update the dependencies of the ~(terminal
 runner)~ module:
 
-#+BEGIN_SRC scheme :noweb-ref terminal/runner:dependencies
+#+BEGIN_SRC scheme :noweb-ref terminal/runner:dependencies :noweb no-export
   (import (utils scheduling-interface))
   (import (input pointing-devices))
 #+END_SRC
@@ -11828,7 +11822,7 @@ that it made, and to be recorded in the document's history.
 The ~GRASP-Editor~ needs to know about ~Drag~, so it has to
 import the ~(input pointing-devices)~ module.
 
-#+BEGIN_SRC scheme :noweb-ref document/editor:dependencies
+#+BEGIN_SRC scheme :noweb-ref document/editor:dependencies :noweb no-export
   (import (input pointing-devices))
 #+END_SRC
 
@@ -11897,7 +11891,7 @@ scaffolding:
 Now, the simplest case to handle is when we press on a
 ~Resizable~ ~Tile~
 
-#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--drag-from-dispatch
+#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--drag-from-dispatch :noweb no-export
   ((given ((target ::Resizable)
            (anchor ::ResizeAnchor
                    (target:resize-anchor x0 y0)))
@@ -12024,7 +12018,7 @@ operation:
 
 And ~clone-spaces~ is a method of ~Comb~:
 
-#+BEGIN_SRC scheme :noweb-ref Comb--collection-operations
+#+BEGIN_SRC scheme :noweb-ref Comb--collection-operations :noweb no-export
   (define-internal (clone-spaces)::(ListOf Space)
     (let* ((n ::int (spaces:size))
            (cloned ::(ListOf Space) (ArrayList n)))
@@ -12077,7 +12071,7 @@ where ~assign-spaces~ is a private procedure defined in the
 
 and ~assign-fragments!~ is an internal method of ~Space~:
 
-#+BEGIN_SRC scheme :noweb-ref Space--representation
+#+BEGIN_SRC scheme :noweb-ref Space--representation :noweb no-export
   (define-internal (assign-fragments! another ::Space)::void
     (fragments:clear)
     (for fragment::int in: another:fragments
@@ -12173,7 +12167,7 @@ atoms, pressing them anywhere should extract them from the
 document 
 
 
-#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--drag-from-dispatch
+#+BEGIN_SRC scheme :noweb-ref GRASP-Editor--drag-from-dispatch :noweb no-export
   #;((given ((target ::Movable)
              ((target:can-be-moved-from? x0 y0)))
      (Resize target cursor
