@@ -5075,7 +5075,7 @@ different types of borders.
      UnquoteSplicing
      List
      Text
-     Comment
+     BlockComment
      LineComment
      ))
 
@@ -5291,12 +5291,12 @@ by its descendant classes.
       "┊"          "┊"
       "•"   "┈"    "❞")     
      (BorderCharacters
-      "╔"     "═"     "╗"
-      "║"             "║"
-      "║" #|Comment|# "║"
-      "║"             "║"
-      "║"             "║"
-      "╚"     "═"     "╝")
+      "╔"        "═"       "╗"
+      "║"                  "║"
+      "║" #|BlockComment|# "║"
+      "║"                  "║"
+      "║"                  "║"
+      "╚"        "═"       "╝")
      (BorderCharacters
       "⸾"       ""        " "
       "⸾"                 " "
@@ -5800,7 +5800,7 @@ is a concrete type and ~Tile~ is an interface representing
 elements that occupy a rectangular area of the screen.
 
 #+BEGIN_SRC scheme :noweb-ref Comb--collection-operations :noweb no-export
-  (define-internal elements ::(sequence-of Tile)
+  (define-internal tiles ::(sequence-of Tile)
     (ArrayList))
 
   (define-internal spaces ::(sequence-of Space)
@@ -5809,14 +5809,14 @@ elements that occupy a rectangular area of the screen.
   ;; in order to get the size of the collection, we sum
   ;; the sizes of both arrays
   (define (size)::int
-    (+ (length elements) (length spaces)))
+    (+ (length tiles) (length spaces)))
 
   (define (clone)
     (let ((copied ::Comb (invoke-special java.lang.Object (this) 'clone)))
-      (set! copied:elements (ArrayList))
+      (set! copied:tiles (ArrayList))
       (set! copied:spaces (ArrayList))
-      (for tile::Tile in: elements
-        (copied:elements:add (copy tile)))
+      (for tile::Tile in: tiles
+        (copied:tiles:add (copy tile)))
       (for space::Space in: spaces
         (copied:spaces:add (copy space)))
       copied))
@@ -5831,7 +5831,7 @@ elements that occupy a rectangular area of the screen.
         (spaces (quotient index 2)))
 
        ((odd? index)
-        (elements (quotient (- index 1) 2))))))
+        (tiles (quotient (- index 1) 2))))))
 
   (define-internal (put! index ::int value ::Element)::void
     (let* ((n ::int (size))
@@ -5841,7 +5841,7 @@ elements that occupy a rectangular area of the screen.
         (spaces:set (quotient index 2) value))
 
        ((odd? index)
-        (elements:set (quotient (- index 1) 2) value)))))
+        (tiles:set (quotient (- index 1) 2) value)))))
 
   ;; iterating over a Comb yields its spaces and elements
   ;; in turn, which is precisely what the indexing operator
@@ -5861,7 +5861,7 @@ elements that occupy a rectangular area of the screen.
   ;; spaces array to be empty, but we can consider the whole
   ;; thing to be empty if it only contains white space
   (define (empty?)::boolean
-    (and (elements:isEmpty)
+    (and (tiles:isEmpty)
          (= (length spaces) 1)))
 
   ;; adding another Comb at the end of this one is possible,
@@ -5904,7 +5904,7 @@ elements that occupy a rectangular area of the screen.
                  (comb-spaces ::List (comb:spaces:subList
                                       1 (comb:spaces:size))))
             (enlarged:merge-with! extra)
-            (elements:addAll index* comb:elements)
+            (tiles:addAll index* comb:tiles)
             (spaces:addAll (+ index* 1) comb-spaces))
           (let* ((index* ::int (if (is index < 0)
                                    0
@@ -5915,7 +5915,7 @@ elements that occupy a rectangular area of the screen.
                                                  (comb:spaces:size)
                                                  -1))))
               (last-added:merge-with! extra)
-              (elements:addAll index* comb:elements))))))
+              (tiles:addAll index* comb:tiles))))))
 
   (define-internal (insert-at! index ::int element ::Element)::void
     (when (even? index)
@@ -5925,7 +5925,7 @@ elements that occupy a rectangular area of the screen.
           (space::Space           
            (affected:merge-with! space))
           (tile::Tile
-           (elements:add index/2 tile)
+           (tiles:add index/2 tile)
            (spaces:add (+ index/2 1) (Space:empty)))))))
 
   (define-static token-separators ::(set-of Char)
@@ -5937,7 +5937,7 @@ elements that occupy a rectangular area of the screen.
   (define-internal (add object ::Object)::boolean
     (match object
       (tile::Tile
-       (elements:add tile)
+       (tiles:add tile)
        (spaces:add (Space:empty)))
       (space::Space
        (let ((last-space ::Space (last spaces)))
@@ -5956,7 +5956,7 @@ elements that occupy a rectangular area of the screen.
              (following ::Space (spaces (+ index* 1))))
         (preceding:merge-with! following)
         (spaces:remove (+ index* 1))
-        (elements:remove index*)))))
+        (tiles:remove index*)))))
 
   (define-private (replace-at! index ::int element ::Element)::Element
     (cond
@@ -5965,7 +5965,7 @@ elements that occupy a rectangular area of the screen.
      ((and (Space? element) (even? index))
       (spaces:set (quotient index 2) element))
      ((and (Tile? element) (odd? index))
-      (elements:set (quotient (- index 1) 2) element))
+      (tiles:set (quotient (- index 1) 2) element))
      (else
       #!null)))
 
@@ -5987,7 +5987,7 @@ elements that occupy a rectangular area of the screen.
            (lo ::int (quotient fromIndex 2))
            (hi ::int (quotient toIndex 2))
            (view ::Comb (Comb)))
-      (set! view:elements (elements:subList lo hi))
+      (set! view:tiles (tiles:subList lo hi))
       (set! view:spaces (spaces:subList lo (+ hi 1)))
       view))
 
@@ -6002,7 +6002,7 @@ definitions of ~Element~, ~Tile~ and ~Space~.
 
 The tests below are mostly concerned with the arithmetic of
 the interleaved indices -- that even indices address spaces
-and odd ones address elements -- which is the part of ~Comb~
+and odd ones address tiles -- which is the part of ~Comb~
 that is easiest to get wrong.
 
 #+BEGIN_SRC scheme :tangle test/everything.sh
@@ -6187,9 +6187,8 @@ Because of the irregular shape of ~Space~, we need to be
 able to track how we're supposed to shift our coordinate
 system during rendering. If a ~Space~ contains a new line,
 we need to terminate the current line, i.e. move the origin
-down and to the left (the same is true for ~LineComment~).
-Therefore we need an object that would represent the current
-~LayoutState~:
+down and to the left.  Therefore we need an object that
+would represent the current ~LayoutState~:
 
 #+BEGIN_SRC scheme :tangle no :noweb-ref GRASP-ontology :noweb no-export
   (define-type (LayoutState
@@ -6217,18 +6216,7 @@ Therefore we need an object that would represent the current
 
 #+END_SRC
 
-We can consider an object to be ~Spatial~ if it is capable
-of advancing the layout state:
-
-#+BEGIN_SRC scheme :tangle no :noweb-ref GRASP-ontology :noweb no-export
-  (define-interface Spatial ()
-    (advance-layout! state::LayoutState)::void)
-  
-#+END_SRC
-
-Likewise, an object is ~Visual~ if it can be rendered.  The
-rendering method shall also receive the ~LayoutState~
-object, but that's not enough. Like most code editors, GRASP
+Tiles can also be rendered. Like most code editors, GRASP
 ought to let its users utilize keyboard for navigation and
 editing, and the way a certain ~Element~ looks might depend
 on the position of a cursor. Unlike in text editors, the
@@ -6351,17 +6339,6 @@ that we are going to call ~path~. If ~(current-cursor)~
 is a ~prefix?~ of a given ~path~, then the element
 can be considered active.
 
-#+BEGIN_SRC scheme :tangle no :noweb-ref GRASP-ontology :noweb no-export
-  (define-interface Visual (Spatial)
-    (render! path ::Cursor state::LayoutState)::void)
-
-#+END_SRC
-
-We expect an ~Element~ to be both ~Visual~ and
-~Spatial~. But there is more: an element can be active,
-which means that it's pointed to by the cursor (which we'll
-explain in more detail shortly).
-
 We aren't yet ready to define exactly what an ~Element~ is,
 because we haven't considered its interactive and editable
 nature.
@@ -6385,7 +6362,7 @@ rendering function for ~Comb~ and its thereabouts.
 #+BEGIN_SRC scheme :tangle no :noweb-ref Comb--rendering :noweb no-export
   (define style ::BorderStyle BorderStyle:Parentheses)
 
-  (define (render! path ::Cursor state::LayoutState)::void
+  (define (render! path ::Cursor)::void
     (let ((at ::LayoutState (LayoutState))
           (border-width ::real (painter:border-width style))
           (index ::int 1)
@@ -6393,15 +6370,27 @@ rendering function for ~Comb~ and its thereabouts.
           (border-height ::real (painter:border-height style)))
       (painter:with-translation border-width border-height
         (lambda ()
-          (path:with
-           index
-           (lambda ()
-             (for element ::Element in: (this)
-                  (path:set-top! index)
-                  (painter:with-translation at:left at:top
-                    (lambda ()
-                      (element:render! path at)))
-                  (increase! index))))))
+          (path:push! index)
+          (for i::int from: 0 below: (tiles:size)
+               (let ((space ::Space (spaces i))
+                     (tile ::Tile (tiles i)))
+                 (path:set-top! index)
+                 (painter:with-translation at:left at:top
+                   (lambda ()
+                     (space:render! path at)))
+                 (increase! index)
+                 (path:set-top! index)
+                 (painter:with-translation at:left at:top
+                   (lambda ()
+                     (tile:render! path)))
+                 (increase! index)
+                 (at:expand! (tile:width) (tile:height))))
+          (let ((last-space ::Space (last spaces)))
+            (path:set-top! index)
+            (painter:with-translation at:left at:top
+              (lambda ()
+                (last-space:render! path at))))
+          (path:pop!)))
       (update-size-from-layout-state! at)
       (painter:draw-box! last-width last-height
                          (if (cursor:active-at? path)
@@ -6413,8 +6402,7 @@ rendering function for ~Comb~ and its thereabouts.
                                (_
                                 SideSelected:None))
                              SideSelected:None)
-                         style))
-    (advance-layout! state))
+                         style)))
 
   (define-private (update-size-from-layout-state!
                    state ::LayoutState)
@@ -6436,12 +6424,14 @@ rendering function for ~Comb~ and its thereabouts.
 
   (define-private (recalculate-size!)::void
     (let ((state ::LayoutState (LayoutState)))
-      (for element ::Element in: (this)
-           (element:advance-layout! state))
+      (for i::int from: 0 below: (tiles:size)
+           (let ((space ::Space (spaces i))
+                 (tile ::Tile (tiles i)))
+             (space:advance-layout! state)
+             (state:expand! (tile:width) (tile:height))))
+      (let ((last-space ::Space (last spaces)))
+        (last-space:advance-layout! state))
       (update-size-from-layout-state! state)))
-
-  (define (advance-layout! state ::LayoutState)::void
-    (state:expand! (width) (height)))
 
 #+END_SRC
 
@@ -6552,10 +6542,22 @@ everything, we can provide a /partial implementation/.
       (for i::int from: 0 to: last-index
            (let ((n ::int (fragments i)))
              (state:expand! (* (max 0 n) (painter:space-width))
-                             (painter:min-line-height))
+                            (painter:min-line-height))
              (unless (= i last-index)
                (state:break! (painter:min-line-height)))))))
 
+  (define (fragment-index+offset cursor-index::int)::(Values int int)
+    (escape-with return
+      (let ((base ::int 0))
+        (for index::int from: 0 below: (length fragments)
+             (let ((positions ::int (index-positions
+                                     (fragments index))))
+               (when (is cursor-index < (+ base positions))
+                 (return index (- cursor-index base)))
+               (increase! base by: positions)))
+        (return (- (length fragments) 1)
+                (max 0 (last fragments))))))
+  
 #+END_SRC
 
 #+BEGIN_SRC scheme :tangle test/everything.sh
@@ -6574,7 +6576,7 @@ everything, we can provide a /partial implementation/.
 
   <<GRASP-ontology>>
 
-  (define-interface Element (Visual Cloneable)
+  (define-interface Element (Cloneable)
     #|
     This is a mock implementation
     that is only used for testing
@@ -6584,11 +6586,9 @@ everything, we can provide a /partial implementation/.
     )
 
   (define-interface Tile (Element)
+    (render! path::Cursor)::void
     (width)::real
     (height)::real)
-
-  (define-interface Comment (Tile)
-    (breaks-line?)::boolean)
 
   (define-object (Space)::Element
     <<Space--representation>>
@@ -6618,16 +6618,14 @@ everything, we can provide a /partial implementation/.
         (s::string
          (builder:append s))))
 
-    (define (render! path ::Cursor state ::LayoutState)::void
+    (define (render! path ::Cursor)::void
       (let ((border-width ::real
                           (painter:border-width BorderStyle:Atom))
             (border-height ::real
                            (painter:border-height BorderStyle:Atom)))
-        (painter:with-translation
-         border-width border-height
-         (lambda ()
-           (painter:draw-text! builder (painter:atom-font)))))
-      (advance-layout! state))
+        (painter:with-translation border-width border-height
+          (lambda ()
+           (painter:draw-text! builder (painter:atom-font))))))
 
     (define (width)::real
       (+ (* 2 (painter:border-width BorderStyle:Atom))
@@ -6636,9 +6634,6 @@ everything, we can provide a /partial implementation/.
     (define (height)::real
       (+ (* 2 (painter:border-height BorderStyle:Atom))
          (invoke (painter:atom-font) 'height)))
-
-    (define (advance-layout! state ::LayoutState)::void
-      (state:expand! (width) (height)))
 
     )
 
@@ -6663,7 +6658,7 @@ everything, we can provide a /partial implementation/.
                    (Comb (Atom "-") (Space " ")
                          (Atom "n") (Space " ")
                          (Atom "1"))))))))
-     (document:render! (Cursor) (LayoutState))
+     (document:render! (Cursor))
      (let ((snapshot (painter:toString)))
        (display snapshot)
        snapshot)) ===> "
@@ -6790,9 +6785,9 @@ be used as a base class for our text-like things.
 
 #+END_SRC
 
-Although we're still not ready to define the ~Element~,
-we have everything that is needed to define the ~Visual~,
-~Spatial~ and ~Tile~ parts of ~Textual~ elements.
+Although we're still not ready to define the ~Element~, we
+have everything that is needed to define the ~Tile~ parts of
+~Textual~ elements.
 
 #+BEGIN_SRC scheme :noweb-ref Textual--rendering :noweb no-export
 
@@ -6805,7 +6800,7 @@ we have everything that is needed to define the ~Visual~,
   (define-protected last-width ::int -1)
   (define-protected last-height ::int -1)
 
-  (define (render! path ::Cursor state::LayoutState)::void
+  (define (render! path ::Cursor)::void
     (let* ((font ::FontProxy (font))
            (style ::BorderStyle (border-style))
            (cursor ::Cursor (current-cursor))
@@ -6842,8 +6837,7 @@ we have everything that is needed to define the ~Visual~,
                              (+ inner-height
                                 (* 2 border-height))))
       (painter:draw-box! last-width last-height
-                         SideSelected:None style))
-    (advance-layout! state))
+                         SideSelected:None style)))
 
   (define-private (recalculate-size!)::void
     (let* ((font ::FontProxy (font))
@@ -6859,10 +6853,9 @@ we have everything that is needed to define the ~Visual~,
           (maximize! inner-width line-width)
           (increase! inner-height by: (font:height))))
       (set! last-width (+ inner-width (* 2 border-width)))
-      (set! last-height (+ inner-height (* 2 border-height)))))
-
-  (define (advance-layout! state ::LayoutState)::void
-    (state:expand! (width) (height)))
+      (set! last-height (max (painter:min-line-height)
+                             (+ inner-height
+                                (* 2 border-height))))))
 
   (define (width)::real
     (when (is last-width < 0)
@@ -6900,35 +6893,24 @@ units in GRASP
 
     (Textual))
 
-  (define-object (BlockComment)::Comment
-
-    (define (breaks-line?)::boolean #false)
+  (define-object (BlockComment)
 
     (define-protected (font)::FontProxy
       (painter:comment-font))
 
     (define-protected (border-style)::BorderStyle
-      BorderStyle:Comment)
+      BorderStyle:BlockComment)
 
     (Textual))
 
-  (define-object (LineComment)::Comment
-
-    (define (breaks-line?)::boolean #true)
+  (define-object (LineComment)
 
     (define-protected (font)::FontProxy
       (painter:comment-font))
 
     (define-protected (border-style)::BorderStyle
       BorderStyle:LineComment)
-
-    (define (render! path ::Cursor state::LayoutState)::void
-      (super render! path state))
-
-    (define (advance-layout! state ::LayoutState)::void
-      (state:expand! (self width) (self height))
-      (state:break! (painter:min-line-height)))
-
+    
     (Textual))
 
 #+END_SRC
@@ -6952,7 +6934,7 @@ rendering with our ~TextPainter~.
 
   <<GRASP-ontology>>
 
-  (define-interface Element (Visual Cloneable)
+  (define-interface Element (Cloneable)
     #|
     This is a mock implementation
     that is only used for testing
@@ -6962,11 +6944,9 @@ rendering with our ~TextPainter~.
     )
 
   (define-interface Tile (Element)
+    (render! path::Cursor)::void
     (width)::real
     (height)::real)
-
-  (define-interface Comment (Tile)
-    (breaks-line?)::boolean)
 
   (define-object (Textual)::Tile
     <<Textual--contents>>
@@ -6992,7 +6972,10 @@ rendering with our ~TextPainter~.
           (painter:with-translation
            state:left state:top
            (lambda ()
-             (item:render! (Cursor) state))))
+             (item:render! (Cursor))
+             (state:expand! (item:width) (item:height))
+             (when (LineComment? item)
+               (state:break! (painter:min-line-height))))))
      (display (painter:toString))
      (painter:toString))
    ===> "
@@ -7095,7 +7078,7 @@ We can now test the simplified parser on sample data:
 
   <<GRASP-ontology>>
 
-  (define-interface Element (Visual Cloneable)
+  (define-interface Element (Cloneable)
     #|
     This is a mock implementation
     that is only used for testing
@@ -7105,11 +7088,9 @@ We can now test the simplified parser on sample data:
     )
 
   (define-interface Tile (Element)
+    (render! path::Cursor)::void
     (width)::real
     (height)::real)
-
-  (define-interface Comment (Tile)
-    (breaks-line?)::boolean)
 
   (define-object (Space)::Element
     <<Space--representation>>
@@ -7141,7 +7122,7 @@ We can now test the simplified parser on sample data:
     (! 5) ===> 120)
   " read-list)))
      (set! document:style BorderStyle:None)
-     (document:render! (Cursor) (LayoutState))
+     (document:render! (Cursor))
      (display (painter:toString))
      (painter:toString)) ===> "
   <<simple-parser-test-result-with-indentation>>
@@ -7158,7 +7139,7 @@ We can now test the simplified parser on sample data:
   " read-list)))
      (set! document:style BorderStyle:None)
      (painter:clear!)
-     (document:render! (Cursor) (LayoutState))
+     (document:render! (Cursor))
      (display (painter:toString))
      (painter:toString)) ===> "
   <<simple-parser-test-result-no-indentation>>
@@ -7291,69 +7272,68 @@ it supports more objects):
        0
        (lambda ()
          (while running?
-  	 (path:set-top! (result:size))
-  	 (if (or (is (result:elements:size) >= max-elements)
-  		 (eof-object? (peek-char port)))
+           (path:set-top! (result:size))
+           (if (or (is (result:tiles:size) >= max-elements)
+                   (eof-object? (peek-char port)))
                (set! running? #false)
                (match (read-char port)
                  (,@eof-object? (set! running? #false))
-                 (#\( (result:add (read-list from: port
-  					   at: path)))
+                 (#\( (result:add (read-list from: port at: path)))
                  (#\space (let ((last-space ::Space
-  					  (last result:spaces)))
-  			  (last-space:widen! 1)))
+                                            (last result:spaces)))
+                            (last-space:widen! 1)))
                  (#\newline (let ((last-space ::Space
-  					    (last result:spaces)))
+                                              (last result:spaces)))
                               (last-space:add
-  			     (- indentation))))
+                               (- indentation))))
                  (#\) (set! running? #false))
                  (#\[ (result:add (enchanted (read-list
-  					    from: port
-  					    at: path)
+                                              from: port
+                                              at: path)
                                              path)))
                  (#\] (set! running? #false))
                  (#\" #|"|# (result:add (read-text
-  				       from: port)))
+                                         from: port)))
                  (#\# (result:add (read-hash port path)))
                  (#\' (result:add (enchanted
-  				 (Comb* (Atom "quote")
-  					(read-list
-  					 from: port
-  					 at: path upto: 1))
-  				 path)))
+                                   (Comb* (Atom "quote")
+                                          (read-list
+                                           from: port
+                                           at: path upto: 1))
+                                   path)))
                  (#\` (result:add (enchanted
-  				 (Comb* (Atom "quasiquote")
-  					(read-list
-  					 from: port
-  					 at: path upto: 1))
-  				 path)))
+                                   (Comb* (Atom "quasiquote")
+                                          (read-list
+                                           from: port
+                                           at: path upto: 1))
+                                   path)))
                  (#\,
-  		(match (peek-char port)
-  		  (#\@
+                  (match (peek-char port)
+                    (#\@
                      (read-char port)
                      (result:add (enchanted
-  				(Comb*
-  				 (Atom "unquote-splicing")
+                                  (Comb*
+                                   (Atom "unquote-splicing")
                                    (read-list
-  				  from: port
-  				  at: path
-  				  upto: 1))
-  				path)))
-  		  (_
+                                    from: port
+                                    at: path
+                                    upto: 1))
+                                  path)))
+                    (_
                      (result:add (enchanted
-  				(Comb* (Atom "unquote")
+                                  (Comb* (Atom "unquote")
                                          (read-list
-  					from: port
-  					at: path
-  					upto: 1))
-  				path)))))
+                                          from: port
+                                          at: path
+                                          upto: 1))
+                                  path)))))
                  (#\;
-  		(result:add (read-line-comment from: port))
-  		(let ((next-space ::Space (last result:spaces)))
-  		  (set! (last next-space:fragments)
-  			(- indentation))))
+                  (result:add (read-line-comment from: port))
+                  (let ((next-space ::Space (last result:spaces)))
+                    (set! (last next-space:fragments)
+                          (- indentation))))
                  (c   (result:add (read-atom into: (Atom c)
-  					   from: port))))))
+                                             from: port))))))
          result))))
 
 #+END_SRC
@@ -7408,13 +7388,13 @@ definition of ~read-line-comment~ is the simplest:
                               from: port ::InputPort := (current-input-port))
     ::LineComment
     (let loop ()
-      (let ((c (read-char port)))
+      (let ((c (peek-char port)))
         (cond
          ((or (eof-object? c)
               (eq? c #\newline))
           result)
         (else
-         (result:add c)
+         (result:add (read-char port))
          (loop))))))
   
 #+END_SRC
@@ -7561,7 +7541,7 @@ class that will be elaborated in the future.
 
   <<GRASP-ontology>>
 
-  (define-interface Element (Visual Cloneable)
+  (define-interface Element (Cloneable)
     #|
     This is a mock implementation
     that is only used for testing
@@ -7571,10 +7551,9 @@ class that will be elaborated in the future.
     )
 
   (define-interface Tile (Element)
+    (render! path::Cursor)::void
     (width)::real
     (height)::real)
-
-  (define-interface Comment (Tile))
 
   (define-object (Space)::Element
     <<Space--representation>>
@@ -7613,7 +7592,7 @@ class that will be elaborated in the future.
   (* n (! (- n 1)))))
   (e.g. (! 5) ===> 120)
   " read-document)))
-     (document:render! (Cursor) (LayoutState))
+     (document:render! (Cursor))
      (display (painter:toString))
 
      (painter:toString)) ===> "
@@ -7643,7 +7622,7 @@ class that will be elaborated in the future.
   (e.g. (! 5) ===> 120)
   " read-document)))
     (painter:clear!)
-    (document:render! (Cursor) (LayoutState))
+    (document:render! (Cursor))
     (display (painter:toString))
     (painter:toString)) ===> "
   ╭        ╭     ╮                ╮
@@ -7776,9 +7755,7 @@ We also need to implement serialization for our textual elements:
 
     (Textual))
 
-  (define-object (BlockComment)::Comment
-
-    (define (breaks-line?)::boolean #false)
+  (define-object (BlockComment)
 
     (define-protected (prefix)::string "#|")
 
@@ -7786,13 +7763,11 @@ We also need to implement serialization for our textual elements:
 
     (Textual))
 
-  (define-object (LineComment)::Comment
-
-    (define (breaks-line?)::boolean #true)
+  (define-object (LineComment)
 
     (define-protected (prefix)::string ";")
 
-    (define-protected (suffix)::string "\n")
+    (define-protected (suffix)::string "")
 
     (Textual))
 
@@ -7821,9 +7796,6 @@ We can now test whether the algorithm works correctly:
     )
 
   (define-interface Tile (Element))
-
-  (define-interface Comment (Tile)
-    (breaks-line?)::boolean)
 
   (define-object (Space)::Element
     <<Space--representation>>
@@ -8136,7 +8108,21 @@ But in order for them to be possible, we need to be able
 to /climb/ the current cursor /front/ and /back/ (until
 it is final):
 
-#+BEGIN_SRC scheme :noweb-ref Cursor--operations
+#+BEGIN_SRC scheme :noweb-ref Cursor--operations :noweb no-export
+  (define-internal (climb-from! root ::Element
+                                indexer ::(maps (Element) to: int))
+    ::void
+    (let loop ((root ::Element root))
+      (let* ((index ::int (indexer root))
+             (next ::Element (root:element-at index)))
+        (self push! index)
+        (unless (eq? next root)
+          (loop next)))))
+
+  (define-internal (climb-back-from! root ::Element)::void
+    (climb-from! root (lambda (element ::Element)::int
+                              (element:last-index))))
+
   (define-private (climb! document ::Element indexer ::(maps (Element) to: int))
     ::void
     (let ((top ::Element document)
@@ -8145,12 +8131,7 @@ it is final):
         (set! tip top)
          (set! top (top:element-at index)))
       (unless (eq? tip top)
-        (let loop ((root ::Element top))
-          (let* ((index ::int (indexer root))
-                 (next ::Element (root:element-at index)))
-            (self push! index)
-            (unless (eq? next root)
-              (loop next))))))
+        (climb-from! top indexer)))
     (assert (final-in? document)))
 
   (define-private (climb-front! document ::Element)::void
@@ -8736,7 +8717,6 @@ The ~render!~ method is going to render the ~document~:
   (define-object (CursorNavigationTest document::Document)::Application
     (define-private cursor ::Cursor (Cursor))
     (define-private path ::Cursor (Cursor))
-    (define-private layout-state ::LayoutState (LayoutState))
 
     (define (key-typed! key::KeyStroke)::boolean
       (parameterize ((current-document document)
@@ -8761,7 +8741,7 @@ The ~render!~ method is going to render the ~document~:
     (define (render!)::void
       (parameterize ((current-document document)
                      (current-cursor cursor))
-        (document:render! path layout-state)
+        (document:render! path)
         (assert (path:empty?)))))
 
 #+END_SRC
@@ -8868,18 +8848,17 @@ keys (for moving the cursor left and right), and to the
 
   <<GRASP-interactivity>>
 
-  (define-interface Element (Visual Cloneable)
+  (define-interface Element (Cloneable)
     <<Element--cursor-operations>>
     <<Element--indexing>>
     )
 
   (define-interface Tile (Element)
+    (render! path::Cursor)::void
     (width)::real
     (height)::real)
 
   (define-interface Enchanted (Interactive Tile))
-
-  (define-interface Comment (Tile))
 
   (define-object (Space)::Element
     <<Space--representation>>
@@ -8990,15 +8969,15 @@ spaces, to indicate the break point inside of them.
              (left-suffix ::Space (left-space:split-at! sub-start))
              (right-space ::Space (spaces end/2))
              (right-suffix ::Space (right-space:split-at! sub-end))
-             (elements* ::List (elements:subList start/2 end/2))
+             (tiles* ::List (tiles:subList start/2 end/2))
              (spaces* ::List (spaces:subList (+ start/2 1)
                                              (+ end/2 1)))
              (result ::Comb (Comb)))
         (left-space:merge-with! right-suffix)
-        (set! result:elements (ArrayList elements*))
+        (set! result:tiles (ArrayList tiles*))
         (set! result:spaces (ArrayList spaces*))
         (result:spaces:add 0 left-suffix)
-        (elements*:clear)
+        (tiles*:clear)
         (spaces*:clear)
         result))
   
@@ -9017,7 +8996,7 @@ and splices that ~Comb~ into the current one.
            (end-space ::Space (last comb:spaces)))
       (cut-space:merge-with! (comb:get 0))
       (end-space:merge-with! remnant)
-      (elements:addAll index/2 comb:elements)
+      (tiles:addAll index/2 comb:tiles)
       (spaces:addAll (+ index/2 1) (comb:spaces:subList
                                     1 (comb:spaces:size)))))
 
@@ -9198,6 +9177,30 @@ the /undo/ mechanism):
     ;; operation that un-does this one
     (perform! document::Element)::Edit)
   
+#+END_SRC
+
+We can define ~EditSequence~ class for composing a sequence
+of two or more operations together:
+
+#+BEGIN_SRC scheme :noweb-ref Edit-interface :noweb no-export
+  (define-object (EditSequence operations::(sequence-of Edit))
+
+    (define (position)::Cursor
+      (let ((first ::Edit (operations 0)))
+        (first:position)))
+
+    (define (perform! document::Element)::Edit
+      (EditSequence
+       (fold-left (lambda (performed::(sequence-of Edit)
+                                      next::Edit)
+                    `(,(next:perform! document)
+                      . ,performed))
+                  '()
+                  operations)))
+
+    (Edit)
+    (assert (isnt operations empty?)))
+
 #+END_SRC
 
 The exact set of operations is going to be defined later,
@@ -9529,9 +9532,7 @@ of ~<<TextualSubclasses--rendering>>~ and
 
     (Textual))
 
-  (define-object (BlockComment)::Comment
-
-    (define (breaks-line?)::boolean #false)
+  (define-object (BlockComment)
 
     (define-protected (prefix)::string "#|")
 
@@ -9541,32 +9542,23 @@ of ~<<TextualSubclasses--rendering>>~ and
       (painter:comment-font))
 
     (define-protected (border-style)::BorderStyle
-      BorderStyle:Comment)
+      BorderStyle:BlockComment)
 
     <<BlockComment--editing>>
 
     (Textual))
 
-  (define-object (LineComment)::Comment
-
-    (define (breaks-line?)::boolean #true)
+  (define-object (LineComment)
 
     (define-protected (prefix)::string ";")
 
-    (define-protected (suffix)::string "\n")
+    (define-protected (suffix)::string "")
 
     (define-protected (font)::FontProxy
       (painter:comment-font))
 
     (define-protected (border-style)::BorderStyle
       BorderStyle:LineComment)
-
-    (define (render! path ::Cursor state::LayoutState)::void
-      (super render! path state))
-
-    (define (advance-layout! state ::LayoutState)::void
-      (state:expand! (self width) (self height))
-      (state:break! (painter:min-line-height)))
 
     <<LineComment--editing>>
 
@@ -9608,7 +9600,7 @@ As to the main part of the stub, it is defined as follows:
 
   <<GRASP-interactivity>>
 
-  (define-interface Element (Visual Cloneable)
+  (define-interface Element (Cloneable)
     (congruent-with? another::Element)::boolean
     (serialize port ::OutputPort indent ::int)::void
     <<Element--cursor-operations>>
@@ -9621,10 +9613,9 @@ As to the main part of the stub, it is defined as follows:
   <<cursor-target--definition>>
 
   (define-interface Tile (Element)
+    (render! path::Cursor)::void
     (width)::real
     (height)::real)
-
-  (define-interface Comment (Tile))
 
   (define-interface Enchanted (Interactive Tile))
 
@@ -9707,7 +9698,7 @@ As to the main part of the stub, it is defined as follows:
                                     (painter:text-font)))))
           (painter:with-translation 0 (f:height)
             (lambda ()
-              (document:render! (Cursor) (LayoutState))))))))
+              (document:render! (Cursor))))))))
 
   <<terminal-input-processing>>
 
@@ -10031,7 +10022,12 @@ in particular for ~Space~:
         (#\" ;"
          (InsertSlice (Comb (Text)) (copy cursor)))
         (#\;
-         (InsertSlice (Comb (LineComment)) (copy cursor)))
+         (if (is (fragment-index (cursor:top))
+                 >= (- (fragments:size) 1))
+             (EditSequence `(,(BreakSpace (copy cursor))
+                             ,(InsertSlice (Comb (LineComment))
+                                           (copy cursor))))
+             (InsertSlice (Comb (LineComment)) (copy cursor))))
         (#\[ ;]
          (InsertSlice (Comb (Comb)) (copy cursor)))
         (#\]
@@ -10148,26 +10144,6 @@ the two subsequent fragments into a single number:
           (cursor:pop!)
           (cursor:push! (- tip 1))
           (BreakSpace cursor)))))
-
-#+END_SRC
-
-As we can see, the ~BreakSpace~ operation refers to the
-~fragment-index+offset~ method that we haven't yet defined in
-~Space~. The definition is almost identical to that of the
-~fragment-index~ method, but it returns an additional value:
-
-#+BEGIN_SRC scheme :noweb-ref Space--editing :noweb no-export
-  (define (fragment-index+offset cursor-index::int)::(Values int int)
-    (escape-with return
-      (let ((base ::int 0))
-        (for index::int from: 0 below: (length fragments)
-             (let ((positions ::int (index-positions
-                                     (fragments index))))
-               (when (is cursor-index < (+ base positions))
-                 (return index (- cursor-index base)))
-               (increase! base by: positions)))
-        (return (- (length fragments) 1)
-                (max 0 (last fragments))))))
 
 #+END_SRC
 
@@ -10738,13 +10714,14 @@ to out document model, which consists of the
   (module-name (document elements))
   (import (language-extensions))
   (import (painter interface))
+  (import (utils debug))
 
   <<GRASP-ontology>>
 
   (define-parameter (current-document)::Element
     #!null)
 
-  (define-interface Element (Visual Cloneable)
+  (define-interface Element (Cloneable)
     (serialize port ::OutputPort indent ::int)::void
     (congruent-with? another::Element)::boolean
     <<Element--cursor-operations>>
@@ -10756,11 +10733,10 @@ to out document model, which consists of the
   <<Edit-interface>>
 
   (define-interface Tile (Element)
+    (render! path::Cursor)::void
     (width)::real
-    (height)::real)
-
-  (define-interface Comment (Tile)
-    (breaks-line?)::boolean)
+    (height)::real
+    <<Tile--remaining-methods>>)
 
 #+END_SRC
 
@@ -10944,7 +10920,7 @@ where ~GRASP-Editor~ implements at least ~key-typed!~ and
 
     (define (render!)::void
       (with-editor-context
-       (document:render! (Cursor) (LayoutState))))
+       (document:render! (Cursor))))
 
 #+END_SRC
 
@@ -11012,6 +10988,26 @@ This allows us to rephrase the test:
      1           
    (* n (! (- n 1)))))
   (e.g. (! 5) ===> 120)
+
+  #| shapes that vertical movement gets wrong -- problems.scm |#
+  (tall-child (a \"multi
+  line
+  string\"
+   b))
+  (line-comment (a ;; note
+   b))
+  (block-comment (a #|one
+  two
+  three|#
+   b))
+  (empty-lines (a
+
+
+   b))
+  (tall-parenthesis (a
+   b
+   c
+   d))
   "
         (lambda (port)
           (read-list from: port into: editor:document)))
@@ -11056,9 +11052,8 @@ to that element,, and possibly returns the extended path
 that leads to its child element that is marked by those
 coordinates:
 
-#+BEGIN_SRC scheme :noweb-ref Element--remaining-methods :noweb no-export
-  (cursor-under* x ::real y ::real path ::Cursor
-                 position ::LayoutState)
+#+BEGIN_SRC scheme :noweb-ref Tile--remaining-methods :noweb no-export
+  (cursor-under* x ::real y ::real path ::Cursor)
   ::(maybe (Values Cursor x y))
 #+END_SRC
 
@@ -11072,9 +11067,7 @@ invoke ~Painter~'s ~character-index~ method (that we defined
 earlier):
 
 #+BEGIN_SRC scheme :noweb-ref Textual--remaining-methods :noweb no-export
-  (define (cursor-under* x ::real y ::real
-                         path ::Cursor
-                         position ::LayoutState)
+  (define (cursor-under* x ::real y ::real path ::Cursor)
     ::(maybe (Values Cursor real real))
     (escape-with return
       (let* ((font ::FontProxy (self font))
@@ -11083,10 +11076,7 @@ earlier):
                            (painter:border-width style))
              (border-height ::real
                             (painter:border-height style))
-             (line-height ::real (font:height))
-             (x ::real (- x position:left))
-             (y ::real (- y position:top)))
-        (advance-layout! position)
+             (line-height ::real (font:height)))
         (when (or (is x < 0) (is x >= (width))
                   (is y < 0) (is y >= (height)))
           (return #!null))
@@ -11136,7 +11126,7 @@ height.
                                (painter:min-line-height))
              (when (is position:top <= y
                        < (+ position:top
-                            position:line-height))
+                            (painter:min-line-height)))
                (when (is left <= x < (+ left width))
                  (path:push! (+ base (nearby-int (/ (- x left)
                                                     space-width))))
@@ -11160,9 +11150,7 @@ position is at either of its parentheses, and otherwise we
 need to check every element inside.
 
 #+BEGIN_SRC scheme :noweb-ref Comb--remaining-methods :noweb no-export
-  (define (cursor-under* x ::real y ::real
-                         path ::Cursor
-                         position ::LayoutState)
+  (define (cursor-under* x ::real y ::real path ::Cursor)
     ::(maybe (Values Cursor real real))
     (escape-with return
       (let* ((state ::LayoutState (LayoutState))
@@ -11170,13 +11158,10 @@ need to check every element inside.
                            (painter:border-width style))
              (border-height ::real
                             (painter:border-height style))
-             (x ::int (- x position:left))
-             (y ::int (- y position:top))
              (index ::int 1))
         (cond
          ((or (is x < 0) (is x >= (width))
               (is y < 0) (is y >= (height)))
-          (advance-layout! position)
           (return #!null))
          ((or (is x < border-width)
               (is y < border-height))
@@ -11189,18 +11174,62 @@ need to check every element inside.
          (else
           (let ((inner-x ::real (- x border-width))
                 (inner-y ::real (- y border-height))
-                (line-end ::int 0))
-            (for element ::Element in: (this)
-                 (when (is state:top <= y)
-                   (set! line-end index))
-                 (path:push! index)
-                 (given ((result x* y*
-                                 (element:cursor-under*
-                                  inner-x inner-y path state)))
-                   (return result x* y*))
-                 (path:pop!)
-                 (increase! index by: 1))
-            (path:push! line-end)
+                (line-end ::int 1)
+                (owner ::int 0)
+                (owner-left ::real 0)
+                (owner-width ::real 0)
+                (owner-top ::real 0))
+            (path:push! index)
+            (for i::int from: 0 below: (tiles:size)
+                 (let ((space ::Space (spaces i))
+                       (tile ::Tile (tiles i)))
+                   (when (is state:top <= inner-y)
+                     (set! line-end index))
+                   (path:set-top! index)
+                   (given ((result x* y*
+                                   (space:cursor-under*
+                                    inner-x inner-y path state)))
+                     (return result x* y*))
+                   (increase! index)
+                   (when (is state:top <= inner-y)
+                     (set! line-end index))
+                   (path:set-top! index)
+                   (let ((tile-left ::real state:left)
+                         (tile-top ::real state:top))
+                     (given ((result x* y*
+                                     (tile:cursor-under*
+                                      (- inner-x tile-left)
+                                      (- inner-y tile-top)
+                                      path)))
+                       (return result x* y*))
+                     (when (is tile-top <= inner-y
+                               < (+ tile-top (tile:height)))
+                       (set! owner index)
+                       (set! owner-left tile-left)
+                       (set! owner-width (tile:width))
+                       (set! owner-top tile-top)))
+                   (state:expand! (tile:width) (tile:height))
+                   (increase! index)))
+            (when (is state:top <= inner-y)
+              (set! line-end index))
+            (path:set-top! index)
+            (let ((last-space ::Space (last spaces)))
+              (given ((result x* y*
+                              (last-space:cursor-under*
+                               inner-x inner-y path state)))
+                (return result x* y*)))
+            (when (is owner > 0)
+              (path:set-top! owner)
+              (given ((result x* y*
+                              ((element-at owner):cursor-under*
+                               (max 0 (min (- inner-x owner-left)
+                                           (- owner-width
+                                              (painter:space-width))))
+                               (- inner-y owner-top)
+                               path)))
+                (return result x* y*)))
+            (path:set-top! line-end)
+            (path:climb-back-from! (element-at line-end))
             (return path x y)))))))
 
 #+END_SRC
@@ -11209,13 +11238,10 @@ In case of ~Document~ we want to ~canonicalize!~ the
 resulting ~Cursor~:
 
 #+BEGIN_SRC scheme :noweb-ref Document--definition :noweb no-export
-  (define (cursor-under* x::real y::real
-                         cursor::Cursor
-                         state::LayoutState)
+  (define (cursor-under* x::real y::real cursor::Cursor)
     ::(maybe (Values Cursor real real))
     (given* ((cursor ::Cursor x* ::real y* ::real
-                     (super cursor-under* x y
-                            cursor state)))
+                     (super cursor-under* x y cursor)))
       (cursor:canonicalize!)
       (values cursor x* y*)))
 #+END_SRC
@@ -11229,7 +11255,7 @@ to the full variant:
 #+BEGIN_SRC scheme :noweb-ref Document--definition
   (define (cursor-under* x::real y::real)
     ::(maybe (Values Cursor real real))
-    (self cursor-under* x y (Cursor) (LayoutState)))
+    (self cursor-under* x y (Cursor)))
 #+END_SRC
 
 **** Vertical cursor movement
@@ -11259,17 +11285,18 @@ to be the standard among text editors):
               (probe-x ::real (min column
                                    (- (document:width)
                                       (painter:space-width))))
-              (here ::Cursor _ _
+              (here ::Cursor x0 ::real y0 ::real
                     (document:cursor-under* probe-x screen-y
-                                            (Cursor) (LayoutState))))
+                                            (Cursor))))
         (let scan ((probe-y ::real (+ screen-y step)))
           (when (is 0 <= probe-y < bottom)
             (cursor:clear!)
             (layout:clear!)
-            (unless (given ((probe ::Cursor _ _
+            (unless (given ((probe ::Cursor xp ::real yp ::real
                                    (document:cursor-under*
-                                    probe-x probe-y cursor layout))
-                            ((not (equal? probe here))))
+                                    probe-x probe-y cursor))
+                            ((probe:final?))
+                            ((isnt probe equal? here)))
                       (assign! probe)
                       (set! sticky-column column)
                       #true)
@@ -11969,9 +11996,8 @@ When it comes to the second question, a ~Comb~ is ~Resizable~:
 #+END_SRC
 
 ~Comb~'s implementation of the ~resize-anchor~ method looks
-through line-ending spaces (or spaces following any
-line-ending ~Comment~) to find the one that corresponds to
-the ~y~ coordinate:
+through line-ending spaces to find the one that corresponds
+to the ~y~ coordinate:
 
 #+BEGIN_SRC scheme :noweb-ref Comb--remaining-methods :noweb no-export
   (define (resize-anchor x::real y::real)
@@ -11985,19 +12011,9 @@ the ~y~ coordinate:
             (escape-with return
               (for i::int from: 0 below: last-space-index
                    (let ((space ::Space (spaces i)))
-                     (space:advance-layout! layout)
                      (when (and (is (space:fragments:size) > 1)
                                 (is y <= layout:top))
-                       (return
-                        (CombLineEnding i)))
-                     (let ((element ::Element (elements i)))
-                       (element:advance-layout! layout)
-                       (given ((element ::Comment)
-                               ((element:breaks-line?))
-                               ((is y <= layout:top)))
-                         (return
-                          (CombLineEnding (+ i 1)))))))
-
+                       (return (CombLineEnding i)))))
               (return
                (CombLineEnding last-space-index)))))))
 
@@ -12105,9 +12121,7 @@ and vertical space.
                       (limit ::int (- (space:fragments:size) 1)))
                  (when (or (is (space:fragments:size) > 2)
                            (= n 0)
-                           (= n last-space-index)
-                           (given ((comment ::Comment (get (- (* 2 n) 1))))
-                             (comment:breaks-line?)))
+                           (= n last-space-index))
                    (for i::int from: 0 below: limit
                         (space:fragments:remove 0)
                         (increase! added-lines)
@@ -12129,8 +12143,13 @@ and vertical space.
       (for space ::Space in: spaces
            (for i::int from: 0 below: (- (space:fragments:size) 1)
                 (set! (space:fragments i) (as int 0))))
-      (for element ::Element in: (this)
-           (element:advance-layout! layout))
+      (for i::int from: 0 below: (tiles:size)
+           (let ((space ::Space (spaces i))
+                 (tile ::Tile (tiles i)))
+             (space:advance-layout! layout)
+             (layout:expand! (tile:width) (tile:height))))
+      (let ((last-space ::Space (last spaces)))
+        (last-space:advance-layout! layout))
       (let* ((inner-width ::real (max 0 (- width layout:left border)))
              (padding ::int (as int (quotient inner-width
                                               space-width))))
